@@ -12,6 +12,24 @@ import {MegaSynthNode} from 'tetorica-fm2612/node';
 import {YM2612AudifyTransport, PWM32XAudifyTransport} from 'tetorica-fm2612/node/transports';
 import {YM2151AudifyTransport} from 'tetorica-fm2612/node/transports';
 import {YM2151Synth, YM2151DirectTransport} from 'tetorica-fm2612/ym2151synth.js';
+import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_synth.js';
+import {YM3812Synth, YM3812DirectTransport} from 'tetorica-fm2612/ym3812synth.js';
+import {OPLAudifyTransport} from 'tetorica-fm2612/node/transports';
+
+const oplChip = await createSoundChip('ym3812');
+const opl = new OPLSynth({chip:'ym3812',transport:new OPLDirectTransport(oplChip)});
+opl.initialize();opl.setPreset(0,OPL_PRESETS.sine);opl.noteOn(0,'A4');opl.noteOff(0);
+opl.setOperator(0,1,{multi:1,egt:true,waveform:3,tl:4});
+const oplPitch: {fnum:number;block:number} = opl.setFrequency(0,440);
+opl.adoptRegisterSnapshot(opl.getRegisterSnapshot());
+new YM3812Synth({transport:new YM3812DirectTransport(oplChip)});
+new OPLAudifyTransport(oplChip);
+// @ts-expect-error notes are names or MIDI integers
+opl.noteOn(0,{});
+// @ts-expect-error no OPN detune field on OPL operators
+opl.setOperator(0,0,{dt1:2});
+// @ts-expect-error AM depth uses the hardware toggle
+opl.setLFO({amDepth:'deep'});
 import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
 
 const opmChip = await createSoundChip('ym2151');

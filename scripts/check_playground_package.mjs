@@ -5,6 +5,13 @@ const root=resolve(process.argv[2]);let count=0;const errors=[];
 function check(file,spec){if(!spec.startsWith('.'))return;const target=resolve(dirname(file),spec.split(/[?#]/)[0]);count++;if(!existsSync(target)||relative(root,target).startsWith('..'))errors.push(`${relative(root,file)}: ${spec}`);}
 function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['vendor','examples','defaults','samples'].includes(ent.name))continue;const f=resolve(dir,ent.name);if(ent.isDirectory()){walk(f);continue;}if(!f.endsWith('.js'))continue;const src=readFileSync(f,'utf8');const mod=new SourceTextModule(src);for(const spec of mod.dependencySpecifiers)check(f,spec);for(const m of src.matchAll(/new URL\(\s*["']([^"']+)["']\s*,\s*import.meta.url/g))check(f,m[1]);}}
 walk(root);
+for(const chip of ['ym3526','ym3812','y8950','ymf262'])for(const file of [
+  `defaults/${chip}/index.js`,`tetorica-playground-${chip}.d.ts`,`js/${chip}synth.js`,
+  `js/${chip}.js`,`js/${chip}audioengine.js`,`generated/${chip}_wasm.js`,`generated/${chip}_wasm.wasm`,
+])if(!existsSync(resolve(root,file)))errors.push(file);
+for(const file of ['playground_opl_voice_panel.js','js/opl_synth.js','js/playground_opl.js',
+  'js/playground_opl_audio.js','js/playground_opl_worklet.js','js/playground_opl_inspector.js',
+])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const file of ['playground_mode_starters.js','playground_mode_examples.js','defaults/index.js',...['genesis','genesis-nuked','genesis-full','genesis-full-nuked','pc98-26','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system','dx7'].map(mode=>`defaults/${mode}/index.js`)])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const mode of ['game-gear','master-system','dx7'])if(!existsSync(resolve(root,`tetorica-playground-${mode}.d.ts`)))errors.push(`tetorica-playground-${mode}.d.ts`);
 for(const file of ['playground_audio_input.js','playground_sample_assets.js','playground_sample_editor.css','playground_sample_editor_worker.js',

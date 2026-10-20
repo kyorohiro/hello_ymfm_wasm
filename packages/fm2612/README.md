@@ -32,6 +32,7 @@ entry points, rather than every internal Worker or Worklet module.
 | YM2608 FM, SSG, rhythm and ADPCM-B | `tetorica-fm2612/ym2608synth.js` | `YM2608Synth`, `YM2608DirectTransport`, `YM2608WorkletTransport` |
 | YM2610 / YM2610B FM, SSG and ADPCM | `tetorica-fm2612/ym2610bsynth.js` | `YM2610BSynth`, `YM2610BDirectTransport`, `NeoGeoFMSynth`, `NeoGeoSynth` |
 | YM2151 FM | `tetorica-fm2612/ym2151synth.js` | `YM2151Synth`, `YM2151DirectTransport`, `YM2151WorkletTransport` |
+| OPL / OPL2 / Y8950 FM / OPL3 | `tetorica-fm2612/opl_synth.js` | `OPLSynth`, `OPLDirectTransport`, `OPL_PRESETS` |
 | Game Boy pulse, wave and noise | `tetorica-fm2612/gameboysynth.js` | `GameboySynth`, `GameboyDirectTransport` |
 | NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
@@ -87,6 +88,50 @@ Declarations are shipped beside each module, for example
 `node_modules/tetorica-fm2612/node/chip_transports.d.mts`. They describe exported
 functions/classes, parameter types, options and return types. Plain JavaScript
 projects can use the same editor assistance with JSDoc-aware tooling.
+
+### OPL family instruments
+
+`OPLSynth` shares one API across `ym3526`, `ym3812`, `y8950` (FM only), and
+`ymf262`. Channels are zero-based: 0–8 for the first three, 0–17 for OPL3.
+Operator indices are modulator/carrier 0/1; enabled OPL3 pairs use 0–3.
+`initialize()` explicitly resets the chip and prepares silent voices. Constructing
+a Synth alone never resets or writes to a borrowed chip.
+
+```js
+import {createSoundChip, encodeWav} from 'tetorica-fm2612';
+import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_synth.js';
+
+const chip = await createSoundChip('ym3812');
+try {
+  const opl = new OPLSynth({chip:'ym3812', transport:new OPLDirectTransport(chip)});
+  opl.initialize();
+  opl.setPreset(0, OPL_PRESETS.sine);
+  opl.noteOn(0, 'A4');
+  const pcm = chip.generateStereo(Math.round(chip.sampleRate() * 0.5));
+  const wav = encodeWav({...pcm, sampleRate:chip.sampleRate()});
+  opl.noteOff(0);
+  // Save wav to a file, or send pcm to your own output.
+} finally { chip.dispose(); }
+```
+
+Use `OPLWorkletTransport` from `chip_worklet_transport.js` with a
+`createSoundChip(name, {execution:'worklet'})` endpoint for browser audio.
+`OPLAudifyTransport` from `node/transports` provides optional Node device output.
+The chip-specific `ym3526synth.js`, `ym3812synth.js`, `y8950synth.js` and
+`ymf262synth.js` entry points also export named Synth and DirectTransport wrappers.
+
+OPL3 enables stereo with `setPan(ch, left, right)` and pairs with
+`setFourOp(ch, true)` for primary channels 0–2 and 9–11. Each enabled pair owns
+the secondary channel three positions later; address its four operators through
+the primary. `setPreset(0, OPL_PRESETS['four-op-bell'])` configures such a pair.
+Mono chips send the same output to both speakers. Their operators support sine
+only on YM3526/Y8950, four waveforms on YM3812, and eight on YMF262.
+
+Playground modes `ym3526`, `ym3812`, `y8950` and `ymf262` expose the primary
+instrument as `opl` and provide `OPL_PRESETS`. Use `opl.noteOn()` / `noteOff()`;
+the OPN `fm` and `play()` conveniences are absent. Operators and Keyboard share
+this same primary instrument. OPLL/YM2413 is a separate API and is not included
+in this high-level OPL family implementation.
 
 `node_modules/tetorica-fm2612/runtime-manifest.json` lists every shipped runtime
 module and asset. It is a distribution inventory, including internal modules;

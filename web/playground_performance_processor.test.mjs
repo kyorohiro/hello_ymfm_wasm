@@ -75,7 +75,7 @@ test('a retired DX7 owner cannot release a replacement owner on the same MIDI no
 for(const [name,command,key]of[
   ['rf5c164',{method:'keyOn',args:[3]},3],['nes',{method:'setChannelEnabled',args:[1,true]},1],
   ['gameboy',{method:'writeRegister',args:[14,128]},2],['segapsg',{method:'write',args:[0xd2]},2],
-  ['ym2151',{method:'writeRegister',args:[8,0x7a]},2],['ym2612',{method:'write',args:[0,0x28,0xf4]},3],
+  ['ym2151',{method:'writeRegister',args:[8,0x7a]},2],['ym3812',{method:'writeRegister',args:[0xb2,0x32]},2],['ymf262',{method:'writeRegister',args:[0xb2,0x32,1]},11],['ym2612',{method:'write',args:[0,0x28,0xf4]},3],
   ['ym2608',{method:'write',args:[0,0x28,0xf1]},1],['pwm',{method:'write',args:[2,700]},0],
 ])test(`${name}: cancelling the applied owner releases only its tracked channel`,()=>{
   assert.deepEqual(identifyPerformanceNote(name,command),{key,on:true});

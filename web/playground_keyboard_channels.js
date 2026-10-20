@@ -3,9 +3,9 @@
  * @typedef {{id:string,label:string}} PlaygroundKeyboardChannel
  */
 /** @param {string} kind
- * @param {{fds?:boolean,fdsEnabled?:boolean,model?:string}} [options]
+ * @param {{fds?:boolean,fdsEnabled?:boolean,model?:string,registers?:ArrayLike<number>}} [options]
  * @returns {PlaygroundKeyboardChannel[]} */
-export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model}={}) {
+export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers}={}) {
   const numbered=(prefix,count,label)=>Array.from({length:count},(_,index)=>({id:`${prefix}${index}`,label:`${label} ${index+1}`}));
   const native=labels=>labels.map((label,index)=>({id:String(index),label}));
   if(kind==='ym2612')return numbered('fm:',6,'FM');
@@ -22,6 +22,10 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model}={}) {
   if(kind==='nes')return native(['Pulse 1','Pulse 2','Triangle','Noise','DMC',...(fdsEnabled?['FDS']:[])]);
   if(kind==='snes')return numbered('',8,'Voice');
   if(kind==='ym2151')return numbered('',8,'FM');
+  if(['ym3526','ym3812','y8950','ymf262'].includes(kind)){
+    const pairs=[0,1,2,9,10,11],mask=registers?.[0x104]??0,rhythm=!!((registers?.[0xbd]??0)&32);
+    return numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);});
+  }
   if(kind==='huc6280')return numbered('',6,'Wave');
   if(kind==='rf5c164')return numbered('',8,'PCM');
   if(kind==='okim6258')return native(['ADPCM sample']);

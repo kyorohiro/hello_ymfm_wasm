@@ -47,6 +47,14 @@ autoChip.mixer.set(autoChip.id, {volume:0.3});
 // @ts-expect-error Chip IDs cannot be reassigned.
 autoChip.id = 'other';
 import {YM2151Synth, YM2151WorkletTransport} from 'tetorica-fm2612/ym2151synth.js';
+import {OPLSynth,OPL_PRESETS} from 'tetorica-fm2612/opl_synth.js';
+import {YMF262WorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js';
+const oplEndpoint=await createSoundChip('ymf262',{execution:'worklet'});
+const opl=new OPLSynth({chip:'ymf262',transport:new YMF262WorkletTransport(oplEndpoint)});
+opl.initialize();opl.setPreset(0,OPL_PRESETS['four-op-bell']);opl.noteOn(0,'A4');
+opl.setOperator(0,3,{waveform:7,tl:20});opl.setPan(0,true,false);opl.noteOff(0);
+// @ts-expect-error waveform must be numeric
+opl.setOperator(0,0,{waveform:'sine'});
 const opmEndpoint = await createSoundChip('ym2151', {execution: 'worklet'});
 const opm = new YM2151Synth({transport: new YM2151WorkletTransport(opmEndpoint)});
 opm.noteOn(7, 'C4', {operatorMask: 8});

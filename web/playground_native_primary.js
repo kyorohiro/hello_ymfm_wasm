@@ -4,6 +4,7 @@ import {createYm2151Client} from './playground_ym2151.js';
 import {createHuc6280Client} from './playground_huc6280.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {createOki6258Client} from './playground_okim6258.js';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js';
 import {createDx7Client} from './playground_dx7.js';
 
 /** Primary controls borrow devices owned by the runtime. */
@@ -35,7 +36,8 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
 }
 
 export function createNativePrimaryClient(name, port, options = {}) {
-  const client = name === 'nes' ? createNesClient(port, options)
+  const client = OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
+    : name === 'nes' ? createNesClient(port, options)
     : name === 'snes' ? createSnesClient(port, options)
     : name === 'ym2151' ? createYm2151Client(port)
     : name === 'segapsg' ? createSegaPsgClient(port, options)
@@ -45,7 +47,7 @@ export function createNativePrimaryClient(name, port, options = {}) {
     : null;
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state) client._adoptState?.(options.state);
-  else if (name === 'huc6280') client.initialize();
+  else if (name === 'huc6280' || OPL_CHIPS.includes(name)) client.initialize();
   return client;
 }
 

@@ -20,3 +20,8 @@ export class ChipWorkletTransport {
 export class GameboyWorkletTransport extends ChipWorkletTransport {}
 export class SegaPSGWorkletTransport extends ChipWorkletTransport {}
 export class YM2151WorkletTransport extends ChipWorkletTransport {}
+export class OPLWorkletTransport extends ChipWorkletTransport {}
+export class YM3526WorkletTransport extends OPLWorkletTransport {}
+export class YM3812WorkletTransport extends OPLWorkletTransport {}
+export class Y8950WorkletTransport extends OPLWorkletTransport {}
+export class YMF262WorkletTransport extends OPLWorkletTransport {}

@@ -22,7 +22,8 @@ try {
     'playground_keyboard', 'playground_sample_edit', 'playground_sample_instrument',
     'playground_chip_inspector', 'playground_chip_inspector_state', 'playground_native_voice_inspector',
     ...['huc6280','ym2151','okim6258'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
-    'huc6280synth', 'okim6258synth'];
+    'huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth',
+    'playground_opl','playground_opl_audio','playground_opl_worklet','playground_opl_inspector'];
   for (const name of nativeModules) for (const extension of ['js','d.ts']) {
     assert.ok(packedPaths.has(name + '.' + extension), `Native voice/sample package payload missing ${name}.${extension}`);
   }
@@ -50,6 +51,7 @@ import {YM2151Synth, YM2151DirectTransport} from 'tetorica-fm2612/ym2151synth';
 import {NesApuSynth, NesApuDirectTransport} from 'tetorica-fm2612/nesapusynth';
 import {Ym2612} from 'tetorica-fm2612/ym2612.js';
 import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
+import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_synth';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 const chip = await createSoundChip('ym2612');
 try {
@@ -80,6 +82,17 @@ try {
   const pcm = nesChip.generateStereo(4096);
   assert.ok(pcm.left.every(Number.isFinite) && pcm.left.some(v => Math.abs(v) > .001));
 } finally {nesChip.dispose();}
+for(const name of ['ym3526','ym3812','y8950','ymf262']) {
+  const chip = await createSoundChip(name);
+  try {
+    const synth = new OPLSynth({chip:name,transport:new OPLDirectTransport(chip,{chip:name})});
+    synth.initialize();synth.setPreset(0,OPL_PRESETS.sine);synth.noteOn(0,'A4');
+    const pcm=chip.generateStereo(4096);
+    assert.ok(pcm.left.every(Number.isFinite)&&pcm.right.every(Number.isFinite));
+    assert.ok(pcm.left.some(value=>Math.abs(value)>.001),name+' must produce audible installed-package PCM');
+    synth.allNotesOff();
+  } finally {chip.dispose();}
+}
 assert.equal(typeof globalThis.AudioContext, 'undefined');
 const {MegaSynthNode} = await import('tetorica-fm2612/node');
 const nodeSynth = new MegaSynthNode();

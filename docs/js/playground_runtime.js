@@ -1,38 +1,41 @@
 import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=spc-events-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=keyboard-chips-1';
-import {createSnesClient} from './playground_snes.js?v=keyboard-chips-1';
-import {createChipInspector} from './playground_chip_inspector.js?v=keyboard-chips-1';
-import {createPerformanceHost} from './playground_performance_host.js?v=keyboard-chips-1';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=keyboard-chips-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=opl-modes-1';
+import {createSnesClient} from './playground_snes.js?v=opl-modes-1';
+import {createChipInspector} from './playground_chip_inspector.js?v=opl-modes-1';
+import {createPerformanceHost} from './playground_performance_host.js?v=opl-modes-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=opl-modes-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=keyboard-chips-1';
-import {createNesAudio} from './playground_nes_audio.js?v=keyboard-chips-1';
-import {createNesClient} from './playground_nes.js?v=keyboard-chips-1';
-import {createDx7Audio} from './playground_dx7_audio.js?v=keyboard-chips-1';
-import {createDx7Client} from './playground_dx7.js?v=keyboard-chips-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=keyboard-chips-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=keyboard-chips-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=keyboard-chips-1';
-import {createYm2151Client} from './playground_ym2151.js?v=keyboard-chips-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=keyboard-chips-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=keyboard-chips-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opl-modes-1';
+import {createNesAudio} from './playground_nes_audio.js?v=opl-modes-1';
+import {createNesClient} from './playground_nes.js?v=opl-modes-1';
+import {createDx7Audio} from './playground_dx7_audio.js?v=opl-modes-1';
+import {createDx7Client} from './playground_dx7.js?v=opl-modes-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=opl-modes-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=opl-modes-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=opl-modes-1';
+import {createOplAudio} from './playground_opl_audio.js?v=opl-modes-1';
+import {OPL_CHIPS} from './playground_opl.js?v=opl-modes-1';
+import {OPL_PRESETS} from './opl_synth.js?v=opl-modes-1';
+import {createYm2151Client} from './playground_ym2151.js?v=opl-modes-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=opl-modes-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=opl-modes-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createOpnAudio} from './playground_opn_audio.js?v=keyboard-chips-1';
-import {createOpnClient} from './playground_opn.js?v=keyboard-chips-1';
+import {createOpnAudio} from './playground_opn_audio.js?v=opl-modes-1';
+import {createOpnClient} from './playground_opn.js?v=opl-modes-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
-import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=keyboard-chips-1';
-import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=keyboard-chips-1';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=keyboard-chips-1';
-import {createPrimaryGameboyApi} from './playground_gameboy.js?v=keyboard-chips-1';
-import {createGameboyClient} from './playground_gameboy.js?v=keyboard-chips-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=keyboard-chips-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=keyboard-chips-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=keyboard-chips-1';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=keyboard-chips-1';
-import {createYm2608Client} from './playground_ym2608.js?v=keyboard-chips-1';
-import {createRf5c164Client} from './playground_rf5c164.js?v=keyboard-chips-1';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=keyboard-chips-1';
+import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=opl-modes-1';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=opl-modes-1';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=opl-modes-1';
+import {createPrimaryGameboyApi} from './playground_gameboy.js?v=opl-modes-1';
+import {createGameboyClient} from './playground_gameboy.js?v=opl-modes-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=opl-modes-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=opl-modes-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=opl-modes-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=opl-modes-1';
+import {createYm2608Client} from './playground_ym2608.js?v=opl-modes-1';
+import {createRf5c164Client} from './playground_rf5c164.js?v=opl-modes-1';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=opl-modes-1';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -47,11 +50,11 @@ import {parseMidiFile} from './midi_file.js?v=sega-modes-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=keyboard-chips-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=keyboard-chips-1";
+} from "./megasynth.js?v=opl-modes-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=opl-modes-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js?v=keyboard-chips-1";
+import { createPlaygroundLive } from "./playground_live.js?v=opl-modes-1";
 import { createPlaygroundMusic } from "./playground_music.js?v=audio-stability-2";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=audio-stability-2";
@@ -85,7 +88,7 @@ const SCALE_INTERVALS = {
 };
 
 /**
- * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'} PlaygroundChip
+ * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'} PlaygroundChip
  * @typedef {{id:string,midi:number,velocity?:number}} PlaygroundKeyboardEvent
  * @typedef {{name:string,noteOn:(event:PlaygroundKeyboardEvent)=>unknown,
  * noteOff:(event:PlaygroundKeyboardEvent)=>unknown,allNotesOff:()=>unknown}} PlaygroundKeyboardTarget
@@ -137,28 +140,28 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','x68000','huc6280','segapsg'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=keyboard-chips-1', import.meta.url).href
-          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=keyboard-chips-1'
-          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=keyboard-chips-1'
+        (['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=opl-modes-1', import.meta.url).href
+          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=opl-modes-1'
+          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=opl-modes-1'
           : ['ym2610','ym2610b'].includes(options.chip)
-            ? "./ym2610b-worklet.js?v=keyboard-chips-1" : "./ym2612-worklet.js?v=keyboard-chips-1"),
+            ? "./ym2610b-worklet.js?v=opl-modes-1" : "./ym2612-worklet.js?v=opl-modes-1"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
-        "../generated/ym2612_wasm.wasm",
+        "./generated/ym2612_wasm.wasm",
       wasmUrl:
         options.wasmUrl ??
         (options.chip === "gameboy"
           ? options.gameboyWasmUrl ?? new URL("../generated/gameboy_apu_wasm.wasm", import.meta.url).href
           : options.chip === "ym2203"
-          ? options.ym2203WasmUrl ?? "../generated/ym2203_wasm.wasm"
+          ? options.ym2203WasmUrl ?? "./generated/ym2203_wasm.wasm"
           : options.chip === "ym2608"
-            ? options.ym2608WasmUrl ?? "../generated/ym2608_wasm.wasm"
+            ? options.ym2608WasmUrl ?? "./generated/ym2608_wasm.wasm"
             : ['ym2610','ym2610b'].includes(options.chip)
-              ? options.ym2610bWasmUrl ?? "../generated/ym2610b_wasm.wasm"
+              ? options.ym2610bWasmUrl ?? "./generated/ym2610b_wasm.wasm"
             : undefined),
       segaPsgWasmUrl:
         options.segaPsgWasmUrl ??
-        "../generated/segapsg_wasm.wasm?v=sega-modes-1",
+        "./generated/segapsg_wasm.wasm?v=sega-modes-1",
     });
   const presets = {
     ...FM_PRESETS,
@@ -178,7 +181,7 @@ export function createPlaygroundRuntime(
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const sourceMap =
     new Map();
@@ -227,7 +230,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=keyboard-chips-1",
+      "./playground_logic_worker.js?v=opl-modes-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -318,7 +321,7 @@ export function createPlaygroundRuntime(
     const entries=[];
     if(hasOpn&&megaDrive.node?.port)entries.push({id:capabilities.chip,kind:capabilities.chip,label:`${capabilities.chip.toUpperCase()} (primary)`,port:megaDrive.node.port});
     if(capabilities.chip==='gameboy'&&megaDrive.gameboy&&megaDrive.node?.port)entries.push({id:'gameboy',kind:'gameboy',label:'Game Boy (primary)',port:megaDrive.node.port});
-    const nativeLabels={snes:'SNES (primary)',nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)',dx7:'DX7 (primary)'};
+    const nativeLabels={snes:'SNES (primary)',nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)',dx7:'DX7 (primary)',ym3526:'YM3526 (primary)',ym3812:'YM3812 (primary)',y8950:'Y8950 FM (primary)',ymf262:'YMF262 (primary)'};
     for(const endpoint of megaDrive.primaryEndpoints??[])if(nativeLabels[endpoint.name]&&endpoint.client&&endpoint.node?.port)entries.push({id:endpoint.name,kind:endpoint.name,label:nativeLabels[endpoint.name],port:endpoint.node.port,...(endpoint.name==='nes'?{fdsEnabled:true}:{})});
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
@@ -394,6 +397,10 @@ export function createPlaygroundRuntime(
       if (['noteOn','keyOn','play','noteOff','keyOff','stop'].includes(method)) return {key,on:['noteOn','keyOn','play'].includes(method)};
     }
     if (['noteOn','keyOn','noteOff','keyOff'].includes(method)) return {key:args[0],on:method==='noteOn'||method==='keyOn'};
+    if (name === 'opl' && method === 'writeRegister') {
+      const [register,value,bank=0]=args,local=register&255;
+      if(local>=0xb0&&local<=0xb8)return {key:((register>>8)||bank)*9+local-0xb0,on:!!(value&32)};
+    }
     if (name === 'opm' && method === 'writeRegister' && args[0] === 8) return {key:args[1]&7,on:!!(args[1]&0x78)};
     return null;
   }
@@ -502,7 +509,7 @@ export function createPlaygroundRuntime(
   async function openPcm(name, token = currentRunToken, options = {}) {
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
-    if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7', 'snes', 'spc', 'huc6280', 'okim6258'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
+    if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7', 'snes', 'spc', 'huc6280', 'okim6258', 'ym3526','ym3812','y8950','ymf262'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
     // A Worker can retire a logical source at its future lookahead position,
     // then immediately request that same cached source again. Reconnect only
     // after the old endpoint is actually released, never into a different chip.
@@ -514,7 +521,7 @@ export function createPlaygroundRuntime(
     if (mixerId === undefined) do {mixerId = `${name}:${++pcmSequence}`;} while (occupied(mixerId));
     if (typeof mixerId !== 'string' || !mixerId.trim()) throw new TypeError('Mixer id must be a nonempty string');
     if (occupied(mixerId)) {reservation?.release(); throw new Error(`Mixer id is already connected: ${mixerId}`);}
-    const createAudio = name === 'huc6280' ? createHuc6280Audio : name === 'okim6258' ? createOki6258Audio : name === 'spc' ? createSpcAudio : name === 'snes' ? createSnesAudio : name === 'dx7' ? createDx7Audio : name === 'nes' ? (context, destination) => createNesAudio(context, destination, options) : name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
+    const createAudio = OPL_CHIPS.includes(name) ? (context,destination) => createOplAudio(context,destination,{chip:name}) : name === 'huc6280' ? createHuc6280Audio : name === 'okim6258' ? createOki6258Audio : name === 'spc' ? createSpcAudio : name === 'snes' ? createSnesAudio : name === 'dx7' ? createDx7Audio : name === 'nes' ? (context, destination) => createNesAudio(context, destination, options) : name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
     pendingPcmIds.add(mixerId);
     let device;
     try {device = await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
@@ -533,10 +540,15 @@ export function createPlaygroundRuntime(
       if (disposed) return; disposed = true;
       try {release();} finally {
         pcmDevices.delete(device);
-        try {dispose();} finally {chipInspector.notify();}
+        try {device.detachOplState?.();dispose();} finally {chipInspector.notify();}
       }
     };
     device.mixerId = mixerId; device.chipName = name;
+    if(OPL_CHIPS.includes(name)){
+      const observer=({data})=>{if(data?.type!=='opl-state')return;device.client?._adoptState(data.state);logicWorker?.postMessage({type:'extra-opl-state',id:mixerId,state:data.state});};
+      device.node.port.addEventListener('message',observer);device.node.port.start?.();
+      device.detachOplState=()=>device.node.port.removeEventListener('message',observer);
+    }
     pcmDevices.add(device); chipInspector.notify(); return device;
   }
   async function decodePcm(source){
@@ -615,6 +627,10 @@ export function createPlaygroundRuntime(
     removeMegaDriveListener =
       megaDrive.addListener(
         (event) => {
+          if(event?.type==='native-state'){
+            logicWorker?.postMessage({type:'native-primary-state',name:event.name,state:event.state});
+            return;
+          }
           if(logicWorker && !applyingChipObserver && pendingChipStateWorker !== logicWorker) {
             const worker = logicWorker;
             pendingChipStateWorker = worker;
@@ -1983,7 +1999,8 @@ export function createPlaygroundRuntime(
           getOwner:()=>spcOwner(currentLoopContext,currentRunToken), captureContext:()=>currentLoopContext,
           restoreContext:loop=>{currentLoopContext=loop;},
           invokeEvent:(callback,event)=>executeUserCallback(()=>callback(event)),
-        }) : ['huc6280','okim6258'].includes(name) ? createNativePrimaryClient(name,device.port,device) : name === 'snes' ? createSnesClient(device.port, device) : name === 'dx7' ? createDx7Client(device.port, device) : name === 'nes' ? createNesClient(device.port, device) : name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
+        }) : ['huc6280','okim6258','ym3526','ym3812','y8950','ymf262'].includes(name) ? createNativePrimaryClient(name,device.port,device) : name === 'snes' ? createSnesClient(device.port, device) : name === 'dx7' ? createDx7Client(device.port, device) : name === 'nes' ? createNesClient(device.port, device) : name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, device.port) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm);
+        device.client=client;
         Object.defineProperty(client, 'id', {value: device.mixerId, enumerable: true});
         const dispose=device.dispose, disposeClient=client.dispose.bind(client); let disposed=false;
         client.dispose=()=>{if(disposed)return;disposed=true;try{disposeClient();}finally{dispose();}};
@@ -2029,6 +2046,7 @@ export function createPlaygroundRuntime(
       OP4: 3,
       presets,
       FM_PRESETS: presets,
+      OPL_PRESETS,
       tfiToPreset: parseTfi,
       vgiToPreset: parseVgi,
       livePrepare: (name, fn) =>
@@ -2258,6 +2276,7 @@ export function createPlaygroundRuntime(
         OP3: pg.OP3,
         OP4: pg.OP4,
         FM_PRESETS: presets,
+        OPL_PRESETS,
         tfiToPreset: pg.tfiToPreset,
         vgiToPreset: pg.vgiToPreset,
         presets: pg.presets,

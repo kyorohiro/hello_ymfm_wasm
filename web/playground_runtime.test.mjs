@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import { createPlaygroundRuntime } from './playground_runtime.js';
 import {createNativeFXController} from './native_fx.js';
+import {OPLSynth,OPL_PRESETS} from './opl_synth.js';
 import {LiveFX} from './custom_fx.js';
 import {createYm2608Client} from './playground_ym2608.js';
 import {GameboySynth} from './gameboysynth.js';
@@ -1511,4 +1512,19 @@ test('an older Main raw PSG loop cannot turn off a replacement through the share
   assert.equal(writes.length,before,'stale raw continuation-off must not reach the chip');
   runtime.context.stopOld(); assert.equal(writes.length,before);
   runtime.context.stopNew(); assert.equal(writes.at(-1).args[0],0x9f);
+});
+
+test('Main OPL source receives real presets as both bare and pg globals while OPN helpers stay unavailable',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'ym3812',fmChannels:0,psg:false,dac:false}),writes=[];
+  const author=new OPLSynth({chip:'ym3812',transport:{writeRegister:(...args)=>writes.push(args),reset(){}}});author.initialize();
+  megaDrive.primaryEndpoints=[{name:'ym3812',globalName:'opl',client:author}];megaDrive.stopAllNative=()=>author.allNotesOff();
+  globalThis.playgroundReview={presets:OPL_PRESETS};
+  await runtime.playSource(`
+    if(OPL_PRESETS!==pg.OPL_PRESETS||OPL_PRESETS!==globalThis.playgroundReview.presets)throw Error('Missing real OPL presets');
+    if(typeof play!=='undefined'||typeof FM_PRESETS!=='undefined')throw Error('Unexpected OPN helpers');
+    const shared=await useSoundChip('ym3812');if(shared!==opl||pg.opl!==opl)throw Error('Wrong OPL primary');
+    const prepared=await livePrepare('instrument',({opl})=>opl);if(prepared!==opl)throw Error('Missing prepared OPL');
+    opl.setPreset(0,OPL_PRESETS.sine);pg.opl.noteOn(0,69);
+  `);
+  assert.equal(author.getRegisterSnapshot()[0x43]&63,OPL_PRESETS.sine.operators[1].tl);assert(writes.some(([register,value])=>register===0xb0&&(value&32)));
 });

@@ -16,6 +16,8 @@ test('modes select native chips, clocks and console expansions', () => {
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
     ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],
     ['dx7','dx7',undefined,false],
+    ['ym3812','ym3812',3579545,false],['ym3526','ym3526',3579545,false],
+    ['y8950','y8950',3579545,false],['ymf262','ymf262',14318180,false],
   ];
   assert.deepEqual(PLAYGROUND_MODES.map(mode => [mode.id,mode.chip,mode.clock,mode.full]), expected);
   for (const mode of PLAYGROUND_MODES) {
@@ -24,6 +26,15 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(options.megaCD, mode.megaCD ?? mode.full);
     assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (mode.engine === 'opl') {
+      assert.equal(mode.fmChannels,0,'OPL uses its native instrument instead of the OPN play shortcut');
+      assert.deepEqual(mode.chipTabs,[mode.chip]);
+      assert.equal(options.clock,mode.clock);
+      assert.equal(options.workletUrl,'https://example.com/app/js/playground_opl_worklet.js?v=opl-modes-1');
+      assert.equal(options.wasmUrl,`https://example.com/app/generated/${mode.chip}_wasm.wasm`);
+      assert.equal(options.ym2612WasmUrl,undefined);
+      continue;
+    }
     if (mode.chip === 'dx7') {
       assert.equal(mode.fmChannels,0);
       assert.deepEqual(mode.chipTabs,['dx7']);
@@ -99,6 +110,10 @@ test('legacy chip and engine links retain their original environments; explicit 
   assert.equal(resolvePlaygroundMode('?mode=gameboy').chip, 'gameboy');
   assert.equal(resolvePlaygroundMode('?mode=dx7').chip, 'dx7');
   assert.equal(resolvePlaygroundMode('?chip=dx7').id, 'dx7');
+  for (const chip of ['ym3812','ym3526','y8950','ymf262']) {
+    assert.equal(resolvePlaygroundMode(`?mode=${chip}`).chip,chip);
+    assert.equal(resolvePlaygroundMode(`?chip=${chip}`).id,chip);
+  }
   assert.equal(resolvePlaygroundMode('?mode=mega-cd').chip, 'ym2612');
   assert.equal(resolvePlaygroundMode('?engine=nuked').id, 'genesis-nuked');
   assert.equal(resolvePlaygroundMode('?mode=pc98&chip=ym2612&engine=nuked').chip, 'ym2608');

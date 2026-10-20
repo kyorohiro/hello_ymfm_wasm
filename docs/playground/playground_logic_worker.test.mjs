@@ -1,3 +1,5 @@
+import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
+import {OPL_CHIPS} from '../../web/playground_opl.js';
 import {createSnesClient} from '../../web/playground_snes.js';
 import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
 import {createPerformanceSender} from '../../web/playground_performance_sender.js';
@@ -38,7 +40,7 @@ const workerSource = readFileSync(
 function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
-    createPerformanceSender, serializeLogError,
+    createPerformanceSender, serializeLogError, OPL_PRESETS, OPL_CHIPS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
@@ -1618,4 +1620,21 @@ for (const [name, body, expectedErrors] of [
     const on = commandPackets(chipPackets, command => command.register === 0x28 && command.value === 0xf0).at(-1);
     assert.equal(on.performance.session, 2);
   } finally {await f.stop();}
+});
+
+test('Worker OPL source receives real bare and pg presets with the borrowed native instrument',async()=>{
+  const worker=createWorkerHarness(),sent=[],author=new OPLSynth({chip:'ym3812',transport:{writeRegister(){},reset(){}}});author.initialize();
+  const port={start(){},close(){},postMessage:message=>{sent.push(message);if(message.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:message.id,value:true}}));}};
+  await worker.send({type:'native-primary-ports',endpoints:[{name:'ym3812',globalName:'opl',clock:3579545,port,state:{initialized:true,clock:3579545,registers:Array.from(author.getRegisterSnapshot())}}]});
+  try{
+    await worker.send({type:'run',capabilities:{chip:'ym3812',fmChannels:0,psg:false,dac:false},sourceCode:`
+      if(OPL_PRESETS!==pg.OPL_PRESETS||!Object.isFrozen(OPL_PRESETS.sine))throw Error('Missing OPL presets');
+      if(typeof play!=='undefined'||typeof FM_PRESETS!=='undefined')throw Error('Unexpected OPN helpers');
+      const shared=await useSoundChip('ym3812');if(shared!==opl||pg.opl!==opl)throw Error('Wrong OPL primary');
+      const prepared=await livePrepare('instrument',({opl})=>opl);if(prepared!==opl)throw Error('Missing prepared OPL');
+      opl.setPreset(0,OPL_PRESETS.sine);pg.opl.noteOn(0,69);
+    `});
+    await waitFor(()=>worker.messages.some(message=>message.type==='complete'||message.type==='execution-error'));
+    assert.equal(worker.messages.find(message=>message.type==='execution-error'),undefined);assert(sent.some(message=>message.method==='writeRegister'&&message.args[0]===0xb0&&(message.args[1]&32)));
+  }finally{await worker.send({type:'stop'});}
 });

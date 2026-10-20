@@ -1416,6 +1416,12 @@ void fm_engine_base<RegisterType>::write(uint16_t regnum, uint8_t data)
 	uint32_t keyon_opmask;
 	if (m_regs.write(regnum, data, keyon_channel, keyon_opmask))
 	{
+		// Key events are applied immediately, while channel preparation waits
+		// for clock(). A preceding OPL3/OPL4 four-op change must already be
+		// reflected here, including writes grouped before the next sample.
+		if (RegisterType::DYNAMIC_OPS)
+			assign_operators();
+
 		// handle writes to the keyon register(s)
 		if (keyon_channel < CHANNELS)
 		{

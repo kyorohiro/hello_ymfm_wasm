@@ -2,7 +2,8 @@
 export function selectPlaygroundDeclarations(source, chip) {
   const genesis = chip === 'ym2612' || chip === 'mega-cd';
   const segaPsg = chip === 'game-gear' || chip === 'master-system';
-  const native = segaPsg || ['gameboy','nes','snes','x68000','huc6280','dx7'].includes(chip);
+  const opl = ['ym3526','ym3812','y8950','ymf262'].includes(chip);
+  const native = opl || segaPsg || ['gameboy','nes','snes','x68000','huc6280','dx7'].includes(chip);
   const channels = native ? 0 : chip === 'ym2203' ? 3 : chip === 'ym2610' ? 4 : 6;
   let declarations = source.replace(/^declare const CH(\d+): \d+;\n/gm, (line, number) =>
     Number(number) <= (genesis ? 16 : channels) ? line : '');
@@ -26,9 +27,11 @@ export function selectPlaygroundDeclarations(source, chip) {
       .replace(/^declare const (?:fm|midi|FM_PRESETS|OP[1234]): [^\n]+\n/gm, '')
       .replace(/^declare function (?:play|write|scheduleWritesSamples|noteToBlockFnum|hzToBlockFnum|noteLerp|tfiToPreset|vgiToPreset|setDacLookahead|getDacLookahead)\([^\n]*\): [^\n]+\n/gm, '');
   }
-  const nativeGlobals = {gameboy:['gameboy'], nes:['nes'], snes:['snes'], x68000:['opm'], huc6280:['pce'], dx7:['dx7']};
+  if (!opl) declarations = declarations.replace(/^declare const OPL_PRESETS: [^\n]+\n/gm, '');
+  const nativeGlobals = {gameboy:['gameboy'], nes:['nes'], snes:['snes'], x68000:['opm'], huc6280:['pce'], dx7:['dx7'],
+    ym3526:['opl'], ym3812:['opl'], y8950:['opl'], ymf262:['opl']};
   const selected = nativeGlobals[chip] ?? [];
-  declarations = declarations.replace(/^declare const (gameboy|nes|snes|opm|pce|dx7): [^\n]+\n/gm,
+  declarations = declarations.replace(/^declare const (gameboy|nes|snes|opm|pce|dx7|opl): [^\n]+\n/gm,
     (line, name) => selected.includes(name) ? line : '');
   return declarations;
 }

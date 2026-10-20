@@ -38,6 +38,7 @@ playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
 playground_dx7_voice_panel.js
+playground_opl_voice_panel.js
 playground_mode_keyboard.js
 playground_workbench.js
 playground_cassette.js
@@ -94,6 +95,10 @@ tetorica-playground-nes.d.ts
 tetorica-playground-snes.d.ts
 tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
+tetorica-playground-ym3526.d.ts
+tetorica-playground-ym3812.d.ts
+tetorica-playground-y8950.d.ts
+tetorica-playground-ymf262.d.ts
 tetorica-playground-dx7.d.ts
 tetorica-playground-game-gear.d.ts
 tetorica-playground-master-system.d.ts
@@ -150,6 +155,23 @@ playground_rf5c164.js
 playground_ym2608.js
 ym2151.js
 ym2151synth.js
+opl_synth.js
+ym3526synth.js
+ym3812synth.js
+y8950synth.js
+ymf262synth.js
+ym3526.js
+ym3812.js
+y8950.js
+ymf262.js
+ym3526audioengine.js
+ym3812audioengine.js
+y8950audioengine.js
+ymf262audioengine.js
+playground_opl.js
+playground_opl_audio.js
+playground_opl_worklet.js
+playground_opl_inspector.js
 nesapu.js
 nesapusynth.js
 nesapuaudioengine.js
@@ -275,6 +297,14 @@ synth_keyboard.js
 "
 
 GENERATED_FILES="
+ym3526_wasm.js
+ym3526_wasm.wasm
+ym3812_wasm.js
+ym3812_wasm.wasm
+y8950_wasm.js
+y8950_wasm.wasm
+ymf262_wasm.js
+ymf262_wasm.wasm
 spc_wasm.js
 spc_wasm.wasm
 ym2151_wasm.js
@@ -495,6 +525,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_sample_editor_worker.js" \
   "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_mode_keyboard.js" \
+  "${STAGE_DIR}/playground_opl_voice_panel.js" \
   "${STAGE_DIR}/playground_git.js" \
   "${STAGE_DIR}/playground_virtual_files.js" \
   "${STAGE_DIR}/playground_shell.js" \

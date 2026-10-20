@@ -1,4 +1,4 @@
-import {isSimplePlaygroundLayout} from './playground_mode.js?v=keyboard-chips-1';
+import {isSimplePlaygroundLayout} from './playground_mode.js?v=opl-modes-1';
 
 /** Arrange Files beside an editor and independently selectable bottom tools. */
 export function installPlaygroundWorkbench(root, {storage, search = window.location.search} = {}) {
@@ -46,7 +46,7 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const toggle = element('button', 'dock-toggle');
   toggle.type = 'button'; toggle.textContent = 'Panel'; toggle.setAttribute('aria-controls', 'bottomDock');
   primaryTabs.appendChild(toggle);
-  for (const id of ['codePanel','operatorPanel','segapsgPanel','rf5c164Panel','pwmPanel','gameboyPanel','nesPanel','ym2151Panel','okim6258Panel','huc6280Panel','dx7Panel']) {
+  for (const id of ['codePanel','operatorPanel','segapsgPanel','rf5c164Panel','pwmPanel','gameboyPanel','nesPanel','ym2151Panel','okim6258Panel','huc6280Panel','dx7Panel','ym3812Panel','ym3526Panel','y8950Panel','ymf262Panel']) {
     const panel = document.getElementById(id); if (panel) primaryPanels.appendChild(panel);
   }
   editor.append(primaryTabs, primaryPanels); right.append(editor, divider, dock);

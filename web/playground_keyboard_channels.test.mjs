@@ -16,14 +16,14 @@ test('Keyboard channel catalog distinguishes OPN sections and physical voice cou
 });
 
 test('native Keyboard adapters include noise/sample voices and one polyphonic DX7 target',()=>{
-  const counts={segapsg:4,gameboy:4,nes:6,snes:8,ym2151:8,huc6280:6,rf5c164:8,okim6258:1,dx7:1};
+  const counts={segapsg:4,gameboy:4,nes:6,snes:8,ym2151:8,huc6280:6,rf5c164:8,okim6258:1,dx7:1,ym3526:9,ym3812:9,y8950:9,ymf262:18};
   for(const [kind,count]of Object.entries(counts)){
     const channels=keyboardChannels(kind);assert.equal(channels.length,count,kind);assert.equal(new Set(channels.map(channel=>channel.id)).size,count);assert(channels.every((channel,index)=>channel.id===String(index)&&channel.label.length>0));
   }
   assert.equal(keyboardChannels('nes',{fds:false}).length,5);
   assert.equal(keyboardChannels('nes',{fdsEnabled:false}).length,5);
   assert.match(keyboardChannels('dx7')[0].label,/16 voices/);
-  for(const kind of ['pwm','unknown','ym3812'])assert.deepEqual(keyboardChannels(kind),[]);
+  for(const kind of ['pwm','unknown'])assert.deepEqual(keyboardChannels(kind),[]);
 });
 
 test('Keyboard hints describe actual sample/noise/stream pitch limitations',()=>{
@@ -32,4 +32,11 @@ test('Keyboard hints describe actual sample/noise/stream pitch limitations',()=>
   assert.match(keyboardChannelHint('rf5c164'),/C4/);
   assert.match(keyboardChannelHint('pwm'),/timed sample stream/);
   assert.match(keyboardChannelHint('unknown'),/keyboard.bind/);
+});
+
+ test('OPL3 Keyboard omits borrowed pair secondaries and rhythm-reserved voices',()=>{
+  const registers=new Uint8Array(512);registers[0x104]=0b100001;registers[0xbd]=32;
+  const ids=keyboardChannels('ymf262',{registers}).map(row=>row.id);
+  for(const id of ['3','14','6','7','8'])assert(!ids.includes(id));
+  for(const id of ['0','11','9','17'])assert(ids.includes(id));
 });

@@ -29,6 +29,18 @@ playground_spc_audio.js
 soundchip_mixer.js
 playground_chip_inspector.js
 playground_chip_inspector_state.js
+playground_keyboard.js
+playground_keyboard_channels.js
+playground_native_voice_inspector.js
+playground_opn_inspector.js
+playground_dx7_inspector.js
+playground_snes_inspector.js
+playground_ym2151_inspector.js
+playground_huc6280_inspector.js
+playground_okim6258_inspector.js
+playground_sample_edit.js
+playground_sample_instrument.js
+playground_chip_inspector_state.js
 nesapu.js
 nesapusynth.js
 soundchip_factory.js
@@ -71,6 +83,15 @@ gameboy_runtime_synth.js
 native_runtime_synth.js
 playground_native_primary.js
 huc6280synth.js
+opl_synth.js
+ym3526synth.js
+ym3812synth.js
+y8950synth.js
+ymf262synth.js
+playground_opl.js
+playground_opl_audio.js
+playground_opl_worklet.js
+playground_opl_inspector.js
 playground_huc6280.js
 playground_huc6280_audio.js
 playground_huc6280_worklet.js
@@ -282,6 +303,9 @@ perl -0pi -e 's#\./generated/segapsg#../generated/segapsg#g' \
 
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/playground_opn_audio.js" "${DOCS_JS_DIR}/playground_opn_worklet.js"
+
+perl -0pi -e 's#\./generated/#../generated/#g' \
+  "${DOCS_JS_DIR}/playground_opl_audio.js" "${DOCS_JS_DIR}/playground_opl_worklet.js"
 
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/soundchip-output-worklet.js"
 

@@ -21,7 +21,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
     async resume() { this.state = 'running'; }, async suspend() { this.state = 'suspended'; }, async close() { contextCloses++; this.state = 'closed'; },
     createGain:() => ({...graphNode(), gain:{value:1, cancelScheduledValues(){}, setValueAtTime(value){this.value=value;}, linearRampToValueAtTime(value){this.value=value;}}}),
     createChannelSplitter:graphNode, createChannelMerger:graphNode,
-    audioWorklet:{addModule:async url => { moduleLoads.push(String(url)); if (stage === 'module' && String(url).includes(target)) { reached = true; await gate.promise; } }},
+    audioWorklet:{addModule:async url => { moduleLoads.push(String(url)); if (stage === 'module' && (String(url).includes(target)||['ym3526','ym3812','y8950','ymf262'].includes(target)&&String(url).includes('playground_opl_worklet'))) { reached = true; await gate.promise; } }},
   };
   const fetchBytes = async url => {
     fetches.push(String(url));
@@ -41,7 +41,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
         }
       }};
       nodes.push(this);
-      if (stage === 'ready' && name.includes(target)) { reached = true; gate.promise.then(() => this.ready()); }
+      if (stage === 'ready' && (name.includes(target)||options.processorOptions.chip===target)) { reached = true; gate.promise.then(() => this.ready()); }
       else queueMicrotask(() => this.ready());
     }
     ready() { this.port.onmessage?.({data:{ready:true,sampleRate:48000,internalSampleRate:44100,voices:[{index:0,name:'INIT SINE'}],selectedVoice:0}}); }
@@ -65,7 +65,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }
 
-for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
+for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
   const device = harness(t, chip); const {synth,nodes} = device;
   assert.equal(nodes.length, 0); assert.equal(device.fetches.length, 0); assert.equal(device.moduleLoads.length, 0);
   assert.equal(synth.fm, null); assert.equal(synth.psg, null); assert.equal(synth.isReady(), false);
@@ -145,7 +145,7 @@ test('NES Worker handoff adopts FDS and pulse configuration without resetting th
   assert(!messages.some(data => data.method === 'reset'));
 });
 
-for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
+for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
   const {synth,nodes,gate,reached} = harness(t,chip,{stage:'ready'});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'});
   await until(reached); if (chip === 'x68000') assert.equal(synth.primaryEndpoints.length,1,'OPM ready before second device');
@@ -238,4 +238,15 @@ for (const stage of ['module','fetch']) test(`PSG close cancels pending ${stage}
   const canceled = assert.rejects(synth.start(),{name:'AbortError'}); await until(reached);
   await synth.close(); await canceled; assert.equal(nodes.length,0);
   gate.resolve(); await synth.start(); assert.equal(nodes.length,1); assert(synth.isReady());
+});
+
+for(const chip of ['ym3526','ym3812','y8950','ymf262'])for(const stage of ['fetch','module'])test(`${chip} close cancels pending ${stage} and restarts without leaking a node`,async t=>{
+  const {synth,nodes,gate,reached}=harness(t,chip,{stage});
+  const canceled=assert.rejects(synth.start(),{name:'AbortError'});await until(reached);await synth.close();await canceled;assert.equal(nodes.length,0);gate.resolve();
+  await synth.start();assert.equal(nodes.length,1);assert(synth.isReady());
+});
+test('OPL fatal primary failure releases resources and permits restart',async t=>{
+  const {synth,nodes}=harness(t,'ym3812');await synth.start();const previous=synth.opl;nodes[0].onprocessorerror();
+  assert.equal(synth.state,'error');assert.equal(synth.opl,null);assert.equal(synth.isReady(),false);assert(synth.mixer.list().every(row=>!row.connected));assert.throws(()=>previous.noteOn(0,69),/disposed/i);
+  await synth.start();assert(synth.isReady());assert.equal(nodes.length,2);
 });

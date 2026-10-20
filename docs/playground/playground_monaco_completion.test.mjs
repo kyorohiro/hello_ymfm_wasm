@@ -155,15 +155,21 @@ test('Game Boy does not suggest primary OPN play, presets, operators, or registe
   assert(operators.some(item => item.label === 'multi'));
 });
 
-for (const chip of ['game-gear', 'master-system', 'dx7']) {
+for (const chip of ['game-gear', 'master-system', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262']) {
   test(`${chip} completion omits primary OPN hints and retains independent FM hints`, () => {
     for (const source of [
       'play(', 'pg.play(', 'play("C4", { ', 'pg.play("C4", { ',
       'fm.write(0, ', 'pg.fm.write(0, ', 'fm.setOperator(0, 0, { ',
+      'pg.fm.setOperator(0, 0, { ', 'play("', 'fm.write(0, 0x28, ',
       'FM_PRESETS["', 'pg.presets["',
     ]) assert.deepEqual(chipSuggestions(source, chip), [], source);
     assert(chipSuggestions('scale("', chip).length > 0);
     const registers = chipSuggestions('const fm = await useSoundChip("ym2612");\nfm.write(0, ', chip);
     assert(registers.some(item => item.insertText === '0x2a'));
+    if (['ym3526','ym3812','y8950','ymf262'].includes(chip)) {
+      for (const source of ['opl.','pg.opl.','opl.setOperator(0, 0, { ']) {
+        assert.deepEqual(chipSuggestions(source,chip),[],'the native OPL type supplies members and parameter fields');
+      }
+    }
   });
 }

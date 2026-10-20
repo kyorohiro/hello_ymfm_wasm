@@ -1,10 +1,11 @@
-import {createNesClient} from './playground_nes.js?v=keyboard-chips-1';
-import {createSnesClient} from './playground_snes.js?v=keyboard-chips-1';
-import {createYm2151Client} from './playground_ym2151.js?v=keyboard-chips-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=keyboard-chips-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=keyboard-chips-1';
-import {createOki6258Client} from './playground_okim6258.js?v=keyboard-chips-1';
-import {createDx7Client} from './playground_dx7.js?v=keyboard-chips-1';
+import {createNesClient} from './playground_nes.js?v=opl-modes-1';
+import {createSnesClient} from './playground_snes.js?v=opl-modes-1';
+import {createYm2151Client} from './playground_ym2151.js?v=opl-modes-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=opl-modes-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=opl-modes-1';
+import {createOki6258Client} from './playground_okim6258.js?v=opl-modes-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=opl-modes-1';
+import {createDx7Client} from './playground_dx7.js?v=opl-modes-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {
@@ -35,7 +36,8 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
 }
 
 export function createNativePrimaryClient(name, port, options = {}) {
-  const client = name === 'nes' ? createNesClient(port, options)
+  const client = OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
+    : name === 'nes' ? createNesClient(port, options)
     : name === 'snes' ? createSnesClient(port, options)
     : name === 'ym2151' ? createYm2151Client(port)
     : name === 'segapsg' ? createSegaPsgClient(port, options)
@@ -45,7 +47,7 @@ export function createNativePrimaryClient(name, port, options = {}) {
     : null;
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state) client._adoptState?.(options.state);
-  else if (name === 'huc6280') client.initialize();
+  else if (name === 'huc6280' || OPL_CHIPS.includes(name)) client.initialize();
   return client;
 }
 

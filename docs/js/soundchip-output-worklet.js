@@ -1,6 +1,14 @@
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=keyboard-chips-1';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=opl-modes-1';
 import {Ym2612} from './ym2612.js';
 import {Ym2608} from './ym2608.js?v=audio-stability-2';
+import {Ym3526} from './ym3526.js?v=audio-stability-2';
+import {Ym3812} from './ym3812.js?v=audio-stability-2';
+import {Y8950} from './y8950.js?v=audio-stability-2';
+import {Ymf262} from './ymf262.js?v=audio-stability-2';
+import ym3526Factory from '../generated/ym3526_wasm.js';
+import ym3812Factory from '../generated/ym3812_wasm.js';
+import y8950Factory from '../generated/y8950_wasm.js';
+import ymf262Factory from '../generated/ymf262_wasm.js';
 import {Ym2151} from './ym2151.js?v=audio-stability-2';
 import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
 import {SegaPSG} from './segapsg.js?v=sega-modes-1';
@@ -14,9 +22,10 @@ import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js?v=audio-stability-2';
 import {YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
 import {YM2612DacPlayer} from './ym2612_dac.js';
-import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=keyboard-chips-1';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=opl-modes-1';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
+  ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApu, undefined]};
 const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.entries(profiles).map(([name, [Type, moduleFactory]]) =>
   [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => new PWM32XPlayback(options)]]));
@@ -24,7 +33,7 @@ const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.ent
 class SoundChipProcessor extends AudioWorkletProcessor {
   constructor({processorOptions: {name, chipOptions, wasmBinary}}) {
     super(); this.dead = false; this.running = false; this.name = name; this.remotePorts = new Set();
-    this.scheduled = []; this.banks = new Map();
+    this.scheduled = []; this.banks = new Map();this.oplRegisters=['ym3526','ym3812','y8950','ymf262'].includes(name)?new Uint8Array(name==='ymf262'?512:256):null;
     this.performance=createProcessorPerformance({chip:()=>this.name,
       releaseNote:key=>['ym2612','ym2608'].includes(this.name)?{type:'write',port:0,register:0x28,value:[0,1,2,4,5,6][key]}:
         performanceNoteRelease(this.name,key),apply:(data,port,frame)=>this.apply(data,port,frame),prepare:(data,port)=>{
@@ -44,8 +53,9 @@ class SoundChipProcessor extends AudioWorkletProcessor {
         if (this.direct) this.pcmDac = new YM2612DacPlayer(sampleRate, (port, register, value) => chip.writeRegister(register, value, port));
         this.renderer = new ChipPCMRenderer(chip, {sampleRate, gain: 1, removeIdleOffset: name === 'ym2612',
           generate: this.direct?.generateStereoView.bind(this.direct)});
+        if (['ym3526','ym3812','y8950','ymf262'].includes(name) && chipOptions.clock !== undefined) this.renderer.rate=chip.sampleRate(chipOptions.clock);
         chip.reserveStereoFrames?.(Math.ceil(128 * chip.sampleRate() / sampleRate));
-        this.port.postMessage({type: 'ready', sampleRate: chip.sampleRate()});
+        this.port.postMessage({type: 'ready', sampleRate: this.renderer.rate});
       }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
   }
   receive(data, replyPort = this.port) {
@@ -74,14 +84,21 @@ class SoundChipProcessor extends AudioWorkletProcessor {
       if (method === 'start') this.running = true;
       else if (method === 'stop') this.running = false;
       else if (this.name === 'pwm' && PWM_METHODS.has(method)) value = this.chip[method](...args);
-      else if (method === 'reset') {this.pcmDac?.reset(); this.direct ? this.direct.reset() : this.chip.reset(); this.renderer.resetHistory();}
-      else if (method === 'write') {
+      else if (method === 'reset') {this.pcmDac?.reset(); this.direct ? this.direct.reset() : this.chip.reset(); this.renderer.resetHistory();this.oplRegisters?.fill(0);}
+      else if (method === 'forceKeyOff' && this.oplRegisters) {
+        const channel=args[0],bank=channel>=9?1:0,register=0xb0+channel%9,index=(bank<<8)+register;
+        const byte=this.oplRegisters[index]&223;this.oplRegisters[index]=byte;this.chip.write(bank*2,register);this.chip.write(bank*2+1,byte);
+      } else if(method==='forceRhythmOff'&&this.oplRegisters){
+        const byte=this.oplRegisters[0xbd]&~(16>>args[0]);this.oplRegisters[0xbd]=byte;this.chip.write(0,0xbd);this.chip.write(1,byte);
+      } else if (method === 'write') {
         if (data.type) {
+          if(this.oplRegisters)this.oplRegisters[(data.port<<8)|data.register]=data.value;
           if (this.direct) {this.pcmDac.observeWrite(data.port, data.register, data.value); this.direct.write(data.port, data.register, data.value);}
           else {this.chip.write(data.port * 2, data.register); this.chip.write(data.port * 2 + 1, data.value);}
         }
         else this.chip.write(...args);
       } else if (method === 'writeRegister') {
+        if(this.oplRegisters)this.oplRegisters[args[0]|((args[2]??0)<<8)]=args[1];
         if (typeof this.chip.writeRegister === 'function') this.chip.writeRegister(...args);
         else {const [register, value, port = 0] = args; this.chip.write(port * 2, register); this.chip.write(port * 2 + 1, value);}
       }

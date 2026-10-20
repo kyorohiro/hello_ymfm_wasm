@@ -7,6 +7,8 @@ import {GameboySynth} from '../web/gameboysynth.js';
 import {SegaPSGSynth} from '../web/segapsgsynth.js';
 import {YM2151Synth} from '../web/ym2151synth.js';
 import {NesApuSynth} from '../web/nesapusynth.js';
+import {OPLSynth,OPL_PRESETS} from '../web/opl_synth.js';
+import {YM3526AudifyTransport,YM3812AudifyTransport,Y8950AudifyTransport,YMF262AudifyTransport} from '../node/chip_transports.mjs';
 import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
 import {YM2612AudifyTransport, YM2608AudifyTransport, YM2151AudifyTransport, NesApuAudifyTransport, GameboyAudifyTransport, SegaPSGAudifyTransport, PWM32XAudifyTransport} from '../node/chip_transports.mjs';
 const outputModule = new URL('./fixtures/megasynth_output.mjs', import.meta.url).href;
@@ -18,6 +20,7 @@ for (const [name, Type, configure] of [
   ['ym2151', YM2151AudifyTransport, transport => {const fm = new YM2151Synth({transport}); fm.setPreset(0, FM_PRESETS.sine); fm.noteOn(0, 'A4');}],
   ['gameboy', GameboyAudifyTransport, transport => {const gb = new GameboySynth({transport}); gb.initialize(); gb.pulse.setVoice(0, {duty: .5, volume: 10}); gb.pulse.setNote(0, 'C4'); gb.pulse.keyOn(0);}],
   ['pwm', PWM32XAudifyTransport, transport => {transport.write(0, 5); transport.write(1, 1047); transport.write(4, 700);}],
+  ...[['ym3526',YM3526AudifyTransport],['ym3812',YM3812AudifyTransport],['y8950',Y8950AudifyTransport],['ymf262',YMF262AudifyTransport]].map(([chip,Type])=>[chip,Type,transport=>{const opl=new OPLSynth({transport,chip});opl.initialize();opl.setPreset(0,OPL_PRESETS.sine);opl.noteOn(0,'A4');}]),
   ['segapsg', SegaPSGAudifyTransport, transport => {const psg = new SegaPSGSynth({transport}); psg.tone(0, {note: 'C4', volume: .5});}],
 ]) {
   test(`${name}: transport owns output, preserves caller chip, stops/resumes and closes`, async () => {

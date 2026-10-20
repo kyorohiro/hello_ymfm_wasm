@@ -9,6 +9,8 @@ export function definitionSource(text, position, chip = 'ym2612') {
   const prefix = lines.slice(0, position?.startLineNumber ?? position?.lineNumber ?? 1).join('\n');
   const owners = [...prefix.matchAll(/^(?:declare\s+)?(?:interface|type)\s+(\w+)/gm)];
   const owner = owners.at(-1)?.[1] ?? '';
+  if (symbol === 'opl') return {file:'playground_opl.js',symbol:'createOplClient'};
+  if (symbol === 'OPL_PRESETS') return {file:'opl_synth.js',symbol:'OPL_PRESETS'};
   if (['useSoundChip', 'createSoundChip', 'setBpm', 'beat', 'nextBeat', 'sleep', 'sleepSamples', 'tween', 'createTimeline'].includes(symbol)) return {file:'playground_runtime.js', symbol};
   if (owner === 'PlaygroundSecondsTimeline') return {file:'playground_clock.js',symbol};
   if (['hzToBlockFnum', 'createPitchFromMidi'].includes(symbol)) return {file:'pitch.js', symbol};
@@ -22,6 +24,7 @@ export function definitionSource(text, position, chip = 'ym2612') {
   if (/^PlaygroundYm2608$/.test(owner)) return {file:'ym2608synth.js', symbol};
   if (/^PlaygroundRf5c164$/.test(owner)) return {file:'rf5c164synth.js', symbol};
   if (/^PlaygroundSegaPsg$/.test(owner)) return {file:'segapsgsynth.js', symbol};
+  if (/^Playground(?:Primary)?Opl/.test(owner)) return {file:'opl_synth.js',symbol:/^Playground(?:Primary)?Opl/.test(symbol) ? 'OPLSynth' : symbol};
   if (/^PlaygroundPWM32X$/.test(owner)) return {file:'pwm32x_playback.js', symbol};
   if (['FMApi','PlaygroundOPNFm','PlaygroundCreatedFm','PlaygroundCreatedYm2203','PlaygroundCreatedYm2610'].includes(owner)) {
     return {file:chip === 'ym2612' ? 'ym2612synth.js' : 'opn_fm_synth.js', symbol};

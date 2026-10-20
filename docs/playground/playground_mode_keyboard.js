@@ -1,4 +1,4 @@
-import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=keyboard-chips-1';
+import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=opl-modes-1';
 
 /** The mode's primary instrument is playable before a script binds Keyboard.
  * Resolve its admin endpoint after audio preparation; never create a second chip.
@@ -11,6 +11,10 @@ const TARGETS = {
   huc6280: ['huc6280', 'HuC6280 · CH1'],
   segapsg: ['segapsg', 'Sega PSG · Tone 1'],
   dx7: ['dx7', 'DX7'],
+  ym3812: ['ym3812', 'OPL2 · CH1'],
+  ym3526: ['ym3526', 'OPL · CH1'],
+  y8950: ['y8950', 'Y8950 · CH1'],
+  ymf262: ['ymf262', 'OPL3 · CH1'],
 };
 let sequence = 0;
 

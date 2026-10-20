@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlaygroundModeKeyboard} from './playground_mode_keyboard.js';
 
-for (const [chip,id] of [['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7']]) {
+for (const [chip,id] of [['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262'].map(chip => [chip,chip])]) {
   test(`${chip} keyboard borrows only the mode's primary instrument`, async () => {
     const calls = [], inspector = {list:() => [{id:'extra-1',kind:id},{id}],invoke:(...args) => {calls.push(args);return Promise.resolve(true);}};
     const target = createPlaygroundModeKeyboard({chip,getInspector:() => inspector});

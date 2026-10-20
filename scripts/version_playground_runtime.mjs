@@ -69,7 +69,7 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
-const megaCdVersion='keyboard-chips-1';
+const megaCdVersion='opl-modes-1';
 const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js','playground_live.js',
   'playground_chip_clock.js','playground_audition_guard.js','playground_keyboard_channels.js','playground_opn_inspector.js',
   'ym2612-worklet.js','ym2612-worklet-nuked.js','ym2203-worklet.js','ym2608-worklet.js','ym2610b-worklet.js',
@@ -84,6 +84,9 @@ const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js',
   'playground_ym2151_worklet.js','playground_ym2151_inspector.js',
   'playground_okim6258_worklet.js','playground_okim6258_inspector.js','okim6258synth.js','playground_okim6258.js',
   'playground_huc6280_worklet.js','playground_huc6280_inspector.js','playground_huc6280.js']);
+for(const name of ['opl_synth.js','ym3526synth.js','ym3812synth.js','y8950synth.js','ymf262synth.js',
+  'playground_opl.js','playground_opl_audio.js','playground_opl_worklet.js','playground_opl_inspector.js',
+  'soundchip_worklet.js','chip_worklet_transport.js','soundchip.js'])megaCdFiles.add(name);
 let propagated;
 do {
   propagated=false;
@@ -115,6 +118,7 @@ do {
 for(const name of ['playground.js','playground_mode.js','playground_operator_tab.js','playground_tfi_editor.js'])audioFiles.add(name);
 const pageRevisions={'playground.js':megaCdVersion,'playground_audio_input.js':megaCdVersion,
   'playground_mode_keyboard.js':megaCdVersion,'playground_dx7_voice_panel.js':megaCdVersion,
+  'playground_opl_voice_panel.js':megaCdVersion,
   'playground_chip_tabs.js':megaCdVersion,'playground_chip_tabs.css':megaCdVersion,
   'playground_gameboy_voice_panel.js':megaCdVersion,'playground_nes_voice_panel.js':megaCdVersion,
   'playground_ym2151_voice_panel.js':megaCdVersion,'playground_okim6258_voice_panel.js':megaCdVersion,'playground_huc6280_voice_panel.js':megaCdVersion,

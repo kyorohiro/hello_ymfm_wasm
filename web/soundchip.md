@@ -78,6 +78,7 @@ try {
 Web の `execution: 'worklet'` は、WASM を Worklet 内で作る endpoint を返す。
 生成済みの Main のチップをコピーしたり移動したりしない。
 この入口の対応名は `ym2612`、`ym2608`、`gameboy`、`segapsg`、`ym2151`。
+OPL系の `ym3526`、`ym3812`、`y8950`、`ymf262` もWorklet出力に対応します。
 音源操作は Main の Synth で行い、Transport がレジスタ命令を送る。
 通常の Worker は作らない。利用者が演奏ロジックを Worker に分ける場合、
 Main が初期化した endpoint の `createTransportPort()` で追加の MessagePort を作って渡し、その Worker に Synth / Transport を置ける。
@@ -113,6 +114,25 @@ chip の `dispose()` は利用者の責任で、Transport を閉じてから行�
 DirectTransport は、手元で `generateStereo()` により PCM を生成し、WAV 保存や利用者の出力へ渡す用途に使う。
 examples の `transport/direct/01-single-note` に PCM 生成・連結・Web 再生・WAV 保存をすべて記述する。
 これらの追加入口は npm 0.2.6 以降で利用できる。
+
+## OPL系の高級API
+
+`opl_synth.js` の `OPLSynth` / `OPLDirectTransport` は、YM3526・YM3812・
+Y8950のFM・YMF262を共通の音名／音色APIで扱います。
+`initialize()` で初期化し、`setPreset(ch, OPL_PRESETS.sine)`、
+`noteOn(ch, 'A4')`、`noteOff(ch)`、`setOperator(ch, op, {...})` を使います。
+チャンネルは0始まりで9CH（OPL3は18CH）、オペレーターはmodulator/carrierの0・1です。
+OPL3の4-opペアはprimaryの0〜2・9〜11で有効化し、0〜3のオペレーターを操作します。
+ペア相手のCHはprimaryが所有し、独立発音には使えません。
+
+`setRhythm()` はドラムのキーとリズムモード、`setLFO()` はAM/PM depthを操作します。
+YM3526とY8950はサイン波のみ、YM3812は4波形、YMF262は8波形です。
+ステレオの左右選択はYMF262のみ。monoの3チップは同じ音を左右へ出します。
+Y8950のADPCM高級APIとYM2413/OPLLの高級APIは含みません。
+
+Playgroundには4チップそれぞれのmodeがあり、標準音源は `opl` です。
+`useSoundChip()` は一致する主音源を借り、`createSoundChip()` は独立音源を作ります。
+Operatorsの音色調整・試聴とKeyboardは同じチップ／CHを操作します。
 
 ## 32X PWM 共通コア（0.2.7）
 

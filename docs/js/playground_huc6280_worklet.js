@@ -1,10 +1,10 @@
-import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?v=keyboard-chips-1';
+import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?v=opl-modes-1';
 import {Huc6280AudioEngine} from './huc6280audioengine.js?v=audio-stability-2';
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import factory from '../generated/huc6280_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=keyboard-chips-1';
-import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=keyboard-chips-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=keyboard-chips-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=opl-modes-1';
+import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=opl-modes-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=opl-modes-1';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

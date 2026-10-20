@@ -65,3 +65,27 @@ test('DX7 declarations navigate to the independent DX7 client', async () => {
     file:'playground_dx7.js', symbol:'loadSysex',
   });
 });
+
+test('OPL declarations navigate to the shared Synth, original presets and native client',async () => {
+  const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8');
+  const lines = declarations.split('\n');
+  const base = lines.findIndex(line => /^interface PlaygroundOplBase</.test(line)); assert(base >= 0);
+  const checks = ['setOperator','setPreset','setAlgo','setPan','setNote','setFrequency','setPitch','keyOn','keyOff','noteOn','noteOff','allNotesOff','setLFO','setRhythm'];
+  const source = await readFile(new URL('../js/opl_synth.js',import.meta.url),'utf8');
+  for (const symbol of checks) {
+    const line = lines.findIndex((text,index) => index > base && new RegExp(`^  ${symbol}\\(`).test(text)); assert(line > base,symbol);
+    assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file:'opl_synth.js',symbol});
+    const point = sourcePosition(source,symbol); assert.match(source.split('\n')[point.lineNumber - 1],new RegExp(`\\b${symbol}\\(`));
+  }
+  for (const [symbol,file,targetSymbol] of [['opl','playground_opl.js','createOplClient'],['OPL_PRESETS','opl_synth.js','OPL_PRESETS']]) {
+    const line = lines.findIndex(text => text.startsWith(`declare const ${symbol}:`)); assert(line >= 0,symbol);
+    assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file,symbol:targetSymbol});
+    const runtime = await readFile(new URL(`../js/${file}`,import.meta.url),'utf8'); const point = sourcePosition(runtime,targetSymbol); assert(point.lineNumber > 1,symbol);
+  }
+  for (const name of ['PlaygroundOplBase','PlaygroundOpl','PlaygroundPrimaryOpl']) {
+    const text = `type ${name}<K> = {};`;
+    assert.deepEqual(definitionSource(text,{lineNumber:1,column:6}),{file:'opl_synth.js',symbol:'OPLSynth'});
+  }
+  const pairLine = lines.findIndex(text => /setFourOp\(channel:/.test(text)); assert(pairLine >= 0);
+  assert.deepEqual(definitionSource(declarations,{lineNumber:pairLine + 1,column:lines[pairLine].indexOf('setFourOp') + 1}),{file:'opl_synth.js',symbol:'setFourOp'});
+});

@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
-    <link rel="stylesheet" href="./playground_chip_tabs.css?v=keyboard-chips-1">
+    <link rel="stylesheet" href="./playground_chip_tabs.css?v=opl-modes-1">
     <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
@@ -1978,6 +1978,10 @@
             <button id="okim6258Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="okim6258Panel" hidden>OKIM6258</button>
             <button id="huc6280Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="huc6280Panel" hidden>HuC6280</button>
             <button id="dx7Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="dx7Panel" hidden>DX7</button>
+            <button id="ym3812Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym3812Panel" hidden>YM3812</button>
+            <button id="ym3526Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym3526Panel" hidden>YM3526</button>
+            <button id="y8950Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="y8950Panel" hidden>Y8950</button>
+            <button id="ymf262Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ymf262Panel" hidden>YMF262</button>
             <button id="mixerTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="mixerPanel">Mixer</button>
             <button id="keyboardTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="keyboardPanel">
               Keyboard
@@ -2147,6 +2151,10 @@
             <p data-native-helper="x68000" hidden>Open <strong>YM2151</strong> for channel and operator settings. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> previews a sound and <strong>Use Keyboard</strong> connects the Guitar. The operator display uses logical M1 / M2 / C1 / C2 order.</p>
             <p data-native-helper="huc6280" hidden>Open <strong>HuC6280</strong> to view and draw 32-sample, five-bit waveforms, adjust each channel’s volume and stereo balance, and try the sound with <strong>Hold to play</strong> or the shared Guitar Keyboard. <strong>Prepare audio</strong> works without Run. Noise is on CH5/CH6; LFO uses CH2 to modulate CH1. DDA is direct sample output, so switch to wavetable mode for note audition.</p>
             <p data-native-helper="huc6280" hidden><code>pce.setWaveform(0, wave)</code> loads 32 samples in <code>0..31</code>. Use <code>pce.setVolume(0, 20)</code>, <code>pce.noteOn(0, "C4")</code> and <code>pce.keyOff(0)</code>. Channels are <code>0..5</code>; noise is available on <code>4</code> and <code>5</code>.</p>
+            <p data-native-helper="ym3812" hidden><code>opl</code> is the primary OPL2 instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3812</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
+            <p data-native-helper="ym3526" hidden><code>opl</code> is the primary OPL instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3526</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
+            <p data-native-helper="y8950" hidden><code>opl</code> is the primary Y8950 FM instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>Y8950</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Y8950 ADPCM is not part of this FM mode.</p>
+            <p data-native-helper="ymf262" hidden><code>opl</code> is the primary OPL3 instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..17</code>; MIDI note 69 is A4. Open <strong>YMF262</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Four-op primaries are 0..2 and 9..11; each borrows its primary + 3. Keyboard excludes paired secondary channels. Stereo uses left/right routing switches.</p>
             <p data-native-helper="dx7" hidden><code>dx7</code> is the primary 16-voice MSFA instrument. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers and no channel argument. <code>await useSoundChip("dx7")</code> borrows this same instrument; <code>await createSoundChip("dx7")</code> creates another one.</p>
             <p data-native-helper="dx7" hidden>Use object presets with <code>await dx7.setPreset(preset)</code>, or import a SysEx file and <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. Open the DX7 panel to inspect and edit all six operators, select a bank voice and audition it. The Keyboard tab plays this instrument directly; keyboard.bind() can supply another instrument. The engine runs internally at 44,100 Hz; there is no chip-clock setting.</p>
             <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
@@ -2193,7 +2201,7 @@
               <li><code>const chip = await useSoundChip(name)</code> reuses a chip until Stop. For YM2612, YM2203, and YM2610, it returns the default chip when selected; otherwise it creates an independent chip.</li>
               <li><code>const chip = await createSoundChip(name)</code> creates a fresh independent chip routed through master FX.</li>
               <li><code>createSoundChip("nes", {fds: true})</code> enables FDS. Use <code>chip.pulse</code>, <code>chip.triangle</code>, <code>chip.noise</code>, <code>chip.dmc</code>, and <code>chip.fds</code>; see <code>examples/nes/</code>.</li>
-              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, <code>segapsg</code>, <code>ym2151</code>, <code>pwm</code>, <code>nes</code>, <code>dx7</code>, and <code>snes</code>.</li>
+              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, <code>segapsg</code>, <code>ym2151</code>, <code>pwm</code>, <code>nes</code>, <code>dx7</code>, <code>snes</code>, <code>ym3526</code>, <code>ym3812</code>, <code>y8950</code>, and <code>ymf262</code>.</li>
               <li><code>const snes = await useSoundChip("snes")</code> creates an independent, CPU-free S-DSP with eight voices (0..7). Load BRR with explicit tuning, then call <code>snes.setPreset(0, {sample})</code> and <code>snes.noteOn(0, "C4")</code>. Native audio is 32,000 Hz; there is no <code>setClock()</code>. See <code>examples/snes/snes-brr-melody.js</code>.</li>
               <li><code>const dx7 = await useSoundChip("dx7")</code> creates a 16-voice MSFA DX7 with the self-authored INIT SINE voice. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers, without a channel argument.</li>
               <li>Import a DX7 SysEx file into FILES, then <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. Choose <code>dx7.selectVoice(0)</code> from <code>dx7.voices</code>. The internal rate is fixed at 44,100 Hz; there is no <code>setClock()</code>. See <code>examples/dx7/dx7-init-sine.js</code>.</li>
@@ -2376,6 +2384,10 @@
           <section id="okim6258Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="okim6258Tab" hidden></section>
           <section id="huc6280Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="huc6280Tab" hidden></section>
           <section id="dx7Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="dx7Tab" hidden></section>
+          <section id="ym3812Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym3812Tab" hidden></section>
+          <section id="ym3526Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym3526Tab" hidden></section>
+          <section id="y8950Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="y8950Tab" hidden></section>
+          <section id="ymf262Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ymf262Tab" hidden></section>
           <section id="mixerPanel" class="tab-panel" role="tabpanel" aria-labelledby="mixerTab" hidden></section>
           <section id="keyboardPanel" class="tab-panel" role="tabpanel" aria-labelledby="keyboardTab" hidden>
             <div id="operatorKeyboardRoot"></div>
@@ -2430,7 +2442,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=keyboard-chips-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=opl-modes-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

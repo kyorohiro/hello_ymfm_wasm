@@ -4,7 +4,7 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  * Untagged standalone commands stay immediate. RPC setters acknowledge acceptance
  * while their sound changes wait for the reserved audio frame.
  */
-export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel,psgRegister},{psgLatch=0,hucChannel=0}={}) {
+export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel,psgRegister,port:registerPort=0},{psgLatch=0,hucChannel=0}={}) {
   if(['reset','allNotesOff','panic'].includes(method))return {allOff:true};
   if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
   if(chip==='snes'&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
@@ -22,6 +22,13 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   if(chip==='segapsg'&&method==='write') {
     const byte=args[0],latched=byte&128?(byte>>4)&7:Number.isInteger(psgRegister)?psgRegister:psgLatch;
     if(Number.isInteger(byte)&&byte>=0&&byte<=255&&(latched&1))return {key:latched>>1,on:(byte&15)!==15};
+  }
+  if(['ym3526','ym3812','y8950','ymf262'].includes(chip)){
+    if(method==='forceKeyOff')return {key:args[0],on:false};
+    if(method==='forceRhythmOff')return {key:`rhythm:${args[0]}`,on:false};
+    const reg=type==='write'?register:method==='writeRegister'?args[0]:null,v=type==='write'?value:args[1],bank=type==='write'?registerPort:args[2]??0;
+    if(reg!==null&&(reg&255)>=0xb0&&(reg&255)<=0xb8)return {key:((reg>>8)||bank)*9+(reg&255)-0xb0,on:!!(v&32)};
+    if(reg===0xbd)return {events:Array.from({length:5},(_,index)=>({key:`rhythm:${index}`,on:!!(v&32)&&!!(v&(16>>index))}))};
   }
   if(chip==='ym2151'&&method==='writeRegister'&&args[0]===8)return {key:args[1]&7,on:!!(args[1]&0x78)};
   if(chip==='ym2151'&&method==='forceKeyOff')return {key:args[0],on:false};
@@ -45,6 +52,7 @@ export function performanceNoteRelease(chip,key) {
   if(chip==='gameboy')return {method:'writeRegister',args:[[2,7,10,17][key],0]};
   if(chip==='segapsg')return {method:'write',args:[0x9f|(key<<5)]};
   if(chip==='ym2151')return {method:'forceKeyOff',args:[key]};
+  if(['ym3526','ym3812','y8950','ymf262'].includes(chip))return typeof key==='string'?{method:'forceRhythmOff',args:[Number(key.split(':')[1])]}:{method:'forceKeyOff',args:[key]};
   if(chip==='huc6280')return {method:'keyOff',args:[key]};
   if(chip==='okim6258')return {method:'stop',args:[]};
   if(chip==='pwm')return {method:'reset',args:[]};
@@ -86,6 +94,16 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
     }
   }
   if(chip==='okim6258'&&['play','stop','keyOff','allNotesOff','reset','clock','loadMemory','writeRegister','setRepeat'].includes(method))return 0;
+  if(['ym3526','ym3812','y8950','ymf262'].includes(chip)){
+    if(['forceKeyOff','auditionKeyOn'].includes(method))return args[0];
+    if(['allNotesOff','clock'].includes(method)||type==='chip-clock')return 'all';
+    if(method==='writeRegister'){
+      const register=args[0]&255,bank=(args[0]>>8)||(args[2]??0);
+      if(register>=0xa0&&register<=0xc8&&(register&15)<9)return bank*9+(register&15);
+      if(register>=0x20&&register<=0xf5){const slots=[0,1,2,8,9,10,16,17,18],offset=register&31;for(let ch=0;ch<9;ch++)if(offset===slots[ch]||offset===slots[ch]+3)return bank*9+ch;}
+      return 'all';
+    }
+  }
   if(chip==='ym2151') {
     if(method==='forceKeyOff'||method==='auditionKeyOn')return args[0];
     if(method==='allNotesOff')return 'all';

@@ -12,13 +12,15 @@ import {createHuc6280Audio} from './playground_huc6280_audio.js';
 import {createHuc6280Client} from './playground_huc6280.js';
 import {createSegaPsgAudio} from './playground_segapsg_audio.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
+import {createOplAudio} from './playground_opl_audio.js';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js';
 import {createDx7Audio} from './playground_dx7_audio.js';
 import {createDx7Client} from './playground_dx7.js';
 
-const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg', 'dx7']);
+const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262']);
 
 /** @typedef {Pick<import('./megasynth.js').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
- * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7', clock?:number, stereoEnabled?:boolean, fds?:boolean,
+ * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262', clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}
  * }} NativeRuntimeSynthOptions */
@@ -43,7 +45,7 @@ export class NativeRuntimeSynth {
     this.node = null;
     this.fm = null;
     this.psg = null;
-    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>,psg?:ReturnType<typeof createSegaPsgClient>,dx7?:ReturnType<typeof createDx7Client>}} */
+    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>,psg?:ReturnType<typeof createSegaPsgClient>,dx7?:ReturnType<typeof createDx7Client>,opl?:ReturnType<typeof createOplClient>}} */
     this.primaryApis = {};
     /** @type {ReturnType<typeof createNesClient>|null} */ this.nes = null;
     /** @type {ReturnType<typeof createSnesClient>|null} */ this.snes = null;
@@ -51,6 +53,7 @@ export class NativeRuntimeSynth {
     /** @type {ReturnType<typeof createOki6258Client>|null} */ this.adpcm = null;
     /** @type {ReturnType<typeof createHuc6280Client>|null} */ this.pce = null;
     /** @type {ReturnType<typeof createDx7Client>|null} */ this.dx7 = null;
+    /** @type {ReturnType<typeof createOplClient>|null} */ this.opl = null;
     this.primaryEndpoints = [];
     this.listeners = new Set();
     this.readyPromise = null;
@@ -120,7 +123,7 @@ export class NativeRuntimeSynth {
 
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
-    const {nes, snes, opm, adpcm, pce, psg, dx7} = this.primaryApis;
+    const {nes, snes, opm, adpcm, pce, psg, dx7, opl} = this.primaryApis;
     const pending=[],track=result=>{if(result?.then)pending.push(Promise.resolve(result));};
     if (nes?._stopVoices) track(nes._stopVoices());
     else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
@@ -142,6 +145,7 @@ export class NativeRuntimeSynth {
     if (psg?._stopVoices) track(psg._stopVoices());
     else psg?.allNotesOff();
     if(dx7)track(dx7._stopVoices());
+    if(opl)track(opl._stopVoices());
     if(!pending.length)return;
     // A failed endpoint must not let a later audition overtake another chip's
     // still-pending Stop. Preserve rejection after every endpoint has settled.
@@ -180,6 +184,7 @@ export class NativeRuntimeSynth {
 
   #releasePrimaries() {
     for (const endpoint of this.primaryEndpoints.splice(0)) {
+      endpoint.detachObserver?.();
       endpoint.release?.();
       endpoint.client?.dispose();
       endpoint.dispose();
@@ -206,6 +211,9 @@ export class NativeRuntimeSynth {
     } else if (this.chip === 'huc6280') {
       const endpoint = await this.#addPrimary('huc6280', 'pce', createHuc6280Audio, device => createHuc6280Client(device.port, {clock:device.clock}), options, signal);
       endpoint.client.initialize();
+    } else if (OPL_CHIPS.includes(this.chip)) {
+      const endpoint = await this.#addPrimary(this.chip, 'opl', createOplAudio, device => createOplClient(device.port,{chip:this.chip,clock:device.clock}), {...options,onError:()=>{if(this.initializationController?.signal!==signal||signal.aborted)return;this.#releasePrimaries();this.readyPromise=null;this.state='error';}}, signal);
+      endpoint.client.initialize();
     } else if (this.chip === 'dx7') {
       await this.#addPrimary('dx7', 'dx7', createDx7Audio, device => createDx7Client(device.port, device), {
         ...options,onError:() => {
@@ -226,6 +234,11 @@ export class NativeRuntimeSynth {
     const endpoint = {...device, name, globalName, client:null, release:null};
     this.primaryEndpoints.push(endpoint);
     endpoint.client = createClient(device);
+    if(OPL_CHIPS.includes(name)){
+      const observer=({data})=>{if(data?.type!=='opl-state')return;endpoint.client._adoptState(data.state);for(const listener of this.listeners)listener({type:'native-state',name:globalName,state:data.state});};
+      endpoint.node.port.addEventListener?.('message',observer);endpoint.node.port.start?.();
+      endpoint.detachObserver=()=>endpoint.node.port.removeEventListener?.('message',observer);
+    }
     Object.defineProperty(endpoint, 'clock', {enumerable:true, get:() => endpoint.client.clock});
     Object.defineProperty(endpoint, 'state', {enumerable:true, get:() => endpoint.client._getState?.()});
     endpoint.release = this.mixer.connect(name, name, device.node, this.audio.masterInputNode, this.audioContext);

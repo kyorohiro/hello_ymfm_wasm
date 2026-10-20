@@ -28,7 +28,7 @@ function fixture(inspector, options = {}) {
     fire(name) { for (const callback of listeners.get(name) ?? []) callback(); },
     listenerCount(name) { return listeners.get(name)?.size ?? 0; },
   };
-  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','ym2151','okim6258','huc6280'].map(kind => [kind, new Element(doc, 'div')]));
+  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','ym2151','okim6258','huc6280','ym3812','ym3526','y8950','ymf262'].map(kind => [kind, new Element(doc, 'div')]));
   const tabs = createPlaygroundChipTabs({roots, getInspector: () => inspector, pollMs: 100000, ...options});
   return {doc, roots, tabs};
 }
@@ -201,4 +201,17 @@ test('Run target handoff prevents native channel selection taking Keyboard back'
   tabs.clearKeyboardTarget();const count=targets.length;
   await walk(roots.nes).find(node=>node.dataset.nesChannel==='1').fire('click');
   assert.equal(targets.length,count,'a later channel edit respects the script binding');tabs.dispose();
+});
+
+for (const kind of ['ym3812','ym3526','y8950','ymf262']) test(`${kind} native tab prepares only its primary chip and shares edited voice with Keyboard`,async () => {
+  let prepared = false; const calls = [], targets = [];
+  const snapshot = {kind,clock:kind === 'ymf262' ? 14318180 : 3579545,channels:Array.from({length:kind === 'ymf262' ? 18 : 9},(_,channel) => ({channel,available:true,pairedWith:null,frequency:440,algorithm:0,feedback:0,pan:{left:true,right:true},operators:Array.from({length:2},() => ({multi:1,tl:30,ksl:0,ar:15,dr:0,sl:0,rr:12,waveform:0,egt:true}))})),registers:[]};
+  const inspector = {list:() => prepared ? [{id:kind,kind}] : [],read:async id => {assert.equal(id,kind); return snapshot;},invoke:async (...args) => calls.push(args)};
+  const {tabs,roots} = fixture(inspector,{ensureAudioReady:async () => {prepared = true;},onKeyboardTargetChange:target => targets.push(target)});
+  tabs.setVisible(kind); await flush(); assert.equal(prepared,false); assert.deepEqual(calls,[]);
+  await walk(roots[kind]).find(node => node.dataset.chipAction === 'prepare').fire('click'); assert.equal(control(roots[kind],'opl-frequency').value,'440'); assert.deepEqual(calls,[]);
+  control(roots[kind],'opl-op-0-tl').value = '26'; await control(roots[kind],'opl-op-0-tl').fire('change'); assert.deepEqual(calls[0],[kind,'setOperator',[0,0,{tl:26}]]);
+  await walk(roots[kind]).find(node => node.dataset.chipChannel === '1').fire('click'); await walk(roots[kind]).find(node => node.dataset.chipAction === 'opl-keyboard').fire('click');
+  tabs.setVisible(null); const target = targets.at(-1); target.noteOn({id:'key',midi:69}); await flush(); assert.deepEqual(calls.at(-1).slice(0,2),[kind,'auditionOn']); assert.equal(calls.at(-1)[2][0],1);
+  target.noteOff({id:'key'}); await flush(); assert.equal(calls.at(-1)[1],'auditionOff'); tabs.dispose();
 });
