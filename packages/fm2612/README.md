@@ -91,6 +91,8 @@ projects can use the same editor assistance with JSDoc-aware tooling.
 
 ### OPL family instruments
 
+Available in `tetorica-fm2612@0.2.22` and later.
+
 `OPLSynth` shares one API across `ym3526`, `ym3812`, `y8950` (FM only), and
 `ymf262`. Channels are zero-based: 0–8 for the first three, 0–17 for OPL3.
 Operator indices are modulator/carrier 0/1; enabled OPL3 pairs use 0–3.
