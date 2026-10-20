@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
-    <link rel="stylesheet" href="./playground_chip_tabs.css?v=native-voices-4">
+    <link rel="stylesheet" href="./playground_chip_tabs.css?v=dx7-mode-1">
     <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
@@ -2146,6 +2146,8 @@
             <p data-native-helper="x68000" hidden>Open <strong>YM2151</strong> for channel and operator settings. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> previews a sound and <strong>Use Keyboard</strong> connects the Guitar. The operator display uses logical M1 / M2 / C1 / C2 order.</p>
             <p data-native-helper="huc6280" hidden>Open <strong>HuC6280</strong> to view and draw 32-sample, five-bit waveforms, adjust each channel’s volume and stereo balance, and try the sound with <strong>Hold to play</strong> or the shared Guitar Keyboard. <strong>Prepare audio</strong> works without Run. Noise is on CH5/CH6; LFO uses CH2 to modulate CH1. DDA is direct sample output, so switch to wavetable mode for note audition.</p>
             <p data-native-helper="huc6280" hidden><code>pce.setWaveform(0, wave)</code> loads 32 samples in <code>0..31</code>. Use <code>pce.setVolume(0, 20)</code>, <code>pce.noteOn(0, "C4")</code> and <code>pce.keyOff(0)</code>. Channels are <code>0..5</code>; noise is available on <code>4</code> and <code>5</code>.</p>
+            <p data-native-helper="dx7" hidden><code>dx7</code> is the primary 16-voice MSFA instrument. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers and no channel argument. <code>await useSoundChip("dx7")</code> borrows this same instrument; <code>await createSoundChip("dx7")</code> creates another one.</p>
+            <p data-native-helper="dx7" hidden>Use object presets with <code>await dx7.setPreset(preset)</code>, or import a SysEx file and <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. The examples include a Guitar Keyboard instrument and live operator editing. The engine runs internally at 44,100 Hz; there is no chip-clock setting.</p>
             <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
             <ul data-opn-helper class="helper-list">
               <li><code>midi.output("tetorica-ym2612", { channel: CH1 })</code> creates an FM part; <code>"tetorica-sega-psg"</code> uses the three PSG tone voices (not noise). These are internal outputs, not external Web MIDI ports.</li>
@@ -2426,7 +2428,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=native-voices-4').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=dx7-mode-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

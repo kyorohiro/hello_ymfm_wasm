@@ -1,38 +1,38 @@
 import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=spc-events-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=native-voices-4';
+import {createSnesAudio} from './playground_snes_audio.js?v=dx7-mode-1';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createChipInspector} from './playground_chip_inspector.js?v=native-voices-4';
-import {createPerformanceHost} from './playground_performance_host.js?v=native-voices-4';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=native-voices-4';
+import {createChipInspector} from './playground_chip_inspector.js?v=dx7-mode-1';
+import {createPerformanceHost} from './playground_performance_host.js?v=dx7-mode-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=dx7-mode-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
-import {createNesAudio} from './playground_nes_audio.js?v=native-voices-4';
+import {createNesAudio} from './playground_nes_audio.js?v=dx7-mode-1';
 import {createNesClient} from './playground_nes.js?v=audio-stability-2';
-import {createDx7Audio} from './playground_dx7_audio.js?v=native-voices-4';
-import {createDx7Client} from './playground_dx7.js';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=native-voices-4';
+import {createDx7Audio} from './playground_dx7_audio.js?v=dx7-mode-1';
+import {createDx7Client} from './playground_dx7.js?v=dx7-mode-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=dx7-mode-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=audio-stability-2';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-voices-4';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=dx7-mode-1';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-voices-4';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=dx7-mode-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createOpnAudio} from './playground_opn_audio.js?v=native-voices-4';
-import {createOpnClient} from './playground_opn.js?v=native-voices-4';
+import {createOpnAudio} from './playground_opn_audio.js?v=dx7-mode-1';
+import {createOpnClient} from './playground_opn.js?v=dx7-mode-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
-import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=native-voices-4';
-import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=native-voices-4';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=native-voices-4';
+import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=dx7-mode-1';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=dx7-mode-1';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=dx7-mode-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=audio-stability-2';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-stability-2';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=native-voices-4';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-voices-4';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-voices-4';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=native-voices-4';
-import {createYm2608Client} from './playground_ym2608.js?v=native-voices-4';
-import {createRf5c164Client} from './playground_rf5c164.js?v=native-voices-4';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=native-voices-4';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=dx7-mode-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=dx7-mode-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=dx7-mode-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=dx7-mode-1';
+import {createYm2608Client} from './playground_ym2608.js?v=dx7-mode-1';
+import {createRf5c164Client} from './playground_rf5c164.js?v=dx7-mode-1';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=dx7-mode-1';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -47,11 +47,11 @@ import {parseMidiFile} from './midi_file.js?v=sega-modes-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=native-voices-4";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=native-voices-4";
+} from "./megasynth.js?v=dx7-mode-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=dx7-mode-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js?v=native-voices-4";
+import { createPlaygroundLive } from "./playground_live.js?v=dx7-mode-1";
 import { createPlaygroundMusic } from "./playground_music.js?v=audio-stability-2";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=audio-stability-2";
@@ -85,7 +85,7 @@ const SCALE_INTERVALS = {
 };
 
 /**
- * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'} PlaygroundChip
+ * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'} PlaygroundChip
  * @typedef {{id:string,midi:number,velocity?:number}} PlaygroundKeyboardEvent
  * @typedef {{name:string,noteOn:(event:PlaygroundKeyboardEvent)=>unknown,
  * noteOff:(event:PlaygroundKeyboardEvent)=>unknown,allNotesOff:()=>unknown}} PlaygroundKeyboardTarget
@@ -137,11 +137,11 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','x68000','huc6280','segapsg'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=native-voices-4', import.meta.url).href
+        (['nes','snes','x68000','huc6280','segapsg'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=dx7-mode-1', import.meta.url).href
           : options.chip === 'ym2203' ? './ym2203-worklet.js?v=audio-stability-2'
           : options.chip === 'ym2608' ? './ym2608-worklet.js?v=audio-stability-2'
           : ['ym2610','ym2610b'].includes(options.chip)
-            ? "./ym2610b-worklet.js?v=audio-stability-2" : "./ym2612-worklet.js?v=native-voices-4"),
+            ? "./ym2610b-worklet.js?v=audio-stability-2" : "./ym2612-worklet.js?v=dx7-mode-1"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "./generated/ym2612_wasm.wasm",
@@ -178,7 +178,7 @@ export function createPlaygroundRuntime(
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const sourceMap =
     new Map();
@@ -227,7 +227,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-voices-4",
+      "./playground_logic_worker.js?v=dx7-mode-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -373,7 +373,8 @@ export function createPlaygroundRuntime(
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
-    if (['allNotesOff','reset','resetAll'].includes(method)) return {allOff:true};
+    if (['allNotesOff','reset','resetAll','panic'].includes(method)) return {allOff:true};
+    if (name === 'dx7' && ['noteOn','noteOff'].includes(method)) return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
     if (name === 'psg') {
       if (['tone','noteOn','keyOn'].includes(method)) return {key:args[0],on:true};
       if (['off','keyOff'].includes(method)) return {key:args[0],on:false};
@@ -397,7 +398,7 @@ export function createPlaygroundRuntime(
   function releaseNativeVoice(name, key) {
     const raw = megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
     if (!raw) return;
-    if (name === 'adpcm') raw.stop(); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
+    if (name === 'adpcm') raw.stop(); else if (name === 'dx7') raw.noteOff(key); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
   }
   function nativePrimaryApis() {
     return Object.fromEntries((megaDrive.primaryEndpoints ?? []).map(endpoint => {
@@ -823,7 +824,11 @@ export function createPlaygroundRuntime(
     megaDrive.pcm?._cancelClockRequests?.('Run stopped');
     if (megaDrive.pcm) silencePrimaryPcm([0,1,2,3,4,5,6,7]);
     primaryPcmOwners.clear();
-    if (nativePrimary) {megaDrive.stopAllNative();nativeOwners.clear();}
+    if (nativePrimary) {
+      const pending=megaDrive.stopAllNative();
+      if(pending?.then)primaryPcmSilence=Promise.all([primaryPcmSilence,Promise.resolve(pending).catch(()=>{})]).then(()=>{});
+      nativeOwners.clear();
+    }
     if (capabilities.chip === 'gameboy') {
       synth?._cancelClockRequests?.('Run stopped');
       megaDrive.node?.port?.postMessage({type:'clear-scheduled-writes'});
@@ -1072,6 +1077,17 @@ export function createPlaygroundRuntime(
       await prepareAudioPromise;
       resumeOutputIfCurrent();
       return synth;
+    }
+
+    if (synth && nativePrimary && (megaDrive.state === 'error' || megaDrive.state === 'closed' ||
+        typeof megaDrive.isReady === 'function' && !megaDrive.isReady())) {
+      // A failed primary disposes its ports. Neither a borrowed script API nor
+      // a running logic Worker can reuse those clients after audio restarts.
+      if(logicWorker)terminateLogicWorker();
+      liveApi.stopAllLoops();await musicalKeyboard.clear();
+      liveApi.clearRunFxChain();liveApi.clearPrepared();liveFxLifecycle.clear();
+      nativeOwners.clear();soundChips.clear();synth=null;
+      chipInspector.notify();
     }
 
     if (synth) {

@@ -92,6 +92,7 @@ tetorica-playground-nes.d.ts
 tetorica-playground-snes.d.ts
 tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
+tetorica-playground-dx7.d.ts
 tetorica-playground-game-gear.d.ts
 tetorica-playground-master-system.d.ts
 tetorica-playground-mega-cd.d.ts

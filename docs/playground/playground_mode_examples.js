@@ -25,6 +25,7 @@ const definitions = {
   'pc-engine': ['/examples/pc-engine/pce-mode-wave.js','/examples/pc-engine/pce-mode-stereo.js','/examples/pc-engine/pce-mode-noise.js'],
   'game-gear': ['/examples/game-gear/gg-mode-melody.js', '/examples/game-gear/gg-mode-noise.js', '/examples/game-gear/gg-mode-stereo.js'],
   'master-system': ['/examples/master-system/sms-mode-melody.js', '/examples/master-system/sms-mode-noise.js'],
+  dx7: ['/examples/dx7/dx7-object-preset.js', '/examples/dx7/dx7-live-parameters.js', '/examples/dx7/dx7-keyboard.js'],
   'genesis-nuked': null,
 };
 
@@ -35,7 +36,8 @@ export const MODE_STARTERS = Object.freeze(Object.fromEntries(Object.entries(def
 // The original Genesis library remains available, excluding examples written
 // specifically for the native globals of a different machine.
 const nativeExamples = new Set(Object.entries(definitions)
-  .filter(([id]) => !id.startsWith('genesis')).flatMap(([, examples]) => examples ?? []));
+  // DX7 examples borrow with useSoundChip and also work in the Genesis library.
+  .filter(([id]) => !id.startsWith('genesis') && id !== 'dx7').flatMap(([, examples]) => examples ?? []));
 // Keep the old mode-only example usable in saved cassettes without adding it to Genesis.
 nativeExamples.add('/examples/gameboy/gameboy-mode-noise.js');
 

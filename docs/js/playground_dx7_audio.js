@@ -44,7 +44,7 @@ function loadWasm(fetchImpl) {
 function loadModule(context) {
   let ready = loadedModules.get(context);
   if (!ready) {
-    ready = context.audioWorklet.addModule(new URL('./playground_dx7_worklet.js?v=native-voices-4', import.meta.url));
+    ready = context.audioWorklet.addModule(new URL('./playground_dx7_worklet.js?v=dx7-mode-1', import.meta.url));
     loadedModules.set(context, ready);
     ready.catch(() => { if (loadedModules.get(context) === ready) loadedModules.delete(context); });
   }
@@ -55,7 +55,7 @@ function loadModule(context) {
  * Ready PCM source for the existing Playground mixer. Owns no AudioContext;
  * control commands use a direct transferable Main/Worker-to-Worklet port.
  * @param {AudioContext} context
- * @param {AudioNode} destination
+ * @param {AudioNode|null} destination
  * @param {{signal?:AbortSignal,fetch?:typeof fetch,onError?:(error:Error)=>void}} [options]
  */
 export async function createDx7Audio(context, destination, options = {}) {
@@ -115,7 +115,7 @@ export async function createDx7Audio(context, destination, options = {}) {
     throwIfAborted(options.signal);
     ensureContext(context);
     node.port.postMessage({port: channel.port1}, [channel.port1]);
-    node.connect(destination);
+    if (destination) node.connect(destination);
     // AbortSignal controls initialization; ownership moves to the endpoint.
     options.signal?.removeEventListener('abort', abort);
     endpoint = {

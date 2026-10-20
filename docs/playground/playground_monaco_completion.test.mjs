@@ -155,7 +155,7 @@ test('Game Boy does not suggest primary OPN play, presets, operators, or registe
   assert(operators.some(item => item.label === 'multi'));
 });
 
-for (const chip of ['game-gear', 'master-system']) {
+for (const chip of ['game-gear', 'master-system', 'dx7']) {
   test(`${chip} completion omits primary OPN hints and retains independent FM hints`, () => {
     for (const source of [
       'play(', 'pg.play(', 'play("C4", { ', 'pg.play("C4", { ',

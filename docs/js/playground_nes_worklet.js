@@ -1,8 +1,8 @@
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
 import {NesApu} from './nesapu.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=native-voices-4';
-import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=native-voices-4';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=native-voices-4';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-mode-1';
+import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=dx7-mode-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-mode-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;

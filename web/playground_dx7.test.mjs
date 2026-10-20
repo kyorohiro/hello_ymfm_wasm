@@ -7,6 +7,8 @@ import {createDx7Audio} from './playground_dx7_audio.js';
 import {createDX7, createInitVoice, createVoiceSysex, createBankSysex,parseSysex} from './msfa_dx7/src/index.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
+import {createPerformanceSender} from './playground_performance_sender.js';
+import {createNativeWorkerApis} from './playground_native_primary.js';
 
 const wasmBytes = new Uint8Array(await readFile(new URL('./msfa_dx7/wasm/msfa.wasm', import.meta.url)));
 const workletSource = (await readFile(new URL('./playground_dx7_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
@@ -118,6 +120,79 @@ test('DX7 cancelled future patch rebuilds its logical state without discarding a
   assert.equal(preset.name,'INIT SINE');assert.equal(preset.operators[6].coarse,3);
   instrument.render(9601);
   assert.equal(processor.synth.getPreset().name,'INIT SINE');assert.equal(processor.synth.getPreset().operators[6].coarse,3);
+});
+
+test('DX7 primary Main and Worker ports share one bank, and Worker detachment keeps Main usable',async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const {client,processor,main}=instrument,workerChannel=new MessageChannel();
+  main.port2.postMessage({primaryWorker:true,port:workerChannel.port1},[workerChannel.port1]);
+  const worker=createDx7Client(workerChannel.port2,client._getState());
+  // Closing this Worker client would dispose the shared core; the runtime only
+  // lends its guarded API and retires the port through the owning node.
+  t.after(()=>workerChannel.port2.close());
+  await worker.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  worker.selectVoice(12);await worker.setPreset({name:'SHARED',operators:{1:{coarse:3}}});
+  assert.equal((await client.getState()).selectedVoice,12);
+  assert.equal((await client.getPreset()).name,'SHARED');
+  assert.equal((await client.getPreset()).operators[1].coarse,3);
+  client.noteOn(69);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
+  worker.panic();await worker.getState();assert.equal(peak(instrument.render(256).channels[0]),0);
+  main.port2.postMessage({primaryWorker:true,type:'detach-chip-port'});
+  for(let i=0;i<20&&processor.workerRemote;i++)await settle();
+  assert.equal(processor.dead,false);assert.equal(processor.workerRemote,null);
+  assert.equal((await client.getPreset()).name,'SHARED');
+  client.noteOn(60);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
+});
+
+test('DX7 primary Stop discards future notes and patches, keeps bank/selection, and ignores old session Stop',async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const {processor,client}=instrument,port={postMessage(){}};
+  await client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  client.selectVoice(7);await client.setOperator(1,{coarse:2});
+  processor.receive({type:'performance-start',session:3},port);
+  processor.receive({performance:{session:3,owner:'old',time:0},commands:[{method:'noteOn',args:[69,100]}]},port);
+  assert(peak(instrument.render(512).channels[0])>.001);
+  processor.receive({performance:{session:3,owner:'old',time:1},commands:[{method:'setPreset',args:[{name:'FUTURE'}],id:1},{method:'noteOn',args:[70,100]}]},port);
+  processor.receive({type:'performance-stop',session:3},port);
+  assert.equal(peak(instrument.render(48001).channels[0]),0);
+  assert.equal((await client.getPreset()).name,'VOICE 7');assert.equal((await client.getPreset()).operators[1].coarse,2);
+  assert.equal((await client.getState()).selectedVoice,7);assert.equal(client.voices.length,32);
+  processor.receive({type:'performance-start',session:4},port);
+  processor.receive({performance:{session:4,owner:'new',time:0},commands:[{method:'noteOn',args:[69,100]}]},port);
+  instrument.render(128);processor.receive({type:'performance-stop',session:3},port);
+  assert(peak(instrument.render(512).channels[0])>.001,'old Stop cannot silence the replacement performance');
+  client._stopVoices();await client.getState();assert.equal(peak(instrument.render(512).channels[0]),0);
+});
+
+test('DX7 primary Stop wins over Main commands already queued before it',async t=>{
+  const instrument=await setup();t.after(()=>instrument.close());const {processor,client}=instrument;
+  processor.receiveImmediate({method:'noteOn',args:[69,100]},processor.port);
+  processor.receive({method:'stopVoices'},processor.port);await processor.commands;
+  assert.equal(peak(instrument.render(1024).channels[0]),0);
+  client.noteOn(60);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
+});
+
+for(const action of ['Stop','owner cancellation'])test(`DX7 ${action} synchronizes discarded logical patch metadata to both clients and the Worker observer`,async t=>{
+  const instrument=await setup(48000);t.after(()=>instrument.close());
+  const {client,processor,main}=instrument,channel=new MessageChannel(),observed=[];
+  await client.loadSysex(createBankSysex(Array.from({length:32},()=>createInitVoice('INIT SINE'))));
+  main.port2.postMessage({primaryWorker:true,port:channel.port1},[channel.port1]);
+  const sender=createPerformanceSender({getLoop:()=>({performanceOwner:'old'}),now:()=>0});
+  const worker=createNativeWorkerApis([{name:'dx7',globalName:'dx7',port:channel.port2,state:client._getState()}],sender,(name,state)=>observed.push(state));
+  t.after(()=>channel.port2.close());
+  processor.receive({type:'performance-start',session:10},{postMessage(){}});
+  sender.configure({session:10,audioSeconds:0,performanceEpochMs:0,lookaheadSeconds:1});
+  worker.apis.dx7.selectVoice(7);await worker.apis.dx7.setPreset({name:'FUTURE'});await settle();
+  const future=worker.raw.get('dx7')._getState();assert.equal(future.voices[7].name,'FUTURE');assert.equal(future.selectedVoice,7);
+  assert.equal(processor.synth.getPreset().name,'INIT SINE');
+  if(action==='Stop'){sender.stop();await sender.immediateCleanup(()=>worker.stop());}
+  else sender.cancelOwner('old');
+  for(let i=0;i<30&&(worker.apis.dx7.voices[7].name!=='INIT SINE'||observed.at(-1)?.voices[7].name!=='INIT SINE'||client.selectedVoice!==0);i++)await settle();
+  assert.equal(worker.apis.dx7.voices[7].name,'INIT SINE');assert.equal(client.voices[7].name,'INIT SINE');
+  assert.equal(worker.apis.dx7.selectedVoice,0);assert.equal(client.selectedVoice,0);
+  assert.equal(observed.at(-1).voices[7].name,'INIT SINE');assert.equal(observed.at(-1).selectedVoice,0);
+  assert.equal(worker.raw.get('dx7')._adoptState(future),false,'old observer snapshots cannot restore a discarded patch');
+  assert.equal(worker.apis.dx7.voices[7].name,'INIT SINE');assert.equal(peak(instrument.render(48001).channels[0]),0);
 });
 
 test('DX7 upload acknowledgement, bank selection and malformed uploads keep usable state', async t => {
@@ -437,4 +512,32 @@ test('DX7 metadata acknowledgements keep newer selection and reads return ordere
   assert.equal((await client.getPreset()).feedback, 3, 'Feedback affected the originally selected slot');
   client.selectVoice(31);
   assert.equal((await client.getPreset()).operators[1].fine, 25, 'Operator edit used slot 31 before the later selection');
+});
+
+test('an older cancellation notification cannot hide a newer optimistic selection',async t=>{
+  const instrument=await setup();t.after(()=>instrument.close());const {client,processor}=instrument;
+  await client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  processor.receive({type:'performance-start',session:20},{postMessage(){}});
+  processor.receive({type:'performance-cancel-owner',session:20,owner:'old'},{postMessage(){}});
+  client.selectVoice(1);assert.equal(client.selectedVoice,1);
+  for(let i=0;i<20&&(processor.synth.selectedVoice!==1||client._getState().stateRevision<processor.stateRevision);i++)await settle();
+  assert.equal(client.selectedVoice,1);assert.equal(processor.synth.selectedVoice,1);
+  assert.equal(client._getState().stateRevision,processor.stateRevision);
+});
+
+test('a Stop racing an unreceived select acknowledgement keeps the client usable for a new session',async t=>{
+  const instrument=await setup();t.after(()=>instrument.close());const {processor}=instrument,channel=new MessageChannel();
+  instrument.main.port2.postMessage({primaryWorker:true,port:channel.port1},[channel.port1]);
+  await instrument.client.loadSysex(createBankSysex(Array.from({length:32},(_,i)=>createInitVoice('VOICE '+i))));
+  const sender=createPerformanceSender({getLoop:()=>({performanceOwner:'old'}),now:()=>0});
+  const client=createDx7Client(sender.port(channel.port2,'independent'),instrument.client._getState());t.after(()=>channel.port2.close());
+  processor.receive({type:'performance-start',session:30},{postMessage(){}});
+  sender.configure({session:30,audioSeconds:0,performanceEpochMs:0,lookaheadSeconds:1});
+  client.selectVoice(1);
+  processor.receive({type:'performance-stop',session:30},{postMessage(){}});
+  for(let i=0;i<10;i++)await settle();
+  assert.equal(processor.dead,false);
+  processor.receive({type:'performance-start',session:31},{postMessage(){}});
+  sender.configure({session:31,audioSeconds:0,performanceEpochMs:0,lookaheadSeconds:0});
+  client.noteOn(60);await client.getState();assert(peak(instrument.render(512).channels[0])>.001);
 });

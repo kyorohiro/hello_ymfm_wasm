@@ -69,13 +69,14 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
-const megaCdVersion='native-voices-4';
+const megaCdVersion='dx7-mode-1';
 const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js','playground_live.js',
   'tetorica_audio_runtime.js',
   'playground_rf5c164.js','rf5c164-worklet.js','playground_keyboard.js',
   'playground_sample_edit.js','playground_sample_instrument.js','playground_performance_sender.js',
   'playground_chip_inspector_state.js','playground_native_voice_inspector.js',
   'playground_gameboy_worklet.js','playground_nes_worklet.js','playground_performance_processor.js',
+  'playground_dx7.js','playground_dx7_audio.js','playground_dx7_worklet.js',
   'playground_ym2151_worklet.js','playground_ym2151_inspector.js',
   'playground_okim6258_worklet.js','playground_okim6258_inspector.js','okim6258synth.js','playground_okim6258.js',
   'playground_huc6280_worklet.js','playground_huc6280_inspector.js','playground_huc6280.js']);

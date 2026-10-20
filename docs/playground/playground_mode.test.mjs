@@ -15,6 +15,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['nes','nes',1789773,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
     ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],
+    ['dx7','dx7',undefined,false],
   ];
   assert.deepEqual(PLAYGROUND_MODES.map(mode => [mode.id,mode.chip,mode.clock,mode.full]), expected);
   for (const mode of PLAYGROUND_MODES) {
@@ -23,6 +24,16 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(options.megaCD, mode.megaCD ?? mode.full);
     assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (mode.chip === 'dx7') {
+      assert.equal(mode.fmChannels,0);
+      assert.deepEqual(mode.chipTabs,[]);
+      assert.equal(mode.declarationChip,'dx7');
+      assert.equal(mode.legacyDraftKey,'dx7');
+      assert.equal(options.clock,undefined,'DX7 uses a fixed internal sample rate rather than a chip clock');
+      assert.equal(options.workletUrl,undefined,'DX7 resolves its Worklet and WASM beside its module');
+      assert.equal(options.ym2612WasmUrl,undefined);
+      continue;
+    }
     if (mode.chip === 'segapsg') {
       assert.equal(mode.fmChannels,0);
       assert.equal(mode.declarationChip,mode.id);
@@ -75,7 +86,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'native-voices-4', `${id} cannot reuse its pre-editor processor URL`);
+    assert.equal(url.searchParams.get('v'), 'dx7-mode-1', `${id} cannot reuse its pre-mode processor URL`);
   }
 });
 
@@ -86,6 +97,8 @@ test('legacy chip and engine links retain their original environments; explicit 
   assert.equal(resolvePlaygroundMode('?chip=ym2610').id, 'neogeo');
   assert.equal(resolvePlaygroundMode('?chip=ym2610b').chip, 'ym2610b');
   assert.equal(resolvePlaygroundMode('?mode=gameboy').chip, 'gameboy');
+  assert.equal(resolvePlaygroundMode('?mode=dx7').chip, 'dx7');
+  assert.equal(resolvePlaygroundMode('?chip=dx7').id, 'dx7');
   assert.equal(resolvePlaygroundMode('?mode=mega-cd').chip, 'ym2612');
   assert.equal(resolvePlaygroundMode('?engine=nuked').id, 'genesis-nuked');
   assert.equal(resolvePlaygroundMode('?mode=pc98&chip=ym2612&engine=nuked').chip, 'ym2608');

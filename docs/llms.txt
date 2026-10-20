@@ -1,6 +1,6 @@
 # Tetorica Playground (hello_ymfm_wasm)
 
-> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM, Mega CD, Game Boy, NES + FDS, SNES, X68000, PC Engine, Game Gear and Master System sound chips.
+> Browser-based JavaScript playground, documentation, and WebAssembly tools for OPN FM, Mega CD, Game Boy, NES + FDS, SNES, X68000, PC Engine, Game Gear, Master System and MSFA DX7 sound chips.
 
 Use the common Playground type definitions together with the type definition for the selected sound chip. The canonical examples are code that runs in the Playground.
 
@@ -27,8 +27,9 @@ Use the common Playground type definitions together with the type definition for
 - [PC Engine mode](./playground/tetorica-playground-huc6280.d.ts): Primary pce HuC6280 with six 32-sample five-bit wavetable voices, noise on channels 4/5, DDA and LFO. Additional chip name is huc6280.
 - [Game Gear mode](./playground/tetorica-playground-game-gear.d.ts): Primary psg Sega PSG with three tones and noise. psg.setStereo(mask) routes bits 0..3 to the right and bits 4..7 to the left; 0xff enables both sides. Use PSG1..3 for tone channels.
 - [Master System mode](./playground/tetorica-playground-master-system.d.ts): Primary psg Sega PSG with three tones and noise, mixed in mono. No setStereo on the primary instrument. This mode uses the base PSG and does not include the optional YM2413 FM expansion.
+- [DX7 mode](./playground/tetorica-playground-dx7.d.ts): Primary dx7 MSFA instrument with 16-voice polyphony. noteOn(midi, velocity) and noteOff(midi) have no channel argument. useSoundChip('dx7') borrows the primary; createSoundChip('dx7') adds an independent instrument. Object presets and SysEx are supported; internal rate is fixed at 44,100 Hz, output is 44,100/48,000 Hz, and there is no setClock API.
 
-Native modes expose the same instrument namespaces on pg and livePrepare. Game Boy, NES, SNES, X68000, PC Engine, Game Gear and Master System have no global fm/play/write, OPN pitch helpers, FM channel/operator constants or MIDI-to-FM shortcuts. Use explicit instrument methods and beat/sleep/liveLoop. useSoundChip of a mode's primary instrument borrows it without dispose; createSoundChip creates an additional disposable instrument. In Game Gear and Master System modes, useSoundChip('segapsg') returns the primary psg; createSoundChip('segapsg') creates an independent PSG with stereo routing. OPN chips remain available explicitly from every mode. Non-Genesis modes each bundle 2–3 native examples and their own defaults/<mode>/index.js.
+Native modes expose the same instrument namespaces on pg and livePrepare. Game Boy, NES, SNES, X68000, PC Engine, Game Gear, Master System and DX7 have no global fm/play/write, OPN pitch helpers, FM channel/operator constants or MIDI-to-FM shortcuts. Use explicit instrument methods and beat/sleep/liveLoop. useSoundChip of a mode's primary instrument borrows it without dispose; createSoundChip creates an additional disposable instrument. In Game Gear and Master System modes, useSoundChip('segapsg') returns the primary psg; createSoundChip('segapsg') creates an independent PSG with stereo routing. OPN chips remain available explicitly from every mode. Non-Genesis modes each bundle 2–3 native examples and their own defaults/<mode>/index.js.
 
 Game Boy and NES + FDS each have a mode-specific sound-chip tab for voice inspection and audition. Prepare audio starts only the mode's existing audio device; no Run is required. The tabs display applied register settings, allow voice parameter changes and Wave RAM drawing (Game Boy 32 four-bit samples; FDS 64 six-bit samples), and provide Hold to play / Release plus Use Keyboard for the shared Guitar layout. Audition borrows one channel while code continues on the others; release permits the next code note on that channel. Readback never submits sound commands, and hidden views do not poll. Gate indicators describe observed register gates, rather than measured volume or a live hardware envelope counter. DMC audition requires previously loaded DPCM memory. UI edits affect the current chip and are not automatically rewritten into source files; the Game Boy panel can copy configured voice JavaScript.
 
@@ -62,6 +63,7 @@ Open these source files from Playground FILES → examples to run them.
 - [Game Gear starter](./playground/defaults/game-gear/index.js): Three-tone Sega PSG melody, noise rhythm, and stereo routing
 - [Game Gear stereo](./playground/examples/game-gear/gg-mode-stereo.js): Route physical tone channels to the left or right speaker
 - [Master System starter](./playground/defaults/master-system/index.js): Sega PSG melody and noise rhythm in mono
+- [DX7 starter](./playground/defaults/dx7/index.js): Primary dx7, an authored object preset and a MIDI-note live loop; no SysEx file required
 - [DX7 Init Sine](./playground/examples/dx7/dx7-init-sine.js): useSoundChip('dx7'), 16-voice MIDI-note playback and DX7 SysEx banks. Read SysEx with file(path, {type:'arrayBuffer'}); await loadSysex before noteOn. MSFA runs internally at 44,100 Hz and has no setClock API.
 
 ## Source

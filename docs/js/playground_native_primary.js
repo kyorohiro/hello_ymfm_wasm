@@ -1,9 +1,10 @@
 import {createNesClient} from './playground_nes.js?v=audio-stability-2';
 import {createSnesClient} from './playground_snes.js?v=native-modes-3';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
-import {createHuc6280Client} from './playground_huc6280.js?v=native-voices-4';
+import {createHuc6280Client} from './playground_huc6280.js?v=dx7-mode-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
-import {createOki6258Client} from './playground_okim6258.js?v=native-voices-4';
+import {createOki6258Client} from './playground_okim6258.js?v=dx7-mode-1';
+import {createDx7Client} from './playground_dx7.js?v=dx7-mode-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {
@@ -40,6 +41,7 @@ export function createNativePrimaryClient(name, port, options = {}) {
     : name === 'segapsg' ? createSegaPsgClient(port, options)
     : name === 'huc6280' ? createHuc6280Client(port, options)
     : name === 'okim6258' ? createOki6258Client(port, options)
+    : name === 'dx7' ? createDx7Client(port, {...options,...options.state})
     : null;
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state) client._adoptState?.(options.state);
@@ -60,18 +62,24 @@ export function createNativeWorkerApis(connections, performance, observe) {
       queued = true;
       queueMicrotask(() => {queued = false; observe(connection.globalName, client._getState());});
     };
+    client._onStateChange?.(changed);
     apis[connection.globalName] = borrowNativeApi(client, connection.name, changed);
   }
   return {apis, raw,
     stop() {
+      const pending=[];
       for (const [name,client] of raw) {
         client._cancelClockRequests?.('Run stopped');
-        if (client._stopVoices) client._stopVoices();
+        if (client._stopVoices) {
+          const result=client._stopVoices();
+          if(result?.then)pending.push(result.then(()=>{if(client._getState)observe(name,client._getState());}));
+        }
         else if (client.allNotesOff) client.allNotesOff();
         else if (client.pulse) {for (let ch = 0; ch < 6; ch++) client.keyOff(ch);}
         else for (let ch = 0; ch < 8; ch++) client.keyOff(ch);
         if(client._getState)observe(name,client._getState());
       }
+      return Promise.all(pending);
     },
     adopt(name, state) {raw.get(name)?._adoptState?.(state);},
   };

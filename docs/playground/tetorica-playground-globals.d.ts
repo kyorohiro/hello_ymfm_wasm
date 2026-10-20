@@ -650,7 +650,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system';
+type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7';
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -675,6 +675,7 @@ type PlaygroundSelectedFm = {
   huc6280: never;
   'game-gear': never;
   'master-system': never;
+  dx7: never;
 }[TetoricaSelectedChip];
 declare const fm: PlaygroundSelectedFm;
 /** The primary Game Boy APU, initialized and shared by this mode. */
@@ -687,6 +688,8 @@ declare const snes: PlaygroundPrimarySnes;
 declare const opm: PlaygroundPrimaryOpm;
 /** Primary PC Engine six-channel wavetable PSG. */
 declare const pce: PlaygroundPrimaryHuc6280;
+/** Primary MSFA DX7: six operators, 32 algorithms and 16 allocated voices. */
+declare const dx7: PlaygroundPrimaryDx7;
 
 type PSGApi = {
   /** Configure Hz without triggering or changing attenuation. */
@@ -1140,6 +1143,7 @@ type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'gameboy' ? {gam
   : TetoricaSelectedChip extends 'snes' ? {snes: PlaygroundPrimarySnes}
   : TetoricaSelectedChip extends 'x68000' ? {opm: PlaygroundPrimaryOpm; adpcm: PlaygroundPrimaryOki6258}
   : TetoricaSelectedChip extends 'huc6280' ? {pce: PlaygroundPrimaryHuc6280}
+  : TetoricaSelectedChip extends 'dx7' ? {dx7: PlaygroundPrimaryDx7}
   : TetoricaSelectedChip extends 'game-gear' | 'master-system' ? {psg: PlaygroundSelectedPsg} : {};
 type PlaygroundAPI = TetoricaSelectedChip extends PlaygroundNativeSelectedChip
   ? Omit<PlaygroundAPIBase, PlaygroundFmConvenienceName> & PlaygroundSelectedNativeAPI
@@ -1550,7 +1554,8 @@ interface PlaygroundDx7State {
 }
 /** Independent MSFA DX7 synthesizer. MIDI note numbers, 16 voices, mono output.
  * Starts with the self-authored INIT SINE voice. No setClock/register API.
- * Audio is routed through Playground volume, mixer and FX. STOP disposes the instance.
+ * Audio is routed through Playground volume, mixer and FX. STOP disposes independent
+ * instances; DX7 mode retains its primary instance and bank while silencing voices.
  */
 interface PlaygroundDx7 {
   readonly voices: PlaygroundDx7VoiceInfo[];
@@ -1592,6 +1597,7 @@ interface PlaygroundDx7 {
   getState(): Promise<PlaygroundDx7State>;
   dispose(): void;
 }
+type PlaygroundPrimaryDx7 = Omit<PlaygroundDx7, 'dispose'> & {readonly id: string};
 type PlaygroundSnesChannel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 /** Raw BRR has no tuning metadata. Declare the note/frequency at basePitch.
  * Native DSP rate is fixed at 32,000 Hz. Loop positions are native sample indices.
@@ -1770,7 +1776,7 @@ type PlaygroundSoundChipMap = {
   ym2151: TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOpm : PlaygroundYm2151;
   nes: TetoricaSelectedChip extends 'nes' ? PlaygroundPrimaryNes : PlaygroundNes;
   pwm: PlaygroundPWM32X;
-  dx7: PlaygroundDx7;
+  dx7: TetoricaSelectedChip extends 'dx7' ? PlaygroundPrimaryDx7 : PlaygroundDx7;
   snes: TetoricaSelectedChip extends 'snes' ? PlaygroundPrimarySnes : PlaygroundSnes;
   spc: PlaygroundSpc;
   huc6280: TetoricaSelectedChip extends 'huc6280' ? PlaygroundPrimaryHuc6280 : PlaygroundHuc6280;
@@ -1780,7 +1786,8 @@ type PlaygroundUseSoundChipOptions = { [key: string]: never };
 type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc'
   ? PlaygroundSoundChipMap[Name] & {readonly id: string}
   : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
-/** Reuse one instance of this instrument until STOP. For independent instances use createSoundChip. */
+/** Borrow the mode's primary instrument when names match; otherwise reuse an
+ * independent instance until STOP. For separate instances use createSoundChip. */
 declare function useSoundChip<Name extends keyof PlaygroundSoundChipMap>(name: Name, options?: PlaygroundUseSoundChipOptions): Promise<PlaygroundSoundChipClient<Name>>;
 
 /** Create an independent DX7 with its own 16 voices and SysEx bank. */

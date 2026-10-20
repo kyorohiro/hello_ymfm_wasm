@@ -1,4 +1,4 @@
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=native-voices-4';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-mode-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';

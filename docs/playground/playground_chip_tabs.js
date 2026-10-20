@@ -1,9 +1,9 @@
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
-import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=native-voices-4';
-import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=native-voices-4';
-import {createPlaygroundHuc6280VoicePanel} from './playground_huc6280_voice_panel.js?v=native-voices-4';
-import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=native-voices-4';
-import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=native-voices-4';
+import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=dx7-mode-1';
+import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=dx7-mode-1';
+import {createPlaygroundHuc6280VoicePanel} from './playground_huc6280_voice_panel.js?v=dx7-mode-1';
+import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=dx7-mode-1';
+import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=dx7-mode-1';
 
 export function frequencyNote(frequency) {
   if (!Number.isFinite(frequency) || frequency <= 0) return '—';

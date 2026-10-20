@@ -64,7 +64,7 @@ test('bundled examples match editable categorized source files', async () => {
 
 test('all mode starters match their physical index.js sources', async () => {
   const modeIds = Object.keys(MODE_STARTERS);
-  assert.equal(modeIds.length, 16);
+  assert.equal(modeIds.length, 17);
   assert.deepEqual(Object.keys(MODE_DEFAULT_CODES), modeIds);
   for (const [id, definition] of Object.entries(MODE_STARTERS)) {
     assert.equal(definition.index, `${id}/index.js`);

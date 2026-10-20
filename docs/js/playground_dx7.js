@@ -19,12 +19,15 @@ function copySysex(input) {
  * Worker. Tone uploads are acknowledged before resolving; subsequent commands
  * on this port cannot overtake an upload. This API uses integer MIDI notes.
  * @param {MessagePort} port
- * @param {{sampleRate?:number,internalSampleRate?:number,voices?:Array<{index:number,name:string}>,selectedVoice?:number}} [initial]
+ * @param {{sampleRate?:number,internalSampleRate?:number,voices?:Array<{index:number,name:string}>,selectedVoice?:number,stateRevision?:number}} [initial]
  */
 export function createDx7Client(port, initial = {}) {
   let voices = (initial.voices ?? []).map(voice => ({...voice}));
   let selectedVoice = initial.selectedVoice ?? -1;
   let selectionRevision = 0;
+  let pendingSelection = 0, observedSelection = selectedVoice;
+  let stateRevision = initial.stateRevision ?? 0;
+  const stateListeners=new Set();
   let disposed = false, failed = null, nextId = 0;
   let client;
   const sampleRate = initial.sampleRate ?? 44100;
@@ -41,6 +44,7 @@ export function createDx7Client(port, initial = {}) {
       request.reject(error);
     }
     pending.clear();
+    stateListeners.clear();
     port.onmessage = null;
     port.onmessageerror = null;
     port.close();
@@ -72,11 +76,16 @@ export function createDx7Client(port, initial = {}) {
     });
   }
   function updateState(state, revision) {
-    voices = state.voices.map(voice => ({...voice}));
+    const incoming=state.stateRevision??stateRevision;
     // Return the command's ordered snapshot while keeping a newer optimistic
     // selectVoice() visible on the client until its following acknowledgement.
-    if (revision === selectionRevision) selectedVoice = state.selectedVoice;
-    return {...state, voices: voices.map(voice => ({...voice}))};
+    if(incoming>=stateRevision){
+      voices = state.voices.map(voice => ({...voice}));
+      observedSelection=state.selectedVoice;
+      if (revision === selectionRevision) selectedVoice = state.selectedVoice;
+      stateRevision=incoming;
+    }
+    return {...state, voices: state.voices.map(voice => ({...voice}))};
   }
   async function requestState(method, args = [], transfer = []) {
     const revision = selectionRevision;
@@ -85,6 +94,10 @@ export function createDx7Client(port, initial = {}) {
   port.onmessage = ({data}) => {
     if (disposed || failed) return;
     if (data.fatal) { fail(new Error(data.error ?? 'DX7 AudioWorklet failed.')); return; }
+    if(data.type==='dx7-state'){
+      if(client._adoptState(data.state)!==false)for(const listener of stateListeners)listener();
+      return;
+    }
     const request = pending.get(data.id);
     if (!request) return;
     pending.delete(data.id);
@@ -99,6 +112,22 @@ export function createDx7Client(port, initial = {}) {
     internalSampleRate,
     get voices() { return voices.map(voice => ({...voice})); },
     get selectedVoice() { return selectedVoice; },
+    _getState() { return {sampleRate,internalSampleRate,voices:voices.map(voice=>({...voice})),selectedVoice,stateRevision}; },
+    _adoptState(state) {
+      if (!state || state.sampleRate !== sampleRate || state.internalSampleRate !== internalSampleRate ||
+          !Array.isArray(state.voices) || !state.voices.length || state.voices.length > 32 ||
+          state.voices.some((voice,index)=>voice?.index!==index||typeof voice.name!=='string') ||
+          (state.stateRevision!==undefined&&(!Number.isSafeInteger(state.stateRevision)||state.stateRevision<0)) ||
+          !Number.isInteger(state.selectedVoice) || state.selectedVoice < 0 || state.selectedVoice >= state.voices.length) {
+        throw new TypeError('Invalid DX7 primary state.');
+      }
+      if((state.stateRevision??stateRevision)<stateRevision)return false;
+      voices=state.voices.map(voice=>({...voice}));observedSelection=state.selectedVoice;
+      if(!pendingSelection){selectedVoice=state.selectedVoice;selectionRevision++;}
+      stateRevision=state.stateRevision??stateRevision;
+    },
+    _onStateChange(listener) { stateListeners.add(listener);return ()=>stateListeners.delete(listener); },
+    _stopVoices() { return requestState('stopVoices'); },
     async getState() { return requestState('getState'); },
     async loadSysex(input) {
       assertUsable();
@@ -136,19 +165,29 @@ export function createDx7Client(port, initial = {}) {
     /** A fresh complete object after preceding commands have been applied.
      * @returns {Promise<import('./msfa_dx7/src/preset.js').DX7PresetState>} */
     async getPreset() { return request('getPreset'); },
+    /** @param {number} index */
     selectVoice(index) {
       assertUsable();
       midiInteger(index, 'Voice index', voices.length - 1);
-      send('selectVoice', [index]);
-      selectionRevision++;
+      const revision=++selectionRevision;
+      pendingSelection=revision;
       selectedVoice = index;
+      // Selection remains synchronous to callers. Its private acknowledgement
+      // prevents an older cross-port state notification hiding a newer choice.
+      requestState('selectVoice',[index]).then(()=>{
+        if(pendingSelection===revision){pendingSelection=0;selectedVoice=observedSelection;}
+      },()=>{
+        if(pendingSelection===revision){pendingSelection=0;selectedVoice=observedSelection;}
+      });
     },
+    /** @param {number} note @param {number} [velocity] */
     noteOn(note, velocity = 100) {
       assertUsable();
       midiInteger(note, 'MIDI note');
       midiInteger(velocity, 'Velocity');
       send('noteOn', [note, velocity]);
     },
+    /** @param {number} note */
     noteOff(note) {
       assertUsable();
       midiInteger(note, 'MIDI note');

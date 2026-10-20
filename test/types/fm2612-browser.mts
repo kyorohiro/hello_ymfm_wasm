@@ -112,9 +112,17 @@ nativePce.pce?.setNoise(5,{enabled:true,frequency:20});
 const nativePsg = new NativeRuntimeSynth({chip:'segapsg',stereoEnabled:true,clock:3579545});
 nativePsg.psg?.setStereo(0xf1);
 nativePsg.psg?.allNotesOff();
+const nativeDx7 = new NativeRuntimeSynth({chip:'dx7'});
+await nativeDx7.dx7?.setPreset({name:'BELL',operators:{1:{coarse:2}}});
+nativeDx7.dx7?.noteOn(60,100);nativeDx7.dx7?.noteOff(60);
+// @ts-expect-error DX7 uses integer MIDI note numbers.
+nativeDx7.dx7?.noteOn('C4');
+// @ts-expect-error DX7 velocity is numeric MIDI.
+nativeDx7.dx7?.noteOn(60,'loud');
 import {createTetoricaSynth} from 'tetorica-fm2612/tetorica_synth.js';
 createTetoricaSynth({chip:'segapsg',stereoEnabled:false,clock:3579545,fetch:globalThis.fetch});
 createTetoricaSynth({chip:'x68000',extraOki:{wasmUrl:'oki.wasm'}});
+createTetoricaSynth({chip:'dx7'});
 // @ts-expect-error Stereo support is a boolean option.
 createTetoricaSynth({chip:'segapsg',stereoEnabled:'mono'});
 // @ts-expect-error Chip clocks are numeric Hz values.
@@ -135,7 +143,7 @@ const nativePlayground = Playground({
     target.noteOff({id:'key-1',midi:60}); target.allNotesOff();
   },
 });
-for (const chip of ['nes','snes','x68000','segapsg','gameboy'] as const) Playground({chip});
+for (const chip of ['nes','snes','x68000','segapsg','gameboy','dx7'] as const) Playground({chip});
 await nativePlayground.playSource('const audio = await inputAudio({asset:"/samples/voice.sample.json",edit:false});');
 // @ts-expect-error An OKI stream is part of the X68000 primary, not a standalone primary chip.
 Playground({chip:'okim6258'});

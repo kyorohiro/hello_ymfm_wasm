@@ -85,7 +85,7 @@ const SCALE_INTERVALS = {
 };
 
 /**
- * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'} PlaygroundChip
+ * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'} PlaygroundChip
  * @typedef {{id:string,midi:number,velocity?:number}} PlaygroundKeyboardEvent
  * @typedef {{name:string,noteOn:(event:PlaygroundKeyboardEvent)=>unknown,
  * noteOff:(event:PlaygroundKeyboardEvent)=>unknown,allNotesOff:()=>unknown}} PlaygroundKeyboardTarget
@@ -178,7 +178,7 @@ export function createPlaygroundRuntime(
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const sourceMap =
     new Map();
@@ -373,7 +373,8 @@ export function createPlaygroundRuntime(
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
-    if (['allNotesOff','reset','resetAll'].includes(method)) return {allOff:true};
+    if (['allNotesOff','reset','resetAll','panic'].includes(method)) return {allOff:true};
+    if (name === 'dx7' && ['noteOn','noteOff'].includes(method)) return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
     if (name === 'psg') {
       if (['tone','noteOn','keyOn'].includes(method)) return {key:args[0],on:true};
       if (['off','keyOff'].includes(method)) return {key:args[0],on:false};
@@ -397,7 +398,7 @@ export function createPlaygroundRuntime(
   function releaseNativeVoice(name, key) {
     const raw = megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
     if (!raw) return;
-    if (name === 'adpcm') raw.stop(); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
+    if (name === 'adpcm') raw.stop(); else if (name === 'dx7') raw.noteOff(key); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
   }
   function nativePrimaryApis() {
     return Object.fromEntries((megaDrive.primaryEndpoints ?? []).map(endpoint => {
@@ -823,7 +824,11 @@ export function createPlaygroundRuntime(
     megaDrive.pcm?._cancelClockRequests?.('Run stopped');
     if (megaDrive.pcm) silencePrimaryPcm([0,1,2,3,4,5,6,7]);
     primaryPcmOwners.clear();
-    if (nativePrimary) {megaDrive.stopAllNative();nativeOwners.clear();}
+    if (nativePrimary) {
+      const pending=megaDrive.stopAllNative();
+      if(pending?.then)primaryPcmSilence=Promise.all([primaryPcmSilence,Promise.resolve(pending).catch(()=>{})]).then(()=>{});
+      nativeOwners.clear();
+    }
     if (capabilities.chip === 'gameboy') {
       synth?._cancelClockRequests?.('Run stopped');
       megaDrive.node?.port?.postMessage({type:'clear-scheduled-writes'});
@@ -1072,6 +1077,17 @@ export function createPlaygroundRuntime(
       await prepareAudioPromise;
       resumeOutputIfCurrent();
       return synth;
+    }
+
+    if (synth && nativePrimary && (megaDrive.state === 'error' || megaDrive.state === 'closed' ||
+        typeof megaDrive.isReady === 'function' && !megaDrive.isReady())) {
+      // A failed primary disposes its ports. Neither a borrowed script API nor
+      // a running logic Worker can reuse those clients after audio restarts.
+      if(logicWorker)terminateLogicWorker();
+      liveApi.stopAllLoops();await musicalKeyboard.clear();
+      liveApi.clearRunFxChain();liveApi.clearPrepared();liveFxLifecycle.clear();
+      nativeOwners.clear();soundChips.clear();synth=null;
+      chipInspector.notify();
     }
 
     if (synth) {

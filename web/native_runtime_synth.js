@@ -12,11 +12,13 @@ import {createHuc6280Audio} from './playground_huc6280_audio.js';
 import {createHuc6280Client} from './playground_huc6280.js';
 import {createSegaPsgAudio} from './playground_segapsg_audio.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
+import {createDx7Audio} from './playground_dx7_audio.js';
+import {createDx7Client} from './playground_dx7.js';
 
-const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg']);
+const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg', 'dx7']);
 
 /** @typedef {Pick<import('./megasynth.js').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
- * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg', clock?:number, stereoEnabled?:boolean, fds?:boolean,
+ * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7', clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}
  * }} NativeRuntimeSynthOptions */
@@ -41,13 +43,14 @@ export class NativeRuntimeSynth {
     this.node = null;
     this.fm = null;
     this.psg = null;
-    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>,psg?:ReturnType<typeof createSegaPsgClient>}} */
+    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>,psg?:ReturnType<typeof createSegaPsgClient>,dx7?:ReturnType<typeof createDx7Client>}} */
     this.primaryApis = {};
     /** @type {ReturnType<typeof createNesClient>|null} */ this.nes = null;
     /** @type {ReturnType<typeof createSnesClient>|null} */ this.snes = null;
     /** @type {ReturnType<typeof createYm2151Client>|null} */ this.opm = null;
     /** @type {ReturnType<typeof createOki6258Client>|null} */ this.adpcm = null;
     /** @type {ReturnType<typeof createHuc6280Client>|null} */ this.pce = null;
+    /** @type {ReturnType<typeof createDx7Client>|null} */ this.dx7 = null;
     this.primaryEndpoints = [];
     this.listeners = new Set();
     this.readyPromise = null;
@@ -117,7 +120,7 @@ export class NativeRuntimeSynth {
 
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
-    const {nes, snes, opm, adpcm, pce, psg} = this.primaryApis;
+    const {nes, snes, opm, adpcm, pce, psg, dx7} = this.primaryApis;
     if (nes?._stopVoices) nes._stopVoices();
     else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
     if (snes) {
@@ -135,6 +138,9 @@ export class NativeRuntimeSynth {
     if (pce?._stopVoices) pce._stopVoices();
     else pce?.allNotesOff();
     psg?.allNotesOff();
+    const pending=dx7?._stopVoices();
+    pending?.catch(()=>{});
+    return pending;
   }
   reset() { this.stopAllNative(); }
 
@@ -174,7 +180,7 @@ export class NativeRuntimeSynth {
     this.node = null;
   }
 
-  #createAudioContext() { return new AudioContext(); }
+  #createAudioContext() { return this.chip === 'dx7' ? new AudioContext({sampleRate:44100}) : new AudioContext(); }
 
   async #initialize(signal) {
     if (!this.audioContext) this.audioContext = this.#createAudioContext();
@@ -191,6 +197,13 @@ export class NativeRuntimeSynth {
     } else if (this.chip === 'huc6280') {
       const endpoint = await this.#addPrimary('huc6280', 'pce', createHuc6280Audio, device => createHuc6280Client(device.port, {clock:device.clock}), options, signal);
       endpoint.client.initialize();
+    } else if (this.chip === 'dx7') {
+      await this.#addPrimary('dx7', 'dx7', createDx7Audio, device => createDx7Client(device.port, device), {
+        ...options,onError:() => {
+          if (this.initializationController?.signal !== signal || signal.aborted) return;
+          this.#releasePrimaries();this.readyPromise=null;this.state='error';
+        },
+      }, signal);
     } else {
       const opm = await this.#addPrimary('ym2151', 'opm', createYm2151Audio, device => createYm2151Client(device.port), options, signal);
       await waitForInitialization(opm.client.setClock(4000000), signal);

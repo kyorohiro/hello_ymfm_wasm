@@ -16,6 +16,7 @@ export const MODE_DEFAULT_CODES = {
   "pc-engine": "// Select Mode: PC Engine. Six 32-entry, five-bit wavetable voices.\nsetBpm(120);\npce.setWaveform(0, Array.from({length:32}, (_, index) =>\n  Math.round(15.5 + 15.5 * Math.sin(index * Math.PI / 16))));\npce.setVolume(0, 26); // Hardware volume 0..31.\npce.setPan(0, 15, 15); // Independent left/right balances 0..15.\n\nliveLoop('pce-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    // Keep the waveform running between notes; hard key cuts can click.\n    pce.noteOn(0, note);\n    await beat(0.5);\n  }\n});\n\n// Uploading a waveform stops its channel. Channels 4/5 can also generate noise.\n",
   "game-gear": "// Select Mode: Game Gear. Three PSG tones and one noise voice, with stereo routing.\nsetBpm(120);\npsg.setStereo(0xff); // All four voices reach both speakers.\n\nliveLoop('gg-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    psg.tone(PSG1, {note, attenuation: 9});\n    await beat(0.4);\n    psg.off(PSG1);\n    await beat(0.1);\n  }\n});\n\nliveLoop('gg-rhythm', async () => {\n  psg.noise({type: 'white', rate: 'high', attenuation: 12});\n  await beat(0.1);\n  psg.noiseOff();\n  await beat(0.9);\n});\n",
   "master-system": "// Select Mode: Master System. Three PSG tones and one noise voice, in mono.\nsetBpm(120);\n\nliveLoop('sms-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    psg.tone(PSG1, {note, attenuation: 9});\n    await beat(0.4);\n    psg.off(PSG1);\n    await beat(0.1);\n  }\n});\n\nliveLoop('sms-rhythm', async () => {\n  psg.noise({type: 'white', rate: 'high', attenuation: 12});\n  await beat(0.1);\n  psg.noiseOff();\n  await beat(0.9);\n});\n",
+  "dx7": "// Select Mode: DX7. Six operators, 32 algorithms and 16 allocated voices.\n// This original one-carrier preset needs no SysEx file. MIDI notes are 0..127.\nawait dx7.setPreset({\n  name: 'MODE KEYS', algorithm: 31, feedback: 0,\n  operators: {\n    1: {\n      coarse: 1, outputLevel: 85,\n      envelope: {rates: [99, 75, 65, 75], levels: [99, 85, 75, 0]},\n    },\n  },\n});\nawait mixer.set(dx7.id, {volume: 0.5});\nsetBpm(120);\n\nliveLoop('dx7-melody', async () => {\n  for (const note of [60, 64, 67, 71, 72, 67, 64, 62]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n\n// Open examples/dx7/dx7-keyboard.js to play from the shared Keyboard.\n// For your own bank: await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));\n",
   "genesis-nuked": "setBpm(120);\n\nfm.setPreset(CH1, FM_PRESETS[\"one-op-basic\"]);\n\nliveFx(\"distortion\", {\n  context: { gain: 60.0, drive: 0.03 },\n  process(input, output, state, context) {\n    for (let ch = 0; ch < input.length; ch++) {\n      for (let i = 0; i < input[ch].length; i++) {\n        output[ch][i] = Math.tanh(input[ch][i] * context.gain) * context.drive;\n      }\n    }\n  },\n});\n\nliveLoop(\"lead\", async () => {\n  const notes = scale(\"E3\", \"minorPentatonic\", 2);\n  //await nextBeat();\n  await play(choose(notes), {\n    channel: CH1,\n    duration: 0.08,\n  });\n  await beat(cycle([0.04, 0.04, 0.08]));\n});\n"
 };
 export const MODE_DEFAULT_HISTORY = {
@@ -443,17 +444,22 @@ export const EXAMPLE_FILES = [
   {
     "path": "/examples/dx7/dx7-init-sine.js",
     "name": "dx7-init-sine",
-    "data": "// Independent MSFA DX7, ready with the self-authored INIT SINE voice.\n// MIDI note numbers 0..127; the DX7 allocates its own 16 voices.\nconst dx7 = await useSoundChip('dx7');\nsetBpm(110);\nawait mixer.set(dx7.id, {volume: 0.5});\n\n// To use your own DX7 SysEx, import a .syx file into FILES first:\n// await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));\n// console.log(dx7.voices);\n// dx7.selectVoice(0);\n\nliveLoop('dx7-melody', async () => {\n  for (const note of [60, 64, 67, 72, 67, 64]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n"
+    "data": "// Independent MSFA DX7, ready with the self-authored INIT SINE voice.\n// MIDI note numbers 0..127; the DX7 allocates its own 16 voices.\nconst synth = await useSoundChip('dx7');\nsetBpm(110);\nawait mixer.set(synth.id, {volume: 0.5});\n\n// To use your own DX7 SysEx, import a .syx file into FILES first:\n// await synth.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));\n// console.log(synth.voices);\n// synth.selectVoice(0);\n\nliveLoop('dx7-melody', async () => {\n  for (const note of [60, 64, 67, 72, 67, 64]) {\n    synth.noteOn(note, 100);\n    await beat(0.4);\n    synth.noteOff(note);\n    await beat(0.1);\n  }\n});\n"
+  },
+  {
+    "path": "/examples/dx7/dx7-keyboard.js",
+    "name": "dx7-keyboard",
+    "data": "// Run, then open Keyboard to play this original DX7 voice.\n// Guitar / Bass / Ukulele input shares this binding. No SysEx file is needed.\nconst synth = await useSoundChip('dx7');\nawait synth.setPreset({\n  name: 'KEYBOARD', algorithm: 0, feedback: 0,\n  operators: {\n    1: {\n      coarse: 1, outputLevel: 85,\n      envelope: {rates: [99, 80, 70, 75], levels: [99, 90, 80, 0]},\n    },\n    2: {\n      coarse: 2, outputLevel: 55,\n      envelope: {rates: [99, 70, 50, 75], levels: [99, 70, 40, 0]},\n    },\n  },\n});\nawait mixer.set(synth.id, {volume: 0.5});\n\n// DX7 noteOff releases every voice at that pitch. Keep the latest press ID\n// for each MIDI note so an older release cannot cut off a newer press.\nconst held = new Map();\nkeyboard.bind('DX7 Keyboard', {\n  noteOn({id, midi, velocity}) {\n    held.set(midi, id);\n    synth.noteOn(midi, velocity);\n  },\n  noteOff({id, midi}) {\n    if (held.get(midi) !== id) return;\n    held.delete(midi);\n    synth.noteOff(midi);\n  },\n  allNotesOff() {\n    held.clear();\n    synth.allNotesOff();\n  },\n});\nlog('DX7 ready. Open Keyboard to play. Stop releases this binding.');\n"
   },
   {
     "path": "/examples/dx7/dx7-live-parameters.js",
     "name": "dx7-live-parameters",
-    "data": "// Live DX7 operator editing (tetorica-fm2612 0.2.16 / DX7 core 0.3.0).\n// Level/frequency edits affect this patch's held notes and release tails.\nconst dx7 = await useSoundChip('dx7');\nawait dx7.setPreset({\n  name: 'LIVE FM', algorithm: 0,\n  operators: {\n    1: {outputLevel: 80, envelope: {rates: [99, 99, 99, 75], levels: [99, 99, 99, 0]}},\n    2: {coarse: 2, outputLevel: 20, envelope: {rates: [99, 99, 99, 75], levels: [99, 99, 99, 0]}},\n  },\n});\nawait mixer.set(dx7.id, {volume: 0.5});\nsetBpm(100);\n\nliveLoop('dx7-live-parameters', async () => {\n  await dx7.setOperators([[1, {outputLevel: 80}], [2, {outputLevel: 20, fine: 0}]]);\n  dx7.noteOn(60, 100);\n  // Two beats; follows BPM. Returning the Promise waits for each edit.\n  await tween({beats: 2}, progress => dx7.setOperator(2, {\n    outputLevel: Math.round(20 + 60 * progress),\n    fine: Math.round(50 * progress),\n  }));\n  await beat(1);\n  // One real second, independent of BPM. The oscillator and EG are not restarted.\n  await tween(1, progress => dx7.setOperator(1, {\n    outputLevel: Math.round(80 * (1 - progress)),\n  }));\n  dx7.noteOff(60);\n  await beat(1);\n});\n"
+    "data": "// Live DX7 operator editing (tetorica-fm2612 0.2.16 / DX7 core 0.3.0).\n// Level/frequency edits affect this patch's held notes and release tails.\nconst synth = await useSoundChip('dx7');\nawait synth.setPreset({\n  name: 'LIVE FM', algorithm: 0,\n  operators: {\n    1: {outputLevel: 80, envelope: {rates: [99, 99, 99, 75], levels: [99, 99, 99, 0]}},\n    2: {coarse: 2, outputLevel: 20, envelope: {rates: [99, 99, 99, 75], levels: [99, 99, 99, 0]}},\n  },\n});\nawait mixer.set(synth.id, {volume: 0.5});\nsetBpm(100);\n\nliveLoop('dx7-live-parameters', async () => {\n  await synth.setOperators([[1, {outputLevel: 80}], [2, {outputLevel: 20, fine: 0}]]);\n  synth.noteOn(60, 100);\n  // Two beats; follows BPM. Returning the Promise waits for each edit.\n  await tween({beats: 2}, progress => synth.setOperator(2, {\n    outputLevel: Math.round(20 + 60 * progress),\n    fine: Math.round(50 * progress),\n  }));\n  await beat(1);\n  // One real second, independent of BPM. The oscillator and EG are not restarted.\n  await tween(1, progress => synth.setOperator(1, {\n    outputLevel: Math.round(80 * (1 - progress)),\n  }));\n  synth.noteOff(60);\n  await beat(1);\n});\n"
   },
   {
     "path": "/examples/dx7/dx7-object-preset.js",
     "name": "dx7-object-preset",
-    "data": "// Build a DX7 voice with objects. No SysEx file is needed.\n// Operators are OP1..6; algorithm 0 is the instrument's algorithm 1.\nconst dx7 = await useSoundChip('dx7');\nawait dx7.setPreset({\n  name: 'JS BELL',\n  algorithm: 0,\n  feedback: 0,\n});\nawait dx7.setOperators([\n  [1, {\n    coarse: 1, outputLevel: 90,\n    envelope: {rates: [99, 70, 50, 75], levels: [99, 80, 60, 0]},\n  }],\n  [2, {\n    coarse: 2, outputLevel: 68,\n    envelope: {rates: [99, 75, 50, 80], levels: [99, 70, 0, 0]},\n  }],\n]);\nsetBpm(110);\nawait mixer.set(dx7.id, {volume: 0.5});\n\nliveLoop('dx7-object-melody', async () => {\n  // Level edits keep other parameters and also affect this patch's release tails.\n  await dx7.setOperator(2, {outputLevel: choose([55, 65, 75])});\n  for (const note of [60, 64, 67, 72]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n"
+    "data": "// Build a DX7 voice with objects. No SysEx file is needed.\n// Operators are OP1..6; algorithm 0 is the instrument's algorithm 1.\nconst synth = await useSoundChip('dx7');\nawait synth.setPreset({\n  name: 'JS BELL',\n  algorithm: 0,\n  feedback: 0,\n});\nawait synth.setOperators([\n  [1, {\n    coarse: 1, outputLevel: 90,\n    envelope: {rates: [99, 70, 50, 75], levels: [99, 80, 60, 0]},\n  }],\n  [2, {\n    coarse: 2, outputLevel: 68,\n    envelope: {rates: [99, 75, 50, 80], levels: [99, 70, 0, 0]},\n  }],\n]);\nsetBpm(110);\nawait mixer.set(synth.id, {volume: 0.5});\n\nliveLoop('dx7-object-melody', async () => {\n  // Level edits keep other parameters and also affect this patch's release tails.\n  await synth.setOperator(2, {outputLevel: choose([55, 65, 75])});\n  for (const note of [60, 64, 67, 72]) {\n    synth.noteOn(note, 100);\n    await beat(0.4);\n    synth.noteOff(note);\n    await beat(0.1);\n  }\n});\n"
   },
   {
     "path": "/examples/snes/snes-brr-melody.js",
@@ -544,6 +550,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/pc98/ym2608-rhythm.js",
     "/examples/x68000/ym2151-tone.js",
     "/examples/dx7/dx7-init-sine.js",
+    "/examples/dx7/dx7-keyboard.js",
     "/examples/dx7/dx7-live-parameters.js",
     "/examples/dx7/dx7-object-preset.js",
     "/examples/snes/snes-brr-melody.js"
@@ -614,6 +621,11 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/master-system/sms-mode-melody.js",
     "/examples/master-system/sms-mode-noise.js"
   ],
+  "dx7": [
+    "/examples/dx7/dx7-object-preset.js",
+    "/examples/dx7/dx7-live-parameters.js",
+    "/examples/dx7/dx7-keyboard.js"
+  ],
   "genesis-nuked": [
     "/examples/basic/8-bit-arcade-sweep.js",
     "/examples/basic/ambient-choir-sample.js",
@@ -669,6 +681,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/pc98/ym2608-rhythm.js",
     "/examples/x68000/ym2151-tone.js",
     "/examples/dx7/dx7-init-sine.js",
+    "/examples/dx7/dx7-keyboard.js",
     "/examples/dx7/dx7-live-parameters.js",
     "/examples/dx7/dx7-object-preset.js",
     "/examples/snes/snes-brr-melody.js"

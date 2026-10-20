@@ -289,7 +289,7 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 | Neo Geo (YM2610B) | `neogeo-b` | YM2610B | FM 6ch・SSG・ADPCM-A/B を標準公開。 |
 | X68000 | `x68000` | YM2151 + OKIM6258 | 標準 `opm` + `adpcm`、PCM からの OKI ADPCM4 読み込みを実装。 |
 | PC Engine | `pc-engine` | HuC6280 | 標準 `pce`、Wave / Noise / DDA / LFO と代表例を実装。 |
-| DX7 | `dx7` | DX7 音源 | DX7 向けの音色選択・編集・演奏を中心とした環境。 |
+| DX7 | `dx7` | MSFA DX7 | 標準 `dx7` API、Object音色・ライブ編集・Guitar Keyboardの例を実装。 |
 | Empty | `empty` | なし | 音源は `useSoundChip()` などで明示的に用意する。 |
 
 低レベルのチップ対応と、Playground から使えること、mode として環境が整っている
@@ -569,6 +569,19 @@ PC Engine modeでは **HuC6280** タブから6チャンネルの設定を確認�
 - DDAは5bitの直値を出すモードとして表示・設定する。音符試奏はwavetable modeへ切り替えて行う。
 - 通常の`pce.setWaveform()`で読み込んだ波形は表示できる。再生後、pointer resetなしのraw書込で位置が不明になった場合は推測波形を表示せず、32点の再設定へ案内する。
 - 試奏中は選択チャンネルをCodeの既存書込から保護し、ほかのチャンネルは継続する。Stopでは波形・音量・音程・左右バランスなどの設定を保持する。
+
+### DX7 mode
+
+DX7を標準音源にする独立したmode。起動時のFM／PSG構成は作らず、
+MSFA DX7の16音ポリフォニック音源を1台だけ共有する。
+
+- 標準の`dx7`、`pg.dx7`、`livePrepare()`内の`dx7`を公開する。`await useSoundChip('dx7')`は同じ音源を借り、`await createSoundChip('dx7')`は独立音源を追加する。
+- `noteOn(midi, velocity)`／`noteOff(midi)`はMIDIノート番号で演奏し、チャンネル引数を持たない。OPN用の`play()`／`fm`は公開しない。
+- 初期`index.js`はファイル不要のObject音色で演奏する。代表例はObject音色、演奏中のOperator編集、共通Guitar Keyboardへの接続を扱う。
+- SysExの単音色／32音色バンクは既存の`loadSysex()`で読み込み、`selectVoice()`で選ぶ。`setPreset()`／`setOperator()`などの音色変更は完了を待ってから演奏する。
+- 内部サンプルレートは44,100 Hz固定。出力は44,100／48,000 Hzに対応し、チップの`setClock()`は持たない。
+- Main／Workerの切替とStopで発音を止め、読み込み済み音色・バンクは保持する。標準音源の破棄はRuntimeが管理する。
+- Node.js 22の共有Runtime全1,576テスト、UI関連96テスト、全mode型チェックを通過。Chromium／WebKitのMain／Workerで初期曲・16音和音・代表3例・Guitar入力・Stop／再起動・mode切替を確認。
 
 ## 今後整理する点
 

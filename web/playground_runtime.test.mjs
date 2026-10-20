@@ -285,6 +285,55 @@ test('native SNES Stop sends no OPN audition commands and its primary BRR port r
   assert.equal(runtime.fm,null);
 });
 
+function attachDx7Primary(megaDrive) {
+  const writes=[],raw={
+    noteOn:(...args)=>writes.push(['noteOn',...args]),noteOff:note=>writes.push(['noteOff',note]),
+    allNotesOff:()=>writes.push(['allNotesOff']),panic:()=>writes.push(['panic']),
+    _stopVoices:()=>writes.push(['stopVoices']),
+    async setPreset(preset){raw.preset=structuredClone(preset);},
+    dispose(){throw Error('Primary DX7 lifetime leaked');},
+  };
+  megaDrive.fm=null;megaDrive.psg=null;megaDrive.dx7=raw;
+  megaDrive.primaryEndpoints=[{name:'dx7',globalName:'dx7',client:raw}];
+  megaDrive.stopAllNative=()=>raw._stopVoices();
+  return {raw,writes};
+}
+
+test('primary DX7 shares its API, hides OPN shortcuts and lifetime, supports Keyboard and retains its patch on Stop',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'dx7',fmChannels:0,psg:false,dac:false}),{raw,writes}=attachDx7Primary(megaDrive);
+  await runtime.playSource(`
+    const prepared=await livePrepare('dx7',api=>({dx7:api.dx7,keys:Object.keys(api)}));
+    if(dx7!==pg.dx7||prepared.dx7!==dx7||await useSoundChip('dx7')!==dx7)throw Error('Separate DX7 primary');
+    if(typeof dx7.dispose!=='undefined'||typeof dx7._stopVoices!=='undefined')throw Error('Lifetime leaked');
+    for(const name of ['fm','psg','dac','midi','play','write','CH1','OP1','FM_PRESETS','noteToBlockFnum']){
+      if(name in pg||prepared.keys.includes(name))throw Error('OPN shortcut '+name);
+    }
+    await dx7.setPreset({name:'PERSISTENT'});
+    keyboard.bind('DX7',{noteOn:({midi,velocity})=>dx7.noteOn(midi,velocity??100),noteOff:({midi})=>dx7.noteOff(midi),allNotesOff:()=>dx7.panic()});
+  `);
+  const target=runtime.getKeyboardTarget();await target.noteOn({id:'a',midi:69,velocity:96});
+  assert.deepEqual(writes.at(-1),['noteOn',69,96]);await target.noteOff({id:'a',midi:69});assert.deepEqual(writes.at(-1),['noteOff',69]);
+  runtime.stop();assert.equal(raw.preset.name,'PERSISTENT');assert(writes.some(command=>command[0]==='stopVoices'));
+  await runtime.playSource(`dx7.noteOn(60);`);assert.deepEqual(writes.at(-1),['noteOn',60]);assert.equal(runtime.fm,null);
+});
+
+test('stopping a DX7 Main liveLoop releases its note and cannot release a newer owner of the same MIDI note',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'dx7',fmChannels:0,psg:false,dac:false}),{writes}=attachDx7Primary(megaDrive);
+  await runtime.playSource(`liveLoop('old',async()=>{dx7.noteOn(69);await sleep(60);});liveLoop('new',async()=>{dx7.noteOn(69);dx7.noteOn(72);await sleep(60);});context.old=()=>stopLoop('old');context.next=()=>stopLoop('new');`);
+  await until(()=>writes.filter(command=>command[0]==='noteOn').length===3);
+  const boundary=writes.length;runtime.context.old();assert.equal(writes.length,boundary);
+  runtime.context.next();assert.deepEqual(writes.slice(boundary),[['noteOff',69],['noteOff',72]]);
+});
+
+test('a new Main DX7 Run waits for Stop snapshot acknowledgements before handing off primary state',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'dx7',fmChannels:0,psg:false,dac:false}),{raw,writes}=attachDx7Primary(megaDrive);
+  await runtime.playSource('');const gate=deferred();megaDrive.stopAllNative=()=>gate.promise;
+  runtime.stop();const next=runtime.playSource('dx7.noteOn(72);');
+  await Promise.resolve();await Promise.resolve();assert(!writes.some(command=>command[0]==='noteOn'));
+  gate.resolve();await next;assert.deepEqual(writes.at(-1),['noteOn',72]);
+  megaDrive.stopAllNative=()=>raw._stopVoices();
+});
+
 test('stopping a Main Game Boy liveLoop releases its held voice', async t => {
   const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
   const writes=[];
@@ -878,8 +927,9 @@ test('late prepare completion cannot repopulate the cache after stop', async t =
 function workerBridge(t) {
   const workers=[],previous=globalThis.Worker;
   globalThis.Worker=class {
-    constructor(){this.responses=[];workers.push(this);}
+    constructor(){this.responses=[];this.messages=[];workers.push(this);}
     postMessage(message){
+      this.messages.push(message);
       if(message.type==='run')queueMicrotask(()=>this.onmessage?.({data:{type:'complete',loopCount:2}}));
       if(message.type==='stop')queueMicrotask(()=>{
         this.onmessage?.({data:{type:'command',command:'audio.stopAll',args:[]}});
@@ -892,6 +942,24 @@ function workerBridge(t) {
   };
   t.after(()=>{globalThis.Worker=previous;});return workers;
 }
+for(const execution of ['main','worker'])test(`DX7 fatal primary failure restarts through Playground and reconnects ${execution} controls`,async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'dx7',fmChannels:0,psg:false,dac:false}),workers=workerBridge(t);let starts=0;
+  megaDrive.start=async()=>{
+    starts++;attachDx7Primary(megaDrive);megaDrive.state='ready';
+    megaDrive.node={port:{postMessage(){}}};megaDrive.primaryEndpoints[0].node=megaDrive.node;
+  };
+  const source=`const instrument=await livePrepare('instrument',({dx7})=>dx7);if(context.previous===instrument||await useSoundChip('dx7')!==instrument)throw Error('Dead borrowed primary');context.previous=instrument;instrument.noteOn(60);`;
+  await runtime.playSource(execution==='main'?source:'',{execution});
+  megaDrive.state='error';megaDrive.dx7=null;megaDrive.primaryEndpoints=[];megaDrive.node=null;
+  await runtime.playSource(execution==='main'?source:'',{execution});
+  assert.equal(starts,2);assert.equal(runtime.getState().audio,'ready');
+  if(execution==='worker'){
+    assert.equal(workers.length,2);assert.equal(workers[0].terminated,true);
+    const ports=workers[1].messages.find(message=>message.type==='native-primary-ports');
+    assert.equal(ports.endpoints[0].name,'dx7');assert.equal(ports.endpoints[0].globalName,'dx7');
+    for(const worker of workers)for(const message of worker.messages)for(const endpoint of message.endpoints??[])endpoint.port?.close();
+  }
+});
 test('Main exposes a Worker musical binding and fences old UI callbacks after replacement and Stop',async t=>{
   const {runtime}=setup(t),workers=workerBridge(t);
   await runtime.playSource('',{execution:'worker'});const worker=workers[0],sent=[];

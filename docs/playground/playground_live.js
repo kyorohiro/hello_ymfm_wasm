@@ -1,2 +1,2 @@
 // Compatibility entry point. The runtime implementation lives in docs/js.
-export { createPlaygroundLive } from "../js/playground_live.js?v=native-voices-4";
+export { createPlaygroundLive } from "../js/playground_live.js?v=dx7-mode-1";

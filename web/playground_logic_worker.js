@@ -370,7 +370,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}));
   const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};
@@ -596,7 +596,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       nativeSample?.stopAll();
       nativeNoise?.disposeAll();
       chip?.stop();
-      native.stop();
+      primaryPcmReleases.push(native.stop().catch(()=>{}));
       primaryPcmClient?._cancelClockRequests('Run stopped');
       if (primaryPcmClient) for (let channel = 0; channel < 8; channel++) primaryPcmReleases.push(Promise.resolve(primaryPcmClient.keyOff(channel)).catch(() => {}));
       localMidiRack?.stop();
