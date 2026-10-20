@@ -1,3 +1,5 @@
+import {YM2413Synth,YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from '../../web/ym2413synth.js';
+import {AY8910Synth} from '../../web/ay8910synth.js';
 import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
 import {OPL_CHIPS} from '../../web/playground_opl.js';
 import {createSnesClient} from '../../web/playground_snes.js';
@@ -40,7 +42,7 @@ const workerSource = readFileSync(
 function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
-    createPerformanceSender, serializeLogError, OPL_PRESETS, OPL_CHIPS,
+    createPerformanceSender, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
@@ -1637,4 +1639,59 @@ test('Worker OPL source receives real bare and pg presets with the borrowed nati
     await waitFor(()=>worker.messages.some(message=>message.type==='complete'||message.type==='execution-error'));
     assert.equal(worker.messages.find(message=>message.type==='execution-error'),undefined);assert(sent.some(message=>message.method==='writeRegister'&&message.args[0]===0xb0&&(message.args[1]&32)));
   }finally{await worker.send({type:'stop'});}
+});
+
+test('Master System Worker source shares direct PSG and OPLL primaries, constants and no-replay state adoption',async()=>{
+  const worker=createWorkerHarness(),sent=[],author=new YM2413Synth({transport:{writeRegister(){},reset(){}}});author.initialize();
+  const opllPort={start(){},close(){},postMessage:message=>{sent.push(message);if(message.id!==undefined)queueMicrotask(()=>opllPort.onmessage?.({data:{id:message.id,value:true}}));}},psgPort={start(){},close(){},postMessage(){}};
+  await worker.send({type:'native-primary-ports',endpoints:[{name:'segapsg',globalName:'psg',port:psgPort,stereoEnabled:false,clock:3579545,state:{attenuations:[15,15,15,15],latched:0}},{name:'ym2413',globalName:'opll',clock:3579545,port:opllPort,state:{clock:3579545,initialized:true,registers:Array.from(author.getRegisterSnapshot())}}]});
+  try{
+    await worker.send({type:'run',capabilities:{chip:'segapsg',fmChannels:0,psg:true,dac:false},sourceCode:`
+      if(OPLL_INSTRUMENTS!==pg.OPLL_INSTRUMENTS||OPLL_INSTRUMENTS.length!==16||OPLL_USER_PRESETS!==pg.OPLL_USER_PRESETS)throw Error('Constants missing');
+      if(await useSoundChip('ym2413')!==opll||await useSoundChip('segapsg')!==psg)throw Error('Wrong primaries');
+      const both=await livePrepare('both',({psg,opll})=>({psg,opll}));if(both.psg!==psg||both.opll!==opll)throw Error('Lost primary');
+      if(typeof play!=='undefined'||typeof fm!=='undefined')throw Error('Unexpected OPN helpers');
+      opll.setPreset(0,{userPatch:OPLL_USER_PRESETS.sine,attenuation:3});opll.noteOn(0,69);psg.tone(PSG1,{note:'C4',attenuation:9});
+    `});await waitFor(()=>worker.messages.some(message=>message.type==='complete'||message.type==='execution-error'));assert.equal(worker.messages.find(message=>message.type==='execution-error'),undefined);assert(!worker.messages.some(message=>message.command==='pcm.create'));assert(sent.some(message=>message.method==='writeRegister'&&message.args[0]===0x20&&(message.args[1]&16)));
+    const count=sent.length,changed=author.getRegisterSnapshot();changed[0x30]=0x43;await worker.send({type:'native-primary-state',name:'opll',state:{clock:3579545,initialized:true,registers:Array.from(changed)}});assert.equal(sent.length,count,'UI adoption never replays register writes');
+  }finally{await worker.send({type:'stop'});}
+});
+
+test('MSX Worker source borrows all three physical chips and adopts AY retained levels without replay',async () => {
+  const worker = createWorkerHarness(), sent = {ay:[],opll:[],opl:[]};
+  const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(message); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};
+  const ayAuthor = new AY8910Synth({transport:{writeRegister() {},reset() {}}}), opllAuthor = new YM2413Synth({transport:{writeRegister() {},reset() {}}}), oplAuthor = new OPLSynth({chip:'y8950',transport:{writeRegister() {},reset() {}}});
+  for (const synth of [ayAuthor,opllAuthor,oplAuthor]) synth.initialize();
+  ayAuthor.setVoice(2,{tone:false,noise:true,volume:6,envelope:true}); ayAuthor.keyOff(2);
+  await worker.send({type:'native-primary-ports',endpoints:[
+    {name:'ay8910',globalName:'ay',clock:1789773,port:port('ay'),state:{...ayAuthor._getState(),clock:1789773,initialized:true}},
+    {name:'ym2413',globalName:'opll',clock:3579545,port:port('opll'),state:{registers:Array.from(opllAuthor.getRegisterSnapshot()),clock:3579545,initialized:true}},
+    {name:'y8950',globalName:'opl',clock:3579545,port:port('opl'),state:{registers:Array.from(oplAuthor.getRegisterSnapshot()),clock:3579545,initialized:true}},
+  ]});
+  const capabilities = {chip:'msx',fmChannels:0,psg:false,dac:false};
+  try {
+    await worker.send({type:'run',capabilities,sourceCode:`
+      if(await useSoundChip('ay8910')!==ay || await useSoundChip('ym2413')!==opll || await useSoundChip('y8950')!==opl)throw Error('Wrong MSX primaries');
+      if(pg.ay!==ay || pg.opll!==opll || pg.opl!==opl)throw Error('Missing pg instruments');
+      const trio=await livePrepare('trio',({ay,opll,opl})=>({ay,opll,opl}));if(trio.ay!==ay || trio.opll!==opll || trio.opl!==opl)throw Error('Missing prepared instruments');
+      if(OPL_PRESETS!==pg.OPL_PRESETS || OPLL_INSTRUMENTS!==pg.OPLL_INSTRUMENTS || OPLL_USER_PRESETS!==pg.OPLL_USER_PRESETS)throw Error('Missing FM constants');
+      if(typeof psg!=='undefined' || typeof play!=='undefined' || typeof fm!=='undefined' || typeof CH1!=='undefined' || typeof PSG1!=='undefined')throw Error('Unexpected OPN or Sega helpers');
+      ay.keyOn(2);if((ay.getRegisterSnapshot()[10]&31)!==22 || !(ay.getRegisterSnapshot()[7]&4) || (ay.getRegisterSnapshot()[7]&32))throw Error('AY configuration metadata was lost');
+      opll.setVoice(0,{instrument:3,attenuation:5});opll.noteOn(0,'C4');opl.setPreset(0,OPL_PRESETS.bell);opl.noteOn(0,'G4');
+    `});
+    await waitFor(() => worker.messages.some(message => message.type === 'complete' || message.type === 'execution-error'));
+    assert.equal(worker.messages.find(message => message.type === 'execution-error'),undefined); assert(!worker.messages.some(message => message.command === 'pcm.create'));
+    assert(sent.ay.some(message => message.method === 'writeRegister' && message.args[0] === 10 && (message.args[1] & 31) === 22));
+    assert(sent.opll.some(message => message.method === 'writeRegister' && message.args[0] === 0x20 && (message.args[1] & 16)));
+    assert(sent.opl.some(message => message.method === 'writeRegister' && message.args[0] === 0xb0 && (message.args[1] & 32)));
+    ayAuthor.setVoice(2,{volume:3,envelope:false}); ayAuthor.keyOff(2);
+    const before = Object.values(sent).map(messages => messages.length);
+    await worker.send({type:'native-primary-state',name:'ay',state:{...ayAuthor._getState(),clock:1789773,initialized:true}});
+    assert.deepEqual(Object.values(sent).map(messages => messages.length),before,'applied UI state adopts quietly without replaying registers or level commands');
+    const boundary = worker.messages.length;
+    await worker.send({type:'run',capabilities,sourceCode:`ay.keyOn(2);if((ay.getRegisterSnapshot()[10]&31)!==3)throw Error('UI-retained level missing');`});
+    await waitFor(() => worker.messages.slice(boundary).some(message => message.type === 'complete' || message.type === 'execution-error'));
+    assert.equal(worker.messages.find(message => message.type === 'execution-error'),undefined);
+    assert(sent.ay.some(message => message.method === 'writeRegister' && message.args[0] === 10 && (message.args[1] & 31) === 3));
+  } finally {await worker.send({type:'stop'});}
 });

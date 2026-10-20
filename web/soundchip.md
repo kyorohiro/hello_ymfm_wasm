@@ -128,11 +128,48 @@ OPL3の4-opペアはprimaryの0〜2・9〜11で有効化し、0〜3のオペレ�
 `setRhythm()` はドラムのキーとリズムモード、`setLFO()` はAM/PM depthを操作します。
 YM3526とY8950はサイン波のみ、YM3812は4波形、YMF262は8波形です。
 ステレオの左右選択はYMF262のみ。monoの3チップは同じ音を左右へ出します。
-Y8950のADPCM高級APIとYM2413/OPLLの高級APIは含みません。
+Y8950のADPCM高級APIは含みません。YM2413/OPLLは専用APIで扱います。
 
 Playgroundには4チップそれぞれのmodeがあり、標準音源は `opl` です。
 `useSoundChip()` は一致する主音源を借り、`createSoundChip()` は独立音源を作ります。
 Operatorsの音色調整・試聴とKeyboardは同じチップ／CHを操作します。
+
+## Master System / YM2413 OPLL
+
+Master System modeはmono Sega PSG (`psg`) とYM2413 (`opll`) を同時に用意します。
+音源ごとにMixerとKeyboardのCHを選べます。Game Gearの構成はstereo Sega PSGです。
+
+`opll.setInstrument(ch, 3, 4)` で内蔵音色3・attenuation 4を選び、
+`opll.noteOn(ch, 'C4')` / `noteOff(ch)` で演奏します。音色1〜15は内蔵音色です。
+音色0は1組だけの共有ユーザー音色で、`setUserPatch(OPLL_USER_PRESETS.sine)` や
+`setUserOperator()` の変更は音色0を使う全CHへ反映されます。
+キャリアの音量はCHごとのattenuationで設定し、共有パッチにキャリアTLはありません。
+9CHメロディーと6CHメロディー＋5リズムを切り替えられます。
+Rhythm音量とCH6〜8の音色・音量は同じレジスタを使います。
+
+モジュールの高級APIは `ym2413synth.js` の `YM2413Synth` / `YM2413DirectTransport` です。
+`YM2413_INSTRUMENTS` は音色名、`YM2413_USER_PRESETS` は自作共有パッチです。
+Playgroundでは同じ一覧を `OPLL_INSTRUMENTS` / `OPLL_USER_PRESETS` として使えます。
+
+## MSX / AY-3-8910 PSG
+
+MSX modeは `ay`（AY-3-8910）、`opll`（YM2413 / MSX-MUSIC）、
+`opl`（Y8950 / MSX-AUDIOのFM）を同じ出力に用意します。
+音源ごとにMixerとKeyboardの物理CHを選べます。
+Y8950は既存のFM APIを使い、ADPCMの高級APIは含みません。
+
+`ay.tone(0, {note:'A4', volume:9})` / `ay.keyOff(0)` で演奏します。
+AYの音量は0が無音、15が最大です。3CHのそれぞれでtoneとnoiseを混ぜられ、
+noiseのperiodとhardware envelopeはチップ全体で共有します。
+`setMixer(ch,{tone,noise})` は他CHとI/Oビットを保持し、
+`keyOff()` / `keyOn()` は設定済みの音量とtone/noiseを維持します。
+`setEnvelope({period})` は周期だけを更新し、`setEnvelope({shape})` は共有envelopeを再開始します。
+
+埋め込みは `Playground({chip:'msx'})` で選びます。
+`useSoundChip('ay8910'|'ym2413'|'y8950')` は対応する主音源を借り、
+`createSoundChip()` は独立音源を作ります。
+単体APIは `ay8910synth.js` の `AY8910Synth` / `AY8910DirectTransport` /
+`AY8910WorkletTransport` です。
 
 ## 32X PWM 共通コア（0.2.7）
 

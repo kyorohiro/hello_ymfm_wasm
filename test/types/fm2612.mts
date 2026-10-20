@@ -15,6 +15,28 @@ import {YM2151Synth, YM2151DirectTransport} from 'tetorica-fm2612/ym2151synth.js
 import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_synth.js';
 import {YM3812Synth, YM3812DirectTransport} from 'tetorica-fm2612/ym3812synth.js';
 import {OPLAudifyTransport} from 'tetorica-fm2612/node/transports';
+import {YM2413Synth,YM2413DirectTransport,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from 'tetorica-fm2612/ym2413synth.js';
+import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth.js';
+const ayChip=await createSoundChip('ay8910');
+const ay=new AY8910Synth({transport:new AY8910DirectTransport(ayChip)});
+ay.initialize();ay.tone(0,{note:'A4',volume:9});ay.setMixer(0,{noise:true});
+ay.setEnvelope({period:2000,shape:10});ay.setVolume(1,12,true);ay.setNoisePeriod(12);
+const ayPeriod:number=ay.setFrequency(2,440);ay.noteOn(2,'C4');ay.noteOff(2);
+ay.adoptRegisterSnapshot(ay.getRegisterSnapshot());void ayPeriod;
+// @ts-expect-error AY uses tone/noise booleans, not an FM instrument number
+ay.setVoice(0,{instrument:1});
+// @ts-expect-error AY noise has a period rather than a pitched note
+ay.noise(0,{note:'C4'});
+const opllChip=await createSoundChip('ym2413');
+const opll=new YM2413Synth({transport:new YM2413DirectTransport(opllChip)});
+opll.initialize();opll.setUserPatch(YM2413_USER_PRESETS.sine);opll.setInstrument(0,0,4);opll.noteOn(0,'A4');
+opll.setUserOperator(0,{tl:30,multi:2});opll.setUserOperator(1,{multi:1,ksl:1,ar:15});
+opll.setRhythmLevels({bassDrum:4,snare:6});opll.allNotesOff();
+const opllInstrumentName:string=YM2413_INSTRUMENTS[3];
+// @ts-expect-error OPLL has no OPN detune parameter
+opll.setUserOperator(0,{dt1:2});
+// @ts-expect-error instrument uses a numeric ID
+opll.setInstrument(0,'piano');
 
 const oplChip = await createSoundChip('ym3812');
 const opl = new OPLSynth({chip:'ym3812',transport:new OPLDirectTransport(oplChip)});

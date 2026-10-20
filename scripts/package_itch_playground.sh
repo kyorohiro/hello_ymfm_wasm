@@ -39,6 +39,8 @@ playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
 playground_dx7_voice_panel.js
 playground_opl_voice_panel.js
+playground_ym2413_voice_panel.js
+playground_ay8910_voice_panel.js
 playground_mode_keyboard.js
 playground_workbench.js
 playground_cassette.js
@@ -102,6 +104,7 @@ tetorica-playground-ymf262.d.ts
 tetorica-playground-dx7.d.ts
 tetorica-playground-game-gear.d.ts
 tetorica-playground-master-system.d.ts
+tetorica-playground-msx.d.ts
 tetorica-playground-mega-cd.d.ts
 "
 
@@ -160,6 +163,20 @@ ym3526synth.js
 ym3812synth.js
 y8950synth.js
 ymf262synth.js
+ym2413synth.js
+ay8910synth.js
+ay8910.js
+ay8910audioengine.js
+playground_ay8910.js
+playground_ay8910_audio.js
+playground_ay8910_worklet.js
+playground_ay8910_inspector.js
+ym2413.js
+ym2413audioengine.js
+playground_ym2413.js
+playground_ym2413_audio.js
+playground_ym2413_worklet.js
+playground_ym2413_inspector.js
 ym3526.js
 ym3812.js
 y8950.js
@@ -297,6 +314,10 @@ synth_keyboard.js
 "
 
 GENERATED_FILES="
+ay8910_wasm.js
+ay8910_wasm.wasm
+ym2413_wasm.js
+ym2413_wasm.wasm
 ym3526_wasm.js
 ym3526_wasm.wasm
 ym3812_wasm.js
@@ -458,7 +479,7 @@ mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
 cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
-for chip in mame-huc6280 mame-okim6258; do
+for chip in mame-huc6280 mame-okim6258 mame-ay8910; do
   mkdir -p "${STAGE_DIR}/licenses/${chip}"
   cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
 done
@@ -495,6 +516,7 @@ Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
+MSX AY-3-8910 PSG: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 
 RF5C164: MAME adaptation, BSD-3-Clause.
 See ./licenses/mame-rf5c164/LICENSE and README.md.
@@ -526,6 +548,8 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_mode_keyboard.js" \
   "${STAGE_DIR}/playground_opl_voice_panel.js" \
+  "${STAGE_DIR}/playground_ym2413_voice_panel.js" \
+  "${STAGE_DIR}/playground_ay8910_voice_panel.js" \
   "${STAGE_DIR}/playground_git.js" \
   "${STAGE_DIR}/playground_virtual_files.js" \
   "${STAGE_DIR}/playground_shell.js" \

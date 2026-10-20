@@ -1,6 +1,6 @@
 /** Register transports: Synth stays on the caller thread, chip runs in AudioWorklet. */
 export class ChipWorkletTransport {
-  /** @param {import("./soundchip_worklet.js?v=opl-modes-1").WorkletSoundChip | MessagePort} endpoint */
+  /** @param {import("./soundchip_worklet.js?v=msx-mode-1").WorkletSoundChip | MessagePort} endpoint */
   constructor(endpoint) {
     this.endpoint = endpoint?.execution === 'worklet' ? endpoint : null;
     this.port = endpoint?.port ?? endpoint;
@@ -20,8 +20,11 @@ export class ChipWorkletTransport {
 export class GameboyWorkletTransport extends ChipWorkletTransport {}
 export class SegaPSGWorkletTransport extends ChipWorkletTransport {}
 export class YM2151WorkletTransport extends ChipWorkletTransport {}
+export class YM2413WorkletTransport extends ChipWorkletTransport {}
 export class OPLWorkletTransport extends ChipWorkletTransport {}
 export class YM3526WorkletTransport extends OPLWorkletTransport {}
 export class YM3812WorkletTransport extends OPLWorkletTransport {}
 export class Y8950WorkletTransport extends OPLWorkletTransport {}
 export class YMF262WorkletTransport extends OPLWorkletTransport {}
+
+export class AY8910WorkletTransport extends ChipWorkletTransport {}

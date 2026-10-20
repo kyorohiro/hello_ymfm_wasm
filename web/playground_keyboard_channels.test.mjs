@@ -16,7 +16,7 @@ test('Keyboard channel catalog distinguishes OPN sections and physical voice cou
 });
 
 test('native Keyboard adapters include noise/sample voices and one polyphonic DX7 target',()=>{
-  const counts={segapsg:4,gameboy:4,nes:6,snes:8,ym2151:8,huc6280:6,rf5c164:8,okim6258:1,dx7:1,ym3526:9,ym3812:9,y8950:9,ymf262:18};
+  const counts={ay8910:3,segapsg:4,gameboy:4,nes:6,snes:8,ym2151:8,huc6280:6,rf5c164:8,okim6258:1,dx7:1,ym3526:9,ym3812:9,y8950:9,ymf262:18,ym2413:9};
   for(const [kind,count]of Object.entries(counts)){
     const channels=keyboardChannels(kind);assert.equal(channels.length,count,kind);assert.equal(new Set(channels.map(channel=>channel.id)).size,count);assert(channels.every((channel,index)=>channel.id===String(index)&&channel.label.length>0));
   }
@@ -39,4 +39,13 @@ test('Keyboard hints describe actual sample/noise/stream pitch limitations',()=>
   const ids=keyboardChannels('ymf262',{registers}).map(row=>row.id);
   for(const id of ['3','14','6','7','8'])assert(!ids.includes(id));
   for(const id of ['0','11','9','17'])assert(ids.includes(id));
+});
+
+test('YM2413 rhythm Keyboard keeps six melodic choices and exposes five hardware drum triggers',()=>{
+ const registers=new Uint8Array(64);registers[0x0e]=32;const choices=keyboardChannels('ym2413',{registers});
+ assert.deepEqual(choices.map(row=>row.id),['0','1','2','3','4','5','rhythm:0','rhythm:1','rhythm:2','rhythm:3','rhythm:4']);assert.match(keyboardChannelHint('ym2413','rhythm:4'),/does not retune/);
+});
+
+test('YM2413 Keyboard prefers applied layout metadata over a future authoring register shadow',()=>{
+ const registers=new Uint8Array(64);registers[0x0e]=32;assert.equal(keyboardChannels('ym2413',{registers,rhythmEnabled:false}).length,9);registers[0x0e]=0;assert.equal(keyboardChannels('ym2413',{registers,rhythmEnabled:true}).length,11);
 });

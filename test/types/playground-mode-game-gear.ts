@@ -2,6 +2,11 @@
 /// <reference path="../../docs/playground/tetorica-playground-globals.d.ts" />
 
 async function checkGameGearModeTypes() {
+  // @ts-expect-error Game Gear has no primary OPLL
+  opll;
+  // @ts-expect-error Game Gear's pg exposes only its primary PSG
+  pg.opll;
+  const extraOpll=await useSoundChip('ym2413');extraOpll.setInstrument(0,1,4);extraOpll.dispose();
   psg.tone(PSG1, {note: 'C4', attenuation: 8});
   psg.setNote(PSG2, 'E4'); psg.keyOn(PSG2); psg.off(PSG3);
   psg.noise({type: 'white', rate: 'tone3', attenuation: 10});

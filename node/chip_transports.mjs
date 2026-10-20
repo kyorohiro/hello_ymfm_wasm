@@ -1,3 +1,4 @@
+import {AY8910DirectTransport} from '../web/ay8910synth.js';
 import {PWM32XDirectTransport} from '../web/pwm32x_transport.js';
 import {YM2612DirectTransport} from '../web/ym2612synth.js';
 import {YM2608DirectTransport} from '../web/ym2608synth.js';
@@ -5,6 +6,7 @@ import {GameboyDirectTransport} from '../web/gameboysynth.js';
 import {SegaPSGDirectTransport} from '../web/segapsgsynth.js';
 import {YM2151DirectTransport} from '../web/ym2151synth.js';
 import {NesApuDirectTransport} from '../web/nesapusynth.js';
+import {YM2413DirectTransport} from '../web/ym2413synth.js';
 import {OPLDirectTransport} from '../web/opl_synth.js';
 import {YM3526DirectTransport} from '../web/ym3526synth.js';
 import {YM3812DirectTransport} from '../web/ym3812synth.js';
@@ -43,7 +45,7 @@ class Playback {
         gain: this.options.gain ?? .25, removeIdleOffset: this.name === 'ym2612',
         generate: typeof this.transport.generateStereo === 'function' ? this.transport.generateStereo.bind(this.transport) : undefined});
     }
-    if (this.transport instanceof OPLDirectTransport) this.renderer.rate=this.transport.sampleRate();
+    if (this.transport instanceof OPLDirectTransport || this.transport instanceof YM2413DirectTransport) this.renderer.rate=this.transport.sampleRate();
     this.running = true; this.ramp = 0; this.pump(); await this.output.start();
     if (this.error) throw this.error;
   }
@@ -112,3 +114,7 @@ export const YM3526AudifyTransport = audifyTransport(YM3526DirectTransport, 'ym3
 export const YM3812AudifyTransport = audifyTransport(YM3812DirectTransport, 'ym3812');
 export const Y8950AudifyTransport = audifyTransport(Y8950DirectTransport, 'y8950');
 export const YMF262AudifyTransport = audifyTransport(YMF262DirectTransport, 'ymf262');
+
+export const YM2413AudifyTransport = audifyTransport(YM2413DirectTransport, 'ym2413');
+
+export const AY8910AudifyTransport = audifyTransport(AY8910DirectTransport, 'ay8910');

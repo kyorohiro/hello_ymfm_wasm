@@ -7,6 +7,10 @@ import {GameboySynth} from '../web/gameboysynth.js';
 import {SegaPSGSynth} from '../web/segapsgsynth.js';
 import {YM2151Synth} from '../web/ym2151synth.js';
 import {NesApuSynth} from '../web/nesapusynth.js';
+import {AY8910Synth} from '../web/ay8910synth.js';
+import {AY8910AudifyTransport} from '../node/chip_transports.mjs';
+import {YM2413Synth} from '../web/ym2413synth.js';
+import {YM2413AudifyTransport} from '../node/chip_transports.mjs';
 import {OPLSynth,OPL_PRESETS} from '../web/opl_synth.js';
 import {YM3526AudifyTransport,YM3812AudifyTransport,Y8950AudifyTransport,YMF262AudifyTransport} from '../node/chip_transports.mjs';
 import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
@@ -21,6 +25,8 @@ for (const [name, Type, configure] of [
   ['gameboy', GameboyAudifyTransport, transport => {const gb = new GameboySynth({transport}); gb.initialize(); gb.pulse.setVoice(0, {duty: .5, volume: 10}); gb.pulse.setNote(0, 'C4'); gb.pulse.keyOn(0);}],
   ['pwm', PWM32XAudifyTransport, transport => {transport.write(0, 5); transport.write(1, 1047); transport.write(4, 700);}],
   ...[['ym3526',YM3526AudifyTransport],['ym3812',YM3812AudifyTransport],['y8950',Y8950AudifyTransport],['ymf262',YMF262AudifyTransport]].map(([chip,Type])=>[chip,Type,transport=>{const opl=new OPLSynth({transport,chip});opl.initialize();opl.setPreset(0,OPL_PRESETS.sine);opl.noteOn(0,'A4');}]),
+  ['ay8910',AY8910AudifyTransport,transport=>{const synth=new AY8910Synth({transport});synth.initialize();synth.tone(2,{note:'A4',volume:9});}],
+  ['ym2413',YM2413AudifyTransport,transport=>{const synth=new YM2413Synth({transport});synth.initialize();synth.setVoice(0,{instrument:0,attenuation:3});synth.noteOn(0,'A4');}],
   ['segapsg', SegaPSGAudifyTransport, transport => {const psg = new SegaPSGSynth({transport}); psg.tone(0, {note: 'C4', volume: .5});}],
 ]) {
   test(`${name}: transport owns output, preserves caller chip, stops/resumes and closes`, async () => {

@@ -1,14 +1,14 @@
-import {createPlaygroundKeyboardRouting} from './playground_mode_keyboard.js?v=opl-modes-1';
+import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=msx-mode-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=opl-modes-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=msx-mode-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
-import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=opl-modes-1';
+import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=msx-mode-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=opl-modes-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=msx-mode-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=mode-handoff-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mode-choice-1';
 let desktopAutosave = null;
@@ -26,8 +26,8 @@ const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-2';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-frequency-order-2';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=opl-modes-1';
-import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=opl-modes-1';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=msx-mode-1';
+import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=msx-mode-1';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -35,10 +35,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=opl-modes-1";
+} from "../js/megasynth.js?v=msx-mode-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=opl-modes-1";
+} from "../js/tetorica_synth.js?v=msx-mode-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -49,10 +49,10 @@ import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2"
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js?v=audio-stability-2";
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=opl-modes-1";
-import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=opl-modes-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=opl-modes-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=opl-modes-1";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=msx-mode-1";
+import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=msx-mode-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=msx-mode-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=msx-mode-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -83,12 +83,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=opl-modes-1";
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=opl-modes-1';
+} from "../js/playground_runtime.js?v=msx-mode-1";
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=msx-mode-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-stability-2";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=opl-modes-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=msx-mode-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=audio-stability-2";
@@ -287,6 +287,7 @@ for (const element of document.querySelectorAll('[data-opn-helper]')) element.hi
 for (const element of document.querySelectorAll('[data-gameboy-helper]')) element.hidden = selectedChip !== 'gameboy';
 for (const element of document.querySelectorAll('[data-native-helper]')) element.hidden = element.dataset.nativeHelper !== selectedChip;
 for (const element of document.querySelectorAll('[data-game-gear-helper]')) element.hidden = selectedMode.id !== 'game-gear';
+for (const element of document.querySelectorAll('[data-master-system-helper]')) element.hidden = selectedMode.id !== 'master-system';
 
 let synth = null;
 const urlTfiResult =
@@ -503,14 +504,7 @@ const operatorTab = hasPrimaryFM ?
       setStatus(message);
     },
   }) : null;
-const primaryKeyboardChips = selectedChip === 'x68000'
-  ? [{id:'ym2151',kind:'ym2151',label:'YM2151 (primary)'},{id:'okim6258',kind:'okim6258',label:'OKIM6258 (primary)'}]
-  : [{id:selectedChip,kind:selectedChip,label:`${({gameboy:'Game Boy',nes:'NES + FDS',huc6280:'HuC6280'})[selectedChip]??selectedChip.toUpperCase()} (primary)`,...(selectedChip==='nes'?{fdsEnabled:true}:{})}];
-if (selectedChip === 'ym2612') {
-  if (megaDrive.capabilities.psg) primaryKeyboardChips.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)'});
-  if (megaDrive.capabilities.pcm) primaryKeyboardChips.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)'});
-  if (selectedMode.mega32X || selectedMode.full) primaryKeyboardChips.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)'});
-}
+const primaryKeyboardChips = playgroundPrimaryKeyboardChips(selectedMode,megaDrive.capabilities);
 const keyboardRouting = createPlaygroundKeyboardRouting({
   primaryChips:primaryKeyboardChips, getInspector:() => keyboardInspector,
   onTargetChange:target => operatorKeyboard.attachNoteTarget(target),
@@ -1727,7 +1721,7 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
-    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'mixer'].flatMap(name => [
+    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'mixer'].flatMap(name => [
       [`${name}Tab`, document.getElementById(`${name}Tab`)],
       [`${name}Panel`, document.getElementById(`${name}Panel`)],
     ])),
@@ -1744,7 +1738,7 @@ const ui =
       if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
       audioMonitor.setVisible(showAudio);
       operatorTab?.setVisible(primary === "operator");
-      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262'].includes(primary) ? primary : null);
+      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].includes(primary) ? primary : null);
       mixerPanel?.setVisible(tool === 'mixer');
       operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
@@ -1874,7 +1868,7 @@ mixerPanel = createPlaygroundMixer({
   onError: error => setStatus(`Mixer: ${error.message}`),
 });
 chipTabs = createPlaygroundChipTabs({
-  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262'].map(name => [name, document.getElementById(`${name}Panel`)])),
+  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].map(name => [name, document.getElementById(`${name}Panel`)])),
   getInspector: () => runtime.chipInspector,
   listFiles: () => virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)),
   readFile: path => virtualFiles.get(path),

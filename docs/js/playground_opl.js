@@ -1,5 +1,5 @@
-import {OPLSynth} from './opl_synth.js?v=opl-modes-1';
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opl-modes-1';
+import {OPLSynth} from './opl_synth.js?v=msx-mode-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-mode-1';
 
 export const OPL_CHIPS = Object.freeze(['ym3526','ym3812','y8950','ymf262']);
 /** A register-authoring client; Main and Worker use the same Synth and shadow.

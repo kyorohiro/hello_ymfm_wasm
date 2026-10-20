@@ -10,7 +10,7 @@ import {SoundChipMixer} from './soundchip_mixer.js';
  * }} WorkletSoundChip
  */
 /** Main-side chip endpoint. The actual chip is created inside AudioWorklet. */
-const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'ym3526', 'ym3812', 'y8950', 'ymf262']);
+const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
 /**
  * @param {import('./soundchip.js').WorkletChipName} name
  * @param {import('./soundchip.js').SoundChipOptions} options

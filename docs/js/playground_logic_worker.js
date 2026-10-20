@@ -1,26 +1,27 @@
 import {createSpcClient} from './playground_spc.js?v=spc-events-1';
-import {createSnesClient} from './playground_snes.js?v=opl-modes-1';
-import {createPerformanceSender} from './playground_performance_sender.js?v=opl-modes-1';
+import {createSnesClient} from './playground_snes.js?v=msx-mode-1';
+import {createPerformanceSender} from './playground_performance_sender.js?v=msx-mode-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=opl-modes-1';
-import {createNesClient} from './playground_nes.js?v=opl-modes-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=opl-modes-1';
-import {createDx7Client} from './playground_dx7.js?v=opl-modes-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=opl-modes-1';
-import {OPL_CHIPS} from './playground_opl.js?v=opl-modes-1';
-import {OPL_PRESETS} from './opl_synth.js?v=opl-modes-1';
-import {createYm2151Client} from './playground_ym2151.js?v=opl-modes-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=opl-modes-1';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-mode-1';
+import {createNesClient} from './playground_nes.js?v=msx-mode-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=msx-mode-1';
+import {createDx7Client} from './playground_dx7.js?v=msx-mode-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=msx-mode-1';
+import {OPL_CHIPS} from './playground_opl.js?v=msx-mode-1';
+import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=msx-mode-1';
+import {OPL_PRESETS} from './opl_synth.js?v=msx-mode-1';
+import {createYm2151Client} from './playground_ym2151.js?v=msx-mode-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=msx-mode-1';
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=audio-stability-2';
-import {createOpnClient} from './playground_opn.js?v=opl-modes-1';
+import {createOpnClient} from './playground_opn.js?v=msx-mode-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
-import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=opl-modes-1';
-import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=opl-modes-1';
-import {createGameboyClient} from './playground_gameboy.js?v=opl-modes-1';
-import {createYm2608Client} from './playground_ym2608.js?v=opl-modes-1';
-import {createRf5c164Client} from './playground_rf5c164.js?v=opl-modes-1';
+import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=msx-mode-1';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=msx-mode-1';
+import {createGameboyClient} from './playground_gameboy.js?v=msx-mode-1';
+import {createYm2608Client} from './playground_ym2608.js?v=msx-mode-1';
+import {createRf5c164Client} from './playground_rf5c164.js?v=msx-mode-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {serializeLogError} from './playground_log.js';
 /**
@@ -31,7 +32,7 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=opl-modes-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=msx-mode-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=sega-modes-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -372,7 +373,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}));
   const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};
@@ -728,7 +729,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const pcm=name === 'spc' ? createSpcClient(port, response, {
         captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},
         invokeEvent:(callback,event)=>executeWithWorkerGuards(()=>callback(event)),
-      }) : ['huc6280','okim6258','ym3526','ym3812','y8950','ymf262'].includes(name) ? createNativePrimaryClient(name,port,response) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      }) : ['huc6280','okim6258','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
@@ -747,6 +748,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     context: run.context,
     FM_PRESETS: presets,
     OPL_PRESETS,
+    OPLL_INSTRUMENTS,OPLL_USER_PRESETS,
     tfiToPreset,
     CH1: 0, CH2: 1, CH3: 2, CH4: 3, CH5: 4, CH6: 5,
     CH7: 6, CH8: 7, CH9: 8, CH10: 9, CH11: 10, CH12: 11, CH13: 12, CH14: 13, CH15: 14, CH16: 15,

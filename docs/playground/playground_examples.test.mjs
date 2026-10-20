@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_EXAMPLE_FILES} from './playground_examples.js';
+import {DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES} from './playground_examples.js';
 import {MODE_STARTERS, selectModeExamples} from './playground_mode_examples.js';
 import {buildExampleBundle} from '../../scripts/build_playground_examples.mjs';
 import {createVirtualFileSystem} from './playground_virtual_files.js';
@@ -37,7 +37,7 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
 test('bundled examples match editable categorized source files', async () => {
   const folders = [...new Set(EXAMPLE_FILES.map(file => file.path.split('/')[2]))];
   assert.equal(folders.indexOf('chip-raw'), folders.indexOf('basic') + 1);
-  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl']);
+  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'msx', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl']);
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/ym2612-raw-write-beep.js'));
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/gameboy-raw-write-sample.js'));
   assert.deepEqual(EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/basic/livefx/')).map(file => file.name), ['live-fx-distortion']);
@@ -53,8 +53,8 @@ test('bundled examples match editable categorized source files', async () => {
   }
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|mega-cd|game-gear|master-system|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl)\/(?:[\w-]+\/)*[\w-]+\.js$/);
-    if (/^\/examples\/(genesis|mega-cd|game-gear|master-system|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl)\//.test(file.path)) {
+    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|mega-cd|game-gear|master-system|msx|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl)\/(?:[\w-]+\/)*[\w-]+\.js$/);
+    if (/^\/examples\/(genesis|mega-cd|game-gear|master-system|msx|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl)\//.test(file.path)) {
       assert.equal(file.path.split('/').length, 4, 'machine examples have no subfolders');
     }
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
@@ -64,7 +64,7 @@ test('bundled examples match editable categorized source files', async () => {
 
 test('all mode starters match their physical index.js sources', async () => {
   const modeIds = Object.keys(MODE_STARTERS);
-  assert.equal(modeIds.length, 21);
+  assert.equal(modeIds.length, 22);
   assert.deepEqual(Object.keys(MODE_DEFAULT_CODES), modeIds);
   for (const [id, definition] of Object.entries(MODE_STARTERS)) {
     assert.equal(definition.index, `${id}/index.js`);
@@ -85,7 +85,8 @@ test('mode catalogs keep two or three examples while Genesis retains its library
     assert.equal(new Set(files.map(file => file.path)).size, files.length, `${id} has no duplicates`);
     for (const file of files) assert.ok(EXAMPLE_FILES.includes(file), `${id} uses a bundled source`);
     if (definition.examples) {
-      assert.ok(files.length >= 2 && files.length <= 3, `${id} has two or three examples`);
+      if (id === 'master-system') assert.equal(files.length,5,'Master System retains two PSG examples alongside three OPLL examples');
+      else assert.ok(files.length >= 2 && files.length <= 3, `${id} has two or three examples`);
       assert.deepEqual(files.map(file => file.path), definition.examples);
     }
   }
@@ -115,7 +116,9 @@ test('Sega mode starters and examples run with the built-in PSG; stereo keeps th
   const {SegaPSGSynth} = await import('../../web/segapsgsynth.js');
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   for (const id of ['game-gear', 'master-system']) {
-    const sources = [MODE_DEFAULT_CODES[id], ...MODE_EXAMPLE_FILES[id].map(file => file.data)];
+    const sources = id === 'master-system'
+      ? [...MODE_DEFAULT_HISTORY[id], ...MODE_EXAMPLE_FILES[id].filter(file => !file.name.startsWith('sms-opll-')).map(file => file.data)]
+      : [MODE_DEFAULT_CODES[id], ...MODE_EXAMPLE_FILES[id].map(file => file.data)];
     for (const source of sources) {
       const writes = [], stereo = [], loops = [], waits = [];
       const psg = new SegaPSGSynth({transport: {write: value => writes.push(value)}});
@@ -208,7 +211,7 @@ test('examples appear in the folder tree and edited source survives cassette exp
   const tree=buildFileTree(fs.list());
   assert.equal(tree[0].name,'examples');
   assert.equal(tree[0].children.length,new Set(EXAMPLE_FILES.map(file=>file.path.split('/')[2])).size);
-  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl']);
+  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'msx', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl']);
   const path='/examples/basic/midi/midi-auto-chord.js';
   fs.writeText(path,'// user edited\n'+fs.get(path).data);
   const zip=createPlaygroundCassetteZip(fs.list());

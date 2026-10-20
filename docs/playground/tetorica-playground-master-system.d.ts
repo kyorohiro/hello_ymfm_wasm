@@ -1,2 +1,2 @@
-/** Master System mode: three Sega PSG tones and noise with mono output. */
+/** Master System mode: mono Sega PSG plus nine-channel YM2413 OPLL. */
 type TetoricaSelectedChip = 'master-system';

@@ -5,6 +5,10 @@ import {readFile} from 'node:fs/promises';
 import {createSoundChip} from '../web/soundchip.js';
 import {YM2612Synth, YM2612DirectTransport, YM2612WorkletTransport} from '../web/ym2612synth.js';
 import {ChipPCMRenderer} from '../web/chip_pcm_renderer.js';
+import {AY8910Synth,AY8910DirectTransport} from '../web/ay8910synth.js';
+import {AY8910WorkletTransport} from '../web/chip_worklet_transport.js';
+import {YM2413Synth,YM2413DirectTransport} from '../web/ym2413synth.js';
+import {YM2413WorkletTransport} from '../web/chip_worklet_transport.js';
 import {OPLSynth,OPLDirectTransport,OPL_PRESETS} from '../web/opl_synth.js';
 import {OPLWorkletTransport} from '../web/chip_worklet_transport.js';
 import {FM_PRESETS} from '../web/megasynth-fm-presets.js';
@@ -84,5 +88,34 @@ for(const name of ['ym3526','ym3812','y8950','ymf262'])test(`${name}: generic Wo
     processor.receive({type:'performance-start',session:1});const register=0xb0+channel%9,bank=channel>=9?1:0;
     processor.receive({performance:{session:1,owner:'voice',time:0},commands:[{method:'writeRegister',args:[register,0x32,bank]}]});render(processor,1);
     processor.receive({type:'performance-cancel-owner',session:1,owner:'voice'});assert.equal(processor.oplRegisters[(bank<<8)+register]&32,0,'owner cancellation releases its actual banked gate');
+  }finally{transport.dispose();processor.receive({method:'dispose'});chip.dispose();}
+});
+
+test('YM2413 generic Worklet transport matches clock-aware direct PCM for melody and all five mono rhythm voices',async()=>{
+  const clock=4000000,{processor,port}=await createProcessor('ym2413',{clock}),transport=new YM2413WorkletTransport(port),chip=await createSoundChip('ym2413'),direct=new YM2413DirectTransport(chip,{clock});
+  const actual=new YM2413Synth({transport,clock}),expected=new YM2413Synth({transport:direct,clock});
+  try{
+    for(const api of [actual,expected]){api.initialize();api.setVoice(8,{instrument:0,attenuation:3});api.noteOn(8,'A4');}
+    const renderer=new ChipPCMRenderer(chip,{sampleRate:48000,gain:1});renderer.rate=direct.sampleRate();processor.receive({method:'start'});let audible=false;
+    const compare=frames=>{const measured=render(processor,frames),reference=renderer.render(frames);assert.deepEqual(measured.left,reference.left);assert.deepEqual(measured.right,reference.right);assert.deepEqual(measured.left,measured.right);audible||=measured.left.some(value=>Math.abs(value)>.001);};
+    for(const frames of [1,127,128,997])compare(frames);assert(audible);
+    for(const api of [actual,expected]){api.allNotesOff();api.setNote(6,'C3');api.setNote(7,'G3');api.setNote(8,'D3');api.setRhythmLevels({bassDrum:3,snare:4,tom:5,cymbal:6,hiHat:7});api.setRhythm({enabled:true});}
+    for(const name of ['bassDrum','snare','tom','cymbal','hiHat']){for(const api of [actual,expected])api.setRhythm({[name]:true});compare(1024);for(const api of [actual,expected])api.setRhythm({[name]:false});compare(128);}
+    const remote={start(){},close(){this.closed=true;},postMessage(){}};processor.receive({method:'attachPort',port:remote});
+    processor.receive({type:'performance-start',session:1});processor.receive({performance:{session:1,owner:'hat',time:0},commands:[{method:'writeRegister',args:[0x0e,33]}]});render(processor,1);
+    processor.receive({type:'performance-cancel-owner',session:1,owner:'hat'});assert.equal(processor.opllRegisters[0x0e]&1,0,'drum owner cancellation clears its actual trigger');processor.receive({method:'dispose'});assert.equal(remote.closed,true);assert.equal(processor.remotePorts.size,0);assert.equal(processor.opllRegisters,null);
+  }finally{transport.dispose();processor.receive({method:'dispose'});chip.dispose();}
+});
+
+test('AY generic Worklet renders tone/noise/envelope at the requested fixed core clock and masks zero-volume native DC',async()=>{
+  const clock=2000000,{processor,port}=await createProcessor('ay8910',{clock}),transport=new AY8910WorkletTransport(port),chip=await createSoundChip('ay8910',{clock,sampleRate:48000}),direct=new AY8910DirectTransport(chip),actual=new AY8910Synth({transport,clock}),expected=new AY8910Synth({transport:direct,clock});
+  const setMute=()=>{let mask=0;const r=expected.getRegisterSnapshot();for(let ch=0;ch<3;ch++)if(!(r[8+ch]&31))mask|=1<<ch;chip.setMuteMask(mask);};
+  try{
+    for(const api of [actual,expected]){api.initialize();api.tone(2,{note:'A4',volume:9});}setMute();const renderer=new ChipPCMRenderer(chip,{sampleRate:48000,gain:1});processor.receive({method:'start'});
+    for(const frames of [1,127,128,997]){const measured=render(processor,frames),reference=renderer.render(frames);assert.deepEqual(measured.left,reference.left);assert.deepEqual(measured.right,reference.right);}assert(render(processor,2048).left.some(value=>Math.abs(value)>.001));
+    for(const api of [actual,expected]){api.noise(1,{period:17,volume:8});api.setEnvelope({period:123,shape:10});api.setVoice(0,{tone:true,noise:true,volume:6,envelope:true});}setMute();renderer.render(2048);
+    const audio=render(processor,4096);assert(audio.left.every(Number.isFinite));assert(audio.left.some(value=>Math.abs(value)>.001));assert.deepEqual(audio.left,audio.right);
+    actual.allNotesOff();assert(render(processor,128).left.every(value=>value===0));
+    processor.receive({type:'performance-start',session:1});processor.receive({performance:{session:1,owner:'voice',time:0},commands:[{method:'writeRegister',args:[10,9]}]});render(processor,1);processor.receive({type:'performance-cancel-owner',session:1,owner:'voice'});assert.equal(processor.ayRegisters[10],0);assert(render(processor,128).left.every(value=>value===0));
   }finally{transport.dispose();processor.receive({method:'dispose'});chip.dispose();}
 });

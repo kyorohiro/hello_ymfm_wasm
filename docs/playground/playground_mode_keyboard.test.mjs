@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPlaygroundModeKeyboard} from './playground_mode_keyboard.js';
+import {createPlaygroundModeKeyboard,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js';
 
-for (const [chip,id] of [['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262'].map(chip => [chip,chip])]) {
+for (const [chip,id] of [['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['msx','ay8910'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(chip => [chip,chip])]) {
   test(`${chip} keyboard borrows only the mode's primary instrument`, async () => {
     const calls = [], inspector = {list:() => [{id:'extra-1',kind:id},{id}],invoke:(...args) => {calls.push(args);return Promise.resolve(true);}};
     const target = createPlaygroundModeKeyboard({chip,getInspector:() => inspector});
@@ -17,6 +17,14 @@ for (const [chip,id] of [['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x
     await target.noteOff({id:'key2'});assert.equal(calls.length,4);
   });
 }
+test('multi-chip environments expose physical primary IDs before preparation',() => {
+  const ids = (mode,capabilities) => playgroundPrimaryKeyboardChips(mode,capabilities).map(({id,kind}) => [id,kind]);
+  assert.deepEqual(ids({chip:'msx'}),[['ay8910','ay8910'],['ym2413','ym2413'],['y8950','y8950']]);
+  assert.deepEqual(ids({chip:'segapsg',ym2413:true}),[['segapsg','segapsg'],['ym2413','ym2413']]);
+  assert.deepEqual(ids({chip:'segapsg'}),[['segapsg','segapsg']]);
+  assert.deepEqual(ids({chip:'x68000'}),[['ym2151','ym2151'],['okim6258','okim6258']]);
+  assert.deepEqual(ids({chip:'ym2612',full:true},{psg:true,pcm:true}),[['ym2612','ym2612'],['segapsg','segapsg'],['rf5c164','rf5c164'],['pwm','pwm']]);
+});
 test('release during an unacknowledged key-on still releases exactly that identity', async () => {
   const calls = [];let acknowledge;
   const inspector={list:() => [{id:'dx7'}],invoke:(...args) => {calls.push(args);return args[1]==='auditionOn'?new Promise(resolve=>{acknowledge=resolve;}):Promise.resolve(true);}};

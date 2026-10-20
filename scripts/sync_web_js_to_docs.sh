@@ -88,6 +88,16 @@ ym3526synth.js
 ym3812synth.js
 y8950synth.js
 ymf262synth.js
+ym2413synth.js
+ay8910synth.js
+playground_ay8910.js
+playground_ay8910_audio.js
+playground_ay8910_worklet.js
+playground_ay8910_inspector.js
+playground_ym2413.js
+playground_ym2413_audio.js
+playground_ym2413_worklet.js
+playground_ym2413_inspector.js
 playground_opl.js
 playground_opl_audio.js
 playground_opl_worklet.js
@@ -306,6 +316,12 @@ perl -0pi -e 's#\./generated/#../generated/#g' \
 
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/playground_opl_audio.js" "${DOCS_JS_DIR}/playground_opl_worklet.js"
+
+perl -0pi -e 's#\./generated/#../generated/#g' \
+  "${DOCS_JS_DIR}/playground_ym2413_audio.js" "${DOCS_JS_DIR}/playground_ym2413_worklet.js"
+
+perl -0pi -e 's#\./generated/#../generated/#g' \
+  "${DOCS_JS_DIR}/playground_ay8910_audio.js" "${DOCS_JS_DIR}/playground_ay8910_worklet.js"
 
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/soundchip-output-worklet.js"
 

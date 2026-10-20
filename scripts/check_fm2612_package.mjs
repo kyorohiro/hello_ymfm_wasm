@@ -21,16 +21,16 @@ try {
   const nativeModules = ['native_runtime_synth', 'playground_runtime', 'playground_logic_worker',
     'playground_keyboard', 'playground_sample_edit', 'playground_sample_instrument',
     'playground_chip_inspector', 'playground_chip_inspector_state', 'playground_native_voice_inspector',
-    ...['huc6280','ym2151','okim6258'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
-    'huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth',
+    ...['huc6280','ym2151','okim6258','ym2413','ay8910'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
+    'huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
     'playground_opl','playground_opl_audio','playground_opl_worklet','playground_opl_inspector'];
   for (const name of nativeModules) for (const extension of ['js','d.ts']) {
     assert.ok(packedPaths.has(name + '.' + extension), `Native voice/sample package payload missing ${name}.${extension}`);
   }
-  for (const chip of ['huc6280','ym2151','okim6258']) for (const extension of ['js','wasm']) {
+  for (const chip of ['huc6280','ym2151','okim6258','ym2413','ay8910']) for (const extension of ['js','wasm']) {
     assert.ok(packedPaths.has(`generated/${chip}_wasm.${extension}`), `Native voice WASM payload missing ${chip}.${extension}`);
   }
-  for (const chip of ['huc6280','okim6258']) for (const file of ['LICENSE','README.md']) {
+  for (const chip of ['huc6280','okim6258','ay8910']) for (const file of ['LICENSE','README.md']) {
     assert.ok(packedPaths.has(`licenses/mame-${chip}/${file}`), `Native voice license payload missing ${chip}/${file}`);
   }
   const consumer = join(scratch, 'consumer');
@@ -52,6 +52,8 @@ import {NesApuSynth, NesApuDirectTransport} from 'tetorica-fm2612/nesapusynth';
 import {Ym2612} from 'tetorica-fm2612/ym2612.js';
 import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
 import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_synth';
+import {YM2413Synth,YM2413DirectTransport,YM2413_USER_PRESETS,YM2413_INSTRUMENTS} from 'tetorica-fm2612/ym2413synth';
+import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 const chip = await createSoundChip('ym2612');
 try {
@@ -93,6 +95,25 @@ for(const name of ['ym3526','ym3812','y8950','ymf262']) {
     synth.allNotesOff();
   } finally {chip.dispose();}
 }
+const opllChip=await createSoundChip('ym2413');
+try {
+  assert.equal(YM2413_INSTRUMENTS.length,16);
+  const synth=new YM2413Synth({transport:new YM2413DirectTransport(opllChip)});
+  synth.initialize();synth.setPreset(8,{userPatch:YM2413_USER_PRESETS.sine,attenuation:3});synth.noteOn(8,'A4');
+  const pcm=opllChip.generateStereo(8192);
+  assert(pcm.left.every(Number.isFinite)&&pcm.left.some(value=>Math.abs(value)>.001),'installed OPLL custom voice is inaudible');
+  assert.deepEqual(pcm.left,pcm.right,'OPLL is mono, copied to both output channels');
+  synth.allNotesOff();
+} finally {opllChip.dispose();}
+const ayChip=await createSoundChip('ay8910');
+try {
+  const synth=new AY8910Synth({transport:new AY8910DirectTransport(ayChip)});
+  synth.initialize();synth.tone(2,{note:'A4',volume:9});
+  const pcm=ayChip.generateStereo(8192);
+  assert(pcm.left.every(Number.isFinite)&&Math.max(...pcm.left)-Math.min(...pcm.left)>.001,'installed AY tone must have audible AC, not just its native DAC offset');
+  assert.deepEqual(pcm.left,pcm.right,'AY mono is copied to both output channels');
+  synth.allNotesOff();
+} finally {ayChip.dispose();}
 assert.equal(typeof globalThis.AudioContext, 'undefined');
 const {MegaSynthNode} = await import('tetorica-fm2612/node');
 const nodeSynth = new MegaSynthNode();

@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import { createPlaygroundRuntime } from './playground_runtime.js';
 import {createNativeFXController} from './native_fx.js';
+import {createAy8910Client} from './playground_ay8910.js';
+import {createOplClient} from './playground_opl.js';
+import {YM2413Synth,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from './ym2413synth.js';
+import {createYm2413Client} from './playground_ym2413.js';
 import {OPLSynth,OPL_PRESETS} from './opl_synth.js';
 import {LiveFX} from './custom_fx.js';
 import {createYm2608Client} from './playground_ym2608.js';
@@ -1527,4 +1531,41 @@ test('Main OPL source receives real presets as both bare and pg globals while OP
     opl.setPreset(0,OPL_PRESETS.sine);pg.opl.noteOn(0,69);
   `);
   assert.equal(author.getRegisterSnapshot()[0x43]&63,OPL_PRESETS.sine.operators[1].tl);assert(writes.some(([register,value])=>register===0xb0&&(value&32)));
+});
+
+test('Master System Main source borrows both PSG and OPLL, exposes real OPLL constants and releases melodic/drum loop owners',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'segapsg',fmChannels:0,psg:true,dac:false}),psgWrites=[],opllWrites=[];
+  const psgClient=createSegaPsgClient({start(){},close(){},postMessage:message=>psgWrites.push(message)},{stereoEnabled:false});
+  const opllPort={start(){},close(){},postMessage:message=>{opllWrites.push(message);if(message.id!==undefined)queueMicrotask(()=>opllPort.onmessage?.({data:{id:message.id,value:true}}));}},opllClient=createYm2413Client(opllPort);opllClient.initialize();
+  megaDrive.fm=null;megaDrive.psg=psgClient;megaDrive.opll=opllClient;megaDrive.primaryEndpoints=[{name:'segapsg',globalName:'psg',client:psgClient},{name:'ym2413',globalName:'opll',client:opllClient}];megaDrive.stopAllNative=()=>Promise.all([psgClient._stopVoices(),opllClient._stopVoices()]);
+  globalThis.playgroundReview={instruments:YM2413_INSTRUMENTS,patches:YM2413_USER_PRESETS};
+  await runtime.playSource(`
+    if(OPLL_INSTRUMENTS!==pg.OPLL_INSTRUMENTS||OPLL_INSTRUMENTS!==globalThis.playgroundReview.instruments||OPLL_USER_PRESETS!==globalThis.playgroundReview.patches)throw Error('Wrong constants');
+    if(await useSoundChip('ym2413')!==opll||await useSoundChip('segapsg')!==psg)throw Error('Extra primary');
+    const prepared=await livePrepare('both',({psg,opll})=>({psg,opll}));if(prepared.psg!==psg||prepared.opll!==opll)throw Error('Prepare lost endpoint');
+    if(typeof play!=='undefined'||typeof fm!=='undefined')throw Error('Unexpected OPN helpers');
+    opll.setPreset(0,{userPatch:OPLL_USER_PRESETS.sine,attenuation:3});opll.setRhythmLevels({bassDrum:3,snare:4,hiHat:5});opll.setRhythm({enabled:true});
+    liveLoop('melody',async()=>{opll.noteOn(0,69);psg.tone(PSG1,{note:'C4',attenuation:9});await sleep(60);});
+    liveLoop('drums',async()=>{opll.setRhythm({snare:true,hiHat:true});await sleep(60);});
+  `);
+  await until(()=>opllWrites.some(message=>message.method==='writeRegister'&&message.args[0]===0x0e&&(message.args[1]&9)===9));const before=opllWrites.length;
+  await runtime.playSource(`stopLoop('melody');stopLoop('drums');`);
+  const stopped=opllWrites.slice(before);assert(stopped.some(message=>message.method==='forceKeyOff'&&message.args[0]===0));assert(stopped.some(message=>message.method==='forceRhythmOff'&&message.args[0]===1));assert(stopped.some(message=>message.method==='forceRhythmOff'&&message.args[0]===4));
+  assert(psgWrites.some(message=>message.method==='write'&&message.args[0]===0x9f));await runtime.stop();assert.equal(opllClient._getState().registers[0x30],3);assert.equal(opllClient._getState().registers[0x0e]&31,0);
+});
+
+test('MSX Main code borrows all three primaries and livePrepare receives AY, OPLL and OPL without OPN helpers',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'msx',fmChannels:0,psg:false,dac:false}),writes=[];
+  const port=()=>{const endpoint={start(){},close(){},postMessage:message=>{writes.push(message);if(message.id!==undefined)queueMicrotask(()=>endpoint.onmessage?.({data:{id:message.id,value:true}}));}};return endpoint;};
+  const ay=createAy8910Client(port()),opll=createYm2413Client(port()),opl=createOplClient(port(),{chip:'y8950'});for(const api of [ay,opll,opl])api.initialize();megaDrive.fm=null;megaDrive.psg=null;megaDrive.ay=ay;megaDrive.opll=opll;megaDrive.opl=opl;megaDrive.primaryEndpoints=[{name:'ay8910',globalName:'ay',client:ay},{name:'ym2413',globalName:'opll',client:opll},{name:'y8950',globalName:'opl',client:opl}];megaDrive.stopAllNative=()=>Promise.all([ay._stopVoices(),opll._stopVoices(),opl._stopVoices()]);
+  await runtime.playSource(`
+    if(await useSoundChip('ay8910')!==ay||await useSoundChip('ym2413')!==opll||await useSoundChip('y8950')!==opl)throw Error('Separate primary');
+    const prepared=await livePrepare('all',({ay,opll,opl})=>({ay,opll,opl}));if(prepared.ay!==ay||prepared.opll!==opll||prepared.opl!==opl||pg.ay!==ay)throw Error('Missing endpoint');
+    if(typeof play!=='undefined'||typeof fm!=='undefined'||typeof psg!=='undefined'||typeof FM_PRESETS!=='undefined')throw Error('OPN helpers in MSX');
+    ay.setEnvelope({period:2345,shape:10});opll.setVoice(8,{instrument:4,attenuation:3});opl.setPreset(8,OPL_PRESETS.sine);
+    liveLoop('old-ay',async()=>{ay.tone(2,{note:'A4',volume:6});await sleep(60);});
+    liveLoop('fm',async()=>{opll.noteOn(8,69);opl.noteOn(8,69);await sleep(60);});
+  `);await until(()=>ay._getState().registers[10]===6);const before=writes.length;
+  await runtime.playSource(`ay.tone(2,{note:'C5',volume:7});stopLoop('old-ay');stopLoop('fm');`);
+  assert(!writes.slice(before).some(message=>message.method==='forceKeyOff'&&message.args[0]===2),'stale AY loop cleanup cannot stop a replacement');assert.equal(ay._getState().registers[10],7);assert(writes.slice(before).some(message=>message.method==='forceKeyOff'&&message.args[0]===8));await runtime.stop();assert.deepEqual(ay._getState().registers.slice(8,11),[0,0,0]);assert.equal(ay._getState().levels[2],7);assert.equal(ay._getState().registers[11]|(ay._getState().registers[12]<<8),2345);
 });

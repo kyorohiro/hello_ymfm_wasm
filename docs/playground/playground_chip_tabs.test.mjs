@@ -28,7 +28,7 @@ function fixture(inspector, options = {}) {
     fire(name) { for (const callback of listeners.get(name) ?? []) callback(); },
     listenerCount(name) { return listeners.get(name)?.size ?? 0; },
   };
-  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','ym2151','okim6258','huc6280','ym3812','ym3526','y8950','ymf262'].map(kind => [kind, new Element(doc, 'div')]));
+  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','ym2151','okim6258','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
   const tabs = createPlaygroundChipTabs({roots, getInspector: () => inspector, pollMs: 100000, ...options});
   return {doc, roots, tabs};
 }
@@ -213,5 +213,31 @@ for (const kind of ['ym3812','ym3526','y8950','ymf262']) test(`${kind} native ta
   control(roots[kind],'opl-op-0-tl').value = '26'; await control(roots[kind],'opl-op-0-tl').fire('change'); assert.deepEqual(calls[0],[kind,'setOperator',[0,0,{tl:26}]]);
   await walk(roots[kind]).find(node => node.dataset.chipChannel === '1').fire('click'); await walk(roots[kind]).find(node => node.dataset.chipAction === 'opl-keyboard').fire('click');
   tabs.setVisible(null); const target = targets.at(-1); target.noteOn({id:'key',midi:69}); await flush(); assert.deepEqual(calls.at(-1).slice(0,2),[kind,'auditionOn']); assert.equal(calls.at(-1)[2][0],1);
+  target.noteOff({id:'key'}); await flush(); assert.equal(calls.at(-1)[1],'auditionOff'); tabs.dispose();
+});
+
+test('YM2413 editor borrows the Master System OPLL beside PSG and keeps User edits global',async () => {
+  let prepared = false; const calls = [], targets = [];
+  const state = {kind:'ym2413',clock:3579545,channels:Array.from({length:9},(_,channel) => ({channel,available:true,instrument:3,attenuation:5,sustain:false,frequency:440})),
+    userPatch:{feedback:0,operators:[{multi:1,tl:63,ksl:0,ar:15,dr:0,sl:0,rr:12,waveform:0},{multi:1,ksl:0,ar:15,dr:0,sl:0,rr:12,waveform:0}]},rhythm:{enabled:false,levels:{}},registers:[]};
+  const inspector = {list:() => prepared ? [{id:'segapsg',kind:'segapsg'},{id:'ym2413',kind:'ym2413'}] : [],read:async id => {assert.equal(id,'ym2413'); return state;},invoke:async (...args) => calls.push(args)};
+  const {tabs,roots} = fixture(inspector,{ensureAudioReady:async () => {prepared = true;},onKeyboardTargetChange:target => targets.push(target)});
+  tabs.setVisible('ym2413'); await flush(); assert.equal(prepared,false); await walk(roots.ym2413).find(node => node.dataset.chipAction === 'prepare').fire('click'); assert.deepEqual(calls,[],'inspection never initializes or changes either chip');
+  const tl = control(roots.ym2413,'opll-user-op-0-tl'); tl.value = '31'; await tl.fire('change'); assert.deepEqual(calls[0],['ym2413','setUserOperator',[0,{tl:31}]]);
+  await walk(roots.ym2413).find(node => node.dataset.chipChannel === '2').fire('click'); await walk(roots.ym2413).find(node => node.dataset.chipAction === 'opll-keyboard').fire('click');
+  tabs.setVisible(null); const target = targets.at(-1); target.noteOn({id:'key',midi:69}); await flush(); assert.deepEqual(calls.at(-1).slice(0,2),['ym2413','auditionOn']); assert.equal(calls.at(-1)[2][0],2);
+  target.noteOff({id:'key'}); await flush(); assert.equal(calls.at(-1)[1],'auditionOff'); tabs.dispose();
+});
+
+test('MSX AY editor prepares the shared environment and routes audition to its physical PSG instance',async () => {
+  let prepared = false; const calls = [], targets = [];
+  const snapshot = {kind:'ay8910',clock:1789773,channels:Array.from({length:3},(_,channel) => ({channel,active:false,toneEnabled:true,noiseEnabled:false,volume:0,configuredVolume:9,configuredEnvelope:false,envelope:false,period:254,frequency:440})),noise:{period:16,frequency:6991.3},envelope:{period:1500,shape:10},registers:[]};
+  const inspector = {list:() => prepared ? [{id:'ay8910',kind:'ay8910'},{id:'ym2413',kind:'ym2413'},{id:'y8950',kind:'y8950'}] : [],read:async id => {assert.equal(id,'ay8910'); return snapshot;},invoke:async (...args) => calls.push(args)};
+  const {tabs,roots} = fixture(inspector,{ensureAudioReady:async () => {prepared = true;},onKeyboardTargetChange:target => targets.push(target)});
+  tabs.setVisible('ay8910'); await flush(); assert.equal(prepared,false);
+  await walk(roots.ay8910).find(node => node.dataset.chipAction === 'prepare').fire('click'); assert.deepEqual(calls,[],'opening and readback do not program a shared generator');
+  const period = control(roots.ay8910,'ay-envelope-period'); period.value = '2200'; await period.fire('change'); assert.deepEqual(calls[0],['ay8910','setEnvelope',[{period:2200}]]);
+  await walk(roots.ay8910).find(node => node.dataset.chipChannel === '2').fire('click'); await walk(roots.ay8910).find(node => node.dataset.chipAction === 'ay-keyboard').fire('click');
+  tabs.setVisible(null); const target = targets.at(-1); target.noteOn({id:'key',midi:69}); await flush(); assert.deepEqual(calls.at(-1).slice(0,2),['ay8910','auditionOn']); assert.equal(calls.at(-1)[2][0],2);
   target.noteOff({id:'key'}); await flush(); assert.equal(calls.at(-1)[1],'auditionOff'); tabs.dispose();
 });

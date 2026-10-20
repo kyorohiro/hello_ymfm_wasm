@@ -5,6 +5,15 @@ const root=resolve(process.argv[2]);let count=0;const errors=[];
 function check(file,spec){if(!spec.startsWith('.'))return;const target=resolve(dirname(file),spec.split(/[?#]/)[0]);count++;if(!existsSync(target)||relative(root,target).startsWith('..'))errors.push(`${relative(root,file)}: ${spec}`);}
 function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['vendor','examples','defaults','samples'].includes(ent.name))continue;const f=resolve(dir,ent.name);if(ent.isDirectory()){walk(f);continue;}if(!f.endsWith('.js'))continue;const src=readFileSync(f,'utf8');const mod=new SourceTextModule(src);for(const spec of mod.dependencySpecifiers)check(f,spec);for(const m of src.matchAll(/new URL\(\s*["']([^"']+)["']\s*,\s*import.meta.url/g))check(f,m[1]);}}
 walk(root);
+for(const file of ['tetorica-playground-msx.d.ts','defaults/msx/index.js','playground_ay8910_voice_panel.js',
+  'js/ay8910.js','js/ay8910synth.js','js/playground_ay8910.js','js/playground_ay8910_audio.js',
+  'js/playground_ay8910_worklet.js','js/playground_ay8910_inspector.js','generated/ay8910_wasm.js','generated/ay8910_wasm.wasm',
+  'licenses/mame-ay8910/LICENSE','licenses/mame-ay8910/README.md',
+])if(!existsSync(resolve(root,file)))errors.push(file);
+for(const file of ['playground_ym2413_voice_panel.js','js/ym2413synth.js','js/ym2413.js',
+  'js/playground_ym2413.js','js/playground_ym2413_audio.js','js/playground_ym2413_worklet.js','js/playground_ym2413_inspector.js',
+  'generated/ym2413_wasm.js','generated/ym2413_wasm.wasm',
+])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const chip of ['ym3526','ym3812','y8950','ymf262'])for(const file of [
   `defaults/${chip}/index.js`,`tetorica-playground-${chip}.d.ts`,`js/${chip}synth.js`,
   `js/${chip}.js`,`js/${chip}audioengine.js`,`generated/${chip}_wasm.js`,`generated/${chip}_wasm.wasm`,

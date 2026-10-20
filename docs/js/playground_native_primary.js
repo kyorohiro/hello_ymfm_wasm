@@ -1,11 +1,13 @@
-import {createNesClient} from './playground_nes.js?v=opl-modes-1';
-import {createSnesClient} from './playground_snes.js?v=opl-modes-1';
-import {createYm2151Client} from './playground_ym2151.js?v=opl-modes-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=opl-modes-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=opl-modes-1';
-import {createOki6258Client} from './playground_okim6258.js?v=opl-modes-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=opl-modes-1';
-import {createDx7Client} from './playground_dx7.js?v=opl-modes-1';
+import {createAy8910Client} from './playground_ay8910.js?v=msx-mode-1';
+import {createNesClient} from './playground_nes.js?v=msx-mode-1';
+import {createSnesClient} from './playground_snes.js?v=msx-mode-1';
+import {createYm2151Client} from './playground_ym2151.js?v=msx-mode-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=msx-mode-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=msx-mode-1';
+import {createOki6258Client} from './playground_okim6258.js?v=msx-mode-1';
+import {createYm2413Client} from './playground_ym2413.js?v=msx-mode-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=msx-mode-1';
+import {createDx7Client} from './playground_dx7.js?v=msx-mode-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {
@@ -36,7 +38,7 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
 }
 
 export function createNativePrimaryClient(name, port, options = {}) {
-  const client = OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
+  const client = name==='ay8910'?createAy8910Client(port,options):name==='ym2413'?createYm2413Client(port,options):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
     : name === 'nes' ? createNesClient(port, options)
     : name === 'snes' ? createSnesClient(port, options)
     : name === 'ym2151' ? createYm2151Client(port)
@@ -47,7 +49,7 @@ export function createNativePrimaryClient(name, port, options = {}) {
     : null;
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state) client._adoptState?.(options.state);
-  else if (name === 'huc6280' || OPL_CHIPS.includes(name)) client.initialize();
+  else if (name === 'huc6280' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();
   return client;
 }
 

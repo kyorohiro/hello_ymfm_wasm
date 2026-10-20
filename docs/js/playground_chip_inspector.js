@@ -1,54 +1,75 @@
 import {encodeRf5c164} from './rf5c164_pcm.js';
-import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=opl-modes-1';
+import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=msx-mode-1';
 
 /** UI-only admin port access. Audio creation and Worker-owned ports are deliberately untouched. */
 export function createChipInspector({endpoints, decode}) {
-  const listeners=new Set(),ports=new Map();let sequence=0;
-  const list=()=>endpoints().map(({id,kind,label,fdsEnabled})=>({id,kind,name:kind,label,connected:true,...(fdsEnabled===undefined?{}:{fdsEnabled})}));
+  const listeners=new Set(),ports=new Map();let sequence=0,disposed=false;
+  // Layout is applied audio-thread metadata, independent of the authoring
+  // shadows used by Main/Worker lookahead. Observing ports sends no requests.
+  const layouts=new WeakMap();
+  const list=()=>{if(disposed)return [];synchronize();return endpoints().map(({id,kind,label,fdsEnabled,port,rhythmEnabled})=>({id,kind,name:kind,label,connected:true,...(fdsEnabled===undefined?{}:{fdsEnabled}),...(kind==='ym2413'?{rhythmEnabled:layouts.get(port)??rhythmEnabled??false}:{})}));};
   const connections=new WeakMap();let connectionSequence=0;
   function getConnectionToken(id){const {port}=endpointFor(id);if(!connections.has(port))connections.set(port,++connectionSequence);return connections.get(port);}
   const synchronize=()=>{
-    const active=new Set(endpoints().map(endpoint=>endpoint.port));
+    if(disposed)return;
+    const current=endpoints(),active=new Set(current.map(endpoint=>endpoint.port));
     for(const [port,entry] of ports)if(!active.has(port)){
       port.removeEventListener('message',entry.listener);
       for(const request of entry.pending.values()){clearTimeout(request.timer);request.reject(new DOMException('Sound chip disconnected','AbortError'));}
-      ports.delete(port);
+      ports.delete(port);layouts.delete(port);
     }
+    for(const {kind,port}of current)if(kind==='ym2413'&&typeof port?.addEventListener==='function')observePort(port);
   };
   const notify=()=>{
+    if(disposed)return;
     synchronize();
     // An editor observer must never prevent a chip from being released or another editor updating.
     for(const listener of listeners)try{listener(list());}catch(error){globalThis.console?.error?.('[chip inspector listener]',error);}
   };
   function endpointFor(id) {
+    if(disposed)throw new DOMException('Sound chip inspector disposed','AbortError');
     synchronize();const endpoint=endpoints().find(endpoint=>endpoint.id===id);
     if(!endpoint)throw new Error('Sound chip is not connected');
     return endpoint;
   }
+  function adoptLayout(port,rhythmEnabled){
+    if(disposed||typeof rhythmEnabled!=='boolean')return;
+    const before=layouts.get(port)??endpoints().find(endpoint=>endpoint.port===port&&endpoint.kind==='ym2413')?.rhythmEnabled??false;
+    layouts.set(port,rhythmEnabled);if(before!==rhythmEnabled)notify();
+  }
+  function observePort(port){
+    if(disposed)throw new DOMException('Sound chip inspector disposed','AbortError');
+    if(ports.has(port))return ports.get(port);
+    const entry={pending:new Map(),listener:null};
+    entry.listener=({data})=>{
+      if(ports.get(port)!==entry)return;
+      if(data?.type==='chip-layout'&&data.kind==='ym2413'){
+        if(endpoints().some(endpoint=>endpoint.port===port&&endpoint.kind==='ym2413'))adoptLayout(port,data.rhythmEnabled);
+        return;
+      }
+      if(data?.type!=='chip-inspector-result')return;
+      const request=entry.pending.get(data.id);if(!request)return;
+      entry.pending.delete(data.id);clearTimeout(request.timer);
+      if(data.error){request.reject(new Error(data.error));return;}
+      if(request.kind==='ym2413'&&request.action==='read')adoptLayout(port,data.value?.rhythm?.enabled);
+      request.resolve(data.value);
+    };
+    ports.set(port,entry);port.addEventListener('message',entry.listener);port.start?.();
+    return entry;
+  }
   function request(endpoint, action, method, args=[]) {
-    const {port}=endpoint;
-    let entry=ports.get(port);
-    if(!entry){
-      entry={pending:new Map(),listener:null};
-      entry.listener=({data})=>{
-        if(data?.type!=='chip-inspector-result')return;
-        const request=entry.pending.get(data.id);if(!request)return;
-        entry.pending.delete(data.id);clearTimeout(request.timer);
-        data.error?request.reject(new Error(data.error)):request.resolve(data.value);
-      };
-      ports.set(port,entry);port.addEventListener('message',entry.listener);port.start?.();
-    }
+    const {port}=endpoint,entry=observePort(port);
     return new Promise((resolve,reject)=>{
       const id=`chip-inspector:${++sequence}`;
       const timer=setTimeout(()=>{entry.pending.delete(id);reject(new Error('Sound chip did not respond'));},5000);
-      entry.pending.set(id,{resolve,reject,timer});
+      entry.pending.set(id,{resolve,reject,timer,kind:endpoint.kind,action});
       try{port.postMessage({type:'chip-inspector',id,inspectorKind:endpoint.kind,action,method,args});}
       catch(error){clearTimeout(timer);entry.pending.delete(id);reject(error);}
     });
   }
   return {
     list,notify,getConnectionToken,
-    subscribe(listener){if(typeof listener!=='function')throw new TypeError('Inspector listener must be a function');listeners.add(listener);return()=>listeners.delete(listener);},
+    subscribe(listener){if(typeof listener!=='function')throw new TypeError('Inspector listener must be a function');if(disposed)return()=>{};listeners.add(listener);synchronize();return()=>listeners.delete(listener);},
     async read(id){return request(endpointFor(id),'read');},
     async invoke(id,method,args=[]){return request(endpointFor(id),'invoke',method,args);},
     async loadSample(id,source,options={}){
@@ -84,6 +105,6 @@ export function createChipInspector({endpoints, decode}) {
       if(endpointFor(id).port!==endpoint.port)throw new Error('Sound chip changed while decoding');
       return request(endpoint,'loadSample',undefined,[bytes,{frames,step,name:selected.name},selected]);
     },
-    dispose(){for(const [port,entry]of ports){port.removeEventListener('message',entry.listener);for(const request of entry.pending.values()){clearTimeout(request.timer);request.reject(new DOMException('Sound chip inspector disposed','AbortError'));}}ports.clear();listeners.clear();},
+    dispose(){disposed=true;for(const [port,entry]of ports){port.removeEventListener('message',entry.listener);for(const request of entry.pending.values()){clearTimeout(request.timer);request.reject(new DOMException('Sound chip inspector disposed','AbortError'));}}ports.clear();listeners.clear();},
   };
 }

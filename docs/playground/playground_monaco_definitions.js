@@ -11,6 +11,11 @@ export function definitionSource(text, position, chip = 'ym2612') {
   const owner = owners.at(-1)?.[1] ?? '';
   if (symbol === 'opl') return {file:'playground_opl.js',symbol:'createOplClient'};
   if (symbol === 'OPL_PRESETS') return {file:'opl_synth.js',symbol:'OPL_PRESETS'};
+  if (symbol === 'opll') return {file:'playground_ym2413.js',symbol:'createYm2413Client'};
+  if (symbol === 'ay') return {file:'playground_ay8910.js',symbol:'createAy8910Client'};
+  if (symbol === 'OPLL_INSTRUMENTS') return {file:'ym2413synth.js',symbol:'YM2413_INSTRUMENTS'};
+  if (symbol === 'OPLL_USER_PRESETS') return {file:'ym2413synth.js',symbol:'YM2413_USER_PRESETS'};
+  if (['YM2413_INSTRUMENTS','YM2413_USER_PRESETS'].includes(symbol)) return {file:'ym2413synth.js',symbol};
   if (['useSoundChip', 'createSoundChip', 'setBpm', 'beat', 'nextBeat', 'sleep', 'sleepSamples', 'tween', 'createTimeline'].includes(symbol)) return {file:'playground_runtime.js', symbol};
   if (owner === 'PlaygroundSecondsTimeline') return {file:'playground_clock.js',symbol};
   if (['hzToBlockFnum', 'createPitchFromMidi'].includes(symbol)) return {file:'pitch.js', symbol};
@@ -24,6 +29,8 @@ export function definitionSource(text, position, chip = 'ym2612') {
   if (/^PlaygroundYm2608$/.test(owner)) return {file:'ym2608synth.js', symbol};
   if (/^PlaygroundRf5c164$/.test(owner)) return {file:'rf5c164synth.js', symbol};
   if (/^PlaygroundSegaPsg$/.test(owner)) return {file:'segapsgsynth.js', symbol};
+  if (/^Playground(?:Primary)?(?:Opll|Ym2413)/.test(owner)) return {file:'ym2413synth.js',symbol:/^Playground/.test(symbol) ? 'YM2413Synth' : symbol};
+  if (/^Playground(?:Primary)?(?:Ay8910|AY8910)/.test(owner)) return {file:'ay8910synth.js',symbol:/^Playground/.test(symbol) ? 'AY8910Synth' : symbol};
   if (/^Playground(?:Primary)?Opl/.test(owner)) return {file:'opl_synth.js',symbol:/^Playground(?:Primary)?Opl/.test(symbol) ? 'OPLSynth' : symbol};
   if (/^PlaygroundPWM32X$/.test(owner)) return {file:'pwm32x_playback.js', symbol};
   if (['FMApi','PlaygroundOPNFm','PlaygroundCreatedFm','PlaygroundCreatedYm2203','PlaygroundCreatedYm2610'].includes(owner)) {

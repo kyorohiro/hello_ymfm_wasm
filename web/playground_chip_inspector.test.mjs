@@ -210,3 +210,38 @@ test('OKIM6258 replacement during its rate read cannot receive the old file load
     assert.deepEqual(requests.map(request=>request.action),['read']);
   }finally{inspector.dispose();port1.close();port2.close();replacement.port1.close();replacement.port2.close();}
 });
+
+test('OPLL layout metadata follows applied events without admin reads and only mode changes notify observers',async()=>{
+  const {port1,port2}=new MessageChannel(),requests=[];port1.on('message',message=>requests.push(message));
+  const inspector=createChipInspector({endpoints:()=>[{id:'ym2413',kind:'ym2413',port:port2}],decode:async()=>{}});let changes=0;inspector.subscribe(()=>changes++);
+  const flush=()=>new Promise(resolve=>setTimeout(resolve,5));
+  try{
+    assert.equal(inspector.list()[0].rhythmEnabled,false);await flush();assert.deepEqual(requests,[],'listing and observing metadata send no audio/admin RPC');
+    port1.postMessage({type:'opll-state',state:{registers:Array(64).fill(32)}});await flush();assert.equal(inspector.list()[0].rhythmEnabled,false,'authoring snapshots cannot announce a future layout');assert.equal(changes,0);
+    port1.postMessage({type:'chip-layout',kind:'ym2413',rhythmEnabled:true});await flush();assert.equal(inspector.list()[0].rhythmEnabled,true);assert.equal(changes,1);
+    port1.postMessage({type:'chip-layout',kind:'ym2413',rhythmEnabled:true});await flush();assert.equal(changes,1,'repeated gate-level activity cannot trigger a view rebuild');
+    port1.postMessage({type:'chip-layout',kind:'ym2413',rhythmEnabled:false});await flush();assert.equal(inspector.list()[0].rhythmEnabled,false);assert.equal(changes,2);assert.deepEqual(requests,[]);
+    inspector.list()[0].rhythmEnabled=true;assert.equal(inspector.list()[0].rhythmEnabled,false,'returned metadata cannot mutate the cached layout');
+  }finally{inspector.dispose();assert.equal(port2.listenerCount('message'),0);port1.close();port2.close();}
+});
+test('an explicit OPLL read can recover layout metadata without another register request or repeated notifications',async()=>{
+  const {port1,port2}=new MessageChannel();let requests=0;port1.on('message',message=>{requests++;port1.postMessage({type:'chip-inspector-result',id:message.id,value:{kind:'ym2413',rhythm:{enabled:true}}});});
+  const inspector=createChipInspector({endpoints:()=>[{id:'ym2413',kind:'ym2413',port:port2}],decode:async()=>{}});let changes=0;inspector.subscribe(()=>changes++);
+  try{await inspector.read('ym2413');assert.equal(inspector.list()[0].rhythmEnabled,true);assert.equal(changes,1);assert.equal(requests,1);await inspector.read('ym2413');assert.equal(changes,1);assert.equal(requests,2);}
+  finally{inspector.dispose();port1.close();port2.close();}
+});
+
+test('OPLL applied layout overrides endpoint hints and a disposed inspector cannot reconnect',async()=>{
+  const {port1,port2}=new MessageChannel();
+  const inspector=createChipInspector({endpoints:()=>[{id:'ym2413',kind:'ym2413',port:port2,rhythmEnabled:true}],decode:async()=>{}});let changes=0;inspector.subscribe(()=>changes++);
+  try{
+    assert.equal(inspector.list()[0].rhythmEnabled,true);
+    port1.postMessage({type:'chip-layout',kind:'ym2413',rhythmEnabled:false});await new Promise(resolve=>setTimeout(resolve,5));
+    assert.equal(inspector.list()[0].rhythmEnabled,false);assert.equal(changes,1);
+    inspector.dispose();assert.equal(port2.listenerCount('message'),0);assert.deepEqual(inspector.list(),[]);
+    inspector.notify();const unsubscribe=inspector.subscribe(()=>changes++);inspector.dispose();unsubscribe();
+    assert.equal(port2.listenerCount('message'),0);assert.equal(changes,1);
+    await assert.rejects(inspector.read('ym2413'),{name:'AbortError'});
+    await assert.rejects(inspector.invoke('ym2413','setRhythm',[{enabled:true}]),{name:'AbortError'});
+  }finally{inspector.dispose();port1.close();port2.close();}
+});

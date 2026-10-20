@@ -1,5 +1,5 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=opl-modes-1';
-import {NesApuSynth} from './nesapusynth.js?v=opl-modes-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-mode-1';
+import {NesApuSynth} from './nesapusynth.js?v=msx-mode-1';
 import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
 /** @param {MessagePort} port Ordered Worklet command/acknowledgement port, owned by the client.

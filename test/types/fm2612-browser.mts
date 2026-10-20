@@ -49,6 +49,23 @@ autoChip.id = 'other';
 import {YM2151Synth, YM2151WorkletTransport} from 'tetorica-fm2612/ym2151synth.js';
 import {OPLSynth,OPL_PRESETS} from 'tetorica-fm2612/opl_synth.js';
 import {YMF262WorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js';
+import {YM2413Synth,YM2413_USER_PRESETS} from 'tetorica-fm2612/ym2413synth.js';
+import {YM2413WorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js';
+import {AY8910Synth,AY8910WorkletTransport} from 'tetorica-fm2612/ay8910synth.js';
+const ayEndpoint=await createSoundChip('ay8910',{execution:'worklet'});
+const ay=new AY8910Synth({transport:new AY8910WorkletTransport(ayEndpoint)});
+ay.initialize();ay.tone(0,{note:'A4',volume:9});ay.keyOff(0);
+// @ts-expect-error AY envelope shape is a number
+ay.setEnvelope({shape:'saw'});
+import {keyboardChannels} from 'tetorica-fm2612/playground_keyboard_channels.js';
+keyboardChannels('ym2413',{rhythmEnabled:true})[0]?.id.toUpperCase();
+// @ts-expect-error Applied OPLL rhythm layout is a boolean.
+keyboardChannels('ym2413',{rhythmEnabled:'on'});
+const opllEndpoint=await createSoundChip('ym2413',{execution:'worklet'});
+const opll=new YM2413Synth({transport:new YM2413WorkletTransport(opllEndpoint)});
+opll.initialize();opll.setUserPatch(YM2413_USER_PRESETS.sine);opll.setVoice(0,{instrument:0,attenuation:4});opll.noteOn(0,'A4');
+// @ts-expect-error OPLL drum level uses numeric attenuation
+opll.setRhythmLevel('snare','loud');
 const oplEndpoint=await createSoundChip('ymf262',{execution:'worklet'});
 const opl=new OPLSynth({chip:'ymf262',transport:new YMF262WorkletTransport(oplEndpoint)});
 opl.initialize();opl.setPreset(0,OPL_PRESETS['four-op-bell']);opl.noteOn(0,'A4');
@@ -120,6 +137,17 @@ nativePce.pce?.setNoise(5,{enabled:true,frequency:20});
 const nativePsg = new NativeRuntimeSynth({chip:'segapsg',stereoEnabled:true,clock:3579545});
 nativePsg.psg?.setStereo(0xf1);
 nativePsg.psg?.allNotesOff();
+const nativeMasterSystem=new NativeRuntimeSynth({chip:'segapsg',stereoEnabled:false,ym2413:true,opllOptions:{wasmUrl:'ym2413.wasm'}});
+nativeMasterSystem.opll?.setInstrument(8,3,4);
+nativeMasterSystem.psg?.tone(0,{note:'A4',attenuation:8});
+Playground({chip:'segapsg',stereoEnabled:false,ym2413:true,opllOptions:{workletUrl:'opll-worklet.js'}});
+const nativeMsx=new NativeRuntimeSynth({chip:'msx',ayOptions:{wasmUrl:'ay.wasm'},opllOptions:{workletUrl:'opll-worklet.js'},oplOptions:{wasmUrl:'y8950.wasm'}});
+nativeMsx.ay?.noteOn(2,'A4');nativeMsx.opll?.noteOn(8,'A4');nativeMsx.opl?.noteOn(8,'A4');
+Playground({chip:'msx',ayOptions:{workletUrl:'ay-worklet.js'}});
+// @ts-expect-error Audio assets are URLs, not raw numeric IDs
+Playground({chip:'msx',ayOptions:{wasmUrl:12}});
+// @ts-expect-error The OPLL expansion is enabled with a boolean.
+Playground({chip:'segapsg',ym2413:'on'});
 const nativeDx7 = new NativeRuntimeSynth({chip:'dx7'});
 await nativeDx7.dx7?.setPreset({name:'BELL',operators:{1:{coarse:2}}});
 nativeDx7.dx7?.noteOn(60,100);nativeDx7.dx7?.noteOff(60);

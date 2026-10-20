@@ -12,7 +12,7 @@ async function until(predicate) {
 }
 
 /** Real client MessageChannels, with deterministic device/module boundaries. */
-function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' : chip, stereoEnabled = true} = {}) {
+function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' : chip, stereoEnabled = true,ym2413=false,opllOptions,ayOptions,oplOptions} = {}) {
   const previous = globalThis.AudioWorkletNode;
   const gate = deferred(), nodes = [], fetches = [], moduleLoads = [], ports = new Set();
   let reached = false, contextCloses = 0;
@@ -58,14 +58,14 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
     connect(node) { this.connections.push(node); }
     disconnect() { this.connections.length = 0; }
   };
-  const synth = new NativeRuntimeSynth({chip, audioContext:context, fetch:fetchBytes, extraOki:{fetch:fetchBytes}, stereoEnabled});
+  const synth = new NativeRuntimeSynth({chip, audioContext:context, fetch:fetchBytes, extraOki:{fetch:fetchBytes}, stereoEnabled,ym2413,opllOptions,ayOptions,oplOptions});
   t.after(async () => {
     gate.resolve(); await synth.close(); for (const port of ports) port.close(); globalThis.AudioWorkletNode = previous;
   });
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }
 
-for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
+for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
   const device = harness(t, chip); const {synth,nodes} = device;
   assert.equal(nodes.length, 0); assert.equal(device.fetches.length, 0); assert.equal(device.moduleLoads.length, 0);
   assert.equal(synth.fm, null); assert.equal(synth.psg, null); assert.equal(synth.isReady(), false);
@@ -145,7 +145,7 @@ test('NES Worker handoff adopts FDS and pulse configuration without resetting th
   assert(!messages.some(data => data.method === 'reset'));
 });
 
-for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
+for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
   const {synth,nodes,gate,reached} = harness(t,chip,{stage:'ready'});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'});
   await until(reached); if (chip === 'x68000') assert.equal(synth.primaryEndpoints.length,1,'OPM ready before second device');
@@ -249,4 +249,37 @@ test('OPL fatal primary failure releases resources and permits restart',async t=
   const {synth,nodes}=harness(t,'ym3812');await synth.start();const previous=synth.opl;nodes[0].onprocessorerror();
   assert.equal(synth.state,'error');assert.equal(synth.opl,null);assert.equal(synth.isReady(),false);assert(synth.mixer.list().every(row=>!row.connected));assert.throws(()=>previous.noteOn(0,69),/disposed/i);
   await synth.start();assert(synth.isReady());assert.equal(nodes.length,2);
+});
+
+test('Master System explicitly adds one borrowed OPLL endpoint beside its mono Sega PSG and retains both after Stop',async t=>{
+  const {synth,nodes,fetches,moduleLoads}=harness(t,'segapsg',{stereoEnabled:false,ym2413:true,opllOptions:{wasmUrl:'https://assets.test/ym2413_wasm.wasm',workletUrl:'https://assets.test/playground_ym2413_worklet.js'}});
+  assert.equal(nodes.length,0);await synth.start();assert.equal(nodes.length,2);assert.equal(synth.psg,synth.primaryApis.psg);assert.equal(synth.opll,synth.primaryApis.opll);assert.equal(synth.opll.clock,3579545);
+  assert.deepEqual(synth.primaryEndpoints.map(endpoint=>[endpoint.name,endpoint.globalName]),[['segapsg','psg'],['ym2413','opll']]);assert.deepEqual(synth.mixer.list().filter(row=>row.connected).map(row=>row.id),['segapsg','ym2413']);
+  assert(fetches.includes('https://assets.test/ym2413_wasm.wasm'));assert(moduleLoads.includes('https://assets.test/playground_ym2413_worklet.js'));
+  synth.psg.tone(0,{note:'A4',attenuation:7});synth.opll.setVoice(0,{instrument:4,attenuation:3,sustain:true});synth.opll.noteOn(0,69);const patch=synth.opll._getState().registers.slice(0,8);await synth.stopAllNative();
+  for(const node of nodes)assert(node.messages.some(message=>message.method==='stopVoices'));assert.deepEqual(synth.opll._getState().registers.slice(0,8),patch);assert.equal(synth.opll._getState().registers[0x30],0x43);assert.equal(synth.psg._getState().attenuations[0],7);
+  await synth.close();assert(nodes.every(node=>node.port.closed&&node.connections.length===0));await synth.start();assert.equal(nodes.length,4);
+});
+for(const stage of ['fetch','module','ready'])test(`Master System close during the OPLL ${stage} load releases the already-connected PSG and can restart`,async t=>{
+  const {synth,nodes,gate,reached}=harness(t,'segapsg',{stereoEnabled:false,ym2413:true,target:'ym2413',stage});const canceled=assert.rejects(synth.start(),{name:'AbortError'});await until(reached);assert.equal(synth.primaryEndpoints.length,1);await synth.close();await canceled;gate.resolve();assert(nodes.every(node=>node.port.closed&&node.connections.length===0));await synth.start();assert(synth.psg&&synth.opll);
+});
+test('YM2413 expansion options are explicit, while a default Game Gear still opens only its PSG',async t=>{
+  assert.throws(()=>new NativeRuntimeSynth({chip:'segapsg',ym2413:'yes'}),/boolean/);assert.throws(()=>new NativeRuntimeSynth({chip:'nes',ym2413:true}),/Sega PSG/);
+  const {synth,nodes,fetches}=harness(t,'segapsg',{stereoEnabled:true});await synth.start();assert.equal(nodes.length,1);assert.equal(synth.opll,null);assert(!fetches.some(url=>url.includes('ym2413')));
+});
+
+test('MSX lazily starts three separate native primaries on one context and Stop preserves shared controls',async t=>{
+  const custom=Object.fromEntries(['ay','opll','opl'].map((key,index)=>[`${key}Options`,{wasmUrl:`https://assets.test/${key}.wasm`,workletUrl:`https://assets.test/${key}.js`}]));
+  const {synth,nodes,fetches,moduleLoads,context}=harness(t,'msx',custom);assert.equal(nodes.length,0);assert.deepEqual(fetches,[]);assert.deepEqual(moduleLoads,[]);await Promise.all([synth.start(),synth.start()]);
+  assert.equal(nodes.length,3);assert(nodes.every(node=>node.context===context));assert.deepEqual(synth.primaryEndpoints.map(endpoint=>[endpoint.name,endpoint.globalName,endpoint.clock]),[['ay8910','ay',1789773],['ym2413','opll',3579545],['y8950','opl',3579545]]);
+  assert.deepEqual(synth.mixer.list().filter(row=>row.connected).map(row=>row.id),['ay8910','ym2413','y8950']);for(const key of ['ay','opll','opl']){assert.equal(synth[key],synth.primaryApis[key]);assert(fetches.includes(`https://assets.test/${key}.wasm`));assert(moduleLoads.includes(`https://assets.test/${key}.js`));}
+  synth.ay.setVoice(2,{tone:true,noise:true,volume:6,envelope:true,note:'A4'});synth.ay.setNoisePeriod(21);synth.ay.setEnvelope({period:2222,shape:10});synth.opll.setVoice(8,{instrument:5,attenuation:4});synth.opl.setOperator(8,1,{tl:14});
+  const before=synth.ay._getState();await synth.stopAllNative();assert(nodes.every(node=>node.messages.some(message=>message.method==='stopVoices')));assert.deepEqual(synth.ay._getState().registers.slice(0,8),before.registers.slice(0,8));assert.deepEqual(synth.ay._getState().levels,before.levels);assert(synth.ay._getState().registers.slice(8,11).every(value=>value===0));assert.equal(synth.opll._getState().registers[0x38],0x54);assert.equal(synth.opl.getRegisterSnapshot()[0x55]&63,14);
+  await synth.close();assert(nodes.every(node=>node.port.closed&&!node.connections.length));await synth.start();assert.equal(nodes.length,6);
+});
+for(const target of ['ay8910','ym2413','y8950'])for(const stage of ['fetch','module','ready'])test(`MSX close during ${target} ${stage} cancels all initialized endpoints and restarts`,async t=>{
+  const {synth,nodes,gate,reached}=harness(t,'msx',{target,stage});const canceled=assert.rejects(synth.start(),{name:'AbortError'});await until(reached);assert.equal(synth.primaryEndpoints.length,['ay8910','ym2413','y8950'].indexOf(target));await synth.close();await canceled;gate.resolve();assert(nodes.every(node=>node.port.closed&&!node.connections.length));assert.deepEqual(synth.primaryApis,{});await synth.start();assert(synth.ay&&synth.opll&&synth.opl);assert.equal(synth.primaryEndpoints.length,3);
+});
+test('MSX fatal device failure releases every primary and permits a complete restart',async t=>{
+  const {synth,nodes}=harness(t,'msx');await synth.start();const ay=synth.ay;nodes[2].onprocessorerror();assert.equal(synth.state,'error');assert.equal(synth.ay,null);assert.equal(synth.opll,null);assert.equal(synth.opl,null);assert(synth.mixer.list().every(row=>!row.connected));assert.throws(()=>ay.keyOn(0),/disposed/i);await synth.start();assert.equal(nodes.length,6);assert(synth.isReady());
 });

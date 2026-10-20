@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {MessageChannel} from 'node:worker_threads';
 import {createPlaygroundKeyboardRouting} from './playground_mode_keyboard.js';
+import {createChipInspector} from '../../web/playground_chip_inspector.js';
 
 function setup(primaryChips=[{id:'ym2612',kind:'ym2612',label:'YM2612'}]) {
   let entries=[],observer,connection=1;const calls=[],targets=[];
@@ -53,4 +55,45 @@ test('NES FDS capability and DX7 polyphony do not invent physical channels',()=>
   const x=setup();x.connect([{id:'nes',kind:'nes',label:'NES',fdsEnabled:false},{id:'dx7',kind:'dx7',label:'DX7'}]);
   const state=x.routing.getState();assert.equal(state.chips.find(chip=>chip.id==='chip:nes').channels.length,5);
   assert.deepEqual(state.chips.find(chip=>chip.id==='chip:dx7').channels,[{id:'0',label:'16 voices'}]);x.routing.dispose();
+});
+
+test('actual inspector applied layout events update the Master System Keyboard without audio polling',async () => {
+  const {port1,port2} = new MessageChannel(), requests = [];
+  port1.on('message',message => requests.push(message));
+  const inspector = createChipInspector({endpoints:() => [
+    {id:'segapsg',kind:'segapsg',label:'Sega PSG',port:port2},
+    {id:'ym2413',kind:'ym2413',label:'YM2413 OPLL',port:port2},
+  ],decode:async () => {throw new Error('metadata does not decode samples');}});
+  const routing = createPlaygroundKeyboardRouting({getInspector:() => inspector,primaryChips:[
+    {id:'segapsg',kind:'segapsg',label:'Sega PSG'},
+    {id:'ym2413',kind:'ym2413',label:'YM2413 OPLL'},
+  ]});
+  const updates = []; routing.subscribe(state => updates.push(state));
+  const chip = () => routing.getState().chips.find(chip => chip.id === 'chip:ym2413');
+  async function appliedLayout(rhythmEnabled) {
+    // Mirrors the Worklet's notification after its register write is applied,
+    // rather than the script's ahead-of-time register authoring state.
+    const delivered = new Promise(resolve => {
+      const listener = ({data}) => {if (data?.type !== 'chip-layout') return; port2.removeEventListener('message',listener); resolve();};
+      port2.addEventListener('message',listener); port2.start();
+    });
+    port1.postMessage({type:'chip-layout',kind:'ym2413',rhythmEnabled});
+    await delivered;
+  }
+  try {
+    routing.selectChip('chip:ym2413'); routing.selectChannel('8');
+    assert.deepEqual(chip().channels.map(channel => channel.id),['0','1','2','3','4','5','6','7','8']);
+    await appliedLayout(true);
+    assert.deepEqual(chip().channels.map(channel => channel.id),['0','1','2','3','4','5','rhythm:0','rhythm:1','rhythm:2','rhythm:3','rhythm:4']);
+    assert.equal(routing.getState().channelId,'0','an unavailable melodic CH8 is retired');
+    assert.equal(inspector.list().find(entry => entry.id === 'ym2413').rhythmEnabled,true);
+    assert.equal(routing.getState().chips.find(chip => chip.id === 'chip:segapsg').channels.length,4,'OPLL layout does not alter the shared-port PSG metadata');
+    const updateCount = updates.length; await appliedLayout(true); assert.equal(updates.length,updateCount,'unchanged layout does not repeatedly refresh the Keyboard');
+    routing.selectChannel('rhythm:4'); assert.equal(routing.getState().channelId,'rhythm:4');
+    await appliedLayout(false);
+    assert.deepEqual(chip().channels.map(channel => channel.id),['0','1','2','3','4','5','6','7','8']);
+    assert.equal(routing.getState().channelId,'0','a removed percussion target returns to a melodic voice');
+    assert.equal(inspector.list().find(entry => entry.id === 'ym2413').rhythmEnabled,false);
+    assert.deepEqual(requests,[],'layout and selection changes send no read/invoke commands to audio');
+  } finally {routing.dispose(); inspector.dispose(); port1.close(); port2.close();}
 });

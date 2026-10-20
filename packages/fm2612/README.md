@@ -33,6 +33,8 @@ entry points, rather than every internal Worker or Worklet module.
 | YM2610 / YM2610B FM, SSG and ADPCM | `tetorica-fm2612/ym2610bsynth.js` | `YM2610BSynth`, `YM2610BDirectTransport`, `NeoGeoFMSynth`, `NeoGeoSynth` |
 | YM2151 FM | `tetorica-fm2612/ym2151synth.js` | `YM2151Synth`, `YM2151DirectTransport`, `YM2151WorkletTransport` |
 | OPL / OPL2 / Y8950 FM / OPL3 | `tetorica-fm2612/opl_synth.js` | `OPLSynth`, `OPLDirectTransport`, `OPL_PRESETS` |
+| YM2413 OPLL | `tetorica-fm2612/ym2413synth.js` | `YM2413Synth`, `YM2413DirectTransport`, `YM2413_INSTRUMENTS`, `YM2413_USER_PRESETS` |
+| AY-3-8910 PSG | `tetorica-fm2612/ay8910synth.js` | `AY8910Synth`, `AY8910DirectTransport`, `AY8910WorkletTransport` |
 | Game Boy pulse, wave and noise | `tetorica-fm2612/gameboysynth.js` | `GameboySynth`, `GameboyDirectTransport` |
 | NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
@@ -140,6 +142,68 @@ module and asset. It is a distribution inventory, including internal modules;
 start with the task table above when choosing an application API. See the
 [runnable examples](https://github.com/kyorohiro/tetorica-fm2612-examples) for
 complete setup, playback and cleanup.
+
+### Master System: Sega PSG and YM2413 OPLL
+
+The Master System Playground mode prepares both a mono Sega PSG (`psg`) and
+YM2413 (`opll`). They have separate mixer strips and Keyboard chip/channel
+targets. Game Gear prepares its stereo PSG only.
+
+```js
+// Playground script in Master System mode.
+opll.setInstrument(0, 3, 4); // Piano, hardware attenuation 4.
+opll.noteOn(0, 'C4');
+psg.tone(PSG1, {note:'C3', attenuation:10});
+await beat(1);
+opll.noteOff(0);
+psg.off(PSG1);
+```
+
+For an embedded Playground, choose
+`Playground({chip:'segapsg', stereoEnabled:false, ym2413:true})`.
+Use `useSoundChip('ym2413')` to borrow the mode's OPLL; `createSoundChip('ym2413')`
+creates an independent instance. `YM2413Synth` also supports Direct, Worklet
+and optional Node Audify transports.
+
+YM2413 has nine melody channels, or six melody channels and five rhythm voices.
+Instrument IDs 1–15 select built-in voices; instrument 0 selects the single
+chip-wide user patch. `setUserPatch()` / `setUserOperator()` therefore change
+every channel using instrument 0. Carrier loudness is set by each channel's
+`attenuation` (0 loudest, 15 quietest), rather than a shared carrier TL field.
+The Operators panel keeps built-in voices separate from this shared patch.
+Rhythm levels share CH6–8's instrument/attenuation registers; select those
+channels' melody voices again after changing rhythm levels when needed.
+
+### MSX: AY PSG, MSX-MUSIC and MSX-AUDIO FM
+
+The MSX Playground mode combines three independent instruments in one audio
+context: `ay` (AY-3-8910 PSG), `opll` (YM2413 MSX-MUSIC) and `opl` (Y8950
+MSX-AUDIO FM). Each has its own mixer strip, chip tab and Keyboard channel
+selector. The Y8950 uses the existing OPL FM API; its ADPCM sample player has
+no high-level adapter in this mode.
+
+```js
+// Playground script in MSX mode. AY volume: 0 silent .. 15 loudest.
+ay.tone(0, {note:'A4', volume:9});
+opll.setVoice(0, {instrument:3, attenuation:5});
+opll.noteOn(0, 'A4');
+opl.setPreset(0, OPL_PRESETS.sine);
+opl.noteOn(0, 'A4');
+await beat(1);
+ay.keyOff(0); opll.keyOff(0); opl.keyOff(0);
+```
+
+Embed this environment with `Playground({chip:'msx'})`. Optional `ayOptions`,
+`opllOptions` and `oplOptions` accept `{fetch, wasmUrl, workletUrl}` for custom
+asset loading. `useSoundChip('ay8910'|'ym2413'|'y8950')` borrows the corresponding
+primary device; `createSoundChip()` creates an independent instance.
+
+The AY has three channels, each mixing tone and noise. Noise period and
+hardware envelope are shared across those channels. `setMixer()` preserves
+the other channels and I/O bits; `keyOff()` preserves the configured voice,
+and the next `keyOn()` restores its level. `setEnvelope({shape})` explicitly
+retriggers the shared envelope. AY uses a twelve-bit tone period and
+`frequency = clock / (16 * period)`; it is mono, copied to both outputs.
 
 ## Chip mixer
 

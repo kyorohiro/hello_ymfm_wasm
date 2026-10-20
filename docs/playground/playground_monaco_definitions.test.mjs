@@ -89,3 +89,32 @@ test('OPL declarations navigate to the shared Synth, original presets and native
   const pairLine = lines.findIndex(text => /setFourOp\(channel:/.test(text)); assert(pairLine >= 0);
   assert.deepEqual(definitionSource(declarations,{lineNumber:pairLine + 1,column:lines[pairLine].indexOf('setFourOp') + 1}),{file:'opl_synth.js',symbol:'setFourOp'});
 });
+
+test('OPLL definitions identify the shared YM2413 patch instead of the OPL implementation',async () => {
+  const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8'), lines = declarations.split('\n');
+  const start = lines.findIndex(line => /^interface PlaygroundYm2413 \{/.test(line)); assert(start >= 0);
+  const source = await readFile(new URL('../../web/ym2413synth.js',import.meta.url),'utf8');
+  for (const symbol of ['setVoice','setUserPatch','setUserOperator','setRhythmLevel','noteOn','keyOff']) {
+    const line = lines.findIndex((text,index) => index > start && new RegExp(`^  ${symbol}\\(`).test(text)); assert(line > start);
+    assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file:'ym2413synth.js',symbol});
+    const point = sourcePosition(source,symbol); assert.match(source.split('\n')[point.lineNumber - 1],new RegExp(`\\b${symbol}\\(`));
+  }
+  for (const [symbol,file,targetSymbol] of [['opll','playground_ym2413.js','createYm2413Client'],['OPLL_INSTRUMENTS','ym2413synth.js','YM2413_INSTRUMENTS'],['OPLL_USER_PRESETS','ym2413synth.js','YM2413_USER_PRESETS']]) {
+    const line = lines.findIndex(text => text.startsWith(`declare const ${symbol}:`)); assert(line >= 0,symbol);
+    assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file,symbol:targetSymbol});
+  }
+  assert.deepEqual(definitionSource('interface PlaygroundOpll {\n  setUserPatch():void;\n}',{lineNumber:2,column:3}),{file:'ym2413synth.js',symbol:'setUserPatch'});
+});
+
+test('MSX AY definitions navigate to their own Synth and primary client',async () => {
+  const declarations = await readFile(new URL('./tetorica-playground-globals.d.ts',import.meta.url),'utf8'), lines = declarations.split('\n');
+  const start = lines.findIndex(line => /^interface PlaygroundAy8910 \{/.test(line)); assert(start >= 0);
+  const source = await readFile(new URL('../../web/ay8910synth.js',import.meta.url),'utf8');
+  for (const symbol of ['setVoice','setMixer','setEnvelope','setNoisePeriod','setTonePeriod','noteOn','keyOff']) {
+    const line = lines.findIndex((text,index) => index > start && new RegExp(`^  ${symbol}\\(`).test(text)); assert(line > start,symbol);
+    assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf(symbol) + 1}),{file:'ay8910synth.js',symbol});
+    const point = sourcePosition(source,symbol); assert.match(source.split('\n')[point.lineNumber - 1],new RegExp(`\\b${symbol}\\(`));
+  }
+  const line = lines.findIndex(text => text.startsWith('declare const ay:')); assert(line >= 0);
+  assert.deepEqual(definitionSource(declarations,{lineNumber:line + 1,column:lines[line].indexOf('ay:') + 1}),{file:'playground_ay8910.js',symbol:'createAy8910Client'});
+});

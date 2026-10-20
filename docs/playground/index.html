@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
-    <link rel="stylesheet" href="./playground_chip_tabs.css?v=opl-modes-1">
+    <link rel="stylesheet" href="./playground_chip_tabs.css?v=msx-mode-1">
     <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
@@ -1982,6 +1982,8 @@
             <button id="ym3526Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym3526Panel" hidden>YM3526</button>
             <button id="y8950Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="y8950Panel" hidden>Y8950</button>
             <button id="ymf262Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ymf262Panel" hidden>YMF262</button>
+            <button id="ym2413Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym2413Panel" hidden>YM2413</button>
+            <button id="ay8910Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ay8910Panel" hidden>AY-3-8910</button>
             <button id="mixerTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="mixerPanel">Mixer</button>
             <button id="keyboardTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="keyboardPanel">
               Keyboard
@@ -2155,6 +2157,9 @@
             <p data-native-helper="ym3526" hidden><code>opl</code> is the primary OPL instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3526</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
             <p data-native-helper="y8950" hidden><code>opl</code> is the primary Y8950 FM instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>Y8950</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Y8950 ADPCM is not part of this FM mode.</p>
             <p data-native-helper="ymf262" hidden><code>opl</code> is the primary OPL3 instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..17</code>; MIDI note 69 is A4. Open <strong>YMF262</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Four-op primaries are 0..2 and 9..11; each borrows its primary + 3. Keyboard excludes paired secondary channels. Stereo uses left/right routing switches.</p>
+            <p data-native-helper="msx" hidden>MSX provides three primary sound chips: <code>ay</code> (AY-3-8910 PSG), <code>opll</code> (YM2413) and <code>opl</code> (Y8950 FM). Use their own APIs; the Keyboard selects each chip and its physical channel. The AY clock is 1,789,773 Hz; both FM chips use 3,579,545 Hz. Open the matching chip tab to edit and audition its current voice.</p>
+            <p data-native-helper="msx" hidden><code>ay.setVoice(0, {tone:true, noise:false, volume:9})</code> configures a PSG voice. <code>ay.noteOn(0, "C4")</code> and <code>ay.keyOff(0)</code> play it. The three channels share one noise generator and one hardware envelope; envelope Shape writes explicitly retrigger it globally.</p>
+            <p data-native-helper="msx" hidden><code>opll.setVoice(0, {instrument:3, attenuation:5})</code> selects a YM2413 ROM instrument; instrument 0 uses the shared <code>OPLL_USER_PRESETS</code> patch. <code>opl.setPreset(0, OPL_PRESETS.bell)</code> configures the separate Y8950 FM instrument. Y8950 support in this mode covers FM and rhythm; ADPCM sample playback is outside this mode.</p>
             <p data-native-helper="dx7" hidden><code>dx7</code> is the primary 16-voice MSFA instrument. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers and no channel argument. <code>await useSoundChip("dx7")</code> borrows this same instrument; <code>await createSoundChip("dx7")</code> creates another one.</p>
             <p data-native-helper="dx7" hidden>Use object presets with <code>await dx7.setPreset(preset)</code>, or import a SysEx file and <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. Open the DX7 panel to inspect and edit all six operators, select a bank voice and audition it. The Keyboard tab plays this instrument directly; keyboard.bind() can supply another instrument. The engine runs internally at 44,100 Hz; there is no chip-clock setting.</p>
             <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
@@ -2201,7 +2206,7 @@
               <li><code>const chip = await useSoundChip(name)</code> reuses a chip until Stop. For YM2612, YM2203, and YM2610, it returns the default chip when selected; otherwise it creates an independent chip.</li>
               <li><code>const chip = await createSoundChip(name)</code> creates a fresh independent chip routed through master FX.</li>
               <li><code>createSoundChip("nes", {fds: true})</code> enables FDS. Use <code>chip.pulse</code>, <code>chip.triangle</code>, <code>chip.noise</code>, <code>chip.dmc</code>, and <code>chip.fds</code>; see <code>examples/nes/</code>.</li>
-              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, <code>segapsg</code>, <code>ym2151</code>, <code>pwm</code>, <code>nes</code>, <code>dx7</code>, <code>snes</code>, <code>ym3526</code>, <code>ym3812</code>, <code>y8950</code>, and <code>ymf262</code>.</li>
+              <li>Supported names: <code>ym2612</code>, <code>ym2203</code>, <code>ym2610</code>, <code>ym2608</code>, <code>rf5c164</code>, <code>gameboy</code>, <code>segapsg</code>, <code>ym2151</code>, <code>pwm</code>, <code>nes</code>, <code>dx7</code>, <code>snes</code>, <code>ym3526</code>, <code>ym3812</code>, <code>y8950</code>, <code>ymf262</code>, <code>ym2413</code>, and <code>ay8910</code>.</li>
               <li><code>const snes = await useSoundChip("snes")</code> creates an independent, CPU-free S-DSP with eight voices (0..7). Load BRR with explicit tuning, then call <code>snes.setPreset(0, {sample})</code> and <code>snes.noteOn(0, "C4")</code>. Native audio is 32,000 Hz; there is no <code>setClock()</code>. See <code>examples/snes/snes-brr-melody.js</code>.</li>
               <li><code>const dx7 = await useSoundChip("dx7")</code> creates a 16-voice MSFA DX7 with the self-authored INIT SINE voice. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers, without a channel argument.</li>
               <li>Import a DX7 SysEx file into FILES, then <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. Choose <code>dx7.selectVoice(0)</code> from <code>dx7.voices</code>. The internal rate is fixed at 44,100 Hz; there is no <code>setClock()</code>. See <code>examples/dx7/dx7-init-sine.js</code>.</li>
@@ -2237,6 +2242,8 @@
               <li><code>psg.tone(PSG1, {note:"C4", attenuation:6})</code> starts a tone; <code>psg.off(PSG1)</code> stops it. Use <code>await beat(...)</code> to set its duration.</li>
               <li><code>psg.noise({type:"white", rate:"medium", attenuation:10})</code> starts noise; <code>psg.noiseOff()</code> stops it. <code>await psg.setClock(hz)</code> changes the PSG clock.</li>
               <li><code>await useSoundChip("segapsg")</code> returns this primary chip; <code>createSoundChip("segapsg")</code> adds an independent chip. Stop silences the primary tones and noise.</li>
+              <li data-master-system-helper><code>opll</code> is the built-in YM2413, separate from the PSG. Use <code>opll.setVoice(0, {instrument:3, attenuation:5})</code>, <code>opll.noteOn(0, "C4")</code> and <code>opll.keyOff(0)</code>. <strong>YM2413</strong> shows instruments, shared User patch editing and audition. Keyboard selects Sega PSG or YM2413 and its channel.</li>
+              <li data-master-system-helper>Instruments 1–15 are built-in ROM voices. Instrument 0 uses one shared User patch: <code>opll.setUserPatch(OPLL_USER_PRESETS.bell)</code> changes every channel using instrument 0. Rhythm mode provides six melodic channels and five percussion voices.</li>
               <li data-game-gear-helper><code>psg.setStereo(0xff)</code> enables all voices on both sides. Bits 4–7 enable left Tone 1/2/3/Noise; bits 0–3 enable the corresponding right voices. For Tone 1, <code>0xfe</code> is left only and <code>0xef</code> is right only.</li>
             </ul>
 
@@ -2388,6 +2395,8 @@
           <section id="ym3526Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym3526Tab" hidden></section>
           <section id="y8950Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="y8950Tab" hidden></section>
           <section id="ymf262Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ymf262Tab" hidden></section>
+          <section id="ym2413Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym2413Tab" hidden></section>
+          <section id="ay8910Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ay8910Tab" hidden></section>
           <section id="mixerPanel" class="tab-panel" role="tabpanel" aria-labelledby="mixerTab" hidden></section>
           <section id="keyboardPanel" class="tab-panel" role="tabpanel" aria-labelledby="keyboardTab" hidden>
             <div id="operatorKeyboardRoot"></div>
@@ -2442,7 +2451,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=opl-modes-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=msx-mode-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>
