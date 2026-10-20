@@ -1554,8 +1554,8 @@ test('Master System Main source borrows both PSG and OPLL, exposes real OPLL con
   assert(psgWrites.some(message=>message.method==='write'&&message.args[0]===0x9f));await runtime.stop();assert.equal(opllClient._getState().registers[0x30],3);assert.equal(opllClient._getState().registers[0x0e]&31,0);
 });
 
-test('MSX Main code borrows all three primaries and livePrepare receives AY, OPLL and OPL without OPN helpers',async t=>{
-  const {runtime,megaDrive}=setup(t,{chip:'msx',fmChannels:0,psg:false,dac:false}),writes=[];
+test('MSX Audio Main code borrows all three primaries and livePrepare receives AY, OPLL and OPL without OPN helpers',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'msx-audio',fmChannels:0,psg:false,dac:false}),writes=[];
   const port=()=>{const endpoint={start(){},close(){},postMessage:message=>{writes.push(message);if(message.id!==undefined)queueMicrotask(()=>endpoint.onmessage?.({data:{id:message.id,value:true}}));}};return endpoint;};
   const ay=createAy8910Client(port()),opll=createYm2413Client(port()),opl=createOplClient(port(),{chip:'y8950'});for(const api of [ay,opll,opl])api.initialize();megaDrive.fm=null;megaDrive.psg=null;megaDrive.ay=ay;megaDrive.opll=opll;megaDrive.opl=opl;megaDrive.primaryEndpoints=[{name:'ay8910',globalName:'ay',client:ay},{name:'ym2413',globalName:'opll',client:opll},{name:'y8950',globalName:'opl',client:opl}];megaDrive.stopAllNative=()=>Promise.all([ay._stopVoices(),opll._stopVoices(),opl._stopVoices()]);
   await runtime.playSource(`
@@ -1568,4 +1568,16 @@ test('MSX Main code borrows all three primaries and livePrepare receives AY, OPL
   `);await until(()=>ay._getState().registers[10]===6);const before=writes.length;
   await runtime.playSource(`ay.tone(2,{note:'C5',volume:7});stopLoop('old-ay');stopLoop('fm');`);
   assert(!writes.slice(before).some(message=>message.method==='forceKeyOff'&&message.args[0]===2),'stale AY loop cleanup cannot stop a replacement');assert.equal(ay._getState().registers[10],7);assert(writes.slice(before).some(message=>message.method==='forceKeyOff'&&message.args[0]===8));await runtime.stop();assert.deepEqual(ay._getState().registers.slice(8,11),[0,0,0]);assert.equal(ay._getState().levels[2],7);assert.equal(ay._getState().registers[11]|(ay._getState().registers[12]<<8),2345);
+});
+
+test('MSX Main source shares AY and OPLL while omitting the MSX Audio OPL global',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'msx',fmChannels:0,psg:false,dac:false});
+  const port=()=>{const value={start(){},close(){},postMessage:message=>{if(message.id!==undefined)queueMicrotask(()=>value.onmessage?.({data:{id:message.id,value:true}}));}};return value;};
+  const ay=createAy8910Client(port()),opll=createYm2413Client(port());ay.initialize();opll.initialize();megaDrive.fm=null;megaDrive.psg=null;megaDrive.primaryEndpoints=[{name:'ay8910',globalName:'ay',client:ay},{name:'ym2413',globalName:'opll',client:opll}];megaDrive.stopAllNative=()=>Promise.all([ay._stopVoices(),opll._stopVoices()]);
+  await runtime.playSource(`
+    if(await useSoundChip('ay8910')!==ay||await useSoundChip('ym2413')!==opll||pg.ay!==ay||pg.opll!==opll)throw Error('Separate MSX primary');
+    const prepared=await livePrepare('two',api=>({ay:api.ay,opll:api.opll,opl:api.opl}));if(prepared.ay!==ay||prepared.opll!==opll||prepared.opl!==undefined)throw Error('Wrong MSX endpoints');
+    if(typeof opl!=='undefined'||'opl' in pg||typeof play!=='undefined'||typeof psg!=='undefined'||typeof fm!=='undefined')throw Error('Extra primary global');
+    ay.tone(2,{note:'A4',volume:6});opll.setVoice(8,{instrument:2,attenuation:4});opll.noteOn(8,69);
+  `);assert.equal(ay.getRegisterSnapshot()[10],6);assert(opll.getRegisterSnapshot()[0x28]&16);await runtime.stop();assert.equal(ay._getState().levels[2],6);assert.equal(opll.getRegisterSnapshot()[0x38],0x24);
 });

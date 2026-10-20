@@ -10,12 +10,12 @@ const scratch = await mkdtemp(join(tmpdir(), 'playground-mode-types-'));
 try {
   const fixtures = [
     ...['ym2612', 'mega-cd', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
-    ...['gameboy','nes','snes','x68000','huc6280','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','msx'].map(chip => `playground-mode-${chip}.ts`),
+    ...['gameboy','nes','snes','x68000','huc6280','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','msx','msx-audio'].map(chip => `playground-mode-${chip}.ts`),
     'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts',
   ];
   for (const fixture of fixtures) {
     let fixturePath = join(root, 'test/types', fixture);
-    const nativeChip = /^playground-mode-(gameboy|nes|snes|x68000|huc6280|game-gear|master-system|dx7|ym3526|ym3812|y8950|ymf262|msx)\.ts$/.exec(fixture)?.[1];
+    const nativeChip = /^playground-mode-(gameboy|nes|snes|x68000|huc6280|game-gear|master-system|dx7|ym3526|ym3812|y8950|ymf262|msx|msx-audio)\.ts$/.exec(fixture)?.[1];
     if (nativeChip) {
       const globals = join(scratch, 'tetorica-playground-globals.d.ts');
       await writeFile(globals, selectPlaygroundDeclarations(

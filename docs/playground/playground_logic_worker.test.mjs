@@ -1657,7 +1657,34 @@ test('Master System Worker source shares direct PSG and OPLL primaries, constant
   }finally{await worker.send({type:'stop'});}
 });
 
-test('MSX Worker source borrows all three physical chips and adopts AY retained levels without replay',async () => {
+test('MSX Worker source borrows only AY and OPLL without injecting an OPL instrument',async () => {
+  const worker = createWorkerHarness(), sent = {ay:[],opll:[]};
+  const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(message); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};
+  const ayAuthor = new AY8910Synth({transport:{writeRegister() {},reset() {}}}), opllAuthor = new YM2413Synth({transport:{writeRegister() {},reset() {}}});
+  for (const synth of [ayAuthor,opllAuthor]) synth.initialize();
+  await worker.send({type:'native-primary-ports',endpoints:[
+    {name:'ay8910',globalName:'ay',clock:1789773,port:port('ay'),state:{...ayAuthor._getState(),clock:1789773,initialized:true}},
+    {name:'ym2413',globalName:'opll',clock:3579545,port:port('opll'),state:{registers:Array.from(opllAuthor.getRegisterSnapshot()),clock:3579545,initialized:true}},
+  ]});
+  try {
+    await worker.send({type:'run',capabilities:{chip:'msx',fmChannels:0,psg:false,dac:false},sourceCode:`
+      if(await useSoundChip('ay8910')!==ay || await useSoundChip('ym2413')!==opll)throw Error('Wrong MSX primaries');
+      if(pg.ay!==ay || pg.opll!==opll || typeof opl!=='undefined' || pg.opl!==undefined)throw Error('Unexpected MSX OPL instrument');
+      const duo=await livePrepare('duo',({ay,opll,opl})=>({ay,opll,opl}));if(duo.ay!==ay || duo.opll!==opll || duo.opl!==undefined)throw Error('Wrong prepared instruments');
+      if(OPLL_INSTRUMENTS!==pg.OPLL_INSTRUMENTS || OPLL_USER_PRESETS!==pg.OPLL_USER_PRESETS)throw Error('Missing OPLL constants');
+      if(typeof psg!=='undefined' || typeof play!=='undefined' || typeof fm!=='undefined')throw Error('Unexpected OPN or Sega helpers');
+      ay.setVoice(2,{tone:true,noise:false,volume:7});ay.noteOn(2,'C3');
+      opll.setVoice(8,{instrument:3,attenuation:6});opll.noteOn(8,'C4');
+    `});
+    await waitFor(() => worker.messages.some(message => message.type === 'complete' || message.type === 'execution-error'));
+    assert.equal(worker.messages.find(message => message.type === 'execution-error'),undefined);
+    assert(!worker.messages.some(message => message.command === 'pcm.create'),'borrowing either primary creates no independent chip');
+    assert(sent.ay.some(message => message.method === 'writeRegister' && message.args[0] === 10 && message.args[1] === 7));
+    assert(sent.opll.some(message => message.method === 'writeRegister' && message.args[0] === 0x28 && (message.args[1] & 16)));
+  } finally {await worker.send({type:'stop'});}
+});
+
+test('MSX Audio Worker source borrows all three physical chips and adopts AY retained levels without replay',async () => {
   const worker = createWorkerHarness(), sent = {ay:[],opll:[],opl:[]};
   const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(message); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};
   const ayAuthor = new AY8910Synth({transport:{writeRegister() {},reset() {}}}), opllAuthor = new YM2413Synth({transport:{writeRegister() {},reset() {}}}), oplAuthor = new OPLSynth({chip:'y8950',transport:{writeRegister() {},reset() {}}});
@@ -1668,7 +1695,7 @@ test('MSX Worker source borrows all three physical chips and adopts AY retained 
     {name:'ym2413',globalName:'opll',clock:3579545,port:port('opll'),state:{registers:Array.from(opllAuthor.getRegisterSnapshot()),clock:3579545,initialized:true}},
     {name:'y8950',globalName:'opl',clock:3579545,port:port('opl'),state:{registers:Array.from(oplAuthor.getRegisterSnapshot()),clock:3579545,initialized:true}},
   ]});
-  const capabilities = {chip:'msx',fmChannels:0,psg:false,dac:false};
+  const capabilities = {chip:'msx-audio',fmChannels:0,psg:false,dac:false};
   try {
     await worker.send({type:'run',capabilities,sourceCode:`
       if(await useSoundChip('ay8910')!==ay || await useSoundChip('ym2413')!==opll || await useSoundChip('y8950')!==opl)throw Error('Wrong MSX primaries');

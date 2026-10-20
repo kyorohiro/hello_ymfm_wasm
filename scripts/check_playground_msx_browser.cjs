@@ -1,4 +1,4 @@
-// Real MSX Playground, three Worklets, Keyboard and PCM in Chromium/WebKit.
+// Real MSX / MSX-AUDIO Playground, two/three Worklets, Keyboard and PCM.
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path');
 const {chromium,webkit}=require('playwright');
 const docs=path.resolve(__dirname,'../docs');
@@ -62,9 +62,40 @@ async function key(page,type){await page.evaluate(type=>{
 async function isolate(page,id){await page.evaluate(id=>{for(const entry of window.__msxCheck.megaDrive.mixer.list())window.__msxCheck.megaDrive.mixer.set(entry.id,{muted:entry.id!==id});},id);}
 const quiet='ay.allNotesOff();opll.allNotesOff();opl.allNotesOff();opll.setRhythm({enabled:false});';
 const setup=`ay.setVoice(0,{tone:true,noise:false,volume:9,envelope:false});ay.setVoice(2,{tone:true,noise:false,volume:9,envelope:false});opll.setUserPatch(OPLL_USER_PRESETS.sine);for(const ch of [0,8])opll.setVoice(ch,{instrument:0,attenuation:4,sustain:false});for(const ch of [0,8])opl.setPreset(ch,OPL_PRESETS.sine);`;
-async function check(page,base,name){
+async function checkMsx(page,base,name){
   await page.goto(base+'?mode=msx&no-sw=1');await page.waitForFunction(()=>window.__msxCheck&&window.monaco?.editor?.getEditors().length);
   assert.equal(await page.evaluate(()=>window.__msxCheck.megaDrive.audioContext),null,'Opening MSX is lazy');
+  for(const kind of ['ay8910','ym2413'])assert(await page.locator(`#${kind}Tab`).isVisible(),kind+' tab');
+  assert(!await page.locator('#y8950Tab').isVisible(),'MSX has no MSX-AUDIO FM tab');
+  assert(!await page.locator('#operatorTab').isVisible(),'MSX has no hidden Genesis FM');
+  assert.equal(await page.locator('#playgroundMode').inputValue(),'msx');
+  const starter=await page.evaluate(()=>window.__msxCheck.editorAdapter.getValue());
+  assert.match(starter,/ay\./);assert.match(starter,/opll\./);assert.doesNotMatch(starter,/\bopl\./,'MSX starter does not require the audio expansion');
+  await page.click('#runButton');await page.waitForFunction(()=>window.__msxCheck.megaDrive.isReady());await meters(page);await audible(page);await stop(page);
+  const chips=await page.evaluate(()=>window.__msxCheck.runtime.chipInspector.list().map(c=>c.kind).sort());
+  const strips=await page.evaluate(()=>window.__msxCheck.megaDrive.mixer.list().map(e=>e.id).sort());
+  assert.deepEqual(chips,['ay8910','ym2413']);assert.deepEqual(strips,['ay8910','ym2413']);
+  const results=[];
+  for(const execution of ['main','worker']){
+    await play(page,`ay.allNotesOff();opll.allNotesOff();opll.setRhythm({enabled:false});if(typeof opl!=='undefined'||typeof fm!=='undefined')throw Error('MSX has an implicit OPL/OPN');const a=await useSoundChip('ay8910'),b=await useSoundChip('ym2413');if(a.id!=='ay8910'||b.id!=='ym2413'||a.dispose||b.dispose)throw Error('MSX primary borrowing');if(OPLL_INSTRUMENTS.length!==16)throw Error('OPLL metadata');await livePrepare('msx-dual-prepare',({ay,opll,opl,fm})=>{if(!ay||!opll||opl||fm)throw Error('MSX livePrepare device set');});ay.setVoice(0,{tone:true,noise:false,volume:9,envelope:false});ay.setVoice(2,{tone:true,noise:false,volume:9,envelope:false});opll.setUserPatch(OPLL_USER_PRESETS.sine);for(const ch of [0,8])opll.setVoice(ch,{instrument:0,attenuation:4,sustain:false});console.log('MSX_DUAL_GLOBALS_OK');liveLoop('msx-dual-browser',async()=>{ay.noteOn(0,'A4');opll.noteOn(0,'A4');await sleep(60);});`,execution);
+    for(const chip of strips)await until(page,chip,s=>s.channels[0].active,execution+' MSX '+chip);
+    const frequencies={};for(const chip of strips){await isolate(page,chip);frequencies[chip]=await pitch(page);}
+    assert.deepEqual((await page.evaluate(()=>window.__msxCheck.runtime.chipInspector.list())).map(c=>c.kind).sort(),chips,'Borrowing keeps exactly two physical chips');
+    await stop(page);
+    for(const[chip,ch]of[['ay8910',2],['ym2413',8]]){
+      await isolate(page,chip);await keyboard(page,chip,ch);await key(page,'keydown');await until(page,chip,s=>s.channels[ch].active,execution+' MSX Keyboard '+chip);await pitch(page);await key(page,'keyup');await silent(page);
+    }
+    assert.equal(await page.locator('#playgroundKeyboardChip option[value="chip:y8950"]').count(),0,'MSX Keyboard does not offer an absent Y8950');
+    assert.match(await page.locator('#consoleOutput').textContent(),/MSX_DUAL_GLOBALS_OK/);results.push({execution,frequencies});
+  }
+  await page.click('#ay8910Tab');await page.locator(control('volume')).waitFor();
+  await page.screenshot({path:`/private/tmp/msx-${name}-panel.png`,fullPage:true});
+  return{chips:strips,results,noImplicitOpl:true,keyboard:true};
+}
+async function checkMsxAudio(page,base,name){
+  await page.goto(base+'?mode=msx-audio&no-sw=1');await page.waitForFunction(()=>window.__msxCheck&&window.monaco?.editor?.getEditors().length);
+  assert.equal(await page.evaluate(()=>window.__msxCheck.megaDrive.audioContext),null,'Opening MSX-AUDIO is lazy');
+  assert.equal(await page.locator('#playgroundMode').inputValue(),'msx-audio');
   for(const kind of ['ay8910','ym2413','y8950'])assert(await page.locator(`#${kind}Tab`).isVisible(),kind+' tab');
   assert(!await page.locator('#operatorTab').isVisible(),'MSX has no hidden Genesis FM');
   assert.match(await page.evaluate(()=>window.__msxCheck.editorAdapter.getValue()),/ay\./,'Fresh MSX starter');
@@ -93,13 +124,22 @@ async function check(page,base,name){
   await page.click(action('envelope-retrigger'));await page.click(action('play'));await audible(page);await silent(page);
   const saved=await read(page);await stop(page);const stopped=await read(page);
   assert.deepEqual(stopped.noise,saved.noise);assert.deepEqual(stopped.envelope,saved.envelope);assert.equal(stopped.channels[0].configuredEnvelope,true);
-  await page.screenshot({path:`/private/tmp/msx-${name}-panel.png`,fullPage:true});
+  await page.screenshot({path:`/private/tmp/msx-audio-${name}-panel.png`,fullPage:true});
   await page.goto(base+'?mode=master-system&no-sw=1');await page.waitForFunction(()=>window.__msxCheck&&window.monaco?.editor?.getEditors().length);
   assert(!await page.locator('#ay8910Tab').isVisible(),'Master System does not acquire AY');
   await page.click('#ym2413Tab');await page.click('#ym2413Panel [data-chip-action="prepare"]');
   await page.waitForFunction(()=>window.__msxCheck.megaDrive.isReady()&&window.__msxCheck.runtime.chipInspector.list().length===2);
   assert.deepEqual((await page.evaluate(()=>window.__msxCheck.runtime.chipInspector.list())).map(c=>c.kind).sort(),['segapsg','ym2413']);
   return {chips:strips,results,ayPanel:true,masterSystemUnchanged:true};
+}
+async function checkLegacyAudioAlias(page,base){
+  await page.goto(base+'?mode=y8950&no-sw=1');await page.waitForFunction(()=>window.__msxCheck&&window.monaco?.editor?.getEditors().length);
+  assert.equal(await page.locator('#playgroundMode').inputValue(),'msx-audio','Legacy Y8950 mode links resolve to MSX-AUDIO');
+  for(const kind of ['ay8910','ym2413','y8950'])assert(await page.locator(`#${kind}Tab`).isVisible());
+  await page.click('#ay8910Tab');await page.click(`${panel} [data-chip-action="prepare"]`);
+  await page.waitForFunction(()=>window.__msxCheck.megaDrive.isReady()&&window.__msxCheck.runtime.chipInspector.list().length===3);
+  assert.deepEqual((await page.evaluate(()=>window.__msxCheck.runtime.chipInspector.list())).map(c=>c.kind).sort(),['ay8910','y8950','ym2413']);
+  return true;
 }
 (async()=>{
   try{
@@ -110,7 +150,8 @@ async function check(page,base,name){
       try{
         const page=await browser.newPage({serviceWorkers:'block',viewport:{width:1600,height:1100}}),errors=[],missing=[];
         page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()===404)missing.push(r.url());});page.setDefaultTimeout(15000);
-        const result=await check(page,base,name);assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);console.log(JSON.stringify({browser:name,passed:true,...result}));
+        const msx=await checkMsx(page,base,name),msxAudio=await checkMsxAudio(page,base,name),legacyAudioAlias=await checkLegacyAudioAlias(page,base);
+        assert.deepEqual(errors,[]);assert.deepEqual(missing,[]);console.log(JSON.stringify({browser:name,passed:true,msx,msxAudio,legacyAudioAlias}));
       }finally{await browser.close();}
     }
   }finally{await new Promise(resolve=>server.close(resolve));}

@@ -14,10 +14,10 @@ test('modes select native chips, clocks and console expansions', () => {
     ['gameboy','gameboy',4194304,false],
     ['nes','nes',1789773,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
-    ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['msx','msx',1789773,false],
+    ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
     ['dx7','dx7',undefined,false],
     ['ym3812','ym3812',3579545,false],['ym3526','ym3526',3579545,false],
-    ['y8950','y8950',3579545,false],['ymf262','ymf262',14318180,false],
+    ['ymf262','ymf262',14318180,false],
   ];
   assert.deepEqual(PLAYGROUND_MODES.map(mode => [mode.id,mode.chip,mode.clock,mode.full]), expected);
   for (const mode of PLAYGROUND_MODES) {
@@ -26,12 +26,16 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(options.megaCD, mode.megaCD ?? mode.full);
     assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
-    if (mode.chip === 'msx') {
-      assert.equal(mode.declarationChip,'msx'); assert.equal(mode.fmChannels,0);
-      assert.deepEqual(mode.chipTabs,['ay8910','ym2413','y8950']);
-      for (const [key,chip,worklet] of [['ayOptions','ay8910','ay8910'],['opllOptions','ym2413','ym2413'],['oplOptions','y8950','opl']]) {
+    if (mode.engine === 'msx') {
+      assert.equal(mode.declarationChip,mode.chip); assert.equal(mode.fmChannels,0);
+      assert.equal(mode.label,mode.chip === 'msx' ? 'MSX' : 'MSX Audio');
+      assert.deepEqual(mode.chipTabs,mode.chip === 'msx' ? ['ym2413','ay8910'] : ['y8950','ym2413','ay8910']);
+      const endpoints = [['ayOptions','ay8910','ay8910'],['opllOptions','ym2413','ym2413']];
+      if (mode.chip === 'msx-audio') endpoints.push(['oplOptions','y8950','opl']);
+      else assert.equal(options.oplOptions,undefined,'MSX does not load a Y8950 processor');
+      for (const [key,chip,worklet] of endpoints) {
         assert.equal(options[key].wasmUrl,`https://example.com/app/generated/${chip}_wasm.wasm`);
-        assert.equal(options[key].workletUrl,`https://example.com/app/js/playground_${worklet}_worklet.js?v=msx-mode-1`);
+        assert.equal(options[key].workletUrl,`https://example.com/app/js/playground_${worklet}_worklet.js?v=msx-modes-2`);
       }
       assert.equal(options.ym2612WasmUrl,undefined); continue;
     }
@@ -39,7 +43,7 @@ test('modes select native chips, clocks and console expansions', () => {
       assert.equal(mode.fmChannels,0,'OPL uses its native instrument instead of the OPN play shortcut');
       assert.deepEqual(mode.chipTabs,[mode.chip]);
       assert.equal(options.clock,mode.clock);
-      assert.equal(options.workletUrl,'https://example.com/app/js/playground_opl_worklet.js?v=msx-mode-1');
+      assert.equal(options.workletUrl,'https://example.com/app/js/playground_opl_worklet.js?v=msx-modes-2');
       assert.equal(options.wasmUrl,`https://example.com/app/generated/${mode.chip}_wasm.wasm`);
       assert.equal(options.ym2612WasmUrl,undefined);
       continue;
@@ -111,7 +115,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'msx-mode-1', `${id} cannot reuse its pre-mode processor URL`);
+    assert.equal(url.searchParams.get('v'), 'msx-modes-2', `${id} cannot reuse its pre-mode processor URL`);
   }
 });
 
@@ -125,7 +129,9 @@ test('legacy chip and engine links retain their original environments; explicit 
   assert.equal(resolvePlaygroundMode('?mode=dx7').chip, 'dx7');
   assert.equal(resolvePlaygroundMode('?chip=dx7').id, 'dx7');
   assert.equal(resolvePlaygroundMode('?mode=msx').chip,'msx'); assert.equal(resolvePlaygroundMode('?chip=msx').id,'msx');
-  for (const chip of ['ym3812','ym3526','y8950','ymf262']) {
+  for (const search of ['?mode=msx-audio','?chip=msx-audio','?mode=y8950','?chip=y8950']) assert.equal(resolvePlaygroundMode(search).id,'msx-audio',search);
+  assert.equal(getPlaygroundMode('Y8950'),getPlaygroundMode('msx-audio'),'old saved mode IDs resolve to the expanded environment');
+  for (const chip of ['ym3812','ym3526','ymf262']) {
     assert.equal(resolvePlaygroundMode(`?mode=${chip}`).chip,chip);
     assert.equal(resolvePlaygroundMode(`?chip=${chip}`).id,chip);
   }

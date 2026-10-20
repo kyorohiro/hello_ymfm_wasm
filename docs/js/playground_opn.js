@@ -1,8 +1,8 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-mode-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-modes-2';
 /** Independent OPN client. All writes and memory uploads use one ordered port. */
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {YM2203Synth} from './ym2203synth.js?v=msx-mode-1';
-import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=msx-mode-1';
+import {YM2203Synth} from './ym2203synth.js?v=msx-modes-2';
+import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=msx-modes-2';
 
 /**
  * Create a high-level OPN synth backed by ordered Worklet port commands.

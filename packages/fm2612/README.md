@@ -131,7 +131,7 @@ the primary. `setPreset(0, OPL_PRESETS['four-op-bell'])` configures such a pair.
 Mono chips send the same output to both speakers. Their operators support sine
 only on YM3526/Y8950, four waveforms on YM3812, and eight on YMF262.
 
-Playground modes `ym3526`, `ym3812`, `y8950` and `ymf262` expose the primary
+Playground modes `ym3526`, `ym3812`, `msx-audio` and `ymf262` expose the primary
 instrument as `opl` and provide `OPL_PRESETS`. Use `opl.noteOn()` / `noteOff()`;
 the OPN `fm` and `play()` conveniences are absent. Operators and Keyboard share
 this same primary instrument. OPLL/YM2413 is a separate API and is not included
@@ -174,16 +174,16 @@ The Operators panel keeps built-in voices separate from this shared patch.
 Rhythm levels share CH6–8's instrument/attenuation registers; select those
 channels' melody voices again after changing rhythm levels when needed.
 
-### MSX: AY PSG, MSX-MUSIC and MSX-AUDIO FM
+### MSX and MSX Audio
 
-The MSX Playground mode combines three independent instruments in one audio
-context: `ay` (AY-3-8910 PSG), `opll` (YM2413 MSX-MUSIC) and `opl` (Y8950
-MSX-AUDIO FM). Each has its own mixer strip, chip tab and Keyboard channel
-selector. The Y8950 uses the existing OPL FM API; its ADPCM sample player has
+The MSX Playground mode combines `ay` (AY-3-8910 PSG) and `opll` (YM2413
+MSX-MUSIC). MSX Audio adds `opl` (Y8950 MSX-AUDIO FM). Each instrument has
+its own mixer strip, chip tab and Keyboard channel selector in the same audio
+context. These are authoring sound sets. The Y8950 uses the existing OPL FM API; its ADPCM sample player has
 no high-level adapter in this mode.
 
 ```js
-// Playground script in MSX mode. AY volume: 0 silent .. 15 loudest.
+// Playground script in MSX Audio mode. AY volume: 0 silent .. 15 loudest.
 ay.tone(0, {note:'A4', volume:9});
 opll.setVoice(0, {instrument:3, attenuation:5});
 opll.noteOn(0, 'A4');
@@ -193,10 +193,12 @@ await beat(1);
 ay.keyOff(0); opll.keyOff(0); opl.keyOff(0);
 ```
 
-Embed this environment with `Playground({chip:'msx'})`. Optional `ayOptions`,
+Embed the two-chip set with `Playground({chip:'msx'})`, or the three-chip set
+with `Playground({chip:'msx-audio'})`. Optional `ayOptions`,
 `opllOptions` and `oplOptions` accept `{fetch, wasmUrl, workletUrl}` for custom
-asset loading. `useSoundChip('ay8910'|'ym2413'|'y8950')` borrows the corresponding
-primary device; `createSoundChip()` creates an independent instance.
+asset loading. `useSoundChip('ay8910'|'ym2413')` borrows a primary device in
+both modes; `useSoundChip('y8950')` borrows MSX Audio's primary, or adds an
+independent Y8950 in MSX. `createSoundChip()` creates an independent instance.
 
 The AY has three channels, each mixing tone and noise. Noise period and
 hardware envelope are shared across those channels. `setMixer()` preserves

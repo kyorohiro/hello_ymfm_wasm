@@ -26,11 +26,11 @@ const definitions = {
   'game-gear': ['/examples/game-gear/gg-mode-melody.js', '/examples/game-gear/gg-mode-noise.js', '/examples/game-gear/gg-mode-stereo.js'],
   'master-system': ['/examples/master-system/sms-mode-melody.js', '/examples/master-system/sms-mode-noise.js',
     '/examples/master-system/sms-opll-instruments.js', '/examples/master-system/sms-opll-user-patch.js', '/examples/master-system/sms-opll-rhythm.js'],
-  msx: ['/examples/msx/msx-ay-tone-noise.js','/examples/msx/msx-ay-envelope.js','/examples/msx/msx-fm-sections.js'],
+  msx: ['/examples/msx/msx-ay-tone-noise.js','/examples/msx/msx-ay-envelope.js','/examples/msx/msx-music-duet.js'],
+  'msx-audio': ['/examples/msx/msx-fm-sections.js','/examples/msx/msx-ay-tone-noise.js','/examples/msx/msx-ay-envelope.js'],
   dx7: ['/examples/dx7/dx7-object-preset.js', '/examples/dx7/dx7-live-parameters.js', '/examples/dx7/dx7-keyboard.js'],
   ym3812: ['/examples/opl/opl-melody.js', '/examples/opl/opl-live-operators.js', '/examples/opl/opl-rhythm.js'],
   ym3526: ['/examples/opl/opl-melody.js', '/examples/opl/opl-live-operators.js', '/examples/opl/opl-rhythm.js'],
-  y8950: ['/examples/opl/opl-melody.js', '/examples/opl/opl-live-operators.js', '/examples/opl/opl-rhythm.js'],
   ymf262: ['/examples/opl/opl-melody.js', '/examples/opl/opl3-four-operators.js', '/examples/opl/opl3-stereo.js'],
   'genesis-nuked': null,
 };

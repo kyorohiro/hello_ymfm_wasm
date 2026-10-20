@@ -1,4 +1,4 @@
-import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=msx-mode-1';
+import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=msx-modes-2';
 
 // Modes describe an authoring environment. Chip IDs remain the runtime/API IDs.
 const definitions = [
@@ -21,16 +21,16 @@ const definitions = [
     stereoEnabled:true, chipTabs:['segapsg'], details:'Sega PSG · 3,579,545 Hz · 3 tones + noise · Stereo'},
   {id:'master-system', label:'Master System', chip:'segapsg', declarationChip:'master-system', engine:'psg', fmChannels:0,
     stereoEnabled:false, ym2413:true, chipTabs:['segapsg','ym2413'], details:'Sega PSG + YM2413 OPLL · 3,579,545 Hz · Mono'},
-  {id:'msx', label:'MSX', chip:'msx', declarationChip:'msx', engine:'msx', fmChannels:0, chipTabs:['ay8910','ym2413','y8950'],
-    details:'AY-3-8910 PSG + YM2413 OPLL + Y8950 FM · Three sound chips · Mono'},
+  {id:'msx', label:'MSX', chip:'msx', declarationChip:'msx', engine:'msx', fmChannels:0, chipTabs:['ym2413','ay8910'],
+    details:'PSG + MSX-MUSIC'},
+  {id:'msx-audio', label:'MSX Audio', chip:'msx-audio', declarationChip:'msx-audio', engine:'msx', fmChannels:0, chipTabs:['y8950','ym2413','ay8910'],
+    details:'PSG + MSX-MUSIC + MSX-AUDIO FM'},
   {id:'dx7', label:'DX7', chip:'dx7', engine:'msfa', fmChannels:0, chipTabs:['dx7'],
     details:'MSFA DX7 · 6 operators · 32 algorithms · 16 voices · 44,100 Hz internal'},
   {id:'ym3812', label:'DOS PC (YM3812/OPL2)', chip:'ym3812', engine:'opl', fmChannels:0, chipTabs:['ym3812'],
     details:'YM3812 · 9 FM voices · 2 operators · 4 waveforms · Mono'},
   {id:'ym3526', label:'DOS PC (YM3526/OPL)', chip:'ym3526', engine:'opl', fmChannels:0, chipTabs:['ym3526'],
     details:'YM3526 · 9 FM voices · 2 operators · Sine waveform · Mono'},
-  {id:'y8950', label:'MSX-AUDIO (Y8950 FM)', chip:'y8950', engine:'opl', fmChannels:0, chipTabs:['y8950'],
-    details:'Y8950 · 9 FM voices · 2 operators · FM and rhythm'},
   {id:'ymf262', label:'DOS PC (YMF262/OPL3)', chip:'ymf262', engine:'opl', fmChannels:0, chipTabs:['ymf262'],
     details:'YMF262 · 18 FM channels · 6 optional four-operator pairs · Stereo'},
   // Preserve old engine/chip links without adding another standard environment.
@@ -50,7 +50,8 @@ const modes = new Map(definitions.map(definition => {
 export const PLAYGROUND_MODES = Object.freeze([...modes.values()].filter(mode => !mode.legacy));
 
 export function getPlaygroundMode(id) {
-  const mode = modes.get(String(id).toLowerCase());
+  const key = String(id).toLowerCase();
+  const mode = modes.get(key === 'y8950' ? 'msx-audio' : key);
   if (!mode) throw new Error(`Unsupported Playground mode: ${id}`);
   return mode;
 }
@@ -64,7 +65,7 @@ export function resolvePlaygroundMode(search = '') {
   const legacy = {ym2612:params.get('engine') === 'nuked' ? 'genesis-nuked' : 'genesis',
     ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b', gameboy:'gameboy',
     nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine',dx7:'dx7',
-    ym3812:'ym3812',ym3526:'ym3526',y8950:'y8950',ymf262:'ymf262',msx:'msx'};
+    ym3812:'ym3812',ym3526:'ym3526',y8950:'msx-audio',ymf262:'ymf262',msx:'msx','msx-audio':'msx-audio'};
   if (!legacy[chip]) throw new Error(`Unsupported Playground chip: ${chip}`);
   return getPlaygroundMode(legacy[chip]);
 }
@@ -87,15 +88,15 @@ export function createPlaygroundModeUrl(href, id) {
 
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
-  if (mode.chip === 'msx') return {
-    chip:'msx',clock:mode.clock,segaPsgWasmUrl:null,megaCD:false,mega32X:false,
-    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=msx-mode-1',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
-    opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=msx-mode-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
-    oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=msx-mode-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href},
+  if (mode.engine === 'msx') return {
+    chip:mode.chip,clock:mode.clock,segaPsgWasmUrl:null,megaCD:false,mega32X:false,
+    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=msx-modes-2',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
+    opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=msx-modes-2',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
+    ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=msx-modes-2',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
   };
   if (mode.engine === 'opl') return {
     chip:mode.chip, clock:mode.clock,
-    workletUrl:new URL('./playground_opl_worklet.js?v=msx-mode-1', base).href,
+    workletUrl:new URL('./playground_opl_worklet.js?v=msx-modes-2', base).href,
     wasmUrl:new URL(`${mode.chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
@@ -106,27 +107,27 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
     chip:mode.chip, clock:mode.clock, stereoEnabled:mode.stereoEnabled,
     ym2413:mode.ym2413 === true,
     ...(mode.ym2413 ? {opllOptions:{
-      workletUrl:new URL('./playground_ym2413_worklet.js?v=msx-mode-1',base).href,
+      workletUrl:new URL('./playground_ym2413_worklet.js?v=msx-modes-2',base).href,
       wasmUrl:new URL('ym2413_wasm.wasm',generated).href,
     }} : {}),
-    workletUrl:new URL('./playground_segapsg_worklet.js?v=msx-mode-1', base).href,
+    workletUrl:new URL('./playground_segapsg_worklet.js?v=msx-modes-2', base).href,
     wasmUrl:new URL('segapsg_wasm.wasm?v=sega-modes-1', generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
   if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
     // Keep complete relative filenames so the website versioner can invalidate
     // each processor together with the modules it imports.
-    const worklet = {nes:'./playground_nes_worklet.js?v=msx-mode-1',snes:'./playground_snes_worklet.js?v=msx-mode-1',x68000:'./playground_ym2151_worklet.js?v=msx-mode-1',huc6280:'./playground_huc6280_worklet.js?v=msx-mode-1'}[mode.chip];
+    const worklet = {nes:'./playground_nes_worklet.js?v=msx-modes-2',snes:'./playground_snes_worklet.js?v=msx-modes-2',x68000:'./playground_ym2151_worklet.js?v=msx-modes-2',huc6280:'./playground_huc6280_worklet.js?v=msx-modes-2'}[mode.chip];
     const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
     return {chip:mode.chip,clock:mode.clock,fds:mode.chip === 'nes',
       workletUrl:new URL(worklet,base).href,
       ...(wasm?{wasmUrl:new URL(`${wasm}_wasm.wasm`,generated).href}:{}),
-      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('./playground_okim6258_worklet.js?v=msx-mode-1',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
+      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('./playground_okim6258_worklet.js?v=msx-modes-2',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
       segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   }
   if (mode.chip === 'gameboy') return {
     chip:mode.chip,
-    workletUrl:new URL('./playground_gameboy_worklet.js?v=msx-mode-1', base).href,
+    workletUrl:new URL('./playground_gameboy_worklet.js?v=msx-modes-2', base).href,
     wasmUrl:new URL('gameboy_apu_wasm.wasm', generated).href,
     segaPsgWasmUrl:null,
     megaCD:false,
@@ -135,10 +136,10 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const nuked = mode.engine === 'nuked';
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;
-  const worklets = {ym2612:'./ym2612-worklet.js?v=msx-mode-1',ym2203:'./ym2203-worklet.js?v=msx-mode-1',ym2608:'./ym2608-worklet.js?v=msx-mode-1',ym2610b:'./ym2610b-worklet.js?v=msx-mode-1'};
+  const worklets = {ym2612:'./ym2612-worklet.js?v=msx-modes-2',ym2203:'./ym2203-worklet.js?v=msx-modes-2',ym2608:'./ym2608-worklet.js?v=msx-modes-2',ym2610b:'./ym2610b-worklet.js?v=msx-modes-2'};
   return {
     chip:mode.chip,
-    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=msx-mode-1' : worklets[chip], base).href,
+    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=msx-modes-2' : worklets[chip], base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm?v=sega-modes-1', generated).href : null,

@@ -105,6 +105,7 @@ tetorica-playground-dx7.d.ts
 tetorica-playground-game-gear.d.ts
 tetorica-playground-master-system.d.ts
 tetorica-playground-msx.d.ts
+tetorica-playground-msx-audio.d.ts
 tetorica-playground-mega-cd.d.ts
 "
 

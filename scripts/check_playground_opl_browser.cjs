@@ -61,7 +61,7 @@ async function check(browser,base,chip,browserName){
     await page.click(`${panel} [data-chip-action="prepare"]`);await page.locator(control('frequency')).waitFor();
     await until(page,chip,s=>s.kind===chip&&s.channels.length===(chip==='ymf262'?18:9),'physical channels');
     const connected=await page.evaluate(()=>window.__oplCheck.runtime.chipInspector.list());
-    assert.equal(connected.length,1);assert.equal(connected[0].kind,chip,'only selected primary');
+    assert.deepEqual(connected.map(entry=>entry.kind).sort(),chip==='y8950'?['ay8910','y8950','ym2413']:[chip],'selected mode sound set');
     await meters(page);await page.selectOption(control('preset'),'sine');await page.click(action('preset'));
     await field(page,control('frequency'),440);await until(page,chip,s=>Math.abs(s.channels[0].frequency-440)<2,'A4 register edit');
     await field(page,control('op-1-tl'),8);await until(page,chip,s=>s.channels[0].operators[1].tl===8,'partial operator edit');
@@ -85,6 +85,7 @@ async function check(browser,base,chip,browserName){
       await page.evaluate(({source,execution})=>window.__oplCheck.runtime.playSource(source,{execution}),{source,execution});
       await audible(page,execution+' script');await until(page,chip,s=>s.channels[1].operators[1].tl<63,'runtime patch state');
       await page.evaluate(()=>window.__oplCheck.setBottomTab('keyboard'));
+      await page.selectOption('#playgroundKeyboardChip',`chip:${chip}`);
       await page.selectOption('#playgroundKeyboardTargetChannel','0');
       const key=await page.locator('#operatorKeyboardRoot .key').first().getAttribute('data-key');
       await page.evaluate(key=>document.body.dispatchEvent(new KeyboardEvent('keydown',{key,bubbles:true,cancelable:true})),key);

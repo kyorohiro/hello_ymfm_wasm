@@ -1,44 +1,44 @@
 import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=spc-events-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=msx-mode-1';
-import {createSnesClient} from './playground_snes.js?v=msx-mode-1';
-import {createChipInspector} from './playground_chip_inspector.js?v=msx-mode-1';
-import {createPerformanceHost} from './playground_performance_host.js?v=msx-mode-1';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=msx-mode-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=msx-modes-2';
+import {createSnesClient} from './playground_snes.js?v=msx-modes-2';
+import {createChipInspector} from './playground_chip_inspector.js?v=msx-modes-2';
+import {createPerformanceHost} from './playground_performance_host.js?v=msx-modes-2';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=msx-modes-2';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-mode-1';
-import {createNesAudio} from './playground_nes_audio.js?v=msx-mode-1';
-import {createNesClient} from './playground_nes.js?v=msx-mode-1';
-import {createDx7Audio} from './playground_dx7_audio.js?v=msx-mode-1';
-import {createDx7Client} from './playground_dx7.js?v=msx-mode-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=msx-mode-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=msx-mode-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=msx-mode-1';
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=msx-mode-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=msx-mode-1';
-import {createOplAudio} from './playground_opl_audio.js?v=msx-mode-1';
-import {OPL_CHIPS} from './playground_opl.js?v=msx-mode-1';
-import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=msx-mode-1';
-import {OPL_PRESETS} from './opl_synth.js?v=msx-mode-1';
-import {createYm2151Client} from './playground_ym2151.js?v=msx-mode-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=msx-mode-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=msx-mode-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-modes-2';
+import {createNesAudio} from './playground_nes_audio.js?v=msx-modes-2';
+import {createNesClient} from './playground_nes.js?v=msx-modes-2';
+import {createDx7Audio} from './playground_dx7_audio.js?v=msx-modes-2';
+import {createDx7Client} from './playground_dx7.js?v=msx-modes-2';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=msx-modes-2';
+import {createPWM32XClient} from './pwm32x_playback.js?v=msx-modes-2';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=msx-modes-2';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=msx-modes-2';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=msx-modes-2';
+import {createOplAudio} from './playground_opl_audio.js?v=msx-modes-2';
+import {OPL_CHIPS} from './playground_opl.js?v=msx-modes-2';
+import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=msx-modes-2';
+import {OPL_PRESETS} from './opl_synth.js?v=msx-modes-2';
+import {createYm2151Client} from './playground_ym2151.js?v=msx-modes-2';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=msx-modes-2';
+import {createSegaPsgClient} from './playground_segapsg.js?v=msx-modes-2';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createOpnAudio} from './playground_opn_audio.js?v=msx-mode-1';
-import {createOpnClient} from './playground_opn.js?v=msx-mode-1';
+import {createOpnAudio} from './playground_opn_audio.js?v=msx-modes-2';
+import {createOpnClient} from './playground_opn.js?v=msx-modes-2';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
-import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=msx-mode-1';
-import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=msx-mode-1';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=msx-mode-1';
-import {createPrimaryGameboyApi} from './playground_gameboy.js?v=msx-mode-1';
-import {createGameboyClient} from './playground_gameboy.js?v=msx-mode-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=msx-mode-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=msx-mode-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=msx-mode-1';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=msx-mode-1';
-import {createYm2608Client} from './playground_ym2608.js?v=msx-mode-1';
-import {createRf5c164Client} from './playground_rf5c164.js?v=msx-mode-1';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=msx-mode-1';
+import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=msx-modes-2';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=msx-modes-2';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=msx-modes-2';
+import {createPrimaryGameboyApi} from './playground_gameboy.js?v=msx-modes-2';
+import {createGameboyClient} from './playground_gameboy.js?v=msx-modes-2';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=msx-modes-2';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=msx-modes-2';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=msx-modes-2';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=msx-modes-2';
+import {createYm2608Client} from './playground_ym2608.js?v=msx-modes-2';
+import {createRf5c164Client} from './playground_rf5c164.js?v=msx-modes-2';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=msx-modes-2';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -53,11 +53,11 @@ import {parseMidiFile} from './midi_file.js?v=sega-modes-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=msx-mode-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=msx-mode-1";
+} from "./megasynth.js?v=msx-modes-2";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=msx-modes-2";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
-import { createPlaygroundLive } from "./playground_live.js?v=msx-mode-1";
+import { createPlaygroundLive } from "./playground_live.js?v=msx-modes-2";
 import { createPlaygroundMusic } from "./playground_music.js?v=audio-stability-2";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import { createFmProxy } from "./playground_sync.js?v=audio-stability-2";
@@ -91,7 +91,7 @@ const SCALE_INTERVALS = {
 };
 
 /**
- * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'} PlaygroundChip
+ * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio'} PlaygroundChip
  * @typedef {{id:string,midi:number,velocity?:number}} PlaygroundKeyboardEvent
  * @typedef {{name:string,noteOn:(event:PlaygroundKeyboardEvent)=>unknown,
  * noteOff:(event:PlaygroundKeyboardEvent)=>unknown,allNotesOff:()=>unknown}} PlaygroundKeyboardTarget
@@ -151,11 +151,11 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=msx-mode-1', import.meta.url).href
-          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=msx-mode-1'
-          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=msx-mode-1'
+        (['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=msx-modes-2', import.meta.url).href
+          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=msx-modes-2'
+          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=msx-modes-2'
           : ['ym2610','ym2610b'].includes(options.chip)
-            ? "./ym2610b-worklet.js?v=msx-mode-1" : "./ym2612-worklet.js?v=msx-mode-1"),
+            ? "./ym2610b-worklet.js?v=msx-modes-2" : "./ym2612-worklet.js?v=msx-modes-2"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "./generated/ym2612_wasm.wasm",
@@ -192,7 +192,7 @@ export function createPlaygroundRuntime(
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip);
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const sourceMap =
     new Map();
@@ -241,7 +241,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=msx-mode-1",
+      "./playground_logic_worker.js?v=msx-modes-2",
       import.meta.url
     );
   const logicWorkerUrl =

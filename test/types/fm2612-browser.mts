@@ -141,9 +141,10 @@ const nativeMasterSystem=new NativeRuntimeSynth({chip:'segapsg',stereoEnabled:fa
 nativeMasterSystem.opll?.setInstrument(8,3,4);
 nativeMasterSystem.psg?.tone(0,{note:'A4',attenuation:8});
 Playground({chip:'segapsg',stereoEnabled:false,ym2413:true,opllOptions:{workletUrl:'opll-worklet.js'}});
-const nativeMsx=new NativeRuntimeSynth({chip:'msx',ayOptions:{wasmUrl:'ay.wasm'},opllOptions:{workletUrl:'opll-worklet.js'},oplOptions:{wasmUrl:'y8950.wasm'}});
+const nativeMsx=new NativeRuntimeSynth({chip:'msx-audio',ayOptions:{wasmUrl:'ay.wasm'},opllOptions:{workletUrl:'opll-worklet.js'},oplOptions:{wasmUrl:'y8950.wasm'}});
 nativeMsx.ay?.noteOn(2,'A4');nativeMsx.opll?.noteOn(8,'A4');nativeMsx.opl?.noteOn(8,'A4');
 Playground({chip:'msx',ayOptions:{workletUrl:'ay-worklet.js'}});
+Playground({chip:'msx-audio',oplOptions:{workletUrl:'opl-worklet.js'}});
 // @ts-expect-error Audio assets are URLs, not raw numeric IDs
 Playground({chip:'msx',ayOptions:{wasmUrl:12}});
 // @ts-expect-error The OPLL expansion is enabled with a boolean.

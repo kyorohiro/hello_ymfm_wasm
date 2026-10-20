@@ -69,7 +69,7 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'playground_segapsg.js','playground_segapsg_audio.js','playground_segapsg_worklet.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
-const megaCdVersion='msx-mode-1';
+const megaCdVersion='msx-modes-2';
 const megaCdFiles=new Set(['playground_runtime.js','playground_logic_worker.js','playground_live.js',
   'playground_chip_clock.js','playground_audition_guard.js','playground_keyboard_channels.js','playground_opn_inspector.js',
   'ym2612-worklet.js','ym2612-worklet-nuked.js','ym2203-worklet.js','ym2608-worklet.js','ym2610b-worklet.js',

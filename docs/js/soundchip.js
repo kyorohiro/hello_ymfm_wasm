@@ -6,7 +6,7 @@ export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js?v=chip-
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
-import {createWorkletSoundChip} from './soundchip_worklet.js?v=msx-mode-1';
+import {createWorkletSoundChip} from './soundchip_worklet.js?v=msx-modes-2';
 import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 export {encodeWav} from './wav.js';
 
@@ -205,7 +205,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions & {execution: 'worklet'}} options
- * @returns {Promise<import('./soundchip_worklet.js?v=msx-mode-1').WorkletSoundChip & {name: Name}>}
+ * @returns {Promise<import('./soundchip_worklet.js?v=msx-modes-2').WorkletSoundChip & {name: Name}>}
  */
 /**
  * @template {keyof SoundChipMap} Name
@@ -219,7 +219,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions} options
- * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=msx-mode-1').WorkletSoundChip>}
+ * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=msx-modes-2').WorkletSoundChip>}
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {

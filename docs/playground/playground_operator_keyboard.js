@@ -7,7 +7,7 @@ import {
   setFretPosition,
   setInstrument,
   setStringWindowIndex,
-} from "../synth/synth_keyboard.js?v=msx-mode-1";
+} from "../synth/synth_keyboard.js?v=msx-modes-2";
 
 let keyboardSequence = 0;
 

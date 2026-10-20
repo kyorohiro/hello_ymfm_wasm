@@ -1,8 +1,8 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=msx-mode-1';
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=msx-mode-1';
-import {validateChipClock} from './playground_chip_clock.js?v=msx-mode-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=msx-modes-2';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=msx-modes-2';
+import {validateChipClock} from './playground_chip_clock.js?v=msx-modes-2';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
-import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from './playground_audition_guard.js?v=msx-mode-1';
+import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from './playground_audition_guard.js?v=msx-modes-2';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";
 import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stability-2";
 /**

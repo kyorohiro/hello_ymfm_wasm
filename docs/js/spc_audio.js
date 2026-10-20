@@ -1,4 +1,4 @@
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=msx-mode-1';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=msx-modes-2';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();

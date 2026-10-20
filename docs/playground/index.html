@@ -11,7 +11,7 @@
     <meta property="og:type" content="website">
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
-    <link rel="stylesheet" href="./playground_chip_tabs.css?v=msx-mode-1">
+    <link rel="stylesheet" href="./playground_chip_tabs.css?v=msx-modes-2">
     <link rel="stylesheet" href="./playground_mixer.css?v=chip-tabs-2">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
@@ -2157,9 +2157,12 @@
             <p data-native-helper="ym3526" hidden><code>opl</code> is the primary OPL instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3526</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
             <p data-native-helper="y8950" hidden><code>opl</code> is the primary Y8950 FM instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>Y8950</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Y8950 ADPCM is not part of this FM mode.</p>
             <p data-native-helper="ymf262" hidden><code>opl</code> is the primary OPL3 instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..17</code>; MIDI note 69 is A4. Open <strong>YMF262</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Four-op primaries are 0..2 and 9..11; each borrows its primary + 3. Keyboard excludes paired secondary channels. Stereo uses left/right routing switches.</p>
-            <p data-native-helper="msx" hidden>MSX provides three primary sound chips: <code>ay</code> (AY-3-8910 PSG), <code>opll</code> (YM2413) and <code>opl</code> (Y8950 FM). Use their own APIs; the Keyboard selects each chip and its physical channel. The AY clock is 1,789,773 Hz; both FM chips use 3,579,545 Hz. Open the matching chip tab to edit and audition its current voice.</p>
-            <p data-native-helper="msx" hidden><code>ay.setVoice(0, {tone:true, noise:false, volume:9})</code> configures a PSG voice. <code>ay.noteOn(0, "C4")</code> and <code>ay.keyOff(0)</code> play it. The three channels share one noise generator and one hardware envelope; envelope Shape writes explicitly retrigger it globally.</p>
-            <p data-native-helper="msx" hidden><code>opll.setVoice(0, {instrument:3, attenuation:5})</code> selects a YM2413 ROM instrument; instrument 0 uses the shared <code>OPLL_USER_PRESETS</code> patch. <code>opl.setPreset(0, OPL_PRESETS.bell)</code> configures the separate Y8950 FM instrument. Y8950 support in this mode covers FM and rhythm; ADPCM sample playback is outside this mode.</p>
+            <p data-native-helper="msx" hidden>MSX provides <code>ay</code> for PSG and <code>opll</code> for MSX-MUSIC. The Keyboard selects each chip and its physical channel. Open its chip tab to edit and audition the current voice.</p>
+            <p data-native-helper="msx" hidden><code>ay.setVoice(0, {tone:true, noise:false, volume:9})</code> configures a PSG voice. <code>ay.noteOn(0, "C4")</code> and <code>ay.keyOff(0)</code> play it. Three channels share one noise generator and one hardware envelope; writing its Shape explicitly retriggers it globally.</p>
+            <p data-native-helper="msx" hidden><code>opll.setVoice(0, {instrument:3, attenuation:5})</code> selects a ROM instrument; instrument 0 uses the shared <code>OPLL_USER_PRESETS</code> patch. Use <code>opll.noteOn(0, "C4")</code> and <code>opll.keyOff(0)</code> to play it. Select MSX Audio for the additional Y8950 FM instrument.</p>
+            <p data-native-helper="msx-audio" hidden>MSX Audio provides <code>ay</code> for PSG, <code>opll</code> for MSX-MUSIC and <code>opl</code> for MSX-AUDIO FM. The Keyboard selects each chip and its physical channel. Open its chip tab to edit and audition the current voice.</p>
+            <p data-native-helper="msx-audio" hidden><code>ay.setVoice(0, {tone:true, noise:false, volume:9})</code> configures a PSG voice. Three channels share its noise generator and hardware envelope. <code>opll.setVoice(0, {instrument:3, attenuation:5})</code> selects a YM2413 ROM voice; instrument 0 uses the shared custom patch.</p>
+            <p data-native-helper="msx-audio" hidden><code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code> play Y8950 FM. Its tab edits operators and rhythm. Y8950 ADPCM sample playback is outside this mode.</p>
             <p data-native-helper="dx7" hidden><code>dx7</code> is the primary 16-voice MSFA instrument. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers and no channel argument. <code>await useSoundChip("dx7")</code> borrows this same instrument; <code>await createSoundChip("dx7")</code> creates another one.</p>
             <p data-native-helper="dx7" hidden>Use object presets with <code>await dx7.setPreset(preset)</code>, or import a SysEx file and <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. Open the DX7 panel to inspect and edit all six operators, select a bank voice and audition it. The Keyboard tab plays this instrument directly; keyboard.bind() can supply another instrument. The engine runs internally at 44,100 Hz; there is no chip-clock setting.</p>
             <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
@@ -2451,7 +2454,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=msx-mode-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=msx-modes-2').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

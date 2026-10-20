@@ -650,7 +650,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -681,6 +681,7 @@ type PlaygroundSelectedFm = {
   y8950: never;
   ymf262: never;
   msx: never;
+  'msx-audio': never;
 }[TetoricaSelectedChip];
 declare const fm: PlaygroundSelectedFm;
 /** The primary Game Boy APU, initialized and shared by this mode. */
@@ -1153,7 +1154,8 @@ type PlaygroundFmConvenienceName = 'fm' | 'midi' | 'presets' | 'tfiToPreset' | '
   | 'play' | 'write' | 'scheduleWritesSamples' | 'noteToBlockFnum' | 'hzToBlockFnum' | 'noteLerp'
   | 'setDacLookahead' | 'getDacLookahead';
 type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'gameboy' ? {gameboy: PlaygroundPrimaryGameboy}
-  : TetoricaSelectedChip extends 'msx' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;opl:PlaygroundPrimaryOpl<'y8950'>;OPL_PRESETS:PlaygroundOplPresets<'y8950'>;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
+  : TetoricaSelectedChip extends 'msx' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
+  : TetoricaSelectedChip extends 'msx-audio' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;opl:PlaygroundPrimaryOpl<'y8950'>;OPL_PRESETS:PlaygroundOplPresets<'y8950'>;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
   : TetoricaSelectedChip extends 'nes' ? {nes: PlaygroundPrimaryNes}
   : TetoricaSelectedChip extends 'snes' ? {snes: PlaygroundPrimarySnes}
   : TetoricaSelectedChip extends 'x68000' ? {opm: PlaygroundPrimaryOpm; adpcm: PlaygroundPrimaryOki6258}
@@ -1800,10 +1802,10 @@ type PlaygroundSoundChipMap = {
   okim6258: TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOki6258 : PlaygroundOki6258;
   ym3526: TetoricaSelectedChip extends 'ym3526' ? PlaygroundPrimaryOpl<'ym3526'> : PlaygroundOpl<'ym3526'>;
   ym3812: TetoricaSelectedChip extends 'ym3812' ? PlaygroundPrimaryOpl<'ym3812'> : PlaygroundOpl<'ym3812'>;
-  y8950: TetoricaSelectedChip extends 'y8950'|'msx' ? PlaygroundPrimaryOpl<'y8950'> : PlaygroundOpl<'y8950'>;
+  y8950: TetoricaSelectedChip extends 'y8950'|'msx-audio' ? PlaygroundPrimaryOpl<'y8950'> : PlaygroundOpl<'y8950'>;
   ymf262: TetoricaSelectedChip extends 'ymf262' ? PlaygroundPrimaryOpl<'ymf262'> : PlaygroundOpl<'ymf262'>;
-  ym2413: TetoricaSelectedChip extends 'master-system'|'msx' ? PlaygroundPrimaryYm2413 : PlaygroundYm2413;
-  ay8910: TetoricaSelectedChip extends 'msx' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
+  ym2413: TetoricaSelectedChip extends 'master-system'|'msx'|'msx-audio' ? PlaygroundPrimaryYm2413 : PlaygroundYm2413;
+  ay8910: TetoricaSelectedChip extends 'msx'|'msx-audio' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
 type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc'
@@ -1958,7 +1960,7 @@ declare function createSoundChip(name:'ym2413',options?:PlaygroundCreateSoundChi
 
 /** OPL family. Y8950 exposes FM here; its ADPCM bus remains a raw-register API. */
 type PlaygroundOplChip = 'ym3526'|'ym3812'|'y8950'|'ymf262';
-type PlaygroundSelectedOplChip = TetoricaSelectedChip extends 'msx' ? 'y8950' : TetoricaSelectedChip extends PlaygroundOplChip ? TetoricaSelectedChip : 'ym3812';
+type PlaygroundSelectedOplChip = TetoricaSelectedChip extends 'msx-audio' ? 'y8950' : TetoricaSelectedChip extends PlaygroundOplChip ? TetoricaSelectedChip : 'ym3812';
 type PlaygroundOplChannel<K extends PlaygroundOplChip> = K extends 'ymf262'
   ? 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17 : 0|1|2|3|4|5|6|7|8;
 type PlaygroundOplWaveform<K extends PlaygroundOplChip> = K extends 'ymf262' ? 0|1|2|3|4|5|6|7

@@ -153,8 +153,8 @@ Playgroundでは同じ一覧を `OPLL_INSTRUMENTS` / `OPLL_USER_PRESETS` とし�
 
 ## MSX / AY-3-8910 PSG
 
-MSX modeは `ay`（AY-3-8910）、`opll`（YM2413 / MSX-MUSIC）、
-`opl`（Y8950 / MSX-AUDIOのFM）を同じ出力に用意します。
+MSX modeは `ay`（AY-3-8910）と `opll`（YM2413 / MSX-MUSIC）を用意します。
+MSX Audio modeは `opl`（Y8950 / MSX-AUDIOのFM）も同じ出力へ追加します。
 音源ごとにMixerとKeyboardの物理CHを選べます。
 Y8950は既存のFM APIを使い、ADPCMの高級APIは含みません。
 
@@ -165,8 +165,9 @@ noiseのperiodとhardware envelopeはチップ全体で共有します。
 `keyOff()` / `keyOn()` は設定済みの音量とtone/noiseを維持します。
 `setEnvelope({period})` は周期だけを更新し、`setEnvelope({shape})` は共有envelopeを再開始します。
 
-埋め込みは `Playground({chip:'msx'})` で選びます。
-`useSoundChip('ay8910'|'ym2413'|'y8950')` は対応する主音源を借り、
+埋め込みは `Playground({chip:'msx'})` / `Playground({chip:'msx-audio'})` で選びます。
+`useSoundChip('ay8910'|'ym2413')` は両modeで主音源を借ります。
+`useSoundChip('y8950')` はMSX Audioでは主音源を借り、MSXでは独立音源を追加します。
 `createSoundChip()` は独立音源を作ります。
 単体APIは `ay8910synth.js` の `AY8910Synth` / `AY8910DirectTransport` /
 `AY8910WorkletTransport` です。

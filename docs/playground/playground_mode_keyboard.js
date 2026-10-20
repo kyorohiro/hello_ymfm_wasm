@@ -1,4 +1,4 @@
-import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=msx-mode-1';
+import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=msx-modes-2';
 
 /** The mode's primary instrument is playable before a script binds Keyboard.
  * Resolve its admin endpoint after audio preparation; never create a second chip.
@@ -17,17 +17,18 @@ const TARGETS = {
   ymf262: ['ymf262', 'OPL3 · CH1'],
   ym2413: ['ym2413', 'YM2413 OPLL · CH1'],
   ay8910: ['ay8910', 'AY-3-8910 · CH1'],
-  msx: ['ay8910', 'MSX · AY-3-8910 CH1'],
+  msx: ['ym2413', 'MSX · YM2413 OPLL CH1'],
+  'msx-audio': ['y8950', 'MSX Audio · Y8950 CH1'],
 };
 let sequence = 0;
 
 /** Authoring environments may contain several primary physical sound chips. */
 export function playgroundPrimaryKeyboardChips(mode,capabilities = {}) {
   const chip = mode.chip;
-  if (chip === 'msx') return [
-    {id:'ay8910',kind:'ay8910',label:'AY-3-8910 (primary)'},
+  if (chip === 'msx' || chip === 'msx-audio') return [
+    ...(chip === 'msx-audio' ? [{id:'y8950',kind:'y8950',label:'Y8950 FM (primary)'}] : []),
     {id:'ym2413',kind:'ym2413',label:'YM2413 OPLL (primary)'},
-    {id:'y8950',kind:'y8950',label:'Y8950 FM (primary)'},
+    {id:'ay8910',kind:'ay8910',label:'AY-3-8910 (primary)'},
   ];
   if (chip === 'x68000') return [{id:'ym2151',kind:'ym2151',label:'YM2151 (primary)'},{id:'okim6258',kind:'okim6258',label:'OKIM6258 (primary)'}];
   const entries = [{id:chip,kind:chip,label:`${({gameboy:'Game Boy',nes:'NES + FDS',huc6280:'HuC6280'})[chip] ?? chip.toUpperCase()} (primary)`,...(chip === 'nes' ? {fdsEnabled:true} : {})}];
