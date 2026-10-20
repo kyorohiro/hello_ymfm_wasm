@@ -51,6 +51,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
       let value = true;
       if(this.name.includes('dx7')&&['getState','stopVoices'].includes(data.method))value=synth.dx7._getState();
       if (this.validation && typeof this.validation[data.method] === 'function') value = this.validation[data.method](...(data.args ?? []));
+      else if(this.validation&&data.method==='stopVoices')this.validation.allNotesOff();
       if (data.method === 'loadMemory') this.loadedMemory = data.args[0].slice();
       if (data.id !== undefined) port.postMessage({id:data.id,value});
     }
@@ -95,9 +96,10 @@ test('native Stop preserves SNES BRR allocation, sample assignment and per-voice
   const bytes = new Uint8Array([0xc3,0x13,0x57,0x75,0x31,0xfd,0xb9,0x9b,0xdf]);
   const sample = await synth.snes.loadBRR(bytes, {baseFrequencyHz:2000,loopStartSamples:0});
   synth.snes.setPreset(0, {sample,volumeLeft:70,volumeRight:50}); synth.snes.noteOn(0,'C4');
-  const before = synth.snes._getState(); synth.stopAllNative();
+  const before = synth.snes._getState(); await synth.stopAllNative();
   assert.deepEqual(synth.snes._getState(), before);
-  await until(() => nodes[0].messages.some(data => data.method === 'allNotesOff'));
+  await until(() => nodes[0].messages.some(data => data.method === 'stopVoices'));
+  assert(nodes[0].messages.some(data=>data.method==='stopVoices'&&data.id!==undefined),'Stop completes after its Worklet acknowledgement');
   assert.equal(nodes[0].validation.getState().samples.length,1);
   synth.snes.noteOn(0,'E4'); assert.equal(synth.snes._getState().samples[0].id,sample.id);
 });
@@ -212,14 +214,23 @@ for (const stereoEnabled of [true,false]) test(`PSG primary configures ${stereoE
   const worker = createNativePrimaryClient('segapsg',channel.port2,{clock:synth.psg.clock,stereoEnabled,state:before});
   t.after(() => {worker.dispose();channel.port1.close();});
   await immediate(); assert.equal(messages.length,0,'state adoption must not reset/replay audio'); assert.deepEqual(worker._getState(),before);
-  synth.stopAllNative();
-  await until(() => nodes[0].messages.filter(data => data.method === 'write').length >= 9);
-  assert.deepEqual(nodes[0].messages.filter(data => data.method === 'write').slice(-4).map(data => data.args[0]),[0x9f,0xbf,0xdf,0xff]);
+  await synth.stopAllNative();
+  await until(() => nodes[0].messages.some(data=>data.method==='stopVoices'));
+  assert(nodes[0].messages.some(data=>data.method==='stopVoices'&&data.id!==undefined),'Stop completes after its Worklet acknowledgement');
   assert.deepEqual(synth.psg._getState().attenuations,before.attenuations); assert.equal(synth.psg._getState().stereo,before.stereo);
   const borrowed = borrowNativeApi(worker,'segapsg');
   for (const name of ['dispose','transport','_getState','_adoptState']) assert.equal(borrowed[name],undefined);
   const count = messages.length; worker._adoptState(synth.psg._getState()); await immediate(); assert.equal(messages.length,count);
   worker.keyOn(0); await until(() => messages.length > count); assert.equal(messages.at(-1).args[0],0x97);
+});
+
+test('native Stop awaits every DX7/SNES/PSG acknowledgement before completing',async()=>{
+  const synth=new NativeRuntimeSynth({chip:'dx7'}),gates=Array.from({length:3},deferred),calls=[];
+  synth.primaryApis=Object.fromEntries(['dx7','snes','psg'].map((name,index)=>[name,{_stopVoices(){calls.push(name);return gates[index].promise;}}]));
+  let completed=false;const stopping=synth.stopAllNative().then(()=>completed=true);
+  assert.deepEqual(calls,['snes','psg','dx7']);
+  gates[0].resolve();gates[1].resolve();await immediate();assert.equal(completed,false);
+  gates[2].resolve();await stopping;assert.equal(completed,true);
 });
 
 for (const stage of ['module','fetch']) test(`PSG close cancels pending ${stage} loading without allocating a node`, async t => {

@@ -10,11 +10,12 @@ export function createHuc6280Client(port, {clock = HUC6280_CLOCK} = {}) {
     reset() { port.postMessage({method:'reset', args:[]}); },
     dispose() { port.postMessage({method:'dispose', args:[]}); port.close(); },
   }});
+  const controlled=attachChipClock(synth,port,clock);
   Object.defineProperty(synth,'_stopVoices',{value:()=>{
     const state=synth._getState();for(const registers of state.registers)registers[4]&=127;
-    synth._adoptState(state);port.postMessage({method:'stopVoices',args:[]});
+    synth._adoptState(state);return controlled._requestControl('stopVoices');
   }});
-  return attachChipClock(synth, port, clock);
+  return controlled;
 }
 
 /** Builtin controls borrow the primary device; the runtime owns its lifetime. */

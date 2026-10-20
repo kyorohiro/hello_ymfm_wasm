@@ -44,7 +44,7 @@ function loadWasm(fetchImpl) {
 function loadModule(context) {
   let ready = loadedModules.get(context);
   if (!ready) {
-    ready = context.audioWorklet.addModule(new URL('./playground_dx7_worklet.js?v=dx7-mode-1', import.meta.url));
+    ready = context.audioWorklet.addModule(new URL('./playground_dx7_worklet.js?v=dx7-voices-1', import.meta.url));
     loadedModules.set(context, ready);
     ready.catch(() => { if (loadedModules.get(context) === ready) loadedModules.delete(context); });
   }
@@ -104,6 +104,9 @@ export async function createDx7Audio(context, destination, options = {}) {
     options.onError?.(error);
   }
   node.port.onmessage = ({data}) => {
+    // Editor validation errors belong to their admin RPC caller. They must not
+    // dispose a healthy synth or turn an invalid edit into a fatal audio error.
+    if (data.type === 'chip-inspector-result') return;
     if (data.ready) readyResolve(data);
     else if (data.fatal || data.error) fail(new Error(data.error ?? 'DX7 AudioWorklet failed.'));
   };

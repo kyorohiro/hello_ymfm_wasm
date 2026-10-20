@@ -37,6 +37,8 @@ playground_nes_voice_panel.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
+playground_dx7_voice_panel.js
+playground_mode_keyboard.js
 playground_workbench.js
 playground_cassette.js
 playground_examples.js
@@ -158,6 +160,8 @@ playground_nes_worklet.js
 playground_dx7.js
 playground_dx7_audio.js
 playground_dx7_worklet.js
+playground_dx7_inspector.js
+playground_snes_inspector.js
 playground_ym2151_audio.js
 playground_ym2151_worklet.js
 playground_segapsg.js

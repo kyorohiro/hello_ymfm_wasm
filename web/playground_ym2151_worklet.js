@@ -11,7 +11,7 @@ class Processor extends AudioWorkletProcessor {
     this.counts = new Uint32Array(128);
     this.registers = new Uint8Array(256); this.mutedChannels = new Set(); this.silent = false;
     this.auditionStarts=new Map();
-    this.performance=createProcessorPerformance({chip:'ym2151',apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
+    this.performance=createProcessorPerformance({chip:'ym2151',immediate:['stopVoices'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
       if(data.primaryWorker) {
@@ -55,13 +55,21 @@ class Processor extends AudioWorkletProcessor {
       catch (error) { port.postMessage({id:data.id,error:error.message}); }
       return;
     }
+    if(data.method==='stopVoices'){
+      try{
+        if(!this.chip)throw new Error('OPM not ready');
+        this.inspector?.invoke('auditionAllOff');this.performance.clear();
+        for(let channel=0;channel<8;channel++)this.forceKeyOff(channel);this.silent=true;
+        if(data.id!==undefined)port.postMessage({id:data.id,value:true});
+      }catch(error){if(data.id!==undefined)port.postMessage({id:data.id,error:error.message});}
+      return;
+    }
     if (!this.chip) return;
     if(data.method==='auditionKeyOn'){
       const [channel,mask]=data.args,owner=metadata?.owner;
       if(this.inspector?.ownsAudition(channel,owner))this.auditionStarts.set(channel,{mask,owner});
       return;
     }
-    if (data.method === 'stopVoices') {this.performance.clear();for(let channel=0;channel<8;channel++)this.forceKeyOff(channel);this.silent=true;}
     if (data.method === 'reset') { this.chip.reset();this.auditionStarts.clear();this.inspector?.reset();this.remainder = 0; this.left = this.right = 0; this.registers.fill(0);this.mutedChannels.clear();this.silent=true; }
     if (data.method === 'forceKeyOff') this.forceKeyOff(data.args[0]);
     if (data.method === 'allNotesOff') {for(let channel=0;channel<8;channel++)this.forceKeyOff(channel);this.silent=true;}

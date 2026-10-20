@@ -1,13 +1,14 @@
+import {createPlaygroundModeKeyboard} from './playground_mode_keyboard.js?v=dx7-voices-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=dx7-mode-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=dx7-voices-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
-import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=dx7-mode-1';
+import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=dx7-voices-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=dx7-mode-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=dx7-voices-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=mode-handoff-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=mode-choice-1';
 let desktopAutosave = null;
@@ -25,8 +26,8 @@ const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-2';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-frequency-order-2';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=dx7-mode-1';
-import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=dx7-mode-1';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=dx7-voices-1';
+import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=dx7-voices-1';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
 import {installMidiImport} from './playground_midi_import.js?v=midi-sections-1';
@@ -34,10 +35,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=dx7-mode-1";
+} from "../js/megasynth.js?v=dx7-voices-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=dx7-mode-1";
+} from "../js/tetorica_synth.js?v=dx7-voices-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -48,10 +49,10 @@ import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2"
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js?v=audio-stability-2";
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=dx7-mode-1";
-import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-stability-2";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=dx7-mode-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-mode-1";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=dx7-voices-1";
+import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=dx7-voices-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=dx7-voices-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=dx7-voices-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -82,12 +83,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=dx7-mode-1";
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=dx7-mode-1';
+} from "../js/playground_runtime.js?v=dx7-voices-1";
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=dx7-voices-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-stability-2";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=dx7-mode-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=dx7-voices-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=audio-stability-2";
@@ -502,6 +503,7 @@ const operatorTab = hasPrimaryFM ?
       setStatus(message);
     },
   }) : null;
+const modeKeyboardTarget = createPlaygroundModeKeyboard({chip:selectedChip, getInspector:() => runtime.chipInspector});
 const operatorKeyboard = createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
   auditionPriority: true,
@@ -537,6 +539,8 @@ const operatorKeyboard = createPlaygroundOperatorKeyboard({
     setStatus(message);
   },
 });
+
+operatorKeyboard.attachNoteTarget(modeKeyboardTarget);
 
 operatorTabRoot.addEventListener("change", () => operatorKeyboard?.syncChannel());
 
@@ -1710,7 +1714,7 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
-    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'mixer'].flatMap(name => [
+    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'mixer'].flatMap(name => [
       [`${name}Tab`, document.getElementById(`${name}Tab`)],
       [`${name}Panel`, document.getElementById(`${name}Panel`)],
     ])),
@@ -1727,7 +1731,7 @@ const ui =
       if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
       audioMonitor.setVisible(showAudio);
       operatorTab?.setVisible(primary === "operator");
-      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280'].includes(primary) ? primary : null);
+      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7'].includes(primary) ? primary : null);
       mixerPanel?.setVisible(tool === 'mixer');
       operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
@@ -1798,7 +1802,7 @@ function createRuntime() {
     megaDrive,
     onAuditionReset: () => {operatorKeyboard?.releaseAll(); chipTabs?.releaseAll();},
     onKeyboardTargetChange: target => {
-      scriptKeyboardTarget = target; chipTabs?.clearKeyboardTarget(); operatorKeyboard.attachNoteTarget(target);
+      scriptKeyboardTarget = target; chipTabs?.clearKeyboardTarget(); operatorKeyboard.attachNoteTarget(target ?? modeKeyboardTarget);
     },
     presets:
       playgroundPresets,
@@ -1852,13 +1856,13 @@ mixerPanel = createPlaygroundMixer({
   onError: error => setStatus(`Mixer: ${error.message}`),
 });
 chipTabs = createPlaygroundChipTabs({
-  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280'].map(name => [name, document.getElementById(`${name}Panel`)])),
+  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7'].map(name => [name, document.getElementById(`${name}Panel`)])),
   getInspector: () => runtime.chipInspector,
   listFiles: () => virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)),
   readFile: path => virtualFiles.get(path),
   ensureAudioReady: () => runtime.prepareAudition(),
   onKeyboardTargetChange: target => {
-    operatorKeyboard.attachNoteTarget(target ?? scriptKeyboardTarget);
+    operatorKeyboard.attachNoteTarget(target ?? scriptKeyboardTarget ?? modeKeyboardTarget);
     if (target) setBottomTab('keyboard');
   },
   onError: error => setStatus(`Sound chip: ${error.message}`),

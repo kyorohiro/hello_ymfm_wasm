@@ -289,7 +289,7 @@ Genesis mode に FM、PSG、DAC が最初から用意され、`play()` が標準
 | Neo Geo (YM2610B) | `neogeo-b` | YM2610B | FM 6ch・SSG・ADPCM-A/B を標準公開。 |
 | X68000 | `x68000` | YM2151 + OKIM6258 | 標準 `opm` + `adpcm`、PCM からの OKI ADPCM4 読み込みを実装。 |
 | PC Engine | `pc-engine` | HuC6280 | 標準 `pce`、Wave / Noise / DDA / LFO と代表例を実装。 |
-| DX7 | `dx7` | MSFA DX7 | 標準 `dx7` API、Object音色・ライブ編集・Guitar Keyboardの例を実装。 |
+| DX7 | `dx7` | MSFA DX7 | 標準 `dx7` API、6OP音色画面・ライブ編集・Guitar Keyboardに対応。 |
 | Empty | `empty` | なし | 音源は `useSoundChip()` などで明示的に用意する。 |
 
 低レベルのチップ対応と、Playground から使えること、mode として環境が整っている
@@ -582,6 +582,15 @@ MSFA DX7の16音ポリフォニック音源を1台だけ共有する。
 - 内部サンプルレートは44,100 Hz固定。出力は44,100／48,000 Hzに対応し、チップの`setClock()`は持たない。
 - Main／Workerの切替とStopで発音を止め、読み込み済み音色・バンクは保持する。標準音源の破棄はRuntimeが管理する。
 - Node.js 22の共有Runtime全1,576テスト、UI関連96テスト、全mode型チェックを通過。Chromium／WebKitのMain／Workerで初期曲・16音和音・代表3例・Guitar入力・Stop／再起動・mode切替を確認。
+
+### DX7の音色画面とKeyboardの既定接続
+
+- DX7タブで適用済みのバンク・音色名・アルゴリズム・フィードバックと6OP一覧を表示する。選択OPのRatio／Fixed周波数、レベル、EG、キースケール、LFO／Pitch EGを編集でき、音色全体をJavaScriptへコピーできる。
+- `Prepare audio`／`Hold to play`／1秒試奏／`Use Keyboard`は標準の16音DX7を共有する。画面を開く操作とスナップショット更新は音源を作成・演奏・再設定しない。表示は適用済み設定と先読み予約を区別する。
+- 手動試奏はMIDIノート単位の所有権を持つ。同音の古い解放やコードのキーオフで手動音が消えず、他のノートの演奏は継続する。Stopは全発音と予約を止め、音色とバンクを残す。
+- KeyboardタブはGame Boy／NES + FDS／SNES／X68000／PC Engine／Game Gear／Master System／DX7の標準音源へ初めから接続する。DX7以外の既定先は先頭チャンネルで、音色は適用済みの設定を使う。SNESは先にBRRサンプルを割り当てる（初期コードでも設定する）。
+- コードの`keyboard.bind()`または音色画面の`Use Keyboard`で選んだ入力先を優先する。コードをStopするとmodeの既定先へ戻る。Stop完了のACK後に次の試奏を開始し、前の停止処理が新しい音を消さないようにする。
+- 不正な編集・未準備素材はadmin RPCのエラーとして画面へ返し、正常な音源を破棄しない。
 
 ## 今後整理する点
 

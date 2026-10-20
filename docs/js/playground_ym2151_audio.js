@@ -12,7 +12,7 @@ export async function createYm2151Audio(context, destination, options = {}) {
     return response.arrayBuffer();
   };
   const [wasmBinary] = await waitForInitialization(Promise.all([
-    bytes(), context.audioWorklet.addModule(options.workletUrl ?? new URL('./playground_ym2151_worklet.js?v=dx7-mode-1', import.meta.url)),
+    bytes(), context.audioWorklet.addModule(options.workletUrl ?? new URL('./playground_ym2151_worklet.js?v=dx7-voices-1', import.meta.url)),
   ]), signal);
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-ym2151', {
@@ -31,7 +31,7 @@ export async function createYm2151Audio(context, destination, options = {}) {
     await waitForInitialization(new Promise((resolve, reject) => {
       readyTimer = setTimeout(() => reject(new Error('YM2151 AudioWorklet initialization timed out')), 15000);
       readyTimer.unref?.();
-      node.port.onmessage = ({data}) => { if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
+      node.port.onmessage = ({data}) => { if(data.type==='chip-inspector-result')return; if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
       node.onprocessorerror = () => reject(new Error('YM2151 Worklet failed'));
     }), signal);
     clearTimeout(readyTimer); signal?.throwIfAborted();

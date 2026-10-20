@@ -243,6 +243,7 @@ export function createPlaygroundRuntime(
   let stopFadeNode = null;
   let previousOutputNode = null;
   let pendingFadeStop = null;
+  let pendingFadeGeneration = null;
   function resumeStopFade() {
     const context = megaDrive.audioContext;
     const audio = megaDrive.audio;
@@ -316,12 +317,12 @@ export function createPlaygroundRuntime(
   const chipInspector = createChipInspector({decode:decodePcm,endpoints:()=>{
     const entries=[];
     if(capabilities.chip==='gameboy'&&megaDrive.gameboy&&megaDrive.node?.port)entries.push({id:'gameboy',kind:'gameboy',label:'Game Boy (primary)',port:megaDrive.node.port});
-    const nativeLabels={nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)'};
+    const nativeLabels={snes:'SNES (primary)',nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)',dx7:'DX7 (primary)'};
     for(const endpoint of megaDrive.primaryEndpoints??[])if(nativeLabels[endpoint.name]&&endpoint.client&&endpoint.node?.port)entries.push({id:endpoint.name,kind:endpoint.name,label:nativeLabels[endpoint.name],port:endpoint.node.port});
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
     if(megaDrive.pwm&&megaDrive.pwmDevice?.node?.port)entries.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)',port:megaDrive.pwmDevice.node.port});
-    for(const device of pcmDevices)if(['segapsg','rf5c164','pwm','gameboy','nes','ym2151','okim6258','huc6280'].includes(device.chipName))entries.push({id:device.mixerId,kind:device.chipName,label:device.mixerId,port:device.node.port});
+    for(const device of pcmDevices)if(['segapsg','rf5c164','pwm','gameboy','nes','ym2151','okim6258','huc6280','dx7'].includes(device.chipName))entries.push({id:device.mixerId,kind:device.chipName,label:device.mixerId,port:device.node.port});
     return entries;
   }});
   let releaseInspectorMixerSubscription=null;
@@ -1178,8 +1179,25 @@ export function createPlaygroundRuntime(
 
   /** An explicit keyboard audition starts after the preceding Stop has finished. */
   async function prepareAudition() {
-    if (pendingFadeStop) await pendingFadeStop;
-    return ensureReady();
+    let token=currentRunToken;
+    const allowedFade=pendingFadeGeneration;
+    const current=()=>{if(token!==currentRunToken)throw new DOMException('Run stopped','AbortError');};
+    for(;;){
+      if(pendingFadeStop){
+        const generation=pendingFadeGeneration;await pendingFadeStop;
+        // The fade requested before this audition performs its own Stop once.
+        // A different Run/Stop still retires this pending audition request.
+        if(generation&&generation===allowedFade&&generation.from===token&&generation.to===currentRunToken)token=currentRunToken;
+        current();
+      }
+      if(logicWorkerStopPromise){await logicWorkerStopPromise;current();}
+      await musicalKeyboard.settled();current();
+      const silence=primaryPcmSilence;
+      await silence;current();
+      if(pendingFadeStop||logicWorkerStopPromise||silence!==primaryPcmSilence)continue;
+      const ready=await ensureReady();current();
+      if(!pendingFadeStop&&!logicWorkerStopPromise&&silence===primaryPcmSilence)return ready;
+    }
   }
 
   function registerKeyboardHandler(
@@ -2645,6 +2663,7 @@ export function createPlaygroundRuntime(
     }
     const runToken = currentRunToken;
     const now = context.currentTime, duration = 0.12, end = now + duration;
+    const generation=pendingFadeGeneration={from:runToken,to:null};
     const gain = stopFadeNode.gain;
     if (typeof gain.cancelAndHoldAtTime === 'function') gain.cancelAndHoldAtTime(now);
     else {gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value, now);}
@@ -2667,8 +2686,9 @@ export function createPlaygroundRuntime(
       gain.setValueAtTime(0, context.currentTime);
       if (runToken !== currentRunToken) return;
       stop();
+      generation.to=currentRunToken;
       if (logicWorkerStopPromise) await logicWorkerStopPromise;
-    })().finally(() => {pendingFadeStop = null;});
+    })().finally(() => {pendingFadeStop = null;pendingFadeGeneration=null;});
     return pendingFadeStop;
   }
 

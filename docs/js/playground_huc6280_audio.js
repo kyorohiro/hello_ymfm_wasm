@@ -1,5 +1,5 @@
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
+import {validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();
@@ -10,7 +10,7 @@ export async function createHuc6280Audio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
   const clock = validateChipClock(options.clock ?? HUC6280_CLOCK);
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('HuC6280 requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_huc6280_worklet.js?v=dx7-mode-1', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_huc6280_worklet.js?v=dx7-voices-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }
@@ -46,6 +46,7 @@ export async function createHuc6280Audio(context, destination, options = {}) {
       rejectReady = reject;
       timer = setTimeout(() => { reject(new Error('HuC6280 AudioWorklet initialization timed out')); dispose(); }, 15000); timer.unref?.();
       node.port.onmessage = ({data}) => {
+        if(data.type==='chip-inspector-result')return;
         if (data.ready) resolve(); else if (data.error) { reject(new Error(data.error)); dispose(); }
       };
       node.onprocessorerror = () => { reject(new Error('HuC6280 Worklet processor failed')); dispose(); };

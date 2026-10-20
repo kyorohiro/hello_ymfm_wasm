@@ -12,7 +12,7 @@ export async function createPWM32XAudio(context, destination, options = {}) {
   });
   try {
     await new Promise((resolve, reject) => {
-      node.port.onmessage = ({data}) => {if (data.ready) resolve(); else if (data.error) reject(new Error(data.error));};
+      node.port.onmessage = ({data}) => {if(data.type==='chip-inspector-result')return;if (data.ready) resolve(); else if (data.error) reject(new Error(data.error));};
       node.onprocessorerror = () => reject(new Error('PWM AudioWorklet failed'));
     });
     options.signal?.throwIfAborted();

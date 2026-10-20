@@ -17,6 +17,7 @@ export function createSnesClient(port,initial={}) {
   port.onmessageerror=()=>fail(new Error('Invalid SNES AudioWorklet message'));port.start?.();
   const client={
     _getState(){return validation.getState();},
+    _stopVoices(){return request('stopVoices');},
     _adoptState(state){if(!state)return;validation.samples=structuredClone(state.samples??[]);validation.channels=structuredClone(state.channels??validation.channels);validation.nextAddress=state.nextAddress??0x400;},
     sampleRate:initial.sampleRate??48000,nativeSampleRate:32000,
     /** @param {ArrayBuffer|ArrayBufferView} input @param {import('./snessynth.js?v=spc-song-js-1').SnesBRROptions} options

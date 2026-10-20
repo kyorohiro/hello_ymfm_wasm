@@ -58,6 +58,7 @@ export async function createOki6258Audio(context, destination, {clock = OKIM6258
       rejectReady = reject;
       timer = setTimeout(() => { reject(new Error('OKIM6258 AudioWorklet initialization timed out')); dispose(); }, 15000); timer.unref?.();
       node.port.onmessage = ({data}) => {
+        if(data.type==='chip-inspector-result')return;
         if (data.ready) resolve();
         else if (data.error) { reject(new Error(data.error)); dispose(); }
       };

@@ -39,6 +39,7 @@ export async function createRf5c164Audio(context, destination, options = {}) {
   try {
     await wait(new Promise((resolve, reject) => {
       node.port.onmessage = ({data}) => {
+        if(data.type==='chip-inspector-result')return;
         if (data.ready) resolve();
         else if (data.error) reject(new Error(data.error));
       };

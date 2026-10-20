@@ -24,6 +24,7 @@ export async function createNesAudio(context, destination, {fds = false, clock =
       readyTimer = setTimeout(() => reject(new Error('NES AudioWorklet initialization timed out')), 15000);
       readyTimer.unref?.();
       node.port.onmessage = ({data}) => {
+        if(data.type==='chip-inspector-result')return;
         if (data.ready) resolve(); else if (data.error) reject(new Error(data.error));
       };
       node.onprocessorerror = () => reject(new Error('NES Worklet failed'));

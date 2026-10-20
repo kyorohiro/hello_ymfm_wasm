@@ -1,10 +1,10 @@
-import {createNesClient} from './playground_nes.js?v=audio-stability-2';
-import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
-import {createHuc6280Client} from './playground_huc6280.js?v=dx7-mode-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
-import {createOki6258Client} from './playground_okim6258.js?v=dx7-mode-1';
-import {createDx7Client} from './playground_dx7.js?v=dx7-mode-1';
+import {createNesClient} from './playground_nes.js?v=dx7-voices-1';
+import {createSnesClient} from './playground_snes.js?v=dx7-voices-1';
+import {createYm2151Client} from './playground_ym2151.js?v=dx7-voices-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=dx7-voices-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=dx7-voices-1';
+import {createOki6258Client} from './playground_okim6258.js?v=dx7-voices-1';
+import {createDx7Client} from './playground_dx7.js?v=dx7-voices-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {

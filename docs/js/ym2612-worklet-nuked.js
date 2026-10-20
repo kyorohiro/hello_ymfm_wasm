@@ -1,5 +1,5 @@
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-mode-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-voices-1';
+import {validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";

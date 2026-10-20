@@ -26,7 +26,7 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
     if (mode.chip === 'dx7') {
       assert.equal(mode.fmChannels,0);
-      assert.deepEqual(mode.chipTabs,[]);
+      assert.deepEqual(mode.chipTabs,['dx7']);
       assert.equal(mode.declarationChip,'dx7');
       assert.equal(mode.legacyDraftKey,'dx7');
       assert.equal(options.clock,undefined,'DX7 uses a fixed internal sample rate rather than a chip clock');
@@ -86,7 +86,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'dx7-mode-1', `${id} cannot reuse its pre-mode processor URL`);
+    assert.equal(url.searchParams.get('v'), 'dx7-voices-1', `${id} cannot reuse its pre-mode processor URL`);
   }
 });
 

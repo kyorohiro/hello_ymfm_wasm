@@ -1,16 +1,17 @@
 import {Oki6258AudioEngine} from './okim6258audioengine.js?v=audio-stability-2';
-import {Oki6258Stream, OKIM6258_CLOCK} from './okim6258synth.js?v=dx7-mode-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
+import {Oki6258Stream, OKIM6258_CLOCK} from './okim6258synth.js?v=dx7-voices-1';
+import {validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
 import factory from '../generated/okim6258_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-mode-1';
-import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=dx7-mode-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-mode-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-voices-1';
+import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=dx7-voices-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-voices-1';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.dead = false;
     this.performance = createProcessorPerformance({chip:'okim6258', apply:(data, port) => this.apply(data, port),
       prepare:(data, port) => {
+        if(data.method==='stopVoices'){this.apply(data,port);return null;}
         if(this.rejectHeldRequest(data,port))return null;
         if (data.method === 'loadMemory') { this.apply(data, port); return null; }
         if (data.id === undefined) return data;
@@ -79,7 +80,7 @@ class Processor extends AudioWorkletProcessor {
         case 'loadMemory': this.inspector.loadMemory(...args); break;
         case 'play': this.stream.play(...args); break;
         case 'stop': case 'keyOff': case 'allNotesOff': this.stream.stop(); break;
-        case 'stopVoices': this.performance.clear();this.stream.stop();break;
+        case 'stopVoices': this.inspector.invoke('auditionAllOff');this.performance.clear();this.stream.stop();break;
         case 'setRepeat': this.stream.repeat=!!args[0];break;
         case 'reset': this.inspector.resetAudition();this.stream.reset(); break;
         case 'clock': this.stream.setClock(validateChipClock(args[0])); break;

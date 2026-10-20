@@ -104,6 +104,9 @@ export async function createDx7Audio(context, destination, options = {}) {
     options.onError?.(error);
   }
   node.port.onmessage = ({data}) => {
+    // Editor validation errors belong to their admin RPC caller. They must not
+    // dispose a healthy synth or turn an invalid edit into a fatal audio error.
+    if (data.type === 'chip-inspector-result') return;
     if (data.ready) readyResolve(data);
     else if (data.fatal || data.error) fail(new Error(data.error ?? 'DX7 AudioWorklet failed.'));
   };

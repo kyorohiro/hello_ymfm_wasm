@@ -34,21 +34,25 @@ class Processor extends AudioWorkletProcessor {
       .then(chip => {
         if (this.dead) { chip.dispose(); return; }
         this.chip = chip; chip.reserveStereoFrames(128);
-        this.inspector = new PsgInspectorState(chip, {clock:()=>this.baseClock*(this.clockResampler?.ratio??1),sampleRate}); this.port.postMessage({ready: true});
+        this.inspector = new PsgInspectorState(chip, {clock:()=>this.baseClock*(this.clockResampler?.ratio??1),sampleRate,
+          dispatch:(command,owner,metadata)=>this.performance.applyImmediate(command,this.port,{owner,...metadata}),
+          beginAudition:(channel,owner)=>this.performance.beginAudition(channel,owner),endAudition:(channel,owner)=>this.performance.endAudition(channel,owner)}); this.port.postMessage({ready: true});
       }).catch(error => { this.dispose(); this.port.postMessage({error: error.message}); });
   }
   retireRemote() {
     this.remote?.close(); this.remote = null;
     const session = this.performance.getStats().activeSession;
     if (session) this.receive({type:'performance-stop', session}, this.port);
-    else {this.performance.clear(); this.apply({method:'allNotesOff'}, this.port);}
+    else this.stopVoices();
   }
-  dispose() { this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); this.workerRemote?.close(); }
+  stopVoices(){this.inspector?.resetAuditions();this.performance.clear();this.apply({method:'allNotesOff'},this.port);}
+  dispose() { this.inspector?.resetAuditions();this.performance.clear(); this.dead = true; this.chip?.dispose(); this.chip = null; this.remote?.close(); this.workerRemote?.close(); }
   receive(data, port=this.port) {
     if (Array.isArray(data)) {for (const command of data) this.receive(command, port); return;}
     if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector ? (action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args) : null))return;
     const stop = data.type === 'performance-stop' && Number.isSafeInteger(data.session) && data.session > 0 && data.session >= this.performance.getStats().latestSession;
-    if(this.performance.receive(data,port)) {if (stop) {this.apply({method:'allNotesOff'},port); this.performance.clear();} return;}
+    if(stop||data.method==='stopVoices'){this.stopVoices();if(stop)this.performance.receive(data,port);if(data.id!==undefined)port.postMessage({id:data.id,value:true});return;}
+    if(this.performance.receive(data,port))return;
     this.apply(data,port);
   }
   apply(data,port) {
@@ -63,7 +67,14 @@ class Processor extends AudioWorkletProcessor {
     }
     if (!this.chip) return;
     if (data.method === 'reset') { this.chip.reset(); this.clockResampler?.resetPhase(); }
-    if (data.method === 'write') this.chip.write(...data.args);
+    if (data.method === 'write') {
+      const byte=data.args[0],register=data.psgRegister;
+      if(!(byte&128)&&Number.isInteger(register)&&register>=0&&register<8&&register!==this.inspector.latched){
+        const low=register&1?byte&15:register===6?this.inspector.mode:this.inspector.periods[register>>1]&15;
+        this.chip.write(0x80|(register<<4)|low);
+      }
+      this.chip.write(byte);
+    }
     if (data.method === 'setStereo' && this.stereoEnabled) this.chip.setStereo(...data.args);
     if (data.method === 'allNotesOff') for (let channel = 0; channel < 4; channel++) this.chip.write(0x9f | (channel << 5));
   }

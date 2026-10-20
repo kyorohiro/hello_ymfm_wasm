@@ -8,13 +8,15 @@ import {SpcResampler} from './spc_resampler.js';
 import {createSnesClient} from './playground_snes.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {createSyntheticSpc} from './spc_test_fixture.mjs';
+import {SnesVoiceInspector} from './playground_snes_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 const brr=new Uint8Array([0xc3,0x12,0x34,0x56,0x76,0x54,0x32,0x10,0xfe]);
 const peak=a=>a.reduce((max,n)=>Math.max(max,Math.abs(n)),0);
 let binaries;
 async function assets(){return binaries??=Promise.all([import('../docs/generated/spc_wasm.js').then(m=>m.default),readFile(new URL('../docs/generated/spc_wasm.wasm',import.meta.url)),readFile(new URL('./playground_snes_worklet.js',import.meta.url),'utf8')]);}
 async function setup(rate=48000) {
   const [factory,wasmBinary,source]=await assets(),main=new MessageChannel();let Processor;
-  const scope={factory,SnesDspCore,SnesSynth,SpcResampler,sampleRate:rate,currentFrame:0,
+  const scope={factory,SnesDspCore,SnesSynth,SpcResampler,SnesVoiceInspector,receiveChipInspector,sampleRate:rate,currentFrame:0,
     AudioWorkletProcessor:class{constructor(){this.port=main.port1;}},registerProcessor(name,Class){assert.equal(name,'tetorica-playground-snes');Processor=Class;}};
   scope.createProcessorPerformance=options=>createProcessorPerformance({...options,rate,nowFrame:()=>scope.currentFrame});
   vm.runInNewContext(source.replace(/^import .*;\n/gm,'').replace('export class SnesInstrumentProcessor','class SnesInstrumentProcessor'),scope);
@@ -36,6 +38,42 @@ for(const rate of [44100,48000])test(`SNES instrument Worklet matches native DSP
   p.client.keyOff(7);synth.keyOff(7);await p.client.getState();
   const pcm=p.render(1024),left=new Float32Array(1024),right=new Float32Array(1024);resampler.render(left,right);assert.deepEqual(pcm.left,left);
   assert.equal((await p.client.snapshot()).dsp[0x5c],0xfe,'KOFF releases channel7 while channel0 stays enabled');
+});
+
+test('SNES Keyboard requires authored BRR, reads applied DSP without advancing, and ignores stale manual releases',async t=>{
+  const p=await setup();t.after(()=>p.close());const inspector=p.processor.inspector;
+  assert.throws(()=>inspector.invoke('auditionOn',[0,69,'empty']),/Assign a BRR sample/);assert.equal(p.processor.synth.samples.length,0,'Keyboard must not create a hidden sample');
+  const sample=await p.client.loadBRR(brr,{rootNote:69,loopStartSamples:0});p.client.setPreset(0,{sample,gain:100,volumeLeft:80,volumeRight:90});await p.client.getState();
+  inspector.invoke('auditionOn',[0,69,'old']);assert(peak(p.render(1024).left)>.01);const frame=p.processor.synth.core.nativeFrames,preset=inspector.read().channels[0];
+  for(let i=0;i<10;i++)assert.equal(inspector.read().channels[0].sample,sample.id);assert.equal(p.processor.synth.core.nativeFrames,frame,'polling cannot render');
+  inspector.invoke('auditionOn',[0,72,'new']);assert.equal(inspector.invoke('auditionOff',[0,'old']),false);assert.equal(inspector.read().channels[0].active,true);assert(peak(p.render(1024).left)>.01);assert(inspector.read().channels[0].pitch>preset.pitch,'MIDI uses declared BRR tuning');
+  inspector.invoke('auditionOff',[0,'new']);p.render(2048);assert.equal(peak(p.render(128).left),0);assert.equal(inspector.read().channels[0].gain,100);assert.equal(inspector.read().channels[0].sample,0);
+});
+
+test('SNES manual channel survives Main/Worker preset, KOFF/KON masks and allNotesOff while another channel advances',async t=>{
+  const p=await setup();t.after(()=>p.close());const processor=p.processor,inspector=processor.inspector,sample=await p.client.loadBRR(brr,{rootNote:69,loopStartSamples:0}),port={postMessage(){}};
+  for(const ch of [0,1])p.client.setPreset(ch,{sample,gain:127});await p.client.getState();inspector.invoke('auditionOn',[0,69,'held']);p.render(512);const pitch=inspector.read().channels[0].pitch;
+  processor.receive({method:'setPitch',args:[0,123]},port);processor.receive({method:'keyOff',args:[0]},port);processor.receive({method:'allNotesOff'},port);assert.equal(inspector.read().channels[0].pitch,pitch);assert(inspector.read().channels[0].active);
+  processor.receive({type:'performance-start',session:20},port);processor.receive({performance:{session:20,owner:'code',time:p.scope.currentFrame/48000},commands:[{method:'setPitch',args:[0,234]},{method:'keyOff',args:[0]},{method:'noteOn',args:[1,72]},{method:'writeDsp',args:[0x5c,3]}]},port);p.render(128);
+  assert.equal(inspector.read().channels[0].pitch,pitch);assert(inspector.read().channels[0].active);assert.equal(inspector.read().channels[1].active,false,'masked KOFF still releases the unheld channel');
+  processor.receive({method:'writeDsp',args:[0x4c,3]},port);assert(inspector.read().channels[0].active);assert(inspector.read().channels[1].active,'masked KON still starts the unheld channel');assert(peak(p.render(1024).left)>.01);
+  processor.receive({type:'performance-cancel-owner',session:20,owner:'code'},port);assert(inspector.read().channels[0].active,'cancelled code owner does not release the manual voice');
+  inspector.invoke('auditionOff',[0,'held']);processor.receive({method:'noteOn',args:[0,72]},port);assert(inspector.read().channels[0].pitch>pitch,'code resumes after manual release');
+});
+
+test('SNES Stop clears manual IDs, queued notes and release tails while retaining BRR and applied raw/current voice settings',async t=>{
+  const p=await setup();t.after(()=>p.close());const processor=p.processor,inspector=processor.inspector,sample=await p.client.loadBRR(brr,{rootNote:69,loopStartSamples:0}),port={postMessage(){}};
+  p.client.setPreset(0,{sample,gain:127,volumeLeft:80,volumeRight:70});await p.client.getState();inspector.invoke('auditionOn',[0,69,'old-stop']);assert(peak(p.render(512).left)>.01);
+  const before=inspector.read();processor.receive({type:'performance-start',session:30},port);processor.receive({performance:{session:30,owner:'late',time:1},commands:[{method:'noteOn',args:[0,72]}]},port);processor.receive({method:'stopVoices'},port);
+  const stopped=inspector.read();assert.deepEqual(stopped.samples,before.samples);for(const key of ['sample','adsr1','adsr2','gain','volumeLeft','volumeRight','pitch'])assert.equal(stopped.channels[0][key],before.channels[0][key]);assert.equal(stopped.auditions.length,0);assert(stopped.channels.every(ch=>!ch.active));assert.equal(processor.performance.getStats().queuedCommands,0);assert.equal(peak(p.render(48001).left),0,'Stop has no hardware release or stale future note');
+  assert.equal(inspector.invoke('auditionOff',[0,'old-stop']),false);inspector.invoke('auditionOn',[0,69,'new-stop']);assert(peak(p.render(1024).left)>.01,'same authored instrument can be auditioned after Stop');
+});
+
+test('SNES Stop ACK waits for remote silence before allowing a subsequent admin audition',async t=>{
+  const p=await setup();t.after(()=>p.close());const processor=p.processor,sample=await p.client.loadBRR(brr,{rootNote:69,loopStartSamples:0});p.client.setPreset(0,{sample,gain:127});await p.client.getState();processor.inspector.invoke('auditionOn',[0,69,'old']);assert(peak(p.render(512).left)>.01);
+  const receive=processor.receive.bind(processor);let delayed,settled=false,received;const observed=new Promise(resolve=>received=resolve);processor.receive=(data,port)=>{if(data.method==='stopVoices'){delayed={data,port};received();}else receive(data,port);};
+  const pending=p.client._stopVoices().then(value=>{settled=true;return value;});pending.catch(()=>{});await observed;assert.equal(settled,false,'posting a Stop must not complete its cross-port fence');assert(processor.inspector.read().channels[0].active);
+  receive(delayed.data,delayed.port);assert.equal(await pending,true);assert.equal(settled,true);assert.equal(processor.inspector.read().auditions.length,0);assert.equal(peak(p.render(128).left),0);processor.inspector.invoke('auditionOn',[0,69,'new']);assert(peak(p.render(1024).left)>.01,'new admin audition survives after the acknowledged remote Stop');
 });
 test('SNES timed preset/note apply at reserved output frame and owner replacement cannot be released by old loop',async t=>{
   const p=await setup();t.after(()=>p.close());const sample=await p.client.loadBRR(brr,{rootNote:60,loopStartSamples:0});

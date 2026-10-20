@@ -5,7 +5,7 @@ import {NES_APU_CLOCK, validateNesApuClock} from './nesapu.js';
 export async function createNesAudio(context, destination, {fds = false, clock = NES_APU_CLOCK, signal, workletUrl} = {}) {
   validateNesApuClock(clock);
   signal?.throwIfAborted();
-  await waitForInitialization(context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js?v=dx7-mode-1', import.meta.url)), signal);
+  await waitForInitialization(context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js?v=dx7-voices-1', import.meta.url)), signal);
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-nes', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {fds, clock},
@@ -24,6 +24,7 @@ export async function createNesAudio(context, destination, {fds = false, clock =
       readyTimer = setTimeout(() => reject(new Error('NES AudioWorklet initialization timed out')), 15000);
       readyTimer.unref?.();
       node.port.onmessage = ({data}) => {
+        if(data.type==='chip-inspector-result')return;
         if (data.ready) resolve(); else if (data.error) reject(new Error(data.error));
       };
       node.onprocessorerror = () => reject(new Error('NES Worklet failed'));

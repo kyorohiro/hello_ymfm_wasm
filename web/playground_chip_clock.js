@@ -45,7 +45,7 @@ export class ChipClockResampler {
  * @template T
  * @param {T} client @param {MessagePort} port @param {number} initialClock
  * @param {{primary?:boolean, batch?:boolean, onApplied?:(hz:number)=>void}} [options]
- * @returns {T & {readonly clock:number, setClock(hz:number):Promise<void>}}
+ * @returns {T & {readonly clock:number, setClock(hz:number):Promise<void>, _requestControl(method:string,args?:any[]):Promise<any>}}
  */
 export function attachChipClock(client, port, initialClock, {primary = false, batch = false, onApplied = () => {}} = {}) {
   let clock = initialClock, sequence = 0, disposed = false;
@@ -57,7 +57,7 @@ export function attachChipClock(client, port, initialClock, {primary = false, ba
     if (!entry) { if (!port.addEventListener) previous?.call(port, event); return; }
     pending.delete(data.id);
     if (data.error) entry.reject(new Error(data.error));
-    else { try { clock = entry.hz; onApplied(clock); entry.resolve(); } catch (error) { entry.reject(error); } }
+    else { try { if(entry.hz!==undefined){clock = entry.hz; onApplied(clock);}entry.resolve(data.value); } catch (error) { entry.reject(error); } }
   };
   if (port.addEventListener) port.addEventListener('message', listener);
   else port.onmessage = listener;
@@ -74,9 +74,17 @@ export function attachChipClock(client, port, initialClock, {primary = false, ba
       catch (error) { pending.delete(id); throw error; }
     } catch (error) { reject(error); }
   });
+  Object.defineProperty(client,'_requestControl',{value:(method,args=[])=>new Promise((resolve,reject)=>{
+    try{
+      if(disposed)throw new Error('Chip disposed');
+      const id=`chip-control:${++sequence}`;pending.set(id,{resolve,reject});
+      try{port.postMessage({method,args,id});}catch(error){pending.delete(id);throw error;}
+    }catch(error){reject(error);}
+  })});
   Object.defineProperty(client, '_cancelClockRequests', {value: reason => {
-    for (const entry of pending.values()) entry.reject(new Error(reason));
-    pending.clear();
+    // Stop/control acknowledgements fence another port; retiring a script's
+    // pending clock edits must not make that fence resolve before physical Stop.
+    for (const [id,entry] of pending) if(entry.hz!==undefined){entry.reject(new Error(reason));pending.delete(id);}
   }});
   const dispose = client.dispose;
   if (dispose) client.dispose = () => {

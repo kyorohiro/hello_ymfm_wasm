@@ -4,7 +4,7 @@
  * @param {{signal?:AbortSignal,clock?:number,gain?:number,outputMode?:'dac'|'duty'}} [options] */
 export async function createPWM32XAudio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
-  await context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=dx7-mode-1', import.meta.url));
+  await context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=dx7-voices-1', import.meta.url));
   options.signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-pwm32x', {
     numberOfInputs: 0, outputChannelCount: [2],
@@ -12,7 +12,7 @@ export async function createPWM32XAudio(context, destination, options = {}) {
   });
   try {
     await new Promise((resolve, reject) => {
-      node.port.onmessage = ({data}) => {if (data.ready) resolve(); else if (data.error) reject(new Error(data.error));};
+      node.port.onmessage = ({data}) => {if(data.type==='chip-inspector-result')return;if (data.ready) resolve(); else if (data.error) reject(new Error(data.error));};
       node.onprocessorerror = () => reject(new Error('PWM AudioWorklet failed'));
     });
     options.signal?.throwIfAborted();

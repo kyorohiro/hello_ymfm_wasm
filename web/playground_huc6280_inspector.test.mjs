@@ -22,7 +22,7 @@ async function setup(){
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
   const processor=new Processor({processorOptions:{clock:HUC6280_CLOCK,wasmBinary:await readFile(new URL('../docs/generated/huc6280_wasm.wasm',import.meta.url))}});assert.equal((await ready).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createHuc6280Client(clientPort);client.initialize();
-  return {processor,client,messages,port,
+  return {processor,client,clientPort,messages,port,
     receive(data){processor.receive(data,port);},
     read(){processor.receive({type:'chip-inspector',id:'read',action:'read'},port);const reply=messages.at(-1);if(reply.error)throw new Error(reply.error);return reply.value;},
     invoke(method,args=[]){processor.receive({type:'chip-inspector',id:'invoke',action:'invoke',method,args},port);const reply=messages.at(-1);if(reply.error)throw new Error(reply.error);return reply.value;},
@@ -43,6 +43,27 @@ test('PCE all six channels expose applied waveform/volume/pan/pitch/noise and at
     p.invoke('setMasterVolume',[{left:9}]);assert.deepEqual(p.read().masterVolume,{left:9,right:15});p.invoke('setLfo',[{frequency:23,depth:2,reset:true}]);p.invoke('setLfo',[{depth:1}]);assert.deepEqual(p.read().lfo,{frequency:23,depth:1,reset:true});
     p.invoke('setVoice',[0,{period:0}]);assert.equal(p.read().channels[0].frequency,HUC6280_CLOCK/(32*4096));
     const before=p.read();assert.throws(()=>p.invoke('setVoice',[0,{volume:12,noise:{enabled:true}}]),/Noise/);assert.deepEqual(p.read(),before);
+  }finally{p.dispose();}
+});
+
+test('PCE Stop RPC waits for applied gates and lease retirement before a new admin audition',async()=>{
+  const p=await setup();try{
+    p.invoke('setVoice',[0,{volume:23,pan:{left:15,right:11},frequency:440,waveform:wave}]);p.invoke('auditionOn',[0,69,'old']);
+    const before=p.read();p.receive({type:'performance-start',session:1});
+    p.receive({performance:{session:1,owner:'future',time:5},commands:[{method:'writeRegister',args:[4,255],channel:0}]});
+    let release,done=false;const post=p.clientPort.postMessage;
+    p.clientPort.postMessage=data=>{if(data.method==='stopVoices')release=()=>post(data);else post(data);};
+    const stopped=p.client._stopVoices().then(()=>done=true);p.client._cancelClockRequests('Run stopped');
+    await Promise.resolve();assert.equal(done,false);assert.equal(p.read().channels[0].active,true);
+    release();await stopped;const after=p.read().channels[0],old=before.channels[0];
+    assert.equal(after.active,false);assert.deepEqual(after.waveform,old.waveform);assert.equal(after.period,old.period);
+    assert.equal(after.volume,old.volume);assert.deepEqual(after.pan,old.pan);assert.equal(p.read().clock,before.clock);
+    assert.equal(p.processor.performance.getStats().queuedCommands,0);assert.equal(p.invoke('auditionOff',[0,'old']),false);
+    p.invoke('auditionOn',[0,72,'new']);assert(peak(p.render(4096)[0])>.01);assert.equal(p.read().channels[0].active,true);
+    p.receive({performance:{session:1,owner:'cleanup',time:5},commands:[{method:'stopVoices',id:'stop-ack'}]});
+    assert(p.messages.some(reply=>reply.id==='stop-ack'&&!reply.error));assert.equal(p.read().channels[0].active,false);
+    assert.equal(p.invoke('auditionOff',[0,'new']),false);assert.equal(p.processor.performance.getStats().queuedCommands,0);
+    const pending=p.client._stopVoices();p.client.dispose();await assert.rejects(pending,/disposed/i);
   }finally{p.dispose();}
 });
 

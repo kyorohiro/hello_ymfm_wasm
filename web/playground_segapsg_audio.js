@@ -46,6 +46,7 @@ export async function createSegaPsgAudio(context, destination, options = {}) {
       rejectReady = reject;
       timer = setTimeout(() => { reject(new Error('Sega PSG AudioWorklet initialization timed out')); dispose(); }, 15000); timer.unref?.();
       node.port.onmessage = ({data}) => {
+        if(data.type==='chip-inspector-result')return;
         if (data.ready) resolve(); else if (data.error) { reject(new Error(data.error)); dispose(); }
       };
       node.onprocessorerror = () => { reject(new Error('Sega PSG Worklet processor failed')); dispose(); };

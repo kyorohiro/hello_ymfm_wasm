@@ -4,17 +4,17 @@ import assert from "node:assert/strict";
 import {
   YM2203DirectTransport,
   YM2203Synth,
-} from "../js/ym2203synth.js?v=audio-stability-2";
+} from "../js/ym2203synth.js?v=dx7-voices-1";
 import {
   YM2608DirectTransport,
   YM2608RuntimeSynth,
   YM2608Synth,
-} from "../js/ym2608synth.js?v=audio-stability-2";
-import { OPNWorkletTransport } from "../js/opn_fm_synth.js?v=audio-stability-2";
+} from "../js/ym2608synth.js?v=dx7-voices-1";
+import { OPNWorkletTransport } from "../js/opn_fm_synth.js?v=dx7-voices-1";
 import {
   createTetoricaSynth,
   normalizeTetoricaChip,
-} from "../js/tetorica_synth.js?v=audio-stability-2";
+} from "../js/tetorica_synth.js?v=dx7-voices-1";
 
 function createTransport() {
   const writes = [];

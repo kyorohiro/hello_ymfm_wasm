@@ -23,7 +23,7 @@ async function setup(){
   const processor=new Processor({processorOptions:{clock:OKIM6258_CLOCK,wasmBinary:await readFile(new URL('../docs/generated/okim6258_wasm.wasm',import.meta.url))}});
   assert.equal((await ready).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createOki6258Client(clientPort);
-  return {processor,port,client,messages,
+  return {processor,port,client,clientPort,messages,
     receive(data){processor.receive(data,port);},
     request(action,method,args=[]){processor.receive({type:'chip-inspector',id:'inspect',action,method,args},port);const reply=messages.at(-1);if(reply.error)throw new Error(reply.error);return reply.value;},
     read(){return this.request('read');},invoke(method,args=[]){return this.request('invoke',method,args);},
@@ -43,6 +43,25 @@ test('OKI snapshots include applied divider/pan/rate and client-side decoded wav
     s=p.read();const invalid=()=>p.invoke('setVoice',[{divider:512,pan:{left:'yes'}}]);assert.throws(invalid,/boolean/);assert.deepEqual(p.read(),s);assert.equal(writes,0);assert.equal(renders,0);
     p.receive({type:'performance-start',session:1});p.receive({performance:{session:1,owner:'future',time:.01},commands:[{method:'writeRegister',args:[12,2]}]});assert.deepEqual(p.read(),s);assert.equal(writes,0);assert.equal(renders,0);assert.equal(p.processor.performance.getStats().queuedCommands,1);
     p.render(481);assert.equal(p.read().divider,512);
+  }finally{p.dispose();}
+});
+
+test('OKI Stop RPC waits for applied silence and lease retirement while keeping sample and playback settings',async()=>{
+  const p=await setup();try{
+    await load(p);p.invoke('setVoice',[{repeat:true,divider:768,pan:{left:false,right:true}}]);p.invoke('auditionOn',[0,60,'old']);
+    const before=p.read();p.receive({type:'performance-start',session:1});p.receive({performance:{session:1,owner:'future',time:5},commands:[{method:'play',args:[{repeat:true}]}]});
+    let release,done=false;const post=p.clientPort.postMessage;
+    p.clientPort.postMessage=data=>{if(data.method==='stopVoices')release=()=>post(data);else post(data);};
+    const stopped=p.client._stopVoices().then(()=>done=true);p.client._cancelClockRequests('Run stopped');
+    await Promise.resolve();assert.equal(done,false);assert.equal(p.read().playing,true);
+    release();await stopped;const after=p.read();assert.equal(after.playing,false);assert.equal(after.clock,before.clock);
+    assert.equal(after.divider,before.divider);assert.equal(after.repeat,before.repeat);assert.deepEqual(after.pan,before.pan);assert.deepEqual(after.sample,before.sample);
+    assert.equal(p.processor.performance.getStats().queuedCommands,0);assert.equal(p.invoke('auditionOff',[0,'old']),false);
+    p.invoke('auditionOn',[0,72,'new']);assert(peak(p.render(4096)[1])>.1);assert.equal(p.read().playing,true);
+    p.receive({performance:{session:1,owner:'cleanup',time:5},commands:[{method:'stopVoices',id:'stop-ack'}]});
+    assert(p.messages.some(reply=>reply.id==='stop-ack'&&!reply.error));assert.equal(p.read().playing,false);
+    assert.equal(p.invoke('auditionOff',[0,'new']),false);assert.equal(p.processor.performance.getStats().queuedCommands,0);
+    const pending=p.client._stopVoices();p.client.dispose();await assert.rejects(pending,/disposed/i);
   }finally{p.dispose();}
 });
 

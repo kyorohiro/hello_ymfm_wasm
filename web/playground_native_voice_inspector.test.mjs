@@ -167,6 +167,28 @@ for(const path of ['Main','Worker'])test(`NES ${path}: Stop uses applied FDS pit
   }finally{p.dispose();}
 });
 
+test('NES Stop RPC waits for applied FDS silence and lease retirement before a new admin audition',async()=>{
+  const p=await setup('nes');try{
+    const state=p.synth._getState();let release,done=false;
+    const port={start(){},close(){},postMessage:data=>{
+      const apply=()=>p.processor.receive(data,{postMessage:reply=>port.onmessage?.({data:reply})});
+      if(data.method==='stopVoices')release=apply;else apply();
+    }},client=createNesClient(port,{fdsEnabled:true,state});
+    p.invoke('setFdsWave',[Array.from({length:64},(_,i)=>i)]);p.invoke('setFdsVolume',[25]);p.invoke('auditionOn',[5,69,'old']);const before=p.read().fds;
+    p.receive({type:'performance-start',session:1});p.receive({performance:{session:1,owner:'future',time:5},commands:[{method:'writeRegister',args:[0x4083,0]}]});
+    const stopped=client._stopVoices().then(()=>done=true);client._cancelClockRequests('Run stopped');
+    await Promise.resolve();assert.equal(done,false);assert.equal(p.read().fds.active,true);
+    release();await stopped;const after=p.read().fds;assert.equal(after.active,false);assert.equal(after.period,before.period);
+    assert.deepEqual(after.wave,before.wave);assert.equal(after.gain,before.gain);assert.deepEqual(after.modulation,before.modulation);
+    assert.equal(p.processor.performance.getStats().queuedCommands,0);assert.equal(p.invoke('auditionOff',[5,'old']),false);
+    p.invoke('auditionOn',[5,72,'new']);assert(peak(p.render(4096)[0])>.001);assert.equal(p.read().fds.active,true);
+    p.receive({performance:{session:1,owner:'cleanup',time:5},commands:[{method:'stopVoices',id:'stop-ack'}]});
+    assert(p.messages.some(reply=>reply.id==='stop-ack'&&!reply.error));assert.equal(p.read().fds.active,false);
+    assert.equal(p.invoke('auditionOff',[5,'new']),false);assert.equal(p.processor.performance.getStats().queuedCommands,0);
+    const pending=client._stopVoices();client.dispose();await assert.rejects(pending,/disposed/i);
+  }finally{p.dispose();}
+});
+
 test('NES Worker owner cancellation halts FDS without clearing its frequency high nibble',async()=>{
   const p=await setup('nes');try{
     p.receive({type:'performance-start',session:1});

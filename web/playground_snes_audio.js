@@ -19,7 +19,7 @@ export async function createSnesAudio(context,destination,options={}) {
   context.addEventListener?.('statechange',closed);
   const abort=()=>{rejectReady?.(options.signal.reason);dispose();};options.signal?.addEventListener('abort',abort,{once:true});
   try {
-    const state=await wait(new Promise((resolve,reject)=>{rejectReady=reject;readyTimer=setTimeout(()=>{reject(new Error('SNES AudioWorklet initialization timed out'));dispose();},15000);readyTimer.unref?.();node.port.onmessage=({data})=>{if(data.ready)resolve(data);else if(data.error||data.fatal){reject(new Error(data.error??'SNES Worklet failed'));endpoint?.dispose();}};node.onprocessorerror=()=>{reject(new Error('SNES Worklet processor failed'));endpoint?.dispose();};}));
+    const state=await wait(new Promise((resolve,reject)=>{rejectReady=reject;readyTimer=setTimeout(()=>{reject(new Error('SNES AudioWorklet initialization timed out'));dispose();},15000);readyTimer.unref?.();node.port.onmessage=({data})=>{if(data.type==='chip-inspector-result')return;if(data.ready)resolve(data);else if(data.error||data.fatal){reject(new Error(data.error??'SNES Worklet failed'));endpoint?.dispose();}};node.onprocessorerror=()=>{reject(new Error('SNES Worklet processor failed'));endpoint?.dispose();};}));
     clearTimeout(readyTimer);options.signal?.throwIfAborted();if(context.state==='closed')throw new Error('SNES AudioContext was closed');
     node.port.postMessage({port:channel.port1},[channel.port1]);if(destination)node.connect(destination);
     endpoint={node,port:channel.port2,sampleRate:state.sampleRate,nativeSampleRate:32000,dispose};return endpoint;

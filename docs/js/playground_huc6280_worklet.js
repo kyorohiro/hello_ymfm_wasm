@@ -1,10 +1,10 @@
-import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?v=audio-stability-2';
+import {ChipClockResampler, validateChipClock} from './playground_chip_clock.js?v=dx7-voices-1';
 import {Huc6280AudioEngine} from './huc6280audioengine.js?v=audio-stability-2';
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import factory from '../generated/huc6280_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-mode-1';
-import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=dx7-mode-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-mode-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=dx7-voices-1';
+import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=dx7-voices-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=dx7-voices-1';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
@@ -14,6 +14,7 @@ class Processor extends AudioWorkletProcessor {
       getHucChannel:()=>this.selectedChannel,
       releaseNote:key => ({method:'keyOff', args:[key]}),
       prepare:(data, port) => {
+        if(data.method==='stopVoices'){this.apply(data,port);return null;}
         if (data.type === 'chip-clock' || data.method === 'clock') {
           try {
             if (!this.chip) throw new Error('HuC6280 not ready');
@@ -100,10 +101,17 @@ class Processor extends AudioWorkletProcessor {
       }
       return;
     }
+    if(data.method==='stopVoices'){
+      try{
+        if(!this.chip)throw new Error('HuC6280 not ready');
+        this.inspector?.invoke('auditionAllOff');this.performance.clear();this.apply({method:'allNotesOff'},port);
+        if(data.id!==undefined)port.postMessage({id:data.id,value:true});
+      }catch(error){if(data.id!==undefined)port.postMessage({id:data.id,error:error.message});}
+      return;
+    }
     if (!this.chip) return;
     if (data.type === 'clear-scheduled-writes') { this.performance.clear(); return; }
     if (data.method === 'reset') { this.chip.reset();this.inspector?.reset();this.clockResampler?.resetPhase(); this.selectedChannel = 0; this.controls.fill(0); }
-    if (data.method === 'stopVoices') {this.performance.clear();this.apply({method:'allNotesOff'},port);}
     if (data.method === 'writeRegister') {
       const [register,value]=data.args,target=data.channel,previous=this.selectedChannel;
       if(register>=2&&register<=7&&Number.isInteger(target)&&target>=0&&target<=7&&target!==previous){this.write(0,target);this.write(register,value);this.write(0,previous);}

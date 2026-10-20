@@ -1,23 +1,23 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=dx7-mode-1';
-import {createNesAudio} from './playground_nes_audio.js?v=dx7-mode-1';
-import {createNesClient} from './playground_nes.js?v=audio-stability-2';
-import {createSnesAudio} from './playground_snes_audio.js?v=dx7-mode-1';
-import {createSnesClient} from './playground_snes.js?v=native-modes-3';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=dx7-mode-1';
-import {createYm2151Client} from './playground_ym2151.js?v=audio-stability-2';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=dx7-mode-1';
-import {createOki6258Client} from './playground_okim6258.js?v=dx7-mode-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=dx7-mode-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=dx7-mode-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=dx7-mode-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=sega-modes-1';
-import {createDx7Audio} from './playground_dx7_audio.js?v=dx7-mode-1';
-import {createDx7Client} from './playground_dx7.js?v=dx7-mode-1';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=dx7-voices-1';
+import {createNesAudio} from './playground_nes_audio.js?v=dx7-voices-1';
+import {createNesClient} from './playground_nes.js?v=dx7-voices-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=dx7-voices-1';
+import {createSnesClient} from './playground_snes.js?v=dx7-voices-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=dx7-voices-1';
+import {createYm2151Client} from './playground_ym2151.js?v=dx7-voices-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=dx7-voices-1';
+import {createOki6258Client} from './playground_okim6258.js?v=dx7-voices-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=dx7-voices-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=dx7-voices-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=dx7-voices-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=dx7-voices-1';
+import {createDx7Audio} from './playground_dx7_audio.js?v=dx7-voices-1';
+import {createDx7Client} from './playground_dx7.js?v=dx7-voices-1';
 
 const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg', 'dx7']);
 
-/** @typedef {Pick<import('./megasynth.js?v=dx7-mode-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+/** @typedef {Pick<import('./megasynth.js?v=dx7-voices-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7', clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * extraOki?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL}
@@ -121,26 +121,35 @@ export class NativeRuntimeSynth {
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
     const {nes, snes, opm, adpcm, pce, psg, dx7} = this.primaryApis;
-    if (nes?._stopVoices) nes._stopVoices();
+    const pending=[],track=result=>{if(result?.then)pending.push(Promise.resolve(result));};
+    if (nes?._stopVoices) track(nes._stopVoices());
     else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
-    if (snes) {
+    if (snes?._stopVoices) track(snes._stopVoices());
+    else if (snes) {
       try { snes.allNotesOff(); }
       catch (error) {
         if (!/timeline mode is exclusive/.test(String(error?.message))) throw error;
         // Timeline playback has a separate stop path and keeps its prepared data.
-        snes.stopTimeline().catch(() => {});
+        track(snes.stopTimeline());
       }
     }
-    if (opm?._stopVoices) opm._stopVoices();
+    if (opm?._stopVoices) track(opm._stopVoices());
     else opm?.allNotesOff();
-    if (adpcm?._stopVoices) adpcm._stopVoices();
+    if (adpcm?._stopVoices) track(adpcm._stopVoices());
     else adpcm?.stop();
-    if (pce?._stopVoices) pce._stopVoices();
+    if (pce?._stopVoices) track(pce._stopVoices());
     else pce?.allNotesOff();
-    psg?.allNotesOff();
-    const pending=dx7?._stopVoices();
-    pending?.catch(()=>{});
-    return pending;
+    if (psg?._stopVoices) track(psg._stopVoices());
+    else psg?.allNotesOff();
+    if(dx7)track(dx7._stopVoices());
+    if(!pending.length)return;
+    // A failed endpoint must not let a later audition overtake another chip's
+    // still-pending Stop. Preserve rejection after every endpoint has settled.
+    const stopped=Promise.allSettled(pending).then(results=>{
+      const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
+    });
+    stopped.catch(()=>{});
+    return stopped;
   }
   reset() { this.stopAllNative(); }
 

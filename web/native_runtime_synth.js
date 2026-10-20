@@ -121,26 +121,35 @@ export class NativeRuntimeSynth {
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
     const {nes, snes, opm, adpcm, pce, psg, dx7} = this.primaryApis;
-    if (nes?._stopVoices) nes._stopVoices();
+    const pending=[],track=result=>{if(result?.then)pending.push(Promise.resolve(result));};
+    if (nes?._stopVoices) track(nes._stopVoices());
     else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
-    if (snes) {
+    if (snes?._stopVoices) track(snes._stopVoices());
+    else if (snes) {
       try { snes.allNotesOff(); }
       catch (error) {
         if (!/timeline mode is exclusive/.test(String(error?.message))) throw error;
         // Timeline playback has a separate stop path and keeps its prepared data.
-        snes.stopTimeline().catch(() => {});
+        track(snes.stopTimeline());
       }
     }
-    if (opm?._stopVoices) opm._stopVoices();
+    if (opm?._stopVoices) track(opm._stopVoices());
     else opm?.allNotesOff();
-    if (adpcm?._stopVoices) adpcm._stopVoices();
+    if (adpcm?._stopVoices) track(adpcm._stopVoices());
     else adpcm?.stop();
-    if (pce?._stopVoices) pce._stopVoices();
+    if (pce?._stopVoices) track(pce._stopVoices());
     else pce?.allNotesOff();
-    psg?.allNotesOff();
-    const pending=dx7?._stopVoices();
-    pending?.catch(()=>{});
-    return pending;
+    if (psg?._stopVoices) track(psg._stopVoices());
+    else psg?.allNotesOff();
+    if(dx7)track(dx7._stopVoices());
+    if(!pending.length)return;
+    // A failed endpoint must not let a later audition overtake another chip's
+    // still-pending Stop. Preserve rejection after every endpoint has settled.
+    const stopped=Promise.allSettled(pending).then(results=>{
+      const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
+    });
+    stopped.catch(()=>{});
+    return stopped;
   }
   reset() { this.stopAllNative(); }
 

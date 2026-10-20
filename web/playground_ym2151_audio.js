@@ -31,7 +31,7 @@ export async function createYm2151Audio(context, destination, options = {}) {
     await waitForInitialization(new Promise((resolve, reject) => {
       readyTimer = setTimeout(() => reject(new Error('YM2151 AudioWorklet initialization timed out')), 15000);
       readyTimer.unref?.();
-      node.port.onmessage = ({data}) => { if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
+      node.port.onmessage = ({data}) => { if(data.type==='chip-inspector-result')return; if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
       node.onprocessorerror = () => reject(new Error('YM2151 Worklet failed'));
     }), signal);
     clearTimeout(readyTimer); signal?.throwIfAborted();

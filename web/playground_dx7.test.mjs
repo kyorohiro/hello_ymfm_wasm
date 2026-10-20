@@ -9,6 +9,8 @@ import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOper
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {createPerformanceSender} from './playground_performance_sender.js';
 import {createNativeWorkerApis} from './playground_native_primary.js';
+import {Dx7VoiceInspector} from './playground_dx7_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 
 const wasmBytes = new Uint8Array(await readFile(new URL('./msfa_dx7/wasm/msfa.wasm', import.meta.url)));
 const workletSource = (await readFile(new URL('./playground_dx7_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
@@ -17,7 +19,7 @@ const peak = pcm => pcm.reduce((maximum, value) => Math.max(maximum, Math.abs(va
 
 function processorClass(port, sampleRate) {
   let Processor;
-  const scope={currentFrame:0,createDX7, createInitVoice, createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators,sampleRate,
+  const scope={currentFrame:0,createDX7, createInitVoice, createVoiceSysex,parseSysex,presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators,Dx7VoiceInspector,receiveChipInspector,sampleRate,
     AudioWorkletProcessor: class { constructor() { this.port = port; } },
     registerProcessor(name, value) { assert.equal(name, 'tetorica-playground-dx7'); Processor = value; },
   };
@@ -434,6 +436,28 @@ test('DX7 endpoints reuse WASM/module loads but own independent cores and dispos
   assert.equal(routeReleased, 1, 'fatal cleanup must call the runtime route wrapper');
   assert.equal(nodes[0].disconnected, 1);
   assert.throws(() => first.noteOn(60), /disposed/);
+});
+
+test('a rejected DX7 admin edit preserves the healthy endpoint, patch and subsequent audible playback', {timeout:1500},async t=>{
+  const errors=[],{context,nodes}=fakeAudioEnvironment(t,48000);
+  const endpoint=await createDx7Audio(context,{}, {fetch:async()=>new Response(wasmBytes),onError:error=>errors.push(error)});
+  const client=createDx7Client(endpoint.port,endpoint);t.after(()=>{client.dispose();endpoint.dispose();});
+  const before=await client.getPreset();let disposed=0,sequence=0;const dispose=endpoint.dispose;
+  endpoint.dispose=()=>{disposed++;dispose();};
+  const request=(action,method,args=[])=>new Promise((resolve,reject)=>{
+    const id=`admin-regression:${++sequence}`,port=endpoint.node.port;
+    const listener=({data})=>{
+      if(data.type!=='chip-inspector-result'||data.id!==id)return;
+      port.removeEventListener('message',listener);data.error?reject(new Error(data.error)):resolve(data.value);
+    };
+    port.addEventListener('message',listener);port.postMessage({type:'chip-inspector',action,method,args,id});
+  });
+  await assert.rejects(request('invoke','setOperator',[1,{outputLevel:100}]),/outputLevel/);
+  await settle();assert.equal(nodes[0].processor.dead,false);assert.equal(disposed,0);assert.equal(nodes[0].disconnected,0);assert.deepEqual(errors,[]);
+  assert.deepEqual(await client.getPreset(),before,'invalid admin RPC must preserve the existing patch');
+  const changed=await request('invoke','setOperator',[1,{coarse:2}]);assert.equal(changed.preset.operators[1].coarse,2);
+  client.noteOn(69,100);await client.getState();const output=[[new Float32Array(1024),new Float32Array(1024)]];
+  assert.equal(nodes[0].processor.process([],output),true);assert(peak(output[0][0])>.001);assert.equal(disposed,0);
 });
 
 test('DX7 initialization abort does not create a late node', async t => {

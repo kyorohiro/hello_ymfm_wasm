@@ -12,15 +12,15 @@ export async function createOpnAudio(context, destination, name) {
     return response.arrayBuffer();
   };
   const [wasmBinary] = await Promise.all([
-    bytes(`../generated/${backend}_wasm.wasm`),
-    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=dx7-mode-1', import.meta.url)),
+    bytes(`./generated/${backend}_wasm.wasm`),
+    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=dx7-voices-1', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-opn', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, name},
   });
   try {
     await new Promise((resolve, reject) => {
-      node.port.onmessage = ({data}) => { if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
+      node.port.onmessage = ({data}) => { if(data.type==='chip-inspector-result')return; if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
       node.onprocessorerror = () => reject(new Error('OPN Worklet failed'));
     });
   } catch (error) { node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close(); throw error; }

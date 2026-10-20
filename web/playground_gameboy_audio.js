@@ -17,7 +17,7 @@ export async function createGameboyAudio(context, destination) {
   });
   try {
     await new Promise((resolve, reject) => {
-      node.port.onmessage = ({data}) => { if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
+      node.port.onmessage = ({data}) => { if(data.type==='chip-inspector-result')return; if (data.ready) resolve(); else if (data.error) reject(new Error(data.error)); };
       node.onprocessorerror = () => reject(new Error('Game Boy Worklet failed'));
     });
   } catch (error) { node.port.postMessage({method: 'dispose'}); node.disconnect(); node.port.close(); throw error; }

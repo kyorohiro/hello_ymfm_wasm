@@ -334,6 +334,39 @@ test('a new Main DX7 Run waits for Stop snapshot acknowledgements before handing
   megaDrive.stopAllNative=()=>raw._stopVoices();
 });
 
+for(const chip of ['dx7','snes','segapsg'])test(`${chip} keyboard audition waits for the preceding native Stop acknowledgement`,async t=>{
+  const {runtime,megaDrive}=setup(t,{chip,fmChannels:0,psg:chip==='segapsg',dac:false});
+  megaDrive.stopAllNative=()=>{};await runtime.initialize();const gate=deferred();
+  megaDrive.stopAllNative=()=>gate.promise;runtime.stop();let ready=false;
+  const audition=runtime.prepareAudition().then(()=>{ready=true;});
+  for(let i=0;i<8;i++)await Promise.resolve();assert.equal(ready,false,'admin-port audition must not overtake a remote-port Stop');
+  gate.resolve();await audition;assert.equal(ready,true);megaDrive.stopAllNative=()=>{};
+});
+
+test('a newer Stop retires an older pending audition preparation before it can reopen audio',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'dx7',fmChannels:0,psg:false,dac:false});
+  megaDrive.stopAllNative=()=>{};await runtime.initialize();const first=deferred(),second=deferred();let count=0;
+  megaDrive.stopAllNative=()=>++count===1?first.promise:second.promise;
+  runtime.stop();const expired=runtime.prepareAudition();const rejected=assert.rejects(expired,{name:'AbortError'});
+  for(let i=0;i<8;i++)await Promise.resolve();runtime.stop();first.resolve();await rejected;
+  let ready=false;const next=runtime.prepareAudition().then(()=>{ready=true;});
+  for(let i=0;i<8;i++)await Promise.resolve();assert.equal(ready,false,'the successor audition must also wait for the latest Stop');
+  second.resolve();await next;assert.equal(ready,true);megaDrive.stopAllNative=()=>{};
+});
+
+test('a fade started after an audition request retires that request rather than adopting the newer Stop',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'dx7',fmChannels:0,psg:false,dac:false});
+  const gain={value:1,cancelScheduledValues(){},setValueAtTime(value){this.value=value;},setValueCurveAtTime(){},linearRampToValueAtTime(){}};
+  megaDrive.audioContext={state:'running',currentTime:0,destination:{},createGain:()=>({gain,connect(){},disconnect(){}})};
+  megaDrive.audio={outputNode:null,connectOutput(){}};megaDrive.stopAllNative=()=>{};await runtime.ensureReady();
+  const first=deferred(),second=deferred();let count=0;megaDrive.stopAllNative=()=>++count===1?first.promise:second.promise;
+  runtime.stop();const audition=runtime.prepareAudition(),rejected=assert.rejects(audition,{name:'AbortError'});
+  for(let i=0;i<8;i++)await Promise.resolve();
+  const fade=runtime.stopWithFade();first.resolve();
+  for(let i=0;i<16;i++)await Promise.resolve();megaDrive.audioContext.currentTime=.125;
+  await fade;await rejected;second.resolve();megaDrive.stopAllNative=()=>{};
+});
+
 test('stopping a Main Game Boy liveLoop releases its held voice', async t => {
   const {runtime,megaDrive}=setup(t,{chip:'gameboy',fmChannels:0,psg:false,dac:false});
   const writes=[];
@@ -512,7 +545,7 @@ test('chip inspector stays audio-free until initialization and retains subscript
   await runtime.finalize();unsubscribe();
 });
 
-for (const [chip,kind] of [['gameboy','gameboy'],['nes','nes'],['x68000','ym2151'],['x68000','okim6258'],['huc6280','huc6280']]) test(`${chip} ${kind} inspector borrows its primary admin port without starting audio or taking the Worker port`,async t=>{
+for (const [chip,kind] of [['gameboy','gameboy'],['nes','nes'],['x68000','ym2151'],['x68000','okim6258'],['huc6280','huc6280'],['dx7','dx7']]) test(`${chip} ${kind} inspector borrows its primary admin port without starting audio or taking the Worker port`,async t=>{
   const {runtime,megaDrive}=setup(t,{chip,fmChannels:0});
   megaDrive.stopAllNative=()=>{};
   const listeners=new Set(),messages=[];
@@ -522,7 +555,7 @@ for (const [chip,kind] of [['gameboy','gameboy'],['nes','nes'],['x68000','ym2151
     messages.push(message);queueMicrotask(()=>{for(const listener of listeners)listener({data:{type:'chip-inspector-result',id:message.id,value:{kind,channels:[]}}});});
   }};
   if(chip==='gameboy'){megaDrive.node={port};assert.deepEqual(runtime.chipInspector.list(),[],'an APU still loading cannot receive admin reads');megaDrive.gameboy={};}
-  else megaDrive.primaryEndpoints=[{name:kind,globalName:kind==='ym2151'?'opm':kind==='okim6258'?'adpcm':kind==='huc6280'?'pce':'nes',client:{},node:{port}}];
+  else megaDrive.primaryEndpoints=[{name:kind,globalName:kind==='ym2151'?'opm':kind==='okim6258'?'adpcm':kind==='huc6280'?'pce':kind==='dx7'?'dx7':'nes',client:{},node:{port}}];
   assert.deepEqual(runtime.chipInspector.list().map(({id,kind})=>({id,kind})),[{id:kind,kind}]);
   assert.equal(megaDrive.state,'idle');
   assert.equal((await runtime.chipInspector.read(kind)).kind,kind);

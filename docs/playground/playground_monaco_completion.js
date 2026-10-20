@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=dx7-mode-1";
+} from "../js/megasynth.js?v=dx7-voices-1";
 
 const SCALE_NAMES = [
   "major",

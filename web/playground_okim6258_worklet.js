@@ -11,6 +11,7 @@ class Processor extends AudioWorkletProcessor {
     super(); this.dead = false;
     this.performance = createProcessorPerformance({chip:'okim6258', apply:(data, port) => this.apply(data, port),
       prepare:(data, port) => {
+        if(data.method==='stopVoices'){this.apply(data,port);return null;}
         if(this.rejectHeldRequest(data,port))return null;
         if (data.method === 'loadMemory') { this.apply(data, port); return null; }
         if (data.id === undefined) return data;
@@ -79,7 +80,7 @@ class Processor extends AudioWorkletProcessor {
         case 'loadMemory': this.inspector.loadMemory(...args); break;
         case 'play': this.stream.play(...args); break;
         case 'stop': case 'keyOff': case 'allNotesOff': this.stream.stop(); break;
-        case 'stopVoices': this.performance.clear();this.stream.stop();break;
+        case 'stopVoices': this.inspector.invoke('auditionAllOff');this.performance.clear();this.stream.stop();break;
         case 'setRepeat': this.stream.repeat=!!args[0];break;
         case 'reset': this.inspector.resetAudition();this.stream.reset(); break;
         case 'clock': this.stream.setClock(validateChipClock(args[0])); break;

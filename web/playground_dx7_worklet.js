@@ -1,6 +1,8 @@
 import {createDX7, createInitVoice, createVoiceSysex,parseSysex} from './msfa_dx7/src/index.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
+import {Dx7VoiceInspector} from './playground_dx7_inspector.js';
+import {receiveChipInspector} from './playground_chip_inspector_state.js';
 
 const errorMessage = error => String(error?.message ?? error);
 
@@ -15,8 +17,13 @@ class Dx7Processor extends AudioWorkletProcessor {
     this.stateRevision = 0;
     this.commands = Promise.resolve();
     this.pendingPatches=new Map();this.patchSequence=0;
-    this.performance=createProcessorPerformance({chip:'dx7',apply:data=>this.applySound(data),
+    this.performance=createProcessorPerformance({chip:'dx7',trackImmediateNotes:false,apply:data=>this.applySound(data),
       validate:data=>this.validatePerformance(data),prepare:(data,port,metadata)=>this.preparePerformance(data,port,metadata),
+      onBlocked:(data,port)=>{
+        if(this.pendingPatches.delete(data._dx7Pending)){this.rebuildLogical();this.notifyState();}
+        if(data.id!==undefined)port.postMessage(data.method==='loadSysex'?{id:data.id,error:'DX7 is held by a manual audition'}:
+          {id:data.id,value:this.getLogicalState()});
+      },
       onDiscard:data=>{this.pendingPatches.delete(data._dx7Pending);this.rebuildLogical();}});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage = ({data}) => {
@@ -51,8 +58,10 @@ class Dx7Processor extends AudioWorkletProcessor {
 
   stopVoices() {
     this.commandGeneration++;
+    this.inspector?.resetAuditions();
     this.performance.clear();
     this.synth?.panic();
+    this.inspector?.observe({method:'panic'});
     this.rebuildLogical();
     this.notifyState();
   }
@@ -72,6 +81,11 @@ class Dx7Processor extends AudioWorkletProcessor {
       if (this.dead) { synth.dispose(); return; }
       this.synth = synth;
       this.appliedVoices=[createInitVoice()];this.rebuildLogical();
+      this.inspector=new Dx7VoiceInspector({sampleRate,internalSampleRate:synth.internalSampleRate,
+        getApplied:()=>({selectedVoice:this.synth.selectedVoice,voices:this.appliedVoices}),
+        getLogical:()=>({selectedVoice:this.logicalSelected,voices:this.logicalVoices,pendingCommands:this.performance.getStats().queuedCommands}),
+        dispatch:(command,owner)=>this.performance.applyImmediate(command,this.port,{owner}),
+        beginAudition:(midi,owner)=>this.performance.beginAudition(midi,owner),endAudition:(midi,owner)=>this.performance.endAudition(midi,owner)});
       this.port.postMessage({ready: true, ...this.getState()});
     } catch (error) {
       synth?.dispose();
@@ -125,6 +139,10 @@ class Dx7Processor extends AudioWorkletProcessor {
     }
   }
   preparePerformance(data,port,metadata) {
+    if(this.inspector?.blocked(data)&&['setPreset','setOperator','setOperators','setFeedback','selectVoice','loadSysex'].includes(data.method)){
+      if(data.method==='loadSysex')throw new Error('DX7 is held by a manual audition');
+      if(data.id!==undefined)port.postMessage({id:data.id,value:this.getLogicalState()});return null;
+    }
     if(data.method==='loadSysex'){this.receiveImmediate(data,port);return null;}
     if(data.method==='getState'||data.method==='getPreset'){
       if(data.id!==undefined)port.postMessage({id:data.id,value:data.method==='getState'?this.getLogicalState():voiceToPreset(this.logicalVoices[this.logicalSelected])});
@@ -154,6 +172,7 @@ class Dx7Processor extends AudioWorkletProcessor {
       case 'dispose':this.dispose();return;
       default:throw new Error(`Unknown DX7 command: ${data.method}`);
     }
+    this.inspector?.observe(data);
     if(['setPreset','setOperator','setOperators','setFeedback'].includes(data.method)){
       this.appliedVoices[this.synth.selectedVoice]=presetToVoice(this.synth.getPreset());
     }
@@ -165,7 +184,7 @@ class Dx7Processor extends AudioWorkletProcessor {
     if (this.dead) return;
     this.dead = true;
     this.commandGeneration++;
-    this.performance.clear();
+    this.inspector?.resetAuditions();this.performance.clear();
     this.failure = errorMessage(error);
     this.synth?.dispose();
     this.synth = null;
@@ -184,12 +203,17 @@ class Dx7Processor extends AudioWorkletProcessor {
   fail(error) { this.dispose(error); }
 
   receive(data, port) {
+    if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.inspector&&!this.dead?
+      (action,method,args)=>action==='read'?this.inspector.read():this.inspector.invoke(method,args):null))return;
     // STOP/disposal must win over initialization and queued asynchronous loads.
     if (data.method === 'dispose') { this.dispose(); return; }
     if (data.method === 'stopVoices' || data.type === 'clear-scheduled-writes') {
       this.stopVoices();if(data.id!==undefined)port.postMessage({id:data.id,value:this.getLogicalState()});return;
     }
     const stop=data.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession;
+    if(!data.performance&&this.inspector?.auditions.size&&['allNotesOff','panic'].includes(data.method)){
+      this.receiveImmediate(data,port);return;
+    }
     if(this.performance.receive(data,port)){
       if(stop)this.stopVoices();
       else if(data.type==='performance-cancel-owner')this.notifyState();
@@ -204,6 +228,10 @@ class Dx7Processor extends AudioWorkletProcessor {
       await this.initializing;
       if (this.dead || !this.synth) throw new Error(this.failure ?? 'DX7 processor is not ready.');
       if(generation!==this.commandGeneration)throw new Error('DX7 performance stopped.');
+      if(this.inspector?.blocked(data)&&!['allNotesOff','panic'].includes(data.method)){
+        if(data.id!==undefined)port.postMessage(data.method==='loadSysex'?{id:data.id,error:'DX7 is held by a manual audition'}:
+          {id:data.id,value:this.getLogicalState()});return;
+      }
       const args = data.args ?? [];
       let value;
       switch (data.method) {
@@ -213,9 +241,9 @@ class Dx7Processor extends AudioWorkletProcessor {
         case 'getPreset':value=voiceToPreset(this.logicalVoices[this.logicalSelected]);break;
         case 'getState':value=this.getLogicalState();break;
         case 'setPreset':case 'setOperator':case 'setOperators':case 'setFeedback':
-          this.applySound(data);value=this.getLogicalState();break;
-        case 'selectVoice':this.applySound(data);value=this.getLogicalState();break;
-        case 'noteOn':case 'noteOff':case 'allNotesOff':case 'panic':this.applySound(data);break;
+          this.performance.applyImmediate({...data,id:undefined},port);value=this.getLogicalState();break;
+        case 'selectVoice':this.performance.applyImmediate({...data,id:undefined},port);value=this.getLogicalState();break;
+        case 'noteOn':case 'noteOff':case 'allNotesOff':case 'panic':this.performance.applyImmediate({...data,id:undefined},port);break;
         default: throw new Error(`Unknown DX7 command: ${data.method}`);
       }
       if(generation!==this.commandGeneration)throw new Error('DX7 performance stopped.');

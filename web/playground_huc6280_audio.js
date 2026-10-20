@@ -46,6 +46,7 @@ export async function createHuc6280Audio(context, destination, options = {}) {
       rejectReady = reject;
       timer = setTimeout(() => { reject(new Error('HuC6280 AudioWorklet initialization timed out')); dispose(); }, 15000); timer.unref?.();
       node.port.onmessage = ({data}) => {
+        if(data.type==='chip-inspector-result')return;
         if (data.ready) resolve(); else if (data.error) { reject(new Error(data.error)); dispose(); }
       };
       node.onprocessorerror = () => { reject(new Error('HuC6280 Worklet processor failed')); dispose(); };

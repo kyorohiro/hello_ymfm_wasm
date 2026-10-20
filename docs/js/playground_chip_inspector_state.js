@@ -1,16 +1,23 @@
 /** Applied register snapshots for the Playground editors. No polling or audio allocation. */
 import {createSegaPsgApi} from './segapsg_api.js?v=sega-modes-1';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-stability-2';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=dx7-voices-1';
 
 export class PsgInspectorState {
-  constructor(chip, {clock = () => CHIP_CLOCKS.segapsg, sampleRate = 44100} = {}) {
-    this.clock = clock; this.sampleRate = sampleRate; this.reset();
+  /** @param {any} chip @param {import('./playground_native_voice_inspector.js?v=dx7-voices-1').NativeVoiceInspectorOptions} [options] */
+  constructor(chip, {clock = () => CHIP_CLOCKS.segapsg, sampleRate = 44100,dispatch,beginAudition=()=>{},endAudition=()=>{}} = {}) {
+    this.clock = typeof clock==='function'?clock:()=>clock; this.sampleRate = sampleRate;
+    this.dispatch=dispatch??(command=>chip[command.method](...(command.args??[])));this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();
     const write = chip.write.bind(chip), reset = chip.reset.bind(chip);
     chip.write = value => { const result = write(value); this.write(value); return result; };
     chip.reset = () => { const result = reset(); this.reset(); return result; };
-    this.api = createSegaPsgApi({get clock() {return clock();}, write: value => chip.write(value), reset: () => chip.reset(),resetAll:()=>chip.reset()});
   }
-  reset() {this.periods = [0, 0, 0]; this.attenuations = [15, 15, 15, 15]; this.lastVolumes = [0, 0, 0, 0]; this.latched = 0; this.mode = 0;}
+  resetAuditions(){for(const [channel,id]of this.auditions)this.endAudition(channel,psgIdentity(id));this.auditions.clear();}
+  reset() {this.resetAuditions();this.periods = [0, 0, 0]; this.attenuations = [15, 15, 15, 15]; this.lastVolumes = [0, 0, 0, 0]; this.latched = 0; this.mode = 0;}
+  prepare(callback){
+    const commands=[],clock=this.clock,api=createSegaPsgApi({get clock(){return clock();},write:value=>commands.push({method:'write',args:[value]}),reset:()=>commands.push({method:'reset'}),resetAll:()=>commands.push({method:'reset'})});
+    api._adoptState({attenuations:this.lastVolumes,latched:this.latched});const value=callback(api);return {commands,value};
+  }
+  commit({commands,value},owner){let latch=this.latched;for(const command of commands){if(command.method==='write'){const byte=command.args[0];if(byte&128)latch=byte>>4&7;else command.psgRegister=latch;}const held=this.auditions.get(latch>>1);this.dispatch(command,owner??(held?psgIdentity(held):undefined),{preserveOwner:!owner});}return value;}
   write(value) {
     value &= 255;
     if (value & 128) this.latched = (value >> 4) & 7;
@@ -26,15 +33,18 @@ export class PsgInspectorState {
     const channel = index => ({channel:index, attenuation:this.attenuations[index], volume:(15-this.attenuations[index])/15, active:this.attenuations[index] < 15});
     return {kind:'segapsg', clock:this.clock(), sampleRate:this.sampleRate,
       channels:this.periods.map((period,index) => ({...channel(index),period,frequency:period>1?this.clock()/(32*period):null,constantOutput:period<=1})),
-      noise:{...channel(3),type:this.mode & 4 ? 'white' : 'periodic',rate:['low','medium','high','tone3'][this.mode & 3]}};
+      noise:{...channel(3),type:this.mode & 4 ? 'white' : 'periodic',rate:['low','medium','high','tone3'][this.mode & 3]},auditions:[...this.auditions].map(([channel,id])=>({channel,id}))};
   }
   invoke(method, args = []) {
+    if(method==='auditionAllOff'){for(const [channel,id]of [...this.auditions])this.invoke('auditionOff',[channel,id]);return true;}
+    if(method==='auditionOff'){const [channel,id]=args;psgChannel(channel);const owner=psgIdentity(id);if(this.auditions.get(channel)!==id)return false;try{this.commit(this.prepare(api=>api.keyOff(channel)),owner);}finally{this.auditions.delete(channel);this.endAudition(channel,owner);}return true;}
+    if(method==='auditionOn'){const [channel,midi,id]=args;psgChannel(channel);if(!Number.isInteger(midi)||midi<0||midi>127)throw new RangeError('MIDI note must be 0..127');const owner=psgIdentity(id),prepared=this.prepare(api=>{api.setFrequency(channel,440*2**((midi-69)/12));api.setAttenuation(channel,this.lastVolumes[channel]??0);});this.auditions.set(channel,id);this.beginAudition(channel,owner);this.commit(prepared,owner);return true;}
     if (!['setFrequency','setNote','keyOn','keyOff','noteOn','setPeriod','setAttenuation','setNoise','write','reset','resetAll','tone','off','noise','noiseVolume','noiseOff'].includes(method)) throw new Error('Unsupported PSG inspector operation');
-    if (method === 'keyOn') {if(!Number.isInteger(args[0])||args[0]<0||args[0]>2)throw new RangeError('PSG tone channel must be 0..2');return this.api.setAttenuation(args[0], this.lastVolumes[args[0]] ?? 0);}
-    if (method === 'noteOn') {this.api.setNote(...args); return this.api.setAttenuation(args[0],this.lastVolumes[args[0]]??0);}
-    return this.api[method](...args);
+    return this.commit(this.prepare(api=>{if(method==='keyOn'){psgChannel(args[0]);return api.setAttenuation(args[0],this.lastVolumes[args[0]]??0);}if(method==='noteOn'){api.setNote(...args);return api.setAttenuation(args[0],this.lastVolumes[args[0]]??0);}return api[method](...args);}));
   }
 }
+function psgChannel(value){if(!Number.isInteger(value)||value<0||value>2)throw new RangeError('PSG tone channel must be 0..2');return value;}
+function psgIdentity(value){if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;}
 
 /** A compact waveform is derived from encoded RAM data, so it also matches mono downmix/clamping. */
 /** @param {Uint8Array} bytes @param {{name?:string,frames?:number,step?:number,endGuardBytes?:number}} [options] */

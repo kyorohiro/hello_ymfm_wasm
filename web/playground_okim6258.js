@@ -33,6 +33,7 @@ export function createOki6258Client(port, {clock = OKIM6258_CLOCK} = {}) {
       pending.clear(); port.close();
     },
   }});
-  Object.defineProperty(synth,'_stopVoices',{value:()=>send('stopVoices')});
-  return attachChipClock(synth, port, clock, {onApplied:hz => synth._adoptHardwareClock(hz)});
+  const controlled=attachChipClock(synth,port,clock,{onApplied:hz=>synth._adoptHardwareClock(hz)});
+  Object.defineProperty(synth,'_stopVoices',{value:()=>controlled._requestControl('stopVoices')});
+  return controlled;
 }

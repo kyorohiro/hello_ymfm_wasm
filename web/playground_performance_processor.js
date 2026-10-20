@@ -4,7 +4,7 @@ import {createPerformanceQueue} from './playground_performance_queue.js';
  * Untagged standalone commands stay immediate. RPC setters acknowledge acceptance
  * while their sound changes wait for the reserved audio frame.
  */
-export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel},{psgLatch=0,hucChannel=0}={}) {
+export function identifyPerformanceNote(chip,{method,type,args=[] ,register,value,channel,psgRegister},{psgLatch=0,hucChannel=0}={}) {
   if(['reset','allNotesOff','panic'].includes(method))return {allOff:true};
   if(chip==='snes'&&['playTimeline','stopTimeline'].includes(method))return {key:'timeline',on:method==='playTimeline'};
   if(chip==='snes'&&['noteOn','keyOn','noteOff','keyOff'].includes(method))return {key:args[0],on:method==='noteOn'||method==='keyOn'};
@@ -20,7 +20,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     if(reg===10&&!(v&128))return {key:2,on:false};
   }
   if(chip==='segapsg'&&method==='write') {
-    const byte=args[0],latched=byte&128?(byte>>4)&7:psgLatch;
+    const byte=args[0],latched=byte&128?(byte>>4)&7:Number.isInteger(psgRegister)?psgRegister:psgLatch;
     if(Number.isInteger(byte)&&byte>=0&&byte<=255&&(latched&1))return {key:latched>>1,on:(byte&15)!==15};
   }
   if(chip==='ym2151'&&method==='writeRegister'&&args[0]===8)return {key:args[1]&7,on:!!(args[1]&0x78)};
@@ -51,7 +51,20 @@ export function performanceNoteRelease(chip,key) {
   return {method:'write',args:[0,0x28,[0,1,2,4,5,6][key]]};
 }
 /** Channel touched by native register commands, used only while an editor holds a key. */
-export function nativeVoiceChannel(chip,{method,type,args=[],channel},{hucChannel=0}={}) {
+export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister},{hucChannel=0,psgLatch=0}={}) {
+  if(chip==='segapsg'){
+    if(method==='write'){const byte=args[0],latch=byte&128?byte>>4&7:Number.isInteger(psgRegister)?psgRegister:psgLatch;return latch>>1;}
+    if(['allNotesOff','setStereo','clock'].includes(method)||type==='chip-clock')return 'all';
+  }
+  if(chip==='snes'){
+    if(['setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff'].includes(method))return args[0];
+    if(['allNotesOff','prepareTimeline','playTimeline','stopTimeline'].includes(method))return 'all';
+    if(method==='writeDsp'){const register=args[0];if([0x4c,0x5c].includes(register))return null;return (register&15)<8?register>>4:'all';}
+  }
+  if(chip==='dx7'){
+    if(['noteOn','noteOff'].includes(method))return args[0];
+    if(['setPreset','setOperator','setOperators','setFeedback','selectVoice','loadSysex','allNotesOff','panic'].includes(method))return 'all';
+  }
   if(chip==='huc6280'){
     if(method==='keyOff'||method==='setWaveform')return args[0];
     if(method==='allNotesOff'||method==='clock'||type==='chip-clock')return 'all';
@@ -88,7 +101,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel},{hucChanne
   }
   if(method==='reset')return 'all';return null;
 }
-export function createProcessorPerformance({apply,prepare,validate,onDiscard,chip,releaseNote,getPsgLatch,getHucChannel,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
+export function createProcessorPerformance({apply,prepare,validate,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getHucChannel,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map(),auditions=new Map();
   let psgLatch=0,nesEnabled=0;
@@ -108,22 +121,32 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     else if(command.method==='write'&&(command.args?.[0]&128))psgLatch=(command.args[0]>>4)&7;
   }
   function applyTracked(command,port,frame,metadata) {
+    if(auditions.size&&['segapsg','snes'].includes(chipName())&&command.method==='allNotesOff'){
+      for(let channel=0;channel<(chipName()==='snes'?8:4);channel++)if(!auditions.has(channel))applyTracked(performanceNoteRelease(chipName(),channel),port,frame);
+      return true;
+    }
+    if(auditions.size&&chipName()==='dx7'&&['allNotesOff','panic'].includes(command.method)){
+      for(const key of [...owners.keys()])if(!auditions.has(key))applyTracked({method:'noteOff',args:[key]},port,frame);
+      return true;
+    }
     // A script's global OPM release still stops its other voices while an editor
     // holds one channel. Keep that manual key and its owner until explicit Off.
     if(auditions.size&&chipName()==='ym2151'&&command.method==='allNotesOff'){
       for(let channel=0;channel<8;channel++)if(!auditions.has(channel))applyTracked({method:'forceKeyOff',args:[channel]},port,frame);
       return;
     }
-    if(blockedByAudition(command,metadata))return;
+    if(blockedByAudition(command,metadata)){onBlocked?.(command,port,metadata);return false;}
     command=protectNesEnable(command,metadata);
+    command=protectSnesKeys(command,metadata);
     // Editor parameter patches retain a script's note owner even when a banked
     // control register repeats its existing gate bit. Triggers/releases do not.
-    if(!metadata?.preserveOwner&&!note(command,port,metadata))return;
+    if(!metadata?.preserveOwner&&!note(command,port,metadata))return false;
     apply(command,port,frame,metadata); observePsgLatch(command);
+    return true;
   }
   function blockedByAudition(command,metadata) {
     if(!auditions.size)return false;
-    const channel=nativeVoiceChannel(chipName(),command,{hucChannel:getHucChannel?.()??0});
+    const channel=nativeVoiceChannel(chipName(),command,{hucChannel:getHucChannel?.()??0,psgLatch:getPsgLatch?.()??psgLatch});
     if(channel==='all'){
       if(chipName()==='nes'&&command.method==='writeRegister'&&command.args[0]===0x4015)return false;
       for(const owner of auditions.values())if(owner===metadata?.owner)return false;return true;
@@ -135,6 +158,11 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     let mask=0;for(const [channel,owner]of auditions)if(channel<5&&owner!==metadata?.owner)mask|=1<<channel;
     if(!mask)return command;
     return {...command,args:[0x4015,(command.args[1]&~mask)|(nesEnabled&mask)]};
+  }
+  function protectSnesKeys(command,metadata){
+    if(!auditions.size||chipName()!=='snes'||command.method!=='writeDsp'||![0x4c,0x5c].includes(command.args[0]))return command;
+    let mask=0;for(const [channel,owner]of auditions)if(owner!==metadata?.owner)mask|=1<<channel;
+    return {...command,args:[command.args[0],command.args[1]&~mask]};
   }
   function note(command,port,metadata) {
     noteState.psgLatch=getPsgLatch?.()??psgLatch;
@@ -194,11 +222,15 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     receive(data,port) {
       // Editor audition writes use applyImmediate, so ordinary Main commands and
       // previously reserved Worker commands cannot replace a held manual note.
-      if(!data?.performance&&auditions.size&&chipName()==='ym2151'&&data?.method==='allNotesOff'){
+      if(!data?.performance&&auditions.size&&((['ym2151','segapsg','snes'].includes(chipName())&&data?.method==='allNotesOff')||
+          (chipName()==='dx7'&&['allNotesOff','panic'].includes(data?.method)))){
         applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;
       }
-      if(!data?.performance&&blockedByAudition(data)){if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
+      if(!data?.performance&&blockedByAudition(data)){
+        if(onBlocked)onBlocked(data,port);else if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;
+      }
       if(!data?.performance&&auditions.size&&chipName()==='nes'&&data?.method==='writeRegister'&&data.args[0]===0x4015){applyTracked(data,port,nowFrame());return true;}
+      if(!data?.performance&&auditions.size&&chipName()==='snes'&&data?.method==='writeDsp'&&[0x4c,0x5c].includes(data.args[0])){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
       let reply=replies.get(port);
       if (!reply) {reply=message=>port.postMessage(message);replies.set(port,reply);ports.set(reply,port);}
       if(data?.performance&&data.commands?.some(command=>command.id!==undefined)){
@@ -209,7 +241,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
         ports.set(reply,port);
       }
       const handled=queue.receive(data,reply);
-      if(!handled&&note(data,port))observePsgLatch(data);
+      if(!handled&&trackImmediateNotes&&note(data,port))observePsgLatch(data);
       return handled;
     },
     render(left,right,render) {
@@ -230,7 +262,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,chi
     },
     beginAudition(channel,owner){auditions.set(channel,owner);},
     endAudition(channel,owner){if(auditions.get(channel)===owner)auditions.delete(channel);},
-    applyImmediate(command,port,metadata){applyTracked(command,port,nowFrame(),metadata);},
+    applyImmediate(command,port,metadata){return applyTracked(command,port,nowFrame(),metadata);},
     clear(){queue.clear();owners.clear();auditions.clear();},
     getStats:queue.getStats,
   };
