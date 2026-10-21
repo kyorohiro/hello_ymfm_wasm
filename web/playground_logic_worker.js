@@ -378,7 +378,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
+    || capabilities.chip === 'gameboy' && capabilities.backend === 'native-genesis';
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}));
   const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};
@@ -425,7 +426,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
   }));
   const isGameboy = capabilities.chip === 'gameboy';
-  const gameboy = isGameboy ? keyboardApi(chip?.gameboy ?? new Proxy({}, {
+  const gameboy = isGameboy ? native.apis.gameboy ?? keyboardApi(chip?.gameboy ?? new Proxy({}, {
     get(_target, method) {
       if (method === 'then') return undefined;
       if (method === 'id') return 'gameboy';

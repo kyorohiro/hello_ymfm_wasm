@@ -1,0 +1,906 @@
+{
+  "date": "2026-10-22",
+  "deviceOpened": false,
+  "reference": "Current Browser WASM for each console; native C++ rendered offline",
+  "chips": {
+    "gameboy": {
+      "date": "2026-10-22",
+      "reference": "existing docs/generated/gameboy_apu_wasm.wasm",
+      "deviceOpened": false,
+      "selfTest": {
+        "stopRetainsVoiceRamClock": true,
+        "resetUsesDmgWavePattern": true,
+        "bounds": true,
+        "allocationsDuringRender": 0,
+        "freesDuringRender": 0
+      },
+      "cases": [
+        {
+          "name": "pulse-duty-0",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-1",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-2",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-3",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-sweep-envelope-length",
+          "sampleRate": 44100,
+          "frames": 20000,
+          "maximumDifference": 0
+        },
+        {
+          "name": "wave-accessibility",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-0",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-23",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-57",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-103",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pan-master-power",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "outer-clock-resampling",
+          "sampleRate": 44100,
+          "frames": 14000,
+          "maximumDifference": 0
+        },
+        {
+          "name": "reset-mid-note",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "deterministic-raw-writes",
+          "sampleRate": 44100,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-0",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-1",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-2",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-3",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-sweep-envelope-length",
+          "sampleRate": 48000,
+          "frames": 20000,
+          "maximumDifference": 0
+        },
+        {
+          "name": "wave-accessibility",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-0",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-23",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-57",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-103",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pan-master-power",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "outer-clock-resampling",
+          "sampleRate": 48000,
+          "frames": 14000,
+          "maximumDifference": 0
+        },
+        {
+          "name": "reset-mid-note",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "deterministic-raw-writes",
+          "sampleRate": 48000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-0",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-1",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-2",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-duty-3",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pulse-sweep-envelope-length",
+          "sampleRate": 96000,
+          "frames": 20000,
+          "maximumDifference": 0
+        },
+        {
+          "name": "wave-accessibility",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-0",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-23",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-57",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "noise-103",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "pan-master-power",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "outer-clock-resampling",
+          "sampleRate": 96000,
+          "frames": 14000,
+          "maximumDifference": 0
+        },
+        {
+          "name": "reset-mid-note",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "name": "deterministic-raw-writes",
+          "sampleRate": 96000,
+          "frames": 8192,
+          "maximumDifference": 0
+        }
+      ],
+      "maximumDifference": 0,
+      "stereoFrames": 396912
+    },
+    "huc6280": {
+      "schemaVersion": 1,
+      "deviceOpened": false,
+      "startedAt": "2026-10-21T21:24:09.618Z",
+      "reference": "Actual deployed HuC6280 Web WASM plus ChipClockResampler",
+      "rates": [
+        44100,
+        48000,
+        96000
+      ],
+      "cases": [
+        {
+          "name": "six voices, independent waveform/period/volume/balance and key gates",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.0927734375
+        },
+        {
+          "name": "noise channel 4, all frequency codes and stateful LFSR",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "noise channel 5, all frequency codes and stateful LFSR",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "LFO depth 1, source voice audible, reset, frequency and period zero",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "LFO depth 2, source voice audible, reset, frequency and period zero",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "LFO depth 3, source voice audible, reset, frequency and period zero",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "DDA sample writes, waveform pointer reset and simultaneous wavetable",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.0986328125
+        },
+        {
+          "name": "inspector waveform replacement retains active key/DDA sample and raw latch",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.236236572265625
+        },
+        {
+          "name": "raw selected slots 6/7 and explicit channel writes do not alter selection",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "active waveform raw writes use the real advanced oscillator pointer",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.04931640625
+        },
+        {
+          "name": "Stop retains waves, DDA, master balance, LFO, clock and selection",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.052734375
+        },
+        {
+          "name": "outer clock changes include fractional hold, reset, min and max rates",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.04931640625
+        },
+        {
+          "name": "deterministic raw writes, all modes and cold reset",
+          "sampleRate": 44100,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.062103271484375
+        },
+        {
+          "name": "six voices, independent waveform/period/volume/balance and key gates",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.0927734375
+        },
+        {
+          "name": "noise channel 4, all frequency codes and stateful LFSR",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "noise channel 5, all frequency codes and stateful LFSR",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "LFO depth 1, source voice audible, reset, frequency and period zero",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "LFO depth 2, source voice audible, reset, frequency and period zero",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "LFO depth 3, source voice audible, reset, frequency and period zero",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "DDA sample writes, waveform pointer reset and simultaneous wavetable",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.0986328125
+        },
+        {
+          "name": "inspector waveform replacement retains active key/DDA sample and raw latch",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.236236572265625
+        },
+        {
+          "name": "raw selected slots 6/7 and explicit channel writes do not alter selection",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "active waveform raw writes use the real advanced oscillator pointer",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.04931640625
+        },
+        {
+          "name": "Stop retains waves, DDA, master balance, LFO, clock and selection",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.052734375
+        },
+        {
+          "name": "outer clock changes include fractional hold, reset, min and max rates",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.04931640625
+        },
+        {
+          "name": "deterministic raw writes, all modes and cold reset",
+          "sampleRate": 48000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.062103271484375
+        },
+        {
+          "name": "six voices, independent waveform/period/volume/balance and key gates",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.0927734375
+        },
+        {
+          "name": "noise channel 4, all frequency codes and stateful LFSR",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "noise channel 5, all frequency codes and stateful LFSR",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "LFO depth 1, source voice audible, reset, frequency and period zero",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "LFO depth 2, source voice audible, reset, frequency and period zero",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "LFO depth 3, source voice audible, reset, frequency and period zero",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.073974609375
+        },
+        {
+          "name": "DDA sample writes, waveform pointer reset and simultaneous wavetable",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.0986328125
+        },
+        {
+          "name": "inspector waveform replacement retains active key/DDA sample and raw latch",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.236236572265625
+        },
+        {
+          "name": "raw selected slots 6/7 and explicit channel writes do not alter selection",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.16650390625
+        },
+        {
+          "name": "active waveform raw writes use the real advanced oscillator pointer",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.04931640625
+        },
+        {
+          "name": "Stop retains waves, DDA, master balance, LFO, clock and selection",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.052734375
+        },
+        {
+          "name": "outer clock changes include fractional hold, reset, min and max rates",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.04931640625
+        },
+        {
+          "name": "deterministic raw writes, all modes and cold reset",
+          "sampleRate": 96000,
+          "frames": 6144,
+          "maximumDifference": 0,
+          "peak": 0.062103271484375
+        }
+      ],
+      "maximumDifference": 0,
+      "totalStereoFrames": 239616,
+      "selfTest": "HuC6280 state/Stop/reset/targeting self-test passed; callback allocations 0, frees 0",
+      "status": "passed"
+    },
+    "snes": {
+      "schemaVersion": 1,
+      "deviceOpened": false,
+      "rates": [
+        44100,
+        48000,
+        96000
+      ],
+      "cases": [
+        {
+          "name": "BRR loop, signed volumes, musical pitch and same-frame chord",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.9035833477973938
+        },
+        {
+          "name": "ADSR 143/224, retrigger and release",
+          "rate": 44100,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.36990633606910706
+        },
+        {
+          "name": "ADSR 132/97, retrigger and release",
+          "rate": 44100,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.13115839660167694
+        },
+        {
+          "name": "ADSR 255/255, retrigger and release",
+          "rate": 44100,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.3304995596408844
+        },
+        {
+          "name": "GAIN mode 31",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36698681116104126
+        },
+        {
+          "name": "GAIN mode 145",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36698681116104126
+        },
+        {
+          "name": "GAIN mode 183",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36698681116104126
+        },
+        {
+          "name": "GAIN mode 221",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3695627450942993
+        },
+        {
+          "name": "GAIN mode 255",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3695627450942993
+        },
+        {
+          "name": "Noise clocks, eight voices and pitch modulation",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.9921875
+        },
+        {
+          "name": "Echo RAM, FIR and negative feedback",
+          "rate": 44100,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.42644017934799194
+        },
+        {
+          "name": "Applied Stop retains BRR and patch, reset clears then reuploads",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36716148257255554
+        },
+        {
+          "name": "Explicit physical key-on merges only current DSP frame",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.7326509952545166
+        },
+        {
+          "name": "Captured timeline, sub-sample ordered RAM/DSP events and four-frame FIFO",
+          "rate": 44100,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3660070598125458
+        },
+        {
+          "name": "BRR loop, signed volumes, musical pitch and same-frame chord",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.9906005859375
+        },
+        {
+          "name": "ADSR 143/224, retrigger and release",
+          "rate": 48000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.369873046875
+        },
+        {
+          "name": "ADSR 132/97, retrigger and release",
+          "rate": 48000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.12109375
+        },
+        {
+          "name": "ADSR 255/255, retrigger and release",
+          "rate": 48000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.3311971127986908
+        },
+        {
+          "name": "GAIN mode 31",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36712646484375
+        },
+        {
+          "name": "GAIN mode 145",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36712646484375
+        },
+        {
+          "name": "GAIN mode 183",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36712646484375
+        },
+        {
+          "name": "GAIN mode 221",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.369873046875
+        },
+        {
+          "name": "GAIN mode 255",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.369873046875
+        },
+        {
+          "name": "Noise clocks, eight voices and pitch modulation",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.9921875
+        },
+        {
+          "name": "Echo RAM, FIR and negative feedback",
+          "rate": 48000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.42718505859375
+        },
+        {
+          "name": "Applied Stop retains BRR and patch, reset clears then reuploads",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.36712646484375
+        },
+        {
+          "name": "Explicit physical key-on merges only current DSP frame",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.830718994140625
+        },
+        {
+          "name": "Captured timeline, sub-sample ordered RAM/DSP events and four-frame FIFO",
+          "rate": 48000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3673095703125
+        },
+        {
+          "name": "BRR loop, signed volumes, musical pitch and same-frame chord",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.94329833984375
+        },
+        {
+          "name": "ADSR 143/224, retrigger and release",
+          "rate": 96000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.37005615234375
+        },
+        {
+          "name": "ADSR 132/97, retrigger and release",
+          "rate": 96000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.063507080078125
+        },
+        {
+          "name": "ADSR 255/255, retrigger and release",
+          "rate": 96000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.33404541015625
+        },
+        {
+          "name": "GAIN mode 31",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3670654296875
+        },
+        {
+          "name": "GAIN mode 145",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3670654296875
+        },
+        {
+          "name": "GAIN mode 183",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3670654296875
+        },
+        {
+          "name": "GAIN mode 221",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.369873046875
+        },
+        {
+          "name": "GAIN mode 255",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.369873046875
+        },
+        {
+          "name": "Noise clocks, eight voices and pitch modulation",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.9921875
+        },
+        {
+          "name": "Echo RAM, FIR and negative feedback",
+          "rate": 96000,
+          "stereoFrames": 16384,
+          "maximumDifference": 0,
+          "peak": 0.427581787109375
+        },
+        {
+          "name": "Applied Stop retains BRR and patch, reset clears then reuploads",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3673095703125
+        },
+        {
+          "name": "Explicit physical key-on merges only current DSP frame",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.734588623046875
+        },
+        {
+          "name": "Captured timeline, sub-sample ordered RAM/DSP events and four-frame FIFO",
+          "rate": 96000,
+          "stereoFrames": 8192,
+          "maximumDifference": 0,
+          "peak": 0.3673095703125
+        }
+      ],
+      "totalStereoFrames": 442368,
+      "maximumDifference": 0,
+      "reference": "Current Browser accurate SPC_DSP WASM, SnesSynth and SpcResampler with sourceFrames:1; no SPC700 CPU, ROM or game audio.",
+      "limits": "Core PCM, resampling and fixed state lifecycle; ownership/IPC and UI are checked separately."
+    }
+  },
+  "maximumDifference": 0,
+  "cases": 123,
+  "stereoFrames": 1078896,
+  "verification": {
+    "javascript": {
+      "passed": 3201,
+      "failed": 0
+    },
+    "rust": {
+      "passed": 151,
+      "failed": 0,
+      "ignored": 4
+    },
+    "browser": {
+      "sourceFull": [
+        "chromium",
+        "webkit"
+      ],
+      "stagedConsoles": [
+        "chromium",
+        "webkit"
+      ],
+      "nativeIpcMocked": true
+    },
+    "stagedFiles": 814,
+    "stagedSha256": "ba36113cd39921714b86bf6963e24bbbbb05b1bfd526fce6da7fc65eb226fd20",
+    "tauriBuild": {
+      "offline": true,
+      "locked": true,
+      "passed": true
+    }
+  }
+}

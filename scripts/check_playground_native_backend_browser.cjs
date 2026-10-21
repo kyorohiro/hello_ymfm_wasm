@@ -9,6 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
+const nativeModeIds=['genesis','mega-cd','gameboy','nes','snes','pc-engine','dx7'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -65,7 +66,7 @@ class FakeNative {
     if (command === 'native_genesis_start') {
       if (this.failStart) {this.failStart = false; throw Error('Simulated native device unavailable');}
       this.liveFx.clear(); this.liveFxError = null;
-      assert(args.mode===undefined||['genesis','mega-cd','nes','dx7'].includes(args.mode));
+      assert(args.mode===undefined||nativeModeIds.includes(args.mode));
       this.current = {session:++this.sessions,began:performance.now(),mode:args.mode??'genesis'};
       const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
       this.pcm=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{sampleRate:48000});
@@ -78,6 +79,13 @@ class FakeNative {
       const {NesVoiceInspector}=await import('../web/playground_native_voice_inspector.js');
       this.nesClock=1789773;this.nesChip=new NesApu({sampleRate:48000,fds:true});
       this.nesInspector=new NesVoiceInspector(this.nesChip,{clock:()=>this.nesClock,sampleRate:48000});
+      const {GameboyVoiceInspector}=await import('../web/playground_native_voice_inspector.js');
+      this.gameboyClock=4194304;this.gameboyChip={writeRegister(){},reset(){}};
+      this.gameboyInspector=new GameboyVoiceInspector(this.gameboyChip,{clock:()=>this.gameboyClock,sampleRate:48000});
+      const {Huc6280VoiceInspector}=await import('../web/playground_huc6280_inspector.js');
+      this.hucClock=3579545;this.hucInspector=new Huc6280VoiceInspector({clock:()=>this.hucClock,sampleRate:48000});
+      this.snes={registers:new Uint8Array(128),ram:new Uint8Array(65536),enabled:0,nativeFrames:0,
+        timeline:{loaded:false,playing:false,positionFrames:0,totalFrames:0,ended:false}};
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -97,7 +105,7 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if (command === 'native_genesis_rf5c164_status') {assert.equal(this.current.mode,'mega-cd');const state=this.pcm.read();return {...state,mask:this.pcm.mask,selected:this.pcm.selected,channels:state.channels.map(channel=>({...channel,configuredStep:this.pcm.configuredSteps[channel.channel]}))};}
     if(command==='native_genesis_dx7_status') {
@@ -111,6 +119,23 @@ class FakeNative {
       return {clock:this.nesClock,registers:Array.from(inspector.registers),enabled:inspector.enabled,
         fdsGain:inspector.fdsGain,fdsMaster:inspector.fdsMaster,modulation:Array.from(inspector.modTable),
         memoryRanges:inspector.memoryRanges.map(range=>({...range})),fdsActive:!(inspector.registers[0x83]&128)};
+    }
+    if(command==='native_genesis_gameboy_status') {
+      assert.equal(this.current.mode,'gameboy');const i=this.gameboyInspector;
+      return {clock:this.gameboyClock,registers:Array.from(i.registers),voice:Array.from(i.voice),gates:i.gates.slice(),frame:this.status().frame,revision:0,pendingCommands:[]};
+    }
+    if(command==='native_genesis_huc6280_status') {
+      assert.equal(this.current.mode,'pc-engine');const i=this.hucInspector;
+      return {clock:this.hucClock,selectedChannel:i.selected,globals:Array.from(i.globals),registers:i.registers.map(row=>Array.from(row)),
+        waveforms:i.waveforms.map(row=>Array.from(row)),indices:Array.from(i.indices),pointerKnown:Array.from(i.pointerKnown,Boolean),
+        waveformKnown:Array.from(i.waveformKnown,Boolean),knownSamples:Array.from(i.knownSamples),ddaValues:Array.from(i.ddaValues),initialized:true,
+        frame:this.status().frame,revision:0,pendingCommands:[]};
+    }
+    if(command==='native_genesis_snes_status') {
+      assert.equal(this.current.mode,'snes');const s=this.snes;if(s.timeline.playing){s.timeline.positionFrames=Math.min(s.timeline.totalFrames,Math.floor((performance.now()-s.timeline.began)*32));if(s.timeline.positionFrames===s.timeline.totalFrames){s.timeline.ended=true;s.timeline.playing=false;}}
+      const {began,...timeline}=s.timeline;
+      return {clock:1024000,registers:Array.from(s.registers),...(args.ram?{ram:Array.from(s.ram)}:{}),nativeFrames:s.nativeFrames,enabled:s.enabled,
+        frame:this.status().frame,revision:0,pendingCommands:[],timeline};
     }
     if (command === 'native_genesis_live_fx') {
       const message=args.message;
@@ -143,6 +168,39 @@ class FakeNative {
         else assert.equal(message.method,'mix','Unknown Native NES operation '+message.method);
       };
       for(const entry of args.commands.filter(entry=>entry.type==='nes')){assert.equal(this.current.mode,'nes');applyNes(entry.message);}
+      const applyConsole=(kind,message)=>{
+        if(message.method==='batch'){for(const op of message.commands)applyConsole(kind,op);return;}
+        if(kind==='gameboy'){
+          if(message.method==='write')this.gameboyChip.writeRegister(message.address,message.value);
+          else if(message.method==='reset')this.gameboyChip.reset();
+          else if(message.method==='clock')this.gameboyClock=message.hz;
+          else if(message.method==='stop-voices')this.stopConsoleVoices('gameboy');
+          else assert.equal(message.method,'mix','Unknown Native Game Boy operation');
+        }else if(kind==='huc6280'){
+          const i=this.hucInspector;
+          if(message.method==='write'){if(message.channel!==undefined)i.observeWrite(0,message.channel);i.observeWrite(message.register,message.value);}
+          else if(message.method==='waveform'){i.waveforms[message.channel].set(message.samples);i.indices[message.channel]=0;i.waveformKnown[message.channel]=i.pointerKnown[message.channel]=1;i.knownSamples[message.channel]=0xffffffff;i.registers[message.channel][4]&=127;}
+          else if(message.method==='key-off')i.registers[message.channel][4]&=127;
+          else if(message.method==='reset')i.reset();
+          else if(message.method==='clock')this.hucClock=message.hz;
+          else if(message.method==='stop-voices')this.stopConsoleVoices('huc6280');
+          else assert.equal(message.method,'mix','Unknown Native HuC6280 operation');
+        }else{
+          const s=this.snes;
+          if(message.method==='write'){s.registers[message.register]=message.value;if(message.register===0x4c)s.enabled|=message.value;if(message.register===0x5c)s.enabled&=~message.value;}
+          else if(message.method==='load-memory')s.ram.set(message.data,message.address);
+          else if(message.method==='key-on'){s.enabled|=1<<message.channel;s.registers[0x5c]&=~(1<<message.channel);s.registers[0x4c]=1<<message.channel;}
+          else if(message.method==='key-off'){s.enabled&=~(1<<message.channel);s.registers[0x5c]|=1<<message.channel;}
+          else if(message.method==='reset'){s.registers.fill(0);s.ram.fill(0);s.enabled=0;s.timeline={loaded:false,playing:false,positionFrames:0,totalFrames:0,ended:false};}
+          else if(message.method==='stop-voices')this.stopConsoleVoices('snes');
+          else if(message.method==='prepare-timeline'){s.ram.set(message.ram);s.registers.set(message.dsp);s.timeline={loaded:true,playing:false,positionFrames:0,totalFrames:message.durationClocks/32,ended:false};}
+          else if(message.method==='play-timeline'){s.timeline.positionFrames=0;s.timeline.ended=false;s.timeline.playing=true;s.timeline.began=performance.now();}
+          else if(message.method==='stop-timeline')s.timeline.playing=false;
+          else assert.equal(message.method,'mix','Unknown Native SNES operation');
+        }
+      };
+      for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
+      if(['gameboy','snes','pc-engine'].includes(this.current.mode))assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native consoles must never send hidden sound chips');
       if(this.current.mode==='nes')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'NES mode must never send hidden OPN/PSG/DX7/PCM commands');
       for(const entry of args.commands.filter(entry=>entry.type==='dx7')) {
         assert.equal(this.current.mode,'dx7','Only DX7 mode may accept DX7 commands');
@@ -197,6 +255,11 @@ class FakeNative {
     throw Error('Unexpected native command: ' + command);
   }
   count(command) {return this.calls.filter(call => call.command === command).length;}
+  stopConsoleVoices(kind) {
+    if(!kind||kind==='gameboy'){const i=this.gameboyInspector;if(i){for(const address of [2,7,10,17])i.observeWrite(address,0);i.gates.fill(false);}}
+    if(!kind||kind==='huc6280')for(const row of this.hucInspector?.registers??[])row[4]&=127;
+    if((!kind||kind==='snes')&&this.snes){this.snes.enabled=0;this.snes.registers[0x4c]=0;this.snes.registers[0x5c]=255;this.snes.timeline.playing=false;}
+  }
 }
 
 function observeAudioCreation() {
@@ -255,13 +318,13 @@ async function modeIds(page) {
   return page.locator('#playgroundMode option').evaluateAll(options=>options.map(option=>option.value));
 }
 async function assertNativeModeRestriction(page,native) {
-  assert.deepEqual(await modeIds(page),['genesis','mega-cd','nes','dx7'],'Native must list only supported machine modes');
+  assert.deepEqual(await modeIds(page),nativeModeIds,'Native must list only supported machine modes');
   const before={url:page.url(),session:native.current.session,shutdowns:native.count('native_genesis_shutdown')};
   // A forged option/change must pass the same support check as the visible UI.
   await page.evaluate(()=>{
     const select=document.getElementById('playgroundMode');
-    const option=new Option('Forged Game Boy','gameboy');option.dataset.forgedMode='true';select.append(option);
-    select.value='gameboy';select.dispatchEvent(new Event('change',{bubbles:true}));
+    const option=new Option('Forged MSX','msx');option.dataset.forgedMode='true';select.append(option);
+    select.value='msx';select.dispatchEvent(new Event('change',{bubbles:true}));
   });
   assert.equal(await page.locator('#playgroundMode').inputValue(),'genesis');
   assert.equal(await page.locator('#changeModeDialog').evaluate(dialog=>dialog.open),false,'Unsupported mode must not open the project-transfer dialog');
@@ -565,7 +628,10 @@ async function nativeAudioMonitor(page,native,artifacts,name) {
   const commandsBefore=native.count('native_genesis_commands');
   await page.evaluate(async()=>{
     const synth=window.__nativeBackendTest.runtime.megaDrive;
-    if(synth.nes){synth.nes.writeRegister(0x4017,0x40);await synth.flush();}
+    if(synth.gameboy){synth.gameboy.pulse.setVoice(0,{volume:8});await synth.flush();}
+    else if(synth.huc6280){synth.huc6280.setVolume(0,20);await synth.flush();}
+    else if(synth.snes){synth.snes.writeDsp(0x0c,127);await synth.flush();}
+    else if(synth.nes){synth.nes.writeRegister(0x4017,0x40);await synth.flush();}
     else if(synth.dx7){synth.dx7.noteOn(84,1);synth.dx7.noteOff(84);await synth.dx7.getState();}
     else synth.fm.write(0,0x22,0);
     await synth.flush();
@@ -660,7 +726,7 @@ async function changeNativeMode(page,native,id,choice='initial') {
   await ready(page);
   assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),id);
   assert.equal(new URL(page.url()).searchParams.get('audioEngine'),'native');
-  assert.deepEqual(await modeIds(page),['genesis','mega-cd','nes','dx7']);
+  assert.deepEqual(await modeIds(page),nativeModeIds);
   assert.equal(native.count('native_genesis_start'),starts,'Mode selection must defer device opening until playback');
   assert.equal(native.current,null,'Changing Native machines must shut down the old session');
   if(session)assert(native.calls.some(call=>call.command==='native_genesis_shutdown'&&call.args.session===session));
@@ -906,6 +972,9 @@ async function nativeDx7(page,native,artifacts,name) {
     assert.equal(edited.preset.operators[2].coarse,3);assert.equal(edited.preset.operators[6].outputLevel,50);
     assert(commands().some(entry=>entry.type==='dx7'&&entry.message.method==='mix'),'DX7 mixer must use the Native chip gain');
     assert(native.calls.slice(first).some(call=>call.command==='native_genesis_fx'&&call.args.message.op==='chain'));
+    // Chip and FX use independent Worker ports. A delivered note does not
+    // acknowledge the FX installation on its separate preparation queue.
+    await until(()=>native.liveFx.has('native-dx7-fx'),execution+' Native DX7 JavaScript FX installation');
     assert(native.liveFx.has('native-dx7-fx'),'DX7 must share the existing Native JavaScript FX stage');
     assert.equal(native.current.session,session,'Patch loading and editing must reuse one Native DX7 instance');
     await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
@@ -1055,6 +1124,109 @@ async function nativeNes(page,native,artifacts,name) {
   await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
   await changeNativeMode(page,native,'genesis','keep');await nativeRun(page,native);
 }
+async function nativeConsoles(page,native,artifacts,name) {
+  const allCommands=()=>native.calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+  for(const [mode,kind,count]of [['gameboy','gameboy',4],['snes','snes',8],['pc-engine','huc6280',6]]){
+    const only=process.argv.find(value=>value.startsWith('--console='));if(only&&only.slice(10)!==mode)continue;
+    await changeNativeMode(page,native,mode);
+    const starter=await fs.readFile(path.resolve(__dirname,`../docs/playground/defaults/${mode}/index.js`),'utf8');
+    for(const execution of ['main','worker']){
+      let first=allCommands().length;
+      await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+      const commands=()=>allCommands().slice(first).filter(command=>command.type===kind);
+      await until(()=>commands().length>0,`${mode}/${execution} starter commands`);
+      const state=await page.evaluate(async()=>{
+        const synth=window.__nativeBackendTest.runtime.megaDrive;
+        return {backend:synth.backend,chip:synth.capabilities.chip,endpoints:synth.primaryEndpoints.map(endpoint=>endpoint.name),
+          fm:synth.fm,psg:synth.psg,pcm:synth.pcm,dx7:synth.dx7,nes:synth.nes,inspected:await synth.chipInspector.list()};
+      });
+      assert.equal(state.backend,'native-genesis');assert.equal(state.chip,kind);assert.deepEqual(state.endpoints,[kind]);
+      assert.deepEqual(state.inspected.map(chip=>chip.id),[kind]);for(const field of ['fm','psg','dx7','nes'])assert.equal(state[field],null,`${mode} has no hidden ${field}`);
+      if(kind!=='huc6280')assert.equal(state.pcm,null);
+      if(execution==='worker')assert(commands().some(command=>command.performance&&command.owner&&command.frame>0),`${mode} Worker must retain frame/owner timing`);
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+      const session=native.current.session;
+      const extras=kind==='gameboy'?`
+        if(await useSoundChip('gameboy')!==gameboy)throw Error('Game Boy primary was not reused');
+        gameboy.wave.setWaveform(Array.from({length:32},(_,i)=>i%16));gameboy.wave.noteOn('C3');
+        gameboy.pulse.setVoice(1,{duty:0.5,volume:10});gameboy.noise.setVoice({volume:7});gameboy.noise.keyOn();
+        await mixer.set(gameboy.id,{volume:0.7,pan:-0.2});
+        liveLoop('native-console-extra',async()=>{gameboy.pulse.noteOn(0,'E4');await beat(.05);gameboy.pulse.keyOff(0);await beat(.05);});
+      `:kind==='huc6280'?`
+        if(await useSoundChip('huc6280')!==pce)throw Error('PC Engine primary was not reused');
+        for(let ch=0;ch<6;ch++){pce.setWaveform(ch,Array.from({length:32},(_,i)=>(i+ch)&31));pce.setVolume(ch,25);pce.setPan(ch,15,14);}
+        pce.setNoise(4,{enabled:true,frequency:17});pce.keyOn(4);
+        await mixer.set(pce.id,{volume:0.6,pan:0.25});
+        liveLoop('native-console-extra',async()=>{pce.noteOn(0,'E4');await beat(.05);pce.keyOff(0);await beat(.05);});
+      `:`
+        if(await useSoundChip('snes')!==snes)throw Error('SNES primary was not reused');
+        const instrument=await snes.loadBRR(new Uint8Array([0xb3,0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0]),{baseFrequencyHz:2000,loopStartSamples:0});
+        for(let ch=0;ch<8;ch++)snes.setPreset(ch,{sample:instrument,adsr1:0,adsr2:0,gain:100,volumeLeft:80,volumeRight:90});
+        await mixer.set(snes.id,{volume:0.65,pan:0.15});
+        liveLoop('native-console-extra',async()=>{snes.noteOn(0,'E4');await beat(.05);snes.noteOff(0);await beat(.05);});
+      `;
+      first=allCommands().length;
+      await page.evaluate(({extras,execution})=>window.__nativeBackendTest.runtime.playSource(extras,{execution}),{extras,execution});
+      await until(()=>commands().some(command=>command.message.method==='mix'),`${mode}/${execution} Native mixer`);
+      const inspected=await page.evaluate(kind=>window.__nativeBackendTest.runtime.chipInspector.read(kind),kind);
+      assert.equal(inspected.kind,kind);assert.equal(inspected.channels.length,count);
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());assert.equal(native.current.session,session);
+      if(kind==='gameboy'){assert.equal(native.gameboyInspector.voice[32],1);assert(native.gameboyInspector.gates.every(gate=>!gate));}
+      if(kind==='huc6280'){assert.equal(native.hucInspector.waveforms[3][7],10);assert(native.hucInspector.registers.every(row=>!(row[4]&128)));}
+      if(kind==='snes'){assert(native.snes.ram.includes(0xb3));assert.equal(native.snes.enabled,0);}
+      await assertNoLiveAudio(page);
+    }
+    // Every fixed physical voice uses the ordinary computer-key and pointer
+    // Guitar path; no additional sound chip may be constructed.
+    await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:'+kind);
+    for(let channel=0;channel<count;channel++){
+      await page.selectOption('#playgroundKeyboardTargetChannel',String(channel));await page.locator('#keyboardTab').focus();
+      const first=allCommands().length,commands=()=>allCommands().slice(first).filter(command=>command.type===kind);
+      await page.keyboard.down('z');await until(()=>commands().some(command=>command.message.method==='batch'&&command.message.channel===channel&&command.message.action==='on'),`${mode} Keyboard channel ${channel}`);
+      await page.keyboard.up('z');await until(()=>commands().some(command=>command.message.method==='batch'&&command.message.action==='off'),`${mode} Keyboard release ${channel}`);
+    }
+    await page.selectOption('#playgroundKeyboardTargetChannel','0');
+    const first=allCommands().length,commands=()=>allCommands().slice(first).filter(command=>command.type===kind);
+    const key=page.locator('#operatorKeyboardRoot .key').first();
+    assert.equal(await key.count(),1,`${mode} Guitar key must be visible`);await key.scrollIntoViewIfNeeded();
+    {
+      const rect=await key.boundingBox();await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>commands().some(command=>command.message.action==='on'),`${mode} Guitar pointer`);await page.mouse.up();await until(()=>commands().some(command=>command.message.action==='off'),`${mode} Guitar pointer release`);
+    }
+    if(kind!=='snes'){
+      await page.click(`#${kind}Tab`);const prefix=kind==='gameboy'?'gb':'pce';const root=`#${kind}Panel`;
+      const hold=page.locator(`${root} [data-chip-action="${prefix}-hold"]`);await hold.waitFor();await hold.scrollIntoViewIfNeeded();const rect=await hold.boundingBox();
+      const before=allCommands().length;await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>allCommands().slice(before).some(command=>command.type===kind&&command.message.action==='on'),`${mode} Operators hold`);
+      await page.mouse.move(5,5);await page.mouse.up();await until(()=>allCommands().slice(before).some(command=>command.type===kind&&command.message.action==='off'),`${mode} Operators release outside`);
+      await page.click(`${root} [data-chip-action="${prefix}-keyboard"]`);await page.locator(`#${kind}Tab`).focus();
+      const keyboardFirst=allCommands().length;await page.keyboard.down('z');await until(()=>allCommands().slice(keyboardFirst).some(command=>command.type===kind&&command.message.action==='on'),`${mode} Operators Keyboard`);await page.keyboard.up('z');await until(()=>allCommands().slice(keyboardFirst).some(command=>command.type===kind&&command.message.action==='off'),`${mode} Operators Keyboard release`);
+    }
+    if(kind==='huc6280'){
+      const first=allCommands().length;
+      const state=await page.evaluate(async()=>{
+        const inspector=window.__nativeBackendTest.runtime.chipInspector;
+        await inspector.invoke('huc6280','auditionOn',[0,60,'dda-transition']);
+        await inspector.invoke('huc6280','setVoice',[0,{dda:true,ddaValue:17}]);
+        const state=await inspector.read('huc6280');
+        await inspector.invoke('huc6280','setVoice',[0,{dda:false}]);return state;
+      });
+      assert.equal(state.channels[0].dda,true);assert.equal(state.channels[0].active,false,'DDA edits must release the previous Keyboard lease');
+      assert(allCommands().slice(first).some(command=>command.type==='huc6280'&&command.message.action==='off'),'DDA transition must reach Native release');
+    }
+    if(kind==='snes')for(const execution of ['main','worker']){
+      const first=allCommands().length;
+      await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
+        const initial=await snes.snapshot();if(initial.ram.length!==65536||initial.dsp.length!==128)throw Error('Native SNES snapshot incomplete');
+        await snes.prepareTimeline({version:1,clockRate:1024000,durationClocks:32000,initialState:{ram:initial.ram,dsp:initial.dsp,outputDelayFrames:4},events:new Uint32Array([0,0,0x5c,0,0,0,0x4c,1])});
+        await snes.playTimeline();const state=await snes.getTimelineState();if(!state.ended)throw Error('Native SNES timeline completion missing');
+      `,{execution}),execution);
+      assert(allCommands().slice(first).some(command=>command.type==='snes'&&command.message.method==='prepare-timeline'),`${execution} captured SNES timeline`);
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    }
+    await assertNoLiveAudio(page);
+  }
+  await changeNativeMode(page,native,'genesis','keep');
+  await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
+}
 function importedNativeNesVgm(clock=1789773) {
   const write=(register,value)=>[0xb4,register,value];
   const ram=Array.from({length:17},(_,index)=>(index*29+0x55)&255);
@@ -1193,6 +1365,12 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--consoles-only')) {
+      await nativeConsoles(page,native,artifacts,name);
+      assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-consoles.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS focused Native Game Boy / SNES / PC Engine Main/Worker, shipped starters, Keyboard, Operators, RAM/wave retention, SNES timeline, mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--nes-only')) {
       await nativeNes(page,native,artifacts,name);
       assert.deepEqual(errors,[]);
@@ -1218,6 +1396,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeMegaCd(page,native,artifacts,name);
     await nativeDx7(page,native,artifacts,name);
     await nativeNes(page,native,artifacts,name);
+    await nativeConsoles(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
@@ -1237,9 +1416,9 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     // Unsupported machines can be selected after explicitly returning to Web Audio.
     assert.deepEqual(await modeIds(page),allModeIds);
     await page.locator('#mainMenu > summary').click();
-    await page.selectOption('#playgroundMode', 'gameboy');
+    await page.selectOption('#playgroundMode', 'msx');
     await page.locator('#changeModeDialog').waitFor({state:'visible'});
-    await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'gameboy'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
+    await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'msx'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
     await ready(page);
     assert.equal(native.current, null);
     assert.notEqual(await page.evaluate(() => window.__nativeBackendTest.runtime.megaDrive.backend), 'native-genesis');
@@ -1259,7 +1438,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const incompatible=new URL(page.url());incompatible.searchParams.set('audioEngine','native');
     const encodedSource=Buffer.from(preservedSource).toString('base64url');incompatible.searchParams.set('src',encodedSource);
     await page.goto(incompatible.href);await ready(page);
-    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'gameboy');
+    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'msx');
     assert.equal(new URL(page.url()).searchParams.get('audioEngine'),null,'The incompatible Native query must be removed');
     assert.equal(new URL(page.url()).searchParams.get('src'),encodedSource,'URL normalization must preserve the source parameter');
     assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),preservedSource,'URL normalization must preserve the current project');

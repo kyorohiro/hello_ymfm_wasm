@@ -154,8 +154,21 @@ const pageRevisions={'playground.js':megaCdVersion,'playground_audio_input.js':m
   ...Object.fromEntries(['playground.js','playground_mode_keyboard.js','playground_operator_keyboard.js',
     'playground_chip_tabs.js','playground_nes_voice_panel.js','playground_ui.js','playground_workbench.js',
     'playground_tfi_editor.js'].map(name=>[name,'operator-tab-keyboard-1']))};
-const revisionFor=name=>nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const consoleVersion='native-consoles-1';
+const consoleFiles=new Set(['native_genesis_console.js','native_genesis_snes.js','native_genesis_synth.js',
+  'native_genesis_worker.js','playground_native_primary.js','playground_runtime.js','playground_logic_worker.js',
+  'playground_audio_engine.js','playground.js']);
+do {
+  propagated=false;
+  for(const {name,source} of sources){
+    if(consoleFiles.has(name))continue;
+    const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+    if(imports.some(match=>consoleFiles.has(match[1]))){consoleFiles.add(name);propagated=true;}
+  }
+}while(propagated);
+const revisionFor=name=>consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...consoleFiles,
   ...Object.keys(pageRevisions),
   ...segaFiles,
   ...megaCdFiles,

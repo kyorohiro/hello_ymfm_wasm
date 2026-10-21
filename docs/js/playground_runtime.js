@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-consoles-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -33,7 +33,7 @@ import {createSampleInstrument as createSampleInstrumentFactory} from './playgro
 import {createGameboyAudio} from './playground_gameboy_audio.js?v=nes-wasm-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=nes-wasm-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=native-consoles-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=audio-numeric-bindings-1';
 import {createOki6258Audio} from './playground_okim6258_audio.js?v=audio-numeric-bindings-1';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=audio-numeric-bindings-1';
@@ -197,7 +197,8 @@ export function createPlaygroundRuntime(
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip);
+  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
+    || capabilities.chip === 'gameboy' && capabilities.backend === 'native-genesis';
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const sourceMap =
     new Map();
@@ -246,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=nes-wasm-1",
+      "./playground_logic_worker.js?v=native-consoles-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -413,6 +414,10 @@ export function createPlaygroundRuntime(
       const key = voice === 'pulse' ? args[0] : ({triangle:2,noise:3,dmc:4,fds:5})[voice];
       if (['noteOn','keyOn','play','noteOff','keyOff','stop'].includes(method)) return {key,on:['noteOn','keyOn','play'].includes(method)};
     }
+    if (name === 'gameboy' && path.length > 1) {
+      const key = path[0] === 'pulse' ? args[0] : ({wave:2,noise:3})[path[0]];
+      if (['noteOn','keyOn','noteOff','keyOff'].includes(method)) return {key,on:method==='noteOn'||method==='keyOn'};
+    }
     if (['noteOn','keyOn','noteOff','keyOff'].includes(method)) return {key:args[0],on:method==='noteOn'||method==='keyOn'};
     if(name==='ay'){
       if(['tone','setTone','noise'].includes(method))return {key:args[0],on:(args[1]?.envelope??false)||(args[1]?.volume??9)>0};
@@ -482,7 +487,7 @@ export function createPlaygroundRuntime(
     return sharedSections;
   }
   function primaryChipState() {
-    if (capabilities.chip === 'gameboy') return synth?._getState?.();
+    if (capabilities.chip === 'gameboy') return (nativePrimary ? megaDrive.gameboy : synth)?._getState?.();
     const core = synth?.fm ?? synth;
     const sections = {};
     if (primarySectionNames.length) {
@@ -932,7 +937,7 @@ export function createPlaygroundRuntime(
       if(pending?.then)primaryPcmSilence=Promise.all([primaryPcmSilence,Promise.resolve(pending).catch(()=>{})]).then(()=>{});
       nativeOwners.clear();
     }
-    if (capabilities.chip === 'gameboy') {
+    if (capabilities.chip === 'gameboy' && !nativePrimary) {
       synth?._cancelClockRequests?.('Run stopped');
       megaDrive.node?.port?.postMessage({type:'clear-scheduled-writes'});
       releasingGameboy = true;
@@ -1018,7 +1023,7 @@ export function createPlaygroundRuntime(
         for (const [key, voice] of nativeOwners) if (voice.owner === state) {
           nativeOwners.delete(key); releaseNativeVoice(voice.name,voice.key);
         }
-        if (capabilities.chip === 'gameboy') {
+        if (capabilities.chip === 'gameboy' && !nativePrimary) {
           releasingGameboy = true;
           try { for (const [channel, owner] of gameboyOwners) if (owner === state) {
             gameboyOwners.delete(channel); synth?.keyOff(channel);
@@ -1240,7 +1245,7 @@ export function createPlaygroundRuntime(
           };
         }
         synth = nativePrimary ? megaDrive : capabilities.chip === 'gameboy' ? megaDrive.gameboy : megaDrive.fm;
-        if (capabilities.chip === 'gameboy') synth._beforeWrite = (register,value) => {
+        if (capabilities.chip === 'gameboy' && !nativePrimary) synth._beforeWrite = (register,value) => {
           const loop = currentLoopContext;
           if (!releasingGameboy && loop?.stopped) return false;
           const trigger = [4,9,14,19].indexOf(register);
@@ -1888,7 +1893,7 @@ export function createPlaygroundRuntime(
     const fx = liveFxLifecycle.track(createFxApi(), evaluationState.liveFxDefinitions);
     const isGameboy = capabilities.chip === 'gameboy';
     currentLoopContext = null;
-    if (isGameboy && sharedGameboySynth !== synth) {
+    if (isGameboy && !nativePrimary && sharedGameboySynth !== synth) {
       sharedGameboy = createPrimaryGameboyApi(synth);
       sharedGameboySynth = synth;
     }
@@ -1913,8 +1918,8 @@ export function createPlaygroundRuntime(
       sharedFmSynth = synth;
     }
     const fm = keyboardApi(sharedFm);
-    const gameboy = isGameboy ? keyboardApi(sharedGameboy) : undefined;
     const nativeApis = Object.fromEntries(Object.entries(nativePrimaryApis()).map(([name,api])=>[name,keyboardApi(api)]));
+    const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
     const sections = Object.fromEntries(Object.entries(primaryChipSections()).map(([name,api])=>[name,keyboardApi(api)]));
     const musicApi =
@@ -2518,8 +2523,15 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,dx7Port,nesPort} = nativeWorkerBridge;
-        if (nesPort) {
+        const {chipPort,fxPort,pcmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port} = nativeWorkerBridge;
+        const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port};
+        const consoleEndpoints=(megaDrive.primaryEndpoints??[]).filter(endpoint=>consolePorts[endpoint.name]);
+        if (consoleEndpoints.length) {
+          const endpoints=consoleEndpoints.map(({name,globalName,client})=>({name,globalName,native:true,
+            clock:client.clock,sampleRate:client.sampleRate,nativeSampleRate:client.nativeSampleRate,
+            state:client._getState?.(),port:consolePorts[name]}));
+          worker.postMessage({type:'native-primary-ports',endpoints},endpoints.map(endpoint=>endpoint.port));
+        } else if (nesPort) {
           const client = megaDrive.nes;
           worker.postMessage({type:'native-primary-ports',endpoints:[{name:'nes',globalName:'nes',
             clock:client.clock,fdsEnabled:client.fdsEnabled,native:true,state:client._getState(),port:nesPort}]},[nesPort]);
@@ -2947,7 +2959,7 @@ export function createPlaygroundRuntime(
       return capabilities.fmChannels > 0 ? synth : null;
     },
     get gameboy() {
-      return capabilities.chip === 'gameboy' ? synth : null;
+      return capabilities.chip === 'gameboy' ? nativePrimary ? megaDrive.gameboy : synth : null;
     },
     get psg() {
       return megaDrive.psg;
