@@ -28,6 +28,7 @@ playground_sample_editor_worker.js
 playground_fx_monitor.js
 playground_audio_monitor.js
 playground_audio_diagnostics.js
+playground_audio_engine.js
 playground_monitor_scale.js
 playground_mixer.js
 playground_mixer.css
@@ -266,6 +267,7 @@ midi_source.js
 playground_music.js
 playground_noise.js
 playground_runtime.js
+native_genesis_synth.js
 playground_keyboard.js
 playground_sample_edit.js
 playground_sample_instrument.js
@@ -547,6 +549,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
   "${STAGE_DIR}/playground_audio_input.js" \
+  "${STAGE_DIR}/playground_audio_diagnostics.js" \
   "${STAGE_DIR}/playground_sample_editor_worker.js" \
   "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_mode_keyboard.js" \

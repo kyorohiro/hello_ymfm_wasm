@@ -63,6 +63,7 @@ playground_pwm_worklet.js
 rf5c164.js
 looper.js
 megasynth.js
+native_genesis_synth.js
 megasynth_fx.js
 playground_chip_port.js
 playground_chip_clock.js

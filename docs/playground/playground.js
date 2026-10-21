@@ -6,6 +6,8 @@ import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
 import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab-keyboard-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
+import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
+  installPlaygroundAudioEngineSettings} from './playground_audio_engine.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -266,7 +268,19 @@ const selectedChip = selectedMode.chip;
 const selectedChipClock = selectedMode.clock;
 const useNukedEngine = selectedMode.engine === 'nuked';
 const synthOptions = createModeSynthOptions(selectedMode);
-const megaDrive = createTetoricaSynth(synthOptions);
+const audioEngineSelection = resolvePlaygroundAudioEngine({search:window.location.search,
+  desktop:typeof window.__TAURI_INTERNALS__?.invoke === 'function', modeId:selectedMode.id});
+const useNativeGenesis = audioEngineSelection.engine === 'native';
+const megaDrive = useNativeGenesis
+  ? new (await import('../js/native_genesis_synth.js')).NativeGenesisSynth({
+    invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
+    onError(error) {
+      setStatus(`Native audio failed: ${error.message}. Select Web Audio in Audio engine to switch back.`);
+      logLine(`[Native audio] ${error.message}`);
+      void stopRun().catch(error => logLine(`[Native audio cleanup] ${error.message}`));
+    },
+  })
+  : createTetoricaSynth(synthOptions);
 const hasPrimaryFM = megaDrive.capabilities.fmChannels > 0;
 const initialCode = MODE_DEFAULT_CODES[selectedMode.id];
 if (typeof initialCode !== 'string') throw new Error(`Missing default example for ${selectedMode.label}`);
@@ -570,7 +584,10 @@ const tfiFileEditor = createTfiFileEditor({
   keyboardRoot: document.getElementById("tfiFileKeyboard"),
   minimizableKeyboard: true,
   title: document.getElementById("tfiFileTitle"),
-  createAudio: () => createTetoricaSynth({...instrumentSynthOptions, megaCD:false, mega32X:false}),
+  createAudio: () => {
+    if (useNativeGenesis) throw new Error('Independent instrument preview is unavailable in Native Genesis. Select Web Audio to use it.');
+    return createTetoricaSynth({...instrumentSynthOptions, megaCD:false, mega32X:false});
+  },
   clock: instrumentClock,
   clockDivider: selectedChip === 'ym2203' ? 72 : 144,
   onSave(path, bytes) {
@@ -609,7 +626,8 @@ function updateMasterVolumeUi() {
 }
 
 function applyMasterVolume() {
-  megaDrive.audio.setListeningVolume(listeningVolume);
+  if (useNativeGenesis) megaDrive.setListeningVolume(listeningVolume);
+  else megaDrive.audio.setListeningVolume(listeningVolume);
 }
 
 function createTextareaEditorAdapter(
@@ -1866,6 +1884,16 @@ function createRuntime() {
 }
 
 const runtime = createRuntime();
+if (typeof window.__TAURI_INTERNALS__?.invoke === 'function') {
+  installPlaygroundAudioEngineSettings({document,
+    host:document.getElementById('desktopSettingsMenu'), selection:audioEngineSelection,
+    onChange:changePlaygroundAudioEngine});
+}
+if (useNativeGenesis) {
+  document.getElementById('playgroundModeDetails').textContent += ' · Native (experimental)';
+  const diagnosticsButton = document.getElementById('audioDiagnosticsButton');
+  if (diagnosticsButton) {diagnosticsButton.disabled = true; diagnosticsButton.title = 'Audio diagnostics records the Web Audio engine.';}
+}
 async function showAudioDiagnostics() {
   if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
   if (!audioDiagnosticsLoading) {
@@ -1939,7 +1967,11 @@ function syncWorkerExecutionLock() {
   updateWorkerLookaheadSummary();
   if (workerExecution) {
     workerExecution.disabled =
-      runtime.getState().playback === "running";
+      runtime.getState().playback === "running" || megaDrive.capabilities.worker === false;
+    if (megaDrive.capabilities.worker === false) {
+      workerExecution.checked = false;
+      workerExecution.title = 'Native Genesis currently supports Main execution. Select Web Audio to use Worker.';
+    }
   }
 }
 
@@ -1947,6 +1979,7 @@ function updateWorkerLookaheadSummary() {
   if (workerLookaheadValue) workerLookaheadValue.textContent = `${runtime.getTiming().workerLookaheadSeconds * 1000} ms`;
 }
 updateWorkerLookaheadSummary();
+syncWorkerExecutionLock();
 workerLookaheadButton?.addEventListener("click", () => {
   mainMenu.open = false;
   workerLookaheadInput.value = String(runtime.getTiming().workerLookaheadSeconds * 1000);
@@ -2027,6 +2060,10 @@ async function runCode({propagateError = false} = {}) {
     );
   } catch (error) {
     console.error(error);
+    if (error?.name !== 'AbortError') {
+      setStatus(`Playback failed: ${error?.message ?? error}`);
+      setRuntimeState('Error');
+    }
     if(propagateError)throw error;
   } finally {
     runButton.disabled = false;
@@ -2829,6 +2866,35 @@ async function changePlaygroundMode(id) {
     modeSelect.disabled = false;
     modeSelect.value = selectedMode.id;
     if (!switching) mainMenu.querySelector('summary').focus();
+  }
+}
+
+async function changePlaygroundAudioEngine(engine) {
+  if (changingMode) throw new Error('A mode or engine change is already in progress.');
+  changingMode = true;
+  modeSelect.disabled = true;
+  try {
+    audioDiagnostics?.cancel();
+    invalidateSampleEditor('Audio engine changed');
+    saveActiveVirtualFile();
+    playgroundShell?.invalidate('Audio engine changed');
+    await stopRun();
+    runButton.disabled = stopButton.disabled = true;
+    await desktopAutosave?.flush();
+    const url = createPlaygroundAudioEngineUrl(window.location.href, engine);
+    for (const key of ['cassette','src','code','source','example']) url.searchParams.delete(key);
+    const token = await saveModeProject(window.indexedDB, selectedMode.id,
+      prepareModeProject(captureProjectSnapshot(), selectedMode.id, 'keep'));
+    url.searchParams.set('modeProject', token);
+    await runtime.finalize();
+    desktopAutosave?.dispose();
+    window.location.assign(url.href);
+  } catch (error) {
+    changingMode = false;
+    modeSelect.disabled = false;
+    runButton.disabled = stopButton.disabled = false;
+    syncWorkerExecutionLock();
+    throw error;
   }
 }
 

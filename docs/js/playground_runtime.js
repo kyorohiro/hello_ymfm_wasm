@@ -174,6 +174,9 @@ export function createPlaygroundRuntime(
         options.segaPsgWasmUrl ??
         "./generated/segapsg_wasm.wasm?v=audio-numeric-bindings-1",
     });
+  // Audio backends provide timing explicitly; a native backend does not
+  // manufacture an AudioContext or an AudioNode to satisfy browser APIs.
+  const getAudioClock = () => megaDrive.clock ?? megaDrive.audioContext;
   const presets = {
     ...FM_PRESETS,
     ...(options.presets ?? {}),
@@ -212,7 +215,7 @@ export function createPlaygroundRuntime(
     ),
   };
   const audioScheduler = createAudioScheduler({
-    now: () => megaDrive.audioContext?.currentTime ?? 0,
+    now: () => getAudioClock()?.currentTime ?? 0,
     send: (entries) => synth.scheduleWrites(entries),
   });
   audioScheduler.setTiming({ lookaheadSeconds: runtime.dacLookaheadSeconds, schedulerIntervalMs: Math.min(10, Math.max(1, runtime.dacLookaheadSeconds * 1000)) });
@@ -313,7 +316,7 @@ export function createPlaygroundRuntime(
   let playbackState = "stopped";
   let logicWorker = null;
   let workerGlobals = null;
-  const performanceHost = createPerformanceHost({getContext: () => megaDrive.audioContext,
+  const performanceHost = createPerformanceHost({getContext: getAudioClock,
     onSuspended: () => { stop(); emitStatus('Audio suspended. Press Run to start again.'); }});
   const pcmDevices = new Set();
   const spcLoopOwners = new WeakMap();
@@ -328,7 +331,7 @@ export function createPlaygroundRuntime(
   const pendingPcmDisposals = new Map();
   let pcmSequence = 0;
   const soundChips = createSoundChipRegistry();
-  const chipInspector = createChipInspector({decode:decodePcm,endpoints:()=>{
+  const chipInspector = megaDrive.chipInspector ?? createChipInspector({decode:decodePcm,endpoints:()=>{
     const entries=[];
     if(hasOpn&&megaDrive.node?.port)entries.push({id:capabilities.chip,kind:capabilities.chip,label:`${capabilities.chip.toUpperCase()} (primary)`,port:megaDrive.node.port});
     if(capabilities.chip==='gameboy'&&megaDrive.gameboy&&megaDrive.node?.port)entries.push({id:'gameboy',kind:'gameboy',label:'Game Boy (primary)',port:megaDrive.node.port});
@@ -501,6 +504,7 @@ export function createPlaygroundRuntime(
   function clearAuditions() {
     auditionTokens.clear();
     if (hasOpn) megaDrive.node?.port?.postMessage({type: 'clear-auditions'});
+    megaDrive.clearAuditions?.();
     options.onAuditionReset?.();
   }
   const auditionSynth = {
@@ -514,11 +518,12 @@ export function createPlaygroundRuntime(
         throw new RangeError('Invalid audition pitch');
       }
       const port = megaDrive.node?.port;
-      if (!port) throw new Error('Audition audio is not ready');
+      if (!port && typeof megaDrive.auditionNoteOn !== 'function') throw new Error('Audition audio is not ready');
       if (auditionSequence >= Number.MAX_SAFE_INTEGER) throw new RangeError('Audition token limit reached');
       const token = ++auditionSequence;
       auditionTokens.set(channel, token);
-      port.postMessage({type: 'audition-note-on', channel: physicalChannel, block, fnum, token});
+      if (port) port.postMessage({type: 'audition-note-on', channel: physicalChannel, block, fnum, token});
+      else megaDrive.auditionNoteOn(physicalChannel, block, fnum, token);
     },
     noteOff(channel) {
       const physicalChannel = auditionChannel(channel);
@@ -526,9 +531,11 @@ export function createPlaygroundRuntime(
       if (token === undefined) return;
       auditionTokens.delete(channel);
       megaDrive.node?.port?.postMessage({type: 'audition-note-off', channel: physicalChannel, token});
+      megaDrive.auditionNoteOff?.(physicalChannel, token);
     },
   };
   async function openPcm(name, token = currentRunToken, options = {}) {
+    if (capabilities.dynamicSoundChips === false) throw new Error('Additional sound chips are unavailable in the experimental Native Genesis backend. Select Web Audio to use them.');
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
     if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7', 'snes', 'spc', 'huc6280', 'okim6258', 'ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
@@ -878,7 +885,15 @@ export function createPlaygroundRuntime(
       synth?.clearDacPlayback?.();
       synth?.write?.(0, 0x2b, 0x00);
     }
-    stopAllNotes();
+    if (typeof megaDrive.stopNativeAudio === 'function') {
+      clearAuditions(); activeNotes.clear();
+      const pending = megaDrive.stopNativeAudio();
+      primaryPcmSilence = Promise.all([primaryPcmSilence,Promise.resolve(pending)]).then(()=>{}).catch(error=>{
+        emitLog(formatLogArgs([error]));
+      });
+      // Stop remains synchronous for browser callers; the next Run, audition,
+      // stopWithFade and finalize await this native callback barrier.
+    } else stopAllNotes();
     megaDrive.pcm?._cancelClockRequests?.('Run stopped');
     if (megaDrive.pcm?._stopVoices) {
       const stopped=megaDrive.pcm._stopVoices();
@@ -919,8 +934,7 @@ export function createPlaygroundRuntime(
   const clockApi =
     createPlaygroundClock({
       runtime,
-      getAudioContext: () =>
-        megaDrive.audioContext,
+      getAudioContext: getAudioClock,
       getCurrentRunToken: () =>
         currentRunToken,
       getCurrentLoopContext: () =>
@@ -1112,6 +1126,9 @@ export function createPlaygroundRuntime(
   }
 
   function createFxApi() {
+    if (capabilities.backend === 'native-genesis') return new Proxy({}, {
+      get: () => () => {throw new Error('FX is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
+    });
     if (megaDrive.audio?.createFXApi) {
       return megaDrive.audio.createFXApi({
         getBeatSeconds: () =>
@@ -1416,7 +1433,7 @@ export function createPlaygroundRuntime(
         // its musical Keyboard callback is still releasing the old client.
         if(pendingPcmDisposals.get(args[0])!==pending){finish();return;}
         if(performance && performanceHost.clock?.session===performance.session &&
-            megaDrive.audioContext.currentTime < performance.time) {setTimeout(cleanup,10);return;}
+            getAudioClock().currentTime < performance.time) {setTimeout(cleanup,10);return;}
         try {for(const device of devices){performanceHost.detach(device.node?.port);device.dispose();}}
         catch(error){emitLog(formatLogArgs([error]));}
         finally {if(pendingPcmDisposals.get(args[0])===pending)pendingPcmDisposals.delete(args[0]);finish();}
@@ -1782,12 +1799,12 @@ export function createPlaygroundRuntime(
     }
     midiFilePlaying = true;
     for (const warning of song.warnings) emitLog(warning);
-    const origin=megaDrive.audioContext.currentTime+runtime.dacLookaheadSeconds;
+    const origin=getAudioClock().currentTime+runtime.dacLookaheadSeconds;
     let cursor=0;
     try {
       while(cursor<song.events.length) {
         if(runToken!==currentRunToken)throw new DOMException('Run stopped','AbortError');
-        const horizon=megaDrive.audioContext.currentTime+runtime.dacLookaheadSeconds;
+        const horizon=getAudioClock().currentTime+runtime.dacLookaheadSeconds;
         let count=0;
         midiWriteBatch=[];
         while(cursor<song.events.length && origin+song.events[cursor].seconds<=horizon && count++<4096) {
@@ -1814,7 +1831,7 @@ export function createPlaygroundRuntime(
         await clockApi.sleep(.01,runToken);
       }
       rack.stop(origin+song.seconds);
-      await clockApi.sleep(Math.max(0,origin+song.seconds-megaDrive.audioContext.currentTime),runToken);
+      await clockApi.sleep(Math.max(0,origin+song.seconds-getAudioClock().currentTime),runToken);
     } finally {midiWriteBatch=null;if(runToken===currentRunToken)midiFilePlaying=false;}
   }
 
@@ -1842,6 +1859,10 @@ export function createPlaygroundRuntime(
     }
     if (hasOpn && sharedFmSynth !== synth) {
       sharedFm = createFmProxy(synth);
+      if (megaDrive.clock && !megaDrive.node?.port) Object.defineProperty(sharedFm,'clock',{
+        enumerable:true, get:()=>synth.clock,
+        set:()=>{throw new Error('Changing the chip clock is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
+      });
       if (megaDrive.node?.port) attachChipClock(sharedFm, megaDrive.node.port, CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], {
         primary:true,
         onApplied: hz => {
@@ -1926,7 +1947,7 @@ export function createPlaygroundRuntime(
       playStream: (name, { atSamples = 0 } = {}) => {
         requireDac();
         const origin = runtime.sampleClockStartTime ??
-          (megaDrive.audioContext.currentTime +
+          (getAudioClock().currentTime +
             runtime.dacLookaheadSeconds);
         runtime.sampleClockStartTime = origin;
         fm.playDacBank(
@@ -2010,8 +2031,9 @@ export function createPlaygroundRuntime(
           if (chipName === 'rf5c164' && megaDrive.pcm) return keyboardApi(primaryPcmApi());
           if (chipName === 'gameboy' && isGameboy) return gameboy;
           if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
+          if (chipName === 'segapsg' && capabilities.backend === 'native-genesis') return psg;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
-        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
+        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
         check();
         return chip;
       },
@@ -2348,7 +2370,7 @@ export function createPlaygroundRuntime(
   function beginSampleSchedule() {
     if (runtime.sampleClockStartTime === null) {
       runtime.sampleClockStartTime =
-        megaDrive.audioContext.currentTime +
+        getAudioClock().currentTime +
         runtime.dacLookaheadSeconds;
     }
     return Math.round(
@@ -2359,7 +2381,7 @@ export function createPlaygroundRuntime(
   function scheduleWritesSamples(fm, startSamples, entries) {
     const start = Math.max(0, Number(startSamples) || 0);
     const origin = runtime.sampleClockStartTime ??
-      (megaDrive.audioContext.currentTime +
+      (getAudioClock().currentTime +
         runtime.dacLookaheadSeconds);
     runtime.sampleClockStartTime = origin;
     audioScheduler.enqueue(entries.map(([offset, port, register, value]) => {
@@ -2508,6 +2530,7 @@ export function createPlaygroundRuntime(
       playOptions.execution ??
       defaultExecution;
     if (execution === "worker") {
+      if (capabilities.worker === false) throw new Error('Worker execution is unavailable in the experimental Native Genesis backend. Select Web Audio or use Main execution.');
       const pending = playSourceInWorker(sourceCode);
       const runToken = currentRunToken;
       try {
@@ -2577,6 +2600,8 @@ export function createPlaygroundRuntime(
           nativeIpc,
         }
       );
+
+      await megaDrive.flush?.();
 
       evaluationState.collectingKeyboardBinding = false;
       if (runToken !== currentRunToken) return;
@@ -2729,7 +2754,7 @@ export function createPlaygroundRuntime(
     const context = megaDrive.audioContext;
     if (!stopFadeNode || context?.state !== 'running') {
       stop();
-      return Promise.resolve();
+      return primaryPcmSilence;
     }
     const runToken = currentRunToken;
     const now = context.currentTime, duration = 0.12, end = now + duration;
