@@ -10,7 +10,7 @@ const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
-const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,get editor(){return editorAdapter}};';
+const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
 setBpm(120);
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
@@ -69,6 +69,7 @@ class FakeNative {
       this.current = {session:++this.sessions,began:performance.now(),mode:args.mode??'genesis'};
       const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
       this.pcm=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{sampleRate:48000});
+      this.pcmMemory=new Uint8Array(65536);
       this.pcmVoices=Array(8).fill(0);
       return this.status();
     }
@@ -111,7 +112,7 @@ class FakeNative {
       for(const entry of args.commands.filter(entry=>entry.type.startsWith('rf5c164-'))) {
         assert.equal(this.current.mode,'mega-cd','Genesis must never accept PCM commands');
         if(entry.type==='rf5c164-write') {assert(Number.isInteger(entry.register)&&entry.register>=0&&entry.register<=8);assert(Number.isInteger(entry.value)&&entry.value>=0&&entry.value<=255);if(entry.audition)this.pcm.auditionWriting++;try{this.pcm.write(entry.register,entry.value);}finally{if(entry.audition)this.pcm.auditionWriting--;}}
-        else if(entry.type==='rf5c164-load-memory') {assert(Number.isInteger(entry.offset)&&entry.offset>=0&&entry.offset<=65536);assert(Array.isArray(entry.data)&&entry.data.length<=65536-entry.offset);assert(entry.data.every(value=>Number.isInteger(value)&&value>=0&&value<=255));}
+        else if(entry.type==='rf5c164-load-memory') {assert(Number.isInteger(entry.offset)&&entry.offset>=0&&entry.offset<=65536);assert(Array.isArray(entry.data)&&entry.data.length<=65536-entry.offset);assert(entry.data.every(value=>Number.isInteger(value)&&value>=0&&value<=255));this.pcmMemory.set(entry.data,entry.offset);}
         else if(entry.type==='rf5c164-key-on'||entry.type==='rf5c164-key-off') {
           assert(Number.isInteger(entry.channel)&&entry.channel>=0&&entry.channel<8);
           assert(entry.voice===undefined||Number.isSafeInteger(entry.voice)&&entry.voice>0);
@@ -589,6 +590,72 @@ async function changeNativeMode(page,native,id,choice='initial') {
   assert.equal(native.current,null,'Changing Native machines must shut down the old session');
   if(session)assert(native.calls.some(call=>call.command==='native_genesis_shutdown'&&call.args.session===session));
 }
+function importedMegaCdVgm() {
+  // A real mixed VGM with a banked RAM file, exact High-compatible register
+  // groups, FM and PSG. One second leaves time to remove the live RF loop.
+  const commands=[0xb1,7,0x82,0x67,0x66,0xc1,6,0,0,0,0,1,0x81,0x92,0xa3,0xff,
+    0xb1,7,0xc0,0xb1,0,200,0xb1,7,0xc0,0xb1,1,255,
+    0xb1,7,0xc0,0xb1,6,0x21,0xb1,7,0xc0,0xb1,4,0,0xb1,5,0x21,
+    0xb1,7,0xc0,0xb1,2,0,0xb1,3,8,0xb1,7,0xc0,0xb1,8,255,0xb1,8,254,
+    0x52,0x30,1,0x52,0x28,0xf0,0x50,0x90,0x61,0x44,0xac,0x66];
+  const bytes=new Uint8Array(256+commands.length),header=new DataView(bytes.buffer);
+  bytes.set([86,103,109,32]);header.setUint32(4,bytes.length-4,true);header.setUint32(8,0x161,true);
+  header.setUint32(0xc,3579545,true);header.setUint32(0x2c,7670454,true);
+  header.setUint32(0x34,0xcc,true);header.setUint32(0x6c,12500000,true);bytes.set(commands,256);
+  return Array.from(bytes);
+}
+async function nativeImportedMegaCd(page,native) {
+  const bytes=importedMegaCdVgm(),expectedRam=[0x81,0x92,0xa3,0xff];
+  for(const mode of ['high','write'])for(const execution of ['main','worker']) {
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    await page.evaluate(async({bytes,mode,execution})=>{
+      const test=window.__nativeBackendTest;
+      await test.importVgmFile(new File([Uint8Array.from(bytes)],'native-rf-import.vgm'),{
+        targetPath:'/native-rf-import.js',mode,includeRf5c164:true,includeDac:true,includePsg:true,splitChannels:false,
+      });
+      document.getElementById('workerExecution').checked=execution==='worker';
+    },{bytes,mode,execution});
+    const generated=await page.evaluate(()=>window.__nativeBackendTest.editor.getValue());
+    assert.match(generated,/await useSoundChip\(['"]rf5c164['"]\)/,`${mode}/${execution}: the real Mega CD importer must borrow the built-in PCM`);
+    assert.doesNotMatch(generated,/createSoundChip\(['"]rf5c164['"]\)|rf\.dispose\(/,'Shared PCM cleanup must never dispose the built-in chip');
+    assert.match(generated,/await file\(/,'Imported RAM must use the real project-file reader');
+    if(mode==='high')assert.match(generated,/rf\.setPitch\(0, 2048\)/,'High import must exercise exact-write API operations');
+    else assert.match(generated,/rf\.writeRegister\(2, 0\)/,'Write import must preserve raw writes');
+    const first=native.calls.length,session=native.current.session;
+    const commands=()=>native.calls.slice(first).flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+    await run(page);
+    await until(()=>commands().some(command=>command.type==='rf5c164-load-memory'&&command.offset===8448)&&
+      commands().some(command=>command.type==='rf5c164-write'&&command.register===6&&command.value===0x21)&&
+      commands().some(command=>command.type==='write'&&command.register===0x28&&(command.value&0xf0))&&
+      commands().some(command=>command.type==='psg-write'&&command.value===0x90),`${mode}/${execution}: imported RF/FM/PSG playback`);
+    assert.deepEqual(Array.from(native.pcmMemory.slice(8448,8452)),expectedRam,'The banked project RAM file must reach Native PCM intact');
+    assert.equal(native.pcm.mask&1,0,'Imported RF channel must be playing before cleanup');
+    assert.equal(native.current.session,session,'Import playback must borrow the existing audio session');
+    await assertNoLiveAudio(page);
+    // A hot Run which drops the RF loop invokes its authored cleanup without
+    // stopping the native device. This catches dispose/no-op cleanup mistakes.
+    const beforeCleanup=commands().length;
+    await page.evaluate(async execution=>{
+      await window.__nativeBackendTest.runtime.playSource(`liveLoop('unrelated-import-regression',async()=>{await sleep(0.1);});`,{execution});
+    },execution);
+    await until(()=>commands().slice(beforeCleanup).some(command=>command.type==='rf5c164-key-off'&&command.channel===0),`${mode}/${execution}: imported shared PCM cleanup`);
+    assert(!commands().slice(beforeCleanup).some(command=>command.type==='rf5c164-reset'),'Removing an imported loop must preserve the shared register and RAM state');
+    assert.equal(native.pcm.mask&1,1,'Removing imported RF playback must release its channel');
+    assert.deepEqual(Array.from(native.pcmMemory.slice(8448,8452)),expectedRam,'Loop cleanup must retain uploaded RF RAM');
+    assert.equal(native.current.session,session);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    assert.equal(native.pcm.mask,255,'Stop must leave all RF voices off');
+    assert.deepEqual(Array.from(native.pcmMemory.slice(8448,8452)),expectedRam,'Stop must retain uploaded RF RAM');
+  }
+  for(const execution of ['main','worker']) {
+    const message=await page.evaluate(async execution=>{
+      try {await window.__nativeBackendTest.runtime.playSource(`const fm=await useSoundChip('ym2612');const rf=await createSoundChip('rf5c164');`,{execution});return null;}
+      catch(error){return error.message;}
+    },execution);
+    assert.match(message,/useSoundChip\(['"]rf5c164['"]\)/,'Existing independent-chip code must explain how to use the built-in Mega CD PCM');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+}
 async function nativeMegaCd(page,native,artifacts,name) {
   await changeNativeMode(page,native,'mega-cd');
   const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/mega-cd/index.js'),'utf8');
@@ -623,6 +690,7 @@ async function nativeMegaCd(page,native,artifacts,name) {
     const stopped=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('rf5c164'));
     assert(stopped.channels.every(channel=>!channel.active),'Stop must release the authored PCM channel state');
   }
+  await nativeImportedMegaCd(page,native);
   const compressedUrl=new URL('./samples/sonic-pi/drum_heavy_kick.flac',page.url()).href;
   for(const execution of ['main','worker']) {
     const first=native.calls.length;
@@ -689,6 +757,14 @@ async function nativeMegaCd(page,native,artifacts,name) {
   await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
   await changeNativeMode(page,native,'genesis','keep');
   assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),source,'Returning from Mega CD must preserve edited project code');
+  for(const execution of ['main','worker']) {
+    const message=await page.evaluate(async execution=>{
+      try {await window.__nativeBackendTest.runtime.playSource(`const rf=await createSoundChip('rf5c164');`,{execution});return null;}
+      catch(error){return error.message;}
+    },execution);
+    assert.match(message,/Mega CD/,'Genesis must still reject an independent RF chip and explain the supported machine');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
   await nativeRun(page,native);
   assert.equal(native.current.mode,'genesis');
 }
@@ -832,7 +908,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD Main/Worker and shipped FM+PCM starter, RF RAM/loadSample and polyphonic sample Keyboard, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD Main/Worker and shipped FM+PCM starter, actual High/Write VGM import and shared PCM cleanup/RAM retention, RF RAM/loadSample and polyphonic sample Keyboard, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 

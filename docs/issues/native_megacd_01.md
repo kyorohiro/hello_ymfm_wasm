@@ -44,6 +44,21 @@ Nativeを選べるmodeをGenesis／Mega CDに広げる。
 Native中のMode一覧にもこの2つだけを表示する。他modeではNativeを選択できない。
 mode変更は既存の新規コード／コード維持ダイアログとプロジェクト引継ぎを使う。
 
+## RF5C164を含むVGMのインポート
+
+Mega CD modeのVGM変換では、High／Write／Scheduleとも内蔵RF5C164を
+`await useSoundChip('rf5c164')`で借りる。以前の生成コードは`createSoundChip`で
+別の音源を作っていたため、Nativeの追加チップ制限に掛かっていた。
+既存のインポート済みコードは自動では書き換えない。Mega CD modeで再インポートする。
+
+借用した音源に`dispose()`は呼ばず、使用したCHだけをkeyOffする。
+hot Runの古いcleanupが新しい再生を止めないようleaseを確認する。
+再生開始時はRFのclockを12.5 MHzへ戻し、RAM転送の時刻やFM／PSGとの既存の変換方式は維持する。
+他modeで追加音源を使う従来のWeb Audio変換は、独立した音源の生成・破棄を継続する。
+
+変換器の14テストと、実ブラウザーのインポート→High／Write→Main／Worker再生で確認した。
+NativeでRF5C164を追加生成しようとした場合は、内蔵音源の使い方と必要なmodeをエラーに表示する。
+
 ## 検証
 
 実NativeとWASMのPCM比較、実Rust Rendererの停止・取消し・ミキサー・FX・録音、

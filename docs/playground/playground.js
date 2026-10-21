@@ -1083,7 +1083,7 @@ async function importVgmFile(file, options) {
     source: exportNesVgm(buffer, {mode: options.nesMode}),
     statusMessage: 'for NES APU' + (detection.fds ? ' + FDS' : '') + ' (including DMC RAM; one pass)',
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
-    source: exportRf5c164Vgm(buffer, {...options, writeDacFile(bytes) {
+    source: exportRf5c164Vgm(buffer, {...options, useBuiltInPcm:selectedMode.id === 'mega-cd', writeDacFile(bytes) {
       let path;
       do { path = `/vgmdat-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
       dacFiles.push({path, bytes}); return path;

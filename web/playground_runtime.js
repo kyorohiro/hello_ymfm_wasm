@@ -538,7 +538,12 @@ export function createPlaygroundRuntime(
     },
   };
   async function openPcm(name, token = currentRunToken, options = {}) {
-    if (capabilities.dynamicSoundChips === false) throw new Error('Additional sound chips are unavailable in the experimental Native Genesis backend. Select Web Audio to use them.');
+    if (capabilities.dynamicSoundChips === false) {
+      if(name==='rf5c164')throw new Error(megaDrive.pcm
+        ? 'RF5C164 is built into Mega CD. Use await useSoundChip("rf5c164") to access it. Additional chip instances require Web Audio.'
+        : 'RF5C164 requires Mega CD mode. Select Mega CD, then use await useSoundChip("rf5c164").');
+      throw new Error('Additional sound chips are unavailable in the experimental Native Genesis backend. Select Web Audio to use them.');
+    }
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
     if(!['ym2612', 'ym2203', 'ym2610', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7', 'snes', 'spc', 'huc6280', 'okim6258', 'ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);

@@ -1,7 +1,7 @@
 import {Ym2612VGM} from '../js/ym2612vgm.js?v=vgm-frequency-order-2';
 
 /** Preserve RF5C bank semantics while recording a single RF/FM/PSG timeline. */
-export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, includePsg = true, writeMemoryFile, loop = true, splitChannels = true, noteish = false, dacBase64 = true, writeDacFile} = {}) {
+export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, includePsg = true, writeMemoryFile, loop = true, splitChannels = true, noteish = false, dacBase64 = true, writeDacFile, useBuiltInPcm = false} = {}) {
   if (!['write', 'high', 'schedule'].includes(mode)) throw new Error('RF5C164 conversion supports Schedule, Write or High.');
   const warnings = [];
   const parser = new Ym2612VGM(buffer, {logger:{warn:m=>warnings.push(m)}});
@@ -42,8 +42,14 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
     if (event.type === 'end') break;
   }
   if (!count) throw new Error('No RF5C164 operations were found.');
+  // The stream starts from reset, so only mask bits it enables can own a voice.
+  const usedChannels = [...new Set(events.filter(event => event.register === 8)
+    .flatMap(event => Array.from({length: 8}, (_, channel) => channel)
+      .filter(channel => !(event.value & (1 << channel)))))].sort((a, b) => a - b);
   const lines = [`// RF5C164 ${mode === 'high' ? 'High (exact-write API + raw fallback)' : mode === 'schedule' ? 'Schedule (FM/DAC/PSG scheduled; RF uses Write)' : 'Write'}: ${loop ? 'liveLoop playback' : 'one pass'}. Original 44100 Hz wait units.`,
-    '// Async RPC and waits are not sample-accurate scheduling. Use YM2612 Playground for mixed FM/PSG.',
+    useBuiltInPcm
+      ? '// Async RPC and waits are not sample-accurate scheduling. Mega CD uses built-in RF5C164 with FM/PSG.'
+      : '// Async RPC and waits are not sample-accurate scheduling. Use Genesis with Web Audio for additional PCM, or import in Mega CD mode for built-in PCM.',
     '// Files are read before playback; chip RAM transfers remain at their original positions.'];
   if (includePsg && parser.header.psgClock && (parser.header.psgClock & 0x3fffffff) !== 3579545) lines.push('// PSG playback uses 3579545 Hz; source clock differs.');
   blocks.forEach((data,i)=>{
@@ -51,7 +57,25 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
     const path = data.length > 1 ? writeMemoryFile?.(data) : null;
     lines.push(path ? `const ram${i} = new Uint8Array(await file(${JSON.stringify(path)}, {type: "arrayBuffer"}));` : `const ram${i} = new Uint8Array([${data.join(',')}]);`);
   });
-  lines.push("const rf = await createSoundChip('rf5c164');",
+  lines.push(useBuiltInPcm ? "const rf = await useSoundChip('rf5c164');" : "const rf = await createSoundChip('rf5c164');");
+  if (useBuiltInPcm) lines.push(
+    '// Borrow Mega CD PCM. Release this stream\'s voices without disposing shared RAM.',
+    ...(loop ? [
+      'const rfLeaseState = await livePrepare("vgm-rf5c164-lease", async () => ({owner: null, channels: []}));',
+      'const rfLease = {};',
+      'rfLeaseState.owner = rfLease;',
+      `const rfChannels = [...new Set([...rfLeaseState.channels, ${usedChannels.join(', ')}])];`,
+      'rfLeaseState.channels = rfChannels;',
+    ] : []),
+    'let rfReleased = false;',
+    'async function releaseRf() {',
+    `  if (rfReleased${loop ? ' || rfLeaseState.owner !== rfLease' : ''}) return;`,
+    '  rfReleased = true;',
+    ...(loop ? ['  rfLeaseState.owner = null;', '  rfLeaseState.channels = [];'] : []),
+    `  await Promise.all(${loop ? 'rfChannels' : `[${usedChannels.join(', ')}]`}.map(channel => rf.keyOff(channel)));`,
+    '}',
+  );
+  lines.push(
     '// Send in port order without waiting for each AudioWorklet acknowledgement.',
     'const pendingRf = new Set();',
     'let rfError;',
@@ -71,7 +95,7 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
       '  if (delta > 0) await sleepSamples(delta, 44100);',
       '  if (rfError) throw rfError;',
       '}',
-      'liveCleanup(["vgm-rf5c164"], () => rf.dispose());',
+      useBuiltInPcm ? 'liveCleanup(["vgm-rf5c164"], releaseRf);' : 'liveCleanup(["vgm-rf5c164"], () => rf.dispose());',
       'liveLoop("vgm-rf5c164", async () => {',
       '  rfCursor = 0;',
     ] : [
@@ -84,6 +108,7 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
     '}',
     ]),
     'try {');
+  if (useBuiltInPcm) lines.push('  sendRf(rf.setClock(12500000));');
   if (loop) lines.push('  sendRf(rf.reset());');
   let previous = 0;
   for (const event of (mode === 'high' ? highRfEvents(events) : events)) {
@@ -94,7 +119,7 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
   if (time > previous || (loop && time === 0)) lines.push(`  await waitRfUntil(${Math.max(loop ? 1 : 0, time)});`);
   lines.push('  await Promise.all(pendingRf);', '  if (rfError) throw rfError;');
   if (loop) {
-    lines.push('} catch (error) {', '  rf.dispose();', '  throw error;', '}', '});', '');
+    lines.push('} catch (error) {', useBuiltInPcm ? '  try { await releaseRf(); } catch {}' : '  rf.dispose();', '  throw error;', '}', '});', '');
     // Reuse the existing FM/DAC/PSG exporter, including channel loops and High APIs.
     const fmParser = new Ym2612VGM(buffer, {logger:null});
     if (fmParser.header.ym2612Clock || (includePsg && fmParser.header.psgClock)) {
@@ -103,7 +128,7 @@ export function exportRf5c164Vgm(buffer, {mode = 'write', includeDac = true, inc
         includeDac, includePsg, dacBase64, writeDacFile,
       }));
     }
-  } else lines.push('} finally {', '  rf.dispose();', '}', '');
+  } else lines.push('} finally {', useBuiltInPcm ? '  await releaseRf();' : '  rf.dispose();', '}', '');
   return lines.join('\n');
 }
 

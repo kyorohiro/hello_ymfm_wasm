@@ -28,6 +28,7 @@ test('RAM bank, channel selection, transfer and mixed-chip order survive generat
  assert.deepEqual(trace,[[0,'r',7,130],[0,'m',8196,10,20],[0,'r',7,195],[0,'m',8197,30],[100,'m',8198,50,60],[100,'fm',0,42,100],[100,'fm',0,40,240],[100,'psg',144],[101,'dispose']]);
  assert.equal(files.size,2);
  const muted=exportRf5c164Vgm(input,{includeDac:false,includePsg:false});assert.doesNotMatch(muted,/write\(0, 42|psg.write/);assert.match(muted,/write\(0, 40/);
+ assert.doesNotMatch(code,/setClock/);
 });
 test('generated RF code produces identical audible core PCM, including timed RAM replacement',async()=>{
  const wasmBinary=await readFile(new URL('../generated/rf5c164_wasm.wasm',import.meta.url));
@@ -156,4 +157,83 @@ test('zero-duration RF liveLoop yields and async failure disposes',async()=>{
   async()=>({reset(){},writeRegister:()=>Promise.reject(Error('port failed')),dispose(){disposed++;}}),
   async n=>{assert.equal(n,1);waits++;},(name,callback)=>{fn=callback;},()=>{});
  await assert.rejects(fn(),/port failed/);assert.equal(waits,1);assert.equal(disposed,1);
+});
+
+test('Mega CD borrows built-in PCM in every conversion mode and preserves mixed writes and RAM timing',async()=>{
+ const input=vgm([0xb1,7,0x82,...block(0xc1,[4,0,10,20]),0xb1,7,0xc1,0xb1,0,220,
+  0xb1,8,221,0x52,0x28,0xf0,0x50,0x90,0x61,100,0,...block(0xc1,[6,0,30,40]),0x70,0x66]);
+ for(const mode of ['write','high','schedule']) {
+  const files=new Map(),trace=[];let time=0,disposed=0,acquired=0;
+  const source=exportRf5c164Vgm(input,{mode,useBuiltInPcm:true,writeMemoryFile(bytes){
+   const path=`/ram${files.size}.dat`;files.set(path,bytes);return path;
+  }});
+  const rf=new RF5C164Synth({transport:{write:(r,v)=>trace.push([time,'r',r,v]),loadMemory:(bytes,address)=>trace.push([time,'m',address,...bytes]),reset(){}}});
+  rf.clock=9000000;rf.setClock=clock=>{rf.clock=clock;trace.push([time,'clock',clock]);};
+  rf.dispose=()=>{disposed++;};
+  await new AsyncFunction('useSoundChip','createSoundChip','sleepSamples','write','psg','file','performance',source)(
+   async name=>{assert.equal(name,'rf5c164');acquired++;return rf;},()=>{throw Error('must borrow built-in PCM');},
+   async n=>{time+=n;},(...args)=>trace.push([time,'fm',...args]),{write:v=>trace.push([time,'psg',v])},
+   async path=>files.get(path),{now:()=>time/44.1});
+  assert.equal(acquired,1);assert.equal(disposed,0);assert.equal(rf.clock,12500000);
+  assert.deepEqual(trace,[[0,'clock',12500000],[0,'r',7,130],[0,'m',8196,10,20],[0,'r',7,193],[0,'r',0,220],
+   [0,'r',8,221],[0,'fm',0,40,240],[0,'psg',144],[100,'m',8198,30,40],
+   [101,'r',8,223],[101,'r',8,255]]);
+  assert.doesNotMatch(source,/rf\.dispose|await createSoundChip/);
+ }
+});
+
+test('built-in RF hot Run keeps one lease state and stale cleanup or rejection cannot mute the new stream',async()=>{
+ const input=vgm([0xb1,7,0x80,...block(0xc1,[0,0,128,255]),0xb1,7,0xc0,0xb1,0,200,0xb1,8,254,0x61,100,0,0x66]);
+ for(const mode of ['write','high','schedule']) {
+  const header=new DataView(input.buffer);header.setUint32(0x2c,7670454,true);header.setUint32(0x0c,3579545,true);
+  const source=exportLiveRf5c164Vgm(input,{mode,useBuiltInPcm:true});
+  const expected=new Ym2612VGM(input,{logger:null}).exportPlaygroundJavaScript({scheduled:mode==='schedule',high:mode==='high',splitChannels:true,includeDac:true,includePsg:true,dacBase64:true});
+  assert.ok(source.endsWith(expected));
+  let rejectOldWait,waits=0,acquired=0,preparedCalls=0,disposed=0,resets=0,clockWrites=0;
+  const releases=[],prepared=new Map(),loops=new Map(),cleanups=[];
+  const rf=new RF5C164Synth({transport:{write(){},loadMemory(){},reset(){assert.equal(rf.clock,12500000);resets++;}}});
+  rf.clock=9000000;rf.setClock=clock=>{assert.equal(clock,12500000);rf.clock=clock;clockWrites++;};
+  rf.keyOff=channel=>{releases.push(channel);};rf.dispose=()=>{disposed++;};
+  const evaluate=()=>new AsyncFunction('useSoundChip','createSoundChip','sleepSamples','livePrepare','liveLoop','liveCleanup',source)(
+   async()=>{acquired++;return rf;},()=>{throw Error('must borrow built-in PCM');},
+   async()=>{if(++waits===1)await new Promise((resolve,reject)=>{rejectOldWait=reject;});},
+   async(name,callback)=>{if(!prepared.has(name)){preparedCalls++;prepared.set(name,await callback());}return prepared.get(name);},
+   (name,callback)=>loops.set(name,callback),(names,callback)=>cleanups.push(callback));
+  await evaluate();
+  assert.equal(clockWrites,0);
+  const oldPlayback=loops.get('vgm-rf5c164')(),oldCleanup=cleanups[0];
+  assert.equal(typeof rejectOldWait,'function');
+  await evaluate();assert.equal(clockWrites,1);await loops.get('vgm-rf5c164')();
+  await oldCleanup();assert.deepEqual(releases,[]);
+  rejectOldWait(Error('Run stopped'));await assert.rejects(oldPlayback,/Run stopped/);
+  assert.deepEqual(releases,[]);
+  await cleanups[1]();await cleanups[1]();
+  assert.deepEqual(releases,[0]);
+  assert.equal(acquired,2);assert.equal(preparedCalls,1);assert.equal(resets,2);assert.equal(disposed,0);assert.equal(clockWrites,2);
+ }
+});
+
+test('a new RF cleanup also releases the previous stream while its hot Run iteration is finishing',async()=>{
+ const prepared=new Map(),cleanups=[],releases=[];let loop,rejectWait;
+ const rf={setClock(){},reset(){},writeRegister(){},keyOff:channel=>releases.push(channel)};
+ const evaluate=mask=>new AsyncFunction('useSoundChip','livePrepare','liveLoop','liveCleanup','sleepSamples',
+  exportLiveRf5c164Vgm(vgm([0xb1,8,mask,0x70,0x66]),{useBuiltInPcm:true}))(
+   async()=>rf,async(name,fn)=>{if(!prepared.has(name))prepared.set(name,await fn());return prepared.get(name);},
+   (name,fn)=>{loop=fn;},(names,fn)=>cleanups.push(fn),async()=>new Promise((resolve,reject)=>{rejectWait=reject;}));
+ await evaluate(223);const oldPlayback=loop();
+ await evaluate(254);
+ await cleanups[1]();await cleanups[0]();
+ assert.deepEqual(releases,[5,0]);
+ rejectWait(Error('Run stopped'));await assert.rejects(oldPlayback,/Run stopped/);
+ assert.deepEqual(releases,[5,0]);
+});
+
+test('borrowed RF failure releases voices without disposing RAM and preserves the playback error',async()=>{
+ let disposed=0,releases=0,callback,cleanup;
+ const source=exportLiveRf5c164Vgm(vgm([0xb1,8,254,0x70,0x66]),{useBuiltInPcm:true});
+ await new AsyncFunction('useSoundChip','sleepSamples','livePrepare','liveLoop','liveCleanup',source)(
+  async()=>({reset(){},setClock(){},writeRegister:()=>Promise.reject(Error('port failed')),keyOff(){releases++;throw Error('cleanup failed');},dispose(){disposed++;}}),
+  async()=>{},async(name,fn)=>fn(),(name,fn)=>{callback=fn;},(names,fn)=>{cleanup=fn;});
+ await assert.rejects(callback(),/port failed/);await cleanup();
+ assert.equal(releases,1);assert.equal(disposed,0);
 });
