@@ -1,8 +1,8 @@
-import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-modes-2';
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=msx-modes-2';
-import {SegaPSG} from './segapsg.js?v=sega-modes-1';
-import factory from '../generated/segapsg_wasm.js?v=sega-modes-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=msx-modes-2';
+import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
+import {SegaPSG} from './segapsg.js?v=audio-numeric-bindings-1';
+import factory from '../generated/segapsg_wasm.js?v=audio-numeric-bindings-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;

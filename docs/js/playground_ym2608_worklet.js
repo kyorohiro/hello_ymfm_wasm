@@ -1,11 +1,11 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=msx-modes-2';
-import {createOpnAuditionGuard} from './playground_audition_guard.js?v=msx-modes-2';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=msx-modes-2';
-import {validateChipClock} from './playground_chip_clock.js?v=msx-modes-2';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=audio-numeric-bindings-1';
+import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {Ym2608Timeline} from './playground_ym2608_timeline.js';
 import {Ym2608AudioEngine} from './ym2608audioengine.js?v=audio-stability-2';
 import factory from '../generated/ym2608_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=msx-modes-2';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

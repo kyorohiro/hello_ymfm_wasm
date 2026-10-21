@@ -1,5 +1,5 @@
-import {attachChipClock} from './playground_chip_clock.js?v=msx-modes-2';
-import {Oki6258Synth, OKIM6258_CLOCK} from './okim6258synth.js?v=msx-modes-2';
+import {attachChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {Oki6258Synth, OKIM6258_CLOCK} from './okim6258synth.js?v=audio-numeric-bindings-1';
 
 /** Main/Worker API; samples and playback commands share one ordered port. */
 export function createOki6258Client(port, {clock = OKIM6258_CLOCK} = {}) {

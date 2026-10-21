@@ -1,5 +1,99 @@
 # liveLoopの時間同期と共通スケジューラー案
 
+## 2026-10-21 Genesisの無操作再生中のノイズ調査
+
+Safari / TauriのGenesis modeで、以下の演奏中に時々ノイズが聞こえるという報告。
+FXやUI操作を加えない状態を基準に調べる。
+
+```js
+setBpm(120);
+fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
+liveLoop('lead', async () => {
+  const notes = scale('E3', 'minorPentatonic', 2);
+  await play(choose(notes), {channel: CH1, duration: 0.8});
+  await beat(cycle([0.04, 0.04, 0.08]));
+});
+```
+
+`duration: 0.8`は0.8秒、BPM120での休符は20 / 20 / 40ms。
+UI側の常時inspector polling、meter送信、noteOn/offに連動するDOM更新、
+演奏中のaudio graph再構築は、この無操作条件では確認できなかった。
+公開用stage・Tauri開発用distのYM2612 / PSG WASMとWorkletはdocsの内容と一致し、
+2026-10-17のWASM最適化も含まれる。
+
+切り分けの結果:
+
+- 実YM2612 WASMで音階の全10音×次の10音×休符20 / 40ms、計200通りを検証。
+  次のKey On前にはcarrier EGと末尾PCMが0となり、再Key直後の段差も0だった。
+  0.5ms休符の対照では最大約0.077の段差が発生したが、提示コードの通常の休符とは異なる。
+- WebKitで音順を固定し、Main / Workerを各30秒取得。Mainの35休符は18.67〜45.33ms、
+  Workerは21〜46ms。1ms未満に潰れた休符は0、WorkerのlateCommandsも0だった。
+  音源直後と最終出力のPCMは一致し、NaN / clip / 取得音声フレームの欠落も0だった。
+- これらの取得はWeb Audio graph内であり、実機の最終デバイス出力の欠落を否定しない。
+  確認時はSpotlight等のOS処理によるCPU使用も大きかったが、ノイズとの因果は未確定。
+
+音声スレッドの負担として、`ASSERTIONS=1`の生成glueのnumeric `cwrap`が、
+各呼び出しで`ccall`経由の配列・オブジェクト・クロージャーを作る経路を確認した。
+PCM viewやWASMメモリーを再利用していても、このJS割り当ては残っている。
+YM2612 / PSGの数値ABIへの呼び出しを対象に、生成済み`Module._symbol`を一度bindし、
+この余分な層を省く修正を行った。音の計算やWASMのassertionは変えない。
+direct exportがない注入factoryには従来のcwrapを使い、optional read / IRQの欠落扱いも維持する。
+
+同じ実Worklet / WASMを50,000×128 frames（133.33秒分）動かしたNode参考計測では、
+HeapProfilerの推定JS割り当てが138,538,656 → 658,704 bytes（約99.52%減）。
+silent / hold / notesの自然GC回数は70 / 66 / 67 → 6 / 0 / 1になった。
+一方、平均処理時間の改善はこの計測では確認できなかった。
+5,000 blocksの左右PCM SHA256は新旧とも完全一致し、reset / release / retrigger / clock、
+Nuked・PSGのstereo / mute・optional APIの回帰も確認した。
+これらはccall層の余分な割り当て削減を示す。Safariでのノイズ原因の確定や
+実機での解消確認とは区別する。生成export自身のassertion wrapper等による割り当ても残る。
+
+診断スクリプトは従来のE4 / 0.08秒を既定のまま、今回の音階・音長を指定できるようにした。
+再現性のため音順は固定し、UI負荷やFXを入れないケースを選ぶ。
+
+```sh
+node scripts/check_playground_fm_click_browser.cjs --webkit --seconds=30 --stall-ms=0 --case=main-dry-idle --root-note=E3 --note-seconds=0.8
+node scripts/check_playground_fm_click_browser.cjs --webkit --seconds=30 --stall-ms=0 --case=worker-dry-idle --root-note=E3 --note-seconds=0.8
+```
+
+修正後もWebKit Main / Worker各30秒、Chromium各6秒で、遅延命令・休符の潰れ・
+取得PCMのNaN / clip / 音声フレーム欠落はなく、音源直後と最終出力PCMは一致した。
+修正前も同じ範囲は正常だったため、これをノイズ解消の証拠にはしない。
+参考計測中にはOSのCPU負荷も変わっており、前後の処理時間差の帰属もできない。
+直近15分のcoreaudiodのoverload / underrun / skippingログにも該当はなかったが、
+これでデバイス出力の途切れを否定することもできない。
+
+音そのものの候補も別途確認した。E3 / E4 / A4の長音についてYM2612とYM3438を
+同clock・同registerで比較すると、YM2612のPCMは既知のDAC ladder式を適用した
+YM3438出力と1,917,612 samplesすべてで一致した。未知の非周期dropは見つからない。
+一方、既存の53,267→48,000Hzのhold / box変換には規則的な高域sidebandもある。
+これらが報告された聴感と同じかは未確認で、音色や変換方法はこの調査では変更しない。
+同一36音・同一時刻・30秒のGenesis原版とYM3438対照のWAVを一時成果物として用意し、
+リアルタイム生成の有無、DAC特性、実機出力を聴き比べられるようにした。
+
+その後、ユーザーがGenesis原版の比較WAV Aを試聴し「ノイズは聞こえない」と確認した。
+今回の症状は、事前生成した音にも常に入るDACや変換特性より、リアルタイム再生時の
+生成・命令配送・graph処理・デバイス出力を優先して調べる。実機の原因確定とはまだ区別する。
+提示コードはFXもKeyboard操作も使わないため、それらの操作不具合とは区別して扱う。
+FX経路の比較案は取り止め、提示コードのFM命令・音声生成・出力を調査対象とする。
+Mainの取得traceでは全36発音の周波数high / low / Key Onが同じframeに適用され、
+35回の発音長は800〜808msだった。命令の分割だけを理由とする変更は行わない。
+17回の異なるmodeのinitialize / stop / finalizeでも、所有AudioContextは17生成・17 close、
+40個のnodesの接続とportが解放された（Web Audio境界をmockにした実runtime検証）。
+同modeの20回Run / Stopでもcontext / nodeの増殖は確認できず、mode切替の蓄積を
+今回の原因とする根拠は得られていない。
+
+出力バッファーの候補として、インストール済みWebKit 26.6でAudioContextの
+latencyHintを未指定 / interactive / balanced / playback / 0.05 / 0.1に替えて計測した。
+6条件ともsampleRateは48,000Hz、baseLatencyは128 frames（約2.67ms）、
+outputLatencyは約21.27msで同一だった。この環境ではhintだけを替えた比較に
+実バッファーの違いがないため、製品への設定追加は行わない。
+
+回帰検証: 2,971件の全体実行で2,969件成功。残る旧fixture2件を、現行native globalsと
+ブラウザー用module queryに追従させた後、その対象19件が成功した。
+追加のbinding / 可変長PCM / EG比較、268件のJSDoc宣言生成とNodeNext / Bundler型検査も成功。
+VM内のcommon processor fixtureも、既存AY / OPLL / OPL registryに対応するstubを追加した。
+
 ## 2026-10-17 実装状況
 
 Workerのスクリプト音声は500msの先読みを標準にした。Main実行とUIのKeyboard試聴は即時。

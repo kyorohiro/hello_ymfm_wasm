@@ -1,13 +1,13 @@
-import {createAy8910Client} from './playground_ay8910.js?v=msx-modes-2';
-import {createNesClient} from './playground_nes.js?v=msx-modes-2';
-import {createSnesClient} from './playground_snes.js?v=msx-modes-2';
-import {createYm2151Client} from './playground_ym2151.js?v=msx-modes-2';
-import {createHuc6280Client} from './playground_huc6280.js?v=msx-modes-2';
-import {createSegaPsgClient} from './playground_segapsg.js?v=msx-modes-2';
-import {createOki6258Client} from './playground_okim6258.js?v=msx-modes-2';
-import {createYm2413Client} from './playground_ym2413.js?v=msx-modes-2';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=msx-modes-2';
-import {createDx7Client} from './playground_dx7.js?v=msx-modes-2';
+import {createAy8910Client} from './playground_ay8910.js?v=audio-numeric-bindings-1';
+import {createNesClient} from './playground_nes.js?v=audio-numeric-bindings-1';
+import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
+import {createYm2151Client} from './playground_ym2151.js?v=audio-numeric-bindings-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=audio-numeric-bindings-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
+import {createOki6258Client} from './playground_okim6258.js?v=audio-numeric-bindings-1';
+import {createYm2413Client} from './playground_ym2413.js?v=audio-numeric-bindings-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
+import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {

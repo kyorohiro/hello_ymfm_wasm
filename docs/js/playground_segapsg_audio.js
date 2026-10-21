@@ -1,5 +1,5 @@
-import {SEGAPSG_CLOCK} from './segapsg.js?v=sega-modes-1';
-import {validateChipClock} from './playground_chip_clock.js?v=msx-modes-2';
+import {SEGAPSG_CLOCK} from './segapsg.js?v=audio-numeric-bindings-1';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();
@@ -10,7 +10,7 @@ export async function createSegaPsgAudio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
   const clock = validateChipClock(options.clock ?? SEGAPSG_CLOCK);
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('Sega PSG requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_segapsg_worklet.js?v=msx-modes-2', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_segapsg_worklet.js?v=audio-numeric-bindings-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }
@@ -22,7 +22,7 @@ export async function createSegaPsgAudio(context, destination, options = {}) {
     });
   };
   const [wasmBinary] = await wait(Promise.all([
-    (options.fetch ?? nativeFetch)(options.wasmUrl ?? new URL('../generated/segapsg_wasm.wasm?v=sega-modes-1', import.meta.url), {signal:options.signal})
+    (options.fetch ?? nativeFetch)(options.wasmUrl ?? new URL('../generated/segapsg_wasm.wasm?v=audio-numeric-bindings-1', import.meta.url), {signal:options.signal})
       .then(response => { if (!response.ok) throw new Error(`Sega PSG WASM HTTP ${response.status}`); return response.arrayBuffer(); }),
     module,
   ]));

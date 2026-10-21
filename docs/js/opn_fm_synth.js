@@ -105,10 +105,10 @@ export class OPNWorkletTransport {
     if (!(bytes instanceof Uint8Array) || bytes.length !== 8192) return Promise.reject(new RangeError('Expected 8192-byte rhythm ROM'));
     return this._loadMemory({type: 'loadRhythmRom', bytes}, 'rhythm-rom-loaded');
   }
-  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=msx-modes-2').WorkletSoundChip} node
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip} node
    * @param {{portCount:number,chipName:string}} config */
   constructor(node, { portCount, chipName }) {
-    /** @type {import('./soundchip_worklet.js?v=msx-modes-2').WorkletSoundChip|null} */
+    /** @type {import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip|null} */
     this.endpoint = node?.execution === 'worklet' ? node : null;
     if (!node?.port && node?.postMessage) node = {port: node};
     if (!node?.port?.postMessage) {
@@ -539,7 +539,7 @@ export class OPNFMSynth {
     return value;
   }
 
-  /** @param {import("./ym2612.js").Ym2612Hooks} [hooks] */
+  /** @param {import("./ym2612.js?v=audio-numeric-bindings-1").Ym2612Hooks} [hooks] */
   setHooks({ onWrite, onRead, onIrq } = {}) {
     assertHook("onWrite", onWrite);
     assertHook("onRead", onRead);

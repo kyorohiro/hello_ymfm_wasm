@@ -9,7 +9,7 @@ import {
   YM2608DirectTransport,
   YM2608RuntimeSynth,
   YM2608Synth,
-} from "../js/ym2608synth.js?v=keyboard-chips-1";
+} from "../js/ym2608synth.js?v=audio-numeric-bindings-1";
 import { OPNWorkletTransport } from "../js/opn_fm_synth.js?v=keyboard-chips-1";
 import {
   createTetoricaSynth,

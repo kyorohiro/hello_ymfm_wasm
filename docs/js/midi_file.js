@@ -3,7 +3,7 @@
  * 実行環境: Browser / Node.js
  * 依存: TextDecoder とバイナリー配列。MIDI データ解析のみで、Web MIDI・音声デバイスは不要。
  */
-import {MIDI_SUPPORTED_CC} from './playground_midi.js?v=sega-modes-1';
+import {MIDI_SUPPORTED_CC} from './playground_midi.js?v=audio-numeric-bindings-1';
 
 /**
  * Read SMF format 0/1 with PPQN timing and apply its tempo map to event timestamps.

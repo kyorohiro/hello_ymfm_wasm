@@ -128,16 +128,17 @@ export class Ym2612 {
     const module = await moduleFactory(moduleOptions || {});
     /** @type {Ym2612NativeApi} */
     const api = {
-      create: module.cwrap("ym2612_create", "number", []),
-      destroy: module.cwrap("ym2612_destroy", null, ["number"]),
-      reset: module.cwrap("ym2612_reset", null, ["number"]),
-      write: module.cwrap("ym2612_write", null, ["number", "number", "number"]),
-      read: optionalCwrap(module, "ym2612_read", "number", ["number", "number"]),
-      readStatus: optionalCwrap(module, "ym2612_read_status", "number", ["number"]),
-      getIrq: optionalCwrap(module, "ym2612_get_irq", "number", ["number"]),
-      sampleRate: module.cwrap("ym2612_sample_rate", "number", ["number", "number"]),
-      generate: module.cwrap("ym2612_generate", null, ["number", "number", "number", "number"]),
-      generateWithInternalEnvelope: module.cwrap(
+      create: bindNumericExport(module, "ym2612_create", "number", []),
+      destroy: bindNumericExport(module, "ym2612_destroy", null, ["number"]),
+      reset: bindNumericExport(module, "ym2612_reset", null, ["number"]),
+      write: bindNumericExport(module, "ym2612_write", null, ["number", "number", "number"]),
+      read: optionalNumericExport(module, "ym2612_read", "number", ["number", "number"]),
+      readStatus: optionalNumericExport(module, "ym2612_read_status", "number", ["number"]),
+      getIrq: optionalNumericExport(module, "ym2612_get_irq", "number", ["number"]),
+      sampleRate: bindNumericExport(module, "ym2612_sample_rate", "number", ["number", "number"]),
+      generate: bindNumericExport(module, "ym2612_generate", null, ["number", "number", "number", "number"]),
+      generateWithInternalEnvelope: bindNumericExport(
+        module,
         "ym2612_generate_with_internal_envelope",
         null,
         ["number", "number", "number", "number", "number", "number", "number", "number", "number"]
@@ -521,10 +522,27 @@ function assertHook(name, value) {
  * @param {string[]} argTypes Emscripten argument types.
  * @returns {((...args: number[]) => number)|undefined} Numeric read/IRQ callable, or undefined for an older runtime.
  */
-function optionalCwrap(module, name, returnType, argTypes) {
+function optionalNumericExport(module, name, returnType, argTypes) {
   const exportName = `_${name}`;
   if (typeof module[exportName] !== "function") {
     return undefined;
   }
-  return module.cwrap(name, returnType, argTypes);
+  return bindNumericExport(module, name, returnType, argTypes);
+}
+
+/**
+ * Numeric-only ABI calls need no cwrap argument/return conversion. Keep the
+ * generated Module export (including its assertions), bound once for render use.
+ * Older injected module factories can still provide cwrap without direct exports.
+ * @param {Object} module Initialized Emscripten module.
+ * @param {string} name Native function name without the export underscore.
+ * @param {string|null} returnType Emscripten return type; null for void.
+ * @param {string[]} argTypes Emscripten numeric argument types.
+ * @returns {(...args: number[]) => number} Bound numeric native callable (void returns are ignored).
+ */
+function bindNumericExport(module, name, returnType, argTypes) {
+  const direct = module[`_${name}`];
+  return typeof direct === "function"
+    ? direct.bind(module)
+    : module.cwrap(name, returnType, argTypes);
 }

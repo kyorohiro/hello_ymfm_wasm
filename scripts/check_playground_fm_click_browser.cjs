@@ -4,6 +4,8 @@
 // and --case=worker-distortion-ui for a narrow timing probe.
 // --lookahead-ms=500 configures the real Worker performance transport (default).
 // Use --lookahead-ms=0 for a comparison without transport lead.
+// --root-note=E3 --note-seconds=0.8 reproduces the slower reported phrase.
+// --case=worker-dry-idle adds an opt-in no-FX Worker comparison.
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs/promises');
@@ -14,9 +16,14 @@ const docs = path.resolve(__dirname,'../docs');
 const argument = (name,fallback) => process.argv.find(value => value.startsWith(name + '='))?.slice(name.length + 1) ?? fallback;
 const seconds = Number(argument('--seconds',5)),stallMs = Number(argument('--stall-ms',60));
 const lookaheadMs = Number(argument('--lookahead-ms',500));
+const rootNote = argument('--root-note','E4'),noteSeconds = Number(argument('--note-seconds',.08));
+const rootMatch = /^([A-G])([#b]?)(-?\d+)$/.exec(rootNote);
+const rootMidi = rootMatch ? (Number(rootMatch[3])+1)*12+({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[rootMatch[1]]+(rootMatch[2]==='#'?1:rootMatch[2]==='b'?-1:0) : NaN;
 assert(Number.isFinite(seconds) && seconds >= 2 && seconds <= 60);
 assert(Number.isFinite(stallMs) && stallMs >= 0 && stallMs <= 250);
 assert(Number.isFinite(lookaheadMs) && lookaheadMs >= 0 && lookaheadMs <= 1000);
+assert(Number.isInteger(rootMidi) && rootMidi >= 0 && rootMidi <= 127,'--root-note must be a note name within MIDI 0..127, e.g. E3');
+assert(Number.isFinite(noteSeconds) && noteSeconds > 0 && noteSeconds <= 60,'--note-seconds must be greater than 0 and at most 60');
 const artifacts = process.env.PANEL_TEST_ARTIFACT_DIR || os.tmpdir();
 const mime = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 
@@ -134,7 +141,7 @@ const distortion = `liveFx('distortion',{context:{gain:60,drive:.03},process(inp
   for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=Math.tanh(input[ch][i]*context.gain)*context.drive;
 }});`;
 const sourceFor = test => `setBpm(120);fm.setPreset(CH1,FM_PRESETS['one-op-basic']);\n${test.fx ? distortion : ''}\n${test.kind === 'script' ?
-  "let n=0;liveLoop('lead',async()=>{const notes=scale('E4','minorPentatonic',2);await play(notes[n++%notes.length],{channel:CH1,duration:.08});await beat(cycle([.04,.04,.08]));});" : ''}`;
+  `let n=0;liveLoop('lead',async()=>{const notes=scale(${JSON.stringify(rootNote)},'minorPentatonic',2);await play(notes[n++%notes.length],{channel:CH1,duration:${noteSeconds}});await beat(cycle([.04,.04,.08]));});` : ''}`;
 
 function analyze(data,trace,test) {
   const [raw,,final] = data.channels,begin = Math.round(data.rate * .3),end = raw.length - 128;
@@ -244,7 +251,7 @@ async function checkCase(browser,name,test,url) {
         volume:{master:p.megaDrive.audio.masterVolume,listening:p.megaDrive.audio.listeningVolume}};
     });
     const data={...captured,channels:captured.channels.map(value=>{const bytes=Buffer.from(value,'base64');return new Float32Array(bytes.buffer,bytes.byteOffset,bytes.byteLength/4);})};
-    const result={browser:name,test,lookaheadMs,...analyze(data,captured.trace.trace,test),processStats:captured.trace.stats,performanceStats:captured.trace.performanceStats,ui:captured.ui,longtasks:captured.longtasks,volume:captured.volume,errors};
+    const result={browser:name,test,rootNote,noteSeconds,lookaheadMs,...analyze(data,captured.trace.trace,test),processStats:captured.trace.stats,performanceStats:captured.trace.performanceStats,ui:captured.ui,longtasks:captured.longtasks,volume:captured.volume,errors};
     assert.equal(result.raw.nonFinite+result.final.nonFinite,0,'PCM must remain finite');
     assert(result.raw.peak>.0001&&result.final.peak>.00001,'the diagnostic must capture real sound');
     assert.equal(result.captureFrameGaps,0,'capture processor must see a continuous audio frame clock');
@@ -252,10 +259,11 @@ async function checkCase(browser,name,test,url) {
     if(test.execution==='worker' && lookaheadMs>=150) {
       const holds=result.noteTiming.filter(e=>e.kind==='hold');
       const rests=result.noteTiming.filter(e=>e.kind==='rest');
-      assert(holds.length>5 && rests.length>5);
+      const minimumPairs=Math.min(6,Math.max(0,Math.floor((result.audioSeconds-lookaheadMs/1000)/(noteSeconds+.04))-1));
+      assert(holds.length>=minimumPairs && rests.length>=minimumPairs);
       assert(rests.every(e=>e.appliedDurationMs>0), 'lookahead must preserve every rest');
     }
-    const suffix=lookaheadMs>0?`-lookahead${lookaheadMs}`:'';
+    const suffix=(lookaheadMs>0?`-lookahead${lookaheadMs}`:'')+(rootNote==='E4'&&noteSeconds===.08?'':`-${rootNote}-${noteSeconds}s`);
     await fs.writeFile(path.join(artifacts,`playground-fm-click-${name}-${test.name}${suffix}.json`),JSON.stringify(result,null,2));
     console.log(JSON.stringify(result));
     if(test.kind==='keyboard-held')await page.keyboard.up(keyboardKey);
@@ -278,6 +286,7 @@ async function checkCase(browser,name,test,url) {
       {name:'keyboard-held-dry-ui',kind:'keyboard-held',execution:'main',fx:false,ui:true},
       {name:'keyboard-held-distortion-ui',kind:'keyboard-held',execution:'main',fx:true,ui:true},
       {name:'keyboard-retrigger-distortion-ui',kind:'keyboard-retrigger',execution:'main',fx:true,ui:true},
+      ...(argument('--case','')==='worker-dry-idle'?[{name:'worker-dry-idle',kind:'script',execution:'worker',fx:false,ui:false}]:[]),
     ].filter(test=>!argument('--case','')||test.name===argument('--case',''));
     assert(cases.length,'Unknown --case name');
     for(const [name,type]of selected){
@@ -285,6 +294,6 @@ async function checkCase(browser,name,test,url) {
       try{for(const test of cases)await checkCase(browser,name,test,`http://127.0.0.1:${server.address().port}/playground/index.html`);}
       finally{await browser.close();}
     }
-    console.log(JSON.stringify({passed:true,seconds,stallMs,lookaheadMs,artifacts,limitation:'Valid captured PCM cannot rule out OS audio-device underruns; coarse worklet wall timing is diagnostic only, not a deadline guarantee. Lookahead uses the production Worker transport and adds the configured latency.'}));
+    console.log(JSON.stringify({passed:true,seconds,stallMs,rootNote,noteSeconds,lookaheadMs,artifacts,limitation:'Valid captured PCM cannot rule out OS audio-device underruns; coarse worklet wall timing is diagnostic only, not a deadline guarantee. Lookahead uses the production Worker transport and adds the configured latency.'}));
   }finally{await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error);process.exitCode=1;});

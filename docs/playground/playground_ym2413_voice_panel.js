@@ -1,4 +1,4 @@
-import {YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../js/ym2413synth.js?v=msx-modes-2';
+import {YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from '../js/ym2413synth.js?v=audio-numeric-bindings-1';
 
 const FIELDS = [['multi','MUL',15],['ksl','KSL',3],['tl','TL',63],['ar','AR',15],['dr','DR',15],['sl','SL',15],['rr','RR',15],['waveform','Wave',1],['am','AM',1],['vibrato','VIB',1],['egt','EGT',1],['ksr','KSR',1]];
 const FLAGS = new Set(['am','vibrato','egt','ksr']);

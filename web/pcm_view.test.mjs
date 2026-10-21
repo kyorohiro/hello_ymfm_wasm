@@ -3,8 +3,123 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Ym2612} from './ym2612.js';
 import {SegaPSG} from './segapsg.js';
+import {YM2612Synth, YM2612DirectTransport} from './ym2612synth.js';
+import {FM_PRESETS} from './megasynth-fm-presets.js';
+
+const numericBindings = {
+  ym2612: {
+    create: ['create', 'number', []], destroy: ['destroy', null, ['number']],
+    reset: ['reset', null, ['number']], write: ['write', null, ['number', 'number', 'number']],
+    read: ['read', 'number', ['number', 'number']], readStatus: ['read_status', 'number', ['number']],
+    getIrq: ['get_irq', 'number', ['number']], sampleRate: ['sample_rate', 'number', ['number', 'number']],
+    generate: ['generate', null, Array(4).fill('number')],
+    generateWithInternalEnvelope: ['generate_with_internal_envelope', null, Array(9).fill('number')],
+  },
+  segapsg: {
+    create: ['create', 'number', ['number', 'number']], destroy: ['destroy', null, ['number']],
+    reset: ['reset', null, ['number']], write: ['write', null, ['number', 'number']],
+    setStereo: ['set_stereo', null, ['number', 'number']], setMuteMask: ['set_mute_mask', null, ['number', 'number']],
+    sampleRate: ['sample_rate', 'number', ['number']], generate: ['generate', null, Array(4).fill('number')],
+  },
+};
+
+for (const [name, Chip] of [['ym2612', Ym2612], ['segapsg', SegaPSG]]) {
+  test(`${name}: numeric exports bind their module and bypass cwrap`, async () => {
+    const calls = [], failure = new Error('native failure');
+    let fail = false;
+    const module = {cwrap() { assert.fail('Direct numeric exports must bypass cwrap'); }};
+    for (const [key, [suffix]] of Object.entries(numericBindings[name])) {
+      module[`_${name}_${suffix}`] = function (...args) {
+        assert.equal(this, module);
+        if (fail) throw failure;
+        calls.push({key, args});
+        return 123;
+      };
+    }
+    const chip = await Chip.create({moduleFactory: () => module});
+    assert.equal(chip.handle, 123);
+    assert.deepEqual(calls.shift(), {key: 'create', args: name === 'ym2612' ? [] : [44100, 3579545]});
+    for (const [key, [, , types]] of Object.entries(numericBindings[name])) {
+      const args = types.map((_, index) => index + 1);
+      assert.equal(chip.api[key](...args), 123);
+      assert.deepEqual(calls.shift(), {key, args});
+    }
+    fail = true;
+    assert.throws(() => chip.api.write(1, 2, 3), error => error === failure);
+    fail = false;
+    chip.dispose();
+    assert.deepEqual(calls, [{key: 'destroy', args: [123]}]);
+  });
+
+  test(`${name}: cwrap-only factories retain required APIs and optional absence`, async () => {
+    const wrapped = [];
+    const module = {cwrap(nativeName, result, types) {
+      assert.equal(this, module);
+      wrapped.push([nativeName, result, types]);
+      return () => 123;
+    }};
+    const chip = await Chip.create({moduleFactory: () => module});
+    const optional = new Set(name === 'ym2612' ? ['read', 'readStatus', 'getIrq'] : []);
+    for (const [key, [suffix, result, types]] of Object.entries(numericBindings[name])) {
+      if (optional.has(key)) assert.equal(chip.api[key], undefined);
+      else {
+        assert.equal(typeof chip.api[key], 'function');
+        assert.deepEqual(wrapped.shift(), [`${name}_${suffix}`, result, types]);
+      }
+    }
+    assert.deepEqual(wrapped, []);
+    chip.dispose();
+  });
+}
 
 for (const [name, Chip] of [['ym2612', Ym2612], ['nuked_opn2', Ym2612], ['segapsg', SegaPSG]]) {
+  test(`${name}: direct bindings preserve legacy cwrap PCM and envelope state`, async () => {
+    const {default: moduleFactory} = await import(`../docs/generated/${name}_wasm.js`);
+    const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, import.meta.url));
+    const direct = await Chip.create({moduleFactory, moduleOptions: {wasmBinary}});
+    const legacy = await Chip.create({moduleFactory, moduleOptions: {wasmBinary}});
+    const family = Chip === Ym2612 ? 'ym2612' : 'segapsg';
+    for (const [key, [suffix, result, types]] of Object.entries(numericBindings[family]))
+      if (legacy.api[key]) legacy.api[key] = legacy.module.cwrap(`${family}_${suffix}`, result, types);
+    const synths = Chip === Ym2612
+      ? [direct, legacy].map(chip => new YM2612Synth({transport: new YM2612DirectTransport(chip)}))
+      : [];
+    let audible = false;
+    try {
+      for (let pass = 0; pass < 2; pass++) {
+        for (const chip of [direct, legacy]) chip.reset();
+        for (const synth of synths) { synth.setPreset(0, FM_PRESETS['one-op-basic']); synth.noteOn(0, 52); }
+        for (const chip of synths.length ? [] : [direct, legacy]) {
+          chip.write(0x8d); chip.write(0x10); chip.write(0x92);
+          chip.write(0xe4); chip.write(0xf5);
+          chip.setStereo(0x9f);
+        }
+        for (const [index, frames] of [0, 1, 127, 128, 257, 4096, 32, 1024].entries()) {
+          if (index === 5) {
+            for (const synth of synths) synth.noteOff(0);
+            for (const chip of synths.length ? [] : [direct, legacy]) chip.setChannelMuted(0, true);
+          }
+          if (index === 6) {
+            for (const synth of synths) synth.noteOn(0, 74);
+            for (const chip of synths.length ? [] : [direct, legacy]) { chip.setChannelMuted(0, false); chip.setStereo(0xf9); }
+          }
+          const clock = index % 2 ? 7670454 : 7600489;
+          assert.equal(direct.sampleRate(clock), legacy.sampleRate(clock));
+          const render = chip => Chip === Ym2612 && index % 2
+            ? chip.generateStereoWithInternalEnvelope(frames, 0) : chip.generateStereo(frames);
+          const a = render(direct), b = render(legacy);
+          assert.deepEqual(a, b);
+          audible ||= a.left.some(value => Math.abs(value) > .01);
+          if (Chip === Ym2612) {
+            assert.equal(direct.readStatus(), legacy.readStatus());
+            assert.equal(direct.getIrq(), legacy.getIrq());
+          }
+        }
+      }
+      assert.ok(audible);
+    } finally { direct.dispose(); legacy.dispose(); }
+  });
+
   test(`${name}: borrowed views match owned output and reuse capacity`, async () => {
     const {default: moduleFactory} = await import(`../docs/generated/${name}_wasm.js`);
     const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, import.meta.url));

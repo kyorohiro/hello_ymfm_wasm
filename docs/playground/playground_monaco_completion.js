@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=msx-modes-2";
+} from "../js/megasynth.js?v=audio-numeric-bindings-1";
 
 const SCALE_NAMES = [
   "major",

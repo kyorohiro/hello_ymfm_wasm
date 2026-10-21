@@ -1,6 +1,6 @@
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-modes-2';
-import {OPL_CHIPS} from './playground_opl.js?v=msx-modes-2';
-import {validateChipClock} from './playground_chip_clock.js?v=msx-modes-2';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
+import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();
@@ -13,7 +13,7 @@ export async function createOplAudio(context, destination, options = {}) {
   if (!OPL_CHIPS.includes(chip)) throw new Error(`Unsupported OPL chip: ${chip}`);
   const clock = validateChipClock(options.clock ?? CHIP_CLOCKS[chip]);
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('OPL requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_opl_worklet.js?v=msx-modes-2', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_opl_worklet.js?v=audio-numeric-bindings-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }

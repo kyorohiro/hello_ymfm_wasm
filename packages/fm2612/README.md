@@ -145,6 +145,8 @@ complete setup, playback and cleanup.
 
 ### Master System: Sega PSG and YM2413 OPLL
 
+Available in `tetorica-fm2612@0.2.23` and later.
+
 The Master System Playground mode prepares both a mono Sega PSG (`psg`) and
 YM2413 (`opll`). They have separate mixer strips and Keyboard chip/channel
 targets. Game Gear prepares its stereo PSG only.
@@ -175,6 +177,8 @@ Rhythm levels share CH6–8's instrument/attenuation registers; select those
 channels' melody voices again after changing rhythm levels when needed.
 
 ### MSX and MSX Audio
+
+Available in `tetorica-fm2612@0.2.23` and later.
 
 The MSX Playground mode combines `ay` (AY-3-8910 PSG) and `opll` (YM2413
 MSX-MUSIC). MSX Audio adds `opl` (Y8950 MSX-AUDIO FM). Each instrument has
@@ -812,10 +816,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.21.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.23.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.21.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.23.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -832,6 +836,23 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.23` adds **AY-3-8910 and YM2413 high-level Synth APIs**, direct and Worklet
+transports, native voice inspectors and Keyboard channel adapters. AY exposes
+three tone/noise voices with a shared noise generator and hardware envelope;
+OPLL exposes nine melodic voices or six voices plus five drums, fifteen built-in
+instruments and one shared user patch. Native sound sets include Master System's
+PSG + OPLL, `Playground({chip:'msx'})` with AY + OPLL, and
+`Playground({chip:'msx-audio'})` with AY + OPLL + Y8950 FM. Main/Worker execution,
+independent mixer strips, retained voice settings, Stop and initialization
+cancellation are supported. Keyboard rhythm choices follow the applied audio
+state, without audio polling. The website editor and mode selector remain
+separate from this npm runtime payload.
+
+`0.2.22` adds **OPL-family Synth APIs** for YM3526, YM3812, Y8950 FM and YMF262,
+including two-operator voices, rhythm controls, OPL3 four-operator pairs and
+stereo routing. Direct, Worklet and Node output transports share the chip-specific
+register mapping. Y8950 ADPCM remains outside the high-level API.
 
 `0.2.21` extends the **shared Playground runtime** with native primary synth
 configurations, applied-state voice inspectors, channel-owned audition,

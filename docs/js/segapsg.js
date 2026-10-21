@@ -34,8 +34,8 @@ export class SegaPSG {
    * Initialize SegaPSG and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {import('./soundchip.js?v=msx-modes-2').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
-   * @param {import('./soundchip.js?v=msx-modes-2').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {number} [options.clock] Input chip clock in Hz.
    * @param {number} [options.sampleRate=44100] Generated PCM frames per second.
    * @returns {Promise<SegaPSG>} Ready-to-use chip; the caller must dispose it.
@@ -54,14 +54,14 @@ export class SegaPSG {
 
     const module = await moduleFactory(moduleOptions || {});
     const api = {
-      create: module.cwrap("segapsg_create", "number", ["number", "number"]),
-      destroy: module.cwrap("segapsg_destroy", null, ["number"]),
-      reset: module.cwrap("segapsg_reset", null, ["number"]),
-      write: module.cwrap("segapsg_write", null, ["number", "number"]),
-      setStereo: module.cwrap("segapsg_set_stereo", null, ["number", "number"]),
-      setMuteMask: module.cwrap("segapsg_set_mute_mask", null, ["number", "number"]),
-      sampleRate: module.cwrap("segapsg_sample_rate", "number", ["number"]),
-      generate: module.cwrap("segapsg_generate", null, ["number", "number", "number", "number"]),
+      create: bindNumericExport(module, "segapsg_create", "number", ["number", "number"]),
+      destroy: bindNumericExport(module, "segapsg_destroy", null, ["number"]),
+      reset: bindNumericExport(module, "segapsg_reset", null, ["number"]),
+      write: bindNumericExport(module, "segapsg_write", null, ["number", "number"]),
+      setStereo: bindNumericExport(module, "segapsg_set_stereo", null, ["number", "number"]),
+      setMuteMask: bindNumericExport(module, "segapsg_set_mute_mask", null, ["number", "number"]),
+      sampleRate: bindNumericExport(module, "segapsg_sample_rate", "number", ["number"]),
+      generate: bindNumericExport(module, "segapsg_generate", null, ["number", "number", "number", "number"]),
     };
 
     const handle = api.create(sampleRate, clock);
@@ -235,4 +235,21 @@ export class SegaPSG {
  */
 export async function createSegaPSG(moduleFactory, moduleOptions) {
   return SegaPSG.create({ moduleFactory, moduleOptions });
+}
+
+/**
+ * Numeric-only ABI calls need no cwrap argument/return conversion. Keep the
+ * generated Module export (including its assertions), bound once for render use.
+ * Older injected module factories can still provide cwrap without direct exports.
+ * @param {Object} module Initialized Emscripten module.
+ * @param {string} name Native function name without the export underscore.
+ * @param {string|null} returnType Emscripten return type; null for void.
+ * @param {string[]} argTypes Emscripten numeric argument types.
+ * @returns {(...args: number[]) => number} Bound numeric native callable (void returns are ignored).
+ */
+function bindNumericExport(module, name, returnType, argTypes) {
+  const direct = module[`_${name}`];
+  return typeof direct === "function"
+    ? direct.bind(module)
+    : module.cwrap(name, returnType, argTypes);
 }

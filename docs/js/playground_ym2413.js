@@ -1,5 +1,5 @@
-import {YM2413Synth} from './ym2413synth.js?v=msx-modes-2';
-import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-modes-2';
+import {YM2413Synth} from './ym2413synth.js?v=audio-numeric-bindings-1';
+import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 /** Register-authoring controls shared by Main and Worker. Adoption never writes audio.
  * @param {MessagePort} port @param {{clock?:number}} [options] */
 export function createYm2413Client(port,{clock=CHIP_CLOCKS.ym2413}={}){

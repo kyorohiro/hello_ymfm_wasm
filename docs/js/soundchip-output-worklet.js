@@ -1,5 +1,5 @@
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=msx-modes-2';
-import {Ym2612} from './ym2612.js';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
+import {Ym2612} from './ym2612.js?v=audio-numeric-bindings-1';
 import {Ym2608} from './ym2608.js?v=audio-stability-2';
 import {Ay8910} from './ay8910.js?v=audio-stability-2';
 import ay8910Factory from '../generated/ay8910_wasm.js';
@@ -15,18 +15,18 @@ import y8950Factory from '../generated/y8950_wasm.js';
 import ymf262Factory from '../generated/ymf262_wasm.js';
 import {Ym2151} from './ym2151.js?v=audio-stability-2';
 import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
-import {SegaPSG} from './segapsg.js?v=sega-modes-1';
+import {SegaPSG} from './segapsg.js?v=audio-numeric-bindings-1';
 import {NesApu} from './nesapu.js';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import ym2608Factory from '../generated/ym2608_wasm.js';
 import ym2151Factory from '../generated/ym2151_wasm.js';
 import gameboyFactory from '../generated/gameboy_apu_wasm.js';
-import psgFactory from '../generated/segapsg_wasm.js?v=sega-modes-1';
+import psgFactory from '../generated/segapsg_wasm.js?v=audio-numeric-bindings-1';
 import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js?v=audio-stability-2';
 import {YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
 import {YM2612DacPlayer} from './ym2612_dac.js';
-import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=msx-modes-2';
+import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 
 const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factory],
   ay8910:[Ay8910,ay8910Factory],ym2413:[Ym2413,ym2413Factory],ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory],

@@ -1,7 +1,7 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {AY8910_CLOCK} from './ay8910.js?v=audio-stability-2';
 export {AY8910_CLOCK} from './ay8910.js?v=audio-stability-2';
-export {AY8910WorkletTransport} from './chip_worklet_transport.js?v=msx-modes-2';
+export {AY8910WorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
 
 /** @typedef {{tone?:boolean,noise?:boolean,volume?:number,envelope?:boolean,
  * period?:number,frequency?:number,note?:string|number}} AY8910Voice

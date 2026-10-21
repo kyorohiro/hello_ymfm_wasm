@@ -5,7 +5,7 @@
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
 import { Y8950, Y8950_CLOCK } from './y8950.js?v=audio-stability-2';
-import { SegaPSG } from './segapsg.js?v=sega-modes-1';
+import { SegaPSG } from './segapsg.js?v=audio-numeric-bindings-1';
 
 // Y8950 and optional Sega PSG share the output clock, but keep independent state.
 /**
@@ -16,7 +16,7 @@ import { SegaPSG } from './segapsg.js?v=sega-modes-1';
 export class Y8950AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{y8950ModuleFactory: import('./soundchip.js?v=msx-modes-2').WasmModuleFactory, y8950ModuleOptions?: import('./soundchip.js?v=msx-modes-2').WasmModuleOptions, y8950Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=msx-modes-2').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{y8950ModuleFactory: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory, y8950ModuleOptions?: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleOptions, y8950Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Y8950AudioEngine>} Initialized engine owned by the caller.

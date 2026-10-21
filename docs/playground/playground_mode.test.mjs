@@ -35,7 +35,7 @@ test('modes select native chips, clocks and console expansions', () => {
       else assert.equal(options.oplOptions,undefined,'MSX does not load a Y8950 processor');
       for (const [key,chip,worklet] of endpoints) {
         assert.equal(options[key].wasmUrl,`https://example.com/app/generated/${chip}_wasm.wasm`);
-        assert.equal(options[key].workletUrl,`https://example.com/app/js/playground_${worklet}_worklet.js?v=msx-modes-2`);
+        assert.equal(options[key].workletUrl,`https://example.com/app/js/playground_${worklet}_worklet.js?v=audio-numeric-bindings-1`);
       }
       assert.equal(options.ym2612WasmUrl,undefined); continue;
     }
@@ -43,7 +43,7 @@ test('modes select native chips, clocks and console expansions', () => {
       assert.equal(mode.fmChannels,0,'OPL uses its native instrument instead of the OPN play shortcut');
       assert.deepEqual(mode.chipTabs,[mode.chip]);
       assert.equal(options.clock,mode.clock);
-      assert.equal(options.workletUrl,'https://example.com/app/js/playground_opl_worklet.js?v=msx-modes-2');
+      assert.equal(options.workletUrl,'https://example.com/app/js/playground_opl_worklet.js?v=audio-numeric-bindings-1');
       assert.equal(options.wasmUrl,`https://example.com/app/generated/${mode.chip}_wasm.wasm`);
       assert.equal(options.ym2612WasmUrl,undefined);
       continue;
@@ -68,7 +68,7 @@ test('modes select native chips, clocks and console expansions', () => {
         assert.equal(options.opllOptions.wasmUrl,'https://example.com/app/generated/ym2413_wasm.wasm');
         assert.match(options.opllOptions.workletUrl,/\/app\/js\/playground_ym2413_worklet\.js\?/);
       } else assert.equal(options.opllOptions,undefined,'Game Gear remains PSG-only');
-      assert.equal(options.wasmUrl,'https://example.com/app/generated/segapsg_wasm.wasm?v=sega-modes-1');
+      assert.equal(options.wasmUrl,'https://example.com/app/generated/segapsg_wasm.wasm?v=audio-numeric-bindings-1');
       assert.match(options.workletUrl,/playground_segapsg_worklet\.js\?/);
       continue;
     }
@@ -115,7 +115,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'msx-modes-2', `${id} cannot reuse its pre-mode processor URL`);
+    assert.equal(url.searchParams.get('v'), 'audio-numeric-bindings-1', `${id} cannot reuse its pre-mode processor URL`);
   }
 });
 

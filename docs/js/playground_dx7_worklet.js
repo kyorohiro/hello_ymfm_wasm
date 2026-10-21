@@ -1,8 +1,8 @@
 import {createDX7, createInitVoice, createVoiceSysex,parseSysex} from './msfa_dx7/src/index.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=msx-modes-2';
-import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=msx-modes-2';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=msx-modes-2';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
+import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=audio-numeric-bindings-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 
 const errorMessage = error => String(error?.message ?? error);
 

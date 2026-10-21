@@ -4,10 +4,10 @@
  * 依存: 音声初期化・再生時に AudioContext / AudioWorkletNode と WASM アセットが必要。
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
-import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=msx-modes-2";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=audio-numeric-bindings-1";
 import { OPNWorkletTransport } from "./opn_fm_synth.js?v=audio-stability-2";
 
-/** @typedef {Pick<import('./megasynth.js?v=msx-modes-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
+/** @typedef {Pick<import('./megasynth.js?v=audio-numeric-bindings-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
 
 const MAX_MASTER_VOLUME = 3.8;
 

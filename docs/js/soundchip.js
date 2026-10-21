@@ -6,7 +6,7 @@ export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js?v=chip-
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
-import {createWorkletSoundChip} from './soundchip_worklet.js?v=msx-modes-2';
+import {createWorkletSoundChip} from './soundchip_worklet.js?v=audio-numeric-bindings-1';
 import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 export {encodeWav} from './wav.js';
 
@@ -89,7 +89,7 @@ const loaders = {
     return GameboyApu.create(await loadModule('gameboy_apu', options));
   },
   segapsg: async (options) => {
-    const {SegaPSG} = await import('./segapsg.js?v=sega-modes-1');
+    const {SegaPSG} = await import('./segapsg.js?v=audio-numeric-bindings-1');
     return SegaPSG.create(await loadModule('segapsg', options));
   },
   /** @param {SoundChipOptions} [options] */
@@ -129,7 +129,7 @@ const loaders = {
   },
   /** @param {SoundChipOptions} [options] */
   ym2612: async (options) => {
-    const { Ym2612 } = await import('./ym2612.js');
+    const { Ym2612 } = await import('./ym2612.js?v=audio-numeric-bindings-1');
     return Ym2612.create(await loadModule('ym2612', options));
   },
   /** @param {SoundChipOptions} [options] */
@@ -180,7 +180,7 @@ const loaders = {
 const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
  *   gameboy: import('./gameboyapu.js?v=audio-stability-2').GameboyApu,
- *   segapsg: import('./segapsg.js?v=sega-modes-1').SegaPSG,
+ *   segapsg: import('./segapsg.js?v=audio-numeric-bindings-1').SegaPSG,
  *   pwm: import('./pwm32x.js?v=pcm-views-1').PWM32X,
  *   nes: import('./nesapu.js').NesApu,
  *   ay8910: import('./ay8910.js?v=audio-stability-2').Ay8910,
@@ -190,7 +190,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   ym2203: import('./ym2203.js?v=audio-stability-2').Ym2203,
  *   ym2413: import('./ym2413.js?v=audio-stability-2').Ym2413,
  *   ym2608: import('./ym2608.js?v=audio-stability-2').Ym2608,
- *   ym2612: import('./ym2612.js').Ym2612,
+ *   ym2612: import('./ym2612.js?v=audio-numeric-bindings-1').Ym2612,
  *   ym3438: import('./ym3438.js').Ym3438,
  *   ym3526: import('./ym3526.js?v=audio-stability-2').Ym3526,
  *   ym3812: import('./ym3812.js?v=audio-stability-2').Ym3812,
@@ -205,7 +205,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions & {execution: 'worklet'}} options
- * @returns {Promise<import('./soundchip_worklet.js?v=msx-modes-2').WorkletSoundChip & {name: Name}>}
+ * @returns {Promise<import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip & {name: Name}>}
  */
 /**
  * @template {keyof SoundChipMap} Name
@@ -219,7 +219,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions} options
- * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=msx-modes-2').WorkletSoundChip>}
+ * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip>}
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {

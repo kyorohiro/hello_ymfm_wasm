@@ -82,8 +82,11 @@ async function processor(file){
     // The common processor's core setup stays pending; the protocol test injects
     // a synchronous register recorder before sending the real transport packet.
     createSoundChipFactory:()=>()=>new Promise(()=>{}),
-    Ym2612:{},Ym2608:{},Ym2151:{},GameboyApu:{},SegaPSG:{},NesApu:{},
-    ym2612Factory:{},ym2608Factory:{},ym2151Factory:{},gameboyFactory:{},psgFactory:{},
+    Ym2612:{},Ym2608:{},Ay8910:{},Ym2413:{},Ym3526:{},Ym3812:{},Y8950:{},Ymf262:{},
+    Ym2151:{},GameboyApu:{},SegaPSG:{},NesApu:{},
+    ym2612Factory:{},ym2608Factory:{},ay8910Factory:{},ym2413Factory:{},
+    ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},
+    ym2151Factory:{},gameboyFactory:{},psgFactory:{},
     AudioWorkletProcessor:class{constructor(){this.port={postMessage(){}};}},
     registerProcessor(_name,value){Type=value;},
   };

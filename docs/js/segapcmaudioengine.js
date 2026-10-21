@@ -5,7 +5,7 @@
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
 import {SegaPcm} from './segapcm.js?v=audio-stability-2';
-import {SegaPSG} from './segapsg.js?v=sega-modes-1';
+import {SegaPSG} from './segapsg.js?v=audio-numeric-bindings-1';
 // Sega PCM and optional Sega PSG (SN76489) share the output clock, but keep independent state.
 /**
  * SegaPcmAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
@@ -15,7 +15,7 @@ import {SegaPSG} from './segapsg.js?v=sega-modes-1';
 export class SegaPcmAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js?v=msx-modes-2').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=msx-modes-2').WasmModuleOptions, clock?: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: import('./soundchip.js?v=msx-modes-2').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleOptions, clock?: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<SegaPcmAudioEngine>} Initialized engine owned by the caller.

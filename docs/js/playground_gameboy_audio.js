@@ -10,7 +10,7 @@ export async function createGameboyAudio(context, destination) {
   };
   const [wasmBinary] = await Promise.all([
     bytes('../generated/gameboy_apu_wasm.wasm'),
-    context.audioWorklet.addModule(new URL('./playground_gameboy_worklet.js?v=msx-modes-2', import.meta.url)),
+    context.audioWorklet.addModule(new URL('./playground_gameboy_worklet.js?v=audio-numeric-bindings-1', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-gameboy', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary},

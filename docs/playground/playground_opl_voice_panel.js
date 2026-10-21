@@ -1,4 +1,4 @@
-import {OPL_PRESETS} from '../js/opl_synth.js?v=msx-modes-2';
+import {OPL_PRESETS} from '../js/opl_synth.js?v=audio-numeric-bindings-1';
 
 // Rendering applied state is deliberately read-only. Edits and note gestures
 // use the same inspector commands as scripts; there is no view-to-audio loop.

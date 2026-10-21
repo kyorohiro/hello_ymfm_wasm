@@ -1,9 +1,9 @@
 import {PWM32X} from './pwm32x.js?v=pcm-views-1';
-import {PWM32XPlayback} from './pwm32x_playback.js?v=msx-modes-2';
+import {PWM32XPlayback} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
 
 /** Main-side command API; chip rendering and the schedule live in AudioWorklet. */
 export class PWM32XWorkletTransport {
-  /** @param {import("./soundchip_worklet.js?v=msx-modes-2").WorkletSoundChip} chip */
+  /** @param {import("./soundchip_worklet.js?v=audio-numeric-bindings-1").WorkletSoundChip} chip */
   constructor(chip) {
     if (chip.execution !== 'worklet' || chip.name !== 'pwm') throw new TypeError('Expected a PWM worklet endpoint');
     this.chip = chip;
@@ -17,7 +17,7 @@ export class PWM32XWorkletTransport {
   read(register) {return /** @type {Promise<number>} */ (this.chip.request('read', [register]));}
   /** @returns {Promise<void>} */
   reset() {return /** @type {Promise<void>} */ (this.chip.request('reset'));}
-  /** @param {import('./pwm32x_playback.js?v=msx-modes-2').PWMWrite[]} entries @returns {Promise<number>} */
+  /** @param {import('./pwm32x_playback.js?v=audio-numeric-bindings-1').PWMWrite[]} entries @returns {Promise<number>} */
   scheduleWrites(entries) {return /** @type {Promise<number>} */ (this.chip.request('scheduleWrites', [entries]));}
   /** @returns {Promise<void>} */
   clearSchedule() {return /** @type {Promise<void>} */ (this.chip.request('clearSchedule'));}
@@ -44,7 +44,7 @@ export class PWM32XDirectTransport {
   /** @param {number} register */
   read(register) {return this.chip.read(register);}
   reset() {this.chip.reset();}
-  /** @param {import('./pwm32x_playback.js?v=msx-modes-2').PWMWrite[]} entries */
+  /** @param {import('./pwm32x_playback.js?v=audio-numeric-bindings-1').PWMWrite[]} entries */
   scheduleWrites(entries) {return this.chip.scheduleWrites(entries);}
   clearSchedule() {this.chip.clearSchedule();}
   getState() {return this.chip.getState();}

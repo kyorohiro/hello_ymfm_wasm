@@ -1,6 +1,6 @@
 import {noteToHz as frequency} from './soundchip_pitch.js';
 import {NES_APU_CLOCK,validateNesApuClock} from './nesapu.js';
-import {ChipWorkletTransport} from './chip_worklet_transport.js?v=msx-modes-2';
+import {ChipWorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
 /** @typedef {{writeRegister(address:number,value:number):void, reset?:()=>void,
  * setChannelEnabled?:(channel:number,enabled:boolean)=>void,
  * loadMemory?:(bytes:Uint8Array,address:number)=>void|Promise<unknown>, clock?:number, fdsEnabled?:boolean}} NesApuTransport
@@ -27,7 +27,7 @@ export class NesApuDirectTransport {
  generateStereo(frames){return this.chip.generateStereo(frames);}
 }
 export class NesApuWorkletTransport extends ChipWorkletTransport {
- /** @param {import('./soundchip_worklet.js?v=msx-modes-2').WorkletSoundChip | MessagePort} endpoint */
+ /** @param {import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip | MessagePort} endpoint */
  constructor(endpoint){super(endpoint);this.clock=this.endpoint?.clock??NES_APU_CLOCK;this.fdsEnabled=this.endpoint?.fdsEnabled??false;}
  /** @param {number} channel @param {boolean} enabled */
  setChannelEnabled(channel,enabled){this.send('setChannelEnabled',[channel,enabled]);}

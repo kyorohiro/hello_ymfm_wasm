@@ -1,4 +1,4 @@
-import {createSampleEdit, normalizeSampleEdit, decodeSampleWav} from '../js/playground_sample_edit.js?v=msx-modes-2';
+import {createSampleEdit, normalizeSampleEdit, decodeSampleWav} from '../js/playground_sample_edit.js?v=audio-numeric-bindings-1';
 
 const abortError = () => new DOMException('Audio input cancelled', 'AbortError');
 const noteName = midi => ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'][midi % 12] + (Math.floor(midi / 12) - 1);
@@ -8,7 +8,7 @@ const copy = value => JSON.parse(JSON.stringify(value));
 export function createPlaygroundAudioInput({document:doc = globalThis.document, getAudioContext, getPreviewDestination,
   mediaDevices = globalThis.navigator?.mediaDevices, Recorder = globalThis.MediaRecorder,
   recordingSeconds = 60, defaultTarget = 'rf5c164', loadAsset, saveAsset,
-  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=msx-modes-2', import.meta.url), {type:'module'})} = {}) {
+  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=audio-numeric-bindings-1', import.meta.url), {type:'module'})} = {}) {
   let active = false;
   return function inputAudio(options = {}, {signal} = {}) {
     signal?.throwIfAborted();

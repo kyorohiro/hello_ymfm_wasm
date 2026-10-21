@@ -5,7 +5,7 @@
  * 同期 PCM 生成・ミックス用。DOM・AudioContext・スピーカー出力は不要。
  */
 import { Ymf278b, YMF278B_CLOCK } from './ymf278b.js?v=audio-stability-2';
-import { SegaPSG } from './segapsg.js?v=sega-modes-1';
+import { SegaPSG } from './segapsg.js?v=audio-numeric-bindings-1';
 
 // YMF278B and optional Sega PSG share the output clock, but keep independent state.
 /**
@@ -16,7 +16,7 @@ import { SegaPSG } from './segapsg.js?v=sega-modes-1';
 export class Ymf278bAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{ymf278bModuleFactory: import('./soundchip.js?v=msx-modes-2').WasmModuleFactory, ymf278bModuleOptions?: import('./soundchip.js?v=msx-modes-2').WasmModuleOptions, ymf278bClock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=msx-modes-2').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ymf278bModuleFactory: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory, ymf278bModuleOptions?: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleOptions, ymf278bClock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ymf278bAudioEngine>} Initialized engine owned by the caller.

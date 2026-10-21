@@ -8,7 +8,7 @@ import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v
  */
 import {createMidiSongPlayer} from './midi_song.js?v=readable-midi-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js?v=sega-modes-1';
+import {createSegaPsgApi, psgPeriodFromFrequency} from './segapsg_api.js?v=audio-numeric-bindings-1';
 import {parseTfi} from './tfi.js';
 import {parseVgi} from './vgi.js?v=audio-stability-2';
 

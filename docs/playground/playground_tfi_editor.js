@@ -1,5 +1,5 @@
 import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=audio-stability-2';
-import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=msx-modes-2';
+import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=audio-numeric-bindings-1';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js?v=audio-stability-2';
 

@@ -6,7 +6,7 @@ import {selectPlaygroundDeclarations} from './playground_declarations.js';
 const source = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
 test('Genesis declarations keep existing convenience APIs and MIDI channel constants', () => {
   const selected = selectPlaygroundDeclarations(source, 'ym2612');
-  assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm|adpcmA|adpcmB|gameboy|nes|snes|opm|pce|dx7): [^\n]+\n/gm, ''));
+  assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm|adpcmA|adpcmB|gameboy|nes|snes|opm|pce|dx7|opl|opll|ay|OPL_PRESETS|OPLL_INSTRUMENTS|OPLL_USER_PRESETS): [^\n]+\n/gm, ''));
 });
 
 test('Mega-CD keeps Genesis FM, PSG, DAC and MIDI channel conveniences', () => {

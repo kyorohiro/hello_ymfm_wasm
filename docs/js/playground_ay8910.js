@@ -1,5 +1,5 @@
-import {AY8910Synth} from './ay8910synth.js?v=msx-modes-2';
-import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=msx-modes-2';
+import {AY8910Synth} from './ay8910synth.js?v=audio-numeric-bindings-1';
+import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 /** Register-authoring controls. Adopting a Main/Worker snapshot never writes audio.
  * @param {MessagePort} port @param {{clock?:number}} [options] */
 export function createAy8910Client(port,{clock=CHIP_CLOCKS.ay8910}={}){

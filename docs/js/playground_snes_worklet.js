@@ -2,9 +2,9 @@ import factory from '../generated/spc_wasm.js?v=spc-events-1';
 import {SnesDspCore} from './spc.js?v=spc-events-1';
 import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
 import {SpcResampler} from './spc_resampler.js?v=chip-tabs-2';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=msx-modes-2';
-import {SnesVoiceInspector} from './playground_snes_inspector.js?v=msx-modes-2';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=msx-modes-2';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
+import {SnesVoiceInspector} from './playground_snes_inspector.js?v=audio-numeric-bindings-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 const METHODS=new Set(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','loadBRR','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp','readDsp','getState','getPreset','snapshot','dispose']);
 const RESOURCE_METHODS=new Set(['prepareTimeline','stopTimeline','getTimelineState','loadBRR','readDsp','getState','getPreset','snapshot']);
 export class SnesInstrumentProcessor extends AudioWorkletProcessor {
