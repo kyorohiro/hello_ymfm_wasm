@@ -1,7 +1,7 @@
 /** Desktop engine selection is explicit and local to this page URL.
  * A normal launch always uses the browser's Web Audio implementation. */
 export function supportsPlaygroundAudioEngineMode(engine, modeId) {
-  return engine === 'webaudio' || engine === 'native' && ['genesis', 'mega-cd', 'dx7'].includes(modeId);
+  return engine === 'webaudio' || engine === 'native' && ['genesis', 'mega-cd', 'nes', 'dx7'].includes(modeId);
 }
 
 export function resolvePlaygroundAudioEngine({search = '', desktop = false, modeId} = {}) {
@@ -40,13 +40,13 @@ export function installPlaygroundAudioEngineSettings({document, host, selection,
   }
   select.value = selection.engine;
   const explanation = document.createElement('p');
-  explanation.textContent = 'Web Audio uses the same audio engine as the browser version. Native supports Genesis, Mega CD and DX7 modes. Select Web Audio to use other modes. Changing engine stops playback and reloads the current project.';
+  explanation.textContent = 'Web Audio uses the same audio engine as the browser version. Native supports Genesis, Mega CD, NES + FDS and DX7 modes. Select Web Audio to use other modes. Changing engine stops playback and reloads the current project.';
   const limits = document.createElement('p');
-  limits.textContent = 'Native supports Main and Worker, Genesis FM/PSG/DAC, Mega CD PCM (RF5C164), DX7, samples, noise, built-in FX, JavaScript liveFx, Audio monitoring and output recording. liveFx adds a 2048-frame processing delay (42.7 ms at 48 kHz) only while used. Compressed samples use the browser decoder during loading. Use Web Audio for extra chips.';
+  limits.textContent = 'Native supports Main and Worker, Genesis FM/PSG/DAC, Mega CD PCM (RF5C164), NES + FDS, DX7, samples, noise, built-in FX, JavaScript liveFx, Audio monitoring and output recording. liveFx adds a 2048-frame processing delay (42.7 ms at 48 kHz) only while used. Compressed samples use the browser decoder during loading. Use Web Audio for extra chips.';
   const keyboardHint = document.createElement('p');
-  keyboardHint.textContent = 'Genesis and Mega CD Keyboard use the selected physical channel. Choose a free channel during script playback; script writes can replace a manually held note. DX7 uses 16 allocated voices and protects manually held notes and their voice edits.';
+  keyboardHint.textContent = 'Genesis and Mega CD Keyboard use the selected physical channel. Choose a free channel during script playback; script writes can replace a manually held note. NES + FDS protects the selected audition channel. DX7 uses 16 allocated voices and protects manually held notes and their voice edits.';
   const status = document.createElement('p'); status.id = 'audioEngineStatus'; status.setAttribute('role', 'status');
-  status.textContent = !selection.available ? 'Native is available in Genesis, Mega CD and DX7 modes only.'
+  status.textContent = !selection.available ? 'Native is available in Genesis, Mega CD, NES + FDS and DX7 modes only.'
     : selection.engine === 'native' ? 'Native selected. Press Run or audition a note to start audio.' : 'Web Audio is the default. Selecting Native does not start playback.';
   const apply = document.createElement('button'); apply.type = 'button'; apply.id = 'audioEngineApply'; apply.textContent = 'Apply engine';
   const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Close';

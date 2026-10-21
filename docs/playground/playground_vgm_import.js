@@ -299,16 +299,43 @@ function nesHighOperation(event, next, state, clock) {
   return null;
 }
 /** NES APU + optional FDS, including arbitrary DMC RAM uploads. */
-export function exportNesVgm(buffer, {mode = 'raw'} = {}) {
+export function exportNesVgm(buffer, {mode = 'raw', useBuiltInNes = false} = {}) {
   if (!['raw', 'readable', 'high'].includes(mode)) throw new Error('Unknown NES conversion mode.');
   const detection = detectVgmImport(new Ym2612VGM(buffer, {logger: null}).header);
   if (!detection.supported || detection.family !== 'nes') throw new Error(detection.message || 'Expected NES VGM.');
   const {events, time} = readNesEvents(buffer, detection.fds);
+  // The Native primary has a fixed NTSC core clock. An outer rate change
+  // cannot substitute for a recording's PAL/noise/DMC region configuration.
+  const borrowed = useBuiltInNes === true && detection.clock === 1789773;
   const lines = ['// NES APU' + (detection.fds ? ' + FDS' : '') + ': one pass, original write order and 44100 Hz sample waits.',
     '// Asynchronous waits and RAM acknowledgements are not sample-accurate audio scheduling.',
-    '// Comments describe register writes, not live envelope/sweep state.',
-    `const nes = await createSoundChip('nes', {fds: ${detection.fds}, clock: ${detection.clock}});`, 'try {',
-    '  nes.resetRegisters(); // Native reset, without Synth voice defaults.'];
+    '// Comments describe register writes, not live envelope/sweep state.'];
+  if (borrowed) {
+    const usedChannels = new Set();let io = true;
+    for (const event of events) {
+      if (event.type !== 'nes-apu-write') continue;
+      if (event.address === 0x4015) for (let channel = 0; channel < 5; channel++) if (event.value & (1 << channel)) usedChannels.add(channel);
+      if (event.address === 0x4023) io = !!(event.value & 2);
+      if (event.address === 0x4083 && io && !(event.value & 128)) usedChannels.add(5);
+    }
+    lines.push("const nes = await useSoundChip('nes');",
+      '// Borrow the built-in NTSC NES + FDS. Retire only this stream\'s channels.',
+      'const nesLeaseState = await livePrepare("vgm-nes-lease", async () => ({owner: null, channels: []}));',
+      'const nesLease = {};',
+      'nesLeaseState.owner = nesLease;',
+      `const nesChannels = [...new Set([...nesLeaseState.channels, ${[...usedChannels].sort((a,b)=>a-b).join(', ')}])];`,
+      'nesLeaseState.channels = nesChannels;',
+      'let nesReleased = false;',
+      'async function releaseNes() {',
+      '  if (nesReleased || nesLeaseState.owner !== nesLease) return;',
+      '  nesReleased = true;',
+      '  nesLeaseState.owner = null;',
+      '  nesLeaseState.channels = [];',
+      '  await Promise.all(nesChannels.map(channel => nes.keyOff(channel)));',
+      '}', 'try {',
+      '  await nes.setClock(1789773); // Restore the recorded clock after previous scripts.');
+  } else lines.push(`const nes = await createSoundChip('nes', {fds: ${detection.fds}, clock: ${detection.clock}});`, 'try {');
+  lines.push('  nes.resetRegisters(); // Native reset, without Synth voice defaults.');
   const state = new Uint8Array(0x90); let previous = 0;
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
@@ -328,6 +355,6 @@ export function exportNesVgm(buffer, {mode = 'raw'} = {}) {
     previous = event.time;
   }
   if (time > previous) lines.push(`  await sleepSamples(${time - previous}, 44100);`);
-  lines.push('} finally { nes.dispose(); }');
+  lines.push(borrowed ? '} finally { await releaseNes(); }' : '} finally { nes.dispose(); }');
   return lines.join('\n') + '\n';
 }

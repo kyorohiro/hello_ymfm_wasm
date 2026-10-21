@@ -3,6 +3,7 @@ import {NES_APU_CLOCK,validateNesApuClock} from './nesapu.js';
 import {ChipWorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
 /** @typedef {{writeRegister(address:number,value:number):void, reset?:()=>void,
  * setChannelEnabled?:(channel:number,enabled:boolean)=>void,
+ * configureFds?:(gain:number,master:number)=>void,
  * loadMemory?:(bytes:Uint8Array,address:number)=>void|Promise<unknown>, clock?:number, fdsEnabled?:boolean}} NesApuTransport
  * @typedef {{volume?:number, duty?:0.125|0.25|0.5|0.75, envelope?:{period:number,loop?:boolean}, sweep?:{enabled?:boolean,period?:number,negate?:boolean,shift?:number}}} NesPulseVoice
  */
@@ -111,7 +112,7 @@ export class NesApuSynth {
     wave.forEach((value,i)=>this.writeRegister(0x4040+i,value));this.writeRegister(0x4089,master);this.writeRegister(0x4083,control);
    },
    /** @param {number} volume Fixed gain 0..32. @param {number} [master] Hardware scale 0..3. */
-   setVolume:(volume,master=0)=>{this.#checkFds();integer(volume,32,'FDS volume');integer(master,3,'FDS master scale');this.#fdsGain=volume;this.#fdsMaster=master;this.writeRegister(0x4023,2);this.writeRegister(0x4080,128|(this.#fdsActive?volume:0));this.writeRegister(0x4089,master);},
+   setVolume:(volume,master=0)=>{this.#checkFds();integer(volume,32,'FDS volume');integer(master,3,'FDS master scale');this.#fdsGain=volume;this.#fdsMaster=master;this.writeRegister(0x4023,2);this.writeRegister(0x4080,128|(this.#fdsActive?volume:0));this.writeRegister(0x4089,master);this.transport.configureFds?.(volume,master);},
    /** @param {number} hz */ setFrequency:hz=>this.setFrequency(5,hz),
    keyOn:()=>this.keyOn(5),keyOff:()=>this.keyOff(5),
    /** @param {string|number} note */ setNote:note=>this.setNote(5,note),

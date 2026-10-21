@@ -75,6 +75,17 @@ test('NES applied snapshots track native pulse/triangle/noise and preserve disab
   }finally{p.dispose();}
 });
 
+for(const ratio of [.5,2])test(`NES inspector edits support an outer ${ratio}x clock without changing the core clock`,async()=>{
+  const p=await setup('nes');try{
+    const clock=Math.floor(CHIP_CLOCKS.nes*ratio),before=p.read();
+    p.receive({method:'clock',id:'clock',args:[clock]});
+    p.invoke('setPulseVoice',[0,{frequency:440,volume:12}]);p.invoke('setFrequency',[5,440]);
+    const state=p.read();assert.equal(state.clock,clock);assert.equal(p.processor.chip.clock,CHIP_CLOCKS.nes);
+    assert(Math.abs(state.channels[0].frequency-440)<4);assert(Math.abs(state.fds.frequency-440)<1);
+    assert.equal(state.channels[0].volume,12);assert.equal(state.channels[1].period,before.channels[1].period);assert.deepEqual(state.fds.wave,before.fds.wave);
+  }finally{p.dispose();}
+});
+
 test('Game Boy explicit power edits preserve Wave RAM and require power before audition',async()=>{
   const p=await setup('gameboy');try{
     const wave=p.read().channels[2].waveform;p.invoke('setPower',[false]);assert.equal(p.read().powered,false);assert.throws(()=>p.invoke('auditionOn',[0,69,'off']),/initialize/);

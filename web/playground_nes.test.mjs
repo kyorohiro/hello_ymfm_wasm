@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {NesApu} from './nesapu.js';
 import {createNesClient} from './playground_nes.js';
+import {NesApuSynth} from './nesapusynth.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {NesVoiceInspector} from './playground_native_voice_inspector.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
@@ -27,6 +28,17 @@ async function setup(fds, sampleRate) {
     processor.process([], [output]); return output;
   }};
 }
+
+test('only Native NES clients send authored FDS configuration metadata',()=>{
+  const state=new NesApuSynth({initialize:false,fds:true,transport:{writeRegister(){}}})._getState();
+  for(const native of [false,true]){
+    const messages=[],client=createNesClient({start(){},close(){},postMessage:message=>messages.push(message)},{fdsEnabled:true,state,native});
+    client.fds.setVolume(19,2);
+    assert.deepEqual(messages.slice(0,3),[{method:'writeRegister',args:[0x4023,2]},{method:'writeRegister',args:[0x4080,128]},{method:'writeRegister',args:[0x4089,2]}]);
+    assert.deepEqual(messages.slice(3),native?[{method:'configureFds',args:[19,2]}]:[]);
+    client.dispose();
+  }
+});
 for (const sampleRate of [44100, 48000]) {
   for (const [example, fds] of [['nes-apu-tones', false], ['nes-pulse-frequency', false], ['nes-fds-wave', true], ['nes-dmc-sample', false]]) {
     test(`${example}: real NES processor at ${sampleRate} Hz`, async () => {

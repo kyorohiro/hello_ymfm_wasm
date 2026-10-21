@@ -102,3 +102,11 @@ test('pulse trigger preserves timer registers and rejects invalid inputs before 
   ...[NaN,Infinity,0,-1].map(hz=>()=>synth.pulse.setFrequency(0,hz)),()=>synth.pulse.noteOn(0)])assert.throws(fn);
  assert.equal(writes.length,0);
 });
+
+test('FDS authored volume uses an optional transport hook without changing stopped register output',()=>{
+ const messages=[],transport={fdsEnabled:true,writeRegister:(address,value)=>messages.push({address,value}),configureFds:(gain,master)=>messages.push({gain,master})};
+ const synth=new NesApuSynth({transport,initialize:false});synth.fds.setVolume(19,2);
+ assert.deepEqual(messages,[{address:0x4023,value:2},{address:0x4080,value:128},{address:0x4089,value:2},{gain:19,master:2}]);
+ assert.equal(synth._getState().fdsGain,19);assert.equal(synth._getState().fdsMaster,2);
+ messages.length=0;assert.throws(()=>synth.fds.setVolume(33,2));assert.throws(()=>synth.fds.setVolume(19,4));assert.equal(messages.length,0);
+});

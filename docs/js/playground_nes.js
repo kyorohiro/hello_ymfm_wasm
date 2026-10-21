@@ -3,9 +3,9 @@ import {NesApuSynth} from './nesapusynth.js?v=audio-numeric-bindings-1';
 import {NES_APU_CLOCK} from './nesapu.js';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
 /** @param {MessagePort} port Ordered Worklet command/acknowledgement port, owned by the client.
- * @param {{clock?: number, fdsEnabled?: boolean, state?:object}} [options={}] Clock in Hz, FDS availability and an optional existing device snapshot.
+ * @param {{clock?: number, fdsEnabled?: boolean, state?:object,native?:boolean}} [options={}] Clock in Hz, FDS availability and an optional existing device snapshot.
  * @returns {NesApuSynth & {_stopVoices:()=>Promise<void>}} Synth whose dispose closes the port and rejects pending uploads. */
-export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false, state} = {}) {
+export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false, state,native=false} = {}) {
   let disposed = false, sequence = 0;
   const pending = new Map();
   const send = (method, args = []) => {
@@ -30,6 +30,7 @@ export function createNesClient(port, {clock = NES_APU_CLOCK, fdsEnabled = false
     setChannelEnabled: (channel, enabled) => send('setChannelEnabled', [channel, enabled]),
     reset: () => send('reset'),
     loadMemory: (bytes, address) => request('loadMemory',[bytes,address]),
+    ...(native?{configureFds:(gain,master)=>send('configureFds',[gain,master])}:{}),
   };
   const synth = new NesApuSynth({transport,initialize:!state});
   if(state)synth._adoptState(state);

@@ -150,7 +150,9 @@ export class NesVoiceInspector extends VoiceInspector {
   }
   sample(){const r=this.registers,address=0xc000+r[0x12]*64,length=r[0x13]*16+1;return this.memoryRanges.some(range=>range.address<=address&&range.end>=address+length)?{address,length}:null;}
   prepare(callback){
-    const commands=[],synth=new NesApuSynth({initialize:false,clock:this.clock(),fds:this.fdsEnabled,transport:{clock:this.clock(),fdsEnabled:this.fdsEnabled,writeRegister:(...args)=>commands.push({method:'writeRegister',args}),setChannelEnabled:(...args)=>commands.push({method:'setChannelEnabled',args})}});
+    // The core's construction clock stays in the NES region range; the
+    // projected state below supplies the effective outer resampler clock.
+    const commands=[],synth=new NesApuSynth({initialize:false,clock:this.chip.clock,fds:this.fdsEnabled,transport:{clock:this.chip.clock,fdsEnabled:this.fdsEnabled,writeRegister:(...args)=>commands.push({method:'writeRegister',args}),setChannelEnabled:(...args)=>commands.push({method:'setChannelEnabled',args})}});
     synth._adoptState({clock:this.clock(),registers:Array.from(this.registers),enabled:this.enabled,fdsActive:!(this.registers[0x83]&128),fdsGain:this.fdsGain,fdsMaster:this.fdsMaster,sample:this.sample()});
     const value=callback(synth);return {commands,state:synth._getState(),value};
   }

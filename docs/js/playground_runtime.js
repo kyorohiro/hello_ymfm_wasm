@@ -543,6 +543,9 @@ export function createPlaygroundRuntime(
         ? 'RF5C164 is built into Mega CD. Use await useSoundChip("rf5c164") to access it. Additional chip instances require Web Audio.'
         : 'RF5C164 requires Mega CD mode. Select Mega CD, then use await useSoundChip("rf5c164").');
       if(name==='dx7' && capabilities.chip==='dx7')throw new Error('DX7 is built into this mode. Use await useSoundChip("dx7") to access it. Additional chip instances require Web Audio.');
+      if(name==='nes' && capabilities.chip==='nes')throw new Error(options.clock!==undefined&&options.clock!==CHIP_CLOCKS.nes
+        ? 'This NES file uses a different base clock or region. Select Web Audio to preserve its APU timing.'
+        : 'NES + FDS is built into this mode. Use await useSoundChip("nes") to access it. Additional chip instances require Web Audio.');
       throw new Error('Additional sound chips are unavailable in the experimental Native backend. Select Web Audio to use them.');
     }
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
@@ -2515,8 +2518,12 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,dx7Port} = nativeWorkerBridge;
-        if (dx7Port) {
+        const {chipPort,fxPort,pcmPort,dx7Port,nesPort} = nativeWorkerBridge;
+        if (nesPort) {
+          const client = megaDrive.nes;
+          worker.postMessage({type:'native-primary-ports',endpoints:[{name:'nes',globalName:'nes',
+            clock:client.clock,fdsEnabled:client.fdsEnabled,native:true,state:client._getState(),port:nesPort}]},[nesPort]);
+        } else if (dx7Port) {
           const client = megaDrive.dx7;
           worker.postMessage({type:'native-primary-ports',endpoints:[{name:'dx7',globalName:'dx7',
             sampleRate:client.sampleRate,internalSampleRate:client.internalSampleRate,

@@ -9,11 +9,12 @@ import {createNativeGenesisNoise,nativeGenesisNoiseMessage} from './native_genes
 import {nativeGenesisLiveFxMessage,createNativeGenesisLiveFxStatus} from './native_genesis_livefx.js';
 import {createNativeGenesisRf5c164} from './native_genesis_rf5c164.js?v=audio-numeric-bindings-1';
 import {createNativeGenesisDx7} from './native_genesis_dx7.js?v=audio-numeric-bindings-1';
+import {createNativeGenesisNes} from './native_genesis_nes.js?v=audio-numeric-bindings-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
 const MAX_PCM_UPLOAD_PENDING = 4 * 1024 * 1024;
-const pcmBytes=command=>command.type==='rf5c164-load-memory'?command.data.length:0;
+const pcmBytes=command=>command.type==='rf5c164-load-memory'?command.data.length:command.type==='nes'&&command.message?.method==='load-memory'?command.message.data.length:0;
 const unsupported = feature => {throw new Error(`${feature} is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.`);};
 const byte = (value, label) => {
   if (!Number.isInteger(value) || value < 0 || value > 255) throw new RangeError(`${label} must be an integer from 0 to 255`);
@@ -64,8 +65,9 @@ export class NativeGenesisSynth {
   constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1, decodeAudio,megaCD=false,dx7=false,mode} = {}) {
     if (typeof invoke !== 'function') throw new TypeError('Native Genesis requires the Tauri invoke transport');
     this.invoke = invoke; this.now = now; this.onError = onError;
-    this.backend = 'native-genesis'; this.dx7Mode=dx7===true||mode==='dx7';this.chip = this.dx7Mode?'dx7':'ym2612';this.megaCD=!this.dx7Mode&&(megaCD===true||mode==='mega-cd');
-    this.capabilities = Object.freeze({chip:this.chip, fmChannels:this.dx7Mode?0:6, psg:!this.dx7Mode, dac:!this.dx7Mode,
+    this.backend = 'native-genesis';this.nesMode=mode==='nes';this.dx7Mode=!this.nesMode&&(dx7===true||mode==='dx7');this.primaryMode=this.nesMode||this.dx7Mode;
+    this.chip = this.nesMode?'nes':this.dx7Mode?'dx7':'ym2612';this.megaCD=!this.primaryMode&&(megaCD===true||mode==='mega-cd');
+    this.capabilities = Object.freeze({chip:this.chip, fmChannels:this.primaryMode?0:6, psg:!this.primaryMode, dac:!this.primaryMode,
       pcm:this.megaCD, recorder:true, worker:true, noise:true, dynamicSoundChips:false, backend:'native-genesis'});
     this.clock = new NativeAudioClock(now);
     this.outputMonitor = createNativeGenesisMonitor({invoke:(command,args)=>this.invoke(command,args),
@@ -102,7 +104,7 @@ export class NativeGenesisSynth {
       read: () => unsupported('Synchronous chip reads'),
       readStatus: () => unsupported('Synchronous chip reads'),
     };
-    this.fm = this.dx7Mode?null:new YM2612Synth({transport,clock:7670454});
+    this.fm = this.primaryMode?null:new YM2612Synth({transport,clock:7670454});
     if(this.fm){
     Object.defineProperty(this.fm,'id',{value:'ym2612',enumerable:true});
     this.installFmEvents();
@@ -118,7 +120,8 @@ export class NativeGenesisSynth {
     this.pcm=this.nativePcm?.client??null;
     this.nativeDx7=this.dx7Mode?createNativeGenesisDx7(this):null;
     this.dx7=this.nativeDx7?.client??null;
-    this.primaryEndpoints=this.dx7?[{name:'dx7',globalName:'dx7',client:this.dx7}]:[];
+    this.nativeNes=this.nesMode?createNativeGenesisNes(this):null;this.nes=this.nativeNes?.client??null;
+    this.primaryEndpoints=this.nes?[{name:'nes',globalName:'nes',client:this.nes}]:this.dx7?[{name:'dx7',globalName:'dx7',client:this.dx7}]:[];
     this.stream = this.unavailableMedia('Streaming playback');
     this.nextNoiseNamespace=0;
     this.noise=createNativeGenesisNoise({send:message=>this.enqueue({type:'noise',frame:0,message}),getSampleRate:()=>this.clock.sampleRate});
@@ -160,7 +163,7 @@ export class NativeGenesisSynth {
     const pending = (async () => {
       let status;
       try {
-        status = await this.invoke('native_genesis_start',...(this.dx7Mode?[{mode:'dx7'}]:this.megaCD?[{mode:'mega-cd'}]:[]));
+        status = await this.invoke('native_genesis_start',...(this.nesMode?[{mode:'nes'}]:this.dx7Mode?[{mode:'dx7'}]:this.megaCD?[{mode:'mega-cd'}]:[]));
         if (generation !== this.generation) {
           if (status?.session != null) await this.invoke('native_genesis_shutdown',{session:status.session});
           throw new DOMException('Native audio initialization was cancelled','AbortError');
@@ -171,7 +174,7 @@ export class NativeGenesisSynth {
         if(this.fm)this.fm.clock = status.ymClock ?? 7670454;
         if(this.pcm)this.pcm._adoptClock(status.rf5c164Clock??12500000);
         this.state = 'ready';
-        for (const id of this.dx7Mode?[]:['ym2612','segapsg']) this.mixerReleases.push(this.mixer.register(id,id,settings => {
+        for (const id of this.primaryMode?[]:['ym2612','segapsg']) this.mixerReleases.push(this.mixer.register(id,id,settings => {
           const [left,right] = chipMixGains(settings); const prefix = id === 'ym2612' ? 'fm' : 'psg';
           this.mix[`${prefix}Left`] = left; this.mix[`${prefix}Right`] = right;
           if (this.isReady() && !this.stopping && !this.closing) this.enqueue({type:'mix',frame:0,...this.mix});
@@ -183,6 +186,10 @@ export class NativeGenesisSynth {
         if(this.dx7)this.mixerReleases.push(this.mixer.register('dx7','dx7',settings=>{
           if(this.isReady()&&!this.stopping&&!this.closing)this.nativeDx7.mix(settings.effectiveMuted?0:settings.volume,settings.pan).catch(error=>this.reportAsyncError(error));
         }));
+        if(this.nes)this.mixerReleases.push(this.mixer.register('nes','nes',settings=>{
+          if(this.isReady()&&!this.stopping&&!this.closing)this.nativeNes.mix(settings.effectiveMuted?0:settings.volume,settings.pan).catch(error=>this.reportAsyncError(error));
+        }));
+        this.nativeNes?.initialize();
         if(this.fm)this.fm.reset();
         await this.flush();
         this.chipInspector.notify();
@@ -321,7 +328,7 @@ export class NativeGenesisSynth {
   /** Explicit Worker transport receiver. A real MessagePort bridge supplies
    * timing and ownership; the native synth remains independent of AudioNodes. */
   async dispatchNativeCommand(message,timing={}) {
-    if(this.dx7Mode)throw new Error('OPN/PSG commands require Native Genesis or Mega-CD mode');
+    if(this.primaryMode)throw new Error('OPN/PSG commands require Native Genesis or Mega-CD mode');
     const timed = command => ({...command,
       ...(timing.time===undefined?{}:{frame:this.frameAt(timing.time)}),
       ...(timing.performance===undefined?{}:{performance:timing.performance}),
@@ -385,6 +392,10 @@ export class NativeGenesisSynth {
     if(!this.nativeDx7)throw new Error('DX7 requires Native DX7 mode');
     return this.nativeDx7.dispatch(message,timing);
   }
+  async dispatchNativeNesCommand(message,timing={}) {
+    if(!this.nativeNes)throw new Error('NES commands require Native NES + FDS mode');
+    return this.nativeNes.dispatch(message,timing);
+  }
   fail(error) {
     if (this.state === 'closed' || this.state === 'error') return;
     this.error = error instanceof Error ? error : new Error(String(error));
@@ -419,6 +430,7 @@ export class NativeGenesisSynth {
     this.media.stopped();
     this.nativePcm?.stopped();
     this.nativeDx7?.stopped();
+    this.nativeNes?.stopped();
     this.workerSampleOrigin=null;
     this.auditions.clear(); this.psgAuditions.clear();
     const session = this.session;
@@ -427,6 +439,7 @@ export class NativeGenesisSynth {
       if (session === this.session) {
         this.clock.update(status,this.now());
         if(this.nativeDx7){const snapshot=await this.invoke('native_genesis_dx7_status',{session});if(session===this.session)this.nativeDx7.adoptStopped(snapshot);}
+        if(this.nativeNes){const snapshot=await this.invoke('native_genesis_nes_status',{session});if(session===this.session)this.nativeNes.adoptStopped(snapshot);}
       }
     }).catch(error=>{this.fail(error);throw error;}).finally(()=>{if (this.stopping === pending) this.stopping=null;});
     this.stopping = pending;
@@ -443,6 +456,7 @@ export class NativeGenesisSynth {
       this.media.reset(); this.fx = null;
       this.nativePcm?.reset();
       this.nativeDx7?.reset();
+      this.nativeNes?.reset();
       this.auditions.clear(); this.psgAuditions.clear(); this.chipInspector.notify();
       if (session !== null) await this.invoke('native_genesis_shutdown',{session});
     })();
@@ -473,6 +487,7 @@ export class NativeGenesisSynth {
   }
   clearAuditions() {
     if(this.nativeDx7){this.nativeDx7.invoke('auditionAllOff').catch(error=>{if(error?.name!=='AbortError')this.reportAsyncError(error);});return;}
+    if(this.nativeNes){this.nativeNes.invoke('auditionAllOff').catch(error=>{if(error?.name!=='AbortError')this.reportAsyncError(error);});return;}
     const channels = [...this.auditions.keys()]; this.auditions.clear();
     if (this.isReady() && !this.stopping && !this.closing) for (const channel of channels) this.fm.noteOff(channel);
     const psgChannels = [...this.psgAuditions.keys()]; this.psgAuditions.clear();
@@ -482,7 +497,9 @@ export class NativeGenesisSynth {
    * AudioNode or PCM bridge is fabricated for the shared Keyboard UI. */
   createInspector() {
     const listeners = new Set(); let disposed = false;
-    const list = () => disposed || !this.isReady() ? [] : this.dx7Mode?[
+    const list = () => disposed || !this.isReady() ? [] : this.nesMode?[
+      {id:'nes',kind:'nes',name:'nes',label:'NES + FDS (Native)',connected:true},
+    ]:this.dx7Mode?[
       {id:'dx7',kind:'dx7',name:'dx7',label:'DX7 (Native)',connected:true},
     ]:[
       {id:'ym2612',kind:'ym2612',name:'ym2612',label:'YM2612 (Native)',connected:true},
@@ -508,6 +525,7 @@ export class NativeGenesisSynth {
       read: async id => {
         endpoint(id);
         if(id==='dx7')return this.nativeDx7.read();
+        if(id==='nes')return this.nativeNes.read();
         if(id==='rf5c164')return this.nativePcm.read();
         if (id === 'segapsg') unsupported('Applied PSG voice snapshots');
         return {kind:'ym2612',clock:this.fm.clock,sampleRate:this.clock.sampleRate,
@@ -517,6 +535,7 @@ export class NativeGenesisSynth {
       invoke: async (id,method,args=[]) => {
         endpoint(id);
         if(id==='dx7')return this.nativeDx7.invoke(method,args);
+        if(id==='nes')return this.nativeNes.invoke(method,args);
         if(id==='rf5c164')return this.nativePcm.invoke(method,args);
         if (method === 'auditionAllOff') {this.clearAuditions();await this.flush();return true;}
         if (!['auditionOn','auditionOff'].includes(method)) unsupported('Native voice inspector editing');

@@ -1081,7 +1081,7 @@ async function importVgmFile(file, options) {
     source: exportGameboyVgm(buffer, {mode: options.gameboyMode}),
     statusMessage: 'for Game Boy (all four channels; one pass)',
   } : detection.family === 'nes' ? {
-    source: exportNesVgm(buffer, {mode: options.nesMode}),
+    source: exportNesVgm(buffer, {mode: options.nesMode, useBuiltInNes:useNativeGenesis && selectedMode.id === 'nes'}),
     statusMessage: 'for NES APU' + (detection.fds ? ' + FDS' : '') + ' (including DMC RAM; one pass)',
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
     source: exportRf5c164Vgm(buffer, {...options, useBuiltInPcm:selectedMode.id === 'mega-cd', writeDacFile(bytes) {
@@ -2880,7 +2880,7 @@ async function changePlaygroundMode(id) {
 
 async function changePlaygroundAudioEngine(engine) {
   if (!supportsPlaygroundAudioEngineMode(engine, selectedMode.id) || engine === 'native' && !audioEngineSelection.available) {
-    throw new Error('Native is available in Genesis, Mega CD and DX7 modes only.');
+    throw new Error('Native is available in Genesis, Mega CD, NES + FDS and DX7 modes only.');
   }
   if (changingMode) throw new Error('A mode or engine change is already in progress.');
   changingMode = true;

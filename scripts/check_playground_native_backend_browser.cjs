@@ -65,7 +65,7 @@ class FakeNative {
     if (command === 'native_genesis_start') {
       if (this.failStart) {this.failStart = false; throw Error('Simulated native device unavailable');}
       this.liveFx.clear(); this.liveFxError = null;
-      assert(args.mode===undefined||['genesis','mega-cd','dx7'].includes(args.mode));
+      assert(args.mode===undefined||['genesis','mega-cd','nes','dx7'].includes(args.mode));
       this.current = {session:++this.sessions,began:performance.now(),mode:args.mode??'genesis'};
       const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
       this.pcm=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{sampleRate:48000});
@@ -74,6 +74,10 @@ class FakeNative {
       const {createInitVoice}=await import('../web/msfa_dx7/src/sysex.js');
       this.dx7={voices:[Array.from(createInitVoice())],selectedVoice:0,revision:0};
       this.dx7Notes=new Map();
+      const {NesApu}=await import('../web/nesapu.js');
+      const {NesVoiceInspector}=await import('../web/playground_native_voice_inspector.js');
+      this.nesClock=1789773;this.nesChip=new NesApu({sampleRate:48000,fds:true});
+      this.nesInspector=new NesVoiceInspector(this.nesChip,{clock:()=>this.nesClock,sampleRate:48000});
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -93,13 +97,20 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if (command === 'native_genesis_rf5c164_status') {assert.equal(this.current.mode,'mega-cd');const state=this.pcm.read();return {...state,mask:this.pcm.mask,selected:this.pcm.selected,channels:state.channels.map(channel=>({...channel,configuredStep:this.pcm.configuredSteps[channel.channel]}))};}
     if(command==='native_genesis_dx7_status') {
       assert.equal(this.current.mode,'dx7');
       return {...this.dx7,voices:this.dx7.voices.map(voice=>voice.slice()),frame:this.status().frame,
         pendingCommands:[],activeNotes:[...this.dx7Notes].map(([midi,note])=>({midi,velocity:note.velocity}))};
+    }
+    if(command==='native_genesis_nes_status') {
+      assert.equal(this.current.mode,'nes');
+      const inspector=this.nesInspector;
+      return {clock:this.nesClock,registers:Array.from(inspector.registers),enabled:inspector.enabled,
+        fdsGain:inspector.fdsGain,fdsMaster:inspector.fdsMaster,modulation:Array.from(inspector.modTable),
+        memoryRanges:inspector.memoryRanges.map(range=>({...range})),fdsActive:!(inspector.registers[0x83]&128)};
     }
     if (command === 'native_genesis_live_fx') {
       const message=args.message;
@@ -117,6 +128,22 @@ class FakeNative {
     if (command === 'native_genesis_commands') {
       assert(Array.isArray(args.commands) && args.commands.length > 0 && args.commands.length <= 4096);
       assert(args.commands.every(entry => Number.isSafeInteger(entry.frame) && entry.frame >= 0));
+      const applyNes=message=>{
+        if(message.method==='write')this.nesChip.writeRegister(message.address,message.value);
+        else if(message.method==='enable')this.nesChip.setChannelEnabled(message.channel,message.enabled);
+        else if(message.method==='load-memory'){assert(Array.isArray(message.data)&&message.data.length<=65536-message.address);this.nesChip.loadMemory(Uint8Array.from(message.data),message.address);}
+        else if(message.method==='reset')this.nesChip.reset();
+        else if(message.method==='stop-voices')this.nesInspector.stopVoices();
+        else if(message.method==='clock')this.nesClock=message.hz;
+        else if(message.method==='batch'){
+          assert(Array.isArray(message.commands));message.commands.forEach(applyNes);
+          if(message.fdsGain!==undefined)this.nesInspector.fdsGain=message.fdsGain;
+          if(message.fdsMaster!==undefined)this.nesInspector.fdsMaster=message.fdsMaster;
+        }
+        else assert.equal(message.method,'mix','Unknown Native NES operation '+message.method);
+      };
+      for(const entry of args.commands.filter(entry=>entry.type==='nes')){assert.equal(this.current.mode,'nes');applyNes(entry.message);}
+      if(this.current.mode==='nes')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'NES mode must never send hidden OPN/PSG/DX7/PCM commands');
       for(const entry of args.commands.filter(entry=>entry.type==='dx7')) {
         assert.equal(this.current.mode,'dx7','Only DX7 mode may accept DX7 commands');
         const message=entry.message;
@@ -228,7 +255,7 @@ async function modeIds(page) {
   return page.locator('#playgroundMode option').evaluateAll(options=>options.map(option=>option.value));
 }
 async function assertNativeModeRestriction(page,native) {
-  assert.deepEqual(await modeIds(page),['genesis','mega-cd','dx7'],'Native must list only supported machine modes');
+  assert.deepEqual(await modeIds(page),['genesis','mega-cd','nes','dx7'],'Native must list only supported machine modes');
   const before={url:page.url(),session:native.current.session,shutdowns:native.count('native_genesis_shutdown')};
   // A forged option/change must pass the same support check as the visible UI.
   await page.evaluate(()=>{
@@ -538,7 +565,8 @@ async function nativeAudioMonitor(page,native,artifacts,name) {
   const commandsBefore=native.count('native_genesis_commands');
   await page.evaluate(async()=>{
     const synth=window.__nativeBackendTest.runtime.megaDrive;
-    if(synth.dx7){synth.dx7.noteOn(84,1);synth.dx7.noteOff(84);await synth.dx7.getState();}
+    if(synth.nes){synth.nes.writeRegister(0x4017,0x40);await synth.flush();}
+    else if(synth.dx7){synth.dx7.noteOn(84,1);synth.dx7.noteOff(84);await synth.dx7.getState();}
     else synth.fm.write(0,0x22,0);
     await synth.flush();
   });
@@ -619,14 +647,20 @@ async function changeNativeMode(page,native,id,choice='initial') {
   await page.locator('#mainMenu > summary').click();
   await page.selectOption('#playgroundMode',id);
   await page.locator('#changeModeDialog').waitFor({state:'visible'});
-  await Promise.all([
-    page.waitForURL(url=>url.searchParams.get('mode')===id),
-    page.locator('#changeModeDialog').evaluate((dialog,choice)=>dialog.close(choice),choice),
-  ]);
+  try {
+    await Promise.all([
+      page.waitForURL(url=>url.searchParams.get('mode')===id),
+      page.locator('#changeModeDialog').evaluate((dialog,choice)=>dialog.close(choice),choice),
+    ]);
+  } catch(error) {
+    const detail=await page.locator('body').innerText();
+    const statuses=await page.locator('[role="status"]').allTextContents();
+    throw new Error(`Could not change Native mode to ${id}: ${JSON.stringify(statuses)} ${detail.slice(0,900)} ${detail.slice(-1200)}`,{cause:error});
+  }
   await ready(page);
   assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),id);
   assert.equal(new URL(page.url()).searchParams.get('audioEngine'),'native');
-  assert.deepEqual(await modeIds(page),['genesis','mega-cd','dx7']);
+  assert.deepEqual(await modeIds(page),['genesis','mega-cd','nes','dx7']);
   assert.equal(native.count('native_genesis_start'),starts,'Mode selection must defer device opening until playback');
   assert.equal(native.current,null,'Changing Native machines must shut down the old session');
   if(session)assert(native.calls.some(call=>call.command==='native_genesis_shutdown'&&call.args.session===session));
@@ -939,6 +973,155 @@ async function nativeDx7(page,native,artifacts,name) {
   await nativeRun(page,native);
   assert.equal(native.current.mode,'genesis');
 }
+async function nativeNes(page,native,artifacts,name) {
+  await changeNativeMode(page,native,'nes');
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/nes/index.js'),'utf8');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter,'NES selection installs its shipped starter');
+  const allCommands=()=>native.calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+  const flatten=messages=>messages.flatMap(message=>message.method==='batch'?flatten(message.commands):[message]);
+  for(const execution of ['main','worker']) {
+    const first=allCommands().length;
+    const commands=()=>allCommands().slice(first).filter(entry=>entry.type==='nes');
+    const writes=()=>flatten(commands().map(entry=>entry.message));
+    await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+    await until(()=>writes().some(message=>message.method==='enable'&&message.channel===0&&message.enabled),execution+' NES starter');
+    const snapshot=await page.evaluate(async()=>{
+      const synth=window.__nativeBackendTest.runtime.megaDrive;
+      return {chip:synth.capabilities.chip,fm:synth.fm,psg:synth.psg,pcm:synth.pcm,dx7:synth.dx7,
+        endpoints:synth.primaryEndpoints.map(endpoint=>endpoint.name),chips:synth.chipInspector.list(),mixer:synth.mixer.list()};
+    });
+    assert.equal(snapshot.chip,'nes');for(const key of ['fm','psg','pcm','dx7'])assert.equal(snapshot[key],null);
+    assert.deepEqual(snapshot.endpoints,['nes']);assert.deepEqual(snapshot.chips.map(chip=>chip.id),['nes']);
+    assert.deepEqual(snapshot.mixer.filter(chip=>chip.connected).map(chip=>chip.id),['nes']);
+    if(execution==='worker')assert(commands().some(entry=>entry.frame>0&&entry.performance&&entry.owner),'Worker NES writes retain scheduling and owner');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const session=native.current.session;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
+      if(typeof fm!=='undefined'||typeof psg!=='undefined'||typeof play!=='undefined')throw Error('Hidden OPN helpers in NES');
+      if(await useSoundChip('nes')!==nes)throw Error('Built-in NES not borrowed');
+      nes.pulse.setVoice(0,{duty:0.25,volume:10});nes.triangle.noteOn('C3');
+      nes.noise.setVoice({period:5,volume:4,shortMode:true});nes.noise.noteOn();
+      await nes.dmc.loadSample(new Uint8Array(33).fill(0x5a));nes.dmc.play({rate:15,loop:true,level:70});
+      nes.fds.setWave(Array.from({length:64},(_,i)=>i));nes.fds.setVolume(23,2);
+      nes.fds.setModulation({table:Array.from({length:32},(_,i)=>i%8),rate:500,depth:11,bias:-5});nes.fds.noteOn('A3');
+      await mixer.set(nes.id,{volume:0.7,pan:0.25});
+      const gain=fx.gain({gain:0.5});fx.setChain([gain]);
+      liveFx('native-nes-fx',{process(input,output){output.forEach((channel,index)=>channel.set(input[index]));}});
+      liveLoop('native-nes-phrase',async()=>{nes.pulse.noteOn(0,'E4');await beat(.05);nes.pulse.keyOff(0);await beat(.05);});
+    `,{execution}),execution);
+    await until(()=>writes().some(message=>message.method==='write'&&message.address===0x4087&&!(message.value&128))&&writes().some(message=>message.method==='load-memory'),execution+' NES DMC/FDS');
+    const applied=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('nes'));
+    assert.equal(applied.fdsEnabled,true);assert.equal(applied.channels.length,6);assert.deepEqual(applied.fds.wave,Array.from({length:64},(_,i)=>i));
+    assert.equal(applied.fds.gain,23);assert.equal(applied.fds.master,2);assert.equal(applied.fds.modulation.depth,11);assert.equal(applied.dmc.loaded,true);
+    assert.equal(native.nesChip.engine.memory[0xc000],0x5a);
+    assert(writes().some(message=>message.method==='mix'),'NES mixer must reach Native');
+    await until(()=>native.liveFx.has('native-nes-fx'),execution+' NES Native liveFx registration');
+    await assertNoLiveAudio(page);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const stopped=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('nes'));
+    assert(stopped.channels.every(channel=>!channel.active));assert.deepEqual(stopped.fds.wave,applied.fds.wave);assert.equal(stopped.dmc.loaded,true);
+    assert.equal(native.current.session,session);assert.equal(native.nesChip.engine.memory[0xc000],0x5a);
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource("nes.fds.noteOn('C4');nes.fds.keyOff();",{execution}),execution);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const error=await page.evaluate(async execution=>{try{await window.__nativeBackendTest.runtime.playSource("await createSoundChip('nes');",{execution});return null;}catch(error){return error.message;}},execution);
+    assert.match(error,/useSoundChip\(['"]nes['"]\)/);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+  await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:nes');
+  for(const channel of [0,1,2,3,4,5]){
+    await page.selectOption('#playgroundKeyboardTargetChannel',String(channel));await page.locator('#keyboardTab').focus();
+    const first=allCommands().length;
+    await page.keyboard.down('z');await until(()=>allCommands().slice(first).some(entry=>entry.type==='nes'&&entry.message.method==='batch'&&entry.message.action==='on'&&entry.message.channel===channel),'NES Keyboard '+channel);
+    await page.keyboard.up('z');await until(()=>allCommands().slice(first).some(entry=>entry.type==='nes'&&entry.message.method==='batch'&&entry.message.action==='off'&&entry.message.channel===channel),'NES Keyboard release '+channel);
+  }
+  await page.click('#nesTab');await page.locator('#nesPanel [data-nes-control="pulse-0-volume"]').waitFor();
+  await page.locator('#nesPanel [data-nes-control="pulse-0-volume"]').evaluate(node=>{node.value='13';node.dispatchEvent(new Event('change',{bubbles:true}));});
+  await until(()=>native.nesInspector.registers[0]%16===13,'NES Operator pulse edit');
+  await page.click('#nesPanel [data-nes-channel="5"]');
+  await page.locator('#nesPanel [data-nes-control="fds-gain"]').evaluate(node=>{node.value='19';node.dispatchEvent(new Event('change',{bubbles:true}));});
+  await until(()=>native.nesInspector.fdsGain===19,'NES Operator FDS edit');
+  const hold=page.locator('#nesPanel [data-nes-action="audition"]');await hold.scrollIntoViewIfNeeded();const rect=await hold.boundingBox();
+  let first=allCommands().length;await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();
+  await until(()=>allCommands().slice(first).some(entry=>entry.type==='nes'&&entry.message.action==='on'&&entry.message.channel===5),'FDS Operator hold');
+  await page.mouse.move(5,5);await page.mouse.up();await until(()=>allCommands().slice(first).some(entry=>entry.type==='nes'&&entry.message.action==='off'),'FDS Operator release outside');
+  await page.click('#nesPanel [data-nes-action="keyboard"]');await page.locator('#keyboardPanel').waitFor({state:'visible'});await page.locator('#nesTab').focus();
+  first=allCommands().length;await page.keyboard.down('z');await until(()=>allCommands().slice(first).some(entry=>entry.type==='nes'&&entry.message.action==='on'),'FDS Operator Keyboard');
+  await page.keyboard.up('z');await until(()=>allCommands().slice(first).some(entry=>entry.type==='nes'&&entry.message.action==='off'),'FDS Operator Keyboard release');
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await page.evaluate(starter=>window.__nativeBackendTest.runtime.playSource(starter,{execution:'main'}),starter);
+  native.monitor.reads.length=0;await nativeAudioMonitor(page,native,artifacts,name+'-nes');await nativeRecording(page,native);
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());await assertNoLiveAudio(page);
+  await nativeImportedNes(page,native);
+  await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
+  await changeNativeMode(page,native,'genesis','keep');await nativeRun(page,native);
+}
+function importedNativeNesVgm(clock=1789773) {
+  const write=(register,value)=>[0xb4,register,value];
+  const ram=Array.from({length:17},(_,index)=>(index*29+0x55)&255);
+  const commands=[0x67,0x66,0xc2,ram.length+2,0,0,0,0,0xc0,...ram,
+    ...write(0x15,1),...write(0,0xbf),...write(2,0xfd),...write(3,8),
+    ...write(0x3f,2),...write(0x29,128),
+    ...Array.from({length:64},(_,index)=>write(0x40+index,(index*3)&63)).flat(),
+    ...write(0x29,2),...write(0x20,0x98),...write(0x22,0x74),...write(0x23,0),
+    ...write(0x10,0x4f),...write(0x11,64),...write(0x12,0),...write(0x13,1),...write(0x15,17),
+    0x61,0x22,0x11,0x66];
+  const bytes=new Uint8Array(256+commands.length),header=new DataView(bytes.buffer);
+  bytes.set([86,103,109,32]);header.setUint32(4,bytes.length-4,true);header.setUint32(8,0x161,true);
+  header.setUint32(0x34,0xcc,true);header.setUint32(0x84,(clock|0x80000000)>>>0,true);bytes.set(commands,256);
+  return {bytes:Array.from(bytes),ram};
+}
+async function nativeImportedNes(page,native) {
+  const {bytes,ram}=importedNativeNesVgm();
+  for(const mode of ['raw','readable','high'])for(const execution of ['main','worker']) {
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const first=native.calls.length,session=native.current.session;
+    const calls=()=>native.calls.slice(first);
+    const commands=()=>calls().flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]).filter(command=>command.type==='nes');
+    const flatten=messages=>messages.flatMap(message=>message.method==='batch'?flatten(message.commands):[message]);
+    await page.evaluate(async({bytes,mode})=>{
+      await window.__nativeBackendTest.importVgmFile(new File([Uint8Array.from(bytes)],'native-nes-import.vgm'),{
+        targetPath:'/native-nes-import.js',nesMode:mode,
+      });
+    },{bytes,mode});
+    const generated=await page.evaluate(()=>window.__nativeBackendTest.editor.getValue());
+    assert.match(generated,/await useSoundChip\(['"]nes['"]\)/,`${mode}/${execution}: real NTSC import must borrow Native NES`);
+    assert.doesNotMatch(generated,/createSoundChip\(['"]nes['"]\)|nes\.dispose\(/,'Borrowed NES import must preserve the owning Native device');
+    if(mode==='high'){assert.match(generated,/nes\.pulse\.setVoice/);assert.match(generated,/nes\.setFrequency/);}
+    await page.evaluate(({generated,execution})=>window.__nativeBackendTest.runtime.playSource(generated,{execution}),{generated,execution});
+    await until(()=>commands().some(command=>command.message.method==='load-memory')&&
+      flatten(commands().map(command=>command.message)).some(message=>message.method==='write'&&message.address===0x4015&&message.value===17),`${mode}/${execution}: imported DMC RAM and mixed APU/FDS writes`);
+    assert.deepEqual(Array.from(native.nesChip.engine.memory.slice(0xc000,0xc000+ram.length)),ram,'Imported DMC RAM must survive its generated cleanup');
+    assert.equal(native.current.session,session,'VGM import and cleanup must reuse the Native NES session');
+    assert.equal(calls().filter(call=>call.command==='native_genesis_shutdown').length,0);
+    // The Worker's run-result and direct chip port have independent delivery
+    // order. Wait for its final releases to reach Native before reading state.
+    await until(()=>native.nesInspector.enabled===0&&Boolean(native.nesInspector.registers[0x83]&128)&&
+      native.nesInspector.registers[0x80]===128,`${mode}/${execution}: imported NES channel cleanup admission`);
+    const snapshot=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('nes'));
+    assert.deepEqual(snapshot.fds.wave,Array.from({length:64},(_,index)=>(index*3)&63));
+    assert(snapshot.channels.every(channel=>!channel.active),`${mode}/${execution}: Generated NES VGM cleanup must release the stream channels: ${JSON.stringify({channels:snapshot.channels.map(channel=>({channel:channel.channel,active:channel.active})),tail:commands().slice(-12).map(command=>command.message)})}`);
+    if(execution==='worker')assert(commands().some(command=>command.frame>0&&command.performance&&command.owner),'Imported Worker NES commands must retain their performance timing and owner');
+    await assertNoLiveAudio(page);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+  // PAL uses different noise/DMC/frame periods. A Native NTSC core must not
+  // silently claim support by applying only an outer clock ratio.
+  const pal=importedNativeNesVgm(1662607).bytes;
+  for(const execution of ['main','worker']) {
+    await page.evaluate(async bytes=>window.__nativeBackendTest.importVgmFile(new File([Uint8Array.from(bytes)],'pal-nes-import.vgm'),{
+      targetPath:'/pal-nes-import.js',nesMode:'raw',
+    }),pal);
+    const generated=await page.evaluate(()=>window.__nativeBackendTest.editor.getValue());
+    assert.match(generated,/createSoundChip\(['"]nes['"].*1662607/,'PAL import must retain its authored region constructor');
+    const message=await page.evaluate(async({generated,execution})=>{
+      try{await window.__nativeBackendTest.runtime.playSource(generated,{execution});return null;}
+      catch(error){return error.message;}
+    },{generated,execution});
+    assert.match(message,/Web Audio/,'Unsupported PAL playback must explain the available backend');
+    assert.match(message,/clock|region|1789773/i,'Unsupported PAL playback must identify the region/clock difference');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+}
 async function compareNativeFft(browser,name,fixture) {
   assert.equal(fixture.samples?.length,4096);assert.equal(fixture.bins?.length,2048);
   assert(fixture.samples.every(Number.isFinite)&&fixture.bins.every(Number.isFinite));
@@ -1010,6 +1193,13 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--nes-only')) {
+      await nativeNes(page,native,artifacts,name);
+      assert.deepEqual(errors,[]);
+      await context.close();
+      console.log(name+': PASS focused Native NES + FDS Main/Worker/Keyboard/Operators/Stop/recording and mode handoff; Native IPC mocked');
+      return;
+    }
     await assertNativeModeRestriction(page,native);
     const firstSession = native.current.session;
     await page.click('#stopButton');
@@ -1027,6 +1217,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
     await nativeMegaCd(page,native,artifacts,name);
     await nativeDx7(page,native,artifacts,name);
+    await nativeNes(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
@@ -1082,7 +1273,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD/DX7 Main/Worker and shipped starters, actual High/Write VGM import and shared PCM cleanup/RAM retention, RF RAM/loadSample and polyphonic sample Keyboard, DX7 SysEx/live operators/PC and Guitar Keyboard/Operators audition and bank retention, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD/NES + FDS/DX7 Main/Worker and shipped starters, actual RF High/Write and NES Raw/Readable/High VGM imports with shared cleanup/RAM retention and PAL guard, RF RAM/loadSample and polyphonic sample Keyboard, NES six-channel Keyboard/Operators/DMC RAM/FDS wave/modulation and Stop retention, DX7 SysEx/live operators/PC and Guitar Keyboard/Operators audition and bank retention, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 
