@@ -12,7 +12,7 @@
 - ブロック単位でC++を呼び、Workletは再利用するPCM viewを使う。コピーを返す公開`generateStereo()`の配列寿命は維持する。
 - Nativeコア内のDC除去と、Browser側のclock変更を二重適用しない。
 - `nesapu_wasm.js`／`.wasm`、ソース、再ビルド手順、Apache-2.0／MITライセンスと著作者情報をWeb・npmの配布物に含める。
-- packageは0.2.24としてローカル配布物を作る。npm公開は今回の作業に含めない。
+- WASM実装時はpackageを0.2.24としてローカル配布物まで作成し、npm公開は後続作業とした。
 
 Analyzerおよび`tetorica-vgm`の既存JSエンジンは維持する。Analyzerのopaque stateによるseekは今回の移行対象に含めない。
 
@@ -41,7 +41,7 @@ Browserの確認は音声デバイスへの接続と聴き比べを分けて扱�
 - 最終Tauri同梱データ812ファイルでもChromium／WebKitの実WASM確認に成功。既存NativeバックエンドのIPC mock全体確認も両Browserで成功。Native NESのRustテスト13件成功。
 
 ローカルnpm配布物は`tetorica-fm2612-0.2.24.tgz`。PlaygroundのZIPは`release/hello_ymfm_wasm_dev_nes_wasm_20261022_itch_playground.zip`。
-Tauriへの取り込みとハッシュ確認まで完了し、npm／itch.ioへの公開は行っていない。
+WASM実装時はTauriへの取り込みとハッシュ確認まで完了し、npm／itch.ioへの公開は行わなかった。
 
 Workletは動的`import()`を実行できないため、専用・汎用の両WorkletからWASM adapterを静的にimportする。
 CHのenableは従来どおり公開`writeRegister($4015)`を一度通し、Operatorsの観測とDMCの完了状態を維持する。
@@ -50,3 +50,13 @@ Pulseの試聴にはD3以上の範囲を使い、従来JSでも起きる既定sw
 
 最終出力のPCMをheadless Browserで測定した。実機での聴き比べ・長時間負荷確認は未実施。
 詳細は[検証データ](nes_wasm_validation_20261022.json)に保存する。
+
+## npm公開（2026-10-22）
+
+ユーザーの公開指示により、[tetorica-fm2612 0.2.24](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.24)を公開した。`latest`も0.2.24へ更新済み。
+公開前にREADMEの「local distribution」の表現だけを更新し、702ファイル中、残り701ファイルは検証済み配布物とバイト単位で一致することを確認した。
+公開済みtarballをnpmから再取得し、手元の公開用tarballとの完全一致を確認した。
+
+- SHA-256: `aa8453877ec7db024f0f6d0b260094acc1741cc5ed55f3ebba25e057cc0a7601`
+- npm shasum: `fc4cd67308960acfcdcf1fe392f2aadc70265cd2`
+- npm公開とlatestの反映を確認済み。itch.ioへの公開はこの作業には含めない。

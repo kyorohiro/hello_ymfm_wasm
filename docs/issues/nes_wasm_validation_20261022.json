@@ -825,10 +825,18 @@
     "packedFiles": 702,
     "installedTarballCheck": "passed",
     "typeChecks": "NodeNext/Bundler/browser passed",
-    "published": false,
+    "published": true,
     "archive": "tetorica-fm2612-0.2.24.tgz",
-    "sha256": "fe754b704ff44caf5652c6dae1634ceba96a073a6a212ccdebe7275722bc6a28",
-    "archiveMatchesStagedFiles": true
+    "sha256": "aa8453877ec7db024f0f6d0b260094acc1741cc5ed55f3ebba25e057cc0a7601",
+    "archiveMatchesStagedFiles": true,
+    "preReleaseArchiveSha256": "fe754b704ff44caf5652c6dae1634ceba96a073a6a212ccdebe7275722bc6a28",
+    "releaseRepackChange": "README.md publication wording only; all 701 other archive entries byte-identical to the tested artifact.",
+    "releaseDateJst": "2026-10-22",
+    "npmUrl": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.24",
+    "latestTag": "0.2.24",
+    "registryShasum": "fc4cd67308960acfcdcf1fe392f2aadc70265cd2",
+    "registryIntegrity": "sha512-vufE1F0UtZe8flgXRsm9BqMFHu99bAqbWSQM4c9K3pLH1B7/90mK3Qmzjm4h5YGO1V9iMtHu5Aaod/KJSUDFZw==",
+    "publicArchiveMatchesValidatedArtifact": true
   },
   "browsers": {
     "engines": [

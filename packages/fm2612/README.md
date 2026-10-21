@@ -145,7 +145,7 @@ complete setup, playback and cleanup.
 
 ### NES + FDS WASM
 
-Available in the local `tetorica-fm2612@0.2.24` distribution.
+Available in `tetorica-fm2612@0.2.24` and later.
 
 `await createSoundChip('nes', {fds:true})` creates the default WASM NES APU and
 FDS renderer. It uses the same C++ core as Native NES, including pulse,
