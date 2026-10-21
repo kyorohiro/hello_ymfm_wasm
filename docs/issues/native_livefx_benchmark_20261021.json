@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-21T10:38:20.869Z",
+  "status": "passed",
+  "engine": {
+    "name": "QuickJS-NG",
+    "tag": "v0.17.0",
+    "commit": "6d46d07d04041b40f4f49eaa7fdebe44c314c699",
+    "sourceHashes": {
+      "LICENSE": "96f73f9d2a16c21a36b418f06073be26e7d6d5e7c1bc99756b21a4f2c74ef171",
+      "quickjs-amalgam.c": "7c853a67ce7b6db463018e44f1425cd019d9f004a012ca013f47e415eb43446c",
+      "quickjs.h": "747a77444ff04a910b57ca51dd998d7ee46895b1b9592d7d6051fd180317c44d"
+    },
+    "sharedHashes": {
+      "web/custom_fx.js": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e",
+      "web/native_livefx_context.js": "2bf0d1eacceceea2932304505b2c68d01b8d1be174a93a09d0af7432361318f1"
+    }
+  },
+  "machine": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "machine": "arm64",
+    "osRelease": "24.6.0",
+    "cpu": "Apple M2",
+    "logicalCpus": 8
+  },
+  "node": "v26.12.0",
+  "fixture": {
+    "build": "compiled by this checker",
+    "flags": {
+      "c": [
+        "-std=c11",
+        "-O2",
+        "-DQUICKJS_NG_BUILD"
+      ],
+      "cpp": [
+        "-std=c++14",
+        "-O2"
+      ],
+      "link": [
+        "-pthread"
+      ]
+    },
+    "compiler": "Apple clang version 17.0.0 (clang-1700.4.4.1)"
+  },
+  "parity": {
+    "rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "frames": [
+      1,
+      37,
+      128
+    ],
+    "channels": 2,
+    "passed": true,
+    "blocks": 411,
+    "maximumDifference": 0
+  },
+  "benchmarks": [
+    {
+      "name": "unused",
+      "rate": 48000,
+      "frames": 128,
+      "blocks": 4000,
+      "warmup": 100,
+      "effects": 0,
+      "interruptBudgetUs": 1000000,
+      "audioBlockUs": 2666.6666666666665,
+      "processingToAudioRatio": 0.000006687937500000045,
+      "meanUs": 0.017834500000000118,
+      "totalUs": 71.33800000000048,
+      "maxUs": 0.125,
+      "p50Us": 0,
+      "p95Us": 0.042,
+      "p99Us": 0.042,
+      "overDeadlineBlocks": 0,
+      "checksum": 144.52437087334692,
+      "processCalls": 0,
+      "initialized": false,
+      "initializations": 0
+    },
+    {
+      "name": "gain",
+      "rate": 48000,
+      "frames": 128,
+      "blocks": 4000,
+      "warmup": 100,
+      "effects": 1,
+      "interruptBudgetUs": 1000000,
+      "audioBlockUs": 2666.6666666666665,
+      "processingToAudioRatio": 0.03189375993750008,
+      "meanUs": 85.05002650000021,
+      "totalUs": 340200.10600000084,
+      "maxUs": 207.625,
+      "p50Us": 83,
+      "p95Us": 96.916,
+      "p99Us": 111.625,
+      "overDeadlineBlocks": 0,
+      "checksum": 130.07193686114624,
+      "processCalls": 4100,
+      "initialized": true,
+      "initializations": 1
+    },
+    {
+      "name": "distortion",
+      "rate": 48000,
+      "frames": 128,
+      "blocks": 4000,
+      "warmup": 100,
+      "effects": 1,
+      "interruptBudgetUs": 1000000,
+      "audioBlockUs": 2666.6666666666665,
+      "processingToAudioRatio": 0.0343295674687501,
+      "meanUs": 91.54551325000025,
+      "totalUs": 366182.053000001,
+      "maxUs": 222.833,
+      "p50Us": 89.459,
+      "p95Us": 103.333,
+      "p99Us": 116.708,
+      "overDeadlineBlocks": 0,
+      "checksum": 101.84567546891049,
+      "processCalls": 4100,
+      "initialized": true,
+      "initializations": 1
+    },
+    {
+      "name": "eight-gain",
+      "rate": 48000,
+      "frames": 128,
+      "blocks": 4000,
+      "warmup": 100,
+      "effects": 8,
+      "interruptBudgetUs": 1000000,
+      "audioBlockUs": 2666.6666666666665,
+      "processingToAudioRatio": 0.25841007731250015,
+      "meanUs": 689.0935395000004,
+      "totalUs": 2756374.158000001,
+      "maxUs": 16355.083,
+      "p50Us": 665.875,
+      "p95Us": 735.333,
+      "p99Us": 828.792,
+      "overDeadlineBlocks": 3,
+      "checksum": 62.21300340164453,
+      "processCalls": 4100,
+      "initialized": true,
+      "initializations": 1
+    },
+    {
+      "name": "eight-distortion",
+      "rate": 48000,
+      "frames": 128,
+      "blocks": 4000,
+      "warmup": 100,
+      "effects": 8,
+      "interruptBudgetUs": 1000000,
+      "audioBlockUs": 2666.6666666666665,
+      "processingToAudioRatio": 0.28440764353125075,
+      "meanUs": 758.420382750002,
+      "totalUs": 3033681.531000008,
+      "maxUs": 25270.125,
+      "p50Us": 733.625,
+      "p95Us": 834.791,
+      "p99Us": 962.25,
+      "overDeadlineBlocks": 2,
+      "checksum": 18.41420634451788,
+      "processCalls": 4100,
+      "initialized": true,
+      "initializations": 1
+    }
+  ],
+  "limits": {
+    "passed": true,
+    "cases": [
+      "infinite callback",
+      "hostile error conversion",
+      "heap limit",
+      "Atomics.wait nonblocking",
+      "metadata getter",
+      "inherited context setter",
+      "inherited context graph getter",
+      "detached host PCM",
+      "clear and retry"
+    ]
+  },
+  "finishedAt": "2026-10-21T10:38:37.095Z"
+}

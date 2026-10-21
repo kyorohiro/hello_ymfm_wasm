@@ -3,6 +3,8 @@
 AudioタブのEnvelope／Waveform／Spectrumは、[Native Audioモニターの作業記録](native_audio_monitor_01.md)を参照。
 表示中だけ観測用データを取得する方式で対応した。
 `noise.create()`のNative生成は、[Native noiseの作業記録](native_noise_01.md)を参照。
+QuickJS-NGによる`liveFx`は[オフライン試作](native_livefx_01.md)で互換性と処理時間を検証した。
+Nativeの実時間再生では引き続き未対応。
 
 ## 第2段階：Genesisの実用機能を増やす
 

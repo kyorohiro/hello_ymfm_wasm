@@ -75,7 +75,15 @@ export class LiveFX {
           }
           if(e.fadeRemaining>0)e.fadeRemaining--;
         }
-      }catch(error){e.bypass=true;report('[liveFx:'+name+'] '+(error?.stack??String(error))+'\nEffect bypassed. Fix the code and Apply to retry.');}
+      }catch(error){
+        e.bypass=true;
+        const stack=error?.stack,message=error?.message;
+        // Some engines expose stack frames without the Error's message.
+        const detail=typeof stack==='string'&&stack.length
+          ? typeof message==='string'&&message.length&&!stack.includes(message)?`${error.name??'Error'}: ${message}\n${stack}`:stack
+          : String(error);
+        report('[liveFx:'+name+'] '+detail+'\nEffect bypassed. Fix the code and Apply to retry.');
+      }
       finally{
         try{
           this.input.length=this.output.length=channels.length;

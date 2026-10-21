@@ -70,6 +70,17 @@ test('invalid channel replacements and array shape changes bypass only that effe
   assert.equal(processor.effects.get('good').state.blocks,3);
  }
 });
+
+test('an engine stack without the error message retains both reason and frames',()=>{
+ const processor=new LiveFX(48000),errors=[];
+ processor.command({action:'register',name:'missing-message',context:{},source:`function(input,output){
+   const error=new Error('specific DSP failure');error.stack='process@fx.js:12';throw error;
+ }`});
+ const output=block();processor.process(output,message=>errors.push(message));
+ assert.deepEqual(output,block());assert.equal(errors.length,1);
+ assert.match(errors[0],/specific DSP failure/);assert.match(errors[0],/process@fx.js:12/);assert.match(errors[0],/Effect bypassed/);
+ processor.process(block(),message=>errors.push(message));assert.equal(errors.length,1);
+});
 test('output validation reads the mixed samples even when a replacement overrides its iterator',()=>{
  for(const invalid of ['nan','infinity','negative-infinity']){
   const processor=new LiveFX(48000),errors=[];
