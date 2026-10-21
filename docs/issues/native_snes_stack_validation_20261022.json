@@ -1,0 +1,359 @@
+{
+  "date": "2026-10-22",
+  "deviceOpened": false,
+  "reportedCrash": "Tauri Native SNES repeatedly terminates; EXC_CRASH SIGILL, audio thread at Shared::publish RAM iteration. Exact signal origin not established.",
+  "debugStackBytes": {
+    "before": 328976,
+    "after": 672,
+    "beforeCalleeZip": 65680,
+    "beforeCalleeIntoIterator": 131168
+  },
+  "sameDriverBefore": [
+    {
+      "stackBytes": 131072,
+      "exitCode": -6,
+      "stdout": "",
+      "stderr": "thread '<unknown>' (2525375) has overflowed its stack\nfatal runtime error: stack overflow, aborting"
+    },
+    {
+      "stackBytes": 65536,
+      "exitCode": -6,
+      "stdout": "",
+      "stderr": "thread '<unknown>' (2525382) has overflowed its stack\nfatal runtime error: stack overflow, aborting"
+    }
+  ],
+  "sameDriverAfter": [
+    {
+      "stackBytes": 131072,
+      "exitCode": 0,
+      "stdout": "publish completed stack=131072",
+      "stderr": ""
+    },
+    {
+      "stackBytes": 65536,
+      "exitCode": 0,
+      "stdout": "publish completed stack=65536",
+      "stderr": ""
+    }
+  ],
+  "rust": {
+    "passed": 152,
+    "failed": 0,
+    "ignored": 4
+  },
+  "tauriBuild": {
+    "offline": true,
+    "locked": true,
+    "passed": true
+  },
+  "pcm": {
+    "schemaVersion": 1,
+    "deviceOpened": false,
+    "rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "cases": [
+      {
+        "name": "BRR loop, signed volumes, musical pitch and same-frame chord",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.9035833477973938
+      },
+      {
+        "name": "ADSR 143/224, retrigger and release",
+        "rate": 44100,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.36990633606910706
+      },
+      {
+        "name": "ADSR 132/97, retrigger and release",
+        "rate": 44100,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.13115839660167694
+      },
+      {
+        "name": "ADSR 255/255, retrigger and release",
+        "rate": 44100,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.3304995596408844
+      },
+      {
+        "name": "GAIN mode 31",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36698681116104126
+      },
+      {
+        "name": "GAIN mode 145",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36698681116104126
+      },
+      {
+        "name": "GAIN mode 183",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36698681116104126
+      },
+      {
+        "name": "GAIN mode 221",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3695627450942993
+      },
+      {
+        "name": "GAIN mode 255",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3695627450942993
+      },
+      {
+        "name": "Noise clocks, eight voices and pitch modulation",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.9921875
+      },
+      {
+        "name": "Echo RAM, FIR and negative feedback",
+        "rate": 44100,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.42644017934799194
+      },
+      {
+        "name": "Applied Stop retains BRR and patch, reset clears then reuploads",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36716148257255554
+      },
+      {
+        "name": "Explicit physical key-on merges only current DSP frame",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.7326509952545166
+      },
+      {
+        "name": "Captured timeline, sub-sample ordered RAM/DSP events and four-frame FIFO",
+        "rate": 44100,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3660070598125458
+      },
+      {
+        "name": "BRR loop, signed volumes, musical pitch and same-frame chord",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.9906005859375
+      },
+      {
+        "name": "ADSR 143/224, retrigger and release",
+        "rate": 48000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.369873046875
+      },
+      {
+        "name": "ADSR 132/97, retrigger and release",
+        "rate": 48000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.12109375
+      },
+      {
+        "name": "ADSR 255/255, retrigger and release",
+        "rate": 48000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.3311971127986908
+      },
+      {
+        "name": "GAIN mode 31",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36712646484375
+      },
+      {
+        "name": "GAIN mode 145",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36712646484375
+      },
+      {
+        "name": "GAIN mode 183",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36712646484375
+      },
+      {
+        "name": "GAIN mode 221",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.369873046875
+      },
+      {
+        "name": "GAIN mode 255",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.369873046875
+      },
+      {
+        "name": "Noise clocks, eight voices and pitch modulation",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.9921875
+      },
+      {
+        "name": "Echo RAM, FIR and negative feedback",
+        "rate": 48000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.42718505859375
+      },
+      {
+        "name": "Applied Stop retains BRR and patch, reset clears then reuploads",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.36712646484375
+      },
+      {
+        "name": "Explicit physical key-on merges only current DSP frame",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.830718994140625
+      },
+      {
+        "name": "Captured timeline, sub-sample ordered RAM/DSP events and four-frame FIFO",
+        "rate": 48000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3673095703125
+      },
+      {
+        "name": "BRR loop, signed volumes, musical pitch and same-frame chord",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.94329833984375
+      },
+      {
+        "name": "ADSR 143/224, retrigger and release",
+        "rate": 96000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.37005615234375
+      },
+      {
+        "name": "ADSR 132/97, retrigger and release",
+        "rate": 96000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.063507080078125
+      },
+      {
+        "name": "ADSR 255/255, retrigger and release",
+        "rate": 96000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.33404541015625
+      },
+      {
+        "name": "GAIN mode 31",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3670654296875
+      },
+      {
+        "name": "GAIN mode 145",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3670654296875
+      },
+      {
+        "name": "GAIN mode 183",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3670654296875
+      },
+      {
+        "name": "GAIN mode 221",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.369873046875
+      },
+      {
+        "name": "GAIN mode 255",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.369873046875
+      },
+      {
+        "name": "Noise clocks, eight voices and pitch modulation",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.9921875
+      },
+      {
+        "name": "Echo RAM, FIR and negative feedback",
+        "rate": 96000,
+        "stereoFrames": 16384,
+        "maximumDifference": 0,
+        "peak": 0.427581787109375
+      },
+      {
+        "name": "Applied Stop retains BRR and patch, reset clears then reuploads",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3673095703125
+      },
+      {
+        "name": "Explicit physical key-on merges only current DSP frame",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.734588623046875
+      },
+      {
+        "name": "Captured timeline, sub-sample ordered RAM/DSP events and four-frame FIFO",
+        "rate": 96000,
+        "stereoFrames": 8192,
+        "maximumDifference": 0,
+        "peak": 0.3673095703125
+      }
+    ],
+    "totalStereoFrames": 442368,
+    "maximumDifference": 0,
+    "reference": "Current Browser accurate SPC_DSP WASM, SnesSynth and SpcResampler with sourceFrames:1; no SPC700 CPU, ROM or game audio.",
+    "limits": "Core PCM, resampling and fixed state lifecycle; ownership/IPC and UI are checked separately."
+  },
+  "realDeviceRetest": "Pending user verification; offline regression verifies stack overflow fix, not identical SIGILL reproduction."
+}
