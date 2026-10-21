@@ -279,6 +279,7 @@ const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
   ? new (await import('../js/native_genesis_synth.js?v=audio-numeric-bindings-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
+    mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',
     onError(error) {
       setStatus(`Native audio failed: ${error.message}. Select Web Audio in Audio engine to switch back.`);
@@ -592,7 +593,7 @@ const tfiFileEditor = createTfiFileEditor({
   minimizableKeyboard: true,
   title: document.getElementById("tfiFileTitle"),
   createAudio: () => {
-    if (useNativeGenesis) throw new Error('Independent instrument preview is unavailable in Native Genesis. Select Web Audio to use it.');
+    if (useNativeGenesis) throw new Error('Independent instrument preview is unavailable in Native audio. Select Web Audio to use it.');
     return createTetoricaSynth({...instrumentSynthOptions, megaCD:false, mega32X:false});
   },
   clock: instrumentClock,
@@ -2879,7 +2880,7 @@ async function changePlaygroundMode(id) {
 
 async function changePlaygroundAudioEngine(engine) {
   if (!supportsPlaygroundAudioEngineMode(engine, selectedMode.id) || engine === 'native' && !audioEngineSelection.available) {
-    throw new Error('Native is available in Genesis and Mega CD modes only.');
+    throw new Error('Native is available in Genesis, Mega CD and DX7 modes only.');
   }
   if (changingMode) throw new Error('A mode or engine change is already in progress.');
   changingMode = true;

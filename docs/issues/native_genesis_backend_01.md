@@ -6,6 +6,7 @@ AudioタブのEnvelope／Waveform／Spectrumは、[Native Audioモニターの�
 QuickJS-NGによる`liveFx`も[Native再生へ接続した](native_livefx_01.md)。使用中だけ専用workerと
 2048フレームの先読みを使い、未使用時はJS実行環境を作らず直接出力する。
 Mega CDのRF5C164も[Native対応した](native_megacd_01.md)。Genesisと同じ最終出力経路へ混ぜる。
+DX7 modeも[Native対応した](native_dx7_01.md)。MSFA音源を直接ビルドし、共通の最終出力へ接続する。
 
 ## 第2段階：Genesisの実用機能を増やす
 
@@ -105,7 +106,7 @@ python3 scripts/sync_native_genesis_fx.py --check --source ../..
 
 - **安定するまではWeb Audioをデフォルトにする。** Nativeへの自動切替はしない。
 - Tauriの設定からWeb Audio／Nativeを選べる。Nativeは試験機能として表示する。
-- Native選択中のModeは対応modeだけ表示する。現在はGenesis／Mega CD。
+- Native選択中のModeは対応modeだけ表示する。現在はGenesis／Mega CD／DX7。
   他modeへ移るときは先にWeb Audioへ戻す。非対応modeではNativeの選択肢を無効にする。
 - ブラウザー版は引き続きWeb Audioを使う。演奏API・音色・ユーザーコードを共通化し、
   同じテストシナリオを両バックエンドで実行できるようにする。
@@ -175,14 +176,14 @@ Web Audioへ戻したときの全Mode復元、非対応modeでのNative選択拒
 ### 利用方法
 
 1. 更新したTauri版でGenesis modeを選ぶ。
-2. **Menu → Audio engine…** を開き、**Native Genesis / Mega CD (experimental)** を選んで
+2. **Menu → Audio engine…** を開き、**Native (experimental)** を選んで
    **Apply engine**。演奏を停止し、現在のプロジェクトを保存・引き継いでページを再読み込みする。
 3. **Run** またはKeyboardの試聴操作でNative音声を開始する。設定を開くだけではデバイスを開かない。
 4. 切り戻す場合は同じダイアログで **Web Audio (default)** を選んで **Apply engine**。
 
 選択はURLの `audioEngine=native` で明示し、グローバルな永続設定には保存しない。
 この指定のない通常起動はWeb Audioになる。同じURLの再読み込みでは指定が維持される。
-ブラウザー版およびGenesis以外のmodeではNativeを使用せず、有効なエンジンはWeb Audioと表示する。
+ブラウザー版および未対応modeではNativeを使用せず、有効なエンジンはWeb Audioと表示する。
 Native初期化失敗を自動フォールバックで隠さず、エラーを表示して設定から切り戻せる。
 
 ### 現在の対応範囲
@@ -191,6 +192,7 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | --- | --- | --- |
 | Genesis／YM2612 6CH＋Sega PSG | 対応 | チップ生成・変換・ミックス・CPAL出力をNative側で完結 |
 | Mega CD／RF5C164 | 対応 | 8声・64 KiB RAM。Main／Worker、サンプラー、Keyboard、RFミキサー・clock、最終出力のFX・monitor・録音 |
+| DX7／MSFA | 対応 | 16音。Main／Worker、音色・SysEx、Operators・Keyboard。DX7 modeではYM2612／PSGを生成しない |
 | `fm`／`play`／`liveLoop`、Main実行 | 対応 | 既存の音色・音楽APIとレジスター生成を共有 |
 | FM／PSGレジスター、時刻付き書込み | 対応 | 同時刻は送信順。IPCは直列化し、1バッチ4096命令・待機65536命令を上限にする |
 | `useSoundChip('ym2612')`／`useSoundChip('segapsg')` | 対応 | 既存の主音源を借用。追加インスタンスは作らない |
@@ -207,7 +209,7 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | 組込みFX | 13種類に対応 | branch／parallel／setChain、パラメーターramp、tempo。構成変更でDSP履歴を初期化 |
 | Audio diagnostics | 最終出力に対応 | output WAV／JSON、noise marker。最大30秒／32 MiB。chip単独出力は未対応 |
 | AudioのEnvelope／Waveform／Spectrum | 対応 | 左右CH、Pause、共通Yスケール。表示中だけ最大15Hzの観測。FFTは音声callback外で実行 |
-| 追加チップ、Genesis／Mega CD以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
+| 追加チップ、Genesis／Mega CD／DX7以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
 | JavaScript `liveFx` | 対応 | QuickJS-NG専用worker。使用中だけ2048フレーム遅延。最終出力の観測・録音に反映。FX単位のmonitorは未対応 |
 | stream | 未対応 | 別の音声経路で代用しない |
 | 独立した音色ファイル試聴 | 未対応 | Web Audioへ切り戻して使用 |

@@ -1,0 +1,849 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-21T12:35:53.617Z",
+  "deviceOpened": false,
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "internalSampleRate": 44100,
+  "polyphony": 16,
+  "wasmSha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f",
+  "cases": [
+    {
+      "name": "algorithm 1 with feedback 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.016754150390625
+    },
+    {
+      "name": "algorithm 2 with feedback 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.016754150390625
+    },
+    {
+      "name": "algorithm 3 with feedback 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0194091796875
+    },
+    {
+      "name": "algorithm 4 with feedback 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.019256591796875
+    },
+    {
+      "name": "algorithm 5 with feedback 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.042816162109375
+    },
+    {
+      "name": "algorithm 6 with feedback 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.042449951171875
+    },
+    {
+      "name": "algorithm 7 with feedback 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.016845703125
+    },
+    {
+      "name": "algorithm 8 with feedback 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.014862060546875
+    },
+    {
+      "name": "algorithm 9 with feedback 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.014892578125
+    },
+    {
+      "name": "algorithm 10 with feedback 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01776123046875
+    },
+    {
+      "name": "algorithm 11 with feedback 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01806640625
+    },
+    {
+      "name": "algorithm 12 with feedback 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01239013671875
+    },
+    {
+      "name": "algorithm 13 with feedback 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0120849609375
+    },
+    {
+      "name": "algorithm 14 with feedback 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01324462890625
+    },
+    {
+      "name": "algorithm 15 with feedback 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013824462890625
+    },
+    {
+      "name": "algorithm 16 with feedback 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.005279541015625
+    },
+    {
+      "name": "algorithm 17 with feedback 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.004119873046875
+    },
+    {
+      "name": "algorithm 18 with feedback 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.005340576171875
+    },
+    {
+      "name": "algorithm 19 with feedback 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04852294921875
+    },
+    {
+      "name": "algorithm 20 with feedback 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.023468017578125
+    },
+    {
+      "name": "algorithm 21 with feedback 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.056732177734375
+    },
+    {
+      "name": "algorithm 22 with feedback 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.055267333984375
+    },
+    {
+      "name": "algorithm 23 with feedback 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.05303955078125
+    },
+    {
+      "name": "algorithm 24 with feedback 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.060089111328125
+    },
+    {
+      "name": "algorithm 25 with feedback 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.066314697265625
+    },
+    {
+      "name": "algorithm 26 with feedback 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.023773193359375
+    },
+    {
+      "name": "algorithm 27 with feedback 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02374267578125
+    },
+    {
+      "name": "algorithm 28 with feedback 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.05712890625
+    },
+    {
+      "name": "algorithm 29 with feedback 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.047637939453125
+    },
+    {
+      "name": "algorithm 30 with feedback 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.059417724609375
+    },
+    {
+      "name": "algorithm 31 with feedback 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.05218505859375
+    },
+    {
+      "name": "algorithm 32 with feedback 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.092864990234375
+    },
+    {
+      "name": "sixteen-voice capacity, rejected seventeenth held key and release-slot reuse",
+      "sampleRate": 44100,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.496124267578125
+    },
+    {
+      "name": "held and release-tail operator pitch, level and feedback edits",
+      "sampleRate": 44100,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.03668212890625
+    },
+    {
+      "name": "replacement patch identity preserves old held notes",
+      "sampleRate": 44100,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.071868896484375
+    },
+    {
+      "name": "SysEx bank selection keeps distinct voice identities",
+      "sampleRate": 44100,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.101959228515625
+    },
+    {
+      "name": "panic silence, patch preservation and restart at partial source block",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.036895751953125
+    },
+    {
+      "name": "ratio half/fixed tuning, LFO and pitch envelope extremes",
+      "sampleRate": 44100,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.05450439453125
+    },
+    {
+      "name": "algorithm 1 with feedback 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.015377044677734375
+    },
+    {
+      "name": "algorithm 2 with feedback 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.015377044677734375
+    },
+    {
+      "name": "algorithm 3 with feedback 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02371978759765625
+    },
+    {
+      "name": "algorithm 4 with feedback 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0235595703125
+    },
+    {
+      "name": "algorithm 5 with feedback 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.043164826929569244
+    },
+    {
+      "name": "algorithm 6 with feedback 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.042392730712890625
+    },
+    {
+      "name": "algorithm 7 with feedback 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01640491560101509
+    },
+    {
+      "name": "algorithm 8 with feedback 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01518859900534153
+    },
+    {
+      "name": "algorithm 9 with feedback 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.015428352169692516
+    },
+    {
+      "name": "algorithm 10 with feedback 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.019437789916992188
+    },
+    {
+      "name": "algorithm 11 with feedback 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01978302001953125
+    },
+    {
+      "name": "algorithm 12 with feedback 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.016817856580018997
+    },
+    {
+      "name": "algorithm 13 with feedback 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01722412183880806
+    },
+    {
+      "name": "algorithm 14 with feedback 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013675880618393421
+    },
+    {
+      "name": "algorithm 15 with feedback 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013803482055664062
+    },
+    {
+      "name": "algorithm 16 with feedback 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.004727172665297985
+    },
+    {
+      "name": "algorithm 17 with feedback 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.004549789242446423
+    },
+    {
+      "name": "algorithm 18 with feedback 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.00537109375
+    },
+    {
+      "name": "algorithm 19 with feedback 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.042858123779296875
+    },
+    {
+      "name": "algorithm 20 with feedback 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024864578619599342
+    },
+    {
+      "name": "algorithm 21 with feedback 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049340248107910156
+    },
+    {
+      "name": "algorithm 22 with feedback 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04555320739746094
+    },
+    {
+      "name": "algorithm 23 with feedback 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.051505088806152344
+    },
+    {
+      "name": "algorithm 24 with feedback 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.047484397888183594
+    },
+    {
+      "name": "algorithm 25 with feedback 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049335479736328125
+    },
+    {
+      "name": "algorithm 26 with feedback 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02510833740234375
+    },
+    {
+      "name": "algorithm 27 with feedback 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02495098114013672
+    },
+    {
+      "name": "algorithm 28 with feedback 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.057982634752988815
+    },
+    {
+      "name": "algorithm 29 with feedback 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0432497039437294
+    },
+    {
+      "name": "algorithm 30 with feedback 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0530548095703125
+    },
+    {
+      "name": "algorithm 31 with feedback 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04828453063964844
+    },
+    {
+      "name": "algorithm 32 with feedback 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07093582302331924
+    },
+    {
+      "name": "sixteen-voice capacity, rejected seventeenth held key and release-slot reuse",
+      "sampleRate": 48000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.4959266781806946
+    },
+    {
+      "name": "held and release-tail operator pitch, level and feedback edits",
+      "sampleRate": 48000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.036649130284786224
+    },
+    {
+      "name": "replacement patch identity preserves old held notes",
+      "sampleRate": 48000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.07209396362304688
+    },
+    {
+      "name": "SysEx bank selection keeps distinct voice identities",
+      "sampleRate": 48000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.10039062798023224
+    },
+    {
+      "name": "panic silence, patch preservation and restart at partial source block",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.036884307861328125
+    },
+    {
+      "name": "ratio half/fixed tuning, LFO and pitch envelope extremes",
+      "sampleRate": 48000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.054074477404356
+    },
+    {
+      "name": "algorithm 1 with feedback 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01555480994284153
+    },
+    {
+      "name": "algorithm 2 with feedback 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01555480994284153
+    },
+    {
+      "name": "algorithm 3 with feedback 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.020356178283691406
+    },
+    {
+      "name": "algorithm 4 with feedback 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.020441818982362747
+    },
+    {
+      "name": "algorithm 5 with feedback 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.042595673352479935
+    },
+    {
+      "name": "algorithm 6 with feedback 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04193687438964844
+    },
+    {
+      "name": "algorithm 7 with feedback 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.016733933240175247
+    },
+    {
+      "name": "algorithm 8 with feedback 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01519775390625
+    },
+    {
+      "name": "algorithm 9 with feedback 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.015675639733672142
+    },
+    {
+      "name": "algorithm 10 with feedback 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01920795440673828
+    },
+    {
+      "name": "algorithm 11 with feedback 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.019432639703154564
+    },
+    {
+      "name": "algorithm 12 with feedback 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01641845703125
+    },
+    {
+      "name": "algorithm 13 with feedback 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.017013931646943092
+    },
+    {
+      "name": "algorithm 14 with feedback 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.014437484554946423
+    },
+    {
+      "name": "algorithm 15 with feedback 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.014613151550292969
+    },
+    {
+      "name": "algorithm 16 with feedback 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.004206276033073664
+    },
+    {
+      "name": "algorithm 17 with feedback 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.004528045654296875
+    },
+    {
+      "name": "algorithm 18 with feedback 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0052742003463208675
+    },
+    {
+      "name": "algorithm 19 with feedback 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04284705966711044
+    },
+    {
+      "name": "algorithm 20 with feedback 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024937057867646217
+    },
+    {
+      "name": "algorithm 21 with feedback 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04921741411089897
+    },
+    {
+      "name": "algorithm 22 with feedback 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0460205078125
+    },
+    {
+      "name": "algorithm 23 with feedback 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.054595947265625
+    },
+    {
+      "name": "algorithm 24 with feedback 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049418069422245026
+    },
+    {
+      "name": "algorithm 25 with feedback 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04873638227581978
+    },
+    {
+      "name": "algorithm 26 with feedback 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02446613274514675
+    },
+    {
+      "name": "algorithm 27 with feedback 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024309158325195312
+    },
+    {
+      "name": "algorithm 28 with feedback 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.058283042162656784
+    },
+    {
+      "name": "algorithm 29 with feedback 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.041344452649354935
+    },
+    {
+      "name": "algorithm 30 with feedback 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.053908348083496094
+    },
+    {
+      "name": "algorithm 31 with feedback 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04315185546875
+    },
+    {
+      "name": "algorithm 32 with feedback 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.06027068942785263
+    },
+    {
+      "name": "sixteen-voice capacity, rejected seventeenth held key and release-slot reuse",
+      "sampleRate": 96000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.4959266781806946
+    },
+    {
+      "name": "held and release-tail operator pitch, level and feedback edits",
+      "sampleRate": 96000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.036676980555057526
+    },
+    {
+      "name": "replacement patch identity preserves old held notes",
+      "sampleRate": 96000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.07200765609741211
+    },
+    {
+      "name": "SysEx bank selection keeps distinct voice identities",
+      "sampleRate": 96000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.09783649444580078
+    },
+    {
+      "name": "panic silence, patch preservation and restart at partial source block",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.036881446838378906
+    },
+    {
+      "name": "ratio half/fixed tuning, LFO and pitch envelope extremes",
+      "sampleRate": 96000,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.05571765825152397
+    }
+  ],
+  "maximumDifference": 0,
+  "limits": "Compares the actual native C++ MSFA core and integer-phase output adapter with shipped WASM. The public Web adapter supports 44.1/48 kHz; 96 kHz uses its same integer-phase algorithm over the shipped WASM exports. Whole-bus routing, command ownership and Stop fencing are covered separately by Rust and mocked-IPC browser tests.",
+  "totalStereoFrames": 792576,
+  "status": "passed",
+  "verification": {
+    "javascript": {
+      "passed": 248,
+      "failed": 0
+    },
+    "rust": {
+      "passed": 116,
+      "failed": 0,
+      "ignored": 4,
+      "newDx7Tests": 13
+    },
+    "browser": {
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "nativeTransport": "mocked",
+      "packagedAssets": 791,
+      "nativeAudioContextCreated": 0,
+      "nativeAudioWorkletCreated": 0,
+      "dx7WasmFetched": 0,
+      "genesisAndMegaCdRegressions": "passed"
+    },
+    "build": {
+      "profile": "dev",
+      "offline": true,
+      "status": "passed"
+    },
+    "packageSha256": "45130b83f18100dc67f5291397e9181f8ff4f06e4153408cda68bf257379b7f4",
+    "nativeSnapshotFiles": 32,
+    "physicalAudioDeviceOpened": false
+  }
+}

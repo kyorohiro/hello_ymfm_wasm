@@ -542,7 +542,8 @@ export function createPlaygroundRuntime(
       if(name==='rf5c164')throw new Error(megaDrive.pcm
         ? 'RF5C164 is built into Mega CD. Use await useSoundChip("rf5c164") to access it. Additional chip instances require Web Audio.'
         : 'RF5C164 requires Mega CD mode. Select Mega CD, then use await useSoundChip("rf5c164").');
-      throw new Error('Additional sound chips are unavailable in the experimental Native Genesis backend. Select Web Audio to use them.');
+      if(name==='dx7' && capabilities.chip==='dx7')throw new Error('DX7 is built into this mode. Use await useSoundChip("dx7") to access it. Additional chip instances require Web Audio.');
+      throw new Error('Additional sound chips are unavailable in the experimental Native backend. Select Web Audio to use them.');
     }
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
@@ -924,7 +925,7 @@ export function createPlaygroundRuntime(
     } else if (megaDrive.pcm) silencePrimaryPcm([0,1,2,3,4,5,6,7]);
     primaryPcmOwners.clear();
     if (nativePrimary) {
-      const pending=megaDrive.stopAllNative();
+      const pending=typeof megaDrive.stopNativeAudio === 'function' ? undefined : megaDrive.stopAllNative();
       if(pending?.then)primaryPcmSilence=Promise.all([primaryPcmSilence,Promise.resolve(pending).catch(()=>{})]).then(()=>{});
       nativeOwners.clear();
     }
@@ -1395,7 +1396,7 @@ export function createPlaygroundRuntime(
     while (workerRunRequests.length > 0) workerRunRequests.shift().reject(error);
     resolveLogicWorkerStop?.();
     megaDrive.audio?.nativeFX?.stop();
-    if(nativePrimary)for(const endpoint of megaDrive.primaryEndpoints)endpoint.node.port.postMessage({type:'detach-chip-port',primaryWorker:true});
+    if(nativePrimary)for(const endpoint of megaDrive.primaryEndpoints)endpoint.node?.port.postMessage({type:'detach-chip-port',primaryWorker:true});
     else megaDrive.node?.port.postMessage({type:"detach-chip-port"});
     megaDrive.pcmDevice?.node.port.postMessage({type:'detach-chip-port',primaryWorker:true});
     logicWorker?.terminate();
@@ -2062,7 +2063,7 @@ export function createPlaygroundRuntime(
           if (chipName === 'rf5c164' && megaDrive.pcm) return keyboardApi(primaryPcmApi());
           if (chipName === 'gameboy' && isGameboy) return gameboy;
           if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
-          if (chipName === 'segapsg' && capabilities.backend === 'native-genesis') return psg;
+          if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
         }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
         check();
@@ -2514,8 +2515,13 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort} = nativeWorkerBridge;
-        worker.postMessage({type:'chip-port',port:chipPort,state:primaryChipState()},[chipPort]);
+        const {chipPort,fxPort,pcmPort,dx7Port} = nativeWorkerBridge;
+        if (dx7Port) {
+          const client = megaDrive.dx7;
+          worker.postMessage({type:'native-primary-ports',endpoints:[{name:'dx7',globalName:'dx7',
+            sampleRate:client.sampleRate,internalSampleRate:client.internalSampleRate,
+            voices:client.voices,selectedVoice:client.selectedVoice,state:client._getState(),port:dx7Port}]},[dx7Port]);
+        } else worker.postMessage({type:'chip-port',port:chipPort,state:primaryChipState()},[chipPort]);
         worker.postMessage({type:'native-fx',port:fxPort},[fxPort]);
         if(pcmPort)worker.postMessage({type:'primary-pcm-port',port:pcmPort,clock:megaDrive.pcm.clock},[pcmPort]);
       } else if(nativePrimary && typeof MessageChannel === 'function') {

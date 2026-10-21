@@ -65,12 +65,15 @@ class FakeNative {
     if (command === 'native_genesis_start') {
       if (this.failStart) {this.failStart = false; throw Error('Simulated native device unavailable');}
       this.liveFx.clear(); this.liveFxError = null;
-      assert(args.mode===undefined||['genesis','mega-cd'].includes(args.mode));
+      assert(args.mode===undefined||['genesis','mega-cd','dx7'].includes(args.mode));
       this.current = {session:++this.sessions,began:performance.now(),mode:args.mode??'genesis'};
       const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
       this.pcm=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{sampleRate:48000});
       this.pcmMemory=new Uint8Array(65536);
       this.pcmVoices=Array(8).fill(0);
+      const {createInitVoice}=await import('../web/msfa_dx7/src/sysex.js');
+      this.dx7={voices:[Array.from(createInitVoice())],selectedVoice:0,revision:0};
+      this.dx7Notes=new Map();
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -90,9 +93,14 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if (command === 'native_genesis_rf5c164_status') {assert.equal(this.current.mode,'mega-cd');const state=this.pcm.read();return {...state,mask:this.pcm.mask,selected:this.pcm.selected,channels:state.channels.map(channel=>({...channel,configuredStep:this.pcm.configuredSteps[channel.channel]}))};}
+    if(command==='native_genesis_dx7_status') {
+      assert.equal(this.current.mode,'dx7');
+      return {...this.dx7,voices:this.dx7.voices.map(voice=>voice.slice()),frame:this.status().frame,
+        pendingCommands:[],activeNotes:[...this.dx7Notes].map(([midi,note])=>({midi,velocity:note.velocity}))};
+    }
     if (command === 'native_genesis_live_fx') {
       const message=args.message;
       assert.equal(message?.op,'live-fx');assert(['register','context','remove'].includes(message.action));
@@ -109,6 +117,36 @@ class FakeNative {
     if (command === 'native_genesis_commands') {
       assert(Array.isArray(args.commands) && args.commands.length > 0 && args.commands.length <= 4096);
       assert(args.commands.every(entry => Number.isSafeInteger(entry.frame) && entry.frame >= 0));
+      for(const entry of args.commands.filter(entry=>entry.type==='dx7')) {
+        assert.equal(this.current.mode,'dx7','Only DX7 mode may accept DX7 commands');
+        const message=entry.message;
+        assert(message&&typeof message.method==='string');
+        const voice=bytes=>assert(Array.isArray(bytes)&&bytes.length===155&&bytes.every(value=>Number.isInteger(value)&&value>=0&&value<=127),'DX7 patch must be 155 unpacked 7-bit bytes');
+        if(message.method==='load-bank') {
+          assert([1,32].includes(message.voices?.length));message.voices.forEach(voice);
+          this.dx7.voices=message.voices.map(bytes=>bytes.slice());this.dx7.selectedVoice=0;this.dx7.revision++;
+        } else if(['set-preset','edit-voice'].includes(message.method)) {
+          voice(message.voice);
+          if(message.method==='edit-voice') {
+            assert(Array.isArray(message.indices)&&new Set(message.indices).size===message.indices.length);
+            assert(message.indices.every(index=>Number.isInteger(index)&&index>=0&&index<155));
+            for(const index of message.indices)this.dx7.voices[this.dx7.selectedVoice][index]=message.voice[index];
+          } else this.dx7.voices[this.dx7.selectedVoice]=message.voice.slice();
+          this.dx7.revision++;
+        } else if(message.method==='select-voice') {
+          assert(Number.isInteger(message.index)&&message.index>=0&&message.index<this.dx7.voices.length);
+          this.dx7.selectedVoice=message.index;this.dx7.revision++;
+        } else if(message.method==='note-on') {
+          assert(Number.isInteger(message.note)&&message.note>=0&&message.note<=127);
+          assert(Number.isInteger(message.velocity)&&message.velocity>=0&&message.velocity<=127);
+          if(message.velocity)this.dx7Notes.set(message.note,{voice:message.voice,velocity:message.velocity});
+          else this.dx7Notes.delete(message.note);
+        } else if(message.method==='note-off') {
+          if(message.voice===undefined||this.dx7Notes.get(message.note)?.voice===message.voice)this.dx7Notes.delete(message.note);
+        } else if(['all-notes-off','panic'].includes(message.method))this.dx7Notes.clear();
+        else assert.equal(message.method,'mix','Unknown Native DX7 command '+message.method);
+      }
+      if(this.current.mode==='dx7')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'DX7 mode must never send hidden FM/PSG/PCM chip commands');
       for(const entry of args.commands.filter(entry=>entry.type.startsWith('rf5c164-'))) {
         assert.equal(this.current.mode,'mega-cd','Genesis must never accept PCM commands');
         if(entry.type==='rf5c164-write') {assert(Number.isInteger(entry.register)&&entry.register>=0&&entry.register<=8);assert(Number.isInteger(entry.value)&&entry.value>=0&&entry.value<=255);if(entry.audition)this.pcm.auditionWriting++;try{this.pcm.write(entry.register,entry.value);}finally{if(entry.audition)this.pcm.auditionWriting--;}}
@@ -190,7 +228,7 @@ async function modeIds(page) {
   return page.locator('#playgroundMode option').evaluateAll(options=>options.map(option=>option.value));
 }
 async function assertNativeModeRestriction(page,native) {
-  assert.deepEqual(await modeIds(page),['genesis','mega-cd'],'Native must list only supported machine modes');
+  assert.deepEqual(await modeIds(page),['genesis','mega-cd','dx7'],'Native must list only supported machine modes');
   const before={url:page.url(),session:native.current.session,shutdowns:native.count('native_genesis_shutdown')};
   // A forged option/change must pass the same support check as the visible UI.
   await page.evaluate(()=>{
@@ -499,7 +537,10 @@ async function nativeAudioMonitor(page,native,artifacts,name) {
   assert(await page.evaluate(before=>window.__nativeBackendTest.runtime.megaDrive.clock.currentTime>before+.15,clockBefore));
   const commandsBefore=native.count('native_genesis_commands');
   await page.evaluate(async()=>{
-    const synth=window.__nativeBackendTest.runtime.megaDrive;synth.fm.write(0,0x22,0);await synth.flush();
+    const synth=window.__nativeBackendTest.runtime.megaDrive;
+    if(synth.dx7){synth.dx7.noteOn(84,1);synth.dx7.noteOff(84);await synth.dx7.getState();}
+    else synth.fm.write(0,0x22,0);
+    await synth.flush();
   });
   assert(native.count('native_genesis_commands')>commandsBefore,'Pausing analysis must leave native command processing active');
   let before=reads.length;await page.click('#audioMonitorPause');await until(()=>reads.length>before);
@@ -585,7 +626,7 @@ async function changeNativeMode(page,native,id,choice='initial') {
   await ready(page);
   assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),id);
   assert.equal(new URL(page.url()).searchParams.get('audioEngine'),'native');
-  assert.deepEqual(await modeIds(page),['genesis','mega-cd']);
+  assert.deepEqual(await modeIds(page),['genesis','mega-cd','dx7']);
   assert.equal(native.count('native_genesis_start'),starts,'Mode selection must defer device opening until playback');
   assert.equal(native.current,null,'Changing Native machines must shut down the old session');
   if(session)assert(native.calls.some(call=>call.command==='native_genesis_shutdown'&&call.args.session===session));
@@ -768,6 +809,136 @@ async function nativeMegaCd(page,native,artifacts,name) {
   await nativeRun(page,native);
   assert.equal(native.current.mode,'genesis');
 }
+async function nativeDx7State(page,predicate,label) {
+  const deadline=Date.now()+10000;
+  while(Date.now()<deadline) {
+    const state=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('dx7'));
+    if(predicate(state))return state;
+    await page.waitForTimeout(20);
+  }
+  throw Error('Native DX7 '+label+' snapshot timed out');
+}
+async function nativeDx7(page,native,artifacts,name) {
+  const {createInitVoice,createBankSysex}=await import('../web/msfa_dx7/src/sysex.js');
+  const {voiceToPreset}=await import('../web/msfa_dx7/src/preset.js');
+  const bank=Array.from(createBankSysex(Array.from({length:32},(_,index)=>createInitVoice('BANK '+String(index).padStart(2,'0')))));
+  await changeNativeMode(page,native,'dx7');
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/dx7/index.js'),'utf8');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter,'DX7 selection must install its shipped starter');
+  const allCommands=()=>native.calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+  for(const execution of ['main','worker']) {
+    const first=native.calls.length;
+    const commands=()=>native.calls.slice(first).flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+    await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+    await until(()=>commands().some(entry=>entry.type==='dx7'&&entry.message.method==='note-on'),execution+' shipped Native DX7 starter');
+    const snapshot=await page.evaluate(async()=>{
+      const synth=window.__nativeBackendTest.runtime.megaDrive;
+      return {backend:synth.backend,chip:synth.chip,fm:synth.fm,psg:synth.psg,pcm:synth.pcm,
+        endpoints:synth.primaryEndpoints.map(endpoint=>endpoint.name),chips:await synth.mixer.list(),
+        inspected:await synth.chipInspector.list(),preset:await synth.dx7.getPreset()};
+    });
+    assert.equal(snapshot.backend,'native-genesis');assert.equal(snapshot.chip,'dx7');
+    assert.equal(snapshot.fm,null);assert.equal(snapshot.psg,null);assert.equal(snapshot.pcm,null);
+    assert.deepEqual(snapshot.endpoints,['dx7']);
+    assert.deepEqual(snapshot.chips.filter(chip=>chip.connected).map(chip=>chip.name),['dx7']);
+    assert.deepEqual(snapshot.inspected.map(chip=>chip.id),['dx7']);
+    assert.equal(snapshot.preset.name,'MODE KEYS');
+    assert(commands().every(entry=>!['write','psg-write','psg-stereo','reset'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'DX7 starter must never write to hidden YM/PSG/PCM chips');
+    if(execution==='worker')assert(commands().some(entry=>entry.type==='dx7'&&entry.message.method==='note-on'&&entry.frame>0&&entry.performance&&entry.owner),'Worker DX7 note must retain its frame reservation and owner');
+    await assertNoLiveAudio(page);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const session=native.current.session;
+    await page.evaluate(async({execution,bank})=>{
+      await window.__nativeBackendTest.runtime.playSource(`
+        const shared=await useSoundChip('dx7');
+        if(shared!==dx7)throw Error('Native DX7 was not reused');
+        await dx7.loadSysex(new Uint8Array(${JSON.stringify(bank)}));
+        await dx7.selectVoice(31);
+        await dx7.setPreset({name:'NATIVE UI',algorithm:14,feedback:1,operators:{1:{coarse:2,outputLevel:88}}});
+        await dx7.setOperator(1,{fine:17});
+        await dx7.setOperators([[2,{coarse:3}],[6,{outputLevel:50}]]);
+        await dx7.setFeedback(5);
+        let invalid=false;try{await dx7.loadSysex(new Uint8Array([0xf0,0x43,0xf7]));}catch{invalid=true;}
+        if(!invalid||dx7.voices.length!==32||dx7.selectedVoice!==31)throw Error('Invalid SysEx changed the Native bank');
+        await mixer.set(dx7.id,{volume:0.6,pan:-0.4});
+        const gain=fx.gain({gain:0.4});fx.setChain([gain]);
+        liveFx('native-dx7-fx',{process(input,output){output.forEach((channel,index)=>channel.set(input[index]));}});
+        liveLoop('native-dx7-bank',async()=>{dx7.noteOn(60,100);await beat(0.02);dx7.noteOff(60);await beat(0.02);});
+      `,{execution});
+    },{execution,bank});
+    await until(()=>commands().some(entry=>entry.type==='dx7'&&entry.message.method==='note-on'&&entry.message.note===60),execution+' Native DX7 loaded bank');
+    const edited=await nativeDx7State(page,state=>state.voices.length===32&&state.selectedVoice===31&&state.preset.feedback===5,execution+' selected bank');
+    assert.equal(edited.preset.name,'NATIVE UI');assert.equal(edited.preset.operators[1].fine,17);
+    assert.equal(edited.preset.operators[2].coarse,3);assert.equal(edited.preset.operators[6].outputLevel,50);
+    assert(commands().some(entry=>entry.type==='dx7'&&entry.message.method==='mix'),'DX7 mixer must use the Native chip gain');
+    assert(native.calls.slice(first).some(call=>call.command==='native_genesis_fx'&&call.args.message.op==='chain'));
+    assert(native.liveFx.has('native-dx7-fx'),'DX7 must share the existing Native JavaScript FX stage');
+    assert.equal(native.current.session,session,'Patch loading and editing must reuse one Native DX7 instance');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    assert.equal(native.dx7Notes.size,0,'Stop must clear all Native DX7 note gates');
+    const stopped=await nativeDx7State(page,state=>state.preset.name==='NATIVE UI',execution+' retained bank after Stop');
+    assert.deepEqual(stopped.preset,edited.preset,'Stop must retain the selected edited DX7 patch');
+    assert.equal(stopped.activeNotes.length,0);
+    assert.equal(voiceToPreset(Uint8Array.from(native.dx7.voices[31])).feedback,5);
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource('dx7.noteOn(72,80);dx7.noteOff(72);',{execution}),execution);
+    await until(()=>commands().some(entry=>entry.type==='dx7'&&entry.message.method==='note-on'&&entry.message.note===72),execution+' Native DX7 restart');
+    assert.equal(native.current.session,session);assert.equal(native.dx7.voices.length,32);
+    const velocityZero=commands().length;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource('dx7.noteOn(84,20);dx7.noteOn(84,0);',{execution}),execution);
+    await until(()=>commands().slice(velocityZero).some(entry=>entry.type==='dx7'&&entry.message.method==='note-off'&&entry.message.note===84),execution+' velocity-zero release');
+    const zeroCommands=commands().slice(velocityZero).filter(entry=>entry.type==='dx7'&&entry.message.note===84);
+    const zeroOn=zeroCommands.find(entry=>entry.message.method==='note-on');
+    const zeroOff=zeroCommands.find(entry=>entry.message.method==='note-off');
+    assert(zeroOn&&zeroOff&&zeroOn.message.voice===zeroOff.message.voice,'Velocity-zero noteOn must release the existing voice lease');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    await assertNoLiveAudio(page);
+  }
+  // The shared Guitar layout accepts both computer keys and pointer presses.
+  await page.click('#keyboardTab');
+  await page.selectOption('#playgroundKeyboardChip','chip:dx7');
+  await page.selectOption('#playgroundKeyboardTargetChannel','0');
+  await page.locator('#keyboardTab').focus();
+  let first=allCommands().length;
+  const added=()=>allCommands().slice(first).filter(entry=>entry.type==='dx7');
+  await page.keyboard.down('z');
+  await until(()=>added().some(entry=>entry.message.method==='note-on'),'Native DX7 computer Keyboard');
+  await page.keyboard.up('z');await until(()=>added().some(entry=>entry.message.method==='note-off'),'Native DX7 computer Keyboard release');
+  const key=page.locator('#operatorKeyboardRoot .key').first();
+  await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();
+  first=allCommands().length;
+  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();
+  await until(()=>added().some(entry=>entry.message.method==='note-on'),'Native DX7 Guitar pointer');
+  await page.mouse.move(5,5);await page.mouse.up();
+  await until(()=>added().some(entry=>entry.message.method==='note-off'),'Native DX7 Guitar pointer release');
+  await page.click('#dx7Tab');
+  const field=async(name,value)=>page.locator(`#dx7Panel [data-chip-control="dx7-${name}"]`).evaluate((node,value)=>{node.value=String(value);node.dispatchEvent(new Event('change',{bubbles:true}));},value);
+  await page.locator('#dx7Panel [data-chip-control="dx7-feedback"]').waitFor();
+  await field('feedback',6);await field('op-fine',23);
+  await nativeDx7State(page,state=>state.preset.feedback===6&&state.preset.operators[1].fine===23,'Operator panel patch editing');
+  first=allCommands().length;
+  const hold=page.locator('#dx7Panel [data-chip-action="dx7-hold"]');await hold.scrollIntoViewIfNeeded();const holdRect=await hold.boundingBox();
+  await page.mouse.move(holdRect.x+holdRect.width/2,holdRect.y+holdRect.height/2);await page.mouse.down();
+  await until(()=>added().some(entry=>entry.message.method==='note-on'),'Native DX7 Operator Hold');
+  await page.mouse.move(5,5);await page.mouse.up();
+  await until(()=>added().some(entry=>entry.message.method==='note-off'),'Native DX7 Operator release outside');
+  await page.click('#dx7Panel [data-chip-action="dx7-keyboard"]');
+  await page.locator('#keyboardPanel').waitFor({state:'visible'});await page.locator('#dx7Tab').focus();
+  first=allCommands().length;await page.keyboard.down('z');
+  await until(()=>added().some(entry=>entry.message.method==='note-on'),'Native DX7 Operator Keyboard');
+  await page.keyboard.up('z');await until(()=>added().some(entry=>entry.message.method==='note-off'),'Native DX7 Operator Keyboard release');
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await page.evaluate(starter=>window.__nativeBackendTest.runtime.playSource(starter,{execution:'main'}),starter);
+  native.monitor.reads.length=0;
+  await nativeAudioMonitor(page,native,artifacts,name+'-dx7');
+  await nativeRecording(page,native);
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  assert.deepEqual(native.dx7WasmRequests,[],'Native DX7 must never fetch a WASM sound core');
+  await assertNoLiveAudio(page);
+  await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
+  await changeNativeMode(page,native,'genesis','keep');
+  await nativeRun(page,native);
+  assert.equal(native.current.mode,'genesis');
+}
 async function compareNativeFft(browser,name,fixture) {
   assert.equal(fixture.samples?.length,4096);assert.equal(fixture.bins?.length,2048);
   assert(fixture.samples.every(Number.isFinite)&&fixture.bins.every(Number.isFinite));
@@ -816,6 +987,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await plain.close();
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
+    native.dx7WasmRequests=[];
+    page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
     await page.exposeBinding('__nativeInvoke', (_event, command, args) => native.invoke(command, args));
     await page.addInitScript(observeAudioCreation);
     await page.addInitScript(observeMonitorDrawing);
@@ -853,6 +1026,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeRecording(page,native);
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
     await nativeMegaCd(page,native,artifacts,name);
+    await nativeDx7(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
@@ -908,7 +1082,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD Main/Worker and shipped FM+PCM starter, actual High/Write VGM import and shared PCM cleanup/RAM retention, RF RAM/loadSample and polyphonic sample Keyboard, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD/DX7 Main/Worker and shipped starters, actual High/Write VGM import and shared PCM cleanup/RAM retention, RF RAM/loadSample and polyphonic sample Keyboard, DX7 SysEx/live operators/PC and Guitar Keyboard/Operators audition and bank retention, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 
