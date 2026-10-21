@@ -1,0 +1,312 @@
+{
+  "recordedAt": "2026-10-21T04:27:08.243Z",
+  "kind": "semantic-operation-count; no timed benchmark",
+  "node": "v26.12.0",
+  "sourceHashes": {
+    "web/playground_audio_scheduler.js": "7ccc762cccce700ef496a764e8970ae21b0d97fd653c9611d885554f28aeeca8",
+    "web/playground_performance_queue.js": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5",
+    "web/playground_performance_sender.js": "9289f0c120602884a5a8bf5019bf223615a09a5b228fa62d34e32a58cb9e6a08",
+    "web/playground_worker_chip.js": "e3c2e65e8a030940964543a6a89456f2894c7f2b224d0868570d87bf99db655c",
+    "web/ym2612-worklet.js": "0238ed519247cd258504814edc8b153d6ea7955356e458daf4b024cacfb78f3a"
+  },
+  "ordinaryWorker": {
+    "cycles": 36,
+    "duration": 29.760000000000005,
+    "lookaheadSeconds": 0.5,
+    "messages": 72,
+    "commands": 144,
+    "jsonBytes": 13487,
+    "observations": 72,
+    "observerBytes": 2412,
+    "applied": 144,
+    "maxCommands": 4,
+    "maxBatches": 2,
+    "stats": {
+      "activeSession": 1,
+      "latestSession": 1,
+      "queuedCommands": 0,
+      "queuedBatches": 0,
+      "lateCommands": 0,
+      "maxLateFrames": 0,
+      "rejectedBatches": 0,
+      "discardedCommands": 0
+    }
+  },
+  "vgm": {
+    "name": "01 - Backup Creation.vgz",
+    "sha256": "f450892e5d59b51acad631169536531aedf31109e4e52e852ab97de8134f48da",
+    "vgmBytes": 52331,
+    "scheduledTracks": 8,
+    "dacBase64": true,
+    "bankStreams": 0,
+    "totalScheduledEntries": 3698,
+    "trackLengths": [
+      {
+        "name": "global",
+        "entries": 1
+      },
+      {
+        "name": "ch1",
+        "entries": 316
+      },
+      {
+        "name": "ch2",
+        "entries": 575
+      },
+      {
+        "name": "ch3",
+        "entries": 573
+      },
+      {
+        "name": "ch4",
+        "entries": 264
+      },
+      {
+        "name": "ch5",
+        "entries": 268
+      },
+      {
+        "name": "ch6",
+        "entries": 272
+      },
+      {
+        "name": "psg",
+        "entries": 1429
+      }
+    ]
+  },
+  "syntheticBank": {
+    "name": "synthetic-8kHz-DAC-10s.vgm",
+    "sha256": "4cd98e673f26228cb6c0c4e59a26996946902cae1f9f438548c79ca8879171b6",
+    "vgmBytes": 480065,
+    "scheduledTracks": 7,
+    "dacBase64": true,
+    "bankStreams": 1,
+    "totalScheduledEntries": 0,
+    "trackLengths": [
+      {
+        "name": "global",
+        "entries": 0
+      },
+      {
+        "name": "ch1",
+        "entries": 0
+      },
+      {
+        "name": "ch2",
+        "entries": 0
+      },
+      {
+        "name": "ch3",
+        "entries": 0
+      },
+      {
+        "name": "ch4",
+        "entries": 0
+      },
+      {
+        "name": "ch5",
+        "entries": 0
+      },
+      {
+        "name": "ch6",
+        "entries": 0
+      }
+    ]
+  },
+  "syntheticRaw": {
+    "name": "synthetic-8kHz-DAC-10s.vgm",
+    "sha256": "4cd98e673f26228cb6c0c4e59a26996946902cae1f9f438548c79ca8879171b6",
+    "vgmBytes": 480065,
+    "scheduledTracks": 7,
+    "dacBase64": false,
+    "bankStreams": 0,
+    "totalScheduledEntries": 80000,
+    "trackLengths": [
+      {
+        "name": "global",
+        "entries": 80000
+      },
+      {
+        "name": "ch1",
+        "entries": 0
+      },
+      {
+        "name": "ch2",
+        "entries": 0
+      },
+      {
+        "name": "ch3",
+        "entries": 0
+      },
+      {
+        "name": "ch4",
+        "entries": 0
+      },
+      {
+        "name": "ch5",
+        "entries": 0
+      },
+      {
+        "name": "ch6",
+        "entries": 0
+      }
+    ]
+  },
+  "scheduling": [
+    {
+      "name": "actual-VGM-default-scheduled-export",
+      "duration": 26.05,
+      "messages": 846,
+      "entriesSent": 3698,
+      "maxBatch": 157,
+      "maxWorkletPending": 202,
+      "mainQueue": {
+        "concatCalls": 8,
+        "concatCopiedRefs": 12361,
+        "sortCalls": 8,
+        "sortComparisons": 21221,
+        "spliceCalls": 846,
+        "spliceRemovedRefs": 3698,
+        "spliceShiftedRefs": 1525741,
+        "sliceCalls": 0,
+        "sliceCopiedRefs": 0
+      },
+      "workletQueue": {
+        "concatCalls": 0,
+        "concatCopiedRefs": 0,
+        "sortCalls": 0,
+        "sortComparisons": 0,
+        "spliceCalls": 0,
+        "spliceRemovedRefs": 0,
+        "spliceShiftedRefs": 0,
+        "sliceCalls": 570,
+        "sliceCopiedRefs": 22208
+      },
+      "timers": {
+        "timersSet": 2585,
+        "timersCleared": 6,
+        "timersFired": 2579,
+        "maxTimers": 1,
+        "remaining": 0
+      },
+      "writes": 2269,
+      "segments": 13505,
+      "remainingWorklet": 0
+    },
+    {
+      "name": "synthetic-DAC-default-bank",
+      "duration": 10.25,
+      "messages": 0,
+      "entriesSent": 0,
+      "maxBatch": 0,
+      "maxWorkletPending": 0,
+      "mainQueue": {
+        "concatCalls": 7,
+        "concatCopiedRefs": 0,
+        "sortCalls": 7,
+        "sortComparisons": 0,
+        "spliceCalls": 0,
+        "spliceRemovedRefs": 0,
+        "spliceShiftedRefs": 0,
+        "sliceCalls": 0,
+        "sliceCopiedRefs": 0
+      },
+      "workletQueue": {
+        "concatCalls": 0,
+        "concatCopiedRefs": 0,
+        "sortCalls": 0,
+        "sortComparisons": 0,
+        "spliceCalls": 0,
+        "spliceRemovedRefs": 0,
+        "spliceShiftedRefs": 0,
+        "sliceCalls": 0,
+        "sliceCopiedRefs": 0
+      },
+      "timers": {
+        "timersSet": 0,
+        "timersCleared": 0,
+        "timersFired": 0,
+        "maxTimers": 0,
+        "remaining": 0
+      },
+      "writes": 0,
+      "segments": 3882,
+      "remainingWorklet": 0
+    },
+    {
+      "name": "synthetic-DAC-explicit-raw",
+      "duration": 10.25,
+      "messages": 1001,
+      "entriesSent": 80000,
+      "maxBatch": 80,
+      "maxWorkletPending": 2001,
+      "mainQueue": {
+        "concatCalls": 7,
+        "concatCopiedRefs": 559994,
+        "sortCalls": 7,
+        "sortComparisons": 559987,
+        "spliceCalls": 1001,
+        "spliceRemovedRefs": 80000,
+        "spliceShiftedRefs": 40039000,
+        "sliceCalls": 0,
+        "sliceCopiedRefs": 0
+      },
+      "workletQueue": {
+        "concatCalls": 0,
+        "concatCopiedRefs": 0,
+        "sortCalls": 0,
+        "sortComparisons": 0,
+        "spliceCalls": 0,
+        "spliceRemovedRefs": 0,
+        "spliceShiftedRefs": 0,
+        "sliceCalls": 976,
+        "sliceCopiedRefs": 1866118
+      },
+      "timers": {
+        "timersSet": 1006,
+        "timersCleared": 6,
+        "timersFired": 1000,
+        "maxTimers": 1,
+        "remaining": 0
+      },
+      "writes": 80000,
+      "segments": 83882,
+      "remainingWorklet": 0
+    }
+  ],
+  "queueBounds": {
+    "full": {
+      "activeSession": 1,
+      "latestSession": 1,
+      "queuedCommands": 65536,
+      "queuedBatches": 1,
+      "lateCommands": 0,
+      "maxLateFrames": 0,
+      "rejectedBatches": 0,
+      "discardedCommands": 0
+    },
+    "rejected": {
+      "activeSession": 1,
+      "latestSession": 1,
+      "queuedCommands": 65536,
+      "queuedBatches": 1,
+      "lateCommands": 0,
+      "maxLateFrames": 0,
+      "rejectedBatches": 1,
+      "discardedCommands": 0
+    },
+    "errors": 1,
+    "afterCancel": {
+      "activeSession": 1,
+      "latestSession": 1,
+      "queuedCommands": 0,
+      "queuedBatches": 0,
+      "lateCommands": 0,
+      "maxLateFrames": 0,
+      "rejectedBatches": 1,
+      "discardedCommands": 65536
+    },
+    "applied": 0
+  }
+}

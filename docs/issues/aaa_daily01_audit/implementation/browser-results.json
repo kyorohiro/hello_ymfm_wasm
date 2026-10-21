@@ -1,0 +1,469 @@
+{
+  "date": "2026-10-21T05:20:59.196Z",
+  "baselineHead": "05342b77b089962a6f13c0a473e88d1cf16ec5f3",
+  "results": [
+    {
+      "browser": "chromium",
+      "passed": true,
+      "wrapper": [
+        {
+          "volume": 0,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 0
+        },
+        {
+          "volume": 0,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 0
+        },
+        {
+          "volume": 0,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 0
+        },
+        {
+          "volume": 0.7,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 0.7,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 0.7,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 1,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 1,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 1,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 3.8,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 3.8,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 3.8,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 9792
+        }
+      ],
+      "worklet": [
+        {
+          "volume": 0,
+          "mode": "wave",
+          "leftHash": "7360797d0790fe8751ff4f004b75f707e0209031eae94689d5f50323436b186a",
+          "rightHash": "2fbe37161dafcacd59a0c9c9b3e09014ecfe091a19ee219a372a8709ab9fa88f",
+          "nonzero": 0,
+          "frames": 2048
+        },
+        {
+          "volume": 0,
+          "mode": "noise",
+          "leftHash": "7862937772f79a01554ca30b05560a476ff04bdbd4c344f025d90c5731df8ef2",
+          "rightHash": "6e842fbffccc5a395f199f0c3d8f5823182a6158b0eaa466d55bd50bb3d27b99",
+          "nonzero": 0,
+          "frames": 2048
+        },
+        {
+          "volume": 0,
+          "mode": "lfo",
+          "leftHash": "a90d6cb710f2c3c9f680882be9b6e5a3dc66ec3363570215690721507a06074d",
+          "rightHash": "2dd9103a4b6c571df8cb04d0267441a7d02e813877cd79d283ede99deca85f84",
+          "nonzero": 0,
+          "frames": 2048
+        },
+        {
+          "volume": 0.7,
+          "mode": "wave",
+          "leftHash": "038d39e0c3765bf309ccf4b031ee4aafcea0d22be12abaa749be9079bcfebb63",
+          "rightHash": "1ff0afee6041f889e6a1ccf52b1b2e284bf092fd4e786990fdcb44d2fa3f10ed",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 0.7,
+          "mode": "noise",
+          "leftHash": "59d1fad35374c3040e1ec1f1ffeb0affbfb455e5bcfdf112a7cdb6d0de19ee6a",
+          "rightHash": "a2aee7ae64329d33263c18e80efa6287a98e9db15e9ae39536c232b6fe8c0086",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 0.7,
+          "mode": "lfo",
+          "leftHash": "f70b3fceab73629c3b0f57325f7e16c4a4517ef2602a6c4a843086644aa182b6",
+          "rightHash": "3cc0fb93aae57649c1c714c7058ef7dbb895ceea6e5e97398bd0d4cb422d5326",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 1,
+          "mode": "wave",
+          "leftHash": "a147b6b2da361ec680252e53cf50714d7f4eaf175e5a6914a6963a6f622cf5f5",
+          "rightHash": "a54fc088ebd6f5a842c5e6b758dad23760a6fcde65acaf462abccf6f9c6f68cf",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 1,
+          "mode": "noise",
+          "leftHash": "44e8fa322e5d0569f1fd3c147118d9c7c9546fca1f3abebadf83a6f8172ccfd0",
+          "rightHash": "d245e1f48ec203bc9e4484336f7fb1a6b55788bd9ee9712ff1147353ea1525f3",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 1,
+          "mode": "lfo",
+          "leftHash": "34921320a13c7ff63ff806869b5eacbbe44b074a36af9292234c050f770f80e4",
+          "rightHash": "5eddda0769ec225913121cebfa0bb3de34edcec59ac7aa746905ee652e5c0236",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 3.8,
+          "mode": "wave",
+          "leftHash": "d49efc2fada3b5c4faa593341556760ce88396d734bd56f9acc0267a4c5d4dc0",
+          "rightHash": "8cc870f2503781f2a7342e475fc64f14d8602306230c8c1cb5ff67334c0183b6",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 3.8,
+          "mode": "noise",
+          "leftHash": "48f3ff48005e7a7c14d325e54d2494c337d6b5eedbb5524596fa580af17227ce",
+          "rightHash": "eced476367a91092a367e7bb91291aefaa1b0b83667d26c22668d77dbee52277",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 3.8,
+          "mode": "lfo",
+          "leftHash": "8f286f93c0a58d60acb80222ce5b389023e6a940b1bd8a7f022401cdfd6df316",
+          "rightHash": "667858ad2f9c32930a6306bed43cae7fdf0c8db95e4f95b74ee9ccb7e9fff35e",
+          "nonzero": 2048,
+          "frames": 2048
+        }
+      ],
+      "fx": [
+        {
+          "name": "gain",
+          "frames": 4096,
+          "errors": 0,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "NaN",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "Infinity",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "negative-Infinity",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "short-channel",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "frozen-list",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "valid-replacement",
+          "frames": 4096,
+          "errors": 0,
+          "left": 0.125,
+          "right": 0.0625
+        }
+      ],
+      "errors": []
+    },
+    {
+      "browser": "webkit",
+      "passed": true,
+      "wrapper": [
+        {
+          "volume": 0,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 0
+        },
+        {
+          "volume": 0,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 0
+        },
+        {
+          "volume": 0,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 0
+        },
+        {
+          "volume": 0.7,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 0.7,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 0.7,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 1,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 1,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 1,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 3.8,
+          "mode": "wave",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 3.8,
+          "mode": "noise",
+          "frames": 4896,
+          "nonzero": 9792
+        },
+        {
+          "volume": 3.8,
+          "mode": "lfo",
+          "frames": 4896,
+          "nonzero": 9792
+        }
+      ],
+      "worklet": [
+        {
+          "volume": 0,
+          "mode": "wave",
+          "leftHash": "7360797d0790fe8751ff4f004b75f707e0209031eae94689d5f50323436b186a",
+          "rightHash": "2fbe37161dafcacd59a0c9c9b3e09014ecfe091a19ee219a372a8709ab9fa88f",
+          "nonzero": 0,
+          "frames": 2048
+        },
+        {
+          "volume": 0,
+          "mode": "noise",
+          "leftHash": "7862937772f79a01554ca30b05560a476ff04bdbd4c344f025d90c5731df8ef2",
+          "rightHash": "6e842fbffccc5a395f199f0c3d8f5823182a6158b0eaa466d55bd50bb3d27b99",
+          "nonzero": 0,
+          "frames": 2048
+        },
+        {
+          "volume": 0,
+          "mode": "lfo",
+          "leftHash": "a90d6cb710f2c3c9f680882be9b6e5a3dc66ec3363570215690721507a06074d",
+          "rightHash": "2dd9103a4b6c571df8cb04d0267441a7d02e813877cd79d283ede99deca85f84",
+          "nonzero": 0,
+          "frames": 2048
+        },
+        {
+          "volume": 0.7,
+          "mode": "wave",
+          "leftHash": "038d39e0c3765bf309ccf4b031ee4aafcea0d22be12abaa749be9079bcfebb63",
+          "rightHash": "1ff0afee6041f889e6a1ccf52b1b2e284bf092fd4e786990fdcb44d2fa3f10ed",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 0.7,
+          "mode": "noise",
+          "leftHash": "59d1fad35374c3040e1ec1f1ffeb0affbfb455e5bcfdf112a7cdb6d0de19ee6a",
+          "rightHash": "a2aee7ae64329d33263c18e80efa6287a98e9db15e9ae39536c232b6fe8c0086",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 0.7,
+          "mode": "lfo",
+          "leftHash": "f70b3fceab73629c3b0f57325f7e16c4a4517ef2602a6c4a843086644aa182b6",
+          "rightHash": "3cc0fb93aae57649c1c714c7058ef7dbb895ceea6e5e97398bd0d4cb422d5326",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 1,
+          "mode": "wave",
+          "leftHash": "a147b6b2da361ec680252e53cf50714d7f4eaf175e5a6914a6963a6f622cf5f5",
+          "rightHash": "a54fc088ebd6f5a842c5e6b758dad23760a6fcde65acaf462abccf6f9c6f68cf",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 1,
+          "mode": "noise",
+          "leftHash": "44e8fa322e5d0569f1fd3c147118d9c7c9546fca1f3abebadf83a6f8172ccfd0",
+          "rightHash": "d245e1f48ec203bc9e4484336f7fb1a6b55788bd9ee9712ff1147353ea1525f3",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 1,
+          "mode": "lfo",
+          "leftHash": "34921320a13c7ff63ff806869b5eacbbe44b074a36af9292234c050f770f80e4",
+          "rightHash": "5eddda0769ec225913121cebfa0bb3de34edcec59ac7aa746905ee652e5c0236",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 3.8,
+          "mode": "wave",
+          "leftHash": "d49efc2fada3b5c4faa593341556760ce88396d734bd56f9acc0267a4c5d4dc0",
+          "rightHash": "8cc870f2503781f2a7342e475fc64f14d8602306230c8c1cb5ff67334c0183b6",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 3.8,
+          "mode": "noise",
+          "leftHash": "48f3ff48005e7a7c14d325e54d2494c337d6b5eedbb5524596fa580af17227ce",
+          "rightHash": "eced476367a91092a367e7bb91291aefaa1b0b83667d26c22668d77dbee52277",
+          "nonzero": 2048,
+          "frames": 2048
+        },
+        {
+          "volume": 3.8,
+          "mode": "lfo",
+          "leftHash": "8f286f93c0a58d60acb80222ce5b389023e6a940b1bd8a7f022401cdfd6df316",
+          "rightHash": "667858ad2f9c32930a6306bed43cae7fdf0c8db95e4f95b74ee9ccb7e9fff35e",
+          "nonzero": 2048,
+          "frames": 2048
+        }
+      ],
+      "fx": [
+        {
+          "name": "gain",
+          "frames": 4096,
+          "errors": 0,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "NaN",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "Infinity",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "negative-Infinity",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "short-channel",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "frozen-list",
+          "frames": 4096,
+          "errors": 1,
+          "left": 0.25,
+          "right": 0.125
+        },
+        {
+          "name": "valid-replacement",
+          "frames": 4096,
+          "errors": 0,
+          "left": 0.125,
+          "right": 0.0625
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "sourceSha256": {
+    "web/huc6280audioengine.js": "f15ec898f788104937bb68c61a915390af5aa9ffd22a8afdbc022640493e390d",
+    "web/custom_fx.js": "9fbaa3dde871d16f60366cfec0afb4f049313042cab748fd9c8f5f38e43ab4c9",
+    "docs/js/huc6280audioengine.js": "5197ff180ce3cc7358d42b55b7ff4483de4ac9d47f91b0c218f9285010a7269b",
+    "docs/js/custom_fx.js": "9fbaa3dde871d16f60366cfec0afb4f049313042cab748fd9c8f5f38e43ab4c9"
+  },
+  "limits": "Correctness only. HuC real Worklet capture uses temporary HTTP-response instrumentation; LiveFX uses actual NativeFXProcessor in OfflineAudioContext. No browser performance, audio-device underrun, installed Safari or Tauri measurement."
+}

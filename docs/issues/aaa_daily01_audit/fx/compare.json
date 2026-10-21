@@ -1,0 +1,25 @@
+{
+  "env": {
+    "node": "v26.12.0",
+    "v8": "14.6.202.34-node.39",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M2",
+    "rate": 48000,
+    "frames": 128,
+    "blockBudgetMs": 2.6666666666666665,
+    "warmup": 5000,
+    "blocks": 20000,
+    "trials": 3,
+    "wasmSha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290",
+    "jsCandidateFlavor": "not-used-C-only"
+  },
+  "blocks": 4000,
+  "seconds": 10.666666666666666,
+  "conditions": "32 voices, all 5 noise types; long inactive intervals; start/stop/restart; release; cutoff+pan ramps while inactive",
+  "mismatchedChannels": 0,
+  "shippedVsRebuiltMismatchedChannels": 0,
+  "rebuiltBaselinePcmSha256": "022e5d8381d6075e224b969ad1be16b682da5334713edccf191e0d80e7caacd2",
+  "candidatePcmSha256": "022e5d8381d6075e224b969ad1be16b682da5334713edccf191e0d80e7caacd2",
+  "shippedPcmSha256": "022e5d8381d6075e224b969ad1be16b682da5334713edccf191e0d80e7caacd2"
+}

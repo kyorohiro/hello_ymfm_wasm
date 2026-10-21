@@ -1,0 +1,68 @@
+{
+  "env": {
+    "node": "v26.12.0",
+    "v8": "14.6.202.34-node.39",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M2",
+    "rate": 48000,
+    "frames": 128,
+    "blockBudgetMs": 2.6666666666666665,
+    "warmup": 5000,
+    "blocks": 20000,
+    "trials": 3,
+    "jsCandidateFlavor": "indexed",
+    "wasmSha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+  },
+  "conditions": "All selected cases; empty→register5msfade→remove→re-register/context update; native gain ramp; source remains mixed in every block",
+  "rows": [
+    {
+      "name": "empty",
+      "blocks": 2000,
+      "mismatchedChannels": 0,
+      "shippedPcmSha256": "507111a4d5cd790933b40bd10cf3ee0dce1e7d8793bd572a4dfcff3e5cabbd2c",
+      "candidatePcmSha256": "507111a4d5cd790933b40bd10cf3ee0dce1e7d8793bd572a4dfcff3e5cabbd2c",
+      "sameHasProcessed": true
+    },
+    {
+      "name": "native-gain",
+      "blocks": 2000,
+      "mismatchedChannels": 0,
+      "shippedPcmSha256": "39f9c0525afd1b026da96aff0b09793c8c280ab043fc4220ee562603bd95b896",
+      "candidatePcmSha256": "39f9c0525afd1b026da96aff0b09793c8c280ab043fc4220ee562603bd95b896",
+      "sameHasProcessed": true
+    },
+    {
+      "name": "native-gain-ramp",
+      "blocks": 2000,
+      "mismatchedChannels": 0,
+      "shippedPcmSha256": "dca0fc46b931972f7f92316d3e39789f141e8ba4a1e9fbb7d1521978cebac184",
+      "candidatePcmSha256": "dca0fc46b931972f7f92316d3e39789f141e8ba4a1e9fbb7d1521978cebac184",
+      "sameHasProcessed": true
+    },
+    {
+      "name": "native-filter-delay-reverb",
+      "blocks": 2000,
+      "mismatchedChannels": 0,
+      "shippedPcmSha256": "11afccf73d066de496c7a78c5dbeaa8c6eabf2bdf1abaf669aaa47881e3b445d",
+      "candidatePcmSha256": "11afccf73d066de496c7a78c5dbeaa8c6eabf2bdf1abaf669aaa47881e3b445d",
+      "sameHasProcessed": true
+    },
+    {
+      "name": "live-gain-1",
+      "blocks": 2000,
+      "mismatchedChannels": 0,
+      "shippedPcmSha256": "8919594198bed697cb88d37627cbc00c781878eb39bff95ad2e525bbaf2455b6",
+      "candidatePcmSha256": "8919594198bed697cb88d37627cbc00c781878eb39bff95ad2e525bbaf2455b6",
+      "sameHasProcessed": true
+    },
+    {
+      "name": "live-gain-8",
+      "blocks": 2000,
+      "mismatchedChannels": 0,
+      "shippedPcmSha256": "d4abd29a81a9920cd82f6c80365cfd6b3e863aba5fc1fbba9e7c437aca956afd",
+      "candidatePcmSha256": "d4abd29a81a9920cd82f6c80365cfd6b3e863aba5fc1fbba9e7c437aca956afd",
+      "sameHasProcessed": true
+    }
+  ]
+}

@@ -57,7 +57,8 @@ export class LiveFX {
           if(!(this.input[ch] instanceof Float32Array)||this.input[ch].length!==n)throw new Error('Invalid input channel');
           const channel=this.output[ch];
           if(!(channel instanceof Float32Array)||channel.length!==n)throw new Error('Invalid output channel');
-          for(const value of channel)if(!Number.isFinite(value))throw new Error('Non-finite output');
+          // Validate the numeric samples mixed below without creating a sample iterator.
+          for(let i=0;i<n;i++)if(!Number.isFinite(channel[i]))throw new Error('Non-finite output');
         }
         const fadeFrames=Math.max(1,Math.round(this.rate*.005));
         for(let i=0;i<n;i++){

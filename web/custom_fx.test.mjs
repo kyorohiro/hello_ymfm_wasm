@@ -70,6 +70,37 @@ test('invalid channel replacements and array shape changes bypass only that effe
   assert.equal(processor.effects.get('good').state.blocks,3);
  }
 });
+test('output validation reads the mixed samples even when a replacement overrides its iterator',()=>{
+ for(const invalid of ['nan','infinity','negative-infinity']){
+  const processor=new LiveFX(48000),errors=[];
+  const controller=createNativeFXController(data=>processor.command(data));
+  controller.liveFx('bad',{context:{invalid},process(input,output,state,context){
+   const replacement=new Float32Array(input[1].length);
+   replacement[replacement.length-1]=context.invalid==='nan'?NaN:context.invalid==='infinity'?Infinity:-Infinity;
+   replacement[Symbol.iterator]=function*(){for(let i=0;i<this.length;i++)yield 0;};
+   output[0].set(input[0]);output[1]=replacement;
+  }});
+  controller.liveFx('after',{process:gain,context:{gain:.5}});
+  for(let iteration=0;iteration<2;iteration++){
+   const out=block();processor.process(out,error=>errors.push(error));
+   assert.ok(out[0].every(value=>value===.25),'validation completes before any wet samples are mixed');
+   assert.ok(out[1].every(value=>value===.125),'the following effect receives preserved finite input');
+  }
+  assert.equal(errors.length,1,'the invalid effect reports once and stays bypassed');
+  assert.match(errors[0],/Non-finite output/);
+  assert.equal(processor.effects.get('bad').bypass,true);
+ }
+ const processor=new LiveFX(48000),controller=createNativeFXController(data=>processor.command(data));
+ controller.liveFx('finite',{process(input,output){
+  for(let ch=0;ch<input.length;ch++){
+   const replacement=new Float32Array(input[ch]);
+   replacement[Symbol.iterator]=function(){throw new Error('Sample iteration is not required');};
+   output[ch]=replacement;
+  }
+ }});
+ const out=block();processor.process(out,assert.fail);
+ assert.deepEqual(out,block(),'finite numeric samples remain valid independently of their iterator');
+});
 test('owned channel arrays and sample buffers are reused between blocks without freezing valid replacements',()=>{
  const processor=new LiveFX(48000),controller=createNativeFXController(data=>processor.command(data));
  controller.liveFx('copy',{process(input,output,state){

@@ -1,0 +1,1737 @@
+{
+  "metadata": {
+    "dateUTC": "2026-10-21T04:22:23.335Z",
+    "node": "v26.12.0",
+    "v8": "14.6.202.34-node.39",
+    "platform": "darwin",
+    "arch": "arm64",
+    "os": "24.6.0",
+    "cpu": "Apple M2",
+    "logicalCPUs": 8,
+    "git": "05342b77b089962a6f13c0a473e88d1cf16ec5f3",
+    "sampleRate": 48000,
+    "quantum": 128,
+    "warmupBlocks": 1500,
+    "blocksPerTrial": 5000,
+    "trials": 5,
+    "mode": "Main-equivalent no scheduled commands, real processor.process() in Node VM; no browser/device deadline inference",
+    "timingInstrumentation": "Two performance.now() calls per block; output arrays reused. Heap profiler and allocation instrumentation only in separate pass.",
+    "hashes": {
+      "docs/generated/ym2612_wasm.js": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+      "docs/generated/ym2612_wasm.wasm": "5184f6440860c438fb424fae60255f666358657571810e51a0f8e147cc8b8b13",
+      "docs/generated/gameboy_apu_wasm.js": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+      "docs/generated/gameboy_apu_wasm.wasm": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+      "docs/generated/ym2413_wasm.js": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+      "docs/generated/ym2413_wasm.wasm": "67bf8fb4dc9b0359aef94db4ee567a3966a59529ca401e898b578e35bf1d7c78",
+      "docs/generated/huc6280_wasm.js": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f",
+      "docs/generated/huc6280_wasm.wasm": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+    },
+    "productionEdited": false,
+    "timerPairControl": {
+      "meanUs": 0.026521109999994866,
+      "p50Us": 0.040999999995960934,
+      "p95Us": 0.042000000000541604,
+      "p99Us": 0.08300000000360797,
+      "maxUs": 65.04100000000079,
+      "overQuantumCount": 0
+    },
+    "evidenceComposition": "Timing nine-condition matrix from results.json, added owned-indexed HuC condition from indexed/results.json; allocation-only repeat allocation-pass/results.json snapshots counts before disposal. Different passes intentionally remain separate.",
+    "allocationLimit": "V8 sampling is approximate and does not comprehensively account for external ArrayBuffer backing-store bytes. Calculate PCM payload/copy volume separately.",
+    "timerPairControlIndexed": {
+      "meanUs": 0.051260850000005576,
+      "p50Us": 0.04199999997922532,
+      "p95Us": 0.08300000001781882,
+      "p99Us": 0.12499999999704414,
+      "maxUs": 134.45899999999256,
+      "overQuantumCount": 0
+    },
+    "allocationPassDateUTC": "2026-10-21T04:24:06.228Z",
+    "sourceScriptSHA256": "deaadafa0a99103d71915eb86d7b62cf3ae19e74e14d570ecfb984b2b21967e3"
+  },
+  "results": [
+    {
+      "chip": "ym2612",
+      "variant": "baseline",
+      "pcm": {
+        "sha256": "e33ff4e5024b243df4729c4a4829cf934df22fa7230dd7d65423dbae3c8e4040",
+        "frames": 68000,
+        "peak": 0.12807312607765198
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 70.6990082,
+            "p50Us": 68.91600000000153,
+            "p95Us": 81.5420000000131,
+            "p99Us": 90.45800000001236,
+            "maxUs": 125.29200000000174,
+            "overQuantumCount": 0,
+            "wallMs": 353.654625,
+            "naturalGC": [],
+            "messages": 2
+          },
+          {
+            "trial": 2,
+            "meanUs": 70.6616993999997,
+            "p50Us": 69.04200000008132,
+            "p95Us": 81.16599999993923,
+            "p99Us": 92.12500000012369,
+            "maxUs": 130.87499999994634,
+            "overQuantumCount": 0,
+            "wallMs": 353.4800829999999,
+            "naturalGC": [],
+            "messages": 2
+          },
+          {
+            "trial": 3,
+            "meanUs": 74.41683200000097,
+            "p50Us": 68.79200000003038,
+            "p95Us": 85.62499999993634,
+            "p99Us": 190.0829999999587,
+            "maxUs": 826.3749999998709,
+            "overQuantumCount": 0,
+            "wallMs": 372.31279199999994,
+            "naturalGC": [],
+            "messages": 2
+          },
+          {
+            "trial": 4,
+            "meanUs": 70.62811740000093,
+            "p50Us": 69.04199999985394,
+            "p95Us": 81.29200000007586,
+            "p99Us": 90.87499999986903,
+            "maxUs": 114.7080000000642,
+            "overQuantumCount": 0,
+            "wallMs": 353.2977499999997,
+            "naturalGC": [],
+            "messages": 2
+          },
+          {
+            "trial": 5,
+            "meanUs": 70.38452859999688,
+            "p50Us": 68.9580000002934,
+            "p95Us": 80.37500000000364,
+            "p99Us": 89.45900000026086,
+            "maxUs": 120.29200000006313,
+            "overQuantumCount": 0,
+            "wallMs": 352.089958,
+            "naturalGC": [],
+            "messages": 2
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 71.3580371199997,
+          "p50Us": 70.6616993999997,
+          "p95Us": 70.6990082,
+          "p99Us": 70.6990082,
+          "maxUs": 74.41683200000097,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 90.87499999986903
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 7143256,
+        "sites": [
+          {
+            "bytes": 2132832,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 1896152,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 1442320,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 610960,
+            "function": "renderFrames",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612-worklet.js",
+            "line": 497
+          },
+          {
+            "bytes": 446704,
+            "function": "nextDacFrame",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612-worklet.js",
+            "line": 443
+          },
+          {
+            "bytes": 264144,
+            "function": "#ensureBuffers",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612.js",
+            "line": 442
+          },
+          {
+            "bytes": 137240,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 95984,
+            "function": "nextFrame",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612_dac.js",
+            "line": 117
+          },
+          {
+            "bytes": 67696,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 26976,
+            "function": "flushMixerMeters",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612-worklet.js",
+            "line": 556
+          },
+          {
+            "bytes": 18048,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 3136,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+            "line": 1
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 710226,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "gameboy",
+      "variant": "current",
+      "pcm": {
+        "sha256": "56271051dadecf774476c1041f725ed58a0325465d7dff0117ae59dc203c9171",
+        "frames": 68000,
+        "peak": 0.25
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 53.332738799998154,
+            "p50Us": 51.582999999936874,
+            "p95Us": 62.7079999999296,
+            "p99Us": 73.25000000037107,
+            "maxUs": 205.95899999989342,
+            "overQuantumCount": 0,
+            "wallMs": 266.8483329999999,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 53.29414419999831,
+            "p50Us": 51.582999999936874,
+            "p95Us": 62.58300000035888,
+            "p99Us": 73.29100000015387,
+            "maxUs": 148.3339999999771,
+            "overQuantumCount": 0,
+            "wallMs": 266.63966600000003,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 53.13658599999653,
+            "p50Us": 51.582999999936874,
+            "p95Us": 62.167000000044936,
+            "p99Us": 72.9999999998654,
+            "maxUs": 123.54199999981574,
+            "overQuantumCount": 0,
+            "wallMs": 265.84708399999954,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 52.78401419999937,
+            "p50Us": 51.582999999482126,
+            "p95Us": 60.25000000045111,
+            "p99Us": 68.33399999959511,
+            "maxUs": 93.91599999980826,
+            "overQuantumCount": 0,
+            "wallMs": 264.0787909999999,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 52.868830999999226,
+            "p50Us": 51.58300000039162,
+            "p95Us": 60.583999999835214,
+            "p99Us": 68.70799999978772,
+            "maxUs": 90.29199999986304,
+            "overQuantumCount": 0,
+            "wallMs": 264.4993750000003,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 53.08326283999831,
+          "p50Us": 53.13658599999653,
+          "p95Us": 53.29414419999831,
+          "p99Us": 53.29414419999831,
+          "maxUs": 53.332738799998154,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 72.9999999998654
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 3920808,
+        "sites": [
+          {
+            "bytes": 1989632,
+            "function": "Float32Array",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 1048840,
+            "function": "subarray",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 661952,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_gameboy_worklet.js",
+            "line": 75
+          },
+          {
+            "bytes": 196328,
+            "function": "generateStereo",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapu.js",
+            "line": 117
+          },
+          {
+            "bytes": 11520,
+            "function": "values",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 11480,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 1056,
+            "function": "h.c.<computed>",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 103
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 640000,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "gameboy",
+      "variant": "borrowed",
+      "pcm": {
+        "sha256": "56271051dadecf774476c1041f725ed58a0325465d7dff0117ae59dc203c9171",
+        "frames": 68000,
+        "peak": 0.25
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 55.581820599990536,
+            "p50Us": 50.99999999947613,
+            "p95Us": 63.417000000299595,
+            "p99Us": 148.0409999994663,
+            "maxUs": 1192.707999999584,
+            "overQuantumCount": 0,
+            "wallMs": 278.11724999999933,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 52.308407199996324,
+            "p50Us": 51.000000000385626,
+            "p95Us": 60.791999999310065,
+            "p99Us": 70.3750000002401,
+            "maxUs": 95.29199999997218,
+            "overQuantumCount": 0,
+            "wallMs": 261.70008400000006,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 52.45878840001533,
+            "p50Us": 51.000000000385626,
+            "p95Us": 61.87500000032742,
+            "p99Us": 70.74999999986176,
+            "maxUs": 94.20800000043528,
+            "overQuantumCount": 0,
+            "wallMs": 262.45245799999975,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 52.30828239999355,
+            "p50Us": 51.04200000005221,
+            "p95Us": 60.042000000066764,
+            "p99Us": 69.12499999998545,
+            "maxUs": 111.91599999983737,
+            "overQuantumCount": 0,
+            "wallMs": 261.70849999999973,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 52.050269599999595,
+            "p50Us": 51.04200000005221,
+            "p95Us": 58.70799999956944,
+            "p99Us": 66.66700000005221,
+            "maxUs": 96.54200000022684,
+            "overQuantumCount": 0,
+            "wallMs": 260.4081669999996,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 52.94151363999907,
+          "p50Us": 52.308407199996324,
+          "p95Us": 52.45878840001533,
+          "p99Us": 52.45878840001533,
+          "maxUs": 55.581820599990536,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 70.3750000002401
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 665344,
+        "sites": [
+          {
+            "bytes": 647328,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_gameboy_worklet.js",
+            "line": 75
+          },
+          {
+            "bytes": 6280,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 5232,
+            "function": "values",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 4360,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 1088,
+            "function": "h.c.<computed>",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 103
+          },
+          {
+            "bytes": 1056,
+            "function": "views",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 45
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 640000,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "ym2413",
+      "variant": "current",
+      "pcm": {
+        "sha256": "2de8e8574945ac18db1007c6a0ef38c03b103c1a271b5e9f666dd0f29e0be21c",
+        "frames": 68000,
+        "peak": 0.10198974609375
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 34.64382359999818,
+            "p50Us": 33.49999999954889,
+            "p95Us": 40.83300000002055,
+            "p99Us": 48.95900000065012,
+            "maxUs": 92.41699999984121,
+            "overQuantumCount": 0,
+            "wallMs": 173.38316699999996,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 34.510815799997005,
+            "p50Us": 33.625000000029104,
+            "p95Us": 39.83299999981682,
+            "p99Us": 46.291999999994005,
+            "maxUs": 73.58399999975518,
+            "overQuantumCount": 0,
+            "wallMs": 172.71416599999975,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 34.24107140000033,
+            "p50Us": 33.49999999954889,
+            "p95Us": 38.62500000013824,
+            "p99Us": 45.95900000003894,
+            "maxUs": 81.70800000061718,
+            "overQuantumCount": 0,
+            "wallMs": 171.36633399999937,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 34.29693360000092,
+            "p50Us": 33.45900000022084,
+            "p95Us": 39.04099999999744,
+            "p99Us": 46.74999999951979,
+            "maxUs": 69.37500000094587,
+            "overQuantumCount": 0,
+            "wallMs": 171.64341599999898,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 34.48854260000371,
+            "p50Us": 33.457999999882304,
+            "p95Us": 39.20800000014424,
+            "p99Us": 46.333999998751096,
+            "maxUs": 593.7919999996666,
+            "overQuantumCount": 0,
+            "wallMs": 172.6072499999991,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 34.436237400000024,
+          "p50Us": 34.48854260000371,
+          "p95Us": 34.510815799997005,
+          "p99Us": 34.510815799997005,
+          "maxUs": 34.64382359999818,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 46.333999998751096
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 8930008,
+        "sites": [
+          {
+            "bytes": 2889424,
+            "function": "ccall",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2413_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 2001400,
+            "function": "Float32Array",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 1537088,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2413_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 1033760,
+            "function": "subarray",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 633656,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 91
+          },
+          {
+            "bytes": 403360,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2413_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 215336,
+            "function": "generateStereo",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2413.js",
+            "line": 203
+          },
+          {
+            "bytes": 187824,
+            "function": "renderFrames",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 104
+          },
+          {
+            "bytes": 9400,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 8032,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 7496,
+            "function": "h.c.<computed>",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 103
+          },
+          {
+            "bytes": 1120,
+            "function": "Promise",
+            "url": "",
+            "line": 0
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 662866,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "ym2413",
+      "variant": "direct",
+      "pcm": {
+        "sha256": "2de8e8574945ac18db1007c6a0ef38c03b103c1a271b5e9f666dd0f29e0be21c",
+        "frames": 68000,
+        "peak": 0.10198974609375
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 34.13036240000474,
+            "p50Us": 33.33300000122108,
+            "p95Us": 38.708000000042375,
+            "p99Us": 46.50000000037835,
+            "maxUs": 75.45799999934388,
+            "overQuantumCount": 0,
+            "wallMs": 170.81370900000002,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 34.23243620000066,
+            "p50Us": 33.37499999906868,
+            "p95Us": 39.33300000062445,
+            "p99Us": 46.875,
+            "maxUs": 88.66699999998673,
+            "overQuantumCount": 0,
+            "wallMs": 171.32095800000025,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 36.918359000008785,
+            "p50Us": 33.583999998882064,
+            "p95Us": 44.70799999944575,
+            "p99Us": 100.45799999898009,
+            "maxUs": 265.29200000004494,
+            "overQuantumCount": 0,
+            "wallMs": 184.81466600000022,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 34.170284599995284,
+            "p50Us": 33.37500000088767,
+            "p95Us": 39.12499999933061,
+            "p99Us": 45.87499999979627,
+            "maxUs": 75.49999999901047,
+            "overQuantumCount": 0,
+            "wallMs": 171.01045799999883,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 34.33033420002248,
+            "p50Us": 33.41700000055425,
+            "p95Us": 39.95800000120653,
+            "p99Us": 46.66700000052515,
+            "maxUs": 68.87499999902502,
+            "overQuantumCount": 0,
+            "wallMs": 171.8125830000008,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 34.75635528000639,
+          "p50Us": 34.23243620000066,
+          "p95Us": 34.33033420002248,
+          "p99Us": 34.33033420002248,
+          "maxUs": 36.918359000008785,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 46.66700000052515
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 5562128,
+        "sites": [
+          {
+            "bytes": 1930552,
+            "function": "Float32Array",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 1593840,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2413_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 1030536,
+            "function": "subarray",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 623224,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 91
+          },
+          {
+            "bytes": 186080,
+            "function": "generateStereo",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2413.js",
+            "line": 203
+          },
+          {
+            "bytes": 167184,
+            "function": "renderFrames",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 104
+          },
+          {
+            "bytes": 13560,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 9400,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 2312,
+            "function": "h.c.<computed>",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 103
+          },
+          {
+            "bytes": 2264,
+            "function": "#onMessage",
+            "url": "node:inspector",
+            "line": 84
+          },
+          {
+            "bytes": 1064,
+            "function": "delete",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 1056,
+            "function": "values",
+            "url": "",
+            "line": 0
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 662866,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "ym2413",
+      "variant": "borrowed",
+      "pcm": {
+        "sha256": "2de8e8574945ac18db1007c6a0ef38c03b103c1a271b5e9f666dd0f29e0be21c",
+        "frames": 68000,
+        "peak": 0.10198974609375
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 33.57222460000194,
+            "p50Us": 32.83300000111922,
+            "p95Us": 38.540999999895575,
+            "p99Us": 44.79100000025937,
+            "maxUs": 80.41699999921548,
+            "overQuantumCount": 0,
+            "wallMs": 168.02487499999916,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 33.562469000001144,
+            "p50Us": 32.874999998966814,
+            "p95Us": 38.125000000945874,
+            "p99Us": 44.79200000059791,
+            "maxUs": 60.75000000055297,
+            "overQuantumCount": 0,
+            "wallMs": 167.9668329999986,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 33.55117800000371,
+            "p50Us": 32.83399999963876,
+            "p95Us": 38.00000000046566,
+            "p99Us": 45.50000000017462,
+            "maxUs": 65.959000001385,
+            "overQuantumCount": 0,
+            "wallMs": 167.91129200000069,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 33.598113800008285,
+            "p50Us": 32.874999998966814,
+            "p95Us": 38.292000001092674,
+            "p99Us": 45.12499999873398,
+            "maxUs": 85.91700000033597,
+            "overQuantumCount": 0,
+            "wallMs": 168.14787500000057,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 52.93913639999664,
+            "p50Us": 33.95799999998417,
+            "p95Us": 105.54100000081235,
+            "p99Us": 175.37500000071304,
+            "maxUs": 7880.957999999737,
+            "overQuantumCount": 4,
+            "wallMs": 266.8153340000008,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 37.444624360002344,
+          "p50Us": 33.57222460000194,
+          "p95Us": 33.598113800008285,
+          "p99Us": 33.598113800008285,
+          "maxUs": 52.93913639999664,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 45.12499999873398
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 5064024,
+        "sites": [
+          {
+            "bytes": 2900384,
+            "function": "ccall",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2413_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 939936,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2413_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 632648,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 91
+          },
+          {
+            "bytes": 448160,
+            "function": "c.generateStereo",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 55
+          },
+          {
+            "bytes": 108368,
+            "function": "renderFrames",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 104
+          },
+          {
+            "bytes": 10440,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 9808,
+            "function": "h.c.<computed>",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 103
+          },
+          {
+            "bytes": 8400,
+            "function": "values",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 4760,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 1120,
+            "function": "Promise",
+            "url": "",
+            "line": 0
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 662866,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "ym2413",
+      "variant": "both",
+      "pcm": {
+        "sha256": "2de8e8574945ac18db1007c6a0ef38c03b103c1a271b5e9f666dd0f29e0be21c",
+        "frames": 68000,
+        "peak": 0.10198974609375
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 33.67293819999977,
+            "p50Us": 32.79099999963364,
+            "p95Us": 38.5839999999007,
+            "p99Us": 47.66600000039034,
+            "maxUs": 122.08300000020245,
+            "overQuantumCount": 0,
+            "wallMs": 168.52799999999843,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 34.15660540001518,
+            "p50Us": 32.83399999963876,
+            "p95Us": 39.37500000029104,
+            "p99Us": 52.832999999736785,
+            "maxUs": 561.2920000003214,
+            "overQuantumCount": 0,
+            "wallMs": 170.95087500000045,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 33.64139480001686,
+            "p50Us": 32.79199999997218,
+            "p95Us": 38.66600000037579,
+            "p99Us": 46.08300000109011,
+            "maxUs": 82.75000000139698,
+            "overQuantumCount": 0,
+            "wallMs": 168.36562500000036,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 33.45354919998135,
+            "p50Us": 32.70899999915855,
+            "p95Us": 37.87499999998545,
+            "p99Us": 45.625000000654836,
+            "maxUs": 76.8339999995078,
+            "overQuantumCount": 0,
+            "wallMs": 167.42504200000076,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 33.568381200008666,
+            "p50Us": 32.83399999963876,
+            "p95Us": 38.20799999994051,
+            "p99Us": 46.000000000276486,
+            "maxUs": 79.79099999829486,
+            "overQuantumCount": 0,
+            "wallMs": 168.03408299999865,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 33.698573760004365,
+          "p50Us": 33.64139480001686,
+          "p95Us": 33.67293819999977,
+          "p99Us": 33.67293819999977,
+          "maxUs": 34.15660540001518,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 46.08300000109011
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 1328584,
+        "sites": [
+          {
+            "bytes": 619096,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 91
+          },
+          {
+            "bytes": 555296,
+            "function": "",
+            "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2413_wasm.js",
+            "line": 1
+          },
+          {
+            "bytes": 126944,
+            "function": "renderFrames",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_ym2413_worklet.js",
+            "line": 104
+          },
+          {
+            "bytes": 11480,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 5776,
+            "function": "h.c.<computed>",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 103
+          },
+          {
+            "bytes": 5232,
+            "function": "values",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 4760,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 662866,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "huc6280",
+      "variant": "current",
+      "pcm": {
+        "sha256": "7580a7f7757de791295341937c994d940b070d0b3cac52774dabb5974911577e",
+        "frames": 68000,
+        "peak": 0.16650390625
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 88.76728600000533,
+            "p50Us": 85.87500000066939,
+            "p95Us": 101.20900000038091,
+            "p99Us": 111.33399999926041,
+            "maxUs": 270.0409999997646,
+            "overQuantumCount": 0,
+            "wallMs": 443.99787500000093,
+            "naturalGC": [
+              {
+                "durationMs": 0.1559170037508011,
+                "kind": 1,
+                "startTime": 13951.941708
+              },
+              {
+                "durationMs": 0.1081250011920929,
+                "kind": 1,
+                "startTime": 14009.035583
+              },
+              {
+                "durationMs": 0.0672919899225235,
+                "kind": 1,
+                "startTime": 14065.832916
+              },
+              {
+                "durationMs": 0.12362499535083771,
+                "kind": 1,
+                "startTime": 14122.552125
+              },
+              {
+                "durationMs": 0.0755000114440918,
+                "kind": 1,
+                "startTime": 14179.226708
+              },
+              {
+                "durationMs": 0.08354100584983826,
+                "kind": 1,
+                "startTime": 14235.66075
+              },
+              {
+                "durationMs": 0.07704199850559235,
+                "kind": 1,
+                "startTime": 14292.269583
+              }
+            ],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 88.75074379999604,
+            "p50Us": 85.91699999851699,
+            "p95Us": 100.5829999994603,
+            "p99Us": 111.58400000022084,
+            "maxUs": 266.3750000010623,
+            "overQuantumCount": 0,
+            "wallMs": 443.91420899999866,
+            "naturalGC": [
+              {
+                "durationMs": 0.17399999499320984,
+                "kind": 1,
+                "startTime": 14552.21475
+              },
+              {
+                "durationMs": 0.1089169979095459,
+                "kind": 1,
+                "startTime": 14608.700708
+              },
+              {
+                "durationMs": 0.06262500584125519,
+                "kind": 1,
+                "startTime": 14665.241916
+              },
+              {
+                "durationMs": 0.08316700160503387,
+                "kind": 1,
+                "startTime": 14721.901041
+              },
+              {
+                "durationMs": 0.08537501096725464,
+                "kind": 1,
+                "startTime": 14778.9135
+              },
+              {
+                "durationMs": 0.08454200625419617,
+                "kind": 1,
+                "startTime": 14835.863291
+              },
+              {
+                "durationMs": 0.0640840083360672,
+                "kind": 1,
+                "startTime": 14892.631541
+              }
+            ],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 88.76177359999019,
+            "p50Us": 85.87500000066939,
+            "p95Us": 100.5829999994603,
+            "p99Us": 111.08299999978044,
+            "maxUs": 246.37500000062573,
+            "overQuantumCount": 0,
+            "wallMs": 443.96299999999974,
+            "naturalGC": [
+              {
+                "durationMs": 0.15299999713897705,
+                "kind": 1,
+                "startTime": 15155.034291
+              },
+              {
+                "durationMs": 0.11891700327396393,
+                "kind": 1,
+                "startTime": 15211.585958
+              },
+              {
+                "durationMs": 0.06487499177455902,
+                "kind": 1,
+                "startTime": 15268.323583
+              },
+              {
+                "durationMs": 0.08220800757408142,
+                "kind": 1,
+                "startTime": 15325.091583
+              },
+              {
+                "durationMs": 0.06629198789596558,
+                "kind": 1,
+                "startTime": 15381.938166
+              },
+              {
+                "durationMs": 0.06437499821186066,
+                "kind": 1,
+                "startTime": 15438.665416
+              },
+              {
+                "durationMs": 0.060416996479034424,
+                "kind": 1,
+                "startTime": 15495.476291
+              }
+            ],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 90.47059259999114,
+            "p50Us": 86.0419999989972,
+            "p95Us": 101.70800000014424,
+            "p99Us": 126.12500000068394,
+            "maxUs": 470.75000000040745,
+            "overQuantumCount": 0,
+            "wallMs": 452.5448749999996,
+            "naturalGC": [
+              {
+                "durationMs": 0.15204200148582458,
+                "kind": 1,
+                "startTime": 15757.309791
+              },
+              {
+                "durationMs": 0.09654200077056885,
+                "kind": 1,
+                "startTime": 15814.055166
+              },
+              {
+                "durationMs": 0.12920799851417542,
+                "kind": 1,
+                "startTime": 15873.585125
+              },
+              {
+                "durationMs": 0.12070800364017487,
+                "kind": 1,
+                "startTime": 15936.683208
+              },
+              {
+                "durationMs": 0.08220899105072021,
+                "kind": 1,
+                "startTime": 15993.250916
+              },
+              {
+                "durationMs": 0.06679199635982513,
+                "kind": 1,
+                "startTime": 16050.023833
+              },
+              {
+                "durationMs": 0.06633299589157104,
+                "kind": 1,
+                "startTime": 16106.426
+              }
+            ],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 88.5403679999974,
+            "p50Us": 85.83400000134134,
+            "p95Us": 100.04100000151084,
+            "p99Us": 110.49999999886495,
+            "maxUs": 236.08400000011898,
+            "overQuantumCount": 0,
+            "wallMs": 442.856917000001,
+            "naturalGC": [
+              {
+                "durationMs": 0.14491701126098633,
+                "kind": 1,
+                "startTime": 16368.815333
+              },
+              {
+                "durationMs": 0.10487499833106995,
+                "kind": 1,
+                "startTime": 16425.554125
+              },
+              {
+                "durationMs": 0.06141600012779236,
+                "kind": 1,
+                "startTime": 16482.147625
+              },
+              {
+                "durationMs": 0.06445799767971039,
+                "kind": 1,
+                "startTime": 16538.580375
+              },
+              {
+                "durationMs": 0.0653340071439743,
+                "kind": 1,
+                "startTime": 16595.101541
+              },
+              {
+                "durationMs": 0.06845898926258087,
+                "kind": 1,
+                "startTime": 16651.769791
+              },
+              {
+                "durationMs": 0.06370800733566284,
+                "kind": 1,
+                "startTime": 16708.325958
+              }
+            ],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 89.05815279999602,
+          "p50Us": 88.76177359999019,
+          "p95Us": 88.76728600000533,
+          "p99Us": 88.76728600000533,
+          "maxUs": 90.47059259999114,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 111.33399999926041
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 130132600,
+        "sites": [
+          {
+            "bytes": 71956336,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 32180544,
+            "function": "from",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 10250032,
+            "function": "",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/huc6280audioengine.js",
+            "line": 139
+          },
+          {
+            "bytes": 10118960,
+            "function": "",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/huc6280audioengine.js",
+            "line": 140
+          },
+          {
+            "bytes": 2012168,
+            "function": "Float32Array",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 1010152,
+            "function": "subarray",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 981704,
+            "function": "processFrames",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/huc6280audioengine.js",
+            "line": 123
+          },
+          {
+            "bytes": 600232,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_huc6280_worklet.js",
+            "line": 136
+          },
+          {
+            "bytes": 528720,
+            "function": "observeRendered",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_huc6280_inspector.js",
+            "line": 30
+          },
+          {
+            "bytes": 482160,
+            "function": "values",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 6344,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 3168,
+            "function": "values",
+            "url": "",
+            "line": 0
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 640000,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "huc6280",
+      "variant": "borrowed",
+      "pcm": {
+        "sha256": "7580a7f7757de791295341937c994d940b070d0b3cac52774dabb5974911577e",
+        "frames": 68000,
+        "peak": 0.16650390625
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 80.06745100001426,
+            "p50Us": 77.3750000007567,
+            "p95Us": 91.95800000088639,
+            "p99Us": 157.2919999998703,
+            "maxUs": 659.3749999992724,
+            "overQuantumCount": 0,
+            "wallMs": 400.53829100000075,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 80.10480259999677,
+            "p50Us": 77.49999999941792,
+            "p95Us": 94.00000000096043,
+            "p99Us": 116.08399999749963,
+            "maxUs": 310.0000000013097,
+            "overQuantumCount": 0,
+            "wallMs": 400.70183299999917,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 77.45776200000473,
+            "p50Us": 75.6249999976717,
+            "p95Us": 87.95800000007148,
+            "p99Us": 97.04099999726168,
+            "maxUs": 123.7909999981639,
+            "overQuantumCount": 0,
+            "wallMs": 387.44395799999984,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 83.79712320001636,
+            "p50Us": 77.3750000007567,
+            "p95Us": 90.41699999943376,
+            "p99Us": 184.87499999901047,
+            "maxUs": 8820.959000000585,
+            "overQuantumCount": 3,
+            "wallMs": 419.18879200000083,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 85.77326360000443,
+            "p50Us": 77.41700000042329,
+            "p95Us": 92.79099999912432,
+            "p99Us": 184.583999998722,
+            "maxUs": 14597.41700000086,
+            "overQuantumCount": 2,
+            "wallMs": 429.0817919999972,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 81.44008048000731,
+          "p50Us": 80.10480259999677,
+          "p95Us": 83.79712320001636,
+          "p99Us": 83.79712320001636,
+          "maxUs": 85.77326360000443,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 157.2919999998703
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 1188128,
+        "sites": [
+          {
+            "bytes": 672328,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_huc6280_worklet.js",
+            "line": 136
+          },
+          {
+            "bytes": 493880,
+            "function": "observeRendered",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_huc6280_inspector.js",
+            "line": 30
+          },
+          {
+            "bytes": 10440,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 5232,
+            "function": "values",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 3976,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 1152,
+            "function": "views",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 45
+          },
+          {
+            "bytes": 1120,
+            "function": "Promise",
+            "url": "",
+            "line": 0
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 640000,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    },
+    {
+      "chip": "huc6280",
+      "variant": "indexed",
+      "pcm": {
+        "sha256": "7580a7f7757de791295341937c994d940b070d0b3cac52774dabb5974911577e",
+        "frames": 68000,
+        "peak": 0.16650390625
+      },
+      "timing": {
+        "trials": [
+          {
+            "trial": 1,
+            "meanUs": 77.10703900000017,
+            "p50Us": 75.08300000000645,
+            "p95Us": 88.3329999999205,
+            "p99Us": 98.83300000001327,
+            "maxUs": 141.45800000005693,
+            "overQuantumCount": 0,
+            "wallMs": 385.70795799999996,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 2,
+            "meanUs": 77.86678039999948,
+            "p50Us": 75.12499999984357,
+            "p95Us": 89.2910000000029,
+            "p99Us": 103.70800000009694,
+            "maxUs": 460.1669999999558,
+            "overQuantumCount": 0,
+            "wallMs": 389.5137500000001,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 3,
+            "meanUs": 82.05964019999979,
+            "p50Us": 75.1669999999649,
+            "p95Us": 94.33399999988978,
+            "p99Us": 212.41699999995944,
+            "maxUs": 792.2909999999774,
+            "overQuantumCount": 0,
+            "wallMs": 410.5199580000001,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 4,
+            "meanUs": 82.46355420000155,
+            "p50Us": 75.9579999999005,
+            "p95Us": 90.24999999996908,
+            "p99Us": 108.9999999999236,
+            "maxUs": 11614.917000000332,
+            "overQuantumCount": 2,
+            "wallMs": 412.49974999999995,
+            "naturalGC": [],
+            "messages": 1
+          },
+          {
+            "trial": 5,
+            "meanUs": 78.6218680000051,
+            "p50Us": 75.9579999999005,
+            "p95Us": 90.54100000003018,
+            "p99Us": 103.58300000007148,
+            "maxUs": 764.5830000001297,
+            "overQuantumCount": 0,
+            "wallMs": 393.29504199999974,
+            "naturalGC": [],
+            "messages": 1
+          }
+        ],
+        "trialMeanUs": {
+          "meanUs": 79.62377636000122,
+          "p50Us": 78.6218680000051,
+          "p95Us": 82.05964019999979,
+          "p99Us": 82.05964019999979,
+          "maxUs": 82.46355420000155,
+          "overQuantumCount": 0
+        },
+        "medianTrialP99Us": 103.70800000009694
+      },
+      "allocations": {
+        "sampleIntervalBytes": 1024,
+        "sampledAllocatedBytes": 3502832,
+        "sites": [
+          {
+            "bytes": 1940176,
+            "function": "c.processFrames",
+            "url": "file:///private/tmp/audit-daily01-wasm/audit.mjs",
+            "line": 73
+          },
+          {
+            "bytes": 664056,
+            "function": "process",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_huc6280_worklet.js",
+            "line": 136
+          },
+          {
+            "bytes": 489840,
+            "function": "observeRendered",
+            "url": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/playground_huc6280_inspector.js",
+            "line": 30
+          },
+          {
+            "bytes": 391008,
+            "function": "Float32Array",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 10440,
+            "function": "next",
+            "url": "",
+            "line": 0
+          },
+          {
+            "bytes": 5200,
+            "function": "post",
+            "url": "node:inspector",
+            "line": 115
+          },
+          {
+            "bytes": 2112,
+            "function": "values",
+            "url": "",
+            "line": 0
+          }
+        ],
+        "generations": 5000,
+        "sourceFrames": 640000,
+        "malloc": 0,
+        "free": 0,
+        "memoryChanges": 0,
+        "notes": "Separate profiler pass, includes instrumentation wrappers; sampled allocation is approximate and is not the timing result. malloc/free counters exclude initialization and disposal."
+      }
+    }
+  ],
+  "volume07Correctness": {
+    "current": {
+      "sha256": "6b84ac2f539c507584188c683e8d682a3c52663d8ae1defb37838fd068c31df6",
+      "frames": 68000,
+      "peak": 0.11655273288488388
+    },
+    "indexed": {
+      "sha256": "6b84ac2f539c507584188c683e8d682a3c52663d8ae1defb37838fd068c31df6",
+      "frames": 68000,
+      "peak": 0.11655273288488388
+    }
+  }
+}

@@ -1,0 +1,341 @@
+{
+  "recordedAt": "2026-10-21T04:26:31.007Z",
+  "node": "v26.12.0",
+  "kind": "Node microbenchmark; virtual 10-ms scheduler ticks; no AudioContext/WASM/message clone/device",
+  "runs": 20,
+  "warmups": 5,
+  "instrumentation": "hrtime per enqueue/flush plus outer time. No GC forcing. Timings include send array sink and timer hooks; sub-microsecond values near instrumentation noise. Probe-only candidates preserve identity/order for these cases, not full API conformance.",
+  "results": [
+    {
+      "case": "actual-Popful-Mail-scheduled-FM-and-PSG",
+      "duration": 26.05,
+      "events": 3698,
+      "batches": [
+        1,
+        316,
+        575,
+        573,
+        264,
+        268,
+        272,
+        1429
+      ],
+      "variants": {
+        "original": {
+          "total": {
+            "samples": 20,
+            "meanUs": 1227.9042000000002,
+            "medianUs": 874.625,
+            "p95Us": 2875.792,
+            "p99Us": 3833.042,
+            "maxUs": 3833.042,
+            "minUs": 796.583
+          },
+          "enqueue": {
+            "samples": 160,
+            "meanUs": 69.25773124999998,
+            "medianUs": 51.541,
+            "p95Us": 128.958,
+            "p99Us": 1086.791,
+            "maxUs": 1267.958,
+            "minUs": 0.291
+          },
+          "flush": {
+            "samples": 51580,
+            "meanUs": 0.16698958898798655,
+            "medianUs": 0.042,
+            "p95Us": 0.416,
+            "p99Us": 0.541,
+            "maxUs": 973.375,
+            "minUs": 0
+          },
+          "messages": 846,
+          "timerCalls": 2585,
+          "identityAndStableOrderMatch": true
+        },
+        "probe-only-ignore-empty": {
+          "total": {
+            "samples": 20,
+            "meanUs": 1411.89375,
+            "medianUs": 942.542,
+            "p95Us": 3666.042,
+            "p99Us": 5257.5,
+            "maxUs": 5257.5,
+            "minUs": 798.291
+          },
+          "enqueue": {
+            "samples": 160,
+            "meanUs": 88.99163125,
+            "medianUs": 52.791,
+            "p95Us": 230.417,
+            "p99Us": 731.333,
+            "maxUs": 2850.375,
+            "minUs": 0.417
+          },
+          "flush": {
+            "samples": 51580,
+            "meanUs": 0.15266044978675092,
+            "medianUs": 0.042,
+            "p95Us": 0.417,
+            "p99Us": 0.833,
+            "maxUs": 207.083,
+            "minUs": 0
+          },
+          "messages": 846,
+          "timerCalls": 2585,
+          "identityAndStableOrderMatch": true
+        },
+        "probe-only-ignore-empty-and-head": {
+          "total": {
+            "samples": 20,
+            "meanUs": 1244.9814000000001,
+            "medianUs": 722.792,
+            "p95Us": 3982.292,
+            "p99Us": 5640.959,
+            "maxUs": 5640.959,
+            "minUs": 638.583
+          },
+          "enqueue": {
+            "samples": 160,
+            "meanUs": 83.73981875,
+            "medianUs": 50.709,
+            "p95Us": 256.75,
+            "p99Us": 879.792,
+            "maxUs": 1098.125,
+            "minUs": 0.292
+          },
+          "flush": {
+            "samples": 51580,
+            "meanUs": 0.11281077937185649,
+            "medianUs": 0.042,
+            "p95Us": 0.125,
+            "p99Us": 0.209,
+            "maxUs": 1512.375,
+            "minUs": 0
+          },
+          "messages": 846,
+          "timerCalls": 2585,
+          "identityAndStableOrderMatch": true
+        }
+      }
+    },
+    {
+      "case": "synthetic-8kHz-10s-explicit-raw-with-six-empty-tracks",
+      "duration": 10.25,
+      "events": 80000,
+      "batches": [
+        80000,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "variants": {
+        "original": {
+          "total": {
+            "samples": 20,
+            "meanUs": 15580.9584,
+            "medianUs": 14332.167,
+            "p95Us": 19855.5,
+            "p99Us": 32079.292,
+            "maxUs": 32079.292,
+            "minUs": 13792.625
+          },
+          "enqueue": {
+            "samples": 140,
+            "meanUs": 1295.9473214285713,
+            "medianUs": 1185.292,
+            "p95Us": 1473.542,
+            "p99Us": 2124,
+            "maxUs": 10534.958,
+            "minUs": 1111.834
+          },
+          "flush": {
+            "samples": 20000,
+            "meanUs": 6.423443250000007,
+            "medianUs": 5.917,
+            "p95Us": 10.916,
+            "p99Us": 13.625,
+            "maxUs": 3718.917,
+            "minUs": 0.125
+          },
+          "messages": 1001,
+          "timerCalls": 1006,
+          "identityAndStableOrderMatch": true
+        },
+        "probe-only-ignore-empty": {
+          "total": {
+            "samples": 20,
+            "meanUs": 7182.098000000001,
+            "medianUs": 6944.167,
+            "p95Us": 8029.417,
+            "p99Us": 9345.083,
+            "maxUs": 9345.083,
+            "minUs": 6842.5
+          },
+          "enqueue": {
+            "samples": 140,
+            "meanUs": 180.48035000000002,
+            "medianUs": 0.083,
+            "p95Us": 1193.375,
+            "p99Us": 1434.625,
+            "maxUs": 2225.875,
+            "minUs": 0.041
+          },
+          "flush": {
+            "samples": 20000,
+            "meanUs": 5.84058915,
+            "medianUs": 5.833,
+            "p95Us": 10.709,
+            "p99Us": 12.291,
+            "maxUs": 350.333,
+            "minUs": 0.125
+          },
+          "messages": 1001,
+          "timerCalls": 1006,
+          "identityAndStableOrderMatch": true
+        },
+        "probe-only-ignore-empty-and-head": {
+          "total": {
+            "samples": 20,
+            "meanUs": 1529.9499999999998,
+            "medianUs": 1418.792,
+            "p95Us": 1919.916,
+            "p99Us": 2623.875,
+            "maxUs": 2623.875,
+            "minUs": 1363.417
+          },
+          "enqueue": {
+            "samples": 140,
+            "meanUs": 175.8327857142857,
+            "medianUs": 0.042,
+            "p95Us": 1171.625,
+            "p99Us": 1453.084,
+            "maxUs": 2315.459,
+            "minUs": 0.041
+          },
+          "flush": {
+            "samples": 20000,
+            "meanUs": 0.22865184999996435,
+            "medianUs": 0.167,
+            "p95Us": 0.25,
+            "p99Us": 0.917,
+            "maxUs": 255.083,
+            "minUs": 0.125
+          },
+          "messages": 1001,
+          "timerCalls": 1006,
+          "identityAndStableOrderMatch": true
+        }
+      }
+    },
+    {
+      "case": "synthetic-8kHz-10s-explicit-raw-single-batch",
+      "duration": 10.25,
+      "events": 80000,
+      "batches": [
+        80000
+      ],
+      "variants": {
+        "original": {
+          "total": {
+            "samples": 20,
+            "meanUs": 7641.0103,
+            "medianUs": 7060.166,
+            "p95Us": 9425.875,
+            "p99Us": 15550.708,
+            "maxUs": 15550.708,
+            "minUs": 6905.083
+          },
+          "enqueue": {
+            "samples": 20,
+            "meanUs": 1390.6165500000002,
+            "medianUs": 1177.958,
+            "p95Us": 2773.917,
+            "p99Us": 3692.334,
+            "maxUs": 3692.334,
+            "minUs": 1126.875
+          },
+          "flush": {
+            "samples": 20000,
+            "meanUs": 6.170868099999988,
+            "medianUs": 5.958,
+            "p95Us": 10.875,
+            "p99Us": 12.458,
+            "maxUs": 783.208,
+            "minUs": 0.125
+          },
+          "messages": 1001,
+          "timerCalls": 1000,
+          "identityAndStableOrderMatch": true
+        },
+        "probe-only-ignore-empty": {
+          "total": {
+            "samples": 20,
+            "meanUs": 10419.154050000001,
+            "medianUs": 7088.167,
+            "p95Us": 31866.209,
+            "p99Us": 32178.333,
+            "maxUs": 32178.333,
+            "minUs": 6886
+          },
+          "enqueue": {
+            "samples": 20,
+            "meanUs": 1248.3623,
+            "medianUs": 1178.791,
+            "p95Us": 1518.042,
+            "p99Us": 1584.041,
+            "maxUs": 1584.041,
+            "minUs": 1126.125
+          },
+          "flush": {
+            "samples": 20000,
+            "meanUs": 9.091316199999994,
+            "medianUs": 6.416,
+            "p95Us": 31,
+            "p99Us": 54.833,
+            "maxUs": 10603.75,
+            "minUs": 0.125
+          },
+          "messages": 1001,
+          "timerCalls": 1000,
+          "identityAndStableOrderMatch": true
+        },
+        "probe-only-ignore-empty-and-head": {
+          "total": {
+            "samples": 20,
+            "meanUs": 1453.1833499999998,
+            "medianUs": 1411.208,
+            "p95Us": 1665.875,
+            "p99Us": 1708.375,
+            "maxUs": 1708.375,
+            "minUs": 1361.625
+          },
+          "enqueue": {
+            "samples": 20,
+            "meanUs": 1187.9397000000001,
+            "medianUs": 1152.833,
+            "p95Us": 1342.209,
+            "p99Us": 1402.875,
+            "maxUs": 1402.875,
+            "minUs": 1114.792
+          },
+          "flush": {
+            "samples": 20000,
+            "meanUs": 0.1985835999999651,
+            "medianUs": 0.167,
+            "p95Us": 0.25,
+            "p99Us": 0.5,
+            "maxUs": 30.625,
+            "minUs": 0.084
+          },
+          "messages": 1001,
+          "timerCalls": 1000,
+          "identityAndStableOrderMatch": true
+        }
+      }
+    }
+  ]
+}

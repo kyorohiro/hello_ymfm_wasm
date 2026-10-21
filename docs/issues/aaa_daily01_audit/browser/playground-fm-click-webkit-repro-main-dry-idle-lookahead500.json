@@ -1,0 +1,1337 @@
+{
+  "browser": "webkit",
+  "test": {
+    "name": "repro-main-dry-idle",
+    "kind": "script",
+    "execution": "main",
+    "fx": false,
+    "ui": false
+  },
+  "lookaheadMs": 500,
+  "sampleRate": 48000,
+  "frames": 576000,
+  "audioSeconds": 12,
+  "firstFrame": 2944,
+  "captureFrameGaps": 0,
+  "blocks": 4500,
+  "raw": {
+    "peak": 0.12807312607765198,
+    "rms": 0.07321212591475745,
+    "maxDelta": 0.017015076242387295,
+    "nonFinite": 0,
+    "maxZeroRun": 1769,
+    "silentQuanta": 97,
+    "blockBoundaryDeltaRms": 0.00316962462050569,
+    "interiorDeltaRms": 0.003207304245644696,
+    "largest": [
+      {
+        "sample": 361823,
+        "seconds": 7.537979166666666,
+        "delta": 0.017015076242387295,
+        "eventDistanceFrames": 735,
+        "blockOffset": 95
+      },
+      {
+        "sample": 362232,
+        "seconds": 7.5465,
+        "delta": 0.01701507531106472,
+        "eventDistanceFrames": 1144,
+        "blockOffset": 120
+      },
+      {
+        "sample": 364357,
+        "seconds": 7.590770833333333,
+        "delta": 0.016726684756577015,
+        "eventDistanceFrames": 3269,
+        "blockOffset": 69
+      },
+      {
+        "sample": 363663,
+        "seconds": 7.5763125,
+        "delta": 0.01672668452374637,
+        "eventDistanceFrames": 2575,
+        "blockOffset": 15
+      },
+      {
+        "sample": 361905,
+        "seconds": 7.5396875,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 817,
+        "blockOffset": 49
+      },
+      {
+        "sample": 362396,
+        "seconds": 7.549916666666666,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 1308,
+        "blockOffset": 28
+      },
+      {
+        "sample": 362478,
+        "seconds": 7.551625,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 1390,
+        "blockOffset": 110
+      },
+      {
+        "sample": 363008,
+        "seconds": 7.562666666666667,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 1920,
+        "blockOffset": 0
+      },
+      {
+        "sample": 363581,
+        "seconds": 7.574604166666667,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 2493,
+        "blockOffset": 61
+      },
+      {
+        "sample": 364848,
+        "seconds": 7.601,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 3760,
+        "blockOffset": 48
+      },
+      {
+        "sample": 361659,
+        "seconds": 7.5345625,
+        "delta": 0.01672668382525444,
+        "eventDistanceFrames": 571,
+        "blockOffset": 59
+      },
+      {
+        "sample": 366197,
+        "seconds": 7.629104166666667,
+        "delta": 0.016438293852843344,
+        "eventDistanceFrames": 5109,
+        "blockOffset": 117
+      },
+      {
+        "sample": 365705,
+        "seconds": 7.618854166666667,
+        "delta": 0.016438293736428022,
+        "eventDistanceFrames": 4617,
+        "blockOffset": 9
+      },
+      {
+        "sample": 367709,
+        "seconds": 7.660604166666666,
+        "delta": 0.016438293736428022,
+        "eventDistanceFrames": 6621,
+        "blockOffset": 93
+      },
+      {
+        "sample": 364193,
+        "seconds": 7.587354166666667,
+        "delta": 0.016438293445389718,
+        "eventDistanceFrames": 3105,
+        "blockOffset": 33
+      },
+      {
+        "sample": 362314,
+        "seconds": 7.548208333333333,
+        "delta": 0.016438293270766735,
+        "eventDistanceFrames": 1226,
+        "blockOffset": 74
+      },
+      {
+        "sample": 367054,
+        "seconds": 7.646958333333333,
+        "delta": 0.016438293270766735,
+        "eventDistanceFrames": 5966,
+        "blockOffset": 78
+      },
+      {
+        "sample": 367136,
+        "seconds": 7.648666666666666,
+        "delta": 0.016438293270766735,
+        "eventDistanceFrames": 6048,
+        "blockOffset": 32
+      },
+      {
+        "sample": 361741,
+        "seconds": 7.536270833333333,
+        "delta": 0.01643829303793609,
+        "eventDistanceFrames": 653,
+        "blockOffset": 13
+      },
+      {
+        "sample": 364275,
+        "seconds": 7.5890625,
+        "delta": 0.01614990271627903,
+        "eventDistanceFrames": 3187,
+        "blockOffset": 115
+      }
+    ]
+  },
+  "final": {
+    "peak": 0.12807312607765198,
+    "rms": 0.07321212591475745,
+    "maxDelta": 0.017015076242387295,
+    "nonFinite": 0,
+    "maxZeroRun": 1769,
+    "silentQuanta": 97,
+    "blockBoundaryDeltaRms": 0.00316962462050569,
+    "interiorDeltaRms": 0.003207304245644696,
+    "largest": [
+      {
+        "sample": 361823,
+        "seconds": 7.537979166666666,
+        "delta": 0.017015076242387295,
+        "eventDistanceFrames": 735,
+        "blockOffset": 95
+      },
+      {
+        "sample": 362232,
+        "seconds": 7.5465,
+        "delta": 0.01701507531106472,
+        "eventDistanceFrames": 1144,
+        "blockOffset": 120
+      },
+      {
+        "sample": 364357,
+        "seconds": 7.590770833333333,
+        "delta": 0.016726684756577015,
+        "eventDistanceFrames": 3269,
+        "blockOffset": 69
+      },
+      {
+        "sample": 363663,
+        "seconds": 7.5763125,
+        "delta": 0.01672668452374637,
+        "eventDistanceFrames": 2575,
+        "blockOffset": 15
+      },
+      {
+        "sample": 361905,
+        "seconds": 7.5396875,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 817,
+        "blockOffset": 49
+      },
+      {
+        "sample": 362396,
+        "seconds": 7.549916666666666,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 1308,
+        "blockOffset": 28
+      },
+      {
+        "sample": 362478,
+        "seconds": 7.551625,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 1390,
+        "blockOffset": 110
+      },
+      {
+        "sample": 363008,
+        "seconds": 7.562666666666667,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 1920,
+        "blockOffset": 0
+      },
+      {
+        "sample": 363581,
+        "seconds": 7.574604166666667,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 2493,
+        "blockOffset": 61
+      },
+      {
+        "sample": 364848,
+        "seconds": 7.601,
+        "delta": 0.016726684290915728,
+        "eventDistanceFrames": 3760,
+        "blockOffset": 48
+      },
+      {
+        "sample": 361659,
+        "seconds": 7.5345625,
+        "delta": 0.01672668382525444,
+        "eventDistanceFrames": 571,
+        "blockOffset": 59
+      },
+      {
+        "sample": 366197,
+        "seconds": 7.629104166666667,
+        "delta": 0.016438293852843344,
+        "eventDistanceFrames": 5109,
+        "blockOffset": 117
+      },
+      {
+        "sample": 365705,
+        "seconds": 7.618854166666667,
+        "delta": 0.016438293736428022,
+        "eventDistanceFrames": 4617,
+        "blockOffset": 9
+      },
+      {
+        "sample": 367709,
+        "seconds": 7.660604166666666,
+        "delta": 0.016438293736428022,
+        "eventDistanceFrames": 6621,
+        "blockOffset": 93
+      },
+      {
+        "sample": 364193,
+        "seconds": 7.587354166666667,
+        "delta": 0.016438293445389718,
+        "eventDistanceFrames": 3105,
+        "blockOffset": 33
+      },
+      {
+        "sample": 362314,
+        "seconds": 7.548208333333333,
+        "delta": 0.016438293270766735,
+        "eventDistanceFrames": 1226,
+        "blockOffset": 74
+      },
+      {
+        "sample": 367054,
+        "seconds": 7.646958333333333,
+        "delta": 0.016438293270766735,
+        "eventDistanceFrames": 5966,
+        "blockOffset": 78
+      },
+      {
+        "sample": 367136,
+        "seconds": 7.648666666666666,
+        "delta": 0.016438293270766735,
+        "eventDistanceFrames": 6048,
+        "blockOffset": 32
+      },
+      {
+        "sample": 361741,
+        "seconds": 7.536270833333333,
+        "delta": 0.01643829303793609,
+        "eventDistanceFrames": 653,
+        "blockOffset": 13
+      },
+      {
+        "sample": 364275,
+        "seconds": 7.5890625,
+        "delta": 0.01614990271627903,
+        "eventDistanceFrames": 3187,
+        "blockOffset": 115
+      }
+    ]
+  },
+  "postFXFit": {
+    "gain": 1,
+    "rmsError": 0,
+    "maxError": 0
+  },
+  "noteAndPitchEvents": 59,
+  "noteTiming": [
+    {
+      "kind": "hold",
+      "startFrame": 3072,
+      "endFrame": 41728,
+      "appliedDurationMs": 805.3333333333334,
+      "sentDurationMs": 805,
+      "sentPerformanceDurationMs": 805,
+      "startQueueMs": 1,
+      "endQueueMs": 0,
+      "startSentWall": 1792556429244,
+      "endSentWall": 1792556430049,
+      "startAppliedWall": 1792556429245,
+      "endAppliedWall": 1792556430049
+    },
+    {
+      "kind": "rest",
+      "startFrame": 41728,
+      "endFrame": 42880,
+      "appliedDurationMs": 24,
+      "sentDurationMs": 24,
+      "sentPerformanceDurationMs": 24,
+      "startQueueMs": 0,
+      "endQueueMs": 0,
+      "startSentWall": 1792556430049,
+      "endSentWall": 1792556430073,
+      "startAppliedWall": 1792556430049,
+      "endAppliedWall": 1792556430073
+    },
+    {
+      "kind": "hold",
+      "startFrame": 42880,
+      "endFrame": 81536,
+      "appliedDurationMs": 805.3333333333334,
+      "sentDurationMs": 804,
+      "sentPerformanceDurationMs": 804,
+      "startQueueMs": 0,
+      "endQueueMs": 0,
+      "startSentWall": 1792556430073,
+      "endSentWall": 1792556430877,
+      "startAppliedWall": 1792556430073,
+      "endAppliedWall": 1792556430877
+    },
+    {
+      "kind": "rest",
+      "startFrame": 81536,
+      "endFrame": 82816,
+      "appliedDurationMs": 26.666666666666668,
+      "sentDurationMs": 24,
+      "sentPerformanceDurationMs": 25,
+      "startQueueMs": 0,
+      "endQueueMs": 3,
+      "startSentWall": 1792556430877,
+      "endSentWall": 1792556430901,
+      "startAppliedWall": 1792556430877,
+      "endAppliedWall": 1792556430904
+    },
+    {
+      "kind": "hold",
+      "startFrame": 82816,
+      "endFrame": 121216,
+      "appliedDurationMs": 800,
+      "sentDurationMs": 805,
+      "sentPerformanceDurationMs": 804,
+      "startQueueMs": 3,
+      "endQueueMs": 0,
+      "startSentWall": 1792556430901,
+      "endSentWall": 1792556431706,
+      "startAppliedWall": 1792556430904,
+      "endAppliedWall": 1792556431706
+    },
+    {
+      "kind": "rest",
+      "startFrame": 121216,
+      "endFrame": 123392,
+      "appliedDurationMs": 45.333333333333336,
+      "sentDurationMs": 44,
+      "sentPerformanceDurationMs": 44,
+      "startQueueMs": 0,
+      "endQueueMs": 0,
+      "startSentWall": 1792556431706,
+      "endSentWall": 1792556431750,
+      "startAppliedWall": 1792556431706,
+      "endAppliedWall": 1792556431750
+    },
+    {
+      "kind": "hold",
+      "startFrame": 123392,
+      "endFrame": 162048,
+      "appliedDurationMs": 805.3333333333334,
+      "sentDurationMs": 804,
+      "sentPerformanceDurationMs": 804,
+      "startQueueMs": 0,
+      "endQueueMs": 1,
+      "startSentWall": 1792556431750,
+      "endSentWall": 1792556432554,
+      "startAppliedWall": 1792556431750,
+      "endAppliedWall": 1792556432555
+    },
+    {
+      "kind": "rest",
+      "startFrame": 162048,
+      "endFrame": 163200,
+      "appliedDurationMs": 24,
+      "sentDurationMs": 25,
+      "sentPerformanceDurationMs": 25,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556432554,
+      "endSentWall": 1792556432579,
+      "startAppliedWall": 1792556432555,
+      "endAppliedWall": 1792556432580
+    },
+    {
+      "kind": "hold",
+      "startFrame": 163200,
+      "endFrame": 201728,
+      "appliedDurationMs": 802.6666666666666,
+      "sentDurationMs": 802,
+      "sentPerformanceDurationMs": 802,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556432579,
+      "endSentWall": 1792556433381,
+      "startAppliedWall": 1792556432580,
+      "endAppliedWall": 1792556433382
+    },
+    {
+      "kind": "rest",
+      "startFrame": 201728,
+      "endFrame": 203136,
+      "appliedDurationMs": 29.333333333333332,
+      "sentDurationMs": 29,
+      "sentPerformanceDurationMs": 29,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556433381,
+      "endSentWall": 1792556433410,
+      "startAppliedWall": 1792556433382,
+      "endAppliedWall": 1792556433411
+    },
+    {
+      "kind": "hold",
+      "startFrame": 203136,
+      "endFrame": 241664,
+      "appliedDurationMs": 802.6666666666666,
+      "sentDurationMs": 804,
+      "sentPerformanceDurationMs": 804,
+      "startQueueMs": 1,
+      "endQueueMs": 0,
+      "startSentWall": 1792556433410,
+      "endSentWall": 1792556434214,
+      "startAppliedWall": 1792556433411,
+      "endAppliedWall": 1792556434214
+    },
+    {
+      "kind": "rest",
+      "startFrame": 241664,
+      "endFrame": 243712,
+      "appliedDurationMs": 42.666666666666664,
+      "sentDurationMs": 44,
+      "sentPerformanceDurationMs": 44,
+      "startQueueMs": 0,
+      "endQueueMs": 0,
+      "startSentWall": 1792556434214,
+      "endSentWall": 1792556434258,
+      "startAppliedWall": 1792556434214,
+      "endAppliedWall": 1792556434258
+    },
+    {
+      "kind": "hold",
+      "startFrame": 243712,
+      "endFrame": 282368,
+      "appliedDurationMs": 805.3333333333334,
+      "sentDurationMs": 804,
+      "sentPerformanceDurationMs": 804,
+      "startQueueMs": 0,
+      "endQueueMs": 1,
+      "startSentWall": 1792556434258,
+      "endSentWall": 1792556435062,
+      "startAppliedWall": 1792556434258,
+      "endAppliedWall": 1792556435063
+    },
+    {
+      "kind": "rest",
+      "startFrame": 282368,
+      "endFrame": 283520,
+      "appliedDurationMs": 24,
+      "sentDurationMs": 24,
+      "sentPerformanceDurationMs": 24,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556435062,
+      "endSentWall": 1792556435086,
+      "startAppliedWall": 1792556435063,
+      "endAppliedWall": 1792556435087
+    },
+    {
+      "kind": "hold",
+      "startFrame": 283520,
+      "endFrame": 322176,
+      "appliedDurationMs": 805.3333333333334,
+      "sentDurationMs": 804,
+      "sentPerformanceDurationMs": 804,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556435086,
+      "endSentWall": 1792556435890,
+      "startAppliedWall": 1792556435087,
+      "endAppliedWall": 1792556435891
+    },
+    {
+      "kind": "rest",
+      "startFrame": 322176,
+      "endFrame": 323328,
+      "appliedDurationMs": 24,
+      "sentDurationMs": 25,
+      "sentPerformanceDurationMs": 25,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556435890,
+      "endSentWall": 1792556435915,
+      "startAppliedWall": 1792556435891,
+      "endAppliedWall": 1792556435916
+    },
+    {
+      "kind": "hold",
+      "startFrame": 323328,
+      "endFrame": 361856,
+      "appliedDurationMs": 802.6666666666666,
+      "sentDurationMs": 803,
+      "sentPerformanceDurationMs": 803,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556435915,
+      "endSentWall": 1792556436718,
+      "startAppliedWall": 1792556435916,
+      "endAppliedWall": 1792556436719
+    },
+    {
+      "kind": "rest",
+      "startFrame": 361856,
+      "endFrame": 364032,
+      "appliedDurationMs": 45.333333333333336,
+      "sentDurationMs": 44,
+      "sentPerformanceDurationMs": 45,
+      "startQueueMs": 1,
+      "endQueueMs": 2,
+      "startSentWall": 1792556436718,
+      "endSentWall": 1792556436762,
+      "startAppliedWall": 1792556436719,
+      "endAppliedWall": 1792556436764
+    },
+    {
+      "kind": "hold",
+      "startFrame": 364032,
+      "endFrame": 402560,
+      "appliedDurationMs": 802.6666666666666,
+      "sentDurationMs": 803,
+      "sentPerformanceDurationMs": 803,
+      "startQueueMs": 2,
+      "endQueueMs": 2,
+      "startSentWall": 1792556436762,
+      "endSentWall": 1792556437565,
+      "startAppliedWall": 1792556436764,
+      "endAppliedWall": 1792556437567
+    },
+    {
+      "kind": "rest",
+      "startFrame": 402560,
+      "endFrame": 403712,
+      "appliedDurationMs": 24,
+      "sentDurationMs": 25,
+      "sentPerformanceDurationMs": 25,
+      "startQueueMs": 2,
+      "endQueueMs": 1,
+      "startSentWall": 1792556437565,
+      "endSentWall": 1792556437590,
+      "startAppliedWall": 1792556437567,
+      "endAppliedWall": 1792556437591
+    },
+    {
+      "kind": "hold",
+      "startFrame": 403712,
+      "endFrame": 442112,
+      "appliedDurationMs": 800,
+      "sentDurationMs": 803,
+      "sentPerformanceDurationMs": 802,
+      "startQueueMs": 1,
+      "endQueueMs": 0,
+      "startSentWall": 1792556437590,
+      "endSentWall": 1792556438393,
+      "startAppliedWall": 1792556437591,
+      "endAppliedWall": 1792556438393
+    },
+    {
+      "kind": "rest",
+      "startFrame": 442112,
+      "endFrame": 443520,
+      "appliedDurationMs": 29.333333333333332,
+      "sentDurationMs": 28,
+      "sentPerformanceDurationMs": 28,
+      "startQueueMs": 0,
+      "endQueueMs": 0,
+      "startSentWall": 1792556438393,
+      "endSentWall": 1792556438421,
+      "startAppliedWall": 1792556438393,
+      "endAppliedWall": 1792556438421
+    },
+    {
+      "kind": "hold",
+      "startFrame": 443520,
+      "endFrame": 482176,
+      "appliedDurationMs": 805.3333333333334,
+      "sentDurationMs": 805,
+      "sentPerformanceDurationMs": 805,
+      "startQueueMs": 0,
+      "endQueueMs": 1,
+      "startSentWall": 1792556438421,
+      "endSentWall": 1792556439226,
+      "startAppliedWall": 1792556438421,
+      "endAppliedWall": 1792556439227
+    },
+    {
+      "kind": "rest",
+      "startFrame": 482176,
+      "endFrame": 484224,
+      "appliedDurationMs": 42.666666666666664,
+      "sentDurationMs": 44,
+      "sentPerformanceDurationMs": 44,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556439226,
+      "endSentWall": 1792556439270,
+      "startAppliedWall": 1792556439227,
+      "endAppliedWall": 1792556439271
+    },
+    {
+      "kind": "hold",
+      "startFrame": 484224,
+      "endFrame": 522880,
+      "appliedDurationMs": 805.3333333333334,
+      "sentDurationMs": 804,
+      "sentPerformanceDurationMs": 804,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556439270,
+      "endSentWall": 1792556440074,
+      "startAppliedWall": 1792556439271,
+      "endAppliedWall": 1792556440075
+    },
+    {
+      "kind": "rest",
+      "startFrame": 522880,
+      "endFrame": 524032,
+      "appliedDurationMs": 24,
+      "sentDurationMs": 24,
+      "sentPerformanceDurationMs": 24,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556440074,
+      "endSentWall": 1792556440098,
+      "startAppliedWall": 1792556440075,
+      "endAppliedWall": 1792556440099
+    },
+    {
+      "kind": "hold",
+      "startFrame": 524032,
+      "endFrame": 562560,
+      "appliedDurationMs": 802.6666666666666,
+      "sentDurationMs": 811,
+      "sentPerformanceDurationMs": 811,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556440098,
+      "endSentWall": 1792556440909,
+      "startAppliedWall": 1792556440099,
+      "endAppliedWall": 1792556440910
+    },
+    {
+      "kind": "rest",
+      "startFrame": 562560,
+      "endFrame": 563968,
+      "appliedDurationMs": 29.333333333333332,
+      "sentDurationMs": 29,
+      "sentPerformanceDurationMs": 29,
+      "startQueueMs": 1,
+      "endQueueMs": 1,
+      "startSentWall": 1792556440909,
+      "endSentWall": 1792556440938,
+      "startAppliedWall": 1792556440910,
+      "endAppliedWall": 1792556440939
+    }
+  ],
+  "events": [
+    {
+      "frame": 3072,
+      "code": 164,
+      "value": 22,
+      "port": 0,
+      "appliedWall": 1792556429245,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 3072,
+      "code": 160,
+      "value": 86,
+      "port": 0,
+      "appliedWall": 1792556429245,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 3072,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556429245,
+      "sentWall": 1792556429244,
+      "sentPerf": 923,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 41728,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556430049,
+      "sentWall": 1792556430049,
+      "sentPerf": 1728,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 42880,
+      "code": 164,
+      "value": 23,
+      "port": 0,
+      "appliedWall": 1792556430073,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 42880,
+      "code": 160,
+      "value": 137,
+      "port": 0,
+      "appliedWall": 1792556430073,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 42880,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556430073,
+      "sentWall": 1792556430073,
+      "sentPerf": 1752,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 81536,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556430877,
+      "sentWall": 1792556430877,
+      "sentPerf": 2556,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 82816,
+      "code": 164,
+      "value": 28,
+      "port": 0,
+      "appliedWall": 1792556430904,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 82816,
+      "code": 160,
+      "value": 59,
+      "port": 0,
+      "appliedWall": 1792556430904,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 82816,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556430904,
+      "sentWall": 1792556430901,
+      "sentPerf": 2581,
+      "queueDelayMs": 3
+    },
+    {
+      "frame": 121216,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556431706,
+      "sentWall": 1792556431706,
+      "sentPerf": 3385,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 123392,
+      "code": 164,
+      "value": 28,
+      "port": 0,
+      "appliedWall": 1792556431750,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 123392,
+      "code": 160,
+      "value": 191,
+      "port": 0,
+      "appliedWall": 1792556431750,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 123392,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556431750,
+      "sentWall": 1792556431750,
+      "sentPerf": 3429,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 162048,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556432555,
+      "sentWall": 1792556432554,
+      "sentPerf": 4233,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 163200,
+      "code": 164,
+      "value": 29,
+      "port": 0,
+      "appliedWall": 1792556432579,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 163200,
+      "code": 160,
+      "value": 165,
+      "port": 0,
+      "appliedWall": 1792556432580,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 163200,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556432580,
+      "sentWall": 1792556432579,
+      "sentPerf": 4258,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 201728,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556433382,
+      "sentWall": 1792556433381,
+      "sentPerf": 5060,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 203136,
+      "code": 164,
+      "value": 30,
+      "port": 0,
+      "appliedWall": 1792556433411,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 203136,
+      "code": 160,
+      "value": 86,
+      "port": 0,
+      "appliedWall": 1792556433411,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 203136,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556433411,
+      "sentWall": 1792556433410,
+      "sentPerf": 5089,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 241664,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556434214,
+      "sentWall": 1792556434214,
+      "sentPerf": 5893,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 243712,
+      "code": 164,
+      "value": 31,
+      "port": 0,
+      "appliedWall": 1792556434258,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 243712,
+      "code": 160,
+      "value": 137,
+      "port": 0,
+      "appliedWall": 1792556434258,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 243712,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556434258,
+      "sentWall": 1792556434258,
+      "sentPerf": 5937,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 282368,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556435063,
+      "sentWall": 1792556435062,
+      "sentPerf": 6741,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 283520,
+      "code": 164,
+      "value": 36,
+      "port": 0,
+      "appliedWall": 1792556435087,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 283520,
+      "code": 160,
+      "value": 59,
+      "port": 0,
+      "appliedWall": 1792556435087,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 283520,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556435087,
+      "sentWall": 1792556435086,
+      "sentPerf": 6765,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 322176,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556435891,
+      "sentWall": 1792556435890,
+      "sentPerf": 7569,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 323328,
+      "code": 164,
+      "value": 36,
+      "port": 0,
+      "appliedWall": 1792556435916,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 323328,
+      "code": 160,
+      "value": 191,
+      "port": 0,
+      "appliedWall": 1792556435916,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 323328,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556435916,
+      "sentWall": 1792556435915,
+      "sentPerf": 7594,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 361856,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556436719,
+      "sentWall": 1792556436718,
+      "sentPerf": 8397,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 364032,
+      "code": 164,
+      "value": 37,
+      "port": 0,
+      "appliedWall": 1792556436764,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 364032,
+      "code": 160,
+      "value": 165,
+      "port": 0,
+      "appliedWall": 1792556436764,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 364032,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556436764,
+      "sentWall": 1792556436762,
+      "sentPerf": 8442,
+      "queueDelayMs": 2
+    },
+    {
+      "frame": 402560,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556437567,
+      "sentWall": 1792556437565,
+      "sentPerf": 9245,
+      "queueDelayMs": 2
+    },
+    {
+      "frame": 403712,
+      "code": 164,
+      "value": 22,
+      "port": 0,
+      "appliedWall": 1792556437591,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 403712,
+      "code": 160,
+      "value": 86,
+      "port": 0,
+      "appliedWall": 1792556437591,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 403712,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556437591,
+      "sentWall": 1792556437590,
+      "sentPerf": 9270,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 442112,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556438393,
+      "sentWall": 1792556438393,
+      "sentPerf": 10072,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 443520,
+      "code": 164,
+      "value": 23,
+      "port": 0,
+      "appliedWall": 1792556438421,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 443520,
+      "code": 160,
+      "value": 137,
+      "port": 0,
+      "appliedWall": 1792556438421,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 443520,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556438421,
+      "sentWall": 1792556438421,
+      "sentPerf": 10100,
+      "queueDelayMs": 0
+    },
+    {
+      "frame": 482176,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556439227,
+      "sentWall": 1792556439226,
+      "sentPerf": 10905,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 484224,
+      "code": 164,
+      "value": 28,
+      "port": 0,
+      "appliedWall": 1792556439271,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 484224,
+      "code": 160,
+      "value": 59,
+      "port": 0,
+      "appliedWall": 1792556439271,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 484224,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556439271,
+      "sentWall": 1792556439270,
+      "sentPerf": 10949,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 522880,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556440075,
+      "sentWall": 1792556440074,
+      "sentPerf": 11753,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 524032,
+      "code": 164,
+      "value": 28,
+      "port": 0,
+      "appliedWall": 1792556440099,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 524032,
+      "code": 160,
+      "value": 191,
+      "port": 0,
+      "appliedWall": 1792556440099,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 524032,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556440099,
+      "sentWall": 1792556440098,
+      "sentPerf": 11777,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 562560,
+      "code": 40,
+      "value": 0,
+      "port": 0,
+      "appliedWall": 1792556440910,
+      "sentWall": 1792556440909,
+      "sentPerf": 12588,
+      "queueDelayMs": 1
+    },
+    {
+      "frame": 563968,
+      "code": 164,
+      "value": 29,
+      "port": 0,
+      "appliedWall": 1792556440939,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 563968,
+      "code": 160,
+      "value": 165,
+      "port": 0,
+      "appliedWall": 1792556440939,
+      "sentWall": null,
+      "sentPerf": null,
+      "queueDelayMs": null
+    },
+    {
+      "frame": 563968,
+      "code": 40,
+      "value": 240,
+      "port": 0,
+      "appliedWall": 1792556440939,
+      "sentWall": 1792556440938,
+      "sentPerf": 12617,
+      "queueDelayMs": 1
+    }
+  ],
+  "processStats": {
+    "calls": 4500,
+    "totalMs": 368,
+    "maxMs": 3,
+    "maxWallGapMs": 15,
+    "lastWall": 1792556441250
+  },
+  "performanceStats": {
+    "activeSession": 0,
+    "latestSession": 0,
+    "queuedCommands": 0,
+    "queuedBatches": 0,
+    "lateCommands": 0,
+    "maxLateFrames": 0,
+    "rejectedBatches": 0,
+    "discardedCommands": 0
+  },
+  "ui": [],
+  "longtasks": [],
+  "volume": {
+    "master": 1,
+    "listening": 1
+  },
+  "errors": []
+}

@@ -1,0 +1,1417 @@
+{
+  "scope": "Read-only production performance audit; temporary candidates only. No claim about past noise.",
+  "environment": {
+    "node": "v26.12.0",
+    "v8": "14.6.202.34-node.39",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M2",
+    "rate": 48000,
+    "frames": 128,
+    "blockBudgetMs": 2.6666666666666665,
+    "warmup": 5000,
+    "blocks": 20000,
+    "trials": 3,
+    "jsCandidateFlavor": "indexed",
+    "wasmSha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+  },
+  "method": {
+    "timing": "5000 warmup + 20000 individually timed blocks; 3 alternating-order trials; no profiler/GC observer; reported raw maxima retained",
+    "allocation": "Separate50000blocks,1024-byte V8 HeapProfiler sampling including collected objects. Totals are sampled estimates; profiled GC counts/pauses not production rates.",
+    "engineLimit": "Node/V8 only; WebKit performance unmeasured; no browser/device deadline inference."
+  },
+  "findings": [
+    {
+      "priorityWithinFx": 1,
+      "file": "web/custom_fx.js",
+      "line": 60,
+      "change": "Keep finite-value validation; replace Float32Array for-of scan with indexed access.",
+      "conditions": "LiveFX enabled, finite-valued Float32Array channels",
+      "risk": "Low; custom Symbol.iterator behavior differs, needs WebKit performance+PCM confirmation at implementation.",
+      "measurements": [
+        {
+          "name": "live-gain-1",
+          "sampledAllocatedBytes": {
+            "shipped": 209657552,
+            "candidate": 5083312,
+            "reductionPercent": 97.57542146633477
+          },
+          "medianTrialMeanUs": {
+            "shipped": 2.9363217499994105,
+            "candidate": 1.753428600001007
+          }
+        },
+        {
+          "name": "live-gain-8",
+          "sampledAllocatedBytes": {
+            "shipped": 1663366384,
+            "candidate": 27822264,
+            "reductionPercent": 98.32735203334492
+          },
+          "medianTrialMeanUs": {
+            "shipped": 19.881766300001416,
+            "candidate": 9.451752599997644
+          }
+        }
+      ],
+      "pcmCases": 6,
+      "pcmMismatches": 0,
+      "existingSemanticsTests": "11/11 pass with temporary module redirect"
+    },
+    {
+      "priorityWithinFx": 2,
+      "file": "native/audio_effect/noise.c",
+      "line": 60,
+      "change": "Skip only stationary inactive voices; preserve all pending parameter/env ramps, release clearing, active voice processing.",
+      "conditions": "Created/reusable noise voices retained after stop; no benefit when none created.",
+      "risk": "Medium; active32voices paired trial means changed approximately -0.5% to +3.6%; state transitions must remain exact.",
+      "pcmMismatches": 0,
+      "shippedVsSameCompilerBaselineMismatches": 0,
+      "pcmSha256": "022e5d8381d6075e224b969ad1be16b682da5334713edccf191e0d80e7caacd2"
+    },
+    {
+      "priorityWithinFx": 3,
+      "file": "web/custom_fx.js",
+      "line": 36,
+      "relatedFile": "web/native_fx_engine.js:85",
+      "change": "Move rare buffer allocation capture out of process entry; guard empty ramps Map iteration.",
+      "conditions": "Small common steady-state allocation reduction; native graph/noise/sample and LiveFX.hasProcessed unchanged.",
+      "risk": "Low but small absolute benefit; no reliable CPU/tail reduction demonstrated.",
+      "pcmMismatches": 0
+    }
+  ],
+  "nonFindings": [
+    "PCM views and WASM memory stable after warmup in every timing case; no port messages.",
+    "NativeFX stereo128-frame PCM copies total2048bytes/render=768000bytes/s; not identified as unnecessary.",
+    "sample_mix skips inactive voices before per-frame work; no same inactive loop finding.",
+    "No blind empty-chain bypass: shared native noise/sample playback, ramps and scheduled commands must remain."
+  ],
+  "timingSummary": [
+    {
+      "caseVariant": "empty/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 0.7102923000000004,
+        "min": 0.7004754999969464,
+        "max": 0.8004713499929494
+      },
+      "p95Us": {
+        "median": 0.7920000000041227,
+        "min": 0.7910000003903406,
+        "max": 0.8749999997235136
+      },
+      "p99Us": {
+        "median": 1.0830000000012774,
+        "min": 0.9170000002995948,
+        "max": 1.7920000009326031
+      },
+      "maxUs": {
+        "median": 74.41700000000395,
+        "min": 22.374999999556167,
+        "max": 128.62499999937427
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "empty/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 0.6766535500009467,
+        "min": 0.6532651999999403,
+        "max": 3.434612400007063
+      },
+      "p95Us": {
+        "median": 0.7090000000005148,
+        "min": 0.7089999999152496,
+        "max": 1.833000000260654
+      },
+      "p99Us": {
+        "median": 0.9170000002995948,
+        "min": 0.8339999999975589,
+        "max": 1.916999999593827
+      },
+      "maxUs": {
+        "median": 33.165999999994256,
+        "min": 27.50000000014552,
+        "max": 35871.083
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.346191799997905,
+        "min": 1.3088442000055693,
+        "max": 1.4540334500000298
+      },
+      "p95Us": {
+        "median": 1.457999999729509,
+        "min": 1.374999999825377,
+        "max": 1.6669999999976426
+      },
+      "p99Us": {
+        "median": 1.833000000260654,
+        "min": 1.790999998775078,
+        "max": 2.125000000006594
+      },
+      "maxUs": {
+        "median": 33.833000000001334,
+        "min": 20.54099999986647,
+        "max": 38.124999999126885
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.2958619000013643,
+        "min": 1.2871926499995423,
+        "max": 1.4878573999999063
+      },
+      "p95Us": {
+        "median": 1.374999999825377,
+        "min": 1.374999999825377,
+        "max": 1.7499999999870397
+      },
+      "p99Us": {
+        "median": 1.750000000356522,
+        "min": 1.7499999994470272,
+        "max": 2.166999999985819
+      },
+      "maxUs": {
+        "median": 29.290999999830092,
+        "min": 16.916000000492204,
+        "max": 47.33300000000895
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain-ramp/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.4155253500038727,
+        "min": 1.404367149999325,
+        "max": 1.6031161000000196
+      },
+      "p95Us": {
+        "median": 1.5000000003055902,
+        "min": 1.5000000003055902,
+        "max": 1.8750000000125056
+      },
+      "p99Us": {
+        "median": 1.9170000005033216,
+        "min": 1.916999999593827,
+        "max": 3.9170000000012806
+      },
+      "maxUs": {
+        "median": 24.083000000246102,
+        "min": 22.333000000799075,
+        "max": 128.12499999998295
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain-ramp/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.3861207999962062,
+        "min": 1.3558231999989403,
+        "max": 2.09922694999984
+      },
+      "p95Us": {
+        "median": 1.4580000006390037,
+        "min": 1.4580000006390037,
+        "max": 3.833000000014408
+      },
+      "p99Us": {
+        "median": 1.8749999999272404,
+        "min": 1.8749999999272404,
+        "max": 14.207999999996446
+      },
+      "maxUs": {
+        "median": 39.209000000482774,
+        "min": 19.957999999860476,
+        "max": 391.3329999999746
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-filter-delay-reverb/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 8.882421300001988,
+        "min": 8.831947099992796,
+        "max": 9.678453699999825
+      },
+      "p95Us": {
+        "median": 10.917000000517874,
+        "min": 9.875000001557055,
+        "max": 12.084000000015749
+      },
+      "p99Us": {
+        "median": 12.24999999976717,
+        "min": 12.124999999286956,
+        "max": 29.54099999999471
+      },
+      "maxUs": {
+        "median": 88.37499999935972,
+        "min": 44.91700000016863,
+        "max": 327.6669999999626
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-filter-delay-reverb/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 8.838086699994802,
+        "min": 8.813392649998331,
+        "max": 8.911425899999955
+      },
+      "p95Us": {
+        "median": 10.249999999359716,
+        "min": 9.332999999969616,
+        "max": 10.917000000063126
+      },
+      "p99Us": {
+        "median": 12.166999999863037,
+        "min": 12.124999999286956,
+        "max": 12.499999999931788
+      },
+      "maxUs": {
+        "median": 44.91700000016863,
+        "min": 41.37500000069849,
+        "max": 59.959000000048945
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-1/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 2.9478104999957395,
+        "min": 2.9384412500008237,
+        "max": 2.9684400499997765
+      },
+      "p95Us": {
+        "median": 3.6249999993742676,
+        "min": 3.582999999707681,
+        "max": 3.6659999999528736
+      },
+      "p99Us": {
+        "median": 4.042000000481494,
+        "min": 4.041000000142958,
+        "max": 4.082999999923231
+      },
+      "maxUs": {
+        "median": 65.08399999984249,
+        "min": 49.12499999954889,
+        "max": 157.91699999999764
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-1/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 2.914928699999291,
+        "min": 2.8861033499977564,
+        "max": 2.9990597499999296
+      },
+      "p95Us": {
+        "median": 3.0000000000427463,
+        "min": 2.9589999994641403,
+        "max": 3.250000000662112
+      },
+      "p99Us": {
+        "median": 3.958999999667867,
+        "min": 3.875000000334694,
+        "max": 4.16599999994105
+      },
+      "maxUs": {
+        "median": 60.25000000045111,
+        "min": 55.37499999991269,
+        "max": 81.33300000008603
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-8/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 19.43837225000325,
+        "min": 18.791411699995116,
+        "max": 21.35914480000058
+      },
+      "p95Us": {
+        "median": 24.583000000347965,
+        "min": 23.12500000152795,
+        "max": 32.500000000027285
+      },
+      "p99Us": {
+        "median": 52.62499999935244,
+        "min": 51.08300000028976,
+        "max": 66.20799999996052
+      },
+      "maxUs": {
+        "median": 586.8749999999636,
+        "min": 169.37500000130967,
+        "max": 3330.4159999997864
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-8/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 19.7208586000027,
+        "min": 18.40612659999931,
+        "max": 25.138727999998764
+      },
+      "p95Us": {
+        "median": 25.207999999111053,
+        "min": 21.87499999990905,
+        "max": 37.000000000261934
+      },
+      "p99Us": {
+        "median": 50.08300000008603,
+        "min": 43.91599999985374,
+        "max": 103.95799999969313
+      },
+      "maxUs": {
+        "median": 613.7920000001031,
+        "min": 78.8750000001528,
+        "max": 7487.458000000515
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-created-inactive-1/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.138915200002748,
+        "min": 1.137174000000357,
+        "max": 1.170664850007688
+      },
+      "p95Us": {
+        "median": 1.2080000001333246,
+        "min": 1.2079999996785773,
+        "max": 1.2499999993451638
+      },
+      "p99Us": {
+        "median": 1.5419999999721767,
+        "min": 1.540999999633641,
+        "max": 1.5839999996387633
+      },
+      "maxUs": {
+        "median": 29.792000000043117,
+        "min": 29.583000000457105,
+        "max": 37.45800000069721
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-created-inactive-1/rebuilt-baseline",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.145602849995612,
+        "min": 1.1340339499998664,
+        "max": 1.2135942499999601
+      },
+      "p95Us": {
+        "median": 1.2500000011641532,
+        "min": 1.2079999996785773,
+        "max": 1.2920000001486187
+      },
+      "p99Us": {
+        "median": 1.5829999993002275,
+        "min": 1.5419999999721767,
+        "max": 1.6669999999976426
+      },
+      "maxUs": {
+        "median": 25.084000000788365,
+        "min": 24.20799999981682,
+        "max": 148.37500000021464
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-created-inactive-1/candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 0.7224072499966951,
+        "min": 0.6725136000060048,
+        "max": 0.7903203499997744
+      },
+      "p95Us": {
+        "median": 0.875000000178261,
+        "min": 0.7089999999152496,
+        "max": 0.9579999996276456
+      },
+      "p99Us": {
+        "median": 1.0000000002037268,
+        "min": 0.9169999993901001,
+        "max": 1.8340000001444423
+      },
+      "maxUs": {
+        "median": 34.45800000008603,
+        "min": 16.54200000120909,
+        "max": 654.5830000000024
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-created-inactive-32/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 15.582998950000865,
+        "min": 15.548017450004227,
+        "max": 15.79938834999648
+      },
+      "p95Us": {
+        "median": 17.041000000062922,
+        "min": 16.58300000053714,
+        "max": 17.832999999882304
+      },
+      "p99Us": {
+        "median": 21.291999999903055,
+        "min": 21.20900000045367,
+        "max": 21.458999999595108
+      },
+      "maxUs": {
+        "median": 55.041999999957625,
+        "min": 45.79199999898265,
+        "max": 201.3329999990674
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-created-inactive-32/rebuilt-baseline",
+      "trials": 3,
+      "meanUs": {
+        "median": 15.559498449990269,
+        "min": 15.50764985000053,
+        "max": 16.56204100000541
+      },
+      "p95Us": {
+        "median": 16.958999998678337,
+        "min": 16.749999999774445,
+        "max": 19.291999999040854
+      },
+      "p99Us": {
+        "median": 21.332999999685853,
+        "min": 21.291999999448308,
+        "max": 24.833999999827938
+      },
+      "maxUs": {
+        "median": 59.83299999979863,
+        "min": 49.00000000088767,
+        "max": 3568.0839999986347
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-created-inactive-32/candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 0.6947598999947331,
+        "min": 0.6930623000026799,
+        "max": 0.695820649999223
+      },
+      "p95Us": {
+        "median": 0.7499999996980478,
+        "min": 0.7499999992433004,
+        "max": 0.7500000001527951
+      },
+      "p99Us": {
+        "median": 0.9170000002995948,
+        "min": 0.9170000002995948,
+        "max": 0.9580000005371403
+      },
+      "maxUs": {
+        "median": 20.040999999764608,
+        "min": 17.832999999882304,
+        "max": 29.37500000007276
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-released-inactive-32/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 14.892966850004724,
+        "min": 14.36579915000168,
+        "max": 15.80882439999632
+      },
+      "p95Us": {
+        "median": 18.08299999902374,
+        "min": 15.292000000044936,
+        "max": 18.708000001424807
+      },
+      "p99Us": {
+        "median": 27.45900000081747,
+        "min": 19.62500000036016,
+        "max": 27.624999998806743
+      },
+      "maxUs": {
+        "median": 335.3750000005675,
+        "min": 52.29200000030687,
+        "max": 7335.791000001336
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-released-inactive-32/rebuilt-baseline",
+      "trials": 3,
+      "meanUs": {
+        "median": 14.504276900005607,
+        "min": 14.431460849996165,
+        "max": 14.667223449999847
+      },
+      "p95Us": {
+        "median": 16.41599999857135,
+        "min": 16.374999999698048,
+        "max": 16.74999999886495
+      },
+      "p99Us": {
+        "median": 19.833000000289758,
+        "min": 19.74999999947613,
+        "max": 23.333999999977095
+      },
+      "maxUs": {
+        "median": 166.79199999998673,
+        "min": 64.12499999896681,
+        "max": 269.2079999997077
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-released-inactive-32/candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 0.6951247999971202,
+        "min": 0.6843837500006658,
+        "max": 0.7009897500010084
+      },
+      "p95Us": {
+        "median": 0.7500000010622898,
+        "min": 0.709000000369997,
+        "max": 0.7909999985713512
+      },
+      "p99Us": {
+        "median": 0.9170000012090895,
+        "min": 0.9169999998448475,
+        "max": 0.9580000005371403
+      },
+      "maxUs": {
+        "median": 24.625000000014552,
+        "min": 11.416000000281201,
+        "max": 31.167000001005363
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-active-1/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.5440915999958633,
+        "min": 1.5409350500004622,
+        "max": 1.6662194999985331
+      },
+      "p95Us": {
+        "median": 1.66700000045239,
+        "min": 1.6249999998763087,
+        "max": 1.8340000005991897
+      },
+      "p99Us": {
+        "median": 2.084000001559616,
+        "min": 2.0839999997406267,
+        "max": 2.458999999362277
+      },
+      "maxUs": {
+        "median": 58.12500000001819,
+        "min": 25.08299999863084,
+        "max": 87.0840000006865
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-active-1/rebuilt-baseline",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.5491339000087465,
+        "min": 1.532230250001885,
+        "max": 1.5855836000006773
+      },
+      "p95Us": {
+        "median": 1.6250000007858034,
+        "min": 1.624999998966814,
+        "max": 1.7090000001189765
+      },
+      "p99Us": {
+        "median": 2.0830000012210803,
+        "min": 2.082999999402091,
+        "max": 2.124999999978172
+      },
+      "maxUs": {
+        "median": 30.000000000654836,
+        "min": 22.541000000273925,
+        "max": 103.66700000031415
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-active-1/candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.5587399000030928,
+        "min": 1.5317657500002269,
+        "max": 1.8007052000080876
+      },
+      "p95Us": {
+        "median": 1.6250000007858034,
+        "min": 1.6249999998763087,
+        "max": 2.125000000887667
+      },
+      "p99Us": {
+        "median": 2.0839999997406267,
+        "min": 2.0839999997406267,
+        "max": 3.9170000000012806
+      },
+      "maxUs": {
+        "median": 69.79200000023411,
+        "min": 24.20799999981682,
+        "max": 205.95800000046438
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-active-32/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 29.77575355000199,
+        "min": 27.78681605000495,
+        "max": 33.0824897999938
+      },
+      "p95Us": {
+        "median": 32.99999999944703,
+        "min": 31.625000000076398,
+        "max": 37.24999999940337
+      },
+      "p99Us": {
+        "median": 42.54200000104902,
+        "min": 37.8339999997479,
+        "max": 78.41699999880802
+      },
+      "maxUs": {
+        "median": 6100.500000000466,
+        "min": 110.04199999979392,
+        "max": 15280.292000001282
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-active-32/rebuilt-baseline",
+      "trials": 3,
+      "meanUs": {
+        "median": 27.760660000003007,
+        "min": 27.684378300000436,
+        "max": 28.025847950004934
+      },
+      "p95Us": {
+        "median": 31.915999999910127,
+        "min": 31.167000000095868,
+        "max": 31.958000003214693
+      },
+      "p99Us": {
+        "median": 37.62500000084401,
+        "min": 37.08399999959511,
+        "max": 37.83300000031886
+      },
+      "maxUs": {
+        "median": 76.99999999931606,
+        "min": 76.24999999825377,
+        "max": 116.33299999994051
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "noise-active-32/candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 28.360483449988717,
+        "min": 27.874708099998497,
+        "max": 28.669031049999468
+      },
+      "p95Us": {
+        "median": 32.50000000116415,
+        "min": 32.124999999723514,
+        "max": 33.45900000022084
+      },
+      "p99Us": {
+        "median": 38.83300000234158,
+        "min": 38.00000000046566,
+        "max": 60.91700000069977
+      },
+      "maxUs": {
+        "median": 358.0419999998412,
+        "min": 199.20799999999872,
+        "max": 1515.3749999990396
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    }
+  ],
+  "indexedTimingSummary": [
+    {
+      "caseVariant": "empty/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 0.7323899499999698,
+        "min": 0.6816878999997243,
+        "max": 0.7577465999999995
+      },
+      "p95Us": {
+        "median": 0.9159999999965862,
+        "min": 0.7920000000467553,
+        "max": 0.9580000000823929
+      },
+      "p99Us": {
+        "median": 1.0419999998703133,
+        "min": 0.9170000000722212,
+        "max": 1.7920000000017922
+      },
+      "maxUs": {
+        "median": 34.3750000001819,
+        "min": 21.875000000136424,
+        "max": 86.7500000000021
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "empty/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 0.6959530500002984,
+        "min": 0.6863682999999753,
+        "max": 0.729747350000548
+      },
+      "p95Us": {
+        "median": 0.7919999998193816,
+        "min": 0.7910000000066475,
+        "max": 0.9580000000823929
+      },
+      "p99Us": {
+        "median": 0.9580000000823929,
+        "min": 0.9579999999971278,
+        "max": 1.040999999986525
+      },
+      "maxUs": {
+        "median": 33.33299999985684,
+        "min": 14.541000000008353,
+        "max": 35.54199999999241
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.5043570999999907,
+        "min": 1.2897656000003281,
+        "max": 1.5513643999982607
+      },
+      "p95Us": {
+        "median": 1.7909999999972115,
+        "min": 1.374999999825377,
+        "max": 1.7920000000231084
+      },
+      "p99Us": {
+        "median": 2.249999999989427,
+        "min": 1.7500000001291482,
+        "max": 3.8749999998799467
+      },
+      "maxUs": {
+        "median": 47.74999999999352,
+        "min": 37.292000000206826,
+        "max": 126.49999999985084
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.3487788999981376,
+        "min": 1.3270520499989629,
+        "max": 1.452162700000008
+      },
+      "p95Us": {
+        "median": 1.6659999996591068,
+        "min": 1.5409999998610147,
+        "max": 1.7090000000052896
+      },
+      "p99Us": {
+        "median": 1.8749999999272404,
+        "min": 1.8339999999170686,
+        "max": 2.125000000006594
+      },
+      "maxUs": {
+        "median": 31.50000000005093,
+        "min": 29.62500000012369,
+        "max": 81.91700000000424
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain-ramp/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.3931309000016767,
+        "min": 1.367696249999925,
+        "max": 1.4630490000020018
+      },
+      "p95Us": {
+        "median": 1.4999999998508429,
+        "min": 1.458000000013726,
+        "max": 1.8329999998059066
+      },
+      "p99Us": {
+        "median": 1.875000000154614,
+        "min": 1.8340000000023338,
+        "max": 2.124999999978172
+      },
+      "maxUs": {
+        "median": 30.250000000023647,
+        "min": 19.624999999905413,
+        "max": 35.79100000024482
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-gain-ramp/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.3952039500004731,
+        "min": 1.373462550000123,
+        "max": 1.4320353999983808
+      },
+      "p95Us": {
+        "median": 1.6660000000001673,
+        "min": 1.4999999998508429,
+        "max": 1.6669999999976426
+      },
+      "p99Us": {
+        "median": 1.9159999999942556,
+        "min": 1.875000000154614,
+        "max": 1.9999999999527063
+      },
+      "maxUs": {
+        "median": 24.209000000013248,
+        "min": 23.290999999971973,
+        "max": 30.00000000020009
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-filter-delay-reverb/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 8.955226700000008,
+        "min": 8.95242360000252,
+        "max": 9.657104300001789
+      },
+      "p95Us": {
+        "median": 10.249999999984993,
+        "min": 9.792000000288681,
+        "max": 11.167000000114058
+      },
+      "p99Us": {
+        "median": 12.334000000009837,
+        "min": 12.24999999976717,
+        "max": 12.58300000017698
+      },
+      "maxUs": {
+        "median": 43.667000000027656,
+        "min": 40.16700000011042,
+        "max": 5658.709000000272
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "native-filter-delay-reverb/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 9.289959549998501,
+        "min": 8.895371749999896,
+        "max": 9.489260350000313
+      },
+      "p95Us": {
+        "median": 10.541999999986729,
+        "min": 9.583000000020547,
+        "max": 10.999999999967258
+      },
+      "p99Us": {
+        "median": 12.375000000247383,
+        "min": 12.249999999994543,
+        "max": 14.041999999790278
+      },
+      "maxUs": {
+        "median": 565.2909999998883,
+        "min": 41.50000000004184,
+        "max": 6094.625000000178
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-1/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 2.9363217499994105,
+        "min": 2.911540750000745,
+        "max": 3.112812549999853
+      },
+      "p95Us": {
+        "median": 3.6660000000665605,
+        "min": 3.6660000000665605,
+        "max": 4.000000000019099
+      },
+      "p99Us": {
+        "median": 3.9999999999054126,
+        "min": 3.958999999667867,
+        "max": 5.750000000034561
+      },
+      "maxUs": {
+        "median": 54.12499999965803,
+        "min": 51.87500000010914,
+        "max": 181.8749999999909
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-1/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 1.753428600001007,
+        "min": 1.7200470500007214,
+        "max": 1.8378492999999423
+      },
+      "p95Us": {
+        "median": 2.0419999999603533,
+        "min": 1.9170000000485743,
+        "max": 2.250000000003638
+      },
+      "p99Us": {
+        "median": 2.4170000001504377,
+        "min": 2.3340000002463057,
+        "max": 4.124999999930878
+      },
+      "maxUs": {
+        "median": 77.24999999982174,
+        "min": 62.207999999827734,
+        "max": 131.33400000003803
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-8/shipped",
+      "trials": 3,
+      "meanUs": {
+        "median": 19.881766300001416,
+        "min": 18.909465599999947,
+        "max": 25.963774499999907
+      },
+      "p95Us": {
+        "median": 23.874999999861757,
+        "min": 23.6250000000382,
+        "max": 24.165999999695487
+      },
+      "p99Us": {
+        "median": 52.29200000030687,
+        "min": 51.29099999999198,
+        "max": 55.24999999988722
+      },
+      "maxUs": {
+        "median": 1385.9169999996084,
+        "min": 170.74999999999818,
+        "max": 105917.12499999994
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    },
+    {
+      "caseVariant": "live-gain-8/js-candidate",
+      "trials": 3,
+      "meanUs": {
+        "median": 9.451752599997644,
+        "min": 8.876788499999748,
+        "max": 14.22396574999974
+      },
+      "p95Us": {
+        "median": 10.541999999986729,
+        "min": 9.457999999995081,
+        "max": 12.082999999847743
+      },
+      "p99Us": {
+        "median": 20.708999999442312,
+        "min": 12.083000000075117,
+        "max": 24.20799999981682
+      },
+      "maxUs": {
+        "median": 841.6250000000218,
+        "min": 61.208000000078755,
+        "max": 45539.375000000065
+      },
+      "messages": 0,
+      "anyMemoryOrPcmViewChange": false
+    }
+  ],
+  "allocationSummary": [
+    {
+      "name": "empty",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2901728,
+      "projectSampledAllocatedBytes": 1972592,
+      "sampledBytesPerBlock": 58.03456,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.8871250003576279
+    },
+    {
+      "name": "empty",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 20608,
+      "projectSampledAllocatedBytes": 17192,
+      "sampledBytesPerBlock": 0.41216,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.2022919952869415
+    },
+    {
+      "name": "native-gain",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2805928,
+      "projectSampledAllocatedBytes": 1988288,
+      "sampledBytesPerBlock": 56.11856,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.53787499666214
+    },
+    {
+      "name": "native-gain",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 28776,
+      "projectSampledAllocatedBytes": 22000,
+      "sampledBytesPerBlock": 0.57552,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.3568329960107803
+    },
+    {
+      "name": "native-gain-ramp",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2807792,
+      "projectSampledAllocatedBytes": 2805680,
+      "sampledBytesPerBlock": 56.15584,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.2923330068588257
+    },
+    {
+      "name": "native-gain-ramp",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 847400,
+      "projectSampledAllocatedBytes": 847400,
+      "sampledBytesPerBlock": 16.948,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.0848330110311508
+    },
+    {
+      "name": "native-filter-delay-reverb",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1982272,
+      "projectSampledAllocatedBytes": 1945752,
+      "sampledBytesPerBlock": 39.64544,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.20762500166893
+    },
+    {
+      "name": "native-filter-delay-reverb",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 7664,
+      "projectSampledAllocatedBytes": 6608,
+      "sampledBytesPerBlock": 0.15328,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.3242080062627792
+    },
+    {
+      "name": "live-gain-1",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 209262200,
+      "projectSampledAllocatedBytes": 209252440,
+      "sampledBytesPerBlock": 4185.244,
+      "observedProfiledGcCount": 204,
+      "observedProfiledMaxGcMs": 4.96841698884964
+    },
+    {
+      "name": "live-gain-1",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 207558512,
+      "projectSampledAllocatedBytes": 207552800,
+      "sampledBytesPerBlock": 4151.17024,
+      "observedProfiledGcCount": 54,
+      "observedProfiledMaxGcMs": 4.387874990701675
+    },
+    {
+      "name": "live-gain-8",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1662957064,
+      "projectSampledAllocatedBytes": 1662950144,
+      "sampledBytesPerBlock": 33259.14128,
+      "observedProfiledGcCount": 104,
+      "observedProfiledMaxGcMs": 33.64200000464916
+    },
+    {
+      "name": "live-gain-8",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1659379872,
+      "projectSampledAllocatedBytes": 1659371920,
+      "sampledBytesPerBlock": 33187.59744,
+      "observedProfiledGcCount": 53,
+      "observedProfiledMaxGcMs": 70.133499994874
+    },
+    {
+      "name": "noise-created-inactive-1",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2006112,
+      "projectSampledAllocatedBytes": 2006112,
+      "sampledBytesPerBlock": 40.12224,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 14.097125008702278
+    },
+    {
+      "name": "noise-created-inactive-32",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2033224,
+      "projectSampledAllocatedBytes": 2033224,
+      "sampledBytesPerBlock": 40.66448,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.5912500023841858
+    },
+    {
+      "name": "noise-released-inactive-32",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2026720,
+      "projectSampledAllocatedBytes": 2025600,
+      "sampledBytesPerBlock": 40.5344,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.5174589902162552
+    },
+    {
+      "name": "noise-active-1",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2025600,
+      "projectSampledAllocatedBytes": 2025600,
+      "sampledBytesPerBlock": 40.512,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.254709005355835
+    },
+    {
+      "name": "noise-active-32",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1982864,
+      "projectSampledAllocatedBytes": 1980720,
+      "sampledBytesPerBlock": 39.65728,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.255167007446289
+    }
+  ],
+  "indexedAllocationSummary": [
+    {
+      "name": "empty",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 3106184,
+      "projectSampledAllocatedBytes": 2016664,
+      "sampledBytesPerBlock": 62.12368,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 2.3509159982204437
+    },
+    {
+      "name": "empty",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 3054144,
+      "projectSampledAllocatedBytes": 2030976,
+      "sampledBytesPerBlock": 61.08288,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.2713750004768372
+    },
+    {
+      "name": "native-gain",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2769304,
+      "projectSampledAllocatedBytes": 1986208,
+      "sampledBytesPerBlock": 55.38608,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.3957080096006393
+    },
+    {
+      "name": "native-gain",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2774280,
+      "projectSampledAllocatedBytes": 1993240,
+      "sampledBytesPerBlock": 55.4856,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.4341659992933273
+    },
+    {
+      "name": "native-gain-ramp",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2865440,
+      "projectSampledAllocatedBytes": 2864400,
+      "sampledBytesPerBlock": 57.3088,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.331166997551918
+    },
+    {
+      "name": "native-gain-ramp",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2933520,
+      "projectSampledAllocatedBytes": 2927680,
+      "sampledBytesPerBlock": 58.6704,
+      "observedProfiledGcCount": 2,
+      "observedProfiledMaxGcMs": 1.2078749984502792
+    },
+    {
+      "name": "native-filter-delay-reverb",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2081016,
+      "projectSampledAllocatedBytes": 2044456,
+      "sampledBytesPerBlock": 41.62032,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.4850419908761978
+    },
+    {
+      "name": "native-filter-delay-reverb",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2066848,
+      "projectSampledAllocatedBytes": 2065792,
+      "sampledBytesPerBlock": 41.33696,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 1.4344169944524765
+    },
+    {
+      "name": "live-gain-1",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 209657552,
+      "projectSampledAllocatedBytes": 209650784,
+      "sampledBytesPerBlock": 4193.15104,
+      "observedProfiledGcCount": 104,
+      "observedProfiledMaxGcMs": 4.819624990224838
+    },
+    {
+      "name": "live-gain-1",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 5083312,
+      "projectSampledAllocatedBytes": 5074648,
+      "sampledBytesPerBlock": 101.66624,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 3.437832996249199
+    },
+    {
+      "name": "live-gain-8",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1663366384,
+      "projectSampledAllocatedBytes": 1663359352,
+      "sampledBytesPerBlock": 33267.32768,
+      "observedProfiledGcCount": 203,
+      "observedProfiledMaxGcMs": 29.335624992847443
+    },
+    {
+      "name": "live-gain-8",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 27822264,
+      "projectSampledAllocatedBytes": 27811128,
+      "sampledBytesPerBlock": 556.44528,
+      "observedProfiledGcCount": 1,
+      "observedProfiledMaxGcMs": 13.173250004649162
+    }
+  ],
+  "artifactNames": [
+    "probe.mjs",
+    "README.md",
+    "findings.md",
+    "timing.json",
+    "alloc.json",
+    "compare.json",
+    "compare-js.json",
+    "timing-indexed.json",
+    "alloc-indexed.json",
+    "compare-js-indexed.json",
+    "indexed-semantics.log",
+    "indexed-hook.mjs",
+    "compiler.txt",
+    "build-command-template.sh"
+  ]
+}

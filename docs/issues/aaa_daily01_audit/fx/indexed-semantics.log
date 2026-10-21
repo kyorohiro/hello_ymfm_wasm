@@ -1,0 +1,19 @@
+✔ named functions, methods, context copies, replacement state and removal (2.920208ms)
+✔ bad registration is atomic; runtime exception/nonfinite bypass preserves input (1.00575ms)
+✔ invalid channel replacements and array shape changes bypass only that effect (22.648458ms)
+✔ owned channel arrays and sample buffers are reused between blocks without freezing valid replacements (1.466041ms)
+✔ valid Float32Array channel replacement remains audible and cannot replace the rack’s reusable buffers (4.926542ms)
+✔ valid input and output replacements work at cached segment lengths and restore their canonical arrays (0.892083ms)
+✔ actual WASM worklet accepts liveFx on main and direct Worker port; Stop clears it (12.813042ms)
+✔ monitor is opt-in, collects contiguous per-FX stereo windows and stops after one reply (8.683792ms)
+✔ display FFT resolves a sine bin and preserves the gain difference (6.601417ms)
+✔ adding gain to an already running rack fades dry to wet without a block boundary step (1.991041ms)
+✔ a DSP can sanitize nonfinite source samples without dry/wet mixing reintroducing NaN (0.993833ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 131.203667

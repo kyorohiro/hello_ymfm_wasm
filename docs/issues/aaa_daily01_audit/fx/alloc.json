@@ -1,0 +1,2362 @@
+{
+  "env": {
+    "node": "v26.12.0",
+    "v8": "14.6.202.34-node.39",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M2",
+    "rate": 48000,
+    "frames": 128,
+    "blockBudgetMs": 2.6666666666666665,
+    "warmup": 5000,
+    "blocks": 20000,
+    "trials": 3,
+    "wasmSha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290",
+    "jsCandidateFlavor": "helper-guard"
+  },
+  "samplingInterval": 1024,
+  "includeCollectedObjects": true,
+  "rows": [
+    {
+      "name": "empty",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2901728,
+      "sampledBytesPerBlock": 58.03456,
+      "projectSampledAllocatedBytes": 1972592,
+      "projectSampledBytesPerBlock": 39.45184,
+      "gc": [
+        {
+          "durationMs": 0.15770798921585083,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.8871250003576279,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 1456560,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 503280,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 471960,
+          "function": "values",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 443760,
+          "function": "next",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 12752,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/native_fx_engine.js",
+          "line": 81
+        },
+        {
+          "bytes": 6720,
+          "function": "set",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 5640,
+          "function": "post",
+          "url": "node:inspector",
+          "line": 115
+        },
+        {
+          "bytes": 1056,
+          "function": "wrappedFn",
+          "url": "node:internal/errors",
+          "line": 542
+        }
+      ]
+    },
+    {
+      "name": "empty",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 20608,
+      "sampledBytesPerBlock": 0.41216,
+      "projectSampledAllocatedBytes": 17192,
+      "projectSampledBytesPerBlock": 0.34384,
+      "gc": [
+        {
+          "durationMs": 1.2022919952869415,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 8624,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/custom_fx.candidate.mjs",
+          "line": 28
+        },
+        {
+          "bytes": 8568,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/native_fx_engine.candidate.mjs",
+          "line": 81
+        },
+        {
+          "bytes": 2360,
+          "function": "post",
+          "url": "node:inspector",
+          "line": 115
+        },
+        {
+          "bytes": 1056,
+          "function": "Promise",
+          "url": "",
+          "line": 0
+        }
+      ]
+    },
+    {
+      "name": "native-gain",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2805928,
+      "sampledBytesPerBlock": 56.11856,
+      "projectSampledAllocatedBytes": 1988288,
+      "projectSampledBytesPerBlock": 39.76576,
+      "gc": [
+        {
+          "durationMs": 0.1506669968366623,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.53787499666214,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 1156880,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 804000,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 414520,
+          "function": "values",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 402000,
+          "function": "next",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 27408,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/native_fx_engine.js",
+          "line": 81
+        },
+        {
+          "bytes": 1120,
+          "function": "Promise",
+          "url": "",
+          "line": 0
+        }
+      ]
+    },
+    {
+      "name": "native-gain",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 28776,
+      "sampledBytesPerBlock": 0.57552,
+      "projectSampledAllocatedBytes": 22000,
+      "projectSampledBytesPerBlock": 0.44,
+      "gc": [
+        {
+          "durationMs": 1.3568329960107803,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 22000,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/native_fx_engine.candidate.mjs",
+          "line": 81
+        },
+        {
+          "bytes": 5712,
+          "function": "set",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 1064,
+          "function": "post",
+          "url": "file:///private/tmp/audit-daily01-fx/probe.mjs",
+          "line": 102
+        }
+      ]
+    },
+    {
+      "name": "native-gain-ramp",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2807792,
+      "sampledBytesPerBlock": 56.15584,
+      "projectSampledAllocatedBytes": 2805680,
+      "projectSampledBytesPerBlock": 56.1136,
+      "gc": [
+        {
+          "durationMs": 0.16770799458026886,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.2923330068588257,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 1163160,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 799800,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 505248,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/native_fx_engine.js",
+          "line": 81
+        },
+        {
+          "bytes": 337472,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/native_fx_engine.js",
+          "line": 81
+        },
+        {
+          "bytes": 1056,
+          "function": "",
+          "url": "file:///private/tmp/audit-daily01-fx/probe.mjs",
+          "line": 102
+        },
+        {
+          "bytes": 1056,
+          "function": "post",
+          "url": "node:inspector",
+          "line": 115
+        }
+      ]
+    },
+    {
+      "name": "native-gain-ramp",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 847400,
+      "sampledBytesPerBlock": 16.948,
+      "projectSampledAllocatedBytes": 847400,
+      "projectSampledBytesPerBlock": 16.948,
+      "gc": [
+        {
+          "durationMs": 1.0848330110311508,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 504776,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/native_fx_engine.candidate.mjs",
+          "line": 81
+        },
+        {
+          "bytes": 342624,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/native_fx_engine.candidate.mjs",
+          "line": 81
+        }
+      ]
+    },
+    {
+      "name": "native-filter-delay-reverb",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1982272,
+      "sampledBytesPerBlock": 39.64544,
+      "projectSampledAllocatedBytes": 1945752,
+      "projectSampledBytesPerBlock": 38.91504,
+      "gc": [
+        {
+          "durationMs": 1.20762500166893,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 1101560,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 823800,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 21920,
+          "function": "values",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 20392,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/native_fx_engine.js",
+          "line": 81
+        },
+        {
+          "bytes": 13560,
+          "function": "next",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 1040,
+          "function": "#onMessage",
+          "url": "node:inspector",
+          "line": 84
+        }
+      ]
+    },
+    {
+      "name": "native-filter-delay-reverb",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 7664,
+      "sampledBytesPerBlock": 0.15328,
+      "projectSampledAllocatedBytes": 6608,
+      "projectSampledBytesPerBlock": 0.13216,
+      "gc": [
+        {
+          "durationMs": 1.3242080062627792,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 6608,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/native_fx_engine.candidate.mjs",
+          "line": 81
+        },
+        {
+          "bytes": 1056,
+          "function": "",
+          "url": "file:///private/tmp/audit-daily01-fx/probe.mjs",
+          "line": 102
+        }
+      ]
+    },
+    {
+      "name": "live-gain-1",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 209262200,
+      "sampledBytesPerBlock": 4185.244,
+      "projectSampledAllocatedBytes": 209252440,
+      "projectSampledBytesPerBlock": 4185.0488,
+      "gc": [
+        {
+          "durationMs": 0.0856659859418869,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07358400523662567,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05312499403953552,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04833400249481201,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05283300578594208,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.046375006437301636,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06258299946784973,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.048875004053115845,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05991700291633606,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.054582998156547546,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04762500524520874,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.051291003823280334,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047832995653152466,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.046375006437301636,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05020800232887268,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05537499487400055,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04749999940395355,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.052375003695487976,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.048583999276161194,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047541990876197815,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04862499237060547,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04749999940395355,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05091699957847595,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05295899510383606,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04899999499320984,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04229100048542023,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04891699552536011,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04583299160003662,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04375000298023224,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.049792006611824036,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05437499284744263,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04854099452495575,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05145899951457977,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.049917012453079224,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06499999761581421,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04429100453853607,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.045249998569488525,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.044666990637779236,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.045791998505592346,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04762500524520874,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04704199731349945,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.050165995955467224,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.35383400321006775,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.060791000723838806,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05083300173282623,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047832995653152466,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06195800006389618,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.078000009059906,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05841599404811859,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05300000309944153,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0577080100774765,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0494999885559082,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04716600477695465,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04841598868370056,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04399999976158142,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05429200828075409,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08216699957847595,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06983301043510437,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05095799267292023,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04854200780391693,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.049250006675720215,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047624990344047546,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04741699993610382,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04775001108646393,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04983299970626831,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05333299934864044,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047999992966651917,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04749999940395355,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.049250006675720215,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04529200494289398,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0460829883813858,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04633401334285736,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05029098689556122,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.044874995946884155,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05166700482368469,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05808299779891968,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.048666998744010925,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04729199409484863,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04404100775718689,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047042012214660645,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047665998339653015,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.046291008591651917,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.045791998505592346,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04587499797344208,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047207996249198914,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06562501192092896,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06279200315475464,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.049166008830070496,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05020900070667267,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05087500810623169,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.048333004117012024,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.051458001136779785,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05179201066493988,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05437499284744263,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.049708008766174316,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05104200541973114,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04745800793170929,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04666699469089508,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04837499558925629,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.050707995891571045,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04749999940395355,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06225000321865082,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04712499678134918,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.048666998744010925,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047374993562698364,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.048500001430511475,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0465410053730011,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06370800733566284,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.21020899713039398,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06841699779033661,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05262500047683716,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.4168750047683716,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07329200208187103,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07962499558925629,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05233301222324371,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.057457998394966125,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05712500214576721,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05095799267292023,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05187501013278961,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1574999988079071,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08620800077915192,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06566700339317322,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05833400785923004,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05754201114177704,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07316699624061584,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.056707993149757385,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0502920001745224,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08866600692272186,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05804099142551422,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1496250033378601,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08020800352096558,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.4014579951763153,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07429200410842896,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0651250034570694,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05566699802875519,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.048875004053115845,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.050000011920928955,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05308300256729126,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.047374993562698364,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04683299362659454,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05387501418590546,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04908299446105957,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04350000619888306,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.044958993792533875,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05112498998641968,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04800000786781311,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04674999415874481,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04583299160003662,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04662500321865082,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06729200482368469,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08941599726676941,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07987499237060547,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.686041995882988,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.10870900750160217,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1146250069141388,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.2932499945163727,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.39183300733566284,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5002920031547546,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.09533300995826721,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.09999999403953552,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08158299326896667,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0564579963684082,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05733300745487213,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.057541996240615845,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05224999785423279,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05041700601577759,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05249999463558197,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.057374998927116394,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04924999177455902,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.2582080066204071,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6368329972028732,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8623749911785126,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06687499582767487,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05575001239776611,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05445900559425354,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04808299243450165,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04987500607967377,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.053582996129989624,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04958300292491913,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0495000034570694,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07129199802875519,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06129200756549835,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.1194590032100677,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.204374998807907,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05637499690055847,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.2104170024394989,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5934169888496399,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.1015830039978027,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1532920002937317,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.11308299005031586,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07866699993610382,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.0750419944524765,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08491599559783936,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.06995800137519836,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.058667004108428955,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.053125008940696716,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.049708008766174316,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.04975000023841858,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.05324999988079071,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.561040997505188,
+          "kind": 4
+        },
+        {
+          "durationMs": 0.4066249877214432,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8781249970197678,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.07929199934005737,
+          "kind": 8
+        },
+        {
+          "durationMs": 4.96841698884964,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 116908624,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 92343816,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 9760,
+          "function": "run",
+          "url": "file:///private/tmp/audit-daily01-fx/probe.mjs",
+          "line": 77
+        }
+      ]
+    },
+    {
+      "name": "live-gain-1",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 207558512,
+      "sampledBytesPerBlock": 4151.17024,
+      "projectSampledAllocatedBytes": 207552800,
+      "projectSampledBytesPerBlock": 4151.056,
+      "gc": [
+        {
+          "durationMs": 0.14641699194908142,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.2314170002937317,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.11249999701976776,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.10512501001358032,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1206669956445694,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.10787500441074371,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.11225000023841858,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.10020799934864044,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.13887500762939453,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.29762499034404755,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.11370900273323059,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1149590015411377,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.13212499022483826,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.11116699874401093,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.12691698968410492,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.10966700315475464,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5629590004682541,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1926250010728836,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.22287499904632568,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.2257090061903,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.13008300960063934,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1679999977350235,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.13329200446605682,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.132082998752594,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.15108400583267212,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.20958299934864044,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.32429200410842896,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.21320800483226776,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.16899999976158142,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.3487920016050339,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.15758301317691803,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.26466600596904755,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1510000079870224,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.30412501096725464,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.15666599571704865,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.3652079999446869,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.35237500071525574,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.2088329941034317,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.20800000429153442,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.4034159928560257,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.16145899891853333,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.266292005777359,
+          "kind": 1
+        },
+        {
+          "durationMs": 4.387874990701675,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.9514999985694885,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.22887499630451202,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.2865000069141388,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6322080045938492,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.16387499868869781,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1353750079870224,
+          "kind": 1
+        },
+        {
+          "durationMs": 4.058166012167931,
+          "kind": 4
+        },
+        {
+          "durationMs": 1.3947080075740814,
+          "kind": 1
+        },
+        {
+          "durationMs": 2.736291006207466,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08379098773002625,
+          "kind": 8
+        },
+        {
+          "durationMs": 1.240542009472847,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 117203232,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/custom_fx.candidate.mjs",
+          "line": 28
+        },
+        {
+          "bytes": 90349568,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/custom_fx.candidate.mjs",
+          "line": 28
+        },
+        {
+          "bytes": 5712,
+          "function": "run",
+          "url": "file:///private/tmp/audit-daily01-fx/probe.mjs",
+          "line": 77
+        }
+      ]
+    },
+    {
+      "name": "live-gain-8",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1662957064,
+      "sampledBytesPerBlock": 33259.14128,
+      "projectSampledAllocatedBytes": 1662950144,
+      "projectSampledBytesPerBlock": 33259.00288,
+      "gc": [
+        {
+          "durationMs": 0.6948750019073486,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7308329939842224,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7425840049982071,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6013329923152924,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5214160084724426,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.590832993388176,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8612919896841049,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6340840011835098,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.375,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6047089993953705,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5927080065011978,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.9933750033378601,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7175409942865372,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5928750038146973,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.635249987244606,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6441670060157776,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8128339946269989,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.71629199385643,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.1164170056581497,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7270420044660568,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7796659916639328,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4728340059518814,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7134170085191727,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6877079904079437,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5852500051259995,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6345420032739639,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8803329914808273,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6555840075016022,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6373330056667328,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7651669979095459,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6014170050621033,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6793330013751984,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6176670044660568,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5555419921875,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8636250048875809,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5781669914722443,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.837582990527153,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6233330070972443,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5625420063734055,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.719417005777359,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5678330063819885,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6543750017881393,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5907500088214874,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5415410101413727,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6207080036401749,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5910830050706863,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6189160048961639,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.626458004117012,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7439579963684082,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8495000004768372,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8780840039253235,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.9988749921321869,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.742249995470047,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6496670097112656,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5696669965982437,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6340829879045486,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7767080068588257,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5700830072164536,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6574169993400574,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5714160054922104,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6632499992847443,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5980830043554306,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6007499992847443,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7762079983949661,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6794160008430481,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6648330092430115,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6679999977350235,
+          "kind": 1
+        },
+        {
+          "durationMs": 7.574625000357628,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6379579901695251,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6767500042915344,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.9205410033464432,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4188749939203262,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6212090104818344,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8371250033378601,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.2292499989271164,
+          "kind": 1
+        },
+        {
+          "durationMs": 2.8270419985055923,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8500830084085464,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.57362499833107,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6683329939842224,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7586250007152557,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6261249929666519,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7056660056114197,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.85520800948143,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.9180830121040344,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5832080096006393,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.649833008646965,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5779999941587448,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5550410002470016,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.7781669944524765,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6984589993953705,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.8022080063819885,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6640409976243973,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.621291995048523,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6522499918937683,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6504170000553131,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.706375002861023,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.5742909908294678,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.6900829970836639,
+          "kind": 1
+        },
+        {
+          "durationMs": 3.829833000898361,
+          "kind": 4
+        },
+        {
+          "durationMs": 6.2751249969005585,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.08983398973941803,
+          "kind": 8
+        },
+        {
+          "durationMs": 33.64200000464916,
+          "kind": 4
+        },
+        {
+          "durationMs": 17.354916006326675,
+          "kind": 1
+        },
+        {
+          "durationMs": 15.987625002861023,
+          "kind": 1
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 928417560,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 734532584,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 4800,
+          "function": "run",
+          "url": "file:///private/tmp/audit-daily01-fx/probe.mjs",
+          "line": 77
+        },
+        {
+          "bytes": 1064,
+          "function": "delete",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 1056,
+          "function": "wrappedFn",
+          "url": "node:internal/errors",
+          "line": 542
+        }
+      ]
+    },
+    {
+      "name": "live-gain-8",
+      "variant": "js-candidate",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1659379872,
+      "sampledBytesPerBlock": 33187.59744,
+      "projectSampledAllocatedBytes": 1659371920,
+      "projectSampledBytesPerBlock": 33187.4384,
+      "gc": [
+        {
+          "durationMs": 1.3142500072717667,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4050830006599426,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.5774159878492355,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.7019160091876984,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.8808339983224869,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4165000021457672,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3437080085277557,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3250409960746765,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3110830038785934,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.789583995938301,
+          "kind": 1
+        },
+        {
+          "durationMs": 2.1031250059604645,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3390420079231262,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4837500005960464,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.410082995891571,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.43504199385643,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.342375010251999,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4800000041723251,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4309169948101044,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3802499920129776,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.5752080082893372,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.7425000071525574,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.713125005364418,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.5764580070972443,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.578458994626999,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4227499961853027,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4940000027418137,
+          "kind": 1
+        },
+        {
+          "durationMs": 2.2349999994039536,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.5395420044660568,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.5695419907569885,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.7334159910678864,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.460207998752594,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3820420056581497,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3473329991102219,
+          "kind": 1
+        },
+        {
+          "durationMs": 2.451333999633789,
+          "kind": 1
+        },
+        {
+          "durationMs": 2.012792006134987,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3754169940948486,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.344208002090454,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3922500014305115,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.6364579945802689,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4362080097198486,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4375839978456497,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.507207989692688,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4600410014390945,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.9316250085830688,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3265000134706497,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4488329887390137,
+          "kind": 1
+        },
+        {
+          "durationMs": 2.163458004593849,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.4940420091152191,
+          "kind": 1
+        },
+        {
+          "durationMs": 1.3772919923067093,
+          "kind": 1
+        },
+        {
+          "durationMs": 24.558875009417534,
+          "kind": 4
+        },
+        {
+          "durationMs": 11.47333300113678,
+          "kind": 1
+        },
+        {
+          "durationMs": 0.1432500034570694,
+          "kind": 8
+        },
+        {
+          "durationMs": 70.133499994874,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 927798432,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/custom_fx.candidate.mjs",
+          "line": 28
+        },
+        {
+          "bytes": 731573488,
+          "function": "process",
+          "url": "file:///private/tmp/audit-daily01-fx/custom_fx.candidate.mjs",
+          "line": 28
+        },
+        {
+          "bytes": 3744,
+          "function": "set",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 2104,
+          "function": "post",
+          "url": "node:inspector",
+          "line": 115
+        },
+        {
+          "bytes": 1064,
+          "function": "delete",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 1040,
+          "function": "#onMessage",
+          "url": "node:inspector",
+          "line": 84
+        }
+      ]
+    },
+    {
+      "name": "noise-created-inactive-1",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2006112,
+      "sampledBytesPerBlock": 40.12224,
+      "projectSampledAllocatedBytes": 2006112,
+      "projectSampledBytesPerBlock": 40.12224,
+      "gc": [
+        {
+          "durationMs": 14.097125008702278,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 1150640,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 847840,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 7632,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/native_fx_engine.js",
+          "line": 81
+        }
+      ]
+    },
+    {
+      "name": "noise-created-inactive-32",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2033224,
+      "sampledBytesPerBlock": 40.66448,
+      "projectSampledAllocatedBytes": 2033224,
+      "projectSampledBytesPerBlock": 40.66448,
+      "gc": [
+        {
+          "durationMs": 1.5912500023841858,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 1592280,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 429120,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 11824,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/native_fx_engine.js",
+          "line": 81
+        }
+      ]
+    },
+    {
+      "name": "noise-released-inactive-32",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2026720,
+      "sampledBytesPerBlock": 40.5344,
+      "projectSampledAllocatedBytes": 2025600,
+      "projectSampledBytesPerBlock": 40.512,
+      "gc": [
+        {
+          "durationMs": 1.5174589902162552,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 2025600,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 1120,
+          "function": "Promise",
+          "url": "",
+          "line": 0
+        }
+      ]
+    },
+    {
+      "name": "noise-active-1",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 2025600,
+      "sampledBytesPerBlock": 40.512,
+      "projectSampledAllocatedBytes": 2025600,
+      "projectSampledBytesPerBlock": 40.512,
+      "gc": [
+        {
+          "durationMs": 1.254709005355835,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 2025600,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        }
+      ]
+    },
+    {
+      "name": "noise-active-32",
+      "variant": "shipped",
+      "blocks": 50000,
+      "sampledAllocatedBytes": 1982864,
+      "sampledBytesPerBlock": 39.65728,
+      "projectSampledAllocatedBytes": 1980720,
+      "projectSampledBytesPerBlock": 39.6144,
+      "gc": [
+        {
+          "durationMs": 1.255167007446289,
+          "kind": 4
+        }
+      ],
+      "allocations": [
+        {
+          "bytes": 1980720,
+          "function": "process",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/custom_fx.js",
+          "line": 27
+        },
+        {
+          "bytes": 1080,
+          "function": "#onMessage",
+          "url": "node:inspector",
+          "line": 84
+        },
+        {
+          "bytes": 1064,
+          "function": "",
+          "url": "file:///private/tmp/audit-daily01-fx/probe.mjs",
+          "line": 102
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,883 @@
+{
+  "metadata": {
+    "dateUTC": "2026-10-21T04:29:02.869Z",
+    "node": "v26.12.0",
+    "v8": "14.6.202.34-node.39",
+    "platform": "darwin",
+    "arch": "arm64",
+    "os": "24.6.0",
+    "cpu": "Apple M2",
+    "logicalCPUs": 8,
+    "git": "05342b77b089962a6f13c0a473e88d1cf16ec5f3",
+    "sampleRate": 48000,
+    "quantum": 128,
+    "warmupBlocks": 1500,
+    "measuredBlocks": 5000,
+    "trials": 5,
+    "sameRealm": true,
+    "engine": "Huc6280AudioEngine direct ESM import with shipped WASM; no VM, browser, Worklet scheduler, UI, Worker or device",
+    "timing": "Two performance.now calls per block; sampling profiler is in a separate pass; interleaved AB/BA trial order",
+    "allocationLimit": "Approximate V8 sampling, not comprehensive external ArrayBuffer accounting. Both conditions allocate two owned Float32Array payloads = 5,120,000 bytes per 5,000 blocks, separately from sampled totals.",
+    "hashes": {
+      "web/huc6280audioengine.js": "9abd7bd2b6161cbb5e81b41fb15387bbbbc757bdce8916366bfb617a69edff0c",
+      "docs/generated/huc6280_wasm.js": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f",
+      "docs/generated/huc6280_wasm.wasm": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+    },
+    "productionEdited": false,
+    "timerControl": {
+      "meanUs": 0.02719622999990861,
+      "p50Us": 0.04100000001017179,
+      "p95Us": 0.04200000000764703,
+      "p99Us": 0.08300000001781882,
+      "maxUs": 51.66700000000901
+    }
+  },
+  "correctness": [
+    {
+      "volume": 1,
+      "variant": "current",
+      "sha256": "473f2809be8e82c5c41e0caacafe4f56db29d2d9ba1b3692501de24bcb3cdad0",
+      "frames": 67872,
+      "peak": 0.16650390625
+    },
+    {
+      "volume": 1,
+      "variant": "indexed",
+      "sha256": "473f2809be8e82c5c41e0caacafe4f56db29d2d9ba1b3692501de24bcb3cdad0",
+      "frames": 67872,
+      "peak": 0.16650390625
+    },
+    {
+      "volume": 0.7,
+      "variant": "current",
+      "sha256": "abe84d307116b28177ac7b4c74100e93dfd8fe370305beffa1351e017e3422f8",
+      "frames": 67872,
+      "peak": 0.11655273288488388
+    },
+    {
+      "volume": 0.7,
+      "variant": "indexed",
+      "sha256": "abe84d307116b28177ac7b4c74100e93dfd8fe370305beffa1351e017e3422f8",
+      "frames": 67872,
+      "peak": 0.11655273288488388
+    }
+  ],
+  "timing": {
+    "current": [
+      {
+        "trial": 1,
+        "meanUs": 89.11212039999943,
+        "p50Us": 87.41600000007566,
+        "p95Us": 102.62499999998909,
+        "p99Us": 127.5829999999587,
+        "maxUs": 642.9590000000189,
+        "wallMs": 445.73570800000005,
+        "checksum": -53.35042796458583,
+        "naturalGC": [
+          {
+            "startTime": 679.337292,
+            "durationMs": 0.07600000500679016,
+            "kind": 1
+          },
+          {
+            "startTime": 693.33925,
+            "durationMs": 0.07991699874401093,
+            "kind": 1
+          },
+          {
+            "startTime": 707.870125,
+            "durationMs": 0.06266701221466064,
+            "kind": 1
+          },
+          {
+            "startTime": 721.697583,
+            "durationMs": 0.055709004402160645,
+            "kind": 1
+          },
+          {
+            "startTime": 735.829125,
+            "durationMs": 0.0408329963684082,
+            "kind": 1
+          },
+          {
+            "startTime": 750.04975,
+            "durationMs": 0.042374998331069946,
+            "kind": 1
+          },
+          {
+            "startTime": 764.027,
+            "durationMs": 0.03720800578594208,
+            "kind": 1
+          },
+          {
+            "startTime": 777.906125,
+            "durationMs": 0.03691698610782623,
+            "kind": 1
+          },
+          {
+            "startTime": 791.793208,
+            "durationMs": 0.03824999928474426,
+            "kind": 1
+          },
+          {
+            "startTime": 806.050417,
+            "durationMs": 0.04770798981189728,
+            "kind": 1
+          },
+          {
+            "startTime": 821.196458,
+            "durationMs": 0.0575840026140213,
+            "kind": 1
+          },
+          {
+            "startTime": 835.594417,
+            "durationMs": 0.06466600298881531,
+            "kind": 1
+          },
+          {
+            "startTime": 850.066542,
+            "durationMs": 0.05529099702835083,
+            "kind": 1
+          },
+          {
+            "startTime": 864.885333,
+            "durationMs": 0.06695899367332458,
+            "kind": 1
+          },
+          {
+            "startTime": 879.466792,
+            "durationMs": 0.059957996010780334,
+            "kind": 1
+          },
+          {
+            "startTime": 893.77125,
+            "durationMs": 0.052000001072883606,
+            "kind": 1
+          },
+          {
+            "startTime": 908.205417,
+            "durationMs": 0.04466599225997925,
+            "kind": 1
+          },
+          {
+            "startTime": 922.280875,
+            "durationMs": 0.042500004172325134,
+            "kind": 1
+          },
+          {
+            "startTime": 936.660958,
+            "durationMs": 0.04924999177455902,
+            "kind": 1
+          },
+          {
+            "startTime": 950.546958,
+            "durationMs": 0.04041700065135956,
+            "kind": 1
+          },
+          {
+            "startTime": 964.534667,
+            "durationMs": 0.04254099726676941,
+            "kind": 1
+          },
+          {
+            "startTime": 978.558292,
+            "durationMs": 0.03937500715255737,
+            "kind": 1
+          },
+          {
+            "startTime": 992.504125,
+            "durationMs": 0.04441700875759125,
+            "kind": 1
+          },
+          {
+            "startTime": 1006.531917,
+            "durationMs": 0.03929099440574646,
+            "kind": 1
+          },
+          {
+            "startTime": 1020.863,
+            "durationMs": 0.05379199981689453,
+            "kind": 1
+          },
+          {
+            "startTime": 1035.0195,
+            "durationMs": 0.04029199481010437,
+            "kind": 1
+          },
+          {
+            "startTime": 1050.797625,
+            "durationMs": 0.08779199421405792,
+            "kind": 1
+          },
+          {
+            "startTime": 1065.160833,
+            "durationMs": 0.05595900118350983,
+            "kind": 1
+          },
+          {
+            "startTime": 1079.945833,
+            "durationMs": 0.049709007143974304,
+            "kind": 1
+          },
+          {
+            "startTime": 1094.324,
+            "durationMs": 0.04437500238418579,
+            "kind": 1
+          },
+          {
+            "startTime": 1108.432125,
+            "durationMs": 0.038791999220848083,
+            "kind": 1
+          }
+        ]
+      },
+      {
+        "trial": 2,
+        "meanUs": 88.90428240000092,
+        "p50Us": 87.62500000011642,
+        "p95Us": 101.2919999998303,
+        "p99Us": 116.41700000018318,
+        "maxUs": 181.83300000009694,
+        "wallMs": 444.8329170000002,
+        "checksum": -53.35042796458583,
+        "naturalGC": [
+          {
+            "startTime": 2329.710083,
+            "durationMs": 0.07912498712539673,
+            "kind": 1
+          },
+          {
+            "startTime": 2343.791917,
+            "durationMs": 0.06150001287460327,
+            "kind": 1
+          },
+          {
+            "startTime": 2358.176375,
+            "durationMs": 0.03804199397563934,
+            "kind": 1
+          },
+          {
+            "startTime": 2372.650792,
+            "durationMs": 0.06949999928474426,
+            "kind": 1
+          },
+          {
+            "startTime": 2387.096958,
+            "durationMs": 0.03995899856090546,
+            "kind": 1
+          },
+          {
+            "startTime": 2401.487333,
+            "durationMs": 0.04770900309085846,
+            "kind": 1
+          },
+          {
+            "startTime": 2415.675042,
+            "durationMs": 0.04899999499320984,
+            "kind": 1
+          },
+          {
+            "startTime": 2429.720667,
+            "durationMs": 0.043415993452072144,
+            "kind": 1
+          },
+          {
+            "startTime": 2443.799208,
+            "durationMs": 0.04095900058746338,
+            "kind": 1
+          },
+          {
+            "startTime": 2457.772875,
+            "durationMs": 0.04245801270008087,
+            "kind": 1
+          },
+          {
+            "startTime": 2471.790458,
+            "durationMs": 0.03916698694229126,
+            "kind": 1
+          },
+          {
+            "startTime": 2485.897667,
+            "durationMs": 0.04466599225997925,
+            "kind": 1
+          },
+          {
+            "startTime": 2499.993458,
+            "durationMs": 0.04074999690055847,
+            "kind": 1
+          },
+          {
+            "startTime": 2514.348208,
+            "durationMs": 0.04208400845527649,
+            "kind": 1
+          },
+          {
+            "startTime": 2528.471125,
+            "durationMs": 0.03966699540615082,
+            "kind": 1
+          },
+          {
+            "startTime": 2542.410625,
+            "durationMs": 0.04770800471305847,
+            "kind": 1
+          },
+          {
+            "startTime": 2556.637792,
+            "durationMs": 0.05870799720287323,
+            "kind": 1
+          },
+          {
+            "startTime": 2570.875167,
+            "durationMs": 0.038874998688697815,
+            "kind": 1
+          },
+          {
+            "startTime": 2584.940792,
+            "durationMs": 0.036457985639572144,
+            "kind": 1
+          },
+          {
+            "startTime": 2599.108958,
+            "durationMs": 0.03624999523162842,
+            "kind": 1
+          },
+          {
+            "startTime": 2613.185042,
+            "durationMs": 0.05312499403953552,
+            "kind": 1
+          },
+          {
+            "startTime": 2627.602417,
+            "durationMs": 0.041374996304512024,
+            "kind": 1
+          },
+          {
+            "startTime": 2641.868333,
+            "durationMs": 0.037584006786346436,
+            "kind": 1
+          },
+          {
+            "startTime": 2655.825125,
+            "durationMs": 0.04054199159145355,
+            "kind": 1
+          },
+          {
+            "startTime": 2670.163292,
+            "durationMs": 0.03737500309944153,
+            "kind": 1
+          },
+          {
+            "startTime": 2684.034458,
+            "durationMs": 0.03966701030731201,
+            "kind": 1
+          },
+          {
+            "startTime": 2698.29525,
+            "durationMs": 0.039000004529953,
+            "kind": 1
+          },
+          {
+            "startTime": 2712.60725,
+            "durationMs": 0.05020800232887268,
+            "kind": 1
+          },
+          {
+            "startTime": 2727.342917,
+            "durationMs": 0.058791011571884155,
+            "kind": 1
+          },
+          {
+            "startTime": 2741.71,
+            "durationMs": 0.04879198968410492,
+            "kind": 1
+          },
+          {
+            "startTime": 2756.187458,
+            "durationMs": 0.047749996185302734,
+            "kind": 1
+          }
+        ]
+      },
+      {
+        "trial": 3,
+        "meanUs": 90.95501039999462,
+        "p50Us": 87.62500000011642,
+        "p95Us": 103.12500000009095,
+        "p99Us": 208.2919999998012,
+        "maxUs": 691.4580000002388,
+        "wallMs": 455.1313329999998,
+        "checksum": -53.35042796458583,
+        "naturalGC": [
+          {
+            "startTime": 2922.668417,
+            "durationMs": 0.0669579952955246,
+            "kind": 1
+          },
+          {
+            "startTime": 2936.514792,
+            "durationMs": 0.07300001382827759,
+            "kind": 1
+          },
+          {
+            "startTime": 2950.618458,
+            "durationMs": 0.04975000023841858,
+            "kind": 1
+          },
+          {
+            "startTime": 2965.302542,
+            "durationMs": 0.04604099690914154,
+            "kind": 1
+          },
+          {
+            "startTime": 2979.473667,
+            "durationMs": 0.038541004061698914,
+            "kind": 1
+          },
+          {
+            "startTime": 2993.6115,
+            "durationMs": 0.045917004346847534,
+            "kind": 1
+          },
+          {
+            "startTime": 3008.001542,
+            "durationMs": 0.050916001200675964,
+            "kind": 1
+          },
+          {
+            "startTime": 3022.190667,
+            "durationMs": 0.038957998156547546,
+            "kind": 1
+          },
+          {
+            "startTime": 3036.834542,
+            "durationMs": 0.04050000011920929,
+            "kind": 1
+          },
+          {
+            "startTime": 3050.816375,
+            "durationMs": 0.03741699457168579,
+            "kind": 1
+          },
+          {
+            "startTime": 3064.878375,
+            "durationMs": 0.04462499916553497,
+            "kind": 1
+          },
+          {
+            "startTime": 3079.066208,
+            "durationMs": 0.06412500143051147,
+            "kind": 1
+          },
+          {
+            "startTime": 3093.49125,
+            "durationMs": 0.042208001017570496,
+            "kind": 1
+          },
+          {
+            "startTime": 3107.592292,
+            "durationMs": 0.038791000843048096,
+            "kind": 1
+          },
+          {
+            "startTime": 3121.838792,
+            "durationMs": 0.04304100573062897,
+            "kind": 1
+          },
+          {
+            "startTime": 3135.826167,
+            "durationMs": 0.035457998514175415,
+            "kind": 1
+          },
+          {
+            "startTime": 3149.892667,
+            "durationMs": 0.04025000333786011,
+            "kind": 1
+          },
+          {
+            "startTime": 3163.946542,
+            "durationMs": 0.04679100215435028,
+            "kind": 1
+          },
+          {
+            "startTime": 3178.159333,
+            "durationMs": 0.035750001668930054,
+            "kind": 1
+          },
+          {
+            "startTime": 3192.259458,
+            "durationMs": 0.035624995827674866,
+            "kind": 1
+          },
+          {
+            "startTime": 3206.211167,
+            "durationMs": 0.035165995359420776,
+            "kind": 1
+          },
+          {
+            "startTime": 3220.408083,
+            "durationMs": 0.03529199957847595,
+            "kind": 1
+          },
+          {
+            "startTime": 3234.312833,
+            "durationMs": 0.03504200279712677,
+            "kind": 1
+          },
+          {
+            "startTime": 3248.362042,
+            "durationMs": 0.0533750057220459,
+            "kind": 1
+          },
+          {
+            "startTime": 3262.641667,
+            "durationMs": 0.04912500083446503,
+            "kind": 1
+          },
+          {
+            "startTime": 3276.949542,
+            "durationMs": 0.04029099643230438,
+            "kind": 1
+          },
+          {
+            "startTime": 3291.25325,
+            "durationMs": 0.03862500190734863,
+            "kind": 1
+          },
+          {
+            "startTime": 3305.304333,
+            "durationMs": 0.036750003695487976,
+            "kind": 1
+          },
+          {
+            "startTime": 3321.76025,
+            "durationMs": 0.14287500083446503,
+            "kind": 1
+          },
+          {
+            "startTime": 3341.911375,
+            "durationMs": 0.08895799517631531,
+            "kind": 1
+          },
+          {
+            "startTime": 3357.794792,
+            "durationMs": 0.08637501299381256,
+            "kind": 1
+          }
+        ]
+      },
+      {
+        "trial": 4,
+        "meanUs": 108.22039420000291,
+        "p50Us": 86.83399999972607,
+        "p95Us": 104.83399999975518,
+        "p99Us": 208.6249999993015,
+        "maxUs": 60037.83399999975,
+        "wallMs": 541.8420000000006,
+        "checksum": -53.35042796458583,
+        "naturalGC": [
+          {
+            "startTime": 4572.655583,
+            "durationMs": 0.08441698551177979,
+            "kind": 1
+          },
+          {
+            "startTime": 4601.000292,
+            "durationMs": 0.07574999332427979,
+            "kind": 1
+          },
+          {
+            "startTime": 4645.224083,
+            "durationMs": 0.08891700208187103,
+            "kind": 1
+          },
+          {
+            "startTime": 4758.953167,
+            "durationMs": 0.10962499678134918,
+            "kind": 1
+          },
+          {
+            "startTime": 4787.598542,
+            "durationMs": 0.07270799577236176,
+            "kind": 1
+          },
+          {
+            "startTime": 4816.208625,
+            "durationMs": 0.06233300268650055,
+            "kind": 1
+          },
+          {
+            "startTime": 4844.298,
+            "durationMs": 0.06187500059604645,
+            "kind": 1
+          },
+          {
+            "startTime": 4872.581583,
+            "durationMs": 0.07270899415016174,
+            "kind": 1
+          },
+          {
+            "startTime": 4900.92975,
+            "durationMs": 0.05012500286102295,
+            "kind": 1
+          },
+          {
+            "startTime": 4929.334583,
+            "durationMs": 0.05929200351238251,
+            "kind": 1
+          },
+          {
+            "startTime": 4957.180292,
+            "durationMs": 0.0434579998254776,
+            "kind": 1
+          },
+          {
+            "startTime": 4985.255542,
+            "durationMs": 0.046000003814697266,
+            "kind": 1
+          },
+          {
+            "startTime": 5013.109417,
+            "durationMs": 0.04329100251197815,
+            "kind": 1
+          },
+          {
+            "startTime": 5041.112417,
+            "durationMs": 0.04412500560283661,
+            "kind": 1
+          },
+          {
+            "startTime": 5069.458458,
+            "durationMs": 0.059291988611221313,
+            "kind": 1
+          }
+        ]
+      },
+      {
+        "trial": 5,
+        "meanUs": 99.36551699999981,
+        "p50Us": 90.00000000014552,
+        "p95Us": 115.16699999992852,
+        "p99Us": 241.91699999937555,
+        "maxUs": 5230.70800000005,
+        "wallMs": 497.27237500000047,
+        "checksum": -53.35042796458583,
+        "naturalGC": [
+          {
+            "startTime": 5261.535542,
+            "durationMs": 0.09245800971984863,
+            "kind": 1
+          },
+          {
+            "startTime": 5290.725792,
+            "durationMs": 0.10012499988079071,
+            "kind": 1
+          },
+          {
+            "startTime": 5323.849292,
+            "durationMs": 0.10204100608825684,
+            "kind": 1
+          },
+          {
+            "startTime": 5352.996792,
+            "durationMs": 0.07279099524021149,
+            "kind": 1
+          },
+          {
+            "startTime": 5381.61825,
+            "durationMs": 0.07637500762939453,
+            "kind": 1
+          },
+          {
+            "startTime": 5418.15125,
+            "durationMs": 0.09912499785423279,
+            "kind": 1
+          },
+          {
+            "startTime": 5450.559667,
+            "durationMs": 0.10633300244808197,
+            "kind": 1
+          },
+          {
+            "startTime": 5479.779792,
+            "durationMs": 0.08037500083446503,
+            "kind": 1
+          },
+          {
+            "startTime": 5510.55425,
+            "durationMs": 0.09679199755191803,
+            "kind": 1
+          },
+          {
+            "startTime": 5543.717125,
+            "durationMs": 0.08799999952316284,
+            "kind": 1
+          },
+          {
+            "startTime": 5573.543458,
+            "durationMs": 0.06983400881290436,
+            "kind": 1
+          },
+          {
+            "startTime": 5603.116042,
+            "durationMs": 0.08162499964237213,
+            "kind": 1
+          },
+          {
+            "startTime": 5632.391917,
+            "durationMs": 0.07050000131130219,
+            "kind": 1
+          },
+          {
+            "startTime": 5661.342333,
+            "durationMs": 0.05379199981689453,
+            "kind": 1
+          },
+          {
+            "startTime": 5689.716417,
+            "durationMs": 0.05629099905490875,
+            "kind": 1
+          }
+        ]
+      }
+    ],
+    "indexed": [
+      {
+        "trial": 1,
+        "meanUs": 80.25587979999787,
+        "p50Us": 74.5839999999589,
+        "p95Us": 92.66699999989214,
+        "p99Us": 187.5,
+        "maxUs": 416.95800000002237,
+        "wallMs": 401.4376669999999,
+        "checksum": -53.35042796458583,
+        "naturalGC": []
+      },
+      {
+        "trial": 2,
+        "meanUs": 76.95519339999942,
+        "p50Us": 74.50000000017099,
+        "p95Us": 87.87499999993997,
+        "p99Us": 98.99999999970532,
+        "maxUs": 172.70800000005693,
+        "wallMs": 384.90770799999996,
+        "checksum": -53.35042796458583,
+        "naturalGC": []
+      },
+      {
+        "trial": 3,
+        "meanUs": 77.09309439999679,
+        "p50Us": 74.54199999983757,
+        "p95Us": 87.8749999997126,
+        "p99Us": 98.12499999998181,
+        "maxUs": 320.87500000034197,
+        "wallMs": 385.7745420000001,
+        "checksum": -53.35042796458583,
+        "naturalGC": []
+      },
+      {
+        "trial": 4,
+        "meanUs": 76.6451228000029,
+        "p50Us": 74.45900000038819,
+        "p95Us": 87.37500000006548,
+        "p99Us": 98.25000000000728,
+        "maxUs": 290.1670000001104,
+        "wallMs": 383.36179200000015,
+        "checksum": -53.35042796458583,
+        "naturalGC": []
+      },
+      {
+        "trial": 5,
+        "meanUs": 77.18362459999406,
+        "p50Us": 74.54199999938282,
+        "p95Us": 88.50000000074942,
+        "p99Us": 99.12499999973079,
+        "maxUs": 232.8749999996944,
+        "wallMs": 386.2516660000001,
+        "checksum": -53.35042796458583,
+        "naturalGC": []
+      }
+    ]
+  },
+  "allocations": {
+    "current": {
+      "sampleIntervalBytes": 1024,
+      "sampledAllocatedBytes": 129504504,
+      "sites": [
+        {
+          "bytes": 72142432,
+          "function": "next",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 32567968,
+          "function": "from",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 10186048,
+          "function": "",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/huc6280audioengine.js",
+          "line": 140
+        },
+        {
+          "bytes": 10166432,
+          "function": "",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/huc6280audioengine.js",
+          "line": 139
+        },
+        {
+          "bytes": 1990688,
+          "function": "Float32Array",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 999336,
+          "function": "subarray",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 948072,
+          "function": "processFrames",
+          "url": "file:///Users/kyorohiro/development8/wfm/hello_ymfm/web/huc6280audioengine.js",
+          "line": 123
+        },
+        {
+          "bytes": 497904,
+          "function": "values",
+          "url": "",
+          "line": 0
+        },
+        {
+          "bytes": 5624,
+          "function": "post",
+          "url": "node:inspector",
+          "line": 115
+        }
+      ],
+      "malloc": 0,
+      "free": 0,
+      "memoryChanges": 0,
+      "checksum": -53.35042796458583
+    },
+    "indexed": {
+      "sampleIntervalBytes": 1024,
+      "sampledAllocatedBytes": 2200232,
+      "sites": [
+        {
+          "bytes": 2200232,
+          "function": "e.processFrames",
+          "url": "file:///private/tmp/audit-daily01-wasm/huc-same-realm.mjs",
+          "line": 17
+        }
+      ],
+      "malloc": 0,
+      "free": 0,
+      "memoryChanges": 0,
+      "checksum": -53.35042796458583
+    }
+  }
+}

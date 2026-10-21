@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-21",
+  "timezone": "Asia/Tokyo",
+  "gitHead": "05342b77b089962a6f13c0a473e88d1cf16ec5f3",
+  "macOS": {
+    "version": "15.7.2",
+    "build": "24G325"
+  },
+  "hardware": {
+    "model": "Mac14,2",
+    "arch": "arm64",
+    "memoryBytes": 25769803776,
+    "logicalCPUs": 8,
+    "cpu": "Apple M2"
+  },
+  "node": "v26.12.0",
+  "sampleRate": 48000,
+  "quantumFrames": 128,
+  "backgroundLoad": "Not an idle machine. Initial snapshot had WindowServer ~39.8% and editor renderer ~28.2% CPU. No external processes were stopped. Dedicated audit timing jobs were run sequentially.",
+  "limitations": [
+    "Node timing runs at normal process priority, not a realtime audio callback.",
+    "HeapProfiler sampling and counters were separated from timed measurements.",
+    "Browser Date.now timing has coarse resolution and is not a deadline/underrun detector."
+  ],
+  "sha256": {
+    "web/huc6280audioengine.js": "9abd7bd2b6161cbb5e81b41fb15387bbbbc757bdce8916366bfb617a69edff0c",
+    "web/gameboyapu.js": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4",
+    "web/ym2413.js": "7515e2659b95e202041185661a6e1d103434c28d4b146166db7e99aaf562b20e",
+    "web/ym2612.js": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+    "web/segapsg.js": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed",
+    "web/native_fx_engine.js": "2e291a2213e6cb0f59c17804b1c937f2538608817cb367fda84bf230f4e0fca5",
+    "web/custom_fx.js": "02c1ce106b47fff9814424d39395f0811f28046860ec887b7c8bc1398c7fbff9",
+    "native/audio_effect/noise.c": "b32e4f637782c4a9a35cfaf0c1134d68fa9977db75e4033e0d4fbc0738c11e71",
+    "web/playground_audio_scheduler.js": "7ccc762cccce700ef496a764e8970ae21b0d97fd653c9611d885554f28aeeca8",
+    "web/ym2612-worklet.js": "0238ed519247cd258504814edc8b153d6ea7955356e458daf4b024cacfb78f3a",
+    "web/playground_performance_queue.js": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5",
+    "docs/generated/ym2612_wasm.wasm": "5184f6440860c438fb424fae60255f666358657571810e51a0f8e147cc8b8b13",
+    "docs/generated/gameboy_apu_wasm.wasm": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+    "docs/generated/ym2413_wasm.wasm": "67bf8fb4dc9b0359aef94db4ee567a3966a59529ca401e898b578e35bf1d7c78",
+    "docs/generated/huc6280_wasm.wasm": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073",
+    "web/native_audio_effect.wasm": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290",
+    "docs/generated/ym2612_wasm.js": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+    "docs/generated/segapsg_wasm.js": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7",
+    "docs/generated/segapsg_wasm.wasm": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+    "docs/generated/gameboy_apu_wasm.js": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+    "docs/generated/ym2413_wasm.js": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+    "docs/generated/huc6280_wasm.js": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f"
+  },
+  "v8": "14.6.202.34-node.39",
+  "playwright": "1.63.0",
+  "bundledBrowserManifest": {
+    "chromium": "153.0.8010.12",
+    "webkit": "26.6"
+  },
+  "temporaryNativeCompiler": "emcc 6.0.6-git"
+}
