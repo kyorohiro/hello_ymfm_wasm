@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {spawn,execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline';
+import {createHash} from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,12 +19,23 @@ assert.ok(outputFlag<0||output,'--out requires a JSON output path');
 let fixture=fixtureFlag>=0?process.argv[fixtureFlag+1]:process.env.TETORICA_LIVEFX_FIXTURE;
 const compileFlags={c:['-std=c11','-O2','-DQUICKJS_NG_BUILD'],cpp:['-std=c++14','-O2'],link:['-pthread']};
 const sourceManifest=JSON.parse(await fs.readFile(path.join(project,'src-tauri/native-livefx/sources.json'),'utf8'));
+const singingKeyboardPath='docs/playground/examples/basic/singing-keyboard.js';
+const singingKeyboardSource=await fs.readFile(path.join(root,singingKeyboardPath),'utf8');
+const singingRegistrationEnd=singingKeyboardSource.indexOf('// Prepare once:');
+const singingFunctionStart=singingKeyboardSource.indexOf('function formantProcess(');
+assert(singingRegistrationEnd>0&&singingFunctionStart>singingRegistrationEnd,'The shipped singing keyboard must retain its standalone formant DSP');
+let singingKeyboard;
+// Evaluate only the shipped registration and standalone DSP definition. The
+// example's hardware, keyboard and asynchronous musical code are not invoked.
+new Function('liveFx',singingKeyboardSource.slice(0,singingRegistrationEnd)+'\n'+singingKeyboardSource.slice(singingFunctionStart))((name,options)=>{singingKeyboard={name,...options};});
+assert.equal(typeof singingKeyboard?.process,'function');
 const report={
   schemaVersion:1,startedAt:new Date().toISOString(),status:'running',
   engine:{name:'QuickJS-NG',tag:sourceManifest.tag,commit:sourceManifest.commit,sourceHashes:sourceManifest.sha256,sharedHashes:sourceManifest.shared_sha256},
   machine:{platform:process.platform,architecture:process.arch,machine:os.machine(),osRelease:os.release(),cpu:os.cpus()[0]?.model,logicalCpus:os.cpus().length},
   node:process.version,fixture:{build:fixture?'prebuilt':'compiled by this checker',flags:fixture?null:compileFlags},
-  parity:{rates:[44100,48000,96000],frames:[1,37,128],channels:2},benchmarks:[],
+  parity:{rates:[44100,48000,96000],frames:[1,37,128],channels:2,
+    shippedExamples:[{path:singingKeyboardPath,sha256:createHash('sha256').update(singingKeyboardSource).digest('hex'),effect:singingKeyboard.name}]},benchmarks:[],
 };
 let temp;
 if(!fixture){
@@ -93,7 +105,16 @@ async function rack(rate=48000,options={}){
     },
     async process(frames=128,offset=0){
       const input=samples(frames,offset),expected=input.map(channel=>new Float32Array(channel)),reports=[];
-      reference.process(expected,value=>reports.push(value));
+      const previousRate=Object.getOwnPropertyDescriptor(globalThis,'sampleRate');
+      try {
+        // AudioWorklet supplies this global. Native supplies its actual device
+        // rate too; the reference must exercise the same environment contract.
+        Object.defineProperty(globalThis,'sampleRate',{value:rate,writable:false,configurable:true});
+        reference.process(expected,value=>reports.push(value));
+      } finally {
+        if(previousRate)Object.defineProperty(globalThis,'sampleRate',previousRate);
+        else delete globalThis.sampleRate;
+      }
       const reply=await request({op:'process',samples:interleave(input),frames});
       assert.equal(reply.ok,true,JSON.stringify(reply));
       assert.equal(reply.samples?.length,frames*2,'Native must return stereo float32 samples');
@@ -126,9 +147,26 @@ async function baseline(rate){
   await fx.command(command('gain',gain,{gain:.5}));
   for(const frames of [128,37,1,128])await fx.process(frames);
   await fx.command({action:'context',name:'gain',context:{gain:.25}});await fx.process();
-  await fx.command({action:'remove',name:'gain'});await fx.process();
+  const removed=await fx.command({action:'remove',name:'gain'});
+  assert.equal(removed.initialized,false,'Removing the final effect must destroy its QuickJS VM');
+  assert.equal(removed.active,0);
+  for(const frames of [128,37,1]) {
+    const idle=await fx.process(frames);
+    assert.equal(idle.initialized,false,'Idle playback after liveFx removal must not recreate QuickJS');
+    assert.equal(idle.processCalls,removed.processCalls,'Idle playback must not call JavaScript');
+    assert.equal(idle.initializations,removed.initializations);
+  }
+  const repeatedRemove=await fx.command({action:'remove',name:'gain'});
+  assert.equal(repeatedRemove.initialized,false,'Removing an absent effect must not create a VM');
+  assert.equal(repeatedRemove.processCalls,removed.processCalls);
+  const fresh=await fx.command(command('fresh',gain,{gain:.75}));
+  assert.equal(fresh.initializations,removed.initializations+1,'Re-adding liveFx lazily creates one fresh VM');
+  await fx.process(37);
   await fx.clear();
-  await fx.command(command('fresh',gain,{gain:.75}));await fx.process(37);
+  const cleared=await fx.process(37);
+  assert.equal(cleared.initialized,false,'Explicit clear must return rendering to the JS-free path');
+  assert.equal(cleared.active,0);
+  assert.equal(cleared.faulted,false);
 }
 async function stateAndContext(rate){
   const fx=await rack(rate);
@@ -216,6 +254,21 @@ async function graphContext(rate){
   for(const frames of [128,37,1])await fx.process(frames);
   await fx.command({action:'context',name:'graph',context:{gain:.25,phase:1}});
   for(const frames of [128,1,37])await fx.process(frames);
+}
+async function shippedFormant(rate){
+  const fx=await rack(rate),{name,process,context}=singingKeyboard;
+  await fx.command(command(name,process,context));
+  let peak=0;
+  for(let i=0;i<8;i++) {
+    const result=await fx.process([128,37,1,128][i%4],i*128);
+    peak=Math.max(peak,...result.samples.map(Math.abs));
+    assert.equal(result.reports.length,0,'The shipped formant effect must run without bypass');
+  }
+  assert(peak>1e-5,'The shipped formant must produce audible PCM; parity cannot pass by rendering silence');
+  await fx.command({action:'context',name,context:{autoVowels:false,vowel:2.5,lfoHz:2.1,lfoDepth:.2,mix:.75,gain:3,transitionMs:25}});
+  for(let i=0;i<8;i++)await fx.process([1,37,128,37][i%4],1024+i*128);
+  await fx.command(command(name,process,{...context,gain:2}));
+  for(const frames of [37,128,1,128])await fx.process(frames,2048);
 }
 async function multipleAndFade(rate){
   const fx=await rack(rate);
@@ -379,7 +432,7 @@ async function limits(){
 
 try{
   for(const rate of [44100,48000,96000]){
-    await baseline(rate);await stateAndContext(rate);await arrays(rate);await graphContext(rate);await multipleAndFade(rate);await errors(rate);
+    await baseline(rate);await stateAndContext(rate);await arrays(rate);await graphContext(rate);await shippedFormant(rate);await multipleAndFade(rate);await errors(rate);
     console.log(`LiveFX actual QuickJS/shared JS parity: ${rate} Hz passed`);
   }
   Object.assign(report.parity,{passed:true,blocks:comparisons,maximumDifference});

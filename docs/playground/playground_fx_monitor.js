@@ -12,7 +12,7 @@ export function spectrum(samples) {
  }
  return Float64Array.from({length:n/2},(_,i)=>Math.max(-100,20*Math.log10(Math.max(1e-10,Math.hypot(re[i],im[i])*4/n))));
 }
-export function createFXMonitor(getRack,{storage,now=()=>performance.now()}={}) {
+export function createFXMonitor(getRack,{storage,now=()=>performance.now(),getUnavailableReason=()=>null}={}) {
  const select=document.getElementById('fxMonitorTarget'),channel=document.getElementById('fxMonitorChannel');
  const status=document.getElementById('fxMonitorStatus');
  const modeSelect=document.getElementById('fxMonitorMode');
@@ -125,6 +125,11 @@ export function createFXMonitor(getRack,{storage,now=()=>performance.now()}={}) 
  }
  function tick(){
   if(!visible||document.hidden)return;
+  const unavailable=getUnavailableReason();
+  if(unavailable){
+   if(rack){cancel();rack.onMonitor=null;rack=null;resetCapture();clearSelected();}
+   status.textContent=unavailable;return;
+  }
   const next=getRack();
   if(next!==rack){cancel();resetCapture();if(rack)rack.onMonitor=null;rack=next;if(rack)rack.onMonitor=receive;}
   if(!rack){status.textContent='Run code containing liveFx to begin.';return;}

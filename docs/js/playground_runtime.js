@@ -647,6 +647,7 @@ export function createPlaygroundRuntime(
 
   let applyingChipObserver=false;
   let pendingChipStateWorker=null;
+  let nativeLiveFxLatency=0;
   function installMegaDriveListener() {
     if (
       removeMegaDriveListener ||
@@ -659,6 +660,19 @@ export function createPlaygroundRuntime(
     removeMegaDriveListener =
       megaDrive.addListener(
         (event) => {
+          if(event?.type==='live-fx-error') {
+            emitLog(`[FX] ${event.message}`);emitStatus(`FX error: ${event.message.split('\n')[0]} (see Console)`);return;
+          }
+          if(event?.type==='live-fx-status') {
+            const status=event.status;
+            const latency=status?.latencyFrames??0;
+            if(latency!==nativeLiveFxLatency) {
+              if(latency&&event.sampleRate)emitStatus(`Native liveFx · ${(latency/event.sampleRate*1000).toFixed(1)} ms processing delay`);
+              else if(nativeLiveFxLatency)emitStatus('Native liveFx off · direct output');
+              nativeLiveFxLatency=latency;
+            }
+            return;
+          }
           if(event?.type==='native-state'){
             logicWorker?.postMessage({type:'native-primary-state',name:event.name,state:event.state});
             return;

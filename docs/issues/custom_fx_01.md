@@ -18,7 +18,8 @@ fx.updateContext("distortion", { drive: 4 });
 
 ## 実行と更新
 
-- process のソースと context のコピーを AudioWorklet に送り、そこで関数を作り直す。
+- process のソースと context のコピーを音声側へ送り、そこで関数を作り直す。
+  Web AudioではAudioWorklet、Native GenesisではQuickJS-NGの専用workerを使う。
 - 外側の変数を捕捉できない。設定は context、処理の履歴は state に持たせる。
 - input/output はチャンネルごとの Float32Array の配列。output は毎ブロック0に初期化する。
 - state は初期値 {}。遅延バッファなどもここで保持できる。毎サンプルのメモリ確保を避ける。
@@ -27,8 +28,8 @@ fx.updateContext("distortion", { drive: 4 });
 - fx.updateContext(name, patch) は浅い部分更新。元のオブジェクトを変更するだけでは伝わらない。
 - fx.removeLiveFx(name) で解除。Stop・実行環境の切り替えでも全解除する。
 - 最大8個。native FXの後段に登録順で直列適用。setChainへの挿入は未対応。
-- Worker実行時はWorker → Workletの直接ポート。main threadへ音声処理を依頼しない。
-- 命令はキューへ送る。返り値はvoidで、awaitしてもWorkletの完了を待つ意味にはならない。
+- Web AudioのWorker実行時はWorker → Workletの直接ポート。main threadへ音声処理を依頼しない。
+- 命令はキューへ送る。返り値はvoidで、awaitしても音声側の処理完了を待つ意味にはならない。
 - ブロック境界で更新。サンプル時刻予約・更新時のクロスフェードは未対応。
 - streamなどnative FXを通らない音声には適用しない。
 
@@ -38,9 +39,20 @@ fx.updateContext("distortion", { drive: 4 });
 構文エラーなら旧処理を維持する。実行時例外や非有限出力は該当FXをBypassして
 ブラウザーConsoleに報告し、再登録で復帰する。出力は−1..1に制限する。
 
-動的関数生成を使うため、これを禁止するCSPでは登録できない。
-自由なJS処理なので無限ループや過大な計算量を強制中断する仕組みはない。
+Web Audioでは動的関数生成を使うため、これを禁止するCSPでは登録できない。
+Web Audioの自由なJS処理には無限ループや過大な計算量を強制中断する仕組みはない。
 コードは音声ブロック内で完了するように書く。
+
+### Native Genesis
+
+[Native liveFxの仕様・検証](native_livefx_01.md)を参照。
+同じAPIをMain／Workerから使える。未使用時はJS実行環境を作らず、
+使用中だけ2048フレーム（48kHzで約42.7ms）の先読みを加える。
+Nativeの音声callbackはJSを実行せず、間に合わない場合は同じ時刻のdry音へ戻す。
+NativeのVMにはメモリー・実行時間の制限があり、継続不能ならStop／Runで再試行する。
+`sampleRate`は使えるが、ブラウザー固有のglobalや非同期処理は再現しない。
+contextは対応型と量に上限があり、Error・Blob／File・SharedArrayBuffer等は拒否する。
+FX MonitorのFX単位表示は未対応。Audioタブと録音では処理後の最終出力を確認できる。
 
 ## サンプルと検証
 
@@ -52,7 +64,7 @@ fx.updateContext("distortion", { drive: 4 });
 
 ## FX Monitor
 
-下部のFX Monitorタブで、liveFx名と左右CHを選択して入力／出力を比較する。
+Web Audioでは下部のFX Monitorタブで、liveFx名と左右CHを選択して入力／出力を比較する。
 ViewでOscilloscope／Spectrumを切り替える。初期表示はOscilloscopeで、最後の選択を記憶する。
 入力（青）と出力（オレンジ）は、選んだグラフに重ねて表示する。
 波形のYはAutoが初期値で、2／1／0.5／0.2／0.1／0.05／0.02／0.01／0.005／0.001へ固定できる。

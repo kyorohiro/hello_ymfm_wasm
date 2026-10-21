@@ -37,6 +37,7 @@ class FakeNative {
   constructor() {
     this.calls = []; this.sessions = 0; this.current = null; this.failStart = false;
     this.monitor = {pending:0,maxPending:0,reads:[],gate:null};
+    this.liveFx = new Map(); this.liveFxError = null;
   }
   holdNextMonitor(mode) {
     let release,arrive;
@@ -55,12 +56,15 @@ class FakeNative {
   status() {
     if (!this.current) throw Error('No native session');
     return {session:this.current.session,sampleRate:48000,frame:Math.floor((performance.now() - this.current.began) * 48),
-      ymClock:7670454,psgClock:3579545,running:true,queued:0,lateCommands:0,queueOverflows:0,error:null};
+      ymClock:7670454,psgClock:3579545,running:true,queued:0,lateCommands:0,queueOverflows:0,error:null,
+      liveFx:{active:this.liveFx.size,initialized:this.liveFx.size>0,latencyFrames:this.liveFx.size?2048:0,
+        blockFrames:128,queuedCommands:0,processCalls:0,underruns:0,overruns:0,error:this.liveFxError}};
   }
   async invoke(command, args = {}) {
     this.calls.push({command,args});
     if (command === 'native_genesis_start') {
       if (this.failStart) {this.failStart = false; throw Error('Simulated native device unavailable');}
+      this.liveFx.clear(); this.liveFxError = null;
       this.current = {session:++this.sessions,began:performance.now()};
       return this.status();
     }
@@ -81,13 +85,31 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_status' || command === 'native_genesis_stop') return this.status();
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;return this.status();}
+    if (command === 'native_genesis_status') return this.status();
+    if (command === 'native_genesis_live_fx') {
+      const message=args.message;
+      assert.equal(message?.op,'live-fx');assert(['register','context','remove'].includes(message.action));
+      assert.equal(typeof message.name,'string');assert(message.name.length>0&&Buffer.byteLength(message.name,'utf8')<=128);
+      assert.equal(Object.prototype.hasOwnProperty.call(message,'context'),false,'Native liveFx context must use the portable graph');
+      if(message.action==='register') {
+        assert.equal(typeof message.source,'string');assert.equal(message.contextGraph?.version,1);
+        this.liveFx.set(message.name,message);
+      } else if(message.action==='context') {
+        assert.equal(message.contextGraph?.version,1);
+      } else this.liveFx.delete(message.name);
+      return this.status();
+    }
     if (command === 'native_genesis_commands') {
       assert(Array.isArray(args.commands) && args.commands.length > 0 && args.commands.length <= 4096);
       assert(args.commands.every(entry => Number.isSafeInteger(entry.frame) && entry.frame >= 0));
       return this.status();
     }
-    if (['native_genesis_performance','native_genesis_fx','native_genesis_media_load','native_genesis_media_remove','native_genesis_record_start'].includes(command)) return this.status();
+    if (command === 'native_genesis_fx') {
+      if(args.message?.op==='reset')this.liveFx.clear();
+      return this.status();
+    }
+    if (['native_genesis_performance','native_genesis_media_load','native_genesis_media_remove','native_genesis_record_start'].includes(command)) return this.status();
     if (command === 'native_genesis_record_stop') return {sampleRate:48000,firstFrame:0,frames:16,complete:false,channels:[Array(16).fill(.1),Array(16).fill(-.1)]};
     throw Error('Unexpected native command: ' + command);
   }
@@ -150,9 +172,9 @@ async function run(page) {
   await page.click('#runButton');
   await page.waitForFunction(() => window.__nativeBackendTest.runtime.getState().playback === 'running');
 }
-async function until(check) {
+async function until(check,description='Native IPC expectation') {
   const end = Date.now() + 10000;
-  while (!check()) {if (Date.now() > end) throw Error('Native IPC expectation timed out'); await new Promise(resolve => setTimeout(resolve, 10));}
+  while (!check()) {if (Date.now() > end) throw Error(description+' timed out'); await new Promise(resolve => setTimeout(resolve, 10));}
 }
 async function nativeRun(page, native) {
   const before = native.count('native_genesis_commands');
@@ -279,6 +301,104 @@ async function nativeNoiseRuns(page,native) {
   const first=native.calls.length;
   await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource('const v=noise.create({type:"brown",seed:0});v.stop();v.start();v.dispose();',{execution:'main'}));
   await until(()=>native.calls.slice(first).some(call=>call.command==='native_genesis_commands'&&call.args.commands.some(command=>command.type==='noise'&&command.message.action==='dispose')));
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+}
+async function nativeLiveFxRuns(page,native) {
+  const {decodeNativeLiveFxContext}=await import('../web/native_livefx_context.js');
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  for(const execution of ['main','worker']) {
+    const first=native.calls.length;
+    const calls=()=>native.calls.slice(first).filter(call=>call.command==='native_genesis_live_fx');
+    const context=call=>call.args.message.contextGraph?decodeNativeLiveFxContext(call.args.message.contextGraph):null;
+    const process=`process(input,output,state,context){
+      state.blocks=(state.blocks??0)+1;
+      for(let ch=0;ch<input.length;ch++)for(let i=0;i<input[ch].length;i++)output[ch][i]=input[ch][i]*context.gain;
+    }`;
+    await page.evaluate(async({execution,process})=>{
+      await window.__nativeBackendTest.runtime.playSource(`
+        fx.liveFx('native-browser-fx',{${process},context:{gain:0.5,coefficients:new Float32Array([0.25,0.5]),revision:'first'}});
+        liveLoop('native-livefx-update',async()=>{
+          try {
+            fx.updateContext('native-browser-fx',{gain:0.25,revision:'old-loop'});
+            await sleep(60);
+          } finally {
+            ${execution==='worker'?"fx.updateContext('native-browser-fx',{revision:'stale-finalizer'});":''}
+          }
+        });
+      `,{execution});
+    },{execution,process});
+    await until(()=>calls().some(call=>call.args.message.action==='context'&&context(call).revision==='old-loop'),execution+' liveFx initial loop context');
+    const created=calls().find(call=>call.args.message.action==='register');
+    assert(created,`${execution}: user liveFx must register through native IPC`);
+    assert.match(created.args.message.source,/state\.blocks/);
+    assert.equal(created.args.message.resetState,false);
+    const initial=context(created);
+    assert.equal(initial.gain,0.5);assert.equal(initial.revision,'first');
+    assert(initial.coefficients instanceof Float32Array);assert.deepEqual([...initial.coefficients],[0.25,0.5]);
+    if(execution==='worker') {
+      assert(created.args.performance&&created.args.owner,'Worker registration must retain its performance lease');
+      assert(calls().some(call=>call.args.message.action==='context'&&call.args.frame>0&&call.args.performance&&call.args.owner),'Loop context updates must retain native frame timing');
+    } else {
+      assert(calls().every(call=>call.args.performance===undefined&&call.args.owner===undefined),'Main liveFx must not invent Worker ownership');
+    }
+    const replacement=calls().length;
+    await page.evaluate(async({execution,process})=>{
+      await window.__nativeBackendTest.runtime.playSource(`
+        stopLoop('native-livefx-update');
+        fx.liveFx('native-browser-fx',{${process},context:{gain:0.75,revision:'replacement'},resetState:true});
+        fx.updateContext('native-browser-fx',{gain:0.625,revision:'new-script'});
+        fx.clear();
+        liveLoop('native-livefx-update',async()=>{
+          fx.updateContext('native-browser-fx',{gain:0.5,revision:'new-loop'});
+          await sleep(60);
+        });
+      `,{execution});
+    },{execution,process});
+    await until(()=>calls().slice(replacement).some(call=>call.args.message.action==='context'&&context(call).revision==='new-loop'),execution+' liveFx replacement loop context');
+    const updated=calls().slice(replacement);
+    assert(updated.some(call=>call.args.message.action==='register'&&call.args.message.resetState===true&&context(call).revision==='replacement'));
+    assert(updated.some(call=>call.args.message.action==='context'&&context(call).revision==='new-script'));
+    assert(native.liveFx.has('native-browser-fx'),'Clearing the C FX chain must preserve named JavaScript effects');
+    if(execution==='worker')assert(!updated.some(call=>call.args.message.contextGraph&&context(call).revision==='stale-finalizer'),'A cancelled Worker finalizer cannot change the replacement effect');
+    await assertNoLiveAudio(page);
+    const removing=calls().length;
+    await page.evaluate(async execution=>{
+      await window.__nativeBackendTest.runtime.playSource(`fx.removeLiveFx('native-browser-fx');stopLoop('native-livefx-update');`,{execution});
+    },execution);
+    await until(()=>calls().slice(removing).some(call=>call.args.message.action==='remove'&&call.args.message.name==='native-browser-fx'));
+    assert.equal(native.liveFx.size,0,'Explicit removal must leave the native rack empty');
+    await page.evaluate(async({execution,process})=>{
+      await window.__nativeBackendTest.runtime.playSource(`liveFx('native-browser-fx',{${process},context:{gain:0.5}});`,{execution});
+    },{execution,process});
+    await until(()=>native.liveFx.has('native-browser-fx'));
+    const omitted=calls().length;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource('',{execution}),execution);
+    await until(()=>calls().slice(omitted).some(call=>call.args.message.action==='remove'));
+    assert.equal(native.liveFx.size,0,'Successful reevaluation must remove undeclared native liveFx');
+    await page.evaluate(async({execution,process})=>{
+      await window.__nativeBackendTest.runtime.playSource(`liveFx('native-browser-fx',{${process},context:{gain:0.5}});`,{execution});
+    },{execution,process});
+    await until(()=>native.liveFx.has('native-browser-fx'));
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    assert.equal(native.liveFx.size,0,'Stop must clear the native liveFx rack');
+    await assertNoLiveAudio(page);
+  }
+}
+async function nativeLiveFxDiagnostics(page,native) {
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource(`
+    fx.liveFx('native-reported-fx',{process(input,output){output.forEach((channel,ch)=>channel.set(input[ch]));}});
+    liveLoop('native-livefx-diagnostics',async()=>{await sleep(60);});
+  `,{execution:'main'}));
+  await until(()=>native.liveFx.has('native-reported-fx'));
+  const statusReads=native.count('native_genesis_status');
+  const message='[liveFx:native-reported-fx] Simulated native JavaScript error. Effect bypassed.';
+  native.liveFxError=message;
+  await until(()=>native.count('native_genesis_status')>statusReads,'Native liveFx diagnostic polling');
+  await page.waitForFunction(message=>document.body.textContent.includes(message),message);
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.runtime.megaDrive.state),'ready','A bypassed liveFx must not fail the native audio backend');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.runtime.getState().playback),'running');
+  assert.equal(await page.evaluate(()=>new URL(location.href).searchParams.get('audioEngine')),'native');
+  await assertNoLiveAudio(page);
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
 }
 async function monitorTrace(page,id,color,after=-1,expected={}) {
@@ -490,6 +610,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await workerMediaRun(page,native);
     await compressedSampleRuns(page,native);
     await nativeNoiseRuns(page,native);
+    await nativeLiveFxRuns(page,native);
+    await nativeLiveFxDiagnostics(page,native);
     await nativeRun(page, native);
     await nativeAudioMonitor(page,native,artifacts,name);
     await nativeRecording(page,native);
@@ -526,7 +648,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX/noise, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 

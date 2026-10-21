@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
+import {decodeNativeLiveFxContext} from './native_livefx_context.js';
 
 test('Native device FX uses shared descriptors for series/parallel and timed parameters',()=>{
   const messages=[]; let beatSeconds=.5;
@@ -18,12 +19,16 @@ test('Native device FX uses shared descriptors for series/parallel and timed par
   fx.dispose();assert.equal(messages.at(-1).op,'reset');
 });
 
-test('Native device FX rejects JavaScript DSP without transport or another audio path',()=>{
+test('Native device FX sends JavaScript DSP with a portable context and preserves the public API',()=>{
   const messages=[];const fx=createNativeGenesisFX({send:message=>messages.push(message)});
-  assert.throws(()=>fx.liveFx('test',{process(){}}),/JavaScript liveFx.*Web Audio/);
-  assert.throws(()=>fx.updateContext('test',{}),/JavaScript liveFx/);
-  assert.throws(()=>fx.removeLiveFx('test'),/JavaScript liveFx/);
-  assert.deepEqual(messages,[]);
+  const context={gain:.5,samples:new Float32Array([.25,.75])};context.self=context;
+  fx.liveFx('test',{process(input,output,state,context){output[0].set(input[0]);},context});
+  const decoded=decodeNativeLiveFxContext(messages[0].contextGraph);
+  assert.equal(decoded.self,decoded);assert.equal(decoded.gain,.5);assert.deepEqual(decoded.samples,new Float32Array([.25,.75]));
+  assert.equal(messages[0].resetState,false);assert.match(messages[0].source,/output\[0\]\.set/);
+  fx.updateContext('test',{gain:.25});assert.equal(decodeNativeLiveFxContext(messages[1].contextGraph).gain,.25);
+  fx.removeLiveFx('test');assert.deepEqual(messages[2],{op:'live-fx',action:'remove',name:'test'});
+  assert.throws(()=>fx.liveFx('test',{process:async()=>{}}),/synchronous/);
 });
 
 test('Native device FX preserves common ownership, duplicate and capacity validation',()=>{

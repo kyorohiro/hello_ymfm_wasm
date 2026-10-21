@@ -230,6 +230,22 @@ test('Worker native noise has trusted namespaces, sample-clock timing and no col
   await assert.rejects(f.synth.dispatchNativeFxCommand(message,{noiseNamespace:99}),/namespace/);
 });
 
+test('native liveFx Main and Worker use ordered IPC, portable contexts and source-frame ownership',async()=>{
+  const f=fixture();await f.synth.start();f.calls.length=0;
+  f.synth.fm.noteOn(0,4,1000);
+  const fx=f.synth.createFXApi();
+  fx.liveFx('gain',{context:{gain:.5,buffer:new Float32Array([.1,.2])},process(input,output,state,context){output[0].set(input[0]);}});
+  await f.synth.serial;
+  const calls=f.calls.filter(call=>['native_genesis_commands','native_genesis_live_fx'].includes(call.command));
+  assert.deepEqual(calls.map(call=>call.command),['native_genesis_commands','native_genesis_live_fx']);
+  assert.equal(calls[1].args.message.context,undefined);assert(calls[1].args.message.contextGraph);
+  await f.synth.dispatchNativeFxCommand({op:'live-fx',action:'context',name:'gain',context:{gain:.25}}, {time:.75,performance:5,owner:3});
+  const update=f.calls.findLast(call=>call.command==='native_genesis_live_fx');
+  assert.equal(update.args.frame,36000);assert.equal(update.args.performance,5);assert.equal(update.args.owner,3);
+  assert.equal(f.synth.audioContext,null);assert.equal(f.synth.audio,null);
+  await f.synth.close();
+});
+
 test('Native Main liveLoop cancellation retires only its noise and prepared voices remain reusable',async t=>{
   const previous=globalThis.window;globalThis.window={setTimeout,addEventListener(){},removeEventListener(){}};
   const f=fixture(),runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false});

@@ -1695,7 +1695,10 @@ function deleteActiveVirtualFile() {
   renderRunFileOptions();
 }
 
-const fxMonitor = createFXMonitor(() => runtime.megaDrive?.audio?.nativeFX);
+const fxMonitor = createFXMonitor(() => runtime.megaDrive?.audio?.nativeFX,{
+  getUnavailableReason:()=>runtime.megaDrive?.backend==='native-genesis'
+    ? 'Native liveFx: per-effect monitoring is unavailable. Use Audio to inspect the final output.' : null,
+});
 const inlineAudioMonitor = !workbench && new URLSearchParams(window.location.search).get("monitor") === "1";
 const audioMonitorPanel = document.getElementById("audioMonitorPanel");
 if (inlineAudioMonitor) {

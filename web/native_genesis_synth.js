@@ -6,6 +6,7 @@ import {createNativeGenesisMedia} from './native_genesis_media.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeGenesisMonitor} from './native_genesis_monitor.js';
 import {createNativeGenesisNoise,nativeGenesisNoiseMessage} from './native_genesis_noise.js';
+import {nativeGenesisLiveFxMessage,createNativeGenesisLiveFxStatus} from './native_genesis_livefx.js';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -71,6 +72,10 @@ export class NativeGenesisSynth {
     this.pending = []; this.acceptedCommands = 0; this.acceptedRequests = 0; this.serial = Promise.resolve(); this.flushQueued = false;
     this.starting = null; this.stopping = null; this.closing = null; this.error = null;this.workerSampleOrigin=null;
     this.listeners = new Set(); this.mixer = mixer; this.mixerReleases = [];
+    this.liveFxDiagnostics=createNativeGenesisLiveFxStatus({invoke:(command,args)=>this.invoke(command,args),
+      getSession:()=>this.session,getGeneration:()=>this.generation,isReady:()=>this.isReady()&&!this.stopping&&!this.closing,
+      onChange:status=>this.emit({type:'live-fx-status',status,sampleRate:this.clock.sampleRate}),
+      onError:message=>this.emit({type:'live-fx-error',message})});
     this.masterVolume = this.validateVolume(masterVolume); this.listeningVolume = 1;
     this.auditions = new Map(); this.psgAuditions = new Map(); this.psgLevels = new Uint8Array(4).fill(6); this.psgLatch = 0;
     this.mix = {fmLeft:1,fmRight:1,psgLeft:1,psgRight:1,master:this.masterVolume};
@@ -151,6 +156,7 @@ export class NativeGenesisSynth {
         }
         if (!Number.isSafeInteger(status?.session) || status.session < 1) throw new Error('Native Genesis returned an invalid session');
         this.session = status.session; this.clock.update(status,this.now(),true);
+        this.liveFxDiagnostics.observe(status);
         this.fm.clock = status.ymClock ?? 7670454;
         this.state = 'ready';
         for (const id of ['ym2612','segapsg']) this.mixerReleases.push(this.mixer.register(id,id,settings => {
@@ -181,6 +187,7 @@ export class NativeGenesisSynth {
     const status = await this.invoke('native_genesis_status',{session});
     if (generation !== this.generation || session !== this.session) throw new DOMException('Native audio session was replaced','AbortError');
     if (status.error) throw new Error(status.error);
+    this.liveFxDiagnostics.observe(status);
     this.clock.update(status,(before + this.now()) / 2);
   }
   registerCommand({port=0,register,value,time}) {
@@ -270,11 +277,18 @@ export class NativeGenesisSynth {
         message:nativeGenesisNoiseMessage(message,{namespace,sampleRate:this.clock.sampleRate})});
       return this.flush();
     }
-    if(message?.op?.startsWith('live-fx'))return Promise.reject(new Error('JavaScript LiveFX is unavailable in Native Genesis. Select Web Audio to use it.'));
+    if(message?.op==='live-fx') {
+      const normalized=nativeGenesisLiveFxMessage(message),frame=timing.time===undefined?0:this.frameAt(timing.time);
+      return this.nativeRequest('native_genesis_live_fx',{message:normalized,frame,
+        ...(timing.performance===undefined?{}:{performance:timing.performance}),
+        ...(timing.owner===undefined?{}:{owner:timing.owner})}).then(status=>{
+          this.liveFxDiagnostics.track();this.liveFxDiagnostics.observe(status);return status;
+        });
+    }
     return this.nativeRequest('native_genesis_fx',{message,
       ...(timing.time===undefined?{}:{frame:this.frameAt(timing.time)}),
       ...(timing.performance===undefined?{}:{performance:timing.performance}),
-      ...(timing.owner===undefined?{}:{owner:timing.owner})});
+      ...(timing.owner===undefined?{}:{owner:timing.owner})}).then(status=>{this.liveFxDiagnostics.observe(status);return status;});
   }
   /** Explicit Worker transport receiver. A real MessagePort bridge supplies
    * timing and ownership; the native synth remains independent of AudioNodes. */
@@ -358,6 +372,7 @@ export class NativeGenesisSynth {
     if (this.stopping) return this.stopping;
     if (this.session === null) return Promise.resolve();
     void this.outputMonitor.pause().catch(()=>{});
+    this.liveFxDiagnostics.reset();
     this.noise.reset();
     // Native Stop resets the rendered rack. Retire its JS descriptors too, so
     // repeated Runs reuse slots and old parameter handles cannot edit a new rack.
@@ -486,7 +501,7 @@ export class NativeGenesisSynth {
       this.fx=createNativeGenesisFX({send:message=>{
         session??=this.session;
         if(session!==this.session)throw new DOMException('Native FX session was replaced','AbortError');
-        this.nativeRequest('native_genesis_fx',{message}).catch(error=>this.reportAsyncError(error));
+        this.dispatchNativeFxCommand(message).catch(error=>this.reportAsyncError(error));
       },getBeatSeconds:()=>this.fxBeatSeconds()});
     }
     return this.fx;

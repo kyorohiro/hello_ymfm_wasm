@@ -5,7 +5,7 @@ import {createFXMonitor, spectrum} from './playground_fx_monitor.js';
 function setup(t, {savedMode = null, savedRange = null, storage: suppliedStorage} = {}) {
   const saved = new Map(['document', 'localStorage', 'setInterval', 'clearInterval'].map(key => [key, globalThis[key]]));
   const elements = new Map(), handlers = {}, messages = [], timers = new Map(), writes = [];
-  let sequence = 0, monitor, time = 0;
+  let sequence = 0, monitor, time = 0, unavailable = null;
   function element() {
     const result = {value: '', textContent: '', children: [], writes: 0, width: 700, height: 220,
       draws: 0, clears: 0, strokes: [], texts: [],
@@ -37,7 +37,7 @@ function setup(t, {savedMode = null, savedRange = null, storage: suppliedStorage
   globalThis.clearInterval = id => timers.delete(id);
   const createRack = () => ({node: {port: {postMessage: message => messages.push(message)}}});
   let rack = createRack();
-  monitor = createFXMonitor(() => rack, {storage, now: () => time});
+  monitor = createFXMonitor(() => rack, {storage, now: () => time,getUnavailableReason:()=>unavailable});
   t.after(() => {
     monitor?.setVisible(false);
     for (const [key, value] of saved) { if (value === undefined) delete globalThis[key]; else globalThis[key] = value; }
@@ -45,6 +45,7 @@ function setup(t, {savedMode = null, savedRange = null, storage: suppliedStorage
   return {
     monitor, get rack() { return rack; }, messages, handlers, writes, timers,
     setNow(value) { time = value; },
+    setUnavailable(value) { unavailable=value; },
     replaceRack() { const previous = rack; rack = createRack(); return previous; },
     get: id => document.getElementById(id),
     tick() { for (const callback of [...timers.values()]) callback(); },
@@ -54,6 +55,15 @@ function setup(t, {savedMode = null, savedRange = null, storage: suppliedStorage
     selectRange(value) { const range = document.getElementById('fxMonitorScale'); range.value = value; range.onchange(); },
   };
 }
+
+test('an unavailable Native per-effect monitor explains the supported output view without opening observation',t=>{
+ const f=setup(t),reason='Native liveFx: use Audio for the final output';
+ f.setUnavailable(reason);f.monitor.setVisible(true);f.tick();
+ assert.equal(f.messages.length,0);assert.equal(f.get('fxMonitorStatus').textContent,reason);
+ f.setUnavailable(null);f.tick();assert.equal(f.messages.at(-1).enabled,true);
+ f.setUnavailable(reason);f.tick();assert.equal(f.messages.at(-1).enabled,false);
+ const count=f.messages.length;f.tick();assert.equal(f.messages.length,count);assert.equal(f.rack.onMonitor,null);
+});
 
 function snapshot() {
   const input = Float32Array.from({length: 2048}, (_, i) => .5 * Math.sin(2 * Math.PI * 64 * i / 2048));

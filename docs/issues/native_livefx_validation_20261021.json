@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-21T11:05:11.736Z",
+  "status": "passed",
+  "engine": {
+    "name": "QuickJS-NG",
+    "tag": "v0.17.0",
+    "commit": "6d46d07d04041b40f4f49eaa7fdebe44c314c699",
+    "sourceHashes": {
+      "LICENSE": "96f73f9d2a16c21a36b418f06073be26e7d6d5e7c1bc99756b21a4f2c74ef171",
+      "quickjs-amalgam.c": "7c853a67ce7b6db463018e44f1425cd019d9f004a012ca013f47e415eb43446c",
+      "quickjs.h": "747a77444ff04a910b57ca51dd998d7ee46895b1b9592d7d6051fd180317c44d"
+    },
+    "sharedHashes": {
+      "web/custom_fx.js": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e",
+      "web/native_livefx_context.js": "2bf0d1eacceceea2932304505b2c68d01b8d1be174a93a09d0af7432361318f1"
+    }
+  },
+  "machine": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "machine": "arm64",
+    "osRelease": "24.6.0",
+    "cpu": "Apple M2",
+    "logicalCpus": 8
+  },
+  "node": "v26.12.0",
+  "fixture": {
+    "build": "compiled by this checker",
+    "flags": {
+      "c": [
+        "-std=c11",
+        "-O2",
+        "-DQUICKJS_NG_BUILD"
+      ],
+      "cpp": [
+        "-std=c++14",
+        "-O2"
+      ],
+      "link": [
+        "-pthread"
+      ]
+    },
+    "compiler": "Apple clang version 17.0.0 (clang-1700.4.4.1)"
+  },
+  "parity": {
+    "rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "frames": [
+      1,
+      37,
+      128
+    ],
+    "channels": 2,
+    "shippedExamples": [
+      {
+        "path": "docs/playground/examples/basic/singing-keyboard.js",
+        "sha256": "5ac801d4b18ee4e7dc6ea5c5c597e551e607b5762e2d79a0735a0cdc5cb25cdc",
+        "effect": "formant-ym2612"
+      }
+    ],
+    "passed": true,
+    "blocks": 480,
+    "maximumDifference": 0
+  },
+  "benchmarks": [],
+  "limits": {
+    "passed": true,
+    "cases": [
+      "infinite callback",
+      "hostile error conversion",
+      "heap limit",
+      "Atomics.wait nonblocking",
+      "metadata getter",
+      "inherited context setter",
+      "inherited context graph getter",
+      "detached host PCM",
+      "clear and retry"
+    ]
+  },
+  "finishedAt": "2026-10-21T11:05:20.382Z"
+}
