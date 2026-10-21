@@ -24,6 +24,19 @@
 - 隔離したnpm配布物：既定WASMの生成・PCM・snapshot・動的アセット・ソース／ライセンスとNodeNext / Bundler / Browserの型検査を確認。
 - Nativeの実デバイスを開くテストは実行しない。PCM一致は従来のホスト側計算を維持する確認であり、実機のPWMフィルター等との一致や聴感の判定ではない。
 
-結果の集計は `pwm32x_cpp_validation_20261022.json` に記録済み。npm公開・バージョン更新は今回行わない。
+結果の集計は `pwm32x_cpp_validation_20261022.json` に記録済み。実装検証時点ではnpm公開を分け、下記の0.2.25として公開した。
 
 由来・ホスト出力の差異は `third_party/mame-32x-pwm/README.md`、既存接続の履歴は `pwm32x_01.md` を参照。
+
+
+## npm公開（2026-10-22）
+
+- `tetorica-fm2612@0.2.25` を `latest` タグで公開。npm側の非同期処理の完了後、レジストリでversionとlatestを確認。
+- READMEにPWM WASM化・JS互換経路・配布時に必要なWASMペア・ソースを追記し、local tarball例を更新。欠落していた0.2.24のNES/FDS WASMのrelease noteも追記。
+- 公開前に288の型宣言、706の参照、26のWASM、隔離インストール後のPCM／snapshot／型を確認。関連30テストも成功。
+- 最終tarballの721ファイルが検証したstageとバイト単位で一致。公開後に実tarballを再取得し、ローカルtarballと全バイト一致を確認。
+- 公開URL: https://www.npmjs.com/package/tetorica-fm2612/v/0.2.25
+- SHA-256: `4040ce0302c1854521b8b94f9baa4f7a7f8469e31b99f55e0bca3a8e43ef3c8b`
+- SRI: `sha512-4sJd0YOFTM3jjFPvjMeJD+/Q2dNr3nZzxlFPuSBAlj6phT2/0vPJ4HSl8CcRoUlE79PFH2UHgXTois3CfUV5jA==`
+
+itch.ioの手動リリースとGitHub Actions／Windowsでの動作確認は利用者側で実施する。

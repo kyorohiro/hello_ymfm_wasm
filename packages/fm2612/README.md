@@ -174,6 +174,24 @@ preserved. `sources/NES-FDS.md` describes rebuilding the shared C++ core and
 WASM wrapper. Apache-2.0 and MIT notices and the original authors ship under
 `licenses/`.
 
+### 32X PWM WASM
+
+Available in `tetorica-fm2612@0.2.25` and later.
+
+`await createSoundChip('pwm')` and `await PWM32X.create()` use the shared C++
+PWM core through WASM. Browser AudioWorklets, MegaSynth, MegaSynthNode and
+asynchronous Genesis/VGM rendering use this core too. Register writes, FIFO
+behavior, frame-based scheduling and DAC/duty output retain the previous JS
+semantics. The standalone default is DAC output with gain 0.4; integrated
+playback keeps duty output with gain 1.
+
+Ship both `generated/pwm32x_wasm.js` and `generated/pwm32x_wasm.wasm` when
+copying a smaller deployment. The synchronous `new PWM32X()` constructor and
+explicit `implementation:'js'` remain available for compatibility and PCM
+comparisons. WASM loading errors are reported. The C++ source, wrapper and
+rebuild script ship in `sources/`; see `sources/PWM32X.md` and the BSD notices
+in `licenses/mame-32x-pwm/`. Tauri Native 32X builds the same C++ core directly.
+
 ### Master System: Sega PSG and YM2413 OPLL
 
 Available in `tetorica-fm2612@0.2.23` and later.
@@ -847,10 +865,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.24.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.25.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.24.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.25.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -867,6 +885,21 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.25` moves **32X PWM asynchronous playback to a shared C++/WASM core**.
+Direct creation, browser AudioWorklets, MegaSynth/MegaSynthNode and asynchronous
+Genesis/VGM engines use WASM, with the previous JS PCM and register/scheduling
+semantics preserved. The synchronous JS constructor remains available for
+compatibility and comparison. Generated WASM assets, typed wrappers, shared
+source, rebuild instructions and BSD notices are included. The shared Playground
+runtime also connects Native 32X FM/PSG/RF5C164/PWM through Main and Worker
+execution, mixer controls and cancellation when used with its Tauri host.
+
+`0.2.24` makes **NES + FDS asynchronous creation use the shared C++/WASM core**,
+including pulse, triangle, noise, DMC RAM and FDS wave/modulation memory. Synth
+and register APIs remain compatible, and the synchronous JS renderer remains
+available. Rebuild sources, Apache-2.0/MIT notices and author information ship
+with the package.
 
 `0.2.23` adds **AY-3-8910 and YM2413 high-level Synth APIs**, direct and Worklet
 transports, native voice inspectors and Keyboard channel adapters. AY exposes
