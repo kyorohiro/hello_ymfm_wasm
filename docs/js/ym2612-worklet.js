@@ -43,6 +43,9 @@ class YM2612Processor extends AudioWorkletProcessor {
     this.resampleRemainder = 0;
     this.lastLeft = 0;
     this.lastRight = 0;
+    this.psgRemainder = 0;
+    this.psgLeft = 0;
+    this.psgRight = 0;
     this.idleLeft = 0;
     this.idleRight = 0;
     this.mixTargets = {ym2612: [1, 1], segapsg: [1, 1]};
@@ -349,6 +352,9 @@ class YM2612Processor extends AudioWorkletProcessor {
       this.resampleRemainder = 0;
       this.lastLeft = 0;
       this.lastRight = 0;
+      this.psgRemainder = 0;
+      this.psgLeft = 0;
+      this.psgRight = 0;
       this.ym2612.reset();
       this.psg?.reset();
       return;
@@ -498,8 +504,6 @@ class YM2612Processor extends AudioWorkletProcessor {
     if (frames <= 0) return;
     const chipRate = this.ym2612.sampleRate(this.clock);
     const psgRate = this.ym2612.sampleRate();
-    this.psgRemainder ??= 0;
-    this.psgLeft ??= 0; this.psgRight ??= 0;
     const psgFrames = Math.floor((this.psgRemainder + frames * psgRate) / sampleRate);
     const sourceFrames = Math.floor((this.resampleRemainder + frames * chipRate) / sampleRate);
     const pcm = sourceFrames > 0 ? this.ym2612.generateStereoView(sourceFrames) : null;

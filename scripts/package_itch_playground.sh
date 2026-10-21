@@ -27,6 +27,7 @@ playground_sample_editor.css
 playground_sample_editor_worker.js
 playground_fx_monitor.js
 playground_audio_monitor.js
+playground_audio_diagnostics.js
 playground_monitor_scale.js
 playground_mixer.js
 playground_mixer.css
@@ -240,6 +241,7 @@ native_fx_graph.js
 native_fx_engine.js
 native-fx-worklet.js
 custom_fx.js
+audio-diagnostic-worklet.js
 native_audio_effect.wasm
 megasynth_looper.js
 megasynth_recording.js

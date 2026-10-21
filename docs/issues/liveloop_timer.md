@@ -1,5 +1,56 @@
 # liveLoopの時間同期と共通スケジューラー案
 
+## 2026-10-21 MIDI Playgroundとの比較と本体での記録
+
+同じYM2612で、Tetorica MIDI Playgroundではノイズがなく、YM2612 Playgroundでは
+ノイズが出るとの追加報告。Workerのオン／オフでは変わらない（最終回答）。
+Audifyでは増えるが、AudioWorkletを経由して転送する現構成の負担は想定内であり、
+Audifyの修正は今回の主対象にしない。比較結果は共通処理と最終出力の両方を候補に残す材料とする。
+
+手元のMIDI版はRust/C++のコールバックからCPALへ直接出力し、PCMはWebViewを通らない。
+YM2612の生成コアとclockは実質同じだが、MIDI版の線形補間＋10Hz DC除去と、
+Playgroundの平均／保持＋固定idle減算は異なる。同じWASMのPCMを変換する比較では
+高域成分の差を測れたが、断続的ノイズとの因果は未確定。
+実際のPlayground変換は2音色×44.1／48／96kHzで、通常128フレームと変則分割が一致した。
+
+確定した小さい不具合として、全体resetでPSGの保持サンプルと位相を消しておらず、
+96kHz等のupsampling時に古いサンプルが先頭へ1フレーム漏れることを再現した。
+YM2612／Nuked両WorkletでFMと一緒にPSG履歴も初期化・resetするよう修正した。
+このreset直後のクリックを、通常48kHzのFM演奏中に続く症状の原因とは扱わない。
+
+再現中の本体を調べるため、**Menu → Audio diagnostics…**を追加した。
+演奏中のページでそのまま開ける。URLの`audio-diagnostic=1`でも表示でき、
+Tauriのようにアドレスバーがない環境でもMenuから使える。別の確認ページへ移る必要はない。
+Runで演奏を始めてから`Record 30 s`を押す。異音が聞こえたら`Mark noise`を押し、
+自動終了または`Stop recording`後に`Save chip WAV`／`Save output WAV`／`Save JSON`で保存する。
+通常のStopは演奏を停止するが、記録はリリース音と無音まで継続する。
+`Close diagnostics`で記録用の接続と保存バッファーを解放する。
+
+- チップ出力（GenesisではPSG込み）と最終mix出力の左右を、同一の音声フレームで記録する。
+- Mainで先に4本のバッファーを確保し、一度転送。30秒・合計32MiBの小さい方を上限とする。
+- 記録中はコピーと固定個数のカウンター更新だけで、毎blockの配列生成・通知・描画はしない。
+  終了時に一度だけ転送し、WAV変換と保存は利用者の操作後に行う。
+- WAVは32bit float。clipやnormalize、PCM16変換を加えず、NaN等の異常値も記録上は保持する。
+- JSONは音声フレーム、欠けた入力、粗いwall-clock間隔、近似的な手動マーカー、
+  AudioContextのrate／latency、mode／Worker設定を含む。ソースコードや外部への送信は含まない。
+- 開くまで診断moduleをロードせず、記録開始までWorkletのロードも観測用nodeの生成も行わない。
+
+保存PCMに異音があれば音源・命令適用・mixを調べられる。
+保存PCMが正常でも、デバイスへ出るまでの欠落は否定できない。
+`currentFrame`の連続、`Date.now()`の間隔、手動マーカーだけでunderrunを断定しない。
+今回の演奏中のノイズが解消したという実機確認は、引き続き未完了。
+
+検証結果:
+
+- 関連のNodeテスト119件が成功。reset後の無音・新品との一致、Mainで確保した
+  バッファーの転送、部分記録・中止・解放、異常値を保持するfloat WAVを確認した。
+- `scripts/check_playground_audio_diagnostics_browser.cjs`でChromium／WebKitの実WASMを再生し、
+  4chの同時記録、両WAVの保存と`decodeAudioData`での復号、JSON、接続の解放を確認した。
+  記録の停止・パネルの終了でも演奏は継続し、通常ページは診断moduleを読み込まなかった。
+- このブラウザー検証ではチップ／最終出力PCMは一致し、入力欠落・取得frame欠落は0。
+  実機で報告された異音が再現したとは扱わない。WebKitで発生した外部Monaco言語Workerの
+  CDN読込エラー2件は音声検証から分け、検証結果JSONに全文を残した。
+
 ## 2026-10-21 Genesisの無操作再生中のノイズ調査
 
 Safari / TauriのGenesis modeで、以下の演奏中に時々ノイズが聞こえるという報告。

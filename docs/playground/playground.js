@@ -161,6 +161,8 @@ const exportTfiButton = document.getElementById("exportTfiButton");
 const exportVgiButton = document.getElementById("exportVgiButton");
 const fileExplorer = document.getElementById("fileExplorer");
 const workbench = installPlaygroundWorkbench(document.getElementById("workPanels"));
+let audioDiagnostics = null;
+let audioDiagnosticsLoading = null;
 installFileExplorerResize(fileExplorer, document.getElementById("fileExplorerDivider"));
 const cassetteExportDialog = document.getElementById("cassetteExportDialog");
 const cassetteLicenseSelect = document.getElementById("cassetteLicenseSelect");
@@ -578,7 +580,9 @@ const tfiFileEditor = createTfiFileEditor({
   onStatus: message => setStatus(message),
 });
 window.addEventListener("pagehide", event => {
+  audioDiagnostics?.cancel();
   if (!event.persisted) {
+    audioDiagnostics?.dispose();
     operatorTab?.dispose();
     mixerPanel?.dispose();
     chipTabs?.dispose();
@@ -1862,6 +1866,28 @@ function createRuntime() {
 }
 
 const runtime = createRuntime();
+async function showAudioDiagnostics() {
+  if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
+  if (!audioDiagnosticsLoading) {
+    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js').then(({createAudioDiagnostics}) => {
+      audioDiagnostics = createAudioDiagnostics({
+        host: document.body,
+        getSynth: () => runtime.megaDrive,
+        getMetadata: () => ({modeId:selectedMode.id, worker:workerExecution.checked,
+          userAgent:navigator.userAgent, listeningVolume}),
+      });
+    }).finally(() => { audioDiagnosticsLoading = null; });
+  }
+  await audioDiagnosticsLoading;
+}
+document.getElementById('audioDiagnosticsButton')?.addEventListener('click', () => {
+  mainMenu.open = false;
+  void showAudioDiagnostics().catch(error => setStatus(`Audio diagnostics could not load: ${error.message}`));
+});
+if (new URLSearchParams(window.location.search).get('audio-diagnostic') === '1') {
+  try { await showAudioDiagnostics(); }
+  catch (error) { setStatus(`Audio diagnostics could not load: ${error.message}`); }
+}
 keyboardInspector = runtime.chipInspector;
 keyboardRouting.refresh();
 mixerPanel = createPlaygroundMixer({
@@ -2775,6 +2801,7 @@ async function changePlaygroundMode(id) {
     });
     if (!['initial','keep'].includes(codeChoice)) return;
     switching = true;
+    audioDiagnostics?.cancel();
     invalidateSampleEditor('Mode changed');
     saveActiveVirtualFile();
     playgroundShell?.invalidate('Mode changed');

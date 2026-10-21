@@ -125,6 +125,41 @@ for (const tree of ['web', 'docs/js']) {
       assert.deepEqual([...render(p, 1).left], [0]);
       assert.equal(p.ym2612.frames, 0);
     });
+    test(`${tree} ${file}: reset clears held stereo PSG samples before the next native frame`, () => {
+      const {p} = processor(tree, file, 96000);
+      p.ym2612 = chip(48000); p.ym2612.value = 0;
+      p.psg = chip(48000); p.psg.value = .5;
+      assert.ok(render(p, 2).left[1] > 0);
+      p.applyCommand({type: 'reset'});
+      // No native sample is generated in the first upsampled output frame.
+      // It must hold silence, rather than the PSG sample from before reset.
+      const out = render(p, 1);
+      assert.equal(p.psg.frames, 0);
+      assert.deepEqual([...out.left], [0]);
+      assert.deepEqual([...out.right], [0]);
+    });
+    test(`${tree} ${file}: reset restarts PSG phase like a fresh processor across partial segments`, () => {
+      const resumed = processor(tree, file, 96000).p;
+      const fresh = processor(tree, file, 96000).p;
+      for (const p of [resumed, fresh]) {
+        p.ym2612 = chip(53267); p.ym2612.value = 0;
+        p.psg = chip(53267); p.psg.value = .5;
+      }
+      render(resumed, 3); // Leave both a held sample and a fractional phase.
+      assert.notEqual(resumed.psgRemainder, 0);
+      resumed.applyCommand({type: 'reset'});
+      resumed.psg.value = fresh.psg.value = .375;
+      const left = [], right = [];
+      for (const frames of [1, 1, 3, 127]) {
+        const out = render(resumed, frames);
+        left.push(...out.left); right.push(...out.right);
+      }
+      const expected = render(fresh, left.length);
+      assert.deepEqual(left, [...expected.left]);
+      assert.deepEqual(right, [...expected.right]);
+      assert.equal(resumed.psg.frames, fresh.psg.frames);
+      assert.equal(resumed.psgRemainder, fresh.psgRemainder);
+    });
     test(`${tree} ${file}: capture retains the output rate and stereo mix`, () => {
       const { p, messages } = processor(tree, file, 48000);
       p.ym2612 = chip(53267); p.ym2612.value = 0.5;

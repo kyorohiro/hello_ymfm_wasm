@@ -172,6 +172,27 @@
         line-height: 1.35;
       }
 
+      .audio-diagnostics {
+        position: fixed;
+        right: 12px;
+        bottom: 56px;
+        z-index: 20;
+        width: min(420px, calc(100vw - 24px));
+        max-height: 45vh;
+        overflow: auto;
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fffef9;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, .18);
+      }
+      .audio-diagnostics > div { display: flex; flex-wrap: wrap; gap: 6px; }
+      .audio-diagnostics p { font-size: .78rem; }
+      .audio-diagnostics button { font-size: .78rem; padding: 6px 10px; }
+
       .link-button,
       button,
       select {
@@ -1730,6 +1751,7 @@
               <button id="workerLookaheadButton" class="menu-setting-row" type="button" aria-haspopup="dialog" aria-controls="workerLookaheadDialog">
                 <span>Worker lookahead…</span><small id="workerLookaheadValue" class="menu-value">500 ms</small>
               </button>
+              <button id="audioDiagnosticsButton" type="button">Audio diagnostics…</button>
               <div id="desktopSettingsMenu"></div>
             </div>
           </details>

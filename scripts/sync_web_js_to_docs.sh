@@ -137,6 +137,7 @@ megasynth_session.js
 megasynth_pcm_looper.js
 native-fx-worklet.js
 custom_fx.js
+audio-diagnostic-worklet.js
 native_audio_effect.wasm
 megasynth_looper.js
 megasynth_recording.js
