@@ -268,6 +268,9 @@ playground_music.js
 playground_noise.js
 playground_runtime.js
 native_genesis_synth.js
+native_genesis_media.js
+native_genesis_fx.js
+native_genesis_worker.js
 playground_keyboard.js
 playground_sample_edit.js
 playground_sample_instrument.js

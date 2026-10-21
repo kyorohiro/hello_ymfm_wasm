@@ -1,5 +1,81 @@
 # TauriのNative Genesis音声バックエンド
 
+## 第2段階：Genesisの実用機能を増やす
+
+2026-10-21、未対応機能を順次追加する指示を受け、次を進める。
+第1段階のWeb Audio既定・Native明示選択・PCMをUIへ毎block転送しない方針を維持する。
+
+- [x] Worker実行。共通Workerの音楽APIと実際のMessageChannelを使い、Nativeへ時刻付き命令を送る。
+  Worker lookaheadとloop ownerの取消しを維持し、停止済みloopの未来の命令を残さない。
+- [x] 生のDAC書込み、`fm.dac`のPCM登録・再生とDAC bankの再生。
+- [x] 汎用サンプルの登録・再生。初期の入力形式を明記し、PCMの保持・音声voice数に上限を置く。
+- [x] 組込みFXとbranch／parallel／setChain、パラメーター変更・tempoをNativeに接続する。
+  既存C DSPを共有し、構築時のmalloc／freeや最後の所有参照の解放を音声callbackへ持ち込まない。
+- [x] Native最終出力の明示的な録音。先にバッファーを確保し、終了時に一度だけ受け取る。
+- [x] 共通API、Native実コアとWASMの差分、Worker／UI／失敗・停止・取消しの回帰検証。
+
+全mode・追加チップの一斉対応は引き続き行わない。任意のJavaScriptを音声callbackで実行する
+`liveFx`やWeb Audio固有オブジェクトは、C DSPの組込みFXとは分けて扱う。
+以下の対応表は第2段階の実装を反映する。第1段階の検証結果は履歴として残す。
+
+### 第2段階の仕様
+
+Workerは既存の音楽APIをそのまま使い、Mainと同じNativeセッションへ時刻付き命令を渡す。
+lookaheadは共通設定を使用し、通常0.5秒。FM／PSG／DAC／sample／FXが同じフレーム時刻を使う。
+loopごとのownerを記録し、取消しではそのloopの未来の命令と、まだ所有している発音だけを止める。
+別loopや手動入力で置き換わったCHを、古いloopの後処理で止めない。
+明示時刻のDAC命令・準備・即時入力にも演奏のsession／ownerを付ける。異なるMessagePortから
+遅れて届く古いStopの後処理を、次のRunの命令として受け付けない。Main上のbridgeも
+待機・送信中を合わせて65536命令／2048メッセージ／保持データ64 MiBに制限する。
+
+`sample.load`はmono／stereoのPCM、AudioBuffer互換オブジェクト、WAVのbytes／Blob／同一origin URLを
+受け付ける。MP3等の圧縮形式はまだ対象外。再生はrate、逆再生、loop、offset／duration、pan、fadeに対応。
+NativeはPCMとDACを含むbankを64 MiB以内に保持し、サンプルvoiceの予約を64件までに制限する。
+終了・取消しで使い終わったbankやFX graphの最後の参照は制御側で回収する。
+
+FXは既存のC DSPと同じ13種類を使う。直列／branch／parallel、パラメーター変更とramp、tempo同期に対応。
+音声callback内ではgraphを構築しない。構成変更は制御側で準備し、5msで出力を切り替える。
+パラメーター変更はDSPの履歴を保持するが、`setChain`／clearで構成を組み直すとdelay／reverbの履歴は初期化する。
+任意のJavaScriptを実行する`liveFx`とWeb Audioのnoiseは、理由を示して拒否する。
+
+**Menu → Audio diagnostics…** はNativeでも使用できる。FM／PSG／PCMとFX・音量を適用した
+最終ステレオ出力を、最大30秒／32 MiBまで明示的に記録する。終了時だけPCMを受け取り、
+output WAVとJSONを保存できる。Nativeではchip単独WAVは保存しない。
+この記録はCPALの機器別形式変換・monoへの合成・OSミキサーより前のPCMであり、
+実際に機器が鳴らした音やデバイスのdropoutを直接録音するものではない。
+
+第2段階でも実デバイスの長時間試聴・ノイズの再発確認は別途必要。通常再生中に生成PCMを
+JavaScriptへ転送する経路や追加AudioWorkletは作っていない。
+
+### 第2段階の検証（2026-10-21）
+
+| 検証 | 結果 |
+| --- | --- |
+| 共通Runtime／Native Synth／media／FX／Worker／Keyboard／設定／診断UI／実行ガード | Node 243件成功 |
+| Tauri Rust | 48件成功、3件ignored（資格情報2件・物理デバイス1件）。FX 6件を含む |
+| 実Nativeと実WASMのFM／PSG比較 | 44.1／48／96kHz、6ケース成功。最大差3.73×10⁻⁹ |
+| 実Rust schedulerと実WASMのDAC／packed stream／逆再生・loop・fade付きPCM比較 | 同3種の出力rate、9ケース成功。最大差1.49×10⁻⁸ |
+| 13種FXと直列／並列構成の実Native／実WASM比較 | 同3種の出力rate、42ケース成功。最大差1.49×10⁻⁸ |
+| Tauri側の既存テスト | Python 8件、Node 31件成功 |
+| Tauri取り込みアセット | 784ファイル。archive SHA-256 `3e1eab7ca56d3ff12dd5fde0edd4277af87ff9a1bfdfab75363d6f49382b74f6` |
+| 配布アセット上のChromium／WebKit | Main／Worker、DAC／sample／FX、loop取消し、録音WAV保存、Stop／Run、切替・開始失敗・mode変更が成功。Native IPCは模擬 |
+| Tauri `cargo build --offline --locked` | 更新した配布アセット取り込み後に成功 |
+| 物理デバイスの試聴・長時間安定性 | 第2段階では未実施。音声デバイスを開くテストも実行していない |
+
+音声デバイスを開かず、実NativeのPCM生成・DSP比較と、IPCを模擬した実ブラウザーのUI検証を
+分けて行う。未来のDAC／sample停止が早切れしないこと、owner取消しが手動入力を巻き込まないこと、
+旧sessionの遅いcleanup、容量上限、録音開始／終了とStopの競合、FXの連続Run／再評価も検証対象とした。
+
+追加した検証コマンド（Tauriリポジトリーから実行）:
+
+```sh
+node scripts/check_native_genesis_media.mjs ../..
+node scripts/check_native_genesis_fx.mjs ../..
+python3 scripts/sync_native_genesis_fx.py --check --source ../..
+```
+
+## 第1段階の方針と実装記録
+
 2026-10-21。OS再起動でYM2612 Playgroundの断続的ノイズが消えた。同じYM2612を
 ネイティブ生成するMIDI Playgroundでは発生しなかったため、音声生成から出力までを
 ネイティブ側で完結させる構成を、Genesisに絞って比較できるようにする。
@@ -82,7 +158,7 @@ Native未対応の機能は理由を示して拒否し、別バックエンド�
 ブラウザー版およびGenesis以外のmodeではNativeを使用せず、有効なエンジンはWeb Audioと表示する。
 Native初期化失敗を自動フォールバックで隠さず、エラーを表示して設定から切り戻せる。
 
-### 初期実装の対応範囲
+### 現在の対応範囲
 
 | 機能 | Native Genesis | 補足 |
 | --- | --- | --- |
@@ -96,9 +172,14 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | FM Operatorsの編集情報 | 設定値を共有 | JS側の設定値であり、Native内部のエンベロープ等の適用済み観測ではない |
 | PSGの適用済み音色情報 | 未対応 | 読取要求を明示的に拒否。KeyboardのPSG試聴は別途対応 |
 | 手動KeyboardとscriptのCH優先制御 | 未対応 | 同じ物理CHへのscript書込みは手動の長押しを上書きし得る。演奏中は空きCHを選ぶ |
-| Worker、追加チップ、Genesis以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
-| DAC／sample／stream／Web Audio noise、FX | 未対応 | 別の音声経路で代用しない |
-| 音声記録、Audio diagnostics、独立した音色ファイル試聴 | 未対応 | Web Audioへ切り戻して使用 |
+| Worker実行 | 対応 | 共通Worker、lookahead、loopのowner取消し。通常のPCM block転送は行わない |
+| DAC、`fm.dac`、DAC bank／sample clock | 対応 | PCM登録・pan・時刻指定・packed stream、生のDACレジスター書込み |
+| 汎用sample再生 | PCM／WAVに対応 | rate・逆再生・loop・pan・fade。MP3等の圧縮形式は未対応 |
+| 組込みFX | 13種類に対応 | branch／parallel／setChain、パラメーターramp、tempo。構成変更でDSP履歴を初期化 |
+| Audio diagnostics | 最終出力に対応 | output WAV／JSON、noise marker。最大30秒／32 MiB。chip単独出力は未対応 |
+| 追加チップ、Genesis以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
+| stream／Web Audio noise、JavaScript `liveFx` | 未対応 | 別の音声経路で代用しない |
+| 独立した音色ファイル試聴 | 未対応 | Web Audioへ切り戻して使用 |
 | Chip clock変更、同期status／IRQ読取 | 未対応 | 固定のYM2612／PSG clockを使用。コア内timerの進行とは区別 |
 
 Native用にAudioContextやAudioNodeの偽物を作らない。Native Synthは明示的な音声clockと
@@ -106,7 +187,7 @@ admin adapterを持ち、Keyboardの操作もPCMの転送や追加AudioWorklet�
 clockは開始・再開時のNative応答を基準にホストの単調時刻で補間する初期構成であり、
 デバイスclockの継続的なドリフト追従やデバイス交換時の自動復旧は今後の検討事項。
 
-### 検証結果（2026-10-21）
+### 第1段階の検証結果（2026-10-21）
 
 | 検証 | 結果 |
 | --- | --- |

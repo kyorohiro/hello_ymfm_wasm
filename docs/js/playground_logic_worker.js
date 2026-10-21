@@ -23,6 +23,7 @@ import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindi
 import {createYm2608Client} from './playground_ym2608.js?v=audio-numeric-bindings-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=audio-numeric-bindings-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
+import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {serializeLogError} from './playground_log.js';
 /**
  * @file playground_logic_worker.js
@@ -355,7 +356,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     currentLoop: null,
     audioHandles: new Set(),
   };
-  const performanceTransport = createPerformanceSender({getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => postMessage({type:'performance-cancel-owner',...metadata})});
+  const performanceTransport = createPerformanceSender({leaseUntimed:capabilities.backend==='native-genesis',getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => postMessage({type:'performance-cancel-owner',...metadata})});
   run.performance = performanceTransport;
   const keyboardApi = createKeyboardApiGuard(() => run.currentLoop,value => {run.currentLoop=value;});
   const musicalKeyboard = createMusicalKeyboard({getContext:()=>run.currentLoop,setContext:value=>{run.currentLoop=value;},
@@ -509,7 +510,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     }
   );
   const liveFxLifecycle = createLiveFxLifecycle();
-  const fxBase = nativeFXPort ? createNativeFXController(data => fxPort.postMessage(data), {getBeatSeconds: () => 60 / clock.getBpm()}) : new Proxy({}, {
+  const createFX = capabilities.backend === 'native-genesis' ? createNativeGenesisFX : null;
+  const fxBase = nativeFXPort ? (createFX
+    ? createFX({send:data => fxPort.postMessage(data),getBeatSeconds:() => 60 / clock.getBpm()})
+    : createNativeFXController(data => fxPort.postMessage(data), {getBeatSeconds: () => 60 / clock.getBpm()})) : new Proxy({}, {
     get(_target, method) {
       if (method === "setChain") return (effects) => postCommand("fx.setChain", [effects.map(handleId)]);
       if (method === "clear") return () => postCommand("fx.clear");
@@ -530,7 +534,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     return (...args)=>liveFxLifecycle.track(target, run.collectingLiveFx ?? run.liveFxDefinitions).liveFx(...args);
   }});
   run.syncFXTempo = () => { if (nativeFXPort) fx.syncTempo(); };
-  const nativeNoise = nativeFXPort ? createNativeNoiseController(data=>fxPort.postMessage(data)) : null;
+  const nativeNoise = nativeFXPort && capabilities.noise !== false ? createNativeNoiseController(data=>fxPort.postMessage(data)) : null;
   const noise = nativeNoise ?? {
     create(options = {}) {
       const id = createHandle("noise");

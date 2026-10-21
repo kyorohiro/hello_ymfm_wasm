@@ -45,6 +45,7 @@ export function createAudioDiagnostics({
   seconds = MAX_SECONDS,
 }) {
   let phase = 'idle', session = null, result = null, sequence = 0;
+  let nativeCleanup = Promise.resolve();
   const panel = document.createElement('section');
   panel.className = 'audio-diagnostics';
   panel.setAttribute('aria-label', 'Audio diagnostics');
@@ -75,6 +76,7 @@ export function createAudioDiagnostics({
     buttons.stop.disabled = !session || phase === 'stopping';
     buttons.mark.disabled = phase !== 'recording';
     for (const key of ['chip', 'output', 'json']) buttons[key].disabled = !result || phase === 'disposed';
+    if (result?.report.backend === 'native-genesis') buttons.chip.disabled = true;
     if (message) status.textContent = message;
   }
   update('Play audio with Run, then record here. Playback continues during recording.');
@@ -83,7 +85,14 @@ export function createAudioDiagnostics({
     if (!active || active.cleaned) return;
     active.cleaned = true;
     clearTimer(active.timer);
-    active.context.removeEventListener('statechange', active.contextListener);
+    active.context?.removeEventListener('statechange', active.contextListener);
+    if (active.native) {
+      // Await a pending start before finalizing it. A new capture waits for this
+      // cleanup barrier, so late IPC cannot leave a hidden capture or stop the
+      // replacement capture. The result is deliberately discarded on cancel.
+      nativeCleanup = finishNative(active).then(() => {}, () => {});
+      return;
+    }
     try { active.release?.(); } catch {}
     // Disconnect only our branch; the existing audible chip path stays connected.
     try { if (active.tap) active.raw.disconnect(active.tap, 0, 0); } catch {}
@@ -105,6 +114,7 @@ export function createAudioDiagnostics({
   async function start() {
     if (phase === 'disposed' || session) return;
     const synth = getSynth();
+    if (synth?.capabilities?.backend === 'native-genesis') return startNative(synth);
     const context = synth?.audioContext;
     if (context?.state !== 'running' || !synth.node || !synth.audio?.connectOutputMonitor) {
       update('Press Run to start audio before recording.'); return;
@@ -112,6 +122,7 @@ export function createAudioDiagnostics({
     if (!Number.isFinite(context.sampleRate) || context.sampleRate < 1 || !AudioWorkletNodeClass) {
       update('Audio diagnostics are unavailable in this audio context.'); return;
     }
+    description.textContent = 'Record chip output and mixed output from the current playback. A clean recording cannot rule out audio-device dropouts.';
     const capacity = Math.floor(Math.min(MAX_SECONDS, Math.max(0.001, Number(seconds) || MAX_SECONDS)) * context.sampleRate);
     const frames = Math.min(capacity, Math.floor(MAX_BYTES / 16));
     const active = {id: ++sequence, context, synth, raw: synth.node, capacity: frames, marks: [], droppedMarkers: 0};
@@ -155,6 +166,80 @@ export function createAudioDiagnostics({
     } catch (error) {
       fail(active, `Could not record audio: ${error.message ?? error}`);
     }
+  }
+
+  async function startNative(synth) {
+    const context = synth.clock;
+    if (context?.state !== 'running' || !synth.isReady?.() ||
+        typeof synth.startOutputRecording !== 'function' || typeof synth.stopOutputRecording !== 'function') {
+      update('Press Run to start audio before recording.'); return;
+    }
+    if (!Number.isInteger(context.sampleRate) || context.sampleRate < 8000 || context.sampleRate > 384000) {
+      update('Audio diagnostics are unavailable for this native audio clock.'); return;
+    }
+    const requestedSeconds = Math.min(MAX_SECONDS, Math.max(0.001, Number(seconds) || MAX_SECONDS));
+    const capacity = Math.min(Math.floor(requestedSeconds * context.sampleRate), Math.floor(MAX_BYTES / 8));
+    const active = {id:++sequence, native:true, synth, context, capacity, marks:[], droppedMarkers:0};
+    active.contextListener = () => {
+      if (context.state !== 'running') fail(active, 'Recording cancelled: native audio was closed.');
+    };
+    session = active; result = null; phase = 'preparing';
+    context.addEventListener?.('statechange', active.contextListener);
+    description.textContent = 'Record the native final output, including samples and FX. Chip-only capture is unavailable. A clean recording cannot rule out audio-device dropouts.';
+    update('Preparing native output recording…');
+    try {
+      await nativeCleanup;
+      if (session !== active) return;
+      if (getSynth() !== synth || context.state !== 'running') {
+        fail(active, 'Recording cancelled: the audio session changed.'); return;
+      }
+      active.metadata = getMetadata(); active.requestedAtWallMs = now();
+      active.nativeStart = Promise.resolve().then(() => synth.startOutputRecording({seconds:capacity/context.sampleRate}));
+      await active.nativeStart;
+      if (session !== active) return;
+      if (getSynth() !== synth || context.state !== 'running') {
+        fail(active, 'Recording cancelled: the audio session changed.'); return;
+      }
+      phase = 'recording';
+      active.timer = setTimer(() => { void stop(); }, capacity/context.sampleRate*1000);
+      update(`Recording native output up to ${(capacity/context.sampleRate).toFixed(1)} s. Playback is unchanged.`);
+    } catch (error) { fail(active, `Could not record audio: ${error.message ?? error}`); }
+  }
+
+  function finishNative(active) {
+    if (!active.nativeStart) return Promise.resolve();
+    if (!active.nativeStop) active.nativeStop = active.nativeStart.then(() => active.synth.stopOutputRecording());
+    return active.nativeStop;
+  }
+
+  async function stopNative(active) {
+    clearTimer(active.timer);
+    active.timer = setTimer(() => fail(active, 'Recording cancelled: no native result was received.'), 5000);
+    try {
+      const data = await finishNative(active);
+      if (session !== active) return;
+      if (getSynth() !== active.synth || active.context.state !== 'running') {
+        fail(active, 'Recording cancelled: the audio session changed.'); return;
+      }
+      if (!Number.isSafeInteger(data?.frames) || data.frames < 0 || data.frames > active.capacity ||
+          data.sampleRate !== active.context.sampleRate || !Number.isSafeInteger(data.firstFrame) || data.firstFrame < 0 ||
+          !Array.isArray(data.channels) || data.channels.length !== 2 ||
+          !data.channels.every(channel => channel instanceof Float32Array && channel.length === data.frames)) {
+        fail(active, 'Recording cancelled: invalid native diagnostic data.'); return;
+      }
+      const {channels, ...capture} = data;
+      result = {channels, report:{
+        format:'tetorica-audio-diagnostic-v1', backend:'native-genesis',
+        requestedAtWallMs:active.requestedAtWallMs, completedAtWallMs:now(),
+        audioContext:null, nativeClock:{sampleRate:data.sampleRate}, metadata:active.metadata,
+        capture, channelOrder:['output-left','output-right'],
+        marks:active.marks.map(mark=>({...mark,frameOffset:Math.round(mark.audioTime*data.sampleRate)-data.firstFrame})),
+        droppedMarkers:active.droppedMarkers,
+        limitations:'Native final-output PCM precedes the audio device. Continuous capture frames do not prove that the device played without dropouts. Chip-only PCM is unavailable. Marker timing follows the Main-thread estimate of the native audio clock.',
+      }};
+      clean(active); session=null; phase='ready';
+      update(`Recorded ${(data.frames/data.sampleRate).toFixed(2)} s of native output. Save output WAV and JSON.`);
+    } catch (error) { fail(active, `Could not finish recording: ${error.message ?? error}`); }
   }
 
   function receive(active, data) {
@@ -202,6 +287,7 @@ export function createAudioDiagnostics({
       fail(active, 'Recording cancelled before it started.'); return;
     }
     phase = 'stopping'; update('Finishing recording…');
+    if (active.native) return stopNative(active);
     active.timer = setTimer(() => fail(active, 'Recording cancelled: no result was received.'), 3000);
     try { active.tap.port.postMessage({type: 'stop', id: active.id}); }
     catch (error) { fail(active, `Could not finish recording: ${error.message ?? error}`); }
@@ -221,7 +307,8 @@ export function createAudioDiagnostics({
       const prefix = `tetorica-audio-${result.report.requestedAtWallMs}`;
       if (kind === 'json') download(new Blob([JSON.stringify(result.report, null, 2)], {type: 'application/json'}), `${prefix}.json`);
       else if (kind === 'chip' || kind === 'output') {
-        const offset = kind === 'chip' ? 0 : 2;
+        if (kind === 'chip' && result.report.backend === 'native-genesis') return;
+        const offset = kind === 'chip' || result.report.backend === 'native-genesis' ? 0 : 2;
         download(new Blob([encodeDiagnosticWav(result.channels[offset], result.channels[offset + 1], capture.frames, capture.sampleRate)], {type: 'audio/wav'}), `${prefix}-${kind}.wav`);
       }
     } catch (error) { update(`Could not save recording: ${error.message ?? error}`); }

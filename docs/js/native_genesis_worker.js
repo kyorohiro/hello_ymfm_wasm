@@ -1,0 +1,119 @@
+/** Real MessagePorts connect the existing logic Worker to the native transport.
+ * Only commands and one-off sample preparation cross this bridge, never audio
+ * blocks. Chip and FX share one performance clock and bounded owner registry. */
+export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = MessageChannel, onError = () => {}, maxPending = 65536}) {
+  if (!Number.isSafeInteger(maxPending) || maxPending < 1 || maxPending > 65536) throw new RangeError('Invalid Native Worker queue limit');
+  const admin = new MessageChannelClass(), chip = new MessageChannelClass(), fx = new MessageChannelClass();
+  const ports = [admin.port1, chip.port1, fx.port1];
+  let serial = Promise.resolve(), active = null, epoch = 0, pending = 0, pendingMessages = 0, pendingBytes = 0, disposed = false;
+  const owners = new Map(), cancelled = new Set();
+  const abort = () => new DOMException('Native Worker performance was stopped', 'AbortError');
+  const validSession = value => Number.isSafeInteger(value) && value > 0;
+  function ownerId(owner) {
+    if (typeof owner !== 'string' || !owner.length || owner.length > 256) throw new TypeError('Invalid Native Worker owner');
+    if (!owners.has(owner)) {
+      if (owners.size >= 512) throw new RangeError('Native Worker owner limit exceeded');
+      owners.set(owner, owners.size + 1);
+    }
+    return owners.get(owner);
+  }
+  function replyError(port, message, error) {
+    if (message?.id === undefined) return false;
+    const detail = String(error.message ?? error);
+    if (message.type === 'pcm-dac') port.postMessage({type:'pcm-dac-result',id:message.id,error:detail});
+    else if (message.type === 'chip-clock') port.postMessage({type:'chip-clock-result',id:message.id,error:detail});
+    else if (message.op === 'sample') port.postMessage({op:'sample-response',id:message.id,error:detail});
+    else return false;
+    return true;
+  }
+  function enqueue(task, count, fail, bytes = 0) {
+    if (count && (pending + count > maxPending || pendingMessages >= 2048 || pendingBytes + bytes > 64 * 1024 * 1024)) { fail(new RangeError('Native Worker command queue is full')); return; }
+    pending += count; pendingMessages++; pendingBytes += bytes;
+    const result = serial.then(task);
+    serial = result.catch(error => { fail(error); }).finally(() => { pending -= count; pendingMessages--; pendingBytes -= bytes; });
+  }
+  function control(port, message) {
+    if (!validSession(message.session)) throw new TypeError('Invalid Native Worker performance');
+    const performance = message.session;
+    if (message.type === 'performance-start') {
+      const version = ++epoch; active = performance; owners.clear(); cancelled.clear();
+      enqueue(async () => {
+        if (disposed || version !== epoch) throw abort();
+        await synth.setNativePerformance({op:'start',performance});
+        if (disposed || version !== epoch) throw abort();
+        port.postMessage({type:'performance-result',id:message.id});
+      }, 1, error => port.postMessage({type:'performance-result',id:message.id,error:String(error.message ?? error)}));
+    } else if (message.type === 'performance-stop') {
+      if (active !== performance) return;
+      active = null; ++epoch;
+      enqueue(() => synth.setNativePerformance({op:'stop',performance}), 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
+    } else if (message.type === 'performance-cancel-owner') {
+      if (active !== performance || cancelled.has(message.owner)) return;
+      const owner = ownerId(message.owner); cancelled.add(message.owner);
+      enqueue(() => synth.setNativePerformance({op:'cancel-owner',performance,owner}), 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
+    }
+  }
+  function receive(port, kind, message) {
+    if (disposed || !message) return;
+    try {
+      if (message.type?.startsWith('performance-')) { control(port,message); return; }
+      if(message.performance && message.nativePerformance)throw new TypeError('Native Worker command has two performance leases');
+      const envelope = message.performance ?? message.nativePerformance;
+      const messages = envelope ? message.commands : Array.isArray(message) ? message : [message];
+      if (!Array.isArray(messages) || !messages.length) throw new TypeError('Native Worker commands must be a non-empty array');
+      const version = epoch;
+      const timing = {};
+      if (envelope) {
+        if (envelope.session !== active || !validSession(envelope.session) ||
+            message.performance && (!Number.isFinite(envelope.time) || envelope.time < 0)) throw abort();
+        if(message.performance)timing.time=envelope.time;
+        timing.performance = envelope.session; timing.owner = ownerId(envelope.owner);
+      }
+      const failed = error => {
+        let replied = false;
+        for (const command of messages) replied = replyError(port,command,error) || replied;
+        if (!replied && error.name !== 'AbortError' && !disposed) onError(error);
+      };
+      // Include nested register schedules and retained sample payloads in the
+      // admission limit while an earlier native IPC is still in flight.
+      const count = messages.reduce((sum,m) => sum + Math.max(1,m.entries?.length ?? 0),0);
+      // Structured cloning a small typed-array view retains its whole backing
+      // buffer. Account for retained storage, rather than only the view length.
+      const bytesOf = data => Array.isArray(data) ? data.length * 8 :
+        ArrayBuffer.isView(data) ? data.buffer.byteLength : data?.byteLength ?? 0;
+      const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.command?.data) +
+        (m.pcm?.channels?.reduce((total,channel) => total + bytesOf(channel),0) ?? 0),0);
+      enqueue(async () => {
+        // Stop invalidates already queued work immediately, including the
+        // Worker's ordinary untimed cleanup after performance-stop.
+        if (!active || disposed || version !== epoch || (envelope && cancelled.has(envelope.owner))) throw abort();
+        if (kind === 'chip' && messages.length > 1 && messages.every(m => ['write','psg-write','psg-stereo','reset'].includes(m.type))) {
+          await synth.dispatchNativeCommand(messages,timing);
+        } else for (const command of messages) {
+          if (disposed || version !== epoch || (envelope && cancelled.has(envelope.owner))) throw abort();
+          const result = kind === 'fx' ? await synth.dispatchNativeFxCommand(command,timing) : await synth.dispatchNativeCommand(command,timing);
+          if (result) port.postMessage(result);
+        }
+      }, count, failed, bytes);
+    } catch (error) {
+      const messages = message.commands ?? (Array.isArray(message) ? message : [message]);
+      let replied = false;
+      if (Array.isArray(messages)) for (const command of messages) replied = replyError(port,command,error) || replied;
+      if (!replied && error.name !== 'AbortError') onError(error);
+    }
+  }
+  for (const [port,kind] of [[admin.port1,'admin'],[chip.port1,'chip'],[fx.port1,'fx']]) {
+    port.onmessage = ({data}) => receive(port,kind,data); port.start?.();
+  }
+  return {
+    port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,
+    dispose() {
+      if (disposed) return serial;
+      disposed = true; const performance = active; active = null; ++epoch;
+      for (const port of [...ports,admin.port2,chip.port2,fx.port2]) port.close();
+      const result = serial.then(() => performance === null ? undefined : synth.setNativePerformance({op:'stop',performance}));
+      serial = result.catch(() => {});
+      return result;
+    },
+  };
+}

@@ -59,6 +59,8 @@ class FakeNative {
       assert(args.commands.every(entry => Number.isSafeInteger(entry.frame) && entry.frame >= 0));
       return this.status();
     }
+    if (['native_genesis_performance','native_genesis_fx','native_genesis_media_load','native_genesis_media_remove','native_genesis_record_start'].includes(command)) return this.status();
+    if (command === 'native_genesis_record_stop') return {sampleRate:48000,firstFrame:0,frames:16,complete:false,channels:[Array(16).fill(.1),Array(16).fill(-.1)]};
     throw Error('Unexpected native command: ' + command);
   }
   count(command) {return this.calls.filter(call => call.command === command).length;}
@@ -106,7 +108,58 @@ async function nativeRun(page, native) {
   await until(() => native.count('native_genesis_commands') > before && native.calls.some(call => call.command === 'native_genesis_commands' && call.args.commands.some(entry => entry.type === 'write' && entry.register === 0x28 && entry.value & 0xf0)));
   assert.equal(await page.evaluate(() => window.__nativeBackendTest.runtime.megaDrive.backend), 'native-genesis');
   assert.deepEqual(await page.evaluate(() => window.__audioConstructions), {contexts:0,worklets:[]});
-  assert.equal(await page.locator('#workerExecution').isDisabled(), true);
+  assert.equal(await page.evaluate(() => window.__nativeBackendTest.runtime.capabilities.worker), true);
+}
+async function workerMediaRun(page,native) {
+  await page.evaluate(() => window.__nativeBackendTest.runtime.stopWithFade());
+  const first=native.calls.length;
+  await page.evaluate(async () => {
+    await window.__nativeBackendTest.runtime.playSource(`
+      setBpm(120);
+      fm.setPreset(CH1,FM_PRESETS['one-op-basic']);
+      const gain=fx.gain({gain:0.5});fx.setChain([gain]);gain.gain.rampTo(0.8,0.1);
+      await sample.load('native-test',{sampleRate:22050,channels:[new Float32Array([0,.5,0,-.5])]});
+      await sample.play('native-test',{loop:true});
+      await fm.dac.setSample('native-dac',new Uint8Array([128,160,128,96]),{sampleRate:8000});
+      await fm.dac.playFromSample('native-dac');
+      psg.tone(PSG1,{note:'C4',attenuation:8});
+      liveLoop('native-worker-phrase',async()=>{await play('E3',{channel:CH1,duration:0.1});await beat(0.1);});
+    `,{execution:'worker'});
+  });
+  const calls=()=>native.calls.slice(first), commands=()=>calls().flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+  await until(()=>commands().some(c=>c.type==='write'&&c.register===0x28&&(c.value&0xf0)&&c.performance&&c.owner));
+  assert(calls().some(c=>c.command==='native_genesis_performance'&&c.args.op==='start'));
+  assert(calls().some(c=>c.command==='native_genesis_fx'&&c.args.message.op==='chain'&&c.args.performance));
+  assert(calls().some(c=>c.command==='native_genesis_media_load'&&c.args.kind==='sample'));
+  assert(commands().some(c=>c.type==='sample-play'&&c.performance&&c.frame>0));
+  assert(commands().some(c=>c.type==='dac-play'&&c.performance&&c.frame>0));
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource('stopLoop("native-worker-phrase");',{execution:'worker'}));
+  await until(()=>calls().some(c=>c.command==='native_genesis_performance'&&c.args.op==='cancel-owner'));
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await until(()=>calls().some(c=>c.command==='native_genesis_performance'&&c.args.op==='stop'));
+  // Reuse the existing Worker/ports after Stop with a fresh performance session.
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource('await play("G3",{channel:CH1,duration:0});',{execution:'worker'}));
+  assert.equal(calls().filter(c=>c.command==='native_genesis_performance'&&c.args.op==='start').length,2);
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  assert.deepEqual(await page.evaluate(()=>window.__audioConstructions),{contexts:0,worklets:[]});
+}
+async function nativeRecording(page,native) {
+  await page.locator('#mainMenu > summary').click();
+  await page.click('#audioDiagnosticsButton');
+  const panel=page.locator('.audio-diagnostics');await panel.waitFor({state:'visible'});
+  const before=native.count('native_genesis_record_start');
+  await panel.getByRole('button',{name:'Record 30 s',exact:true}).click();
+  await until(()=>native.count('native_genesis_record_start')>before);
+  await panel.getByRole('button',{name:'Mark noise',exact:true}).click();
+  await panel.getByRole('button',{name:'Stop recording',exact:true}).click();
+  await panel.getByRole('button',{name:'Save output WAV',exact:true}).waitFor({state:'visible'});
+  await page.waitForFunction(()=>!Array.from(document.querySelectorAll('.audio-diagnostics button')).find(b=>b.textContent==='Save output WAV').disabled);
+  assert(await panel.getByRole('button',{name:'Save chip WAV',exact:true}).isDisabled());
+  const saving=page.waitForEvent('download');await panel.getByRole('button',{name:'Save output WAV',exact:true}).click();
+  const downloaded=await saving,bytes=await fs.readFile(await downloaded.path());
+  assert.equal(bytes.toString('ascii',0,4),'RIFF');assert.equal(bytes.readUInt16LE(20),3);assert.equal(bytes.readUInt32LE(40),16*8);
+  await panel.getByRole('button',{name:'Close diagnostics',exact:true}).click();
+  assert.deepEqual(await page.evaluate(()=>window.__audioConstructions),{contexts:0,worklets:[]});
 }
 async function keyboard(page, native) {
   await page.click('#keyboardTab');
@@ -164,7 +217,9 @@ async function checkBrowser(name, type, url, artifacts) {
     await until(() => native.count('native_genesis_stop') > 0);
     await page.waitForFunction(() => window.__nativeBackendTest.runtime.getState().playback === 'stopped');
     await keyboard(page, native);
+    await workerMediaRun(page,native);
     await nativeRun(page, native);
+    await nativeRecording(page,native);
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
@@ -198,7 +253,7 @@ async function checkBrowser(name, type, url, artifacts) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, native no-Web-Audio path, Stop/Run, failure/recovery, mode cleanup (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, DAC/sample/FX, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 

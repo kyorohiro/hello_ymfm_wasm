@@ -1144,6 +1144,25 @@ test('a delayed Worker Stop must finish before the next Run is sent', async t =>
   assert.equal(runtime.getState().playback,'running');
   runtime.stop();worker.onmessage({data:{type:'stopped'}});
 });
+test('stopWithFade without Web Audio waits for Worker cleanup and the subsequent native callback barrier',async t=>{
+  const {runtime,megaDrive}=setup(t,{fmChannels:1});
+  const previous=globalThis.Worker,workers=[],gate=deferred();let nativeStopping=false;
+  megaDrive.audioContext=null;
+  megaDrive.stopNativeAudio=()=>{nativeStopping=true;return gate.promise;};
+  globalThis.Worker=class {
+    constructor(){workers.push(this);}
+    postMessage(message){if(message.type==='run')queueMicrotask(()=>this.onmessage({data:{type:'complete',loopCount:1}}));}
+    terminate(){}
+  };
+  t.after(()=>{globalThis.Worker=previous;});
+  await runtime.playSource('',{execution:'worker'});
+  let finished=false;const stopping=runtime.stopWithFade().then(()=>{finished=true;});
+  await Promise.resolve();assert.equal(finished,false);assert.equal(nativeStopping,false);
+  workers[0].onmessage({data:{type:'command',command:'audio.stopAll',args:[]}});
+  workers[0].onmessage({data:{type:'stopped'}});
+  await until(()=>nativeStopping);await Promise.resolve();assert.equal(finished,false);
+  gate.resolve();await stopping;assert.equal(finished,true);await runtime.finalize();
+});
 test('Worker play durations do not serialize independent live-loop notes or Stop',async t=>{
  const {runtime,megaDrive}=setup(t),workers=workerBridge(t),notes=[],offs=[];
  megaDrive.fm.noteOn=ch=>notes.push(ch);megaDrive.fm.noteOff=ch=>offs.push(ch);

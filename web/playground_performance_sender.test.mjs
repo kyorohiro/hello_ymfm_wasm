@@ -205,3 +205,17 @@ test('the facade preserves MessagePort decode-error handling used by DX7', () =>
   facade.onmessageerror = null;
   assert.equal(f.port.onmessageerror, null);
 });
+
+test('Native-only untimed leases fence preparation, cleanup and keyboard without adding audio lead',()=>{
+  const sent=[];let loop={performanceOwner:'lead:1'};
+  const sender=createPerformanceSender({leaseUntimed:true,getLoop:()=>loop,now:()=>1000});
+  sender.configure({session:10,audioSeconds:2,performanceEpochMs:1000,lookaheadSeconds:.5});
+  const port=sender.port({postMessage:data=>sent.push(structuredClone(data))},'chip');
+  const schedule={type:'sample-writes',entries:[{sample:4410,register:0x2a,value:128}]};port.postMessage(schedule);
+  assert.deepEqual(sent.pop(),{nativePerformance:{session:10,owner:'lead:1'},commands:[schedule]});
+  loop={keyboard:true};port.postMessage({type:'write',register:0x28,value:240});
+  assert.deepEqual(sent.pop(),{nativePerformance:{session:10,owner:'keyboard'},commands:[{type:'write',register:0x28,value:240}]});
+  sender.stop();sent.length=0;loop=null;
+  sender.immediateCleanup(()=>port.postMessage({type:'reset'}));
+  assert.deepEqual(sent.pop(),{nativePerformance:{session:10,owner:'script'},commands:[{type:'reset'}]});
+});

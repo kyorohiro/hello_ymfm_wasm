@@ -61,8 +61,9 @@ test('scheduled seconds map to device frames and invalid groups never partially 
   await f.synth.flush();assert.deepEqual(f.commands().map(c=>c.frame),[12000,12000,24000]);
   assert.throws(()=>f.synth.fm.scheduleWrites([{time:1,register:0x22,value:8},{time:NaN,register:0x22,value:0}]),/Schedule time/);
   await f.synth.flush();assert.equal(f.commands().length,3);
-  assert.throws(()=>f.synth.fm.write(0,0x2b,128),/DAC/);assert.throws(()=>f.synth.fm.write(0,0x2a,128),/DAC/);
-  assert.throws(()=>f.synth.sample.play('a'),/Select Web Audio/);assert.throws(()=>f.synth.noise.create(),/Select Web Audio/);
+  f.synth.fm.write(0,0x2b,128);f.synth.fm.write(0,0x2a,128);await f.synth.flush();
+  assert.deepEqual(f.commands().slice(-2).map(command=>command.register),[0x2b,0x2a]);
+  await assert.rejects(f.synth.sample.play('a'),/Unknown sample/);assert.throws(()=>f.synth.noise.create(),/Select Web Audio/);
   await f.synth.close();
 });
 
@@ -162,8 +163,9 @@ test('real Playground Main APIs run on the explicit native clock, borrow primary
   assert.ok(f.commands().some(c=>c.type==='write'&&c.register===0x28&&c.value===0xf0));
   assert.ok(f.commands().some(c=>c.type==='psg-write'));
   await assert.rejects(runtime.playSource('await useSoundChip("dx7");'),/Additional sound chips/);
-  await assert.rejects(runtime.playSource('fx.gain({gain:1});'),/FX is unavailable/);
-  await assert.rejects(runtime.playSource('',{execution:'worker'}),/Worker execution is unavailable/);
+  await runtime.playSource('fx.setChain([fx.gain({gain:0.5})]);');
+  assert.ok(f.calls.some(call=>call.command==='native_genesis_fx'&&call.args.message.op==='chain'));
+  assert.equal(f.synth.capabilities.worker,true);assert.equal(f.synth.capabilities.dynamicSoundChips,false);assert.equal(f.synth.capabilities.noise,false);
   await runtime.stopWithFade();assert.equal(f.calls.at(-1).command,'native_genesis_stop');
 });
 
@@ -175,4 +177,30 @@ test('runtime stopWithFade waits for native Stop before finalize drops the sessi
   t.after(()=>{globalThis.window=previous;});await runtime.initialize();hold=true;
   let stopped=false;const stopping=runtime.stopWithFade().then(()=>{stopped=true;});await ticks();assert.equal(stopped,false);
   gate.resolve();await stopping;hold=false;await runtime.finalize();assert.equal(f.calls.at(-1).command,'native_genesis_shutdown');
+});
+
+test('repeated Native Main Runs retire FX slots and old parameter controls at Stop',async t=>{
+  const previous=globalThis.window;globalThis.window={setTimeout,addEventListener(){},removeEventListener(){}};
+  const f=fixture(),runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false});
+  t.after(async()=>{await runtime.finalize();globalThis.window=previous;delete globalThis.nativeFxUnit;});
+  for(let run=0;run<10;run++) {
+    await runtime.playSource('globalThis.nativeFxUnit=fx.gain({gain:0.5});fx.setChain([globalThis.nativeFxUnit]);');
+    const old=globalThis.nativeFxUnit;await runtime.stopWithFade();
+    assert.throws(()=>old.gain.set(.75),/disposed/);
+  }
+  const creates=f.calls.filter(call=>call.command==='native_genesis_fx'&&call.args.message.op==='create');
+  assert.equal(creates.length,10);assert.ok(creates.every(call=>call.args.message.unit.slot===0));
+  assert.equal(f.errors.length,0);
+});
+
+test('Native Main reevaluation disposes replaced FX units and retains a prepared chain',async t=>{
+  const previous=globalThis.window;globalThis.window={setTimeout,addEventListener(){},removeEventListener(){}};
+  const f=fixture(),runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false});
+  t.after(async()=>{await runtime.finalize();globalThis.window=previous;delete globalThis.nativePreparedFx;});
+  for(let run=0;run<10;run++)await runtime.playSource('fx.setChain([fx.gain({gain:0.5})]);');
+  assert.equal(f.synth.getFXChain().length,1);
+  const source="const prepared=await livePrepare('fx',()=>fx.gain({gain:0.25}));globalThis.nativePreparedFx=prepared;fx.setChain([prepared]);";
+  await runtime.playSource(source);const prepared=globalThis.nativePreparedFx;
+  await runtime.playSource(source);assert.equal(globalThis.nativePreparedFx,prepared);
+  assert.equal(f.synth.getFXChain()[0],prepared);assert.equal(f.errors.length,0);
 });

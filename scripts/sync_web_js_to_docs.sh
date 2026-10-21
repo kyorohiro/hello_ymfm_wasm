@@ -64,6 +64,9 @@ rf5c164.js
 looper.js
 megasynth.js
 native_genesis_synth.js
+native_genesis_media.js
+native_genesis_fx.js
+native_genesis_worker.js
 megasynth_fx.js
 playground_chip_port.js
 playground_chip_clock.js

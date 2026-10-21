@@ -272,7 +272,7 @@ const audioEngineSelection = resolvePlaygroundAudioEngine({search:window.locatio
   desktop:typeof window.__TAURI_INTERNALS__?.invoke === 'function', modeId:selectedMode.id});
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=audio-numeric-bindings-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     onError(error) {
       setStatus(`Native audio failed: ${error.message}. Select Web Audio in Audio engine to switch back.`);
@@ -1891,8 +1891,6 @@ if (typeof window.__TAURI_INTERNALS__?.invoke === 'function') {
 }
 if (useNativeGenesis) {
   document.getElementById('playgroundModeDetails').textContent += ' · Native (experimental)';
-  const diagnosticsButton = document.getElementById('audioDiagnosticsButton');
-  if (diagnosticsButton) {diagnosticsButton.disabled = true; diagnosticsButton.title = 'Audio diagnostics records the Web Audio engine.';}
 }
 async function showAudioDiagnostics() {
   if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
@@ -1901,7 +1899,7 @@ async function showAudioDiagnostics() {
       audioDiagnostics = createAudioDiagnostics({
         host: document.body,
         getSynth: () => runtime.megaDrive,
-        getMetadata: () => ({modeId:selectedMode.id, worker:workerExecution.checked,
+        getMetadata: () => ({modeId:selectedMode.id, worker:workerExecution.checked, backend:runtime.megaDrive.capabilities?.backend ?? 'web-audio',
           userAgent:navigator.userAgent, listeningVolume}),
       });
     }).finally(() => { audioDiagnosticsLoading = null; });

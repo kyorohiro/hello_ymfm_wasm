@@ -27,6 +27,7 @@ function immediate(command, kind) {
 }
 
 export function createPerformanceSender({getLoop = () => null, restoreLoop = () => {}, onCancelOwner = () => {},
+  leaseUntimed = false,
   now = () => (performance.timeOrigin ?? 0) + performance.now()} = {}) {
   const ports = new Map();
   let configuration = null, stopped = false, bypass = 0;
@@ -47,6 +48,12 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
     configuration = {...next}; stopped = false; canceled.clear();
   }
   function send(port, kind, data, transfer) {
+    const untimed = () => {
+      if (!leaseUntimed || !configuration) {port.postMessage(data,transfer);return;}
+      const loop=getLoop();
+      const owner=loop?.keyboard?'keyboard':loop?.performanceOwner??'script';
+      port.postMessage({nativePerformance:{session:configuration.session,owner},commands:Array.isArray(data)?data:[data]},transfer);
+    };
     // Return observation storage even after an owner is cancelled. This carries
     // no audio command; the SPC Worklet checks its epoch/sequence separately.
     if (kind === 'spc' && data?.method === 'eventAck') {port.postMessage(data,transfer); return;}
@@ -55,9 +62,9 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
       if (interactive.stopped) throw new DOMException('Run stopped','AbortError');
       // This lease follows acknowledged instrument RPCs through awaits. Only
       // interactive input skips the script lead; sibling liveLoops keep theirs.
-      port.postMessage(data,transfer);return;
+      untimed();return;
     }
-    if (bypass || !configuration) { port.postMessage(data, transfer); return; }
+    if (bypass || !configuration) { untimed(); return; }
     const loop = getLoop(), owner = loop?.performanceOwner ?? 'script';
     let commands = Array.isArray(data) ? data : [data];
     if (stopped || loop?.stopped || canceled.has(owner)) {
@@ -88,7 +95,11 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
       pending = [];
     };
     for (const command of commands) {
-      if (immediate(command, kind)) { flush(); port.postMessage(Array.isArray(data) ? [command] : command, transfer); }
+      if (immediate(command, kind)) {
+        flush();
+        if(leaseUntimed)port.postMessage({nativePerformance:{session:configuration.session,owner},commands:[command]},transfer);
+        else port.postMessage(Array.isArray(data) ? [command] : command, transfer);
+      }
       else pending.push(command);
     }
     flush();

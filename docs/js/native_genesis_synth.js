@@ -1,7 +1,9 @@
-import {YM2612Synth} from './ym2612synth.js';
-import {createSegaPsgApi} from './segapsg_api.js';
-import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js';
+import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
+import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
+import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=chip-tabs-2';
 import {midiToOpnPitch} from './soundchip_pitch.js';
+import {createNativeGenesisMedia} from './native_genesis_media.js';
+import {createNativeGenesisFX} from './native_genesis_fx.js';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -45,7 +47,8 @@ class NativeAudioClock extends EventTarget {
 
 /** Genesis-only native audio owner for the existing Playground runtime.
  * `invoke` is a captured Tauri command transport, injected by the host. Import
- * and construction open no audio devices. PCM never crosses JavaScript.
+ * and construction open no audio devices. Generated playback PCM stays native;
+ * media uploads and explicit recording retrieval are one-off operations.
  * Web Audio remains the application's default and supports the full feature set.
  * @param {{invoke:(command:string,args?:object)=>Promise<unknown>,now?:()=>number,onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number}} options
  */
@@ -54,17 +57,19 @@ export class NativeGenesisSynth {
     if (typeof invoke !== 'function') throw new TypeError('Native Genesis requires the Tauri invoke transport');
     this.invoke = invoke; this.now = now; this.onError = onError;
     this.backend = 'native-genesis'; this.chip = 'ym2612';
-    this.capabilities = Object.freeze({chip:'ym2612', fmChannels:6, psg:true, dac:false,
-      pcm:false, recorder:false, worker:false, dynamicSoundChips:false, backend:'native-genesis'});
+    this.capabilities = Object.freeze({chip:'ym2612', fmChannels:6, psg:true, dac:true,
+      pcm:false, recorder:true, worker:true, noise:false, dynamicSoundChips:false, backend:'native-genesis'});
     this.clock = new NativeAudioClock(now);
     this.audioContext = null; this.node = null; this.audio = null;
     this.state = 'idle'; this.session = null; this.generation = 0;
-    this.pending = []; this.acceptedCommands = 0; this.serial = Promise.resolve(); this.flushQueued = false;
-    this.starting = null; this.stopping = null; this.closing = null; this.error = null;
+    this.pending = []; this.acceptedCommands = 0; this.acceptedRequests = 0; this.serial = Promise.resolve(); this.flushQueued = false;
+    this.starting = null; this.stopping = null; this.closing = null; this.error = null;this.workerSampleOrigin=null;
     this.listeners = new Set(); this.mixer = mixer; this.mixerReleases = [];
     this.masterVolume = this.validateVolume(masterVolume); this.listeningVolume = 1;
     this.auditions = new Map(); this.psgAuditions = new Map(); this.psgLevels = new Uint8Array(4).fill(6); this.psgLatch = 0;
     this.mix = {fmLeft:1,fmRight:1,psgLeft:1,psgRight:1,master:this.masterVolume};
+    this.media = createNativeGenesisMedia(this);
+    this.fxBeatSeconds = () => .5; this.fx = null;
     const write = (port, register, value) => this.write(port, register, value);
     const transport = {
       reset: () => {
@@ -75,10 +80,10 @@ export class NativeGenesisSynth {
       writeBatch: writes => this.enqueueMany(writes.map(entry => this.registerCommand(entry))),
       scheduleWrites: entries => this.scheduleWrites(entries),
       clearScheduledWrites: () => unsupported('Clearing an individual native schedule'),
-      dacCommand: () => unsupported('YM2612 DAC sample playback'),
-      clearDacPlayback() {},
-      loadDacBank: () => unsupported('YM2612 DAC sample playback'),
-      playDacBank: () => unsupported('YM2612 DAC sample playback'),
+      dacCommand: command => this.media.dacCommand(command),
+      clearDacPlayback: () => {this.media.dacCommand({action:'stop'}).catch(error=>this.reportAsyncError(error));},
+      loadDacBank: (name,bytes) => this.media.loadDacBank(name,bytes),
+      playDacBank: (name,time) => {this.media.playDacBank(name,time).catch(error=>this.reportAsyncError(error));},
       read: () => unsupported('Synchronous chip reads'),
       readStatus: () => unsupported('Synchronous chip reads'),
     };
@@ -88,10 +93,10 @@ export class NativeGenesisSynth {
     this.psg = createSegaPsgApi({clock:3579545,
       write: value => this.writePsg(value),
       setStereo: value => this.enqueue({type:'psg-stereo',value:byte(value,'Stereo mask'),frame:0}),
-      reset: () => this.silencePsg(), resetAll: () => this.silencePsg(),
+      reset: () => this.resetPsg(), resetAll: () => this.fm.reset(),
     });
     Object.defineProperty(this.psg,'id',{value:'segapsg',enumerable:true});
-    this.sample = this.unavailableMedia('Sample playback');
+    this.sample = this.media.sample;
     this.stream = this.unavailableMedia('Streaming playback');
     this.noise = {create:() => unsupported('Web Audio noise'),stopAll(){}};
     this.chipInspector = this.createInspector();
@@ -174,7 +179,6 @@ export class NativeGenesisSynth {
   registerCommand({port=0,register,value,time}) {
     if (port !== 0 && port !== 1) throw new RangeError('FM port must be 0 or 1');
     byte(register,'FM register'); byte(value,'FM value');
-    if (port === 0 && (register === 0x2a || register === 0x2b && value & 128)) unsupported('YM2612 DAC sample playback');
     return {type:'write',port,register,value,frame:time === undefined ? 0 : this.frameAt(time)};
   }
   frameAt(seconds) {
@@ -226,6 +230,94 @@ export class NativeGenesisSynth {
     pending.catch(error=>{if (error.name !== 'AbortError' && generation === this.generation) this.fail(error);});
     return pending;
   }
+  /** One-off preparation shares the command ordering barrier. A late response
+   * cannot install state or resume playback after Stop/session replacement. */
+  nativeRequest(command,args={}) {
+    if (!this.isReady()) return Promise.reject(new Error('Native Genesis audio is not ready'));
+    if (this.stopping || this.closing) return Promise.reject(new DOMException('Native audio is stopping','AbortError'));
+    if(this.acceptedRequests>=256)return Promise.reject(new RangeError('Native preparation request queue is full'));
+    this.acceptedRequests++;
+    this.flush().catch(()=>{});
+    const session=this.session,generation=this.generation;
+    const pending=this.serial.then(async()=>{
+      if (session!==this.session || generation!==this.generation) throw new DOMException('Native audio commands were cancelled','AbortError');
+      const result=await this.invoke(command,{...args,session});
+      if (session!==this.session || generation!==this.generation) throw new DOMException('Native audio commands were cancelled','AbortError');
+      return result;
+    }).finally(()=>{this.acceptedRequests--;});
+    this.serial=pending.catch(()=>{});
+    return pending;
+  }
+  reportAsyncError(error) {if(error?.name!=='AbortError') this.fail(error);}
+  setNativePerformance(request) {
+    if(request.op==='start'||request.op==='stop')this.workerSampleOrigin=null;
+    return this.nativeRequest('native_genesis_performance',request);
+  }
+  dispatchNativeFxCommand(message,timing={}) {
+    if(message?.op==='sample')return this.media.dispatchSample(message,timing);
+    if(message?.op?.startsWith('live-fx'))return Promise.reject(new Error('JavaScript LiveFX is unavailable in Native Genesis. Select Web Audio to use it.'));
+    return this.nativeRequest('native_genesis_fx',{message,
+      ...(timing.time===undefined?{}:{frame:this.frameAt(timing.time)}),
+      ...(timing.performance===undefined?{}:{performance:timing.performance}),
+      ...(timing.owner===undefined?{}:{owner:timing.owner})});
+  }
+  /** Explicit Worker transport receiver. A real MessagePort bridge supplies
+   * timing and ownership; the native synth remains independent of AudioNodes. */
+  async dispatchNativeCommand(message,timing={}) {
+    const timed = command => ({...command,
+      ...(timing.time===undefined?{}:{frame:this.frameAt(timing.time)}),
+      ...(timing.performance===undefined?{}:{performance:timing.performance}),
+      ...(timing.owner===undefined?{}:{owner:timing.owner})});
+    if(Array.isArray(message)) {
+      const commands=message.map(command=>{
+        if(command?.type==='write')return timed(this.registerCommand(command));
+        if(command?.type==='psg-write')return timed({type:'psg-write',frame:0,value:byte(command.value,'PSG value')});
+        if(command?.type==='psg-stereo')return timed({type:'psg-stereo',frame:0,value:byte(command.value,'Stereo mask')});
+        if(command?.type==='psg-reset')return timed({type:'psg-reset',frame:0});
+        if(command?.type==='reset')return timed({type:'reset',frame:0});
+        throw new Error('Unsupported native Worker command group');
+      });this.enqueueMany(commands);await this.flush();return;
+    }
+    switch(message?.type) {
+      case 'write':this.enqueue(timed(this.registerCommand(message)));break;
+      case 'psg-write':this.enqueue(timed({type:'psg-write',frame:0,value:byte(message.value,'PSG value')}));break;
+      case 'psg-stereo':this.enqueue(timed({type:'psg-stereo',frame:0,value:byte(message.value,'Stereo mask')}));break;
+      case 'psg-reset':this.enqueue(timed({type:'psg-reset',frame:0}));break;
+      case 'reset':this.enqueue(timed({type:'reset',frame:0}));break;
+      case 'schedule-writes': {
+        if(!Array.isArray(message.entries))throw new TypeError('Scheduled writes must be an array');
+        this.enqueueMany(message.entries.map(entry=>{
+          const command=entry.type==='psg-write'?{type:'psg-write',frame:this.frameAt(entry.time),value:byte(entry.value,'PSG value')}:this.registerCommand(entry);
+          return {...command,...(timing.performance===undefined?{}:{performance:timing.performance}),...(timing.owner===undefined?{}:{owner:timing.owner})};
+        }));break;
+      }
+      case 'pcm-dac':
+        try {await this.media.dacCommand(message.command,timing);return {type:'pcm-dac-result',id:message.id};}
+        catch(error) {return {type:'pcm-dac-result',id:message.id,error:String(error.message??error)};}
+      case 'load-dac-bank':await this.media.loadDacBank(message.name,new Uint8Array(message.data));return;
+      case 'play-dac-bank':await this.media.playDacBank(message.name,message.time,{...timing,time:undefined});return;
+      case 'clear-dac-playback':await this.media.dacCommand({action:'stop'},timing);return;
+      case 'reset-sample-schedule':this.workerSampleOrigin=null;return;
+      case 'begin-sample-schedule':
+        this.workerSampleOrigin??=(timing.time??this.clock.currentTime)+Math.max(0,Number(message.lookaheadSeconds)||0);return;
+      case 'sample-writes': {
+        if(!Array.isArray(message.entries))throw new TypeError('Sample writes must be an array');
+        this.workerSampleOrigin??=timing.time??this.clock.currentTime;
+        const entries=message.entries.map(({sample,...entry})=>{
+          if(!Number.isFinite(sample)||sample<0)throw new RangeError('Invalid sample offset');
+          return {...entry,time:this.workerSampleOrigin+sample/44100};
+        });
+        await this.dispatchNativeCommand({type:'schedule-writes',entries},{...timing,time:undefined});return;
+      }
+      case 'sample-dac-bank':
+        if(!Number.isFinite(message.sample)||message.sample<0)throw new RangeError('Invalid sample offset');
+        this.workerSampleOrigin??=timing.time??this.clock.currentTime;
+        await this.media.playDacBank(message.name,this.workerSampleOrigin+message.sample/44100,{...timing,time:undefined});return;
+      case 'clear-scheduled-writes':unsupported('Clearing an individual native schedule');break;
+      default:throw new Error(`Unsupported native Worker command: ${message?.type}`);
+    }
+    await this.flush();
+  }
   fail(error) {
     if (this.state === 'closed' || this.state === 'error') return;
     this.error = error instanceof Error ? error : new Error(String(error));
@@ -239,13 +331,23 @@ export class NativeGenesisSynth {
     if (!this.isReady() || this.stopping || this.closing) return;
     this.enqueueMany([0x9f,0xbf,0xdf,0xff].map(value => ({type:'psg-write',frame:0,value})));
   }
+  resetPsg() {
+    if (!this.isReady() || this.stopping || this.closing) return;
+    this.psgAuditions.clear();this.psgLevels.fill(6);this.psgLatch=0;
+    this.enqueue({type:'psg-reset',frame:0});
+  }
   discardPending() {this.acceptedCommands -= this.pending.length; this.pending.length = 0;}
   /** Stop is a barrier: old sends settle before the native callback clears its
    * queue and fades/resets. The device clock continues in the same session. */
   stopNativeAudio() {
     if (this.stopping) return this.stopping;
     if (this.session === null) return Promise.resolve();
+    // Native Stop resets the rendered rack. Retire its JS descriptors too, so
+    // repeated Runs reuse slots and old parameter handles cannot edit a new rack.
+    this.fx?.dispose();
     ++this.generation; this.discardPending();
+    this.media.stopped();
+    this.workerSampleOrigin=null;
     this.auditions.clear(); this.psgAuditions.clear();
     const session = this.session;
     const pending = this.serial.then(async () => {
@@ -263,6 +365,7 @@ export class NativeGenesisSynth {
       await stop.catch(()=>{}); await this.serial;
       const session = this.session; this.session = null;
       this.releaseMixer(); this.state = 'closed'; this.clock.setState('closed');
+      this.media.reset(); this.fx = null;
       this.auditions.clear(); this.psgAuditions.clear(); this.chipInspector.notify();
       if (session !== null) await this.invoke('native_genesis_shutdown',{session});
     })();
@@ -359,7 +462,23 @@ export class NativeGenesisSynth {
       dispose() {disposed = true;listeners.clear();},
     };
   }
-  clearFXChain() {return [];}
-  setFXChain() {unsupported('Web Audio FX');}
+  createFXApi({getBeatSeconds=()=>.5}={}) {
+    this.fxBeatSeconds=getBeatSeconds;
+    if(!this.fx) {
+      let session=this.session;
+      this.fx=createNativeGenesisFX({send:message=>{
+        session??=this.session;
+        if(session!==this.session)throw new DOMException('Native FX session was replaced','AbortError');
+        this.nativeRequest('native_genesis_fx',{message}).catch(error=>this.reportAsyncError(error));
+      },getBeatSeconds:()=>this.fxBeatSeconds()});
+    }
+    return this.fx;
+  }
+  clearFXChain(options) {return this.fx?.clear(options)??[];}
+  getFXChain() {return this.fx?.getChain()??[];}
+  setFXChain(effects) {return (this.fx??this.createFXApi()).setChain(effects);}
+  syncFXTempo() {if(this.isReady()&&!this.stopping&&!this.closing)this.fx?.syncTempo();}
+  startOutputRecording(options) {return this.media.startRecording(options);}
+  stopOutputRecording() {return this.media.stopRecording();}
   getAudioContext() {return null;}
 }

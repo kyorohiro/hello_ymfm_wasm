@@ -38,7 +38,7 @@ export function installPlaygroundAudioEngineSettings({document, host, selection,
   const explanation = document.createElement('p');
   explanation.textContent = 'Web Audio uses the same audio engine as the browser version. Native is an experimental Genesis engine for FM and PSG. Changing engine stops playback and reloads the current project.';
   const limits = document.createElement('p');
-  limits.textContent = 'Native currently supports Main execution, FM, PSG and the mixer. Use Web Audio for Worker, extra chips, FX, samples and audio recording.';
+  limits.textContent = 'Native supports Main and Worker, FM, PSG, DAC, PCM/WAV samples, built-in FX and output recording. Use Web Audio for extra chips, JavaScript liveFx, noise and compressed sample files.';
   const keyboardHint = document.createElement('p');
   keyboardHint.textContent = 'Native Keyboard uses the selected physical channel. Choose a free channel during script playback; script writes can replace a manually held note.';
   const status = document.createElement('p'); status.id = 'audioEngineStatus'; status.setAttribute('role', 'status');

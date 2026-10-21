@@ -242,3 +242,82 @@ test('Float32 WAV preserves stereo values outside unity and non-finite diagnosti
   assert.equal(view.getFloat32(60, true), Infinity); assert.equal(view.getFloat32(68, true), -Infinity);
   assert.throws(() => encodeDiagnosticWav(left, right, 5, 48000), /frame count/);
 });
+
+function setupNative(t, options={}) {
+  const f=setup(t,{sampleRate:options.sampleRate??48000,seconds:options.seconds??.002});
+  let starts=0,stops=0,requested;
+  const synth={capabilities:{backend:'native-genesis'},clock:f.context,isReady:()=>f.context.state==='running',
+    async startOutputRecording(value){starts++;requested=value;if(options.start)await options.start();},
+    async stopOutputRecording(){stops++;if(options.stop)return options.stop();return {
+      sampleRate:f.context.sampleRate,frames:64,firstFrame:96000,complete:false,
+      channels:[Float32Array.from({length:64},(_,index)=>index===0?1.25:0),Float32Array.from({length:64},(_,index)=>index===0?-.5:0)],
+    };},
+  };
+  f.setSource(synth);
+  return {...f,synth,get starts(){return starts;},get stops(){return stops;},get requested(){return requested;}};
+}
+
+test('native diagnostics records only final output without initializing Web Audio, then saves float WAV and clock markers',async t=>{
+  const f=setupNative(t);
+  await f.controller.start();assert.equal(f.starts,1);assert.equal(f.requested.seconds,.002);
+  assert.equal(f.controller.getState().phase,'recording');assert.equal(f.modules,0);assert.equal(f.taps.length,0);assert.equal(f.gains.length,0);
+  f.controller.markNoise();await f.controller.stop();
+  assert.equal(f.stops,1);assert.equal(f.timers.size,0);assert.equal(f.controller.getState().phase,'ready');
+  assert.equal(f.controller.getResult().report.backend,'native-genesis');
+  assert.deepEqual(f.controller.getResult().report.channelOrder,['output-left','output-right']);
+  assert.equal(f.controller.getResult().report.marks[0].frameOffset,0);
+  assert.equal(f.buttons['Save chip WAV'].disabled,true);assert.equal(f.buttons['Save output WAV'].disabled,false);
+  f.controller.save('chip');assert.equal(f.downloads.length,0);
+  f.controller.save('output');f.controller.save('json');assert.equal(f.downloads.length,2);
+  const wav=new DataView(await f.downloads[0].blob.arrayBuffer());assert.equal(wav.getFloat32(44,true),1.25);assert.equal(wav.getFloat32(48,true),-.5);
+  const report=JSON.parse(await f.downloads[1].blob.text());assert.equal(report.audioContext,null);assert.equal(report.nativeClock.sampleRate,48000);assert.match(report.limitations,/do not prove/);
+  assert.equal(f.context.listeners.get('statechange').size,0);
+});
+
+test('native diagnostics automatically stops at its frame and memory bound',async t=>{
+  const f=setupNative(t,{sampleRate:384000,seconds:100});
+  await f.controller.start();
+  assert.equal(f.requested.seconds,(32*1024*1024/8)/384000);
+  const timer=[...f.timers.values()][0];assert.equal(timer.milliseconds,f.requested.seconds*1000);
+  timer.callback();for(let i=0;i<8;i++)await Promise.resolve();
+  assert.equal(f.stops,1);assert.equal(f.controller.getState().phase,'ready');assert.equal(f.timers.size,0);
+});
+
+test('native cancellation and disposal wait for pending start and finalize exactly once before replacement',async t=>{
+  let release;const pending=new Promise(resolve=>{release=resolve;});
+  const f=setupNative(t,{start:()=>pending});
+  const first=f.controller.start();await Promise.resolve();await Promise.resolve();
+  assert.equal(f.starts,1);f.controller.cancel();
+  const second=f.controller.start();await Promise.resolve();assert.equal(f.starts,1);
+  release();await first;await second;
+  assert.equal(f.stops,1);assert.equal(f.starts,2);assert.equal(f.controller.getState().phase,'recording');
+  f.controller.dispose();await Promise.resolve();await Promise.resolve();
+  assert.equal(f.stops,2);assert.equal(f.controller.getResult(),null);assert.equal(f.controller.getState().phase,'disposed');assert.equal(f.timers.size,0);
+});
+
+test('native pending stop, session replacement and cancellation cannot publish stale results',async t=>{
+  let release;const pending=new Promise(resolve=>{release=resolve;});
+  const f=setupNative(t,{stop:()=>pending});
+  await f.controller.start();const stopping=f.controller.stop();await Promise.resolve();assert.equal(f.stops,1);
+  f.controller.dispose();release({sampleRate:48000,frames:0,firstFrame:1,complete:false,channels:[new Float32Array(0),new Float32Array(0)]});await stopping;
+  assert.equal(f.stops,1);assert.equal(f.controller.getResult(),null);assert.equal(f.controller.getState().phase,'disposed');
+  const g=setupNative(t);await g.controller.start();g.setSource({...g.synth});await g.controller.stop();
+  assert.equal(g.controller.getResult(),null);assert.match(g.status.textContent,/session changed/);
+});
+
+test('native idle, start failures and malformed results leave no capture or fake audio node',async t=>{
+  const idle=setupNative(t);idle.context.state='suspended';await idle.controller.start();assert.equal(idle.starts,0);assert.match(idle.status.textContent,/Press Run/);
+  const failed=setupNative(t,{start:()=>{throw Error('already active');}});await failed.controller.start();await Promise.resolve();
+  assert.equal(failed.stops,0);assert.equal(failed.controller.getState().phase,'idle');assert.match(failed.status.textContent,/already active/);
+  const malformed=setupNative(t,{stop:()=>({sampleRate:48000,frames:1000,firstFrame:0,channels:[new Float32Array(1000),new Float32Array(1000)]})});
+  await malformed.controller.start();await malformed.controller.stop();assert.equal(malformed.controller.getResult(),null);assert.match(malformed.status.textContent,/invalid native/);
+  assert.equal(malformed.modules,0);assert.equal(malformed.taps.length,0);
+});
+
+test('native clock shutdown cancels capture and discards its late completion',async t=>{
+  const f=setupNative(t);await f.controller.start();
+  f.context.state='closed';f.context.emit('statechange');
+  for(let i=0;i<8;i++)await Promise.resolve();
+  assert.equal(f.stops,1);assert.equal(f.controller.getState().phase,'idle');assert.equal(f.controller.getResult(),null);assert.equal(f.timers.size,0);
+  assert.equal(f.context.listeners.get('statechange').size,0);
+});

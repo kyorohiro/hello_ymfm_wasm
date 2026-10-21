@@ -4,6 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -315,6 +316,7 @@ export function createPlaygroundRuntime(
   let currentSourceName = null;
   let playbackState = "stopped";
   let logicWorker = null;
+  let nativeWorkerBridge = null;
   let workerGlobals = null;
   const performanceHost = createPerformanceHost({getContext: getAudioClock,
     onSuspended: () => { stop(); emitStatus('Audio suspended. Press Run to start again.'); }});
@@ -880,7 +882,7 @@ export function createPlaygroundRuntime(
     midiRack = null;
     midiFilePlaying = false;
     audioScheduler.clear();
-    if (capabilities.dac) {
+    if (capabilities.dac && capabilities.backend !== 'native-genesis') {
       synth?.clearScheduledWrites?.();
       synth?.clearDacPlayback?.();
       synth?.write?.(0, 0x2b, 0x00);
@@ -1126,8 +1128,8 @@ export function createPlaygroundRuntime(
   }
 
   function createFxApi() {
-    if (capabilities.backend === 'native-genesis') return new Proxy({}, {
-      get: () => () => {throw new Error('FX is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
+    if (capabilities.backend === 'native-genesis') return megaDrive.createFXApi({
+      getBeatSeconds:()=>clockApi.beatsToSeconds(1),
     });
     if (megaDrive.audio?.createFXApi) {
       return megaDrive.audio.createFXApi({
@@ -1360,6 +1362,12 @@ export function createPlaygroundRuntime(
 
   function terminateLogicWorker() {
     performanceHost.stop();
+    if (nativeWorkerBridge) {
+      const closing = nativeWorkerBridge.dispose(); nativeWorkerBridge = null;
+      primaryPcmSilence = Promise.all([primaryPcmSilence,closing.catch(error => {
+        if (error.name !== 'AbortError') console.error('Native Worker shutdown failed',error);
+      })]).then(() => {});
+    }
     const error = new DOMException("Playground Worker was terminated", "AbortError");
     while (workerRunRequests.length > 0) workerRunRequests.shift().reject(error);
     resolveLogicWorkerStop?.();
@@ -2143,7 +2151,7 @@ export function createPlaygroundRuntime(
       beat: clockApi.beat,
       nextBeat:
         clockApi.nextBeat,
-      setBpm: (value) => { const result = clockApi.setBpm(value); megaDrive.audio?.nativeFX?.controller.syncTempo(); return result; },
+      setBpm: (value) => { const result = clockApi.setBpm(value); megaDrive.syncFXTempo?.(); megaDrive.audio?.nativeFX?.controller.syncTempo(); return result; },
       tween:
         clockApi.tween,
       liveFx: (name, options) => fx.liveFx(name, options),
@@ -2478,7 +2486,15 @@ export function createPlaygroundRuntime(
     logicWorker = worker;
     if (isNewWorker) {
       installLogicWorkerHandlers(worker);
-      if(nativePrimary && typeof MessageChannel === 'function') {
+      if (capabilities.backend === 'native-genesis') {
+        nativeWorkerBridge = createNativeGenesisWorkerBridge({synth:megaDrive,onError:error => {
+          emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
+          terminateLogicWorker(); stopAllAudio();
+        }});
+        const {chipPort,fxPort} = nativeWorkerBridge;
+        worker.postMessage({type:'chip-port',port:chipPort,state:primaryChipState()},[chipPort]);
+        worker.postMessage({type:'native-fx',port:fxPort},[fxPort]);
+      } else if(nativePrimary && typeof MessageChannel === 'function') {
         const endpoints = [], transfer = [];
         for (const endpoint of megaDrive.primaryEndpoints) {
           const channel = new MessageChannel();
@@ -2503,7 +2519,7 @@ export function createPlaygroundRuntime(
     }
 
     const performanceClock = await performanceHost.start(
-      [...(nativePrimary ? megaDrive.primaryEndpoints.map(endpoint=>endpoint.node.port) : [megaDrive.node?.port]), megaDrive.pcmDevice?.node.port, megaDrive.audio?.nativeFX?.node?.port].filter(Boolean), workerLookaheadSeconds);
+      nativeWorkerBridge ? [nativeWorkerBridge.port] : [...(nativePrimary ? megaDrive.primaryEndpoints.map(endpoint=>endpoint.node.port) : [megaDrive.node?.port]), megaDrive.pcmDevice?.node.port, megaDrive.audio?.nativeFX?.node?.port].filter(Boolean), workerLookaheadSeconds);
     if (runToken !== currentRunToken) return;
     await new Promise((resolve, reject) => {
       workerRunRequests.push({ resolve, reject, runToken });
@@ -2754,7 +2770,9 @@ export function createPlaygroundRuntime(
     const context = megaDrive.audioContext;
     if (!stopFadeNode || context?.state !== 'running') {
       stop();
-      return primaryPcmSilence;
+      // A Worker posts audio.stopAll before its Stop acknowledgement. Only
+      // then is the latest native callback barrier available to await.
+      return logicWorkerStopPromise ? logicWorkerStopPromise.then(() => primaryPcmSilence) : primaryPcmSilence;
     }
     const runToken = currentRunToken;
     const now = context.currentTime, duration = 0.12, end = now + duration;
@@ -2876,7 +2894,7 @@ export function createPlaygroundRuntime(
     setBpm(value) {
       clockApi.setBpm(value);
       if (logicWorker) logicWorker.postMessage({type:'tempo',bpm:value});
-      else megaDrive.audio?.nativeFX?.controller.syncTempo();
+      else {megaDrive.syncFXTempo?.();megaDrive.audio?.nativeFX?.controller.syncTempo();}
     },
     getBpm: () => runtime.bpm,
     get presets() {
