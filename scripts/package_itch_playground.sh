@@ -134,6 +134,7 @@ playground_keyboard_channels.js
 playground_opn_inspector.js
 playground_chip_inspector_state.js
 pwm32x.js
+pwm32x_wasm.js
 pwm32x_playback.js
 playground_pwm_audio.js
 playground_pwm_worklet.js
@@ -277,6 +278,7 @@ native_genesis_dx7.js
 native_genesis_nes.js
 native_genesis_console.js
 native_genesis_snes.js
+native_genesis_pwm.js
 native_genesis_livefx.js
 native_livefx_context.js
 native_genesis_worker.js
@@ -335,6 +337,8 @@ synth_keyboard.js
 GENERATED_FILES="
 nesapu_wasm.js
 nesapu_wasm.wasm
+pwm32x_wasm.js
+pwm32x_wasm.wasm
 ay8910_wasm.js
 ay8910_wasm.wasm
 ym2413_wasm.js
@@ -463,6 +467,7 @@ done
 
 cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
 
 for file in ${SYNTH_SUPPORT_FILES}; do
   src="${DOCS_SYNTH_DIR}/${file}"

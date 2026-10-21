@@ -9,11 +9,12 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   const noiseNamespace = synth.allocateNoiseNamespace?.() ?? ++fallbackNoiseNamespace;
   if (!Number.isSafeInteger(noiseNamespace) || noiseNamespace < 1) throw new RangeError('Invalid Native Worker noise namespace');
   const admin = new MessageChannelClass(), chip = new MessageChannelClass(), fx = new MessageChannelClass();
+  const pwm=synth.pwm?new MessageChannelClass():null;
   const pcm=synth.pcm?new MessageChannelClass():null;
   const dx7=synth.dx7?new MessageChannelClass():null;
   const nes=synth.nes?new MessageChannelClass():null;
   const consoles = new Map(['gameboy','snes','huc6280'].filter(name => synth[name]).map(name => [name,new MessageChannelClass()]));
-  const ports = [admin.port1, chip.port1, fx.port1,...(pcm?[pcm.port1]:[]),...(dx7?[dx7.port1]:[]),...(nes?[nes.port1]:[]),...Array.from(consoles.values(),channel=>channel.port1)];
+  const ports = [admin.port1, chip.port1, fx.port1,...(pwm?[pwm.port1]:[]),...(pcm?[pcm.port1]:[]),...(dx7?[dx7.port1]:[]),...(nes?[nes.port1]:[]),...Array.from(consoles.values(),channel=>channel.port1)];
   let serial = Promise.resolve(), active = null, epoch = 0, pending = 0, pendingMessages = 0, pendingBytes = 0, disposed = false;
   const owners = new Map(), cancelled = new Set();
   const abort = () => new DOMException('Native Worker performance was stopped', 'AbortError');
@@ -100,6 +101,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       const bytesOf = data => Array.isArray(data) ? data.length * 8 :
         ArrayBuffer.isView(data) ? data.buffer.byteLength : data?.byteLength ?? 0;
       const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.command?.data) +
+        (m.method==='scheduleWrites'?(m.args?.[0]?.length??0)*24:0) +
         (m.method==='loadMemory'?bytesOf(m.args?.[0]):0) +
         (m.method==='loadBRR'?bytesOf(m.args?.[0]):0) +
         (m.method==='prepareTimeline'?bytesOf(m.args?.[0]?.events)+bytesOf(m.args?.[0]?.initialState?.ram)+bytesOf(m.args?.[0]?.initialState?.dsp):0) +
@@ -114,7 +116,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         } else for (const command of messages) {
           if (disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
           const result = kind === 'fx' ? await synth.dispatchNativeFxCommand(command,
-            command.op === 'noise' ? {...timing,noiseNamespace} : timing) : kind==='pcm'?await synth.dispatchNativePcmCommand(command,timing):kind==='dx7'?await synth.dispatchNativeDx7Command(command,timing):kind==='nes'?await synth.dispatchNativeNesCommand(command,timing):kind==='snes'?await synth.dispatchNativeSnesCommand(command,timing):consoles.has(kind)?await synth.dispatchNativeConsoleCommand(kind,command,timing):await synth.dispatchNativeCommand(command,timing);
+            command.op === 'noise' ? {...timing,noiseNamespace} : timing) : kind==='pwm'?await synth.dispatchNativePwmCommand(command,timing):kind==='pcm'?await synth.dispatchNativePcmCommand(command,timing):kind==='dx7'?await synth.dispatchNativeDx7Command(command,timing):kind==='nes'?await synth.dispatchNativeNesCommand(command,timing):kind==='snes'?await synth.dispatchNativeSnesCommand(command,timing):consoles.has(kind)?await synth.dispatchNativeConsoleCommand(kind,command,timing):await synth.dispatchNativeCommand(command,timing);
           // Timeline playback acknowledges its audible end asynchronously.
           // Keep this FIFO free so stopTimeline and cancellation can arrive.
           if (result?.deferred) Promise.resolve(result.deferred).then(reply=>{
@@ -130,16 +132,16 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       if (!replied && error.name !== 'AbortError') onError(error);
     }
   }
-  for (const [port,kind] of [[admin.port1,'admin'],[chip.port1,'chip'],[fx.port1,'fx'],...(pcm?[[pcm.port1,'pcm']]:[]),...(dx7?[[dx7.port1,'dx7']]:[]),...(nes?[[nes.port1,'nes']]:[]),...Array.from(consoles,([name,channel])=>[channel.port1,name])]) {
+  for (const [port,kind] of [[admin.port1,'admin'],[chip.port1,'chip'],[fx.port1,'fx'],...(pwm?[[pwm.port1,'pwm']]:[]),...(pcm?[[pcm.port1,'pcm']]:[]),...(dx7?[[dx7.port1,'dx7']]:[]),...(nes?[[nes.port1,'nes']]:[]),...Array.from(consoles,([name,channel])=>[channel.port1,name])]) {
     port.onmessage = ({data}) => receive(port,kind,data); port.start?.();
   }
   return {
-    port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,pcmPort:pcm?.port2??null,dx7Port:dx7?.port2??null,nesPort:nes?.port2??null,
+    port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,pwmPort:pwm?.port2??null,pcmPort:pcm?.port2??null,dx7Port:dx7?.port2??null,nesPort:nes?.port2??null,
     gameboyPort:consoles.get('gameboy')?.port2??null,snesPort:consoles.get('snes')?.port2??null,huc6280Port:consoles.get('huc6280')?.port2??null,
     dispose() {
       if (disposed) return serial;
       disposed = true; const performance = active; active = null; ++epoch;
-      for (const port of [...ports,admin.port2,chip.port2,fx.port2,...(pcm?[pcm.port2]:[]),...(dx7?[dx7.port2]:[]),...(nes?[nes.port2]:[]),...Array.from(consoles.values(),channel=>channel.port2)]) port.close();
+      for (const port of [...ports,admin.port2,chip.port2,fx.port2,...(pwm?[pwm.port2]:[]),...(pcm?[pcm.port2]:[]),...(dx7?[dx7.port2]:[]),...(nes?[nes.port2]:[]),...Array.from(consoles.values(),channel=>channel.port2)]) port.close();
       const result = serial.then(() => performance === null ? undefined : synth.setNativePerformance({op:'stop',performance}));
       serial = result.catch(() => {});
       return result;

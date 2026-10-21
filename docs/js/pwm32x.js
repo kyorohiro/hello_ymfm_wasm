@@ -2,18 +2,28 @@
 // copyright-holders:David Haywood
 // FIFO, routing and timer behavior adapted from MAME mega32x.cpp.
 // See third_party/mame-32x-pwm/README.md for provenance and differences.
-/** @typedef {{clock?: number, sampleRate?: number, gain?: number, outputMode?: 'dac'|'duty'}} PWM32XOptions */
+/** @typedef {{clock?: number, sampleRate?: number, gain?: number, outputMode?: 'dac'|'duty', implementation?: 'wasm'|'js', moduleFactory?: import('./soundchip.js?v=pwm-wasm-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=pwm-wasm-1').WasmModuleOptions, assetBaseUrl?: string|URL, signal?: AbortSignal}} PWM32XOptions */
 export const PWM32X_CLOCK = 23011361;
 const outputSample = (value, scale, gain) => value === null ? 0 : ((value & 4095) / scale - 1) * gain;
 export class PWM32X {
   #states = new WeakMap();
+  /** Shared C++ core by default. `new PWM32X()` remains the synchronous JS reference.
+   * A WASM load failure is reported; JS must be selected explicitly.
+   * @param {PWM32XOptions} [options] */
+  static async create(options = {}) {
+    options.signal?.throwIfAborted();
+    if (options.implementation === 'js') return new PWM32X(options);
+    if (options.implementation !== undefined && options.implementation !== 'wasm') throw new RangeError('Invalid PWM implementation');
+    const {PWM32XWasm} = await import('./pwm32x_wasm.js?v=pwm-wasm-1');
+    return PWM32XWasm.create(options);
+  }
   /** @param {PWM32XOptions} [options] */
   constructor({clock = PWM32X_CLOCK, sampleRate = 48000, gain = .4, outputMode = 'dac'} = {}) {
     if (!['dac', 'duty'].includes(outputMode)) throw new RangeError('Invalid PWM output mode');
     if (!Number.isFinite(clock) || clock <= 0 || clock > 100000000) throw new RangeError('Invalid PWM clock');
     if (!Number.isInteger(sampleRate) || sampleRate <= 0 || sampleRate > 1000000) throw new RangeError('Invalid PWM sample rate');
     if (!Number.isFinite(gain) || gain < 0 || gain > 4) throw new RangeError('Invalid PWM gain');
-    this.clock = clock; this.rate = sampleRate; this.gain = gain; this.outputMode = outputMode; this.muted = false; this.closed = false; this.reset();
+    this.backend = 'javascript'; this.clock = clock; this.rate = sampleRate; this.gain = gain; this.outputMode = outputMode; this.muted = false; this.closed = false; this.reset();
   }
   sampleRate() {return this.rate;}
   assertOpen() {if (this.closed) throw new Error('PWM chip is disposed');}

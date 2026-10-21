@@ -29,8 +29,8 @@ export class GenesisAudioEngine {
     this.pcm = pcm;
     if (!['legacy', 'mame'].includes(pwmOptions.model ?? 'legacy')) throw new Error('Unknown PWM model');
     const outputMode = pwmOptions.outputMode ?? 'duty';
-    this.pwm = pwmOptions.model === 'mame' ? new PWM32X({...pwmOptions, sampleRate, outputMode,
-      gain:outputMode === 'duty' ? 1 : .4}) : new SimplePwm();
+    this.pwm = pwmOptions.chip ?? (pwmOptions.model === 'mame' ? new PWM32X({...pwmOptions, sampleRate, outputMode,
+      gain:outputMode === 'duty' ? 1 : .4}) : new SimplePwm());
     this._pcmMuted = false;
     this._psgMuted = false;
     this._sampleRate = sampleRate;
@@ -82,20 +82,22 @@ export class GenesisAudioEngine {
       clock: psgClock,
     });
 
-    let pcm = null;
+    let pcm = null, pwm = null;
     try {
       if (rf5c164Clock) pcm = await Rf5c164.create({
         moduleFactory: rf5c164ModuleFactory, moduleOptions: rf5c164ModuleOptions,
         sampleRate, clock: rf5c164Clock,
       });
-    } catch (error) { ym2612.dispose(); psg.dispose(); throw error; }
+      if(options.pwmModel === 'mame')pwm=await PWM32X.create({clock:options.pwmClock||undefined,sampleRate,
+        outputMode:options.pwmOutputMode??'duty',gain:options.pwmOutputMode==='dac'?.4:1});
+    } catch (error) { ym2612.dispose(); psg.dispose(); pcm?.dispose(); pwm?.dispose(); throw error; }
     return new GenesisAudioEngine(
       ym2612,
       psg,
       sampleRate,
       masterVolume,
       pcm,
-      {model:options.pwmModel, clock:options.pwmClock || undefined, outputMode:options.pwmOutputMode}
+      {model:options.pwmModel, clock:options.pwmClock || undefined, outputMode:options.pwmOutputMode,chip:pwm}
     );
   }
 

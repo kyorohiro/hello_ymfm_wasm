@@ -8,7 +8,7 @@ import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=audio-numeri
 import { GameboySynth } from "./gameboysynth.js?v=audio-stability-2";
 import { attachChipClock, CHIP_CLOCKS } from "./playground_chip_clock.js?v=audio-numeric-bindings-1";
 
-/** @typedef {Pick<import('./megasynth.js?v=audio-numeric-bindings-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string}} GameboyRuntimeSynthOptions */
+/** @typedef {Pick<import('./megasynth.js?v=pwm-wasm-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string}} GameboyRuntimeSynthOptions */
 
 const MAX_MASTER_VOLUME = 3.8;
 

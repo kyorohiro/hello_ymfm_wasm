@@ -38,8 +38,8 @@ export class Ymf262 {
    * Initialize Ymf262 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {import('./soundchip.js?v=nes-wasm-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
-   * @param {import('./soundchip.js?v=nes-wasm-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js?v=pwm-wasm-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js?v=pwm-wasm-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @returns {Promise<Ymf262>} Ready-to-use chip; the caller must dispose it.
    */
   static async create(options = {}) {

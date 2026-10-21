@@ -38,8 +38,8 @@ async function copy(file) {
   if (file.endsWith('_wasm.js') && basename(dirname(file)) === 'generated') await copy(file.replace(/\.js$/, '.wasm'));
 }
 await copy(resolve(root,'cli/main.js'));
-// The NES adapter resolves its factory dynamically; preserve the staged docs layout.
-await copy(resolve(root,'docs/generated/nesapu_wasm.js'));
+// These adapters resolve factories dynamically; preserve the staged docs layout.
+for (const chip of ['nesapu','pwm32x']) await copy(resolve(root,`docs/generated/${chip}_wasm.js`));
 await copyOpnaRhythm(out, 'web');
 // CLI --version works identically in the source tree and staged package.
 const pkg = JSON.parse(await readFile(resolve(root,'packages/vgm/package.json'),'utf8'));

@@ -50,11 +50,13 @@ const server = http.createServer(async (req, res) => {
           await wait(100);
           const data = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(data);
           if (Math.max(...data) < .3) throw Error('Factory PWM produced no PCM');
-          if ((await transport.getState()).model !== 'mame') throw Error('Wrong core');
+          const core=await transport.getState();
+          if (core.model !== 'mame'||core.backend!=='wasm') throw Error('Factory PWM must use the shared WASM core');
           await transport.stop(); await transport.start(); await transport.close(); analyser.disconnect();
           const mega = new MegaSynth({mega32X: true});
           await mega.start();
           if (!mega.pwm) throw Error('Missing MegaSynth PWM');
+          if((await mega.pwm.getState()).backend!=='wasm')throw Error('MegaSynth PWM must use the shared WASM core');
           await mega.pwm.write(0, 5); await mega.pwm.write(1, 1047); await mega.pwm.write(4, 700);
           const a = mega.audioContext.createAnalyser(); mega.masterInputNode.connect(a);
           await wait(100); const values = new Float32Array(a.fftSize); a.getFloatTimeDomainData(values);
@@ -68,7 +70,7 @@ const server = http.createServer(async (req, res) => {
             const pg = Playground({execution});
             await pg.playSource(`const pwm = await useSoundChip('pwm');
               const state = await pwm.getState();
-              if(state.model !== 'mame') throw Error('Wrong Playground core');
+              if(state.model !== 'mame'||state.backend!=='wasm') throw Error('Playground PWM must use the shared WASM core');
               await pwm.scheduleWrites([{frame:0,register:0,value:5},{frame:0,register:1,value:1047},{frame:32,register:4,value:700}]);
               await sleep(.04);
               if((await pwm.getState()).currentFrame <= state.currentFrame) throw Error('PWM did not advance');

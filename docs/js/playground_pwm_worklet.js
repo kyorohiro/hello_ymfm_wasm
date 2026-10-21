@@ -1,11 +1,12 @@
 import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=pwm-wasm-1';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import pwmFactory from '../generated/pwm32x_wasm.js?v=pwm-wasm-1';
 
 class PWMProcessor extends AudioWorkletProcessor {
   constructor({processorOptions = {}}) {
-    super(); this.dead = false;
+    super(); this.dead = false; this.pwm = null;
     this.performance=createProcessorPerformance({chip:'pwm',apply:(data,port)=>this.apply(data,port),validate:({method,args=[]})=>{
       if(method==='clock'||method==='setClock'){validateChipClock(args[0]);return;}
       if(method==='dispose')return;
@@ -22,17 +23,19 @@ class PWMProcessor extends AudioWorkletProcessor {
       const {id,...command}=data;port.postMessage({id,value});return command;
     }});
     this.renderSegment=this.renderSegment.bind(this);
-    try {
-      this.pwm = new PWM32XPlayback({...processorOptions, sampleRate});
-      this.port.onmessage = ({data}) => {
-        if (data.port) {
-          this.clientPort = data.port;
-          data.port.onmessage = ({data: command}) => this.receive(command, this.clientPort);
-          data.port.start();
-        } else this.receive(data, this.port);
-      };
-      this.port.postMessage({ready: true});
-    } catch (error) {this.dead = true; this.port.postMessage({error: error.message});}
+    this.port.onmessage = ({data}) => {
+      if (data.port) {
+        if(this.dead){data.port.close();return;}
+        this.clientPort = data.port;
+        data.port.onmessage = ({data: command}) => this.receive(command, this.clientPort);
+        data.port.start();
+      } else this.receive(data, this.port);
+    };
+    PWM32XPlayback.create({...processorOptions, sampleRate,moduleFactory:pwmFactory,moduleOptions:{wasmBinary:processorOptions.wasmBinary}})
+      .then(pwm=>{
+        if(this.dead){pwm.dispose();return;}
+        this.pwm=pwm;this.port.postMessage({ready:true,backend:pwm.backend});
+      }).catch(error=>{this.dead=true;this.port.postMessage({error:error.message});});
   }
   receive(data,port) {
     if(data?.type==='chip-inspector'&&receiveChipInspector(data,port,this.pwm ? (action,method,args)=>{if(action==='read')return readPwmInspector(this.pwm);if(!['write','writeRegister','reset'].includes(method))throw new Error('Unsupported PWM inspector operation');return this.pwm[method](...args);} : null))return;
@@ -42,8 +45,8 @@ class PWMProcessor extends AudioWorkletProcessor {
   apply({method, args = [], id}, port) {
     try {
       if (method === 'clock') method = 'setClock';
-      if (method === 'dispose') {this.performance.clear();this.dead = true; this.pwm.dispose(); this.clientPort?.close(); return;}
-      if (this.dead || !PWM_METHODS.has(method)) throw new Error('Invalid PWM command');
+      if (method === 'dispose') {this.performance.clear();this.dead = true; this.pwm?.dispose(); this.clientPort?.close(); return;}
+      if (this.dead || !this.pwm || !PWM_METHODS.has(method)) throw new Error('Invalid PWM command');
       const value = this.pwm[method](...args);
       if (id !== undefined) port.postMessage({id, value});
     } catch (error) {port.postMessage({id, error: error.message});}
@@ -54,9 +57,8 @@ class PWMProcessor extends AudioWorkletProcessor {
     this.performance.render(left,right,this.renderSegment);return true;
   }
   renderSegment(left,right) {
-    if(this.dead){left.fill(0);right.fill(0);return;}
-    const pcm = this.pwm.generateStereo(left.length);
-    left.set(pcm.left); right.set(pcm.right);
+    if(this.dead||!this.pwm){left.fill(0);right.fill(0);return;}
+    this.pwm.renderInto(left,right);
   }
 }
 registerProcessor('tetorica-pwm32x', PWMProcessor);

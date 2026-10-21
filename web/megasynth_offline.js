@@ -50,10 +50,12 @@ export async function createMegaSynthOffline(options = {}) {
   options.signal?.throwIfAborted();
   const dsp = new NativeFXEngine(module, sampleRate);
   const chip = await createSoundChip('ym2612', {...options.chipOptions, signal: options.signal});
+  let pwm=null;
   try {
+    if(options.mega32X===true)pwm=await PWM32XPlayback.create({...options.pwmOptions,sampleRate,signal:options.signal});
     options.signal?.throwIfAborted();
-    return new MegaSynthOffline(chip, dsp, sampleRate, masterVolume, options);
-  } catch (error) { chip.dispose(); throw error; }
+    return new MegaSynthOffline(chip, dsp, sampleRate, masterVolume, options,pwm);
+  } catch (error) { chip.dispose(); pwm?.dispose(); throw error; }
 }
 
 class MegaSynthOffline {
@@ -62,9 +64,9 @@ class MegaSynthOffline {
   #idleLeft; #idleRight; #chipRate;
   #sampleRate; #masterVolume;
 
-  /** @param {import("./ym2612.js").Ym2612} chip @param {NativeFXEngine} dsp @param {number} sampleRate @param {number} masterVolume @param {MegaSynthOfflineOptions} options */
-  constructor(chip, dsp, sampleRate, masterVolume, options) {
-    this.pwm = options.mega32X === true ? new PWM32XPlayback({...options.pwmOptions, sampleRate}) : null;
+  /** @param {import("./ym2612.js").Ym2612} chip @param {NativeFXEngine} dsp @param {number} sampleRate @param {number} masterVolume @param {MegaSynthOfflineOptions} options @param {PWM32XPlayback|null} pwm */
+  constructor(chip, dsp, sampleRate, masterVolume, options,pwm) {
+    this.pwm = pwm;
     this.#chip = chip; this.#dsp = dsp; this.#sampleRate = sampleRate;
     this.#masterVolume = masterVolume; this.#chipRate = chip.sampleRate();
     const idle = chip.generateStereoView(1);

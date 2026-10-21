@@ -17,7 +17,7 @@ test('PWM models receive the VGM clock, render and reset reproducibly, and prese
    assert.ok(left.every(Number.isFinite));assert.ok(left.some(value=>Math.abs(value)>.01));
    player.reset();player.play();const again=new Float32Array(4096);player.process(again,new Float32Array(4096),4096);assert.deepEqual(again,left);
    if(pwmModel!=='legacy'){
-    assert.equal(engine.pwm.constructor.name,'PWM32X');assert.equal(engine.pwm.outputMode,'duty');
+    assert.equal(engine.pwm.backend,'wasm');assert.equal(engine.pwm.outputMode,'duty');
     assert.equal(engine.pwm.clock,parser.header.pwmClock);assert.equal(engine.pwm.sampleRate(),engine.sampleRate());
     const state=engine.saveState(),expected=engine.processFrames(100);engine.loadState(state);assert.deepEqual(engine.processFrames(100),expected);
     engine.setPwmMuted(true);assert.ok(engine.pwm.generateStereo(100).left.every(v=>v===0));

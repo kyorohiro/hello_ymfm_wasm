@@ -28,8 +28,9 @@ test('mute preserves time and FIFO consumption; IRQ cadence counts native ticks'
   const p=make();p.write(0,0x205);p.write(4,3072);p.muted=true;assert.ok(p.generateStereo(8).left.every(v=>v===0));
   assert.equal(p.interruptCount,1);assert.equal(p.read(4),0x4000);p.muted=false;assert.deepEqual(p.output(),[.5,.5]);
 });
-test('shared factory creates PCM without WASM or an audio device; abort/dispose validate', async () => {
+test('shared factory creates WASM PCM without an audio device; abort/dispose validate', async () => {
   const p=await createSoundChip('pwm',{clock:1000,sampleRate:1000});p.write(0,5);p.write(1,5);p.write(4,3072);
+  assert.equal(p.backend,'wasm');
   assert.ok(p.generateStereo(8).left.some(v=>v>0));p.dispose();assert.throws(()=>p.generateStereo(1),/disposed/);
   await assert.rejects(createSoundChip('pwm',{signal:AbortSignal.abort()}),/abort/i);
   assert.throws(()=>new PWM32X({clock:0}),/clock/);assert.throws(()=>make().generateStereo(-1),/frame/);

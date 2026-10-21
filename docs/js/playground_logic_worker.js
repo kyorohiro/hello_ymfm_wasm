@@ -4,9 +4,9 @@ import {createPerformanceSender} from './playground_performance_sender.js?v=audi
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=native-consoles-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=pwm-wasm-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
 import {OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=audio-numeric-bindings-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';

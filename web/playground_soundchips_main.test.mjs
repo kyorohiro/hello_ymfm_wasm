@@ -8,7 +8,8 @@ globalThis.fetch=originalFetch;
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
 
 function setup(t, selectedChip='ym2612') {
- const saved={window:globalThis.window,AudioWorkletNode:globalThis.AudioWorkletNode};
+ const saved={window:globalThis.window,AudioWorkletNode:globalThis.AudioWorkletNode,fetch:globalThis.fetch};
+ globalThis.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});
  const nodes=[];let delay=false;
  globalThis.window={addEventListener(){},removeEventListener(){},setTimeout};
  globalThis.AudioWorkletNode=class {

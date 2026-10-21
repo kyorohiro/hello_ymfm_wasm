@@ -1,4 +1,5 @@
 import {createAy8910Client} from './playground_ay8910.js?v=audio-numeric-bindings-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-numeric-bindings-1';
@@ -55,7 +56,7 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
 }
 
 export function createNativePrimaryClient(name, port, options = {}) {
-  const client = name==='ay8910'?createAy8910Client(port,options):name==='ym2413'?createYm2413Client(port,options):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
+  const client = name==='pwm'?createPWM32XClient(port,{native:true}):name==='ay8910'?createAy8910Client(port,options):name==='ym2413'?createYm2413Client(port,options):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
     : name === 'nes' ? createNesClient(port, options)
     : name === 'gameboy' ? createGameboyClient(port)
     : name === 'snes' ? createSnesClient(port, options)
@@ -65,6 +66,7 @@ export function createNativePrimaryClient(name, port, options = {}) {
     : name === 'okim6258' ? createOki6258Client(port, options)
     : name === 'dx7' ? createDx7Client(port, {...options,...options.state})
     : null;
+  if(name==='pwm'){client._stopVoices=()=>client.stopVoices();if(options.clock!==undefined)client._adoptClock(options.clock);}
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state) client._adoptState?.(options.state);
   else if (name === 'huc6280' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();

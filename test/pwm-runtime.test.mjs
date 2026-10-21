@@ -50,12 +50,15 @@ test('Node Worker, offline MegaSynth and browser PWM processor render identical 
     assert.equal((await node.pwm.getState()).model, 'mame');
     await node.stop(); assert.ok((await node.render(128)).left.every(x => x === 0));
     let Processor;
-    const scope = {PWM32XPlayback, PWM_METHODS, sampleRate: 48000,validateChipClock,
+    const scope = {PWM32XPlayback, PWM_METHODS, pwmFactory:undefined,sampleRate: 48000,validateChipClock,
       createProcessorPerformance:options=>createProcessorPerformance({...options,rate:48000,nowFrame:()=>0}),
       AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
       registerProcessor(_name, Type) {Processor = Type;}};
     vm.runInNewContext(fs.readFileSync(new URL('../web/playground_pwm_worklet.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, ''), scope);
     const processor = new Processor({processorOptions: {}});
+    await new Promise(resolve=>setTimeout(resolve,0));
+    for(let attempt=0;!processor.pwm&&attempt<100;attempt++)await new Promise(resolve=>setTimeout(resolve,10));
+    assert.equal(processor.pwm?.backend,'wasm');
     processor.receive({method: 'scheduleWrites', args: [entries]}, {postMessage() {}});
     const left = new Float32Array(1024), right = new Float32Array(1024);
     for (let offset = 0; offset < 1024; offset += 128) processor.process([], [[left.subarray(offset, offset + 128), right.subarray(offset, offset + 128)]]);

@@ -8,7 +8,7 @@ import { Ym2612, YM2612_CLOCK } from "./ym2612.js?v=audio-numeric-bindings-1";
 import { SegaPSG, SEGAPSG_CLOCK } from "./segapsg.js?v=audio-numeric-bindings-1";
 
 import { Rf5c164 } from "./rf5c164.js?v=audio-stability-2";
-import {PWM32X} from './pwm32x.js?v=pcm-views-1';
+import {PWM32X} from './pwm32x.js?v=pwm-wasm-1';
 
 /**
  * GenesisAudioEngine adapter for synchronous stereo rendering and VGM register dispatch.
@@ -29,8 +29,8 @@ export class GenesisAudioEngine {
     this.pcm = pcm;
     if (!['legacy', 'mame'].includes(pwmOptions.model ?? 'legacy')) throw new Error('Unknown PWM model');
     const outputMode = pwmOptions.outputMode ?? 'duty';
-    this.pwm = pwmOptions.model === 'mame' ? new PWM32X({...pwmOptions, sampleRate, outputMode,
-      gain:outputMode === 'duty' ? 1 : .4}) : new SimplePwm();
+    this.pwm = pwmOptions.chip ?? (pwmOptions.model === 'mame' ? new PWM32X({...pwmOptions, sampleRate, outputMode,
+      gain:outputMode === 'duty' ? 1 : .4}) : new SimplePwm());
     this._pcmMuted = false;
     this._psgMuted = false;
     this._sampleRate = sampleRate;
@@ -39,7 +39,7 @@ export class GenesisAudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2612ModuleFactory: import('./soundchip.js?v=nes-wasm-1').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js?v=nes-wasm-1').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js?v=nes-wasm-1').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js?v=nes-wasm-1').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js?v=nes-wasm-1').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js?v=nes-wasm-1').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: "legacy"|"mame", pwmOutputMode?: "dac"|"duty", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2612ModuleFactory: import('./soundchip.js?v=pwm-wasm-1').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js?v=pwm-wasm-1').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js?v=pwm-wasm-1').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js?v=pwm-wasm-1').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js?v=pwm-wasm-1').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js?v=pwm-wasm-1').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: "legacy"|"mame", pwmOutputMode?: "dac"|"duty", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * Output rate is derived from the YM2612 clock; sampleRate() reports the actual rate.
    * @param {number} [options.ym2612Clock=YM2612_CLOCK] YM2612 input clock in Hz.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
@@ -82,20 +82,22 @@ export class GenesisAudioEngine {
       clock: psgClock,
     });
 
-    let pcm = null;
+    let pcm = null, pwm = null;
     try {
       if (rf5c164Clock) pcm = await Rf5c164.create({
         moduleFactory: rf5c164ModuleFactory, moduleOptions: rf5c164ModuleOptions,
         sampleRate, clock: rf5c164Clock,
       });
-    } catch (error) { ym2612.dispose(); psg.dispose(); throw error; }
+      if(options.pwmModel === 'mame')pwm=await PWM32X.create({clock:options.pwmClock||undefined,sampleRate,
+        outputMode:options.pwmOutputMode??'duty',gain:options.pwmOutputMode==='dac'?.4:1});
+    } catch (error) { ym2612.dispose(); psg.dispose(); pcm?.dispose(); pwm?.dispose(); throw error; }
     return new GenesisAudioEngine(
       ym2612,
       psg,
       sampleRate,
       masterVolume,
       pcm,
-      {model:options.pwmModel, clock:options.pwmClock || undefined, outputMode:options.pwmOutputMode}
+      {model:options.pwmModel, clock:options.pwmClock || undefined, outputMode:options.pwmOutputMode,chip:pwm}
     );
   }
 

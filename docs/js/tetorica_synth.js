@@ -6,7 +6,7 @@
  */
 import { GameboyRuntimeSynth } from "./gameboy_runtime_synth.js?v=nes-wasm-1";
 import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=nes-wasm-1";
-import { MegaSynth } from "./megasynth.js?v=audio-numeric-bindings-1";
+import { MegaSynth } from "./megasynth.js?v=pwm-wasm-1";
 import { YM2203RuntimeSynth } from "./ym2203synth.js?v=audio-numeric-bindings-1";
 import { YM2608RuntimeSynth } from "./ym2608synth.js?v=audio-numeric-bindings-1";
 import { NeoGeoSynth, YM2610BRuntimeSynth } from "./ym2610bsynth.js?v=audio-numeric-bindings-1";
@@ -29,7 +29,7 @@ export function normalizeTetoricaChip(chip) {
 
 /**
  * Construct the runtime synth for the selected chip. Call start() to initialize audio.
- * @param {import("./megasynth.js?v=audio-numeric-bindings-1").MegaSynthOptions & import("./opn_runtime_synth.js?v=audio-numeric-bindings-1").OPNRuntimeSynthOptions & Omit<import("./native_runtime_synth.js?v=nes-wasm-1").NativeRuntimeSynthOptions, 'chip'> & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
+ * @param {import("./megasynth.js?v=pwm-wasm-1").MegaSynthOptions & import("./opn_runtime_synth.js?v=audio-numeric-bindings-1").OPNRuntimeSynthOptions & Omit<import("./native_runtime_synth.js?v=nes-wasm-1").NativeRuntimeSynthOptions, 'chip'> & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
  * @param {string} [options.chip="ym2612"] One of TETORICA_CHIPS.
  * @returns {MegaSynth|YM2203RuntimeSynth|YM2608RuntimeSynth|NeoGeoSynth|YM2610BRuntimeSynth|GameboyRuntimeSynth|NativeRuntimeSynth}
  *   Unstarted runtime; construction alone does not load WASM or open an audio device.

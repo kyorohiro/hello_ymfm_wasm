@@ -166,8 +166,18 @@ do {
     if(imports.some(match=>consoleFiles.has(match[1]))){consoleFiles.add(name);propagated=true;}
   }
 }while(propagated);
-const revisionFor=name=>consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const pwmVersion='pwm-wasm-1';
+const pwmFiles=new Set(['pwm32x.js','pwm32x_wasm.js','pwm32x_playback.js','pwm32x_transport.js',
+  'playground_pwm_audio.js','playground_pwm_worklet.js','native_genesis_pwm.js','native_genesis_synth.js',
+  'native_genesis_worker.js','playground_native_primary.js','playground_runtime.js','playground_logic_worker.js','playground_audio_engine.js','playground.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(pwmFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>pwmFiles.has(match[1]))){pwmFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...pwmFiles,
   ...consoleFiles,
   ...Object.keys(pageRevisions),
   ...segaFiles,
@@ -209,7 +219,9 @@ for(const currentDirectory of [directory,join(directory,'../playground')])for(co
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v=spc-events-1'+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/nesapu_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
-      (_match,quote,path)=>quote+path+'?v='+nesVersion+quote);
+      (_match,quote,path)=>quote+path+'?v='+nesVersion+quote)
+    .replace(/(['"])((?:\.\.?\/)+generated\/pwm32x_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
+      (_match,quote,path)=>quote+path+'?v='+pwmVersion+quote);
   if(next!==source){await writeFile(path,next);changed++;}
 }
 console.log('Versioned Playground browser runtime references in '+changed+' modules ('+version+').');

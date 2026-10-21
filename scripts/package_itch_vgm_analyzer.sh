@@ -116,6 +116,18 @@ soundchip_mixer.js
 soundchip_pitch.js
 playground_chip_clock.js
 playground_chip_inspector_state.js
+playground_native_voice_inspector.js
+playground_opn_inspector.js
+playground_keyboard_channels.js
+playground_gameboy.js
+gameboysynth.js
+ym2203synth.js
+ym2608synth.js
+ym2610bsynth.js
+audio_decode.js
+opn_runtime_synth.js
+ssgsynth.js
+adpcm_b_sample.js
 playground_audition_guard.js
 playground_performance_queue.js
 playground_performance_processor.js
@@ -142,6 +154,7 @@ ym2610b.js
 ym2610baudioengine.js
 genesisaudioengine.js
 pwm32x.js
+pwm32x_wasm.js
 rf5c164.js
 rf5c164synth.js
 rf5c164_pcm.js
@@ -221,6 +234,8 @@ ym2612_dac.js
 GENERATED_FILES="
 nesapu_wasm.js
 nesapu_wasm.wasm
+pwm32x_wasm.js
+pwm32x_wasm.wasm
 spc_wasm.js
 spc_wasm.wasm
 huc6280_wasm.js
@@ -402,6 +417,7 @@ done
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/ for authors and licenses.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.

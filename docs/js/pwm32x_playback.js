@@ -1,16 +1,29 @@
 import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {PWM32X} from './pwm32x.js?v=pcm-views-1';
+import {PWM32X} from './pwm32x.js?v=pwm-wasm-1';
+import {PWM32XWasm} from './pwm32x_wasm.js?v=pwm-wasm-1';
 
 /** @typedef {{frame: number, register: 0|1|2|3|4, value: number}} PWMWrite */
 /** @typedef {Pick<PWM32XPlayback, 'write'|'writeRegister'|'read'|'reset'|'scheduleWrites'|'clearSchedule'|'getState'|'setClock'>} PWMAPI */
 /** @typedef {{[K in keyof PWMAPI]: (...args: Parameters<PWMAPI[K]>) => Promise<ReturnType<PWMAPI[K]>>}} AsyncPWMAPI */
 /** MAME-derived PWM plus output-frame scheduling; no timers or audio device. */
 export class PWM32XPlayback {
-  /** @param {import("./pwm32x.js?v=pcm-views-1").PWM32XOptions} [options] @param {PWM32X} [chip] */
+  /** @param {import('./pwm32x.js?v=pwm-wasm-1').PWM32XOptions} [options] */
+  static async create(options = {}) {
+    if(options.implementation!==undefined&&!['wasm','js'].includes(options.implementation))throw new RangeError('Invalid PWM implementation');
+    // AudioWorkletGlobalScope rejects import(). Load the wrapper statically and
+    // let processors supply their already-imported factory and WASM bytes.
+    const Type=options.implementation==='js'?PWM32X:PWM32XWasm;
+    const chip = await Type.create({outputMode:'duty',gain:1,...options});
+    try {return new PWM32XPlayback(options,chip);} catch (error) {chip.dispose(); throw error;}
+  }
+  /** The synchronous constructor retains the JS reference unless a chip is supplied.
+   * @param {import("./pwm32x.js?v=pwm-wasm-1").PWM32XOptions} [options] @param {PWM32X|import('./pwm32x_wasm.js?v=pwm-wasm-1').PWM32XWasm} [chip] */
   constructor(options = {}, chip) {
     this.chip = chip ?? new PWM32X({outputMode: 'duty', gain: 1, ...options});
     this.frame = 0; this.queue = []; this.order = 0;
+    this.capacity = 0; this.views = new Map(); this.reserveStereoFrames(128);
   }
+  get backend() {return this.chip.backend;}
   /** Change master Hz without resetting FIFO, phase or output-frame reservations. @param {number} hz */
   setClock(hz) { this.chip.assertOpen(); this.chip.clock = validateChipClock(hz); }
   sampleRate() {return this.chip.sampleRate();}
@@ -37,13 +50,46 @@ export class PWM32XPlayback {
     return this.frame;
   }
   clearSchedule() {this.chip.assertOpen(); this.queue.length = 0;}
-  getState() {return {model: /** @type {const} */ ('mame'), outputMode: this.chip.outputMode, clock: this.chip.clock,
+  getState() {return {model: /** @type {const} */ ('mame'), backend:this.backend, outputMode: this.chip.outputMode, clock: this.chip.clock,
     sampleRate: this.sampleRate(), currentFrame: this.frame, queuedWrites: this.queue.length};}
   /** @param {number} frames */
   generateStereo(frames) {
     this.chip.assertOpen();
     if (!Number.isSafeInteger(frames) || frames < 0 || frames > 10000000 || !Number.isSafeInteger(this.frame + frames)) throw new RangeError('Invalid PWM render frames');
     const left = new Float32Array(frames), right = new Float32Array(frames);
+    this.renderInto(left,right,0,frames);
+    return {left,right,sampleRate:this.sampleRate()};
+  }
+  reserveStereoFrames(frames) {
+    this.chip.assertOpen();
+    if (!Number.isSafeInteger(frames) || frames < 0 || frames > 10000000) throw new RangeError('Invalid PWM render frames');
+    if (frames > this.capacity) {
+      this.capacity = Math.max(128,frames); this.scratchLeft = new Float32Array(this.capacity); this.scratchRight = new Float32Array(this.capacity); this.views.clear();
+    }
+    this.chip.reserveStereoFrames?.(frames);
+    for (let count=0;count<=Math.min(128,this.capacity);count++) this.pcmView(count);
+  }
+  pcmView(frames) {
+    let pcm=this.views.get(frames);
+    if(!pcm) {
+      pcm={left:this.scratchLeft.subarray(0,frames),right:this.scratchRight.subarray(0,frames)};
+      if(this.views.size>=256)for(const key of this.views.keys())if(key>128){this.views.delete(key);break;}
+      this.views.set(frames,pcm);
+    }
+    return pcm;
+  }
+  /** Scratch views are reused across render calls. */
+  generateStereoView(frames) {
+    this.chip.assertOpen();
+    if (!Number.isSafeInteger(frames) || frames < 0 || frames > 10000000 || !Number.isSafeInteger(this.frame + frames)) throw new RangeError('Invalid PWM render frames');
+    if(frames>this.capacity)this.reserveStereoFrames(frames);
+    const pcm=this.pcmView(frames);this.renderInto(pcm.left,pcm.right,0,frames);return pcm;
+  }
+  /** Render a scheduled span without allocating PCM arrays in the AudioWorklet. */
+  renderInto(left,right,outputOffset=0,frames=left.length-outputOffset) {
+    this.chip.assertOpen();
+    if (!Number.isSafeInteger(outputOffset) || outputOffset < 0 || !Number.isSafeInteger(frames) || frames < 0 || frames > 10000000 ||
+        frames > left.length-outputOffset || frames > right.length-outputOffset || !Number.isSafeInteger(this.frame + frames)) throw new RangeError('Invalid PWM render frames');
     let offset = 0, head = 0;
     while (true) {
       while (this.queue[head]?.frame <= this.frame) {
@@ -51,21 +97,23 @@ export class PWM32XPlayback {
       }
       if (offset === frames) break;
       const count = Math.min(frames - offset, (this.queue[head]?.frame ?? Infinity) - this.frame);
-      const pcm = this.chip.generateStereo(count);
-      left.set(pcm.left, offset); right.set(pcm.right, offset);
+      if(this.chip.renderInto)this.chip.renderInto(left,right,outputOffset+offset,count);
+      else {
+        const pcm = this.chip.generateStereo(count);
+        left.set(pcm.left, outputOffset+offset); right.set(pcm.right, outputOffset+offset);
+      }
       offset += count; this.frame += count;
     }
     if (head) this.queue.splice(0, head);
-    return {left, right, sampleRate: this.sampleRate()};
   }
-  dispose() {this.queue.length = 0; this.chip.dispose();}
+  dispose() {this.queue.length = 0; this.views.clear(); this.scratchLeft=this.scratchRight=null; this.chip.dispose();}
 }
 
 export const PWM_METHODS = new Set(['write', 'writeRegister', 'read', 'reset', 'scheduleWrites', 'clearSchedule', 'getState', 'setClock']);
 
 /** Main or logic Worker client; PCM and scheduling stay in the AudioWorklet. */
-/** @param {MessagePort} port @returns {AsyncPWMAPI & {dispose(): void}} */
-export function createPWM32XClient(port) {
+/** @param {MessagePort} port @param {{native?:boolean}} [options] @returns {AsyncPWMAPI & {dispose(): void,stopVoices?:()=>Promise<void>}} */
+export function createPWM32XClient(port,options={}) {
   let id = 0, disposed = false;
   const pending = new Map();
   port.onmessage = ({data}) => {
@@ -75,7 +123,8 @@ export function createPWM32XClient(port) {
     data.error ? request.reject(new Error(data.error)) : request.resolve(data.value);
   };
   port.start();
-  const client = Object.fromEntries([...PWM_METHODS].map(method => [method, (...args) => {
+  const methods=options.native?[...PWM_METHODS,'stopVoices']:[...PWM_METHODS];
+  const client = Object.fromEntries(methods.map(method => [method, (...args) => {
     if (disposed) return Promise.reject(new Error('PWM client disposed'));
     return new Promise((resolve, reject) => {
       const key = ++id; pending.set(key, {resolve, reject});

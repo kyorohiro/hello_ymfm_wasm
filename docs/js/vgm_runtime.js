@@ -6,7 +6,7 @@
  */
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js?v=audio-numeric-bindings-1";
-import { createGenesisAudioEngine } from "./genesisaudioengine.js?v=audio-numeric-bindings-1";
+import { createGenesisAudioEngine } from "./genesisaudioengine.js?v=pwm-wasm-1";
 import { VgmPlayer } from "./vgmplayer.js";
 
 /**

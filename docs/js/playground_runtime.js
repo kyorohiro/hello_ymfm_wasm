@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-consoles-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pwm-wasm-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -12,8 +12,8 @@ import {createNesAudio} from './playground_nes_audio.js?v=nes-wasm-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createDx7Audio} from './playground_dx7_audio.js?v=audio-numeric-bindings-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=audio-numeric-bindings-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=pwm-wasm-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
 import {createYm2151Audio} from './playground_ym2151_audio.js?v=audio-numeric-bindings-1';
 import {createAy8910Audio} from './playground_ay8910_audio.js?v=audio-numeric-bindings-1';
 import {createYm2413Audio} from './playground_ym2413_audio.js?v=audio-numeric-bindings-1';
@@ -33,7 +33,7 @@ import {createSampleInstrument as createSampleInstrumentFactory} from './playgro
 import {createGameboyAudio} from './playground_gameboy_audio.js?v=nes-wasm-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=native-consoles-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=pwm-wasm-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=audio-numeric-bindings-1';
 import {createOki6258Audio} from './playground_okim6258_audio.js?v=audio-numeric-bindings-1';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=audio-numeric-bindings-1';
@@ -54,8 +54,8 @@ import {parseMidiFile} from './midi_file.js?v=audio-numeric-bindings-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=audio-numeric-bindings-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=nes-wasm-1";
+} from "./megasynth.js?v=pwm-wasm-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=pwm-wasm-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=audio-numeric-bindings-1";
@@ -160,21 +160,21 @@ export function createPlaygroundRuntime(
             ? "./ym2610b-worklet.js?v=audio-numeric-bindings-1" : "./ym2612-worklet.js?v=audio-numeric-bindings-1"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
-        "./generated/ym2612_wasm.wasm",
+        "../generated/ym2612_wasm.wasm",
       wasmUrl:
         options.wasmUrl ??
         (options.chip === "gameboy"
           ? options.gameboyWasmUrl ?? new URL("../generated/gameboy_apu_wasm.wasm", import.meta.url).href
           : options.chip === "ym2203"
-          ? options.ym2203WasmUrl ?? "./generated/ym2203_wasm.wasm"
+          ? options.ym2203WasmUrl ?? "../generated/ym2203_wasm.wasm"
           : options.chip === "ym2608"
-            ? options.ym2608WasmUrl ?? "./generated/ym2608_wasm.wasm"
+            ? options.ym2608WasmUrl ?? "../generated/ym2608_wasm.wasm"
             : ['ym2610','ym2610b'].includes(options.chip)
-              ? options.ym2610bWasmUrl ?? "./generated/ym2610b_wasm.wasm"
+              ? options.ym2610bWasmUrl ?? "../generated/ym2610b_wasm.wasm"
             : undefined),
       segaPsgWasmUrl:
         options.segaPsgWasmUrl ??
-        "./generated/segapsg_wasm.wasm?v=audio-numeric-bindings-1",
+        "../generated/segapsg_wasm.wasm?v=audio-numeric-bindings-1",
     });
   // Audio backends provide timing explicitly; a native backend does not
   // manufacture an AudioContext or an AudioNode to satisfy browser APIs.
@@ -247,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-consoles-1",
+      "./playground_logic_worker.js?v=pwm-wasm-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -396,7 +396,8 @@ export function createPlaygroundRuntime(
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
-    if (['allNotesOff','reset','resetAll','panic'].includes(method)) return {allOff:true};
+    if (['allNotesOff','stopVoices','reset','resetAll','panic'].includes(method)) return {allOff:true};
+    if(name==='pwm'&&['write','writeRegister','scheduleWrites'].includes(method))return {key:0,on:true};
     if (name === 'dx7' && ['noteOn','noteOff'].includes(method)) return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
     if (name === 'psg') {
       if (['tone','noteOn','keyOn'].includes(method)) return {key:args[0],on:true};
@@ -442,6 +443,7 @@ export function createPlaygroundRuntime(
   function releaseNativeVoice(name, key) {
     const raw = megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
     if (!raw) return;
+    if(name==='pwm'){Promise.resolve(raw._stopVoices()).catch(error=>emitLog(`[pwm] ${formatLogArgs([error])}`));return;}
     if(name==='opll'&&typeof key==='string'&&key.startsWith('rhythm:'))raw._forceRhythmOff(Number(key.slice(7)));
     else if (name === 'adpcm') raw.stop(); else if (name === 'dx7') raw.noteOff(key); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
   }
@@ -2523,7 +2525,7 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port} = nativeWorkerBridge;
+        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port} = nativeWorkerBridge;
         const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port};
         const consoleEndpoints=(megaDrive.primaryEndpoints??[]).filter(endpoint=>consolePorts[endpoint.name]);
         if (consoleEndpoints.length) {
@@ -2541,6 +2543,7 @@ export function createPlaygroundRuntime(
             sampleRate:client.sampleRate,internalSampleRate:client.internalSampleRate,
             voices:client.voices,selectedVoice:client.selectedVoice,state:client._getState(),port:dx7Port}]},[dx7Port]);
         } else worker.postMessage({type:'chip-port',port:chipPort,state:primaryChipState()},[chipPort]);
+        if(pwmPort)worker.postMessage({type:'native-primary-ports',endpoints:[{name:'pwm',globalName:'pwm',native:true,clock:megaDrive.pwm.clock,port:pwmPort}]},[pwmPort]);
         worker.postMessage({type:'native-fx',port:fxPort},[fxPort]);
         if(pcmPort)worker.postMessage({type:'primary-pcm-port',port:pcmPort,clock:megaDrive.pcm.clock},[pcmPort]);
       } else if(nativePrimary && typeof MessageChannel === 'function') {

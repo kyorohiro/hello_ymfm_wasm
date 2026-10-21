@@ -1,4 +1,4 @@
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=pwm-wasm-1';
 import {Ym2612} from './ym2612.js?v=audio-numeric-bindings-1';
 import {Ym2608} from './ym2608.js?v=audio-stability-2';
 import {Ay8910} from './ay8910.js?v=audio-stability-2';
@@ -23,6 +23,7 @@ import ym2151Factory from '../generated/ym2151_wasm.js';
 import gameboyFactory from '../generated/gameboy_apu_wasm.js';
 import psgFactory from '../generated/segapsg_wasm.js?v=audio-numeric-bindings-1';
 import nesFactory from '../generated/nesapu_wasm.js?v=nes-wasm-1';
+import pwmFactory from '../generated/pwm32x_wasm.js?v=pwm-wasm-1';
 import {createSoundChipFactory} from './soundchip_factory.js';
 import {ChipPCMRenderer} from './chip_pcm_renderer.js?v=audio-stability-2';
 import {YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
@@ -33,7 +34,7 @@ const profiles = {ym2612: [Ym2612, ym2612Factory], ym2608: [Ym2608, ym2608Factor
   ay8910:[Ay8910,ay8910Factory],ym2413:[Ym2413,ym2413Factory],ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory],
   ym2151: [Ym2151, ym2151Factory], gameboy: [GameboyApu, gameboyFactory], segapsg: [SegaPSG, psgFactory], nes: [NesApuWasm, nesFactory]};
 const createSoundChip = createSoundChipFactory(Object.fromEntries([...Object.entries(profiles).map(([name, [Type, moduleFactory]]) =>
-  [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => new PWM32XPlayback(options)]]));
+  [name, options => Type.create({...options, moduleFactory})]), ['pwm', options => PWM32XPlayback.create({...options,moduleFactory:pwmFactory})]]));
 
 class SoundChipProcessor extends AudioWorkletProcessor {
   constructor({processorOptions: {name, chipOptions, wasmBinary}}) {
@@ -63,7 +64,7 @@ class SoundChipProcessor extends AudioWorkletProcessor {
           generate: this.direct?.generateStereoView.bind(this.direct)});
         if (['ym3526','ym3812','y8950','ymf262','ym2413'].includes(name) && chipOptions.clock !== undefined) this.renderer.rate=chip.sampleRate(chipOptions.clock);
         chip.reserveStereoFrames?.(Math.ceil(128 * chip.sampleRate() / sampleRate));
-        this.port.postMessage({type: 'ready', sampleRate: this.renderer.rate,...(name==='nes'?{backend:chip.backend}:{})});
+        this.port.postMessage({type: 'ready', sampleRate: this.renderer.rate,...(['nes','pwm'].includes(name)?{backend:chip.backend}:{})});
       }).catch(error => {this.dead = true; this.chip?.dispose(); this.port.postMessage({error: error.message});});
   }
   receive(data, replyPort = this.port) {

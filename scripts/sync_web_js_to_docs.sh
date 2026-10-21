@@ -58,6 +58,7 @@ okim6295audioengine.js
 bitcrusher-worklet.js
 genesisaudioengine.js
 pwm32x.js
+pwm32x_wasm.js
 pwm32x_playback.js
 pwm32x_transport.js
 playground_pwm_audio.js
@@ -74,6 +75,7 @@ native_genesis_dx7.js
 native_genesis_nes.js
 native_genesis_console.js
 native_genesis_snes.js
+native_genesis_pwm.js
 native_genesis_livefx.js
 native_livefx_context.js
 native_genesis_worker.js
@@ -356,6 +358,12 @@ cp "${WEB_DIR}/msfa_dx7/LICENSE" "${WEB_DIR}/msfa_dx7/THIRD_PARTY_NOTICES.md" \
   "${WEB_DIR}/msfa_dx7/README.vendor.md" "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm/"
 cp "${WEB_DIR}/msfa_dx7/vendor/msfa/COPYING" "${WEB_DIR}/msfa_dx7/vendor/msfa/UPSTREAM.md" \
   "${ROOT_DIR}/docs/licenses/tetorica-msfa-dx7-wasm/"
+
+perl -0pi -e 's#\./generated/#../generated/#g' \
+  "${DOCS_JS_DIR}/playground_pwm_audio.js" "${DOCS_JS_DIR}/playground_pwm_worklet.js"
+
+mkdir -p "${ROOT_DIR}/docs/licenses/mame-32x-pwm"
+cp "${ROOT_DIR}/third_party/mame-32x-pwm/LICENSE" "${ROOT_DIR}/third_party/mame-32x-pwm/README.md" "${ROOT_DIR}/docs/licenses/mame-32x-pwm/"
 
 # Cache identities belong to the website build; keep Node/package constructor identities unchanged.
 perl -0pi -e 's#\./generated/spc_wasm#../generated/spc_wasm#g' \

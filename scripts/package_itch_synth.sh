@@ -33,6 +33,7 @@ synth_recovery.js
 "
 RUNTIME_FILES="
 pwm32x.js
+pwm32x_wasm.js
 pwm32x_playback.js
 playground_pwm_audio.js
 playground_pwm_worklet.js
@@ -45,6 +46,17 @@ looper.js
 megasynth.js
 soundchip_mixer.js
 playground_chip_inspector_state.js
+playground_native_voice_inspector.js
+playground_opn_inspector.js
+playground_keyboard_channels.js
+playground_gameboy.js
+gameboysynth.js
+gameboyapu.js
+ym2610bsynth.js
+ym2610b.js
+nesapusynth.js
+chip_worklet_transport.js
+audio_decode.js
 soundchip_pitch.js
 playground_chip_clock.js
 nesapu.js
@@ -218,6 +230,7 @@ for chip in jsnes fixnes-fds; do
 done
 cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
 
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" "${STAGE_DIR}/generated/ym2612_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
@@ -227,6 +240,8 @@ cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_was
 cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
 cp "${SOURCE_GENERATED_DIR}/nesapu_wasm.js" "${STAGE_DIR}/generated/nesapu_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/nesapu_wasm.wasm" "${STAGE_DIR}/generated/nesapu_wasm.wasm"
+cp "${SOURCE_GENERATED_DIR}/pwm32x_wasm.js" "${STAGE_DIR}/generated/pwm32x_wasm.js"
+cp "${SOURCE_GENERATED_DIR}/pwm32x_wasm.wasm" "${STAGE_DIR}/generated/pwm32x_wasm.wasm"
 for chip in ym2203 ym2608 rf5c164; do
   if [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
     cp "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"

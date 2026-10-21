@@ -17,6 +17,9 @@ try {
     'licenses/tetorica-nes/LICENSE-JSNES','licenses/tetorica-nes/LICENSE-FDS','licenses/tetorica-nes/AUTHORS-JSNES.md','licenses/tetorica-nes/UPSTREAM-JSNES.md','licenses/tetorica-nes/UPSTREAM-FDS.md','licenses/tetorica-nes/README.md','licenses/jsnes/AUTHORS.md',
     'sources/third_party/tetorica-nes/nes_core.cpp','sources/third_party/tetorica-nes/nes_core.h','sources/wasm/nesapu_wasm.cpp','sources/scripts/build_nesapu_wasm.sh','sources/NES-FDS.md',
   ])assert(packedPaths.has(file),'NES/FDS WASM package payload missing '+file);
+  for(const file of ['pwm32x_wasm.js','pwm32x_wasm.d.ts','generated/pwm32x_wasm.js','generated/pwm32x_wasm.wasm',
+    'sources/wasm/pwm32x_core.h','sources/wasm/pwm32x_wasm.cpp','sources/scripts/build_pwm32x_wasm.sh',
+    'licenses/mame-32x-pwm/LICENSE','licenses/mame-32x-pwm/README.md'])assert(packedPaths.has(file),'PWM WASM package payload missing '+file);
   for (const file of ['playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js', 'playground_keyboard_channels.js','playground_opn_inspector.js','playground_dx7_inspector.js', 'playground_snes_inspector.js',
     'msfa_dx7/src/index.js', 'msfa_dx7/src/index.d.ts', 'msfa_dx7/src/preset.js', 'msfa_dx7/src/preset.d.ts', 'msfa_dx7/src/sysex.js', 'msfa_dx7/wasm/msfa.wasm',
     'msfa_dx7/LICENSE', 'msfa_dx7/THIRD_PARTY_NOTICES.md', 'msfa_dx7/README.vendor.md', 'msfa_dx7/vendor/msfa/COPYING']) {
@@ -89,6 +92,17 @@ try {
   const pcm = nesChip.generateStereo(4096);
   assert.ok(pcm.left.every(Number.isFinite) && pcm.left.some(v => Math.abs(v) > .001));
 } finally {nesChip.dispose();}
+const pwmChip=await createSoundChip('pwm');
+try {
+  assert.equal(pwmChip.backend,'wasm','Installed PWM creation must use the actual shared WASM renderer');
+  pwmChip.write(1,522);pwmChip.write(0,5);pwmChip.write(4,200);
+  const before=pwmChip.saveState();
+  const pcm=pwmChip.generateStereo(1024);
+  assert(pcm.left.every(Number.isFinite)&&pcm.right.every(Number.isFinite));
+  assert(pcm.left.some(value=>Math.abs(value)>.001),'Installed PWM is inaudible');
+  pwmChip.loadState(before);
+  assert.deepEqual(pwmChip.generateStereo(1024),pcm,'Installed PWM snapshot must preserve exact phase/FIFO');
+}finally{pwmChip.dispose();}
 for(const name of ['ym3526','ym3812','y8950','ymf262']) {
   const chip = await createSoundChip(name);
   try {
@@ -148,7 +162,7 @@ assert.equal(createTetoricaSynth({megaCD: true}).capabilities.pcmChannels, 8);
 for (const name of ['ym2203synth', 'ym2608synth', 'ym2610bsynth', 'playground_runtime', 'tetorica_audio_runtime', 'vgm_runtime']) {
   await import('tetorica-fm2612/' + name);
 }
-for (const path of ['ym2612-worklet.js', 'playground_logic_worker.js', 'generated/segapsg_wasm.wasm', 'generated/nesapu_wasm.js', 'generated/nesapu_wasm.wasm', 'native_audio_effect.wasm', 'tetorica_ym2608_adpcm_rom.bin']) {
+for (const path of ['ym2612-worklet.js', 'playground_logic_worker.js', 'generated/segapsg_wasm.wasm', 'generated/nesapu_wasm.js', 'generated/nesapu_wasm.wasm', 'generated/pwm32x_wasm.js', 'generated/pwm32x_wasm.wasm', 'native_audio_effect.wasm', 'tetorica_ym2608_adpcm_rom.bin']) {
   await access(runtimeAssetUrl(path));
 }
 await import('tetorica-fm2612/generated/ym2612_wasm.js');

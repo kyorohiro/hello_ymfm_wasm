@@ -1,6 +1,6 @@
 import {chipMixGains} from './soundchip_mixer.js?v=chip-tabs-2';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=audio-numeric-bindings-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=pwm-wasm-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
 /**
  * @file megasynth.js
  * 実行環境: Browser（メインスレッド）
@@ -344,7 +344,7 @@ export class MegaSynth {
     this.megaCD = options.megaCD === true;
     this.mega32X = options.mega32X === true;
     this.pwmOptions = options.pwmOptions ?? {};
-    /** @type {(import("./pwm32x_playback.js?v=audio-numeric-bindings-1").AsyncPWMAPI & {dispose(): void, readonly id: string}) | null} */
+    /** @type {(import("./pwm32x_playback.js?v=pwm-wasm-1").AsyncPWMAPI & {dispose(): void, readonly id: string}) | null} */
     this.pwm = null; this.pwmDevice = null;
     this.segaPsgWasmUrl = options.segaPsgWasmUrl !== undefined
       ? options.segaPsgWasmUrl

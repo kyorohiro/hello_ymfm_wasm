@@ -67,7 +67,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
     const wasmBinary = await loadBinary();
     await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js', import.meta.url).href);
     options.signal?.throwIfAborted();
-    const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode', 'fds'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
+    const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode', 'fds', 'implementation'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
     node = new AudioWorkletNode(context, 'tetorica-soundchip', {
       numberOfInputs: 0, outputChannelCount: [2],
       processorOptions: {name, chipOptions, wasmBinary},

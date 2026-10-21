@@ -49,6 +49,7 @@ export {encodeWav} from './wav.js';
  * @property {number} [flags] Chip-specific flags.
  * @property {boolean|'ym2151'|'ym2164'} [variant] Chip variant selection.
  * @property {'dac'|'duty'} [outputMode] PWM amplitude scaling.
+ * @property {'wasm'|'js'} [implementation='wasm'] PWM core; JS is an explicit reference fallback.
  * @property {AudioNode} [outputNode] Browser output destination.
  * @property {number} [gain=0.25] Worklet endpoint の出力音量。
  */
@@ -181,7 +182,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
  *   gameboy: import('./gameboyapu.js').GameboyApu,
  *   segapsg: import('./segapsg.js').SegaPSG,
- *   pwm: import('./pwm32x.js').PWM32X,
+ *   pwm: import('./pwm32x.js').PWM32X | import('./pwm32x_wasm.js').PWM32XWasm,
  *   nes: import('./nesapu_wasm.js').NesApuWasm,
  *   ay8910: import('./ay8910.js').Ay8910,
  *   y8950: import('./y8950.js').Y8950,
@@ -226,9 +227,9 @@ export function createSoundChip(name, options = {}) {
   if (options.mixer && options.execution !== 'worklet') return Promise.reject(new Error('An output mixer requires execution: worklet; direct chips generate raw PCM'));
   if (options.execution === 'worklet') {
     if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
-    const moduleName = name === 'gameboy' ? 'gameboy_apu' : name==='nes'?'nesapu':name;
+    const moduleName = name === 'gameboy' ? 'gameboy_apu' : name==='nes'?'nesapu':name==='pwm'?'pwm32x':name;
     return createWorkletSoundChip(name, options, async () => {
-      if (name === 'pwm') return undefined;
+      if (name === 'pwm' && options.implementation === 'js') return undefined;
       const loaded = await loadModule(moduleName, options);
       const bytes = loaded.moduleOptions.wasmBinary;
       if (!bytes) throw new Error('Worklet execution requires WASM bytes; use wasmBinary or default asset loading');
@@ -238,7 +239,7 @@ export function createSoundChip(name, options = {}) {
   if (options.execution !== undefined && options.execution !== 'direct') return Promise.reject(new Error('Unknown sound-chip execution mode'));
   let id;
   try {id = allocateSoundChipId(name, options.id);} catch (error) {return Promise.reject(error);}
-  const pending = name === 'pwm' ? Promise.resolve().then(() => {options.signal?.throwIfAborted(); return new PWM32X(options);}) : createLocalSoundChip(name, options);
+  const pending = name === 'pwm' ? PWM32X.create(options) : createLocalSoundChip(name, options);
   return pending.then(chip => {
     Object.defineProperty(chip, 'id', {value: id, enumerable: true});
     return chip;

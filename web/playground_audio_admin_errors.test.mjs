@@ -68,3 +68,12 @@ for(const [name,factory]of endpoints){
     const fixture=audioFixture(t,{startupFailure:true});await assert.rejects(open(name,factory,fixture),/native startup failed/);assert.equal(fixture.nodes[0].disconnected,1);assert.equal(fixture.nodes[0].port.closed,true);
   });
 }
+
+test('PWM asset loading uses its captured loader while Playground user-code networking is guarded',async t=>{
+  const fixture=audioFixture(t);
+  const {createPWM32XAudio}=await import('./playground_pwm_audio.js?captured-fetch-regression');
+  globalThis.fetch=()=>{throw new Error('Network access disabled in Playground execution');};
+  const device=await createPWM32XAudio(fixture.context,{});
+  t.after(()=>{device.dispose();device.port.close();});
+  assert.equal(fixture.nodes.length,1);assert.equal(fixture.nodes[0].disconnected,0);
+});

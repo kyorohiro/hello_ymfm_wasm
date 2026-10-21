@@ -396,7 +396,8 @@ export function createPlaygroundRuntime(
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
-    if (['allNotesOff','reset','resetAll','panic'].includes(method)) return {allOff:true};
+    if (['allNotesOff','stopVoices','reset','resetAll','panic'].includes(method)) return {allOff:true};
+    if(name==='pwm'&&['write','writeRegister','scheduleWrites'].includes(method))return {key:0,on:true};
     if (name === 'dx7' && ['noteOn','noteOff'].includes(method)) return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
     if (name === 'psg') {
       if (['tone','noteOn','keyOn'].includes(method)) return {key:args[0],on:true};
@@ -442,6 +443,7 @@ export function createPlaygroundRuntime(
   function releaseNativeVoice(name, key) {
     const raw = megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
     if (!raw) return;
+    if(name==='pwm'){Promise.resolve(raw._stopVoices()).catch(error=>emitLog(`[pwm] ${formatLogArgs([error])}`));return;}
     if(name==='opll'&&typeof key==='string'&&key.startsWith('rhythm:'))raw._forceRhythmOff(Number(key.slice(7)));
     else if (name === 'adpcm') raw.stop(); else if (name === 'dx7') raw.noteOff(key); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
   }
@@ -2523,7 +2525,7 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port} = nativeWorkerBridge;
+        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port} = nativeWorkerBridge;
         const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port};
         const consoleEndpoints=(megaDrive.primaryEndpoints??[]).filter(endpoint=>consolePorts[endpoint.name]);
         if (consoleEndpoints.length) {
@@ -2541,6 +2543,7 @@ export function createPlaygroundRuntime(
             sampleRate:client.sampleRate,internalSampleRate:client.internalSampleRate,
             voices:client.voices,selectedVoice:client.selectedVoice,state:client._getState(),port:dx7Port}]},[dx7Port]);
         } else worker.postMessage({type:'chip-port',port:chipPort,state:primaryChipState()},[chipPort]);
+        if(pwmPort)worker.postMessage({type:'native-primary-ports',endpoints:[{name:'pwm',globalName:'pwm',native:true,clock:megaDrive.pwm.clock,port:pwmPort}]},[pwmPort]);
         worker.postMessage({type:'native-fx',port:fxPort},[fxPort]);
         if(pcmPort)worker.postMessage({type:'primary-pcm-port',port:pcmPort,clock:megaDrive.pcm.clock},[pcmPort]);
       } else if(nativePrimary && typeof MessageChannel === 'function') {

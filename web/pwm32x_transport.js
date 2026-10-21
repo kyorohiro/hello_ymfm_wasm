@@ -1,4 +1,5 @@
 import {PWM32X} from './pwm32x.js';
+import {PWM32XWasm} from './pwm32x_wasm.js';
 import {PWM32XPlayback} from './pwm32x_playback.js';
 
 /** Main-side command API; chip rendering and the schedule live in AudioWorklet. */
@@ -31,9 +32,9 @@ export class PWM32XWorkletTransport {
 
 /** Explicit PCM rendering for WAV export or a consumer-owned output. */
 export class PWM32XDirectTransport {
-  /** @param {PWM32X | PWM32XPlayback} chip */
+  /** @param {PWM32X | PWM32XWasm | PWM32XPlayback} chip */
   constructor(chip) {
-    if (chip instanceof PWM32X) chip = new PWM32XPlayback({}, chip);
+    if (chip instanceof PWM32X || chip instanceof PWM32XWasm) chip = new PWM32XPlayback({}, chip);
     if (!(chip instanceof PWM32XPlayback)) throw new TypeError('Expected a PWM chip');
     this.chip = chip;
   }

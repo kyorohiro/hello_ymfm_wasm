@@ -26,10 +26,10 @@ async function setup(file) {
   const engine={ym2608:chip,dispose(){chip.dispose();},writeYm2608(_p,_r,value){chip.value=value;},loadAdpcmARom(){},
     process(left,right){left.fill(chip.value);right.fill(chip.value);}};
   class SyncChip {constructor(){return chip;}static async create(){return chip;}}
-  class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;}});}}
+  class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;},renderInto(left,right){left.fill(this.value);right.fill(this.value);}});}static async create(){return new Playback();}}
   const scope={OpnKeyboardInspector,createOpnAuditionGuard,Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
     NesApuWasm:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,Ay8910:SyncChip,Ym2413:SyncChip,Ym3526:SyncChip,Ym3812:SyncChip,Y8950:SyncChip,Ymf262:SyncChip,
-    Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},nesFactory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},ay8910Factory:{},ym2413Factory:{},ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},gameboyFactory:{},psgFactory:{},
+    Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},pwmFactory:{},nesFactory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},ay8910Factory:{},ym2413Factory:{},ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},gameboyFactory:{},psgFactory:{},
     createRf5c164Control:()=>({reset:()=>chip.reset(),writeRegister:(reg,value)=>chip.writeRegister(reg,value),dispose:()=>chip.dispose()}),
     createSoundChipFactory:()=>async()=>chip,ChipPCMRenderer:class{render(n){return chip.generateStereo(n);}renderInto(left,right,offset=0,frames=left.length-offset){const pcm=chip.generateStereo(frames);left.set(pcm.left,offset);right.set(pcm.right,offset);}resetHistory(){}},
     YM2612DirectTransport:class{},YM2612DacPlayer:class{},performanceNoteRelease,
