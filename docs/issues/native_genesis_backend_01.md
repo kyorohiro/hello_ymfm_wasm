@@ -5,6 +5,7 @@ AudioタブのEnvelope／Waveform／Spectrumは、[Native Audioモニターの�
 `noise.create()`のNative生成は、[Native noiseの作業記録](native_noise_01.md)を参照。
 QuickJS-NGによる`liveFx`も[Native再生へ接続した](native_livefx_01.md)。使用中だけ専用workerと
 2048フレームの先読みを使い、未使用時はJS実行環境を作らず直接出力する。
+Mega CDのRF5C164も[Native対応した](native_megacd_01.md)。Genesisと同じ最終出力経路へ混ぜる。
 
 ## 第2段階：Genesisの実用機能を増やす
 
@@ -104,8 +105,8 @@ python3 scripts/sync_native_genesis_fx.py --check --source ../..
 
 - **安定するまではWeb Audioをデフォルトにする。** Nativeへの自動切替はしない。
 - Tauriの設定からWeb Audio／Nativeを選べる。Nativeは試験機能として表示する。
-- Native選択中のModeは対応modeだけ表示する。現在はGenesisのみ。
-  他modeへ移るときは先にWeb Audioへ戻す。Genesis以外ではNativeの選択肢を無効にする。
+- Native選択中のModeは対応modeだけ表示する。現在はGenesis／Mega CD。
+  他modeへ移るときは先にWeb Audioへ戻す。非対応modeではNativeの選択肢を無効にする。
 - ブラウザー版は引き続きWeb Audioを使う。演奏API・音色・ユーザーコードを共通化し、
   同じテストシナリオを両バックエンドで実行できるようにする。
 - 最初の対象はGenesisのYM2612＋Sega PSG。他modeの一斉移行は行わない。
@@ -142,7 +143,7 @@ Native未対応の機能は理由を示して拒否し、別バックエンド�
   URLの無効なNative指定を除く。後からGenesisへ戻っただけでNativeを再選択しない。
   Nativeの初期化失敗時も再生失敗を表示し、明示的に切り戻せるようにする。
 
-Modeの表示制限はChromium／WebKitで確認した。Native中のGenesis限定表示、
+Modeの表示制限はChromium／WebKitで確認した。Native中の対応mode限定表示、
 Web Audioへ戻したときの全Mode復元、非対応modeでのNative選択拒否、
 古いURLの整理後もmode・ソースを保持することを検証した。音声処理は変更していない。
 
@@ -174,7 +175,7 @@ Web Audioへ戻したときの全Mode復元、非対応modeでのNative選択拒
 ### 利用方法
 
 1. 更新したTauri版でGenesis modeを選ぶ。
-2. **Menu → Audio engine…** を開き、**Native Genesis (experimental)** を選んで
+2. **Menu → Audio engine…** を開き、**Native Genesis / Mega CD (experimental)** を選んで
    **Apply engine**。演奏を停止し、現在のプロジェクトを保存・引き継いでページを再読み込みする。
 3. **Run** またはKeyboardの試聴操作でNative音声を開始する。設定を開くだけではデバイスを開かない。
 4. 切り戻す場合は同じダイアログで **Web Audio (default)** を選んで **Apply engine**。
@@ -189,6 +190,7 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | 機能 | Native Genesis | 補足 |
 | --- | --- | --- |
 | Genesis／YM2612 6CH＋Sega PSG | 対応 | チップ生成・変換・ミックス・CPAL出力をNative側で完結 |
+| Mega CD／RF5C164 | 対応 | 8声・64 KiB RAM。Main／Worker、サンプラー、Keyboard、RFミキサー・clock、最終出力のFX・monitor・録音 |
 | `fm`／`play`／`liveLoop`、Main実行 | 対応 | 既存の音色・音楽APIとレジスター生成を共有 |
 | FM／PSGレジスター、時刻付き書込み | 対応 | 同時刻は送信順。IPCは直列化し、1バッチ4096命令・待機65536命令を上限にする |
 | `useSoundChip('ym2612')`／`useSoundChip('segapsg')` | 対応 | 既存の主音源を借用。追加インスタンスは作らない |
@@ -205,11 +207,11 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | 組込みFX | 13種類に対応 | branch／parallel／setChain、パラメーターramp、tempo。構成変更でDSP履歴を初期化 |
 | Audio diagnostics | 最終出力に対応 | output WAV／JSON、noise marker。最大30秒／32 MiB。chip単独出力は未対応 |
 | AudioのEnvelope／Waveform／Spectrum | 対応 | 左右CH、Pause、共通Yスケール。表示中だけ最大15Hzの観測。FFTは音声callback外で実行 |
-| 追加チップ、Genesis以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
+| 追加チップ、Genesis／Mega CD以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
 | JavaScript `liveFx` | 対応 | QuickJS-NG専用worker。使用中だけ2048フレーム遅延。最終出力の観測・録音に反映。FX単位のmonitorは未対応 |
 | stream | 未対応 | 別の音声経路で代用しない |
 | 独立した音色ファイル試聴 | 未対応 | Web Audioへ切り戻して使用 |
-| Chip clock変更、同期status／IRQ読取 | 未対応 | 固定のYM2612／PSG clockを使用。コア内timerの進行とは区別 |
+| YM2612／PSG clock変更、同期status／IRQ読取 | 未対応 | FM／PSGは固定clockを使用。RF5C164のclock変更と適用済みレジスターの非同期読取は対応 |
 
 Native用にAudioContextやAudioNodeの偽物を作らない。Native Synthは明示的な音声clockと
 admin adapterを持ち、Keyboardの操作もPCMの転送や追加AudioWorkletを経由しない。

@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-10-21T11:48:48.864Z",
+  "deviceOpened": false,
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "clock": 12500000,
+  "channels": 2,
+  "cases": [
+    {
+      "name": "loop, pitch, left/right pan and retrigger",
+      "sampleRate": 44100,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "all eight physical voices and independent key gates",
+      "sampleRate": 44100,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.1829833984375
+    },
+    {
+      "name": "finite sample, silent tail and marker at loop destination",
+      "sampleRate": 44100,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.10870361328125
+    },
+    {
+      "name": "absolute RAM, banked writes, Stop/restart and reset retain RAM",
+      "sampleRate": 44100,
+      "frames": 5120,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "per-chip volume and pan use a five millisecond ramp",
+      "sampleRate": 44100,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.2288818359375
+    },
+    {
+      "name": "maximum pitch, end guards and final RAM address",
+      "sampleRate": 44100,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.008575439453125
+    },
+    {
+      "name": "outer chip clock at half, 1.25 and double rate, reset and restoration",
+      "sampleRate": 44100,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "loop, pitch, left/right pan and retrigger",
+      "sampleRate": 48000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "all eight physical voices and independent key gates",
+      "sampleRate": 48000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.1829833984375
+    },
+    {
+      "name": "finite sample, silent tail and marker at loop destination",
+      "sampleRate": 48000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.10870361328125
+    },
+    {
+      "name": "absolute RAM, banked writes, Stop/restart and reset retain RAM",
+      "sampleRate": 48000,
+      "frames": 5120,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "per-chip volume and pan use a five millisecond ramp",
+      "sampleRate": 48000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.2288818359375
+    },
+    {
+      "name": "maximum pitch, end guards and final RAM address",
+      "sampleRate": 48000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.008575439453125
+    },
+    {
+      "name": "outer chip clock at half, 1.25 and double rate, reset and restoration",
+      "sampleRate": 48000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "loop, pitch, left/right pan and retrigger",
+      "sampleRate": 96000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "all eight physical voices and independent key gates",
+      "sampleRate": 96000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.17523193359375
+    },
+    {
+      "name": "finite sample, silent tail and marker at loop destination",
+      "sampleRate": 96000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.10870361328125
+    },
+    {
+      "name": "absolute RAM, banked writes, Stop/restart and reset retain RAM",
+      "sampleRate": 96000,
+      "frames": 5120,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    },
+    {
+      "name": "per-chip volume and pan use a five millisecond ramp",
+      "sampleRate": 96000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.2288818359375
+    },
+    {
+      "name": "maximum pitch, end guards and final RAM address",
+      "sampleRate": 96000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.008575439453125
+    },
+    {
+      "name": "outer chip clock at half, 1.25 and double rate, reset and restoration",
+      "sampleRate": 96000,
+      "frames": 4608,
+      "maximumDifference": 0,
+      "peak": 0.143035888671875
+    }
+  ],
+  "maximumDifference": 0,
+  "limits": "Compares the Native RF core, outer clock adapter and per-chip gain ramp with shipped WASM. Browser IPC uses a mocked Native device; whole-bus routing and cancellation are covered by Rust tests.",
+  "wasmSha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+  "totalStereoFrames": 98304,
+  "status": "passed"
+}

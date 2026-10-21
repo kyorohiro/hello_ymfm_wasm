@@ -279,6 +279,7 @@ const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
   ? new (await import('../js/native_genesis_synth.js?v=audio-numeric-bindings-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
+    megaCD:selectedMode.id === 'mega-cd',
     onError(error) {
       setStatus(`Native audio failed: ${error.message}. Select Web Audio in Audio engine to switch back.`);
       logLine(`[Native audio] ${error.message}`);
@@ -2878,7 +2879,7 @@ async function changePlaygroundMode(id) {
 
 async function changePlaygroundAudioEngine(engine) {
   if (!supportsPlaygroundAudioEngineMode(engine, selectedMode.id) || engine === 'native' && !audioEngineSelection.available) {
-    throw new Error('Native is available in Genesis mode only.');
+    throw new Error('Native is available in Genesis and Mega CD modes only.');
   }
   if (changingMode) throw new Error('A mode or engine change is already in progress.');
   changingMode = true;

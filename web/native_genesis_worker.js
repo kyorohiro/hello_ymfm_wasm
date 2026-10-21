@@ -9,7 +9,8 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   const noiseNamespace = synth.allocateNoiseNamespace?.() ?? ++fallbackNoiseNamespace;
   if (!Number.isSafeInteger(noiseNamespace) || noiseNamespace < 1) throw new RangeError('Invalid Native Worker noise namespace');
   const admin = new MessageChannelClass(), chip = new MessageChannelClass(), fx = new MessageChannelClass();
-  const ports = [admin.port1, chip.port1, fx.port1];
+  const pcm=synth.pcm?new MessageChannelClass():null;
+  const ports = [admin.port1, chip.port1, fx.port1,...(pcm?[pcm.port1]:[])];
   let serial = Promise.resolve(), active = null, epoch = 0, pending = 0, pendingMessages = 0, pendingBytes = 0, disposed = false;
   const owners = new Map(), cancelled = new Set();
   const abort = () => new DOMException('Native Worker performance was stopped', 'AbortError');
@@ -28,6 +29,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
     if (message.type === 'pcm-dac') port.postMessage({type:'pcm-dac-result',id:message.id,error:detail});
     else if (message.type === 'chip-clock') port.postMessage({type:'chip-clock-result',id:message.id,error:detail});
     else if (message.op === 'sample') port.postMessage({op:'sample-response',id:message.id,error:detail});
+    else if (typeof message.method==='string') port.postMessage({id:message.id,error:detail});
     else return false;
     return true;
   }
@@ -95,6 +97,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       const bytesOf = data => Array.isArray(data) ? data.length * 8 :
         ArrayBuffer.isView(data) ? data.buffer.byteLength : data?.byteLength ?? 0;
       const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.command?.data) +
+        (m.method==='loadMemory'?bytesOf(m.args?.[0]):0) +
         (m.pcm?.channels?.reduce((total,channel) => total + bytesOf(channel),0) ?? 0),0);
       enqueue(async () => {
         // Stop invalidates already queued work immediately, including the
@@ -105,7 +108,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         } else for (const command of messages) {
           if (disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
           const result = kind === 'fx' ? await synth.dispatchNativeFxCommand(command,
-            command.op === 'noise' ? {...timing,noiseNamespace} : timing) : await synth.dispatchNativeCommand(command,timing);
+            command.op === 'noise' ? {...timing,noiseNamespace} : timing) : kind==='pcm'?await synth.dispatchNativePcmCommand(command,timing):await synth.dispatchNativeCommand(command,timing);
           if (result) port.postMessage(result);
         }
       }, count, failed, bytes);
@@ -116,15 +119,15 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       if (!replied && error.name !== 'AbortError') onError(error);
     }
   }
-  for (const [port,kind] of [[admin.port1,'admin'],[chip.port1,'chip'],[fx.port1,'fx']]) {
+  for (const [port,kind] of [[admin.port1,'admin'],[chip.port1,'chip'],[fx.port1,'fx'],...(pcm?[[pcm.port1,'pcm']]:[])]) {
     port.onmessage = ({data}) => receive(port,kind,data); port.start?.();
   }
   return {
-    port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,
+    port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,pcmPort:pcm?.port2??null,
     dispose() {
       if (disposed) return serial;
       disposed = true; const performance = active; active = null; ++epoch;
-      for (const port of [...ports,admin.port2,chip.port2,fx.port2]) port.close();
+      for (const port of [...ports,admin.port2,chip.port2,fx.port2,...(pcm?[pcm.port2]:[])]) port.close();
       const result = serial.then(() => performance === null ? undefined : synth.setNativePerformance({op:'stop',performance}));
       serial = result.catch(() => {});
       return result;

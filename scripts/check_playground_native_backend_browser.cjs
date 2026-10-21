@@ -56,7 +56,7 @@ class FakeNative {
   status() {
     if (!this.current) throw Error('No native session');
     return {session:this.current.session,sampleRate:48000,frame:Math.floor((performance.now() - this.current.began) * 48),
-      ymClock:7670454,psgClock:3579545,running:true,queued:0,lateCommands:0,queueOverflows:0,error:null,
+      ymClock:7670454,psgClock:3579545,mode:this.current.mode,rf5c164Clock:this.current.mode==='mega-cd'?12500000:null,running:true,queued:0,lateCommands:0,queueOverflows:0,error:null,
       liveFx:{active:this.liveFx.size,initialized:this.liveFx.size>0,latencyFrames:this.liveFx.size?2048:0,
         blockFrames:128,queuedCommands:0,processCalls:0,underruns:0,overruns:0,error:this.liveFxError}};
   }
@@ -65,7 +65,11 @@ class FakeNative {
     if (command === 'native_genesis_start') {
       if (this.failStart) {this.failStart = false; throw Error('Simulated native device unavailable');}
       this.liveFx.clear(); this.liveFxError = null;
-      this.current = {session:++this.sessions,began:performance.now()};
+      assert(args.mode===undefined||['genesis','mega-cd'].includes(args.mode));
+      this.current = {session:++this.sessions,began:performance.now(),mode:args.mode??'genesis'};
+      const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
+      this.pcm=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{sampleRate:48000});
+      this.pcmVoices=Array(8).fill(0);
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -85,8 +89,9 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);return this.status();}
     if (command === 'native_genesis_status') return this.status();
+    if (command === 'native_genesis_rf5c164_status') {assert.equal(this.current.mode,'mega-cd');const state=this.pcm.read();return {...state,mask:this.pcm.mask,selected:this.pcm.selected,channels:state.channels.map(channel=>({...channel,configuredStep:this.pcm.configuredSteps[channel.channel]}))};}
     if (command === 'native_genesis_live_fx') {
       const message=args.message;
       assert.equal(message?.op,'live-fx');assert(['register','context','remove'].includes(message.action));
@@ -103,6 +108,18 @@ class FakeNative {
     if (command === 'native_genesis_commands') {
       assert(Array.isArray(args.commands) && args.commands.length > 0 && args.commands.length <= 4096);
       assert(args.commands.every(entry => Number.isSafeInteger(entry.frame) && entry.frame >= 0));
+      for(const entry of args.commands.filter(entry=>entry.type.startsWith('rf5c164-'))) {
+        assert.equal(this.current.mode,'mega-cd','Genesis must never accept PCM commands');
+        if(entry.type==='rf5c164-write') {assert(Number.isInteger(entry.register)&&entry.register>=0&&entry.register<=8);assert(Number.isInteger(entry.value)&&entry.value>=0&&entry.value<=255);if(entry.audition)this.pcm.auditionWriting++;try{this.pcm.write(entry.register,entry.value);}finally{if(entry.audition)this.pcm.auditionWriting--;}}
+        else if(entry.type==='rf5c164-load-memory') {assert(Number.isInteger(entry.offset)&&entry.offset>=0&&entry.offset<=65536);assert(Array.isArray(entry.data)&&entry.data.length<=65536-entry.offset);assert(entry.data.every(value=>Number.isInteger(value)&&value>=0&&value<=255));}
+        else if(entry.type==='rf5c164-key-on'||entry.type==='rf5c164-key-off') {
+          assert(Number.isInteger(entry.channel)&&entry.channel>=0&&entry.channel<8);
+          assert(entry.voice===undefined||Number.isSafeInteger(entry.voice)&&entry.voice>0);
+          if(entry.type==='rf5c164-key-on'){this.pcmVoices[entry.channel]=entry.voice??0;this.pcm.mask&=~(1<<entry.channel);}
+          else if(entry.voice===undefined||this.pcmVoices[entry.channel]===entry.voice){this.pcm.mask|=1<<entry.channel;this.pcmVoices[entry.channel]=0;}
+        }
+        else {assert(['rf5c164-reset','rf5c164-mix','rf5c164-clock'].includes(entry.type),'Unknown Native PCM command '+entry.type);if(entry.type==='rf5c164-reset')this.pcm.reset();}
+      }
       return this.status();
     }
     if (command === 'native_genesis_fx') {
@@ -172,7 +189,7 @@ async function modeIds(page) {
   return page.locator('#playgroundMode option').evaluateAll(options=>options.map(option=>option.value));
 }
 async function assertNativeModeRestriction(page,native) {
-  assert.deepEqual(await modeIds(page),['genesis'],'Native must list only supported machine modes');
+  assert.deepEqual(await modeIds(page),['genesis','mega-cd'],'Native must list only supported machine modes');
   const before={url:page.url(),session:native.current.session,shutdowns:native.count('native_genesis_shutdown')};
   // A forged option/change must pass the same support check as the visible UI.
   await page.evaluate(()=>{
@@ -555,6 +572,126 @@ async function keyboard(page, native) {
       : entry.type === 'psg-write' && entry.value === 0x9f));
   }
 }
+async function changeNativeMode(page,native,id,choice='initial') {
+  const session=native.current?.session,starts=native.count('native_genesis_start');
+  await page.locator('#mainMenu > summary').click();
+  await page.selectOption('#playgroundMode',id);
+  await page.locator('#changeModeDialog').waitFor({state:'visible'});
+  await Promise.all([
+    page.waitForURL(url=>url.searchParams.get('mode')===id),
+    page.locator('#changeModeDialog').evaluate((dialog,choice)=>dialog.close(choice),choice),
+  ]);
+  await ready(page);
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),id);
+  assert.equal(new URL(page.url()).searchParams.get('audioEngine'),'native');
+  assert.deepEqual(await modeIds(page),['genesis','mega-cd']);
+  assert.equal(native.count('native_genesis_start'),starts,'Mode selection must defer device opening until playback');
+  assert.equal(native.current,null,'Changing Native machines must shut down the old session');
+  if(session)assert(native.calls.some(call=>call.command==='native_genesis_shutdown'&&call.args.session===session));
+}
+async function nativeMegaCd(page,native,artifacts,name) {
+  await changeNativeMode(page,native,'mega-cd');
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/mega-cd/index.js'),'utf8');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter,'Mode change must install the shipped Mega CD starter');
+  for(const execution of ['main','worker']) {
+    const first=native.calls.length;
+    await page.evaluate(async({starter,execution})=>{
+      await window.__nativeBackendTest.runtime.playSource(starter,{execution});
+    },{starter,execution});
+    const calls=()=>native.calls.slice(first),commands=()=>calls().flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+    await until(()=>commands().some(command=>command.type==='rf5c164-key-on'&&command.channel===0)&&
+      commands().some(command=>command.type==='write'&&command.register===0x28&&(command.value&0xf0)),`${execution}: shipped Mega CD starter FM and PCM`);
+    assert.equal(native.current.mode,'mega-cd');
+    const prepared=commands().find(command=>command.type==='rf5c164-load-memory');
+    assert(prepared&&prepared.offset===0&&prepared.data.length>5600,'loadSample must encode and upload the full finite bass sample');
+    assert.equal(prepared.data[5600],255,'The finite starter must retain its RF end marker');
+    const keyOn=commands().find(command=>command.type==='rf5c164-key-on'&&command.channel===0);
+    assert(Number.isSafeInteger(keyOn.frame)&&keyOn.frame>=0);
+    assert(Number.isSafeInteger(keyOn.voice)&&keyOn.voice>0,'Each PCM retrigger must carry a channel voice lease');
+    if(execution==='worker')assert(keyOn.performance&&keyOn.owner&&keyOn.frame>0,'Worker PCM must share the performance ownership and frame scheduler');
+    const snapshot=await page.evaluate(async()=>({
+      backend:window.__nativeBackendTest.runtime.megaDrive.backend,
+      pcm:window.__nativeBackendTest.runtime.megaDrive.capabilities.pcm,
+      chips:await window.__nativeBackendTest.runtime.chipInspector.list(),
+      state:await window.__nativeBackendTest.runtime.chipInspector.read('rf5c164'),
+    }));
+    assert.equal(snapshot.backend,'native-genesis');assert.equal(snapshot.pcm,true);
+    assert(snapshot.chips.some(chip=>chip.id==='rf5c164'),'The Native PCM must be discoverable by Operators and Keyboard');
+    assert.equal(snapshot.state.channels[0].active,true);
+    await assertNoLiveAudio(page);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const stopped=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('rf5c164'));
+    assert(stopped.channels.every(channel=>!channel.active),'Stop must release the authored PCM channel state');
+  }
+  const compressedUrl=new URL('./samples/sonic-pi/drum_heavy_kick.flac',page.url()).href;
+  for(const execution of ['main','worker']) {
+    const first=native.calls.length;
+    await page.evaluate(async({execution,compressedUrl})=>{
+      await window.__nativeBackendTest.runtime.playSource(`
+        const pcm=await useSoundChip('rf5c164');
+        const decoded=await pcm.loadSample(${JSON.stringify(compressedUrl)},{address:8192});
+        await pcm.setChannel(7,{...decoded,volume:70,pan:{left:15,right:15}});
+        await pcm.keyOn(7);
+      `,{execution});
+    },{execution,compressedUrl});
+    const commands=native.calls.slice(first).flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+    assert(commands.some(command=>command.type==='rf5c164-load-memory'&&command.offset===8192&&command.data.length>10000),`${execution}: RF loadSample must decode the real FLAC and encode chip RAM`);
+    assert(commands.some(command=>command.type==='rf5c164-key-on'&&command.channel===7));
+    await assertNoLiveAudio(page);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+  // The ordinary chip-target Keyboard path must reach the same Native endpoint.
+  await page.click('#keyboardTab');
+  await page.selectOption('#playgroundKeyboardChip','chip:rf5c164');
+  await page.selectOption('#playgroundKeyboardTargetChannel','0');
+  await page.locator('#keyboardTab').focus();
+  let first=native.calls.length;
+  const pcmCommands=()=>native.calls.slice(first).flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]).filter(command=>command.type.startsWith('rf5c164-'));
+  await page.keyboard.down('z');
+  await until(()=>pcmCommands().some(command=>command.type==='rf5c164-key-on'&&command.channel===0),'RF Keyboard key-on');
+  await page.keyboard.up('z');
+  await until(()=>pcmCommands().some(command=>command.type==='rf5c164-key-off'&&command.channel===0),'RF Keyboard key-off');
+  const pitchCommands=()=>pcmCommands().filter(command=>command.type==='rf5c164-write'&&command.audition&&[2,3].includes(command.register));
+  const firstPitch=pitchCommands().map(({register,value})=>({register,value}));
+  assert.equal(firstPitch.length,2,'RF Keyboard must mark its temporary pitch writes');
+  const beforeRepeat=pcmCommands().filter(command=>command.type==='rf5c164-key-on').length;
+  await page.keyboard.down('z');
+  await until(()=>pcmCommands().filter(command=>command.type==='rf5c164-key-on').length>beforeRepeat,'Repeated RF Keyboard key-on');
+  await page.keyboard.up('z');
+  assert.deepEqual(pitchCommands().slice(2).map(({register,value})=>({register,value})),firstPitch,'Repeated audition must preserve the authored sample pitch');
+  // Use the real shared sample-instrument builder and binding in both execution
+  // modes. The decoded PCM is synthetic; no microphone or output device is used.
+  for(const execution of ['main','worker']) {
+    first=native.calls.length;
+    await page.evaluate(async execution=>{
+      await window.__nativeBackendTest.runtime.playSource(`
+        const frames=512;
+        const audio={channels:[Float32Array.from({length:frames},(_,i)=>Math.sin(i*Math.PI*2/64)*0.5)],sampleRate:16000,rootMidi:60,loopEnabled:true,loopStartFrame:0,loopEndFrame:frames};
+        keyboard.bind('native-cd-sampler',await createSampleInstrument(audio));
+      `,{execution});
+    },execution);
+    await page.waitForFunction(()=>window.__nativeBackendTest.runtime.getKeyboardTarget()?.name==='native-cd-sampler');
+    await until(()=>pcmCommands().some(command=>command.type==='rf5c164-load-memory'&&command.data.length>=544),`${execution}: sample-instrument RAM upload`);
+    await page.locator('#keyboardTab').focus();
+    const before=pcmCommands().length;
+    await page.keyboard.down('z');await page.keyboard.down('x');
+    await until(()=>[0,1].every(channel=>pcmCommands().slice(before).some(command=>command.type==='rf5c164-key-on'&&command.channel===channel)),`${execution}: polyphonic sampled Keyboard`);
+    await page.keyboard.up('z');await page.keyboard.up('x');
+    await until(()=>[0,1].every(channel=>pcmCommands().slice(before).some(command=>command.type==='rf5c164-key-off'&&command.channel===channel)),`${execution}: sampled Keyboard release`);
+    await assertNoLiveAudio(page);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+  await page.evaluate(starter=>window.__nativeBackendTest.runtime.playSource(starter,{execution:'main'}),starter);
+  native.monitor.reads.length=0;
+  await nativeAudioMonitor(page,native,artifacts,name+'-megacd');
+  await nativeRecording(page,native);
+  await assertNoLiveAudio(page);
+  await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
+  await changeNativeMode(page,native,'genesis','keep');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),source,'Returning from Mega CD must preserve edited project code');
+  await nativeRun(page,native);
+  assert.equal(native.current.mode,'genesis');
+}
 async function compareNativeFft(browser,name,fixture) {
   assert.equal(fixture.samples?.length,4096);assert.equal(fixture.bins?.length,2048);
   assert(fixture.samples.every(Number.isFinite)&&fixture.bins.every(Number.isFinite));
@@ -639,6 +776,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeAudioMonitor(page,native,artifacts,name);
     await nativeRecording(page,native);
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
+    await nativeMegaCd(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
@@ -694,7 +832,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD Main/Worker and shipped FM+PCM starter, RF RAM/loadSample and polyphonic sample Keyboard, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 

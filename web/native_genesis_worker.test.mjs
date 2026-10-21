@@ -56,6 +56,23 @@ test('DAC/sample request replies and unsupported clock errors reach the real por
   } finally {await h.close();}
 });
 
+test('Mega-CD PCM RPC shares timing and owner fences with FM, and old cleanup cannot reach a new performance',async()=>{
+  const h=harness({synth:{pcm:{},async dispatchNativePcmCommand(command,timing){h.calls.push(['pcm',command,timing]);return {id:command.id};}}});
+  try {
+    const first=await h.start();assert(h.bridge.pcmPort);
+    const performance={session:first.session,owner:'pcm-loop',time:13};
+    let response=message(h.bridge.pcmPort);h.bridge.pcmPort.postMessage({performance,commands:[{method:'setChannel',args:[2,{step:1000}],id:1}]});
+    assert.deepEqual(await response,{id:1});assert.deepEqual(h.calls.at(-1),['pcm',{method:'setChannel',args:[2,{step:1000}],id:1},{time:13,performance:first.session,owner:1}]);
+    h.bridge.port.postMessage({type:'performance-cancel-owner',session:first.session,owner:'pcm-loop'});await until(()=>h.calls.some(c=>c[1].op==='cancel-owner'));
+    response=message(h.bridge.pcmPort);h.bridge.pcmPort.postMessage({performance,commands:[{method:'keyOff',args:[2],id:2}]});assert.match((await response).error,/stopped/);
+    h.host.stop();const next=await h.start();assert.notEqual(next.session,first.session);
+    response=message(h.bridge.pcmPort);h.bridge.pcmPort.postMessage({nativePerformance:{session:first.session,owner:'script'},commands:[{method:'stopVoices',args:[],id:3}]});assert.match((await response).error,/stopped/);
+    assert.equal(h.calls.filter(c=>c[0]==='pcm').length,1);
+    response=message(h.bridge.pcmPort);h.bridge.pcmPort.postMessage({nativePerformance:{session:next.session,owner:'keyboard'},commands:[{method:'keyOn',args:[0],id:4}]});assert.deepEqual(await response,{id:4});
+    assert.deepEqual(h.calls.at(-1)[2],{performance:next.session,owner:1});assert.equal(h.errors.length,0);
+  } finally {await h.close();}
+});
+
 test('noise commands keep a trusted Worker namespace and shared performance timing across owner changes',async()=>{
   const h=harness({synth:{allocateNoiseNamespace:()=>77}});
   try {

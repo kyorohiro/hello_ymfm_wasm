@@ -2509,9 +2509,10 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort} = nativeWorkerBridge;
+        const {chipPort,fxPort,pcmPort} = nativeWorkerBridge;
         worker.postMessage({type:'chip-port',port:chipPort,state:primaryChipState()},[chipPort]);
         worker.postMessage({type:'native-fx',port:fxPort},[fxPort]);
+        if(pcmPort)worker.postMessage({type:'primary-pcm-port',port:pcmPort,clock:megaDrive.pcm.clock},[pcmPort]);
       } else if(nativePrimary && typeof MessageChannel === 'function') {
         const endpoints = [], transfer = [];
         for (const endpoint of megaDrive.primaryEndpoints) {

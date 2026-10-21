@@ -7,9 +7,12 @@ import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeGenesisMonitor} from './native_genesis_monitor.js';
 import {createNativeGenesisNoise,nativeGenesisNoiseMessage} from './native_genesis_noise.js';
 import {nativeGenesisLiveFxMessage,createNativeGenesisLiveFxStatus} from './native_genesis_livefx.js';
+import {createNativeGenesisRf5c164} from './native_genesis_rf5c164.js?v=audio-numeric-bindings-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
+const MAX_PCM_UPLOAD_PENDING = 4 * 1024 * 1024;
+const pcmBytes=command=>command.type==='rf5c164-load-memory'?command.data.length:0;
 const unsupported = feature => {throw new Error(`${feature} is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.`);};
 const byte = (value, label) => {
   if (!Number.isInteger(value) || value < 0 || value > 255) throw new RangeError(`${label} must be an integer from 0 to 255`);
@@ -48,28 +51,28 @@ class NativeAudioClock extends EventTarget {
   }
 }
 
-/** Genesis-only native audio owner for the existing Playground runtime.
+/** Genesis / Mega-CD native audio owner for the existing Playground runtime.
  * `invoke` is a captured Tauri command transport, injected by the host. Import
  * and construction open no audio devices. Continuous rendering/output stays
  * native; uploads, requested monitor snapshots and recording retrieval are
  * explicit data transfers rather than a playback PCM bridge.
  * Web Audio remains the application's default and supports the full feature set.
- * @param {{invoke:(command:string,args?:object)=>Promise<unknown>,now?:()=>number,onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,decodeAudio?:(bytes:ArrayBuffer)=>Promise<unknown>}} options
+ * @param {{invoke:(command:string,args?:object)=>Promise<unknown>,now?:()=>number,onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,decodeAudio?:(bytes:ArrayBuffer)=>Promise<unknown>,megaCD?:boolean}} options
  */
 export class NativeGenesisSynth {
-  constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1, decodeAudio} = {}) {
+  constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1, decodeAudio,megaCD=false} = {}) {
     if (typeof invoke !== 'function') throw new TypeError('Native Genesis requires the Tauri invoke transport');
     this.invoke = invoke; this.now = now; this.onError = onError;
-    this.backend = 'native-genesis'; this.chip = 'ym2612';
+    this.backend = 'native-genesis'; this.chip = 'ym2612';this.megaCD=megaCD===true;
     this.capabilities = Object.freeze({chip:'ym2612', fmChannels:6, psg:true, dac:true,
-      pcm:false, recorder:true, worker:true, noise:true, dynamicSoundChips:false, backend:'native-genesis'});
+      pcm:this.megaCD, recorder:true, worker:true, noise:true, dynamicSoundChips:false, backend:'native-genesis'});
     this.clock = new NativeAudioClock(now);
     this.outputMonitor = createNativeGenesisMonitor({invoke:(command,args)=>this.invoke(command,args),
       getSession:()=>this.session,getSampleRate:()=>this.clock.sampleRate,
       isReady:()=>this.isReady() && !this.stopping && !this.closing && this.clock.state === 'running'});
     this.audioContext = null; this.node = null; this.audio = null;
     this.state = 'idle'; this.session = null; this.generation = 0;
-    this.pending = []; this.acceptedCommands = 0; this.acceptedRequests = 0; this.serial = Promise.resolve(); this.flushQueued = false;
+    this.pending = []; this.acceptedCommands = 0;this.acceptedPcmBytes=0; this.acceptedRequests = 0; this.serial = Promise.resolve(); this.flushQueued = false;
     this.starting = null; this.stopping = null; this.closing = null; this.error = null;this.workerSampleOrigin=null;
     this.listeners = new Set(); this.mixer = mixer; this.mixerReleases = [];
     this.liveFxDiagnostics=createNativeGenesisLiveFxStatus({invoke:(command,args)=>this.invoke(command,args),
@@ -108,6 +111,8 @@ export class NativeGenesisSynth {
     });
     Object.defineProperty(this.psg,'id',{value:'segapsg',enumerable:true});
     this.sample = this.media.sample;
+    this.nativePcm=this.megaCD?createNativeGenesisRf5c164(this,{decodeAudio}):null;
+    this.pcm=this.nativePcm?.client??null;
     this.stream = this.unavailableMedia('Streaming playback');
     this.nextNoiseNamespace=0;
     this.noise=createNativeGenesisNoise({send:message=>this.enqueue({type:'noise',frame:0,message}),getSampleRate:()=>this.clock.sampleRate});
@@ -149,7 +154,7 @@ export class NativeGenesisSynth {
     const pending = (async () => {
       let status;
       try {
-        status = await this.invoke('native_genesis_start');
+        status = await this.invoke('native_genesis_start',...(this.megaCD?[{mode:'mega-cd'}]:[]));
         if (generation !== this.generation) {
           if (status?.session != null) await this.invoke('native_genesis_shutdown',{session:status.session});
           throw new DOMException('Native audio initialization was cancelled','AbortError');
@@ -158,11 +163,16 @@ export class NativeGenesisSynth {
         this.session = status.session; this.clock.update(status,this.now(),true);
         this.liveFxDiagnostics.observe(status);
         this.fm.clock = status.ymClock ?? 7670454;
+        if(this.pcm)this.pcm._adoptClock(status.rf5c164Clock??12500000);
         this.state = 'ready';
         for (const id of ['ym2612','segapsg']) this.mixerReleases.push(this.mixer.register(id,id,settings => {
           const [left,right] = chipMixGains(settings); const prefix = id === 'ym2612' ? 'fm' : 'psg';
           this.mix[`${prefix}Left`] = left; this.mix[`${prefix}Right`] = right;
           if (this.isReady() && !this.stopping && !this.closing) this.enqueue({type:'mix',frame:0,...this.mix});
+        }));
+        if(this.pcm)this.mixerReleases.push(this.mixer.register('rf5c164','rf5c164',settings=>{
+          const [left,right]=chipMixGains(settings);
+          if(this.isReady()&&!this.stopping&&!this.closing)this.enqueue({type:'rf5c164-mix',left,right,frame:0});
         }));
         this.fm.reset();
         await this.flush();
@@ -220,7 +230,10 @@ export class NativeGenesisSynth {
     if (!this.isReady()) throw new Error('Native Genesis audio is not ready');
     if (this.stopping || this.closing) throw new DOMException('Native audio is stopping','AbortError');
     if (this.acceptedCommands + commands.length > MAX_PENDING) throw new RangeError('Native audio command queue is full');
+    const bytes=commands.reduce((sum,command)=>sum+pcmBytes(command),0);
+    if(this.acceptedPcmBytes+bytes>MAX_PCM_UPLOAD_PENDING)throw new RangeError('Native PCM upload queue is full');
     this.acceptedCommands += commands.length;
+    this.acceptedPcmBytes+=bytes;
     this.pending.push(...commands);
     if (!this.flushQueued) {
       this.flushQueued = true;
@@ -232,12 +245,16 @@ export class NativeGenesisSynth {
   flush() {
     const commands = this.pending.splice(0), session = this.session, generation = this.generation;
     if (!commands.length) return this.serial;
+    const bytes=commands.reduce((sum,command)=>sum+pcmBytes(command),0);
     const pending = this.serial.then(async () => {
-      for (let offset = 0; offset < commands.length; offset += MAX_BATCH) {
+      for (let offset = 0; offset < commands.length;) {
         if (generation !== this.generation || session !== this.session) throw new DOMException('Native audio commands were cancelled','AbortError');
-        await this.invoke('native_genesis_commands',{session,commands:commands.slice(offset,offset + MAX_BATCH)});
+        let end=offset,uploaded=0;
+        while(end<commands.length&&end-offset<MAX_BATCH&&uploaded+pcmBytes(commands[end])<=65536){uploaded+=pcmBytes(commands[end]);end++;}
+        if(end===offset)throw new RangeError('Native PCM upload exceeds 64 KiB');
+        await this.invoke('native_genesis_commands',{session,commands:commands.slice(offset,end)});offset=end;
       }
-    }).finally(()=>{this.acceptedCommands -= commands.length;});
+    }).finally(()=>{this.acceptedCommands -= commands.length;this.acceptedPcmBytes-=bytes;});
     // Keep the serialization chain usable after cancellation/failure. The
     // caller's promise retains the rejection; automatic sends report it once.
     this.serial = pending.catch(()=>{});
@@ -347,6 +364,11 @@ export class NativeGenesisSynth {
     }
     await this.flush();
   }
+  async dispatchNativePcmCommand(message,timing={}) {
+    if(!this.nativePcm)throw new Error('RF5C164 requires Native Mega-CD mode');
+    await this.nativePcm.dispatch(message,timing);
+    return message.id===undefined?undefined:{id:message.id};
+  }
   fail(error) {
     if (this.state === 'closed' || this.state === 'error') return;
     this.error = error instanceof Error ? error : new Error(String(error));
@@ -365,7 +387,7 @@ export class NativeGenesisSynth {
     this.psgAuditions.clear();this.psgLevels.fill(6);this.psgLatch=0;
     this.enqueue({type:'psg-reset',frame:0});
   }
-  discardPending() {this.acceptedCommands -= this.pending.length; this.pending.length = 0;}
+  discardPending() {this.acceptedCommands -= this.pending.length;this.acceptedPcmBytes-=this.pending.reduce((sum,command)=>sum+pcmBytes(command),0); this.pending.length = 0;}
   /** Stop is a barrier: old sends settle before the native callback clears its
    * queue and fades/resets. The device clock continues in the same session. */
   stopNativeAudio() {
@@ -379,6 +401,7 @@ export class NativeGenesisSynth {
     this.fx?.dispose();
     ++this.generation; this.discardPending();
     this.media.stopped();
+    this.nativePcm?.stopped();
     this.workerSampleOrigin=null;
     this.auditions.clear(); this.psgAuditions.clear();
     const session = this.session;
@@ -398,6 +421,7 @@ export class NativeGenesisSynth {
       const session = this.session; this.session = null;
       this.releaseMixer(); this.state = 'closed'; this.clock.setState('closed');
       this.media.reset(); this.fx = null;
+      this.nativePcm?.reset();
       this.auditions.clear(); this.psgAuditions.clear(); this.chipInspector.notify();
       if (session !== null) await this.invoke('native_genesis_shutdown',{session});
     })();
@@ -439,6 +463,7 @@ export class NativeGenesisSynth {
     const list = () => disposed || !this.isReady() ? [] : [
       {id:'ym2612',kind:'ym2612',name:'ym2612',label:'YM2612 (Native)',connected:true},
       {id:'segapsg',kind:'segapsg',name:'segapsg',label:'Sega PSG (Native)',connected:true},
+      ...(this.pcm?[{id:'rf5c164',kind:'rf5c164',name:'rf5c164',label:'RF5C164 (Native)',connected:true}]:[]),
     ];
     const endpoint = id => {
       if (!list().some(entry=>entry.id === id)) throw new Error('Sound chip is not connected');
@@ -458,6 +483,7 @@ export class NativeGenesisSynth {
       notify: () => {for (const listener of listeners) {try {listener(list());} catch(error) {console.error(error);}}},
       read: async id => {
         endpoint(id);
+        if(id==='rf5c164')return this.nativePcm.read();
         if (id === 'segapsg') unsupported('Applied PSG voice snapshots');
         return {kind:'ym2612',clock:this.fm.clock,sampleRate:this.clock.sampleRate,
           keyboardChannels:Array.from({length:6},(_,channel)=>({id:`fm:${channel}`,label:`FM ${channel+1}`})),
@@ -465,6 +491,7 @@ export class NativeGenesisSynth {
       },
       invoke: async (id,method,args=[]) => {
         endpoint(id);
+        if(id==='rf5c164')return this.nativePcm.invoke(method,args);
         if (method === 'auditionAllOff') {this.clearAuditions();await this.flush();return true;}
         if (!['auditionOn','auditionOff'].includes(method)) unsupported('Native voice inspector editing');
         if (!Array.isArray(args)) throw new TypeError('Audition arguments must be an array');
@@ -490,7 +517,7 @@ export class NativeGenesisSynth {
         }
         await this.flush();return true;
       },
-      loadSample: async () => unsupported('Native sample loading'),
+      loadSample: async (id,source,options) => {endpoint(id);if(id==='rf5c164')return this.nativePcm.loadSample(source,options);unsupported('Native sample loading');},
       dispose() {disposed = true;listeners.clear();},
     };
   }
