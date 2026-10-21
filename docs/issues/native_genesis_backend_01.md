@@ -104,6 +104,8 @@ python3 scripts/sync_native_genesis_fx.py --check --source ../..
 
 - **安定するまではWeb Audioをデフォルトにする。** Nativeへの自動切替はしない。
 - Tauriの設定からWeb Audio／Nativeを選べる。Nativeは試験機能として表示する。
+- Native選択中のModeは対応modeだけ表示する。現在はGenesisのみ。
+  他modeへ移るときは先にWeb Audioへ戻す。Genesis以外ではNativeの選択肢を無効にする。
 - ブラウザー版は引き続きWeb Audioを使う。演奏API・音色・ユーザーコードを共通化し、
   同じテストシナリオを両バックエンドで実行できるようにする。
 - 最初の対象はGenesisのYM2612＋Sega PSG。他modeの一斉移行は行わない。
@@ -136,8 +138,13 @@ Native未対応の機能は理由を示して拒否し、別バックエンド�
 - 命令キューとバッチ長に上限を設け、満杯時に黙って音符を捨てない。
 - 停止は未来の命令を消去して短いフェードを行う。終了時はストリームとチップを解放する。
 - mode変更・開始失敗・再読み込み・ウィンドウ終了で後始末する。
-- Native未対応modeを選んだ場合の有効エンジンはWeb Audioとし、画面にも明示する。
+- 古いURLでNative未対応modeと`audioEngine=native`が組み合わされた場合はWeb Audioを使い、
+  URLの無効なNative指定を除く。後からGenesisへ戻っただけでNativeを再選択しない。
   Nativeの初期化失敗時も再生失敗を表示し、明示的に切り戻せるようにする。
+
+Modeの表示制限はChromium／WebKitで確認した。Native中のGenesis限定表示、
+Web Audioへ戻したときの全Mode復元、非対応modeでのNative選択拒否、
+古いURLの整理後もmode・ソースを保持することを検証した。音声処理は変更していない。
 
 ## 検証
 

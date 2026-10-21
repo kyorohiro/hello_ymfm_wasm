@@ -1,8 +1,12 @@
 /** Desktop engine selection is explicit and local to this page URL.
  * A normal launch always uses the browser's Web Audio implementation. */
+export function supportsPlaygroundAudioEngineMode(engine, modeId) {
+  return engine === 'webaudio' || engine === 'native' && modeId === 'genesis';
+}
+
 export function resolvePlaygroundAudioEngine({search = '', desktop = false, modeId} = {}) {
   const requested = new URLSearchParams(search).get('audioEngine') === 'native' ? 'native' : 'webaudio';
-  const available = desktop && modeId === 'genesis';
+  const available = desktop && supportsPlaygroundAudioEngineMode('native', modeId);
   return {requested, engine: requested === 'native' && available ? 'native' : 'webaudio', available};
 }
 
@@ -36,7 +40,7 @@ export function installPlaygroundAudioEngineSettings({document, host, selection,
   }
   select.value = selection.engine;
   const explanation = document.createElement('p');
-  explanation.textContent = 'Web Audio uses the same audio engine as the browser version. Native is an experimental Genesis engine for FM and PSG. Changing engine stops playback and reloads the current project.';
+  explanation.textContent = 'Web Audio uses the same audio engine as the browser version. Native currently supports Genesis mode only. Select Web Audio to use other modes. Changing engine stops playback and reloads the current project.';
   const limits = document.createElement('p');
   limits.textContent = 'Native supports Main and Worker, FM, PSG, DAC, samples, noise, built-in FX, JavaScript liveFx, Audio monitoring and output recording. liveFx adds a 2048-frame processing delay (42.7 ms at 48 kHz) only while used. Compressed samples use the browser decoder during loading. Use Web Audio for extra chips.';
   const keyboardHint = document.createElement('p');

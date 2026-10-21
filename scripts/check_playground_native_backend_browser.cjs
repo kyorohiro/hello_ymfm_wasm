@@ -168,6 +168,26 @@ async function selectEngine(page, value) {
   await ready(page);
   assert.equal(await page.evaluate(() => window.__nativeBackendTest.editor.getValue()), source);
 }
+async function modeIds(page) {
+  return page.locator('#playgroundMode option').evaluateAll(options=>options.map(option=>option.value));
+}
+async function assertNativeModeRestriction(page,native) {
+  assert.deepEqual(await modeIds(page),['genesis'],'Native must list only supported machine modes');
+  const before={url:page.url(),session:native.current.session,shutdowns:native.count('native_genesis_shutdown')};
+  // A forged option/change must pass the same support check as the visible UI.
+  await page.evaluate(()=>{
+    const select=document.getElementById('playgroundMode');
+    const option=new Option('Forged Game Boy','gameboy');option.dataset.forgedMode='true';select.append(option);
+    select.value='gameboy';select.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  assert.equal(await page.locator('#playgroundMode').inputValue(),'genesis');
+  assert.equal(await page.locator('#changeModeDialog').evaluate(dialog=>dialog.open),false,'Unsupported mode must not open the project-transfer dialog');
+  assert.equal(page.url(),before.url,'Unsupported mode must not navigate');
+  assert.equal(native.current.session,before.session);
+  assert.equal(native.count('native_genesis_shutdown'),before.shutdowns,'Unsupported mode must not stop the current Native stream');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.runtime.getState().playback),'running');
+  await page.locator('#playgroundMode option[data-forged-mode]').evaluate(option=>option.remove());
+}
 async function run(page) {
   await page.click('#runButton');
   await page.waitForFunction(() => window.__nativeBackendTest.runtime.getState().playback === 'running');
@@ -591,6 +611,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     page.on('pageerror', error => errors.push(error.message));
     page.setDefaultTimeout(20000);
     await page.goto(url); await ready(page);
+    const allModeIds=await modeIds(page);
+    assert(allModeIds.length>1&&allModeIds.includes('genesis')&&allModeIds.includes('gameboy'),'Web Audio must list every machine mode');
     assert.equal(native.count('native_genesis_start'), 0);
     await openSettings(page);
     assert.equal(await page.locator('#audioEngineSelect').inputValue(), 'webaudio');
@@ -602,6 +624,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    await assertNativeModeRestriction(page,native);
     const firstSession = native.current.session;
     await page.click('#stopButton');
     await until(() => native.count('native_genesis_stop') > 0);
@@ -622,6 +645,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'webaudio');
     assert(native.count('native_genesis_shutdown') > 0);
     assert.equal(native.current, null);
+    assert.deepEqual(await modeIds(page),allModeIds,'Returning to Web Audio must restore the full machine list');
     // Native failure remains visible and selected, with no silent Web Audio fallback.
     native.failStart = true;
     await selectEngine(page, 'native');
@@ -631,24 +655,46 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await assertNoLiveAudio(page);
     await selectEngine(page, 'webaudio'); await run(page);
     assert(await page.evaluate(() => window.__audioConstructions.contexts > 0));
-    // Switching machine mode closes native ownership and uses Web Audio explicitly.
-    await selectEngine(page, 'native'); await nativeRun(page, native);
-    const shutdowns = native.count('native_genesis_shutdown');
+    // Unsupported machines can be selected after explicitly returning to Web Audio.
+    assert.deepEqual(await modeIds(page),allModeIds);
     await page.locator('#mainMenu > summary').click();
     await page.selectOption('#playgroundMode', 'gameboy');
     await page.locator('#changeModeDialog').waitFor({state:'visible'});
     await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'gameboy'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
     await ready(page);
-    assert(native.count('native_genesis_shutdown') > shutdowns);
     assert.equal(native.current, null);
     assert.notEqual(await page.evaluate(() => window.__nativeBackendTest.runtime.megaDrive.backend), 'native-genesis');
+    assert.deepEqual(await modeIds(page),allModeIds,'Non-Genesis Web Audio must retain the complete mode list');
     await openSettings(page);
     assert.equal(await page.locator('#audioEngineSelect option[value="native"]').isDisabled(), true);
     assert.equal(await page.locator('#audioEngineSelect').inputValue(), 'webaudio');
+    const gameboyUrl=page.url(),gameboyStarts=native.count('native_genesis_start');
+    await page.locator('#audioEngineSelect').evaluate(select=>{select.value='native';});
+    await page.click('#audioEngineApply');
+    assert.equal(page.url(),gameboyUrl,'A forged disabled Native selection must not navigate');
+    assert.equal(native.count('native_genesis_start'),gameboyStarts);
+    await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
+    // A manually supplied incompatible URL must truthfully display the actual Web Audio backend.
+    const starts=native.count('native_genesis_start');
+    const preservedSource=await page.evaluate(()=>window.__nativeBackendTest.editor.getValue());
+    const incompatible=new URL(page.url());incompatible.searchParams.set('audioEngine','native');
+    const encodedSource=Buffer.from(preservedSource).toString('base64url');incompatible.searchParams.set('src',encodedSource);
+    await page.goto(incompatible.href);await ready(page);
+    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'gameboy');
+    assert.equal(new URL(page.url()).searchParams.get('audioEngine'),null,'The incompatible Native query must be removed');
+    assert.equal(new URL(page.url()).searchParams.get('src'),encodedSource,'URL normalization must preserve the source parameter');
+    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),preservedSource,'URL normalization must preserve the current project');
+    assert.notEqual(await page.evaluate(()=>window.__nativeBackendTest.runtime.megaDrive.backend),'native-genesis');
+    assert.equal(native.count('native_genesis_start'),starts,'An incompatible URL must never start Native');
+    assert.deepEqual(await modeIds(page),allModeIds,'An incompatible URL uses the full Web Audio mode list');
+    await openSettings(page);
+    assert.equal(await page.locator('#audioEngineSelect').inputValue(),'webaudio');
+    assert.equal(await page.locator('#audioEngineSelect option[value="native"]').isDisabled(),true);
+    assert.equal(await page.locator('#audioEngineButton .menu-value').textContent(),'Web Audio');
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 
