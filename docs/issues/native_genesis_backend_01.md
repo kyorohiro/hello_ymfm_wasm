@@ -29,7 +29,10 @@ loopごとのownerを記録し、取消しではそのloopの未来の命令と�
 待機・送信中を合わせて65536命令／2048メッセージ／保持データ64 MiBに制限する。
 
 `sample.load`はmono／stereoのPCM、AudioBuffer互換オブジェクト、WAVのbytes／Blob／同一origin URLを
-受け付ける。MP3等の圧縮形式はまだ対象外。再生はrate、逆再生、loop、offset／duration、pan、fadeに対応。
+受け付ける。FLAC／MP3等はブラウザーが対応する形式を、読込み時だけOfflineAudioContextでPCMへ変換する。
+通常のAudioContextやAudioWorkletを作らず、再生はNative側で行う。PCM／Float WAVは直接読み取る。
+Web Audio版と共通のSonic Pi alias変換を使い、`sonic-pi/ambi-choir`等の同梱FLACも扱う。
+再生はrate、逆再生、loop、offset／duration、pan、fadeに対応。
 NativeはPCMとDACを含むbankを64 MiB以内に保持し、サンプルvoiceの予約を64件までに制限する。
 終了・取消しで使い終わったbankやFX graphの最後の参照は制御側で回収する。
 
@@ -61,6 +64,15 @@ JavaScriptへ転送する経路や追加AudioWorkletは作っていない。
 | 配布アセット上のChromium／WebKit | Main／Worker、DAC／sample／FX、loop取消し、録音WAV保存、Stop／Run、切替・開始失敗・mode変更が成功。Native IPCは模擬 |
 | Tauri `cargo build --offline --locked` | 更新した配布アセット取り込み後に成功 |
 | 物理デバイスの試聴・長時間安定性 | 第2段階では未実施。音声デバイスを開くテストも実行していない |
+
+圧縮サンプルの追加修正：同梱FLACを読み込む際の
+`Expected PCM/Float RIFF WAV; other formats require decodeAudio`を修正した。
+デコードとSonic Pi aliasの解決をWeb Audio版と共通化し、Nativeは読込み時だけofflineデコードする。
+元データをデコーダーによるdetachから保護し、Stop後の完了はNativeへアップロードしない。
+関連Node 163件、実FLACを使ったChromium／WebKitのMain・Worker検証、配布用アセットのWebKit検証が成功。
+Native経路ではlive AudioContext／AudioWorkletを作らず、PCM／WAVの直接読込みではofflineデコーダーも作らない。
+更新したTauriアセットは785ファイル、archive SHA-256は
+`3bcff79713be5cf5e28d516b6fd18e6e6d29613e80da46a54f470ca57f8e92f8`。
 
 音声デバイスを開かず、実NativeのPCM生成・DSP比較と、IPCを模擬した実ブラウザーのUI検証を
 分けて行う。未来のDAC／sample停止が早切れしないこと、owner取消しが手動入力を巻き込まないこと、
@@ -174,7 +186,7 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | 手動KeyboardとscriptのCH優先制御 | 未対応 | 同じ物理CHへのscript書込みは手動の長押しを上書きし得る。演奏中は空きCHを選ぶ |
 | Worker実行 | 対応 | 共通Worker、lookahead、loopのowner取消し。通常のPCM block転送は行わない |
 | DAC、`fm.dac`、DAC bank／sample clock | 対応 | PCM登録・pan・時刻指定・packed stream、生のDACレジスター書込み |
-| 汎用sample再生 | PCM／WAVに対応 | rate・逆再生・loop・pan・fade。MP3等の圧縮形式は未対応 |
+| 汎用sample再生 | PCM／WAV＋ブラウザーでデコード可能な圧縮形式 | FLAC／MP3等は読込み時にofflineデコード。rate・逆再生・loop・pan・fade |
 | 組込みFX | 13種類に対応 | branch／parallel／setChain、パラメーターramp、tempo。構成変更でDSP履歴を初期化 |
 | Audio diagnostics | 最終出力に対応 | output WAV／JSON、noise marker。最大30秒／32 MiB。chip単独出力は未対応 |
 | 追加チップ、Genesis以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |

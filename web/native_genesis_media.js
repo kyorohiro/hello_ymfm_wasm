@@ -2,6 +2,7 @@
  * a bank is loaded or a bounded output recording is explicitly retrieved. */
 import {readSamplePCM} from './adpcm_b_sample.js';
 import {copyDacPcm} from './ym2612_dac.js';
+import {createOfflineAudioDecoder,normalizeLocalMediaUrl} from './audio_decode.js';
 
 const MAX_BYTES = 64 * 1024 * 1024;
 const MAX_BANKS = 64;
@@ -47,15 +48,9 @@ function decodedBuffer(pcm) {
     }};
 }
 
-async function decodeSource(source, fetcher) {
+async function decodeSource(source, fetcher, decodeAudio) {
   if (typeof source === 'string' || source instanceof URL) {
-    const value = String(source);
-    let url = value;
-    if (typeof location !== 'undefined' && !/^(data:|blob:)/i.test(value)) {
-      const resolved = new URL(value,location.href);
-      if (resolved.origin !== location.origin) throw new Error('Only same-origin media URLs are allowed in MegaSynth.sample');
-      url = resolved.href;
-    }
+    const url = normalizeLocalMediaUrl(source);
     if (!fetcher) throw new Error('Sample loading requires fetch support');
     const response = await fetcher(url);
     if (!response.ok) throw new Error(`Failed to load sample: ${response.status} ${response.statusText ?? ''}`);
@@ -85,12 +80,15 @@ async function decodeSource(source, fetcher) {
       if(!block||dataBytes===undefined||dataBytes/block*count*4>MAX_BYTES)throw new RangeError('Invalid or oversized native PCM');
     }
   }
-  // This decoder is binary-only: it never creates an AudioContext or opens a device.
-  return decodedBuffer(await readSamplePCM(source));
+  if (ArrayBuffer.isView(source)) source = source.buffer.slice(source.byteOffset,source.byteOffset+source.byteLength);
+  // PCM/WAV keeps its binary fast path. Compressed files use a lazy offline
+  // browser decoder, then only the prepared PCM is uploaded to the native bank.
+  return decodedBuffer(await readSamplePCM(source,{decodeAudio}));
 }
 
 /** The synth owns ordering, session invalidation, and failure reporting. */
-export function createNativeGenesisMedia(synth, {fetch:fetcher = globalThis.fetch?.bind(globalThis)} = {}) {
+export function createNativeGenesisMedia(synth, {fetch:fetcher = globalThis.fetch?.bind(globalThis),
+  decodeAudio = createOfflineAudioDecoder({getSampleRate:()=>synth.clock.sampleRate})} = {}) {
   const banks = new Map(), dacBanks = new Map(), packedBanks = new Map();
   const loadTokens=new Map();
   let pendingBytes=0, nextVoice=0, nextInline=0, version=0, recording=false,recordingTicket=0;
@@ -142,7 +140,7 @@ export function createNativeGenesisMedia(synth, {fetch:fetcher = globalThis.fetc
   const sample = {
     async load(name,source) {
       if (source === undefined && typeof name === 'string') source=name;
-      nameOf(name);const token=capture(), buffer=await decodeSource(source,fetcher);current(token);
+      nameOf(name);const token=capture(), buffer=await decodeSource(source,fetcher,decodeAudio);current(token);
       return load('sample',name,buffer.sampleRate,Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i)),banks,buffer);
     },
     async play(name,options={}) {

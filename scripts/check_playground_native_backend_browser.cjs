@@ -67,16 +67,20 @@ class FakeNative {
 }
 
 function observeAudioCreation() {
-  window.__audioConstructions = {contexts:0,worklets:[]};
-  for (const key of ['AudioContext','AudioWorkletNode']) {
+  window.__audioConstructions = {contexts:0,offline:0,worklets:[]};
+  for (const key of ['AudioContext','OfflineAudioContext','webkitOfflineAudioContext','AudioWorkletNode']) {
     const Type = window[key];
     if (!Type) continue;
     window[key] = new Proxy(Type, {construct(Type, args, Target) {
       if (key === 'AudioContext') window.__audioConstructions.contexts++;
+      else if (key.endsWith('OfflineAudioContext')) window.__audioConstructions.offline++;
       else window.__audioConstructions.worklets.push(args[1]);
       return Reflect.construct(Type,args,Target);
     }});
   }
+}
+async function assertNoLiveAudio(page) {
+  assert.deepEqual(await page.evaluate(() => ({contexts:window.__audioConstructions.contexts,worklets:window.__audioConstructions.worklets})),{contexts:0,worklets:[]});
 }
 async function ready(page) {
   await page.waitForFunction(() => Boolean(window.__nativeBackendTest));
@@ -107,7 +111,7 @@ async function nativeRun(page, native) {
   await run(page);
   await until(() => native.count('native_genesis_commands') > before && native.calls.some(call => call.command === 'native_genesis_commands' && call.args.commands.some(entry => entry.type === 'write' && entry.register === 0x28 && entry.value & 0xf0)));
   assert.equal(await page.evaluate(() => window.__nativeBackendTest.runtime.megaDrive.backend), 'native-genesis');
-  assert.deepEqual(await page.evaluate(() => window.__audioConstructions), {contexts:0,worklets:[]});
+  await assertNoLiveAudio(page);
   assert.equal(await page.evaluate(() => window.__nativeBackendTest.runtime.capabilities.worker), true);
 }
 async function workerMediaRun(page,native) {
@@ -141,7 +145,39 @@ async function workerMediaRun(page,native) {
   await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource('await play("G3",{channel:CH1,duration:0});',{execution:'worker'}));
   assert.equal(calls().filter(c=>c.command==='native_genesis_performance'&&c.args.op==='start').length,2);
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
-  assert.deepEqual(await page.evaluate(()=>window.__audioConstructions),{contexts:0,worklets:[]});
+  await assertNoLiveAudio(page);
+}
+async function compressedSampleRuns(page,native) {
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  const beforeOffline=await page.evaluate(()=>window.__audioConstructions.offline);
+  for(const [execution,alias,channels,sourceFrames] of [
+    ['main','sonic-pi/drum-heavy-kick',1,11913],
+    ['worker','sonic-pi/ambi-choir',2,69305],
+  ]) {
+    const first=native.calls.length;
+    await page.evaluate(async({execution,alias})=>{
+      await window.__nativeBackendTest.runtime.playSource(`
+        await sample.load(${JSON.stringify(alias)});
+        await sample.play(${JSON.stringify(alias)},{gain:0});
+      `,{execution});
+    },{execution,alias});
+    const calls=native.calls.slice(first);
+    const uploads=calls.filter(call=>call.command==='native_genesis_media_load'&&call.args.kind==='sample'&&call.args.name===alias);
+    assert(uploads.length>0,`${execution}: actual FLAC decode must upload a native sample`);
+    for(const {args} of uploads) {
+      assert.equal(args.channels.length,channels);
+      assert(Number.isInteger(args.sampleRate)&&args.sampleRate>=8000&&args.sampleRate<=384000);
+      assert(args.channels.every(channel=>channel.length>10000&&channel.length===args.channels[0].length&&channel.every(Number.isFinite)));
+      assert(args.channels.every(channel=>channel.some(value=>Math.abs(value)>1e-6)),`${execution}: decoded FLAC must contain audio`);
+      assert(Math.abs(args.channels[0].length/args.sampleRate-sourceFrames/44100)<=2/args.sampleRate,`${execution}: decode must preserve FLAC duration`);
+    }
+    const play=calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]).find(command=>command.type==='sample-play'&&command.name===alias);
+    assert(play,`${execution}: prepared FLAC must reach native playback`);
+    if(execution==='worker')assert(play.performance&&play.owner&&play.frame>0);
+    await assertNoLiveAudio(page);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+  assert(await page.evaluate(before=>window.__audioConstructions.offline>before,beforeOffline),'Compressed samples must use the real offline decoder');
 }
 async function nativeRecording(page,native) {
   await page.locator('#mainMenu > summary').click();
@@ -159,7 +195,7 @@ async function nativeRecording(page,native) {
   const downloaded=await saving,bytes=await fs.readFile(await downloaded.path());
   assert.equal(bytes.toString('ascii',0,4),'RIFF');assert.equal(bytes.readUInt16LE(20),3);assert.equal(bytes.readUInt32LE(40),16*8);
   await panel.getByRole('button',{name:'Close diagnostics',exact:true}).click();
-  assert.deepEqual(await page.evaluate(()=>window.__audioConstructions),{contexts:0,worklets:[]});
+  await assertNoLiveAudio(page);
 }
 async function keyboard(page, native) {
   await page.click('#keyboardTab');
@@ -218,6 +254,7 @@ async function checkBrowser(name, type, url, artifacts) {
     await page.waitForFunction(() => window.__nativeBackendTest.runtime.getState().playback === 'stopped');
     await keyboard(page, native);
     await workerMediaRun(page,native);
+    await compressedSampleRuns(page,native);
     await nativeRun(page, native);
     await nativeRecording(page,native);
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
@@ -233,7 +270,7 @@ async function checkBrowser(name, type, url, artifacts) {
     await page.click('#runButton');
     await page.waitForFunction(() => document.body.textContent.includes('Simulated native device unavailable'));
     assert.equal(await page.evaluate(() => new URL(location.href).searchParams.get('audioEngine')), 'native');
-    assert.deepEqual(await page.evaluate(() => window.__audioConstructions), {contexts:0,worklets:[]});
+    await assertNoLiveAudio(page);
     await selectEngine(page, 'webaudio'); await run(page);
     assert(await page.evaluate(() => window.__audioConstructions.contexts > 0));
     // Switching machine mode closes native ownership and uses Web Audio explicitly.
@@ -253,7 +290,7 @@ async function checkBrowser(name, type, url, artifacts) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, DAC/sample/FX, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC aliases through OfflineAudioContext, DAC/sample/FX, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 

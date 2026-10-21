@@ -50,10 +50,10 @@ class NativeAudioClock extends EventTarget {
  * and construction open no audio devices. Generated playback PCM stays native;
  * media uploads and explicit recording retrieval are one-off operations.
  * Web Audio remains the application's default and supports the full feature set.
- * @param {{invoke:(command:string,args?:object)=>Promise<unknown>,now?:()=>number,onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number}} options
+ * @param {{invoke:(command:string,args?:object)=>Promise<unknown>,now?:()=>number,onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,decodeAudio?:(bytes:ArrayBuffer)=>Promise<unknown>}} options
  */
 export class NativeGenesisSynth {
-  constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1} = {}) {
+  constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1, decodeAudio} = {}) {
     if (typeof invoke !== 'function') throw new TypeError('Native Genesis requires the Tauri invoke transport');
     this.invoke = invoke; this.now = now; this.onError = onError;
     this.backend = 'native-genesis'; this.chip = 'ym2612';
@@ -68,7 +68,7 @@ export class NativeGenesisSynth {
     this.masterVolume = this.validateVolume(masterVolume); this.listeningVolume = 1;
     this.auditions = new Map(); this.psgAuditions = new Map(); this.psgLevels = new Uint8Array(4).fill(6); this.psgLatch = 0;
     this.mix = {fmLeft:1,fmRight:1,psgLeft:1,psgRight:1,master:this.masterVolume};
-    this.media = createNativeGenesisMedia(this);
+    this.media = createNativeGenesisMedia(this,{decodeAudio});
     this.fxBeatSeconds = () => .5; this.fx = null;
     const write = (port, register, value) => this.write(port, register, value);
     const transport = {

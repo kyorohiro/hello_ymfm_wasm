@@ -50,6 +50,7 @@ soundchip-output-worklet.js
 chip_worklet_transport.js
 chip_pcm_renderer.js
 wav.js
+audio_decode.js
 huc6280audioengine.js
 okim6258audioengine.js
 okim6295audioengine.js

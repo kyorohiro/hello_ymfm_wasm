@@ -287,6 +287,7 @@ stereo-width-worklet.js
 tfi.js
 vgi.js
 tetorica_audio_runtime.js
+audio_decode.js
 tetorica_synth.js
 ym2203.js
 ym2203audioengine.js

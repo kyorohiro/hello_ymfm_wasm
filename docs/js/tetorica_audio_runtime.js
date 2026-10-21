@@ -1,3 +1,4 @@
+import {decodeAudioBuffer,normalizeLocalMediaUrl} from './audio_decode.js';
 import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
 /**
  * @file tetorica_audio_runtime.js
@@ -1227,28 +1228,6 @@ function fillClipNoise(data) {
   }
 }
 
-async function decodeAudioBuffer(
-  audioContext,
-  arrayBuffer
-) {
-  return new Promise(
-    (resolve, reject) => {
-      const failed = error => reject(
-        error && typeof error.message === 'string'
-          ? error : new Error(error == null ? 'Unable to decode audio data' : String(error))
-      );
-      const decoding = audioContext.decodeAudioData(
-        arrayBuffer.slice(0),
-        resolve,
-        failed
-      );
-      // Modern browsers return a Promise even when callbacks are supplied.
-      // Observe both paths so a failed decode has only the caller's rejection.
-      decoding?.then(resolve, failed);
-    }
-  );
-}
-
 function normalizeFiniteNumber(
   value,
   fallback
@@ -1264,66 +1243,4 @@ function normalizeFiniteNumber(
     );
   }
   return numeric;
-}
-
-function normalizeLocalMediaUrl(url) {
-  const value = resolveBuiltInMediaAlias(
-    String(url)
-  );
-
-  if (
-    value.startsWith("data:") ||
-    value.startsWith("blob:")
-  ) {
-    return value;
-  }
-
-  if (
-    typeof location === "undefined" ||
-    !location?.href
-  ) {
-    return value;
-  }
-
-  const resolved = new URL(
-    value,
-    location.href
-  );
-
-  if (
-    resolved.origin !==
-    location.origin
-  ) {
-    throw new Error(
-      "Only same-origin media URLs are allowed in MegaSynth.sample/stream"
-    );
-  }
-
-  return resolved.href;
-}
-
-function resolveBuiltInMediaAlias(url) {
-  if (
-    typeof url !== "string" ||
-    url.length === 0
-  ) {
-    return url;
-  }
-
-  if (
-    url.startsWith("sonic-pi/") &&
-    !url.includes("://")
-  ) {
-    const sampleName =
-      url
-        .slice("sonic-pi/".length)
-        .replaceAll("-", "_");
-    return `./samples/sonic-pi/${sampleName}.flac`;
-  }
-
-  if (!url.startsWith("sonic-pi/")) {
-    return url;
-  }
-
-  return url;
 }

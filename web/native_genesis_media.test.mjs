@@ -5,10 +5,10 @@ import {encodeWav} from './wav.js';
 
 const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {resolve,promise};};
 const ticks=async()=>{for(let i=0;i<25;i++)await Promise.resolve();};
-async function fixture(override=()=>undefined) {
+async function fixture(override=()=>undefined,options={}) {
   const calls=[],errors=[];let session=0;
   const status=()=>({session,sampleRate:48000,frame:0,running:true});
-  const synth=new NativeGenesisSynth({invoke:async(command,args)=>{
+  const synth=new NativeGenesisSynth({...options,invoke:async(command,args)=>{
     calls.push({command,args});const value=override(command,args);if(value!==undefined)return value;
     if(command==='native_genesis_start')session++;
     return status();
@@ -82,7 +82,7 @@ test('invalid media is rejected before native preparation, including multichanne
   ])await assert.rejects(f.synth.sample.load('bad',pcm),/PCM|finite|Float32/);
   const wav=encodeWav({sampleRate:8000,channels:[Float32Array.of(0)]});new DataView(wav.buffer).setUint16(22,3,true);
   await assert.rejects(f.synth.sample.load('bad',wav),/mono or stereo/);
-  await assert.rejects(f.synth.sample.load('bad',new Uint8Array([1,2,3])),/WAV/);
+  await assert.rejects(f.synth.sample.load('bad',new Uint8Array([1,2,3])),/WAV|OfflineAudioContext|decodeAudio/);
   await assert.rejects(f.synth.fm.dac.setSample('bad',new Uint8Array(),{sampleRate:8000}),/64 MiB/);
   assert.deepEqual(f.calls,[]);
 });
@@ -162,4 +162,42 @@ test('Worker DAC helpers retain one origin, 44100-Hz offsets and owner tags with
   await f.synth.dispatchNativeCommand({type:'begin-sample-schedule',lookaheadSeconds:0},{...timing,time:1});
   await f.synth.dispatchNativeCommand({type:'sample-writes',entries:[{sample:0,register:0x2a,value:128}]},{...timing,time:1});
   assert.equal(f.commands().at(-1).frame,48000);
+});
+
+test('compressed sample fallback receives only the selected encoded bytes while PCM and WAV bypass it',async t=>{
+  const decoded=[],pcm={sampleRate:32000,channels:[Float32Array.of(.125,-.25,.5)]};
+  const f=await fixture(()=>undefined,{decodeAudio:async bytes=>{decoded.push([...new Uint8Array(bytes)]);return pcm;}});t.after(()=>f.synth.close());
+  const backing=new Uint8Array([9,9,102,76,97,67,9]),selected=backing.subarray(2,6);
+  const buffer=await f.synth.sample.load('flac',selected);
+  assert.deepEqual(decoded,[[102,76,97,67]]);assert.deepEqual([...selected],[102,76,97,67]);assert.equal(backing.byteLength,7);
+  assert.equal(buffer.sampleRate,32000);assert.equal(buffer.length,3);assert.deepEqual([...buffer.getChannelData(0)],[.125,-.25,.5]);
+  await f.synth.sample.load('pcm',pcm);await f.synth.sample.load('wav',encodeWav(pcm));
+  assert.equal(decoded.length,1);assert.equal(f.calls.filter(call=>call.command==='native_genesis_media_load').length,3);
+  assert.equal(f.synth.audioContext,null);assert.equal(f.synth.node,null);
+});
+
+test('Stop during compressed decoding rejects stale completion before a native upload and permits the next Run',async t=>{
+  const gate=deferred(),pcm={sampleRate:8000,channels:[Float32Array.of(.25,-.25)]};let hold=true,decodes=0;
+  const f=await fixture(()=>undefined,{decodeAudio:async()=>{decodes++;return hold?gate.promise:pcm;}});t.after(()=>f.synth.close());
+  const old=f.synth.sample.load('old',Uint8Array.of(102,76,97,67)),rejected=assert.rejects(old,{name:'AbortError'});
+  await ticks();assert.equal(decodes,1);await f.synth.stopNativeAudio();gate.resolve(pcm);await rejected;
+  assert.equal(f.synth.sample.isLoaded('old'),false);assert.equal(f.calls.filter(call=>call.command==='native_genesis_media_load').length,0);
+  hold=false;await f.synth.sample.load('new',Uint8Array.of(102,76,97,67));assert.equal(f.synth.sample.isLoaded('new'),true);
+  assert.equal(f.calls.filter(call=>call.command==='native_genesis_media_load').length,1);assert.equal(f.errors.length,0);
+});
+
+test('compressed decoder errors and invalid expanded PCM reject before native upload without a live-audio fallback',async t=>{
+  let result=new Error('Encoded audio is corrupt'),decodes=0;
+  const f=await fixture(()=>undefined,{decodeAudio:async()=>{decodes++;if(result instanceof Error)throw result;return result;}});t.after(()=>f.synth.close());
+  const encoded=Uint8Array.of(102,76,97,67);
+  await assert.rejects(f.synth.sample.load('corrupt',encoded),/Encoded audio is corrupt/);
+  for(const invalid of [
+    {sampleRate:8000,channels:[Float32Array.of(NaN)]},
+    {sampleRate:8000,channels:[[1e100]]},
+    {sampleRate:8000,channels:[[0],[0],[0]]},
+    {sampleRate:8000,channels:[{length:10000001}]},
+  ]){result=invalid;await assert.rejects(f.synth.sample.load('invalid',encoded),/PCM|finite|Float32/);}
+  const before=decodes;
+  await assert.rejects(f.synth.sample.load('oversized',new ArrayBuffer(64*1024*1024+1)),/64 MiB/);
+  assert.equal(decodes,before);assert.deepEqual(f.calls,[]);assert.equal(f.synth.audioContext,null);assert.equal(f.synth.node,null);
 });
