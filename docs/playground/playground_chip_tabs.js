@@ -1,7 +1,7 @@
 import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=audio-numeric-bindings-1';
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
 import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=audio-numeric-bindings-1';
-import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=audio-numeric-bindings-1';
+import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=operator-tab-keyboard-1';
 import {createPlaygroundHuc6280VoicePanel} from './playground_huc6280_voice_panel.js?v=audio-numeric-bindings-1';
 import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=audio-numeric-bindings-1';
 import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=audio-numeric-bindings-1';
@@ -42,10 +42,11 @@ const finiteText = (value, digits = 0) => Number.isFinite(value) ? Number(value.
 const hex = value => Number.isInteger(value) ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : '—';
 
 export function createPlaygroundChipTabs({roots, getInspector, listFiles = () => [], readFile,
-  ensureAudioReady, onKeyboardTargetChange = () => {}, onError = () => {}, pollMs = 300}) {
+  ensureAudioReady, onKeyboardTargetChange = () => {}, onAuditionTargetChange = () => {}, onError = () => {}, pollMs = 300}) {
   let visible = null, generation = 0, disposed = false, timer = null, inspector = null, unsubscribe = null;
   const editors = new Map();
   let keyboardEditor = null;
+  let auditionSelection = '';
   const doc = Object.values(roots).find(Boolean)?.ownerDocument ?? globalThis.document;
   const make = (tag, className, text) => {
     const node = doc.createElement(tag);
@@ -58,6 +59,17 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     node.addEventListener('click', handler); return node;
   };
   const option = (value, text) => { const node = make('option', '', text); node.value = String(value); return node; };
+
+  function publishAuditionTarget() {
+    const editor = editors.get(visible);
+    const selection = editor && editor.kind !== 'pwm'
+      ? {kind:editor.kind, id:editor.id, channel:editor.voicePanel?.getSelectedChannel?.() ?? editor.channel}
+      : null;
+    const signature = JSON.stringify(selection);
+    if (signature === auditionSelection) return;
+    auditionSelection = signature;
+    onAuditionTargetChange(selection);
+  }
 
   function setValue(input, value) {
     if (doc.activeElement === input) return;
@@ -121,10 +133,10 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     const editor = {kind, root, id: '', snapshot: null, channel: 0, selectionVersion: 0};
     editor.instances = select(toolbar, 'Sound chip', 'instance', [], value => {
       detachNative(editor);
-      editor.id = value; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; generation += 1; refresh();
+      editor.id = value; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; generation += 1; publishAuditionTarget(); refresh();
     });
     const refreshButton = button('Refresh', () => refresh()); toolbar.appendChild(refreshButton);
-    if (nativePanels[kind] && ensureAudioReady) {
+    if (kind !== 'pwm' && ensureAudioReady) {
       const prepare = button('Prepare audio', async () => {
         prepare.disabled = true;
         try {await ensureAudioReady(); if (!disposed) await refresh();}
@@ -135,6 +147,10 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     }
     editor.status = make('p', 'chip-editor-status'); editor.status.setAttribute('role', 'status'); editor.status.setAttribute('aria-live', 'polite'); root.appendChild(editor.status);
     editor.body = make('fieldset', 'chip-editor-body'); editor.body.disabled = true; root.appendChild(editor.body);
+    // Channel buttons update synchronously in their own panel. Read selection
+    // after that UI event without sending audio commands or starting a poll.
+    editor.body.addEventListener('click', publishAuditionTarget);
+    editor.body.addEventListener('change', publishAuditionTarget);
     editor.note = make('p', 'subtext'); root.appendChild(editor.note);
     editors.set(kind, editor); return editor;
   }
@@ -180,6 +196,15 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   }
 
   function buildPsg(editor) {
+    const channels = make('div', 'chip-channel-list'); channels.setAttribute('aria-label', 'Sega PSG Keyboard channel'); editor.body.appendChild(channels);
+    const channelButtons = ['Tone CH1', 'Tone CH2', 'Tone CH3', 'Noise'].map((label, channel) => {
+      const node = button(label, () => {
+        editor.channel = channel;
+        channelButtons.forEach((button, index) => button.setAttribute('aria-pressed', String(index === channel)));
+        publishAuditionTarget();
+      });
+      node.dataset.chipKeyboardChannel = String(channel); node.setAttribute('aria-pressed', String(channel === editor.channel)); channels.appendChild(node); return node;
+    });
     const tones = [];
     for (let ch = 0; ch < 3; ch++) {
       const card = section(editor.body, `Tone CH${ch + 1}`), fields = make('div', 'chip-fields'); card.appendChild(fields);
@@ -225,7 +250,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   function buildRf(editor) {
     const channelButtons = make('div', 'chip-channel-list'); channelButtons.setAttribute('aria-label', 'RF5C164 channel'); editor.body.appendChild(channelButtons);
     const buttons = Array.from({length: 8}, (_, ch) => {
-      const node = button(`CH${ch + 1}`, () => { if (editor.channel !== ch) editor.selectionVersion += 1; editor.channel = ch; if (editor.snapshot) editor.update(editor.snapshot); });
+      const node = button(`CH${ch + 1}`, () => { if (editor.channel !== ch) editor.selectionVersion += 1; editor.channel = ch; if (editor.snapshot) editor.update(editor.snapshot); publishAuditionTarget(); });
       node.dataset.chipChannel = String(ch); channelButtons.appendChild(node); return node;
     });
     const material = section(editor.body, 'Sample RAM'), chooser = make('div', 'chip-fields'); material.appendChild(chooser);
@@ -433,6 +458,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     const list = source?.list?.() ?? [];
     const matches = list.filter(entry => entry.kind === visible && entry.connected !== false);
     if (!matches.some(entry => entry.id === editor.id)) { detachNative(editor); editor.id = matches[0]?.id ?? ''; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; }
+    publishAuditionTarget();
     syncOptions(editor.instances, matches.length ? matches.map(entry => [entry.id, entry.label || entry.id]) : [['', 'No connected instance']], editor.id);
     editor.instances.disabled = !matches.length; editor.body.disabled = !editor.id || !editor.snapshot;
     if (!editor.id || !source) {
@@ -446,6 +472,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
       editor.snapshot = snapshot; editor.body.disabled = false;
       if (!editor.status.dataset.error && /^(No connected|Prepare audio)/.test(editor.status.textContent)) editor.status.textContent = '';
       editor.update(snapshot);
+      publishAuditionTarget();
     } catch (e) {
       if (!disposed && !doc.hidden && token === generation && visible === editor.kind && editor.id === id) { editor.body.disabled = true; editor.voicePanel?.setConnected(false); error(editor, e); }
     } finally { if (!disposed && token === generation && visible === editor.kind) schedule(); }
@@ -464,6 +491,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
       if (next === visible) return;
       generation += 1; cancelTimer(); visible = next;
       for (const editor of editors.values()) editor.voicePanel?.setVisible(next === editor.kind);
+      publishAuditionTarget();
       if (visible) refresh(); else { unsubscribe?.(); unsubscribe = null; inspector = null; }
     },
     refresh,
@@ -472,6 +500,6 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
       for (const editor of editors.values()) editor.voicePanel?.setKeyboardActive?.(false);
     },
     releaseAll() {for (const editor of editors.values()) editor.voicePanel?.releaseAll();},
-    dispose() { for (const editor of editors.values()) detachNative(editor); disposed = true; generation += 1; cancelTimer(); unsubscribe?.(); unsubscribe = null; inspector = null; doc.removeEventListener?.('visibilitychange', visibilityChanged); },
+    dispose() { for (const editor of editors.values()) detachNative(editor); visible = null; publishAuditionTarget(); disposed = true; generation += 1; cancelTimer(); unsubscribe?.(); unsubscribe = null; inspector = null; doc.removeEventListener?.('visibilitychange', visibilityChanged); },
   };
 }

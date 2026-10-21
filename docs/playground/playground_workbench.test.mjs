@@ -1,12 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlaygroundUi} from './playground_ui.js';
+import {installPlaygroundWorkbench} from './playground_workbench.js';
+
+function classes() {
+  const values = new Set();
+  return {add:name => values.add(name),remove:name => values.delete(name),contains:name => values.has(name),
+    toggle(name, value) {if (value ?? !values.has(name)) values.add(name); else values.delete(name);}};
+}
 
 function setup() {
   const makeButton = () => ({attributes: {}, setAttribute(k,v) {this.attributes[k] = v;},focus() {this.focused = true;}});
   const options = {dockedPanels: true,initialDockOpen: true,initialBottomTab: 'console'};
   for (const name of ['code','console','shell','audioMonitor','fxMonitor','operator','keyboard','helpers']) {
-    options[`${name}Panel`] = {};
+    options[`${name}Panel`] = {classList:classes()};
     options[name === 'operator' ? 'operatorTabButton' : `${name}Tab`] = makeButton();
   }
   const events = [];
@@ -143,7 +150,7 @@ test('chip editors remain above a separately selected Mixer and navigate in visu
   assert.equal(options.segapsgPanel.hidden, false);
   assert.equal(options.mixerPanel.hidden, false);
   assert.equal(options.codePanel.hidden, true);
-  assert.equal(options.keyboardPanel.hidden, true);
+  assert.equal(options.keyboardPanel.hidden, false, 'the PSG editor keeps compact audition beside Mixer');
   assert.deepEqual(events.at(-1), {primaryTab: 'segapsg', bottomTab: 'mixer', dockOpen: true});
   ui.moveBottomTabFocus(options.operatorTabButton, 1);
   assert.equal(options.segapsgTab.focused, true);
@@ -167,12 +174,89 @@ for (const kind of ['gameboy','nes','ym2151','okim6258','huc6280','dx7','ym3812'
     options[`${name}Panel`]={};options[`${name}Tab`]={setAttribute(){},focus(){this.focused=true;}};
   }
   const ui=createPlaygroundUi({...options,chipTabs:[kind]});
+  ui.setBottomTab(kind);
+  assert.equal(options.keyboardPanel.hidden,false,'voice editors show compact audition before selecting the lower Keyboard');
+  ui.setDockVisible(false);
+  assert.equal(options.keyboardPanel.hidden,false,'compact audition remains available with the dock closed');
+  ui.setBottomTab('code');
+  assert.equal(options.keyboardPanel.hidden,true,'leaving the editor hides compact audition');
   ui.setBottomTab(kind);ui.setBottomTab('keyboard');
   assert.equal(options[`${kind}Panel`].hidden,false);assert.equal(options.keyboardPanel.hidden,false);
   assert.equal(options.operatorTabButton.hidden,true);assert.equal(options[`${kind==='nes'?'gameboy':'nes'}Tab`].hidden,true);
   ui.moveBottomTabFocus(options.codeTab,1);assert.equal(options[`${kind}Tab`].focused,true);
   ui.moveBottomTabFocus(options[`${kind}Tab`],1);assert.equal(options.codeTab.focused,true);
   assert.equal(events.at(-1).primaryTab,'code');
+});
+
+test('compact layouts float Keyboard for the selected playable chip and exclude streamed PWM', () => {
+  const {options} = setup();
+  for (const name of ['gameboy','ym2151','pwm']) {
+    options[`${name}Panel`] = {classList:classes()};
+    options[`${name}Tab`] = {setAttribute() {}};
+  }
+  const ui = createPlaygroundUi({...options,dockedPanels:false,chipTabs:['operator','gameboy','ym2151','pwm']});
+  for (const name of ['operator','gameboy','ym2151']) {
+    ui.setBottomTab(name);
+    assert.equal(options.keyboardPanel.hidden,false);
+    assert.equal(options.keyboardPanel.classList.contains('is-floating-keyboard'),true);
+    for (const other of ['operator','gameboy','ym2151']) {
+      assert.equal(options[`${other}Panel`].classList.contains('has-floating-keyboard'),other === name);
+    }
+  }
+  ui.setBottomTab('pwm');
+  assert.equal(options.keyboardPanel.hidden,true);
+  assert.equal(options.keyboardPanel.classList.contains('is-floating-keyboard'),false);
+  ui.setBottomTab('keyboard');
+  assert.equal(options.keyboardPanel.hidden,false);
+  assert.equal(options.keyboardPanel.classList.contains('is-floating-keyboard'),false,'the full Keyboard uses its normal placement');
+});
+
+test('workbench moves one shared Keyboard between chip overlays and the selected lower dock', () => {
+  const nodes = new Map();
+  const makeNode = () => ({className:'',classList:classes(),children:[],attributes:{},clientHeight:1000,hidden:false,
+    style:{setProperty() {}},setAttribute(name,value) {this.attributes[name] = value;},addEventListener() {},
+    appendChild(child) {
+      if (child.parentElement) child.parentElement.children = child.parentElement.children.filter(node => node !== child);
+      this.children.push(child); child.parentElement = this; return child;
+    },
+    append(...children) {for (const child of children) this.appendChild(child);},
+    prepend(child) {this.appendChild(child); this.children = [child,...this.children.filter(node => node !== child)];},
+  });
+  for (const name of ['fileExplorer','fileExplorerDivider','shellActions',
+    ...['audioMonitor','fxMonitor','mixer','console','shell','keyboard','helpers'].flatMap(name => [`${name}Tab`,`${name}Panel`]),
+    ...['code','operator','segapsg','rf5c164','pwm','gameboy','nes','ym2151','okim6258','huc6280','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(name => `${name}Panel`)]) nodes.set(name,makeNode());
+  const tabbar = makeNode(), root = makeNode(); root.querySelector = () => tabbar;
+  const previousDocument = globalThis.document, previousResizeObserver = globalThis.ResizeObserver;
+  globalThis.document = {createElement:makeNode,getElementById:name => nodes.get(name)};
+  globalThis.ResizeObserver = class {observe() {} disconnect() {}};
+  let workbench;
+  try {
+    workbench = installPlaygroundWorkbench(root,{storage:null,search:'?mode=gameboy'});
+    const keyboard = nodes.get('keyboardPanel'), dock = keyboard.parentElement;
+    for (const name of ['operator','segapsg','rf5c164','gameboy','nes','ym2151','okim6258','huc6280','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910']) {
+      workbench.sync({primaryTab:name,bottomTab:'console',dockOpen:true});
+      assert.notEqual(keyboard.parentElement,dock,`${name}: compact controls belong outside the dock`);
+      assert.equal(keyboard.classList.contains('is-floating-keyboard'),true);
+      assert.equal(nodes.get(`${name}Panel`).classList.contains('has-floating-keyboard'),true);
+      workbench.sync({primaryTab:name,bottomTab:'console',dockOpen:false});
+      assert.equal(keyboard.parentElement.hidden,false,`${name}: closing the dock cannot hide the floating host`);
+      workbench.sync({primaryTab:name,bottomTab:'keyboard',dockOpen:true});
+      assert.equal(keyboard.parentElement,dock,`${name}: the full lower Keyboard takes precedence`);
+      assert.equal(keyboard.classList.contains('is-floating-keyboard'),false);
+      assert.equal(nodes.get(`${name}Panel`).classList.contains('has-floating-keyboard'),false);
+      workbench.sync({primaryTab:name,bottomTab:'console',dockOpen:true});
+      workbench.sync({primaryTab:'code',bottomTab:'console',dockOpen:true});
+      assert.equal(keyboard.parentElement,dock,`${name}: returning to Code restores the normal host`);
+      assert.equal(keyboard.classList.contains('is-floating-keyboard'),false);
+      assert.equal(nodes.get(`${name}Panel`).classList.contains('has-floating-keyboard'),false);
+    }
+    workbench.sync({primaryTab:'pwm',bottomTab:'console',dockOpen:true});
+    assert.equal(keyboard.parentElement,dock,'PWM streaming has no automatic pitched overlay');
+    assert.equal(keyboard.classList.contains('is-floating-keyboard'),false);
+    assert.equal(nodes.get('pwmPanel').classList.contains('has-floating-keyboard'),false);
+  } finally {
+    workbench?.dispose(); globalThis.document = previousDocument; globalThis.ResizeObserver = previousResizeObserver;
+  }
 });
 
 test('a mode without FM keeps Code and common tools available and rejects FM keyboard selection', () => {

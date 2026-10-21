@@ -113,6 +113,117 @@ function choose(t, selector, value) {
   select.listeners.get('change')();
 }
 
+test('sound-chip editors use their own target while preserving the bottom Keyboard route', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing});
+  const bottom = targetFixture('Script instrument'), editor = targetFixture('Game Boy · Wave');
+  t.keyboard.attachSynth(t.synth); t.keyboard.attachNoteTarget(bottom.target); t.keyboard.attachEditorTarget(editor.target);
+  t.keyboard.setView('gameboy');
+  assert.equal(t.root.hidden,false);
+  assert.equal(t.root.querySelector('#playgroundKeyboardRoutingTools').hidden,true);
+  assert.equal(t.root.querySelector('#playgroundKeyboardChannelTools').hidden,true);
+  assert.equal(t.root.querySelector('#playgroundKeyboardEditorTarget').hidden,false);
+  assert.equal(t.root.querySelector('#playgroundKeyboardEditorTarget').textContent,'Game Boy · Wave');
+  assert.equal(t.pointerOptions().showPitch,false);
+  t.send('keydown'); t.send('keyup');
+  assert.deepEqual(editor.events.map(event => event[0]),['on','off']);
+  assert.deepEqual(bottom.events,[]);
+  assert.deepEqual(t.notes,[]);
+  assert.deepEqual(fixture.selections,[],'opening an editor does not change the bottom Keyboard selection');
+  t.keyboard.setView('keyboard'); t.send('keydown'); t.send('keyup');
+  assert.deepEqual(bottom.events.map(event => event[0]),['on','off']);
+  assert.equal(t.root.querySelector('#playgroundKeyboardRoutingTools').hidden,false);
+  assert.equal(t.root.querySelector('#playgroundKeyboardEditorTarget').hidden,true);
+});
+
+test('editor selection and tab changes release the old voice; repeated view and metadata updates preserve it', () => {
+  const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing});
+  const first = targetFixture('YM2151 · CH1'), second = targetFixture('YM2151 · CH2'), bottom = targetFixture('Other bottom route');
+  t.keyboard.attachEditorTarget(first.target); t.keyboard.setView('ym2151');
+  t.send('keydown','a',{code:'KeyA'});
+  const firstId = first.events[0][1].id, layout = t.pointerOptions();
+  t.keyboard.setView('ym2151'); t.keyboard.attachEditorTarget(first.target);
+  t.keyboard.attachNoteTarget(bottom.target);
+  fixture.set({chipId:'psg-1',channelId:'tone-2'});
+  assert.deepEqual(first.events.map(event => event[0]),['on']);
+  assert.equal(t.pointerOptions(),layout,'background route metadata does not rebuild the editor fretboard');
+  t.keyboard.attachEditorTarget(second.target);
+  assert.deepEqual(first.events.map(event => event[0]),['on','off','all']);
+  assert.equal(first.events[1][1].id,firstId);
+  assert.equal(t.buttonFor('a').classList.contains('is-active'),false);
+  t.send('keydown','s',{code:'KeyS'}); t.send('keyup','a',{code:'KeyA'});
+  assert.deepEqual(second.events.map(event => event[0]),['on']);
+  t.keyboard.setView('huc6280');
+  assert.deepEqual(second.events.map(event => event[0]),['on','off','all'],'changing between two enabled editor tabs releases the held note');
+  t.send('keyup','s',{code:'KeyS'});
+  assert.deepEqual(second.events.map(event => event[0]),['on','off','all']);
+  assert.deepEqual(bottom.events,[]);
+});
+
+test('missing editor targets and unsupported tabs never fall back to FM or the bottom target', () => {
+  let preparations = 0;
+  const t = setup(() => {preparations++;}), bottom = targetFixture('Bottom Keyboard'), editor = targetFixture('Editor');
+  t.keyboard.attachSynth(t.synth); t.keyboard.attachNoteTarget(bottom.target);
+  t.keyboard.setView('nes'); t.send('keydown'); t.pointerDown();
+  assert.match(t.root.querySelector('#playgroundKeyboardEditorTarget').textContent,/Select a sound chip and channel/);
+  assert.equal(preparations,0);
+  t.keyboard.attachEditorTarget(editor.target);
+  for (const tab of ['pwm','code','console']) {
+    t.keyboard.setView(tab); t.send('keydown'); t.pointerDown();
+    assert.equal(t.root.hidden,true);
+  }
+  assert.equal(preparations,0);
+  assert.deepEqual(editor.events,[]);
+  assert.deepEqual(bottom.events,[]);
+  assert.deepEqual(t.notes,[]);
+});
+
+test('all playable chip editor views accept computer and pointer audition', () => {
+  const t = setup(undefined,{channelCount:0}), editor = targetFixture('Selected chip channel');
+  t.keyboard.attachEditorTarget(editor.target);
+  const tabs = ['segapsg','rf5c164','gameboy','nes','ym2151','okim6258','huc6280','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'];
+  for (const tab of tabs) {
+    t.keyboard.setView(tab);
+    t.send('keydown'); t.send('keyup'); t.pointerDown('s',{pointerId:1}); t.pointerUp('s',{pointerId:1});
+    assert.equal(t.root.hidden,false,`${tab} enables Keyboard`);
+  }
+  assert.equal(editor.events.filter(event => event[0] === 'on').length,tabs.length * 2);
+  assert.equal(editor.events.filter(event => event[0] === 'off').length,tabs.length * 2);
+});
+
+test('editor preparation survives unrelated route changes and cancellation never starts a replacement voice', async () => {
+  let ready;
+  const fixture = routingFixture(), t = setup(() => new Promise(resolve => {ready = resolve;}),{routing:fixture.routing});
+  const editor = targetFixture('Prepared editor'), next = targetFixture('New channel'), bottom = targetFixture('Bottom Keyboard');
+  t.keyboard.attachEditorTarget(editor.target); t.keyboard.setView('dx7'); t.send('keydown');
+  t.keyboard.attachSynth(t.synth); t.keyboard.attachNoteTarget(bottom.target);
+  fixture.set({chipId:'psg-1',channelId:'tone-2'}); ready();
+  await new Promise(setImmediate);
+  assert.deepEqual(editor.events.map(event => event[0]),['on']);
+  t.send('keyup');
+  t.send('keydown','s'); t.keyboard.attachEditorTarget(next.target); ready();
+  await new Promise(setImmediate);
+  assert.deepEqual(editor.events.map(event => event[0]),['on','off']);
+  assert.deepEqual(next.events,[],'changing CH while preparing cancels the old press');
+  assert.deepEqual(bottom.events,[]);
+  assert.throws(() => t.keyboard.attachEditorTarget({name:'Broken'}),/Keyboard target/);
+  t.send('keydown'); ready(); await new Promise(setImmediate); t.send('keyup');
+  assert.deepEqual(next.events.map(event => event[0]),['on','off'],'an invalid attachment leaves the current target usable');
+});
+
+test('editor target updates remain independent from OPN audition and bottom Keyboard holds', () => {
+  const t = setup(), editor = targetFixture('Editor'), replacement = targetFixture('Replacement'), bottom = targetFixture('Bottom Keyboard');
+  t.keyboard.attachSynth(t.synth); t.keyboard.attachNoteTarget(bottom.target); t.keyboard.attachEditorTarget(editor.target);
+  t.keyboard.setView('operator'); t.send('keydown');
+  t.keyboard.attachEditorTarget(replacement.target); t.send('keyup');
+  assert.deepEqual(t.notes,[['on',2,4,553],['off',2]]);
+  t.keyboard.setView('keyboard'); t.send('keydown');
+  t.keyboard.attachEditorTarget(null);
+  assert.deepEqual(bottom.events.map(event => event[0]),['on'],'background editor changes preserve a bottom Keyboard note');
+  t.send('keyup');
+  assert.deepEqual(bottom.events.map(event => event[0]),['on','off']);
+  assert.deepEqual(editor.events,[]); assert.deepEqual(replacement.events,[]);
+});
+
 test('routed Keyboard exposes actual Chip and CH choices without duplicate FM controls', () => {
   const fixture = routingFixture(), t = setup(undefined,{routing:fixture.routing});
   t.keyboard.setView('keyboard');

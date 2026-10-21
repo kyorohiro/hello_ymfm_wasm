@@ -104,8 +104,8 @@ export function createPlaygroundKeyboardRouting({getInspector,primaryChips=[],de
     catch{return;}
     return inspector.invoke(entry.endpointId,'auditionOff',[entry.channel,entry.noteId]);
   }
-  function hardwareTarget(chip,voiceId) {
-    const key=JSON.stringify([chip.id,voiceId]);if(targetCache.has(key))return targetCache.get(key);
+  function hardwareTarget(chip,voiceId,scope='keyboard') {
+    const key=JSON.stringify([scope,chip.id,voiceId]);if(targetCache.has(key))return targetCache.get(key);
     const held=new Map();let roundRobin=0;
     const nativeChannel=id=>/^\d+$/.test(id)?Number(id):id;
     const target={
@@ -163,6 +163,13 @@ export function createPlaygroundKeyboardRouting({getInspector,primaryChips=[],de
   const initial=onTargetChange;onTargetChange=()=>{};refresh();onTargetChange=initial;
   return {
     getState,getTarget:()=>currentTarget,refresh,
+    // An editor auditions its selected hardware voice without changing the
+    // bottom Keyboard's manual route or borrowing that route's held-note IDs.
+    getEditorTarget(instanceId,voiceId) {
+      const chip=chips.find(entry=>!entry.custom&&entry.endpointId===instanceId);
+      const voice=chip?.channels.find(entry=>entry.id===String(voiceId));
+      return chip&&!chip.disabled&&voice&&!voice.disabled?hardwareTarget(chip,voice.id,'editor'):null;
+    },
     subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);},
     selectChip(id){if(disposed||!chips.some(chip=>chip.id===id))return;selected=id;reconcile();},
     selectChannel(id){const chip=selectedChip();if(disposed||!chip?.channels.some(channel=>channel.id===id))return;channelChoices.set(selected,id);reconcile();},

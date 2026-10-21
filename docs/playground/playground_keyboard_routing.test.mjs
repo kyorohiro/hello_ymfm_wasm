@@ -29,6 +29,38 @@ test('additional same-kind chips route by instance, use native channel numbers, 
   x.replace();await target.noteOff({id:'wave'});assert.equal(x.calls.length,1,'a replaced port does not receive an old key-off');
   x.connect([{id:'gameboy',kind:'gameboy',label:'Game Boy'}]);assert.equal(x.routing.getState().chipId,'chip:gameboy');x.routing.dispose();
 });
+test('editor audition follows its instance and voice without changing or releasing the bottom Keyboard route',async()=>{
+  const x=setup([{id:'gameboy',kind:'gameboy',label:'Game Boy'}]);
+  x.connect([{id:'gameboy',kind:'gameboy',label:'Game Boy'},{id:'extra',kind:'gameboy',label:'Game Boy extra'}]);
+  const keyboard=x.routing.getTarget();
+  await keyboard.noteOn({id:'normal',midi:60});
+  const before=x.routing.getState(), editor=x.routing.getEditorTarget('extra',2);
+  assert.equal(x.routing.getEditorTarget('extra','2'),editor);
+  assert.deepEqual(x.routing.getState(),before);
+  assert.equal(x.calls.length,1,'selecting an editor target is silent');
+  await editor.noteOn({id:'editor',midi:69});
+  assert.deepEqual(x.calls.at(-1).slice(0,2),['extra','auditionOn']);
+  assert.equal(x.calls.at(-1)[2][0],2);
+  await editor.allNotesOff();
+  assert.equal(x.calls.filter(([,method])=>method==='auditionOff').length,1);
+  assert.equal(x.calls.at(-1)[0],'extra','editor release leaves the normal Keyboard note owned');
+  await keyboard.noteOff({id:'normal'});assert.equal(x.calls.at(-1)[0],'gameboy');
+  x.routing.dispose();
+});
+test('editor preparation keeps the first key target stable and rejects unsupported or missing channels',async()=>{
+  const x=setup([{id:'gameboy',kind:'gameboy',label:'Game Boy'}]), editor=x.routing.getEditorTarget('gameboy',0);
+  assert(editor);assert.notEqual(editor,x.routing.getTarget(),'the same hardware has independent Keyboard ownership');
+  x.connect([{id:'gameboy',kind:'gameboy',label:'Game Boy (primary)'},{id:'stream',kind:'pwm',label:'PWM'}]);
+  assert.equal(x.routing.getEditorTarget('gameboy',0),editor);
+  assert.equal(x.routing.getEditorTarget('gameboy',4),null);
+  assert.equal(x.routing.getEditorTarget('missing',0),null);
+  assert.equal(x.routing.getEditorTarget('stream',0),null);
+  assert.deepEqual(x.calls,[]);
+  await editor.noteOn({id:'editor',midi:69});
+  x.routing.selectChannel('1');assert.equal(x.calls.length,1,'changing the bottom route does not release an editor note');
+  await editor.noteOff({id:'editor'});assert.equal(x.calls.at(-1)[1],'auditionOff');
+  x.routing.dispose();
+});
 test('script/panel instruments are selectable, hardware can override them, and clearing restores the last hardware CH',()=>{
   const x=setup(),events=[],target={name:'Sampler',noteOn(){},noteOff(){},allNotesOff(){events.push('panic');}};
   x.routing.selectChannel('fm:2');x.routing.setCustomTarget('script',target);

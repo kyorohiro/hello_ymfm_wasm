@@ -205,6 +205,7 @@ export function createPlaygroundNesVoicePanel({root, invoke, onKeyboardTargetCha
     setVisible(value) {visible = !!value; if (!visible) {stopHold(); cancelDraw();}},
     releaseAll,
     getNoteTarget,
+    getSelectedChannel: () => channel,
     dispose() {if (disposed) return; releaseAll(); if (keyboardBound) onKeyboardTargetChange?.(null); disposed = true; keyboardBound = false; win?.removeEventListener('blur', onBlur); doc.removeEventListener('visibilitychange', onVisibility);},
   };
 }

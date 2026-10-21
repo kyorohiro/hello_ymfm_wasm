@@ -131,6 +131,7 @@ export function createPlaygroundUi(
   ];
 
   const chipTabNames = new Set(['operator', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
+  const auditionTabNames = new Set([...chipTabNames].filter(name => name !== 'pwm'));
   const visibleChipTabs = new Set(options.chipTabs ?? chipTabNames);
   for (const tab of bottomTabs) {
     tab.available = (!chipTabNames.has(tab.name) || visibleChipTabs.has(tab.name)) &&
@@ -151,9 +152,19 @@ export function createPlaygroundUi(
       if (auxiliaryTabs.has(tabName)) { bottomTab = tabName; dockOpen = true; }
       else primaryTab = tabName;
     }
-    const keyboardVisible = options.fmKeyboard !== false && (options.dockedPanels
-      ? primaryTab === "operator" || (dockOpen && bottomTab === "keyboard")
-      : tabName === "operator" || tabName === "keyboard");
+    const auditionTab = options.dockedPanels ? primaryTab : tabName;
+    const dockKeyboard = options.dockedPanels && dockOpen && bottomTab === 'keyboard';
+    const floatingKeyboard = options.fmKeyboard !== false && auditionTabNames.has(auditionTab) && !dockKeyboard;
+    const keyboardVisible = options.fmKeyboard !== false &&
+      (floatingKeyboard || dockKeyboard || (!options.dockedPanels && tabName === 'keyboard'));
+    // The full workbench places the shared controls in the dock or overlay.
+    // Compact layouts keep their existing DOM and only change its placement.
+    if (!options.dockedPanels) {
+      keyboardPanel?.classList?.toggle('is-floating-keyboard', floatingKeyboard);
+      for (const tab of bottomTabs) {
+        if (chipTabNames.has(tab.name)) tab.panel?.classList?.toggle('has-floating-keyboard', floatingKeyboard && tab.name === auditionTab);
+      }
+    }
     for (const tab of bottomTabs) {
       const isSelected = tab.available && (
         options.dockedPanels

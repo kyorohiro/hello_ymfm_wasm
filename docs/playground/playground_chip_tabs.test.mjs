@@ -101,6 +101,38 @@ test('PSG renders applied state without resending noise and preserves focused ed
   tabs.dispose();
 });
 
+test('tab audition metadata follows PSG channel and instance without playing or polling extra audio',async () => {
+  let connected=false;const calls=[],selections=[];
+  const inspector={list:()=>connected?[{id:'psg-a',kind:'segapsg'},{id:'psg-b',kind:'segapsg'}]:[],read:async()=>psgState(440),invoke:async(...args)=>calls.push(args)};
+  const {tabs,roots}=fixture(inspector,{onAuditionTargetChange:value=>selections.push(value)});
+  tabs.setVisible('segapsg');await flush();
+  assert.deepEqual(selections.at(-1),{kind:'segapsg',id:'',channel:0},'primary metadata can prepare the first key without Run');
+  connected=true;await tabs.refresh();
+  assert.deepEqual(selections.at(-1),{kind:'segapsg',id:'psg-a',channel:0});
+  await walk(roots.segapsg).find(node=>node.dataset.chipKeyboardChannel==='3').fire('click');
+  assert.deepEqual(selections.at(-1),{kind:'segapsg',id:'psg-a',channel:3});
+  const count=selections.length;await tabs.refresh();assert.equal(selections.length,count,'unchanged snapshots keep a held target stable');
+  const instance=control(roots.segapsg,'instance');instance.value='psg-b';await instance.fire('change');
+  assert.deepEqual(selections.at(-1),{kind:'segapsg',id:'psg-b',channel:3});
+  tabs.setVisible('pwm');assert.equal(selections.at(-1),null,'a stream has no pitched audition target');
+  tabs.setVisible(null);assert.equal(selections.at(-1),null);
+  assert.deepEqual(calls,[],'selection and readback never trigger sound');tabs.dispose();
+});
+
+test('native editor audition selection follows its channel without taking over a script Keyboard binding',async () => {
+  const calls=[],selections=[],manual=[];
+  const inspector={list:()=>[{id:'nes',kind:'nes'}],read:async()=>({kind:'nes',clock:1789773,fdsEnabled:true,channels:[],registers:[]}),invoke:async(...args)=>calls.push(args)};
+  const {tabs,roots}=fixture(inspector,{onAuditionTargetChange:value=>selections.push(value),onKeyboardTargetChange:value=>manual.push(value)});
+  tabs.setVisible('nes');await flush();
+  assert.deepEqual(selections.at(-1),{kind:'nes',id:'nes',channel:0});
+  await walk(roots.nes).find(node=>node.dataset.nesChannel==='5').fire('click');
+  // This DOM substitute has no event propagation; dispatch the bubbled click.
+  await roots.nes.children.find(node=>node.tagName==='fieldset').fire('click');
+  assert.deepEqual(selections.at(-1),{kind:'nes',id:'nes',channel:5});
+  assert.deepEqual(manual,[]);assert.deepEqual(calls,[]);
+  tabs.setVisible(null);assert.equal(selections.at(-1),null);tabs.dispose();
+});
+
 test('late snapshot after changing instance cannot overwrite selected instance', async () => {
   let resolveFirst;
   const inspector = {list: () => [{id: 'a', kind: 'segapsg'}, {id: 'b', kind: 'segapsg'}], read: id => id === 'a' ? new Promise(resolve => { resolveFirst = resolve; }) : Promise.resolve(psgState(880))};

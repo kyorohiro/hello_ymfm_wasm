@@ -1018,8 +1018,8 @@
         border-top: 1px solid var(--line);
       }
 
-      /* Keep audition controls within reach without splitting the Operator editor. */
-      #operatorPanel:not([hidden]) ~ #keyboardPanel {
+      /* Keep audition controls within reach without splitting the chip editor. */
+      #keyboardPanel.is-floating-keyboard {
         position: fixed;
         right: max(16px, env(safe-area-inset-right));
         bottom: max(64px, env(safe-area-inset-bottom));
@@ -1034,13 +1034,13 @@
         box-shadow: 0 8px 30px #12363b40;
       }
 
-      #operatorPanel:not([hidden]) ~ #keyboardPanel #operatorKeyboardRoot > :not(.playground-keyboard-tools):not(.playground-keyboard-channel-tools):not(.playground-keyboard-minimize),
-      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-preset,
-      #operatorPanel:not([hidden]) ~ #keyboardPanel #playgroundKeyboardStrings {
+      #keyboardPanel.is-floating-keyboard #operatorKeyboardRoot > :not(.playground-keyboard-tools):not(.playground-keyboard-channel-tools):not(.playground-keyboard-minimize):not(.playground-keyboard-target),
+      #keyboardPanel.is-floating-keyboard .playground-keyboard-preset,
+      #keyboardPanel.is-floating-keyboard #playgroundKeyboardStrings {
         display: none;
       }
 
-      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-tools {
+      #keyboardPanel.is-floating-keyboard .playground-keyboard-tools {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -1048,44 +1048,46 @@
         margin: 0;
       }
 
-      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-tools > div {
+      #keyboardPanel.is-floating-keyboard .playground-keyboard-tools > div {
         flex-wrap: wrap;
       }
 
-      #operatorPanel:not([hidden]) {
+      #keyboardPanel.is-floating-keyboard .playground-keyboard-target {
+        max-width: 360px;
+        margin: 0 0 10px;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .has-floating-keyboard:not([hidden]) {
         padding-bottom: 260px;
         scroll-padding-bottom: 260px;
       }
 
-      #operatorPanel.keyboard-controls-minimized:not([hidden]) {
+      .has-floating-keyboard.keyboard-controls-minimized:not([hidden]) {
         padding-bottom: 64px;
         scroll-padding-bottom: 64px;
       }
 
-      .workbench #operatorPanel:not([hidden]):not(.has-floating-keyboard) {
-        padding-bottom: 0;
-        scroll-padding-bottom: 0;
-      }
-
       .playground-keyboard-minimize { display: none; }
-      #operatorPanel:not([hidden]) ~ #keyboardPanel .playground-keyboard-minimize,
+      #keyboardPanel.is-floating-keyboard .playground-keyboard-minimize,
       .tfi-file-keyboard > .playground-keyboard-minimize {
         display: block; margin: 0 0 6px auto;
         min-width: 30px; min-height: 28px; padding: 0 8px;
       }
 
-      #operatorPanel:not([hidden]) ~ #keyboardPanel.is-keyboard-minimized,
+      #keyboardPanel.is-floating-keyboard.is-keyboard-minimized,
       .tfi-file-keyboard.is-keyboard-minimized {
         width: max-content; padding: 0; border: 0; background: transparent;
         border-radius: 10px; box-shadow: none; overflow: visible;
       }
 
-      #operatorPanel:not([hidden]) ~ #keyboardPanel.is-keyboard-minimized #operatorKeyboardRoot > :not(.playground-keyboard-minimize),
+      #keyboardPanel.is-floating-keyboard.is-keyboard-minimized #operatorKeyboardRoot > :not(.playground-keyboard-minimize),
       .tfi-file-keyboard.is-keyboard-minimized > :not(.playground-keyboard-minimize) {
         display: none;
       }
 
-      #operatorPanel:not([hidden]) ~ #keyboardPanel.is-keyboard-minimized .playground-keyboard-minimize,
+      #keyboardPanel.is-floating-keyboard.is-keyboard-minimized .playground-keyboard-minimize,
       .tfi-file-keyboard.is-keyboard-minimized > .playground-keyboard-minimize {
         margin: 0; min-width: 70px; min-height: 36px; padding: 8px 12px;
       }
@@ -2454,7 +2456,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=audio-numeric-bindings-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=operator-tab-keyboard-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

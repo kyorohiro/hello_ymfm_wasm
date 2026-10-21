@@ -137,7 +137,10 @@ const pageRevisions={'playground.js':megaCdVersion,'playground_audio_input.js':m
     .map(name=>[name,megaCdVersion])),
   ...Object.fromEntries(['ym2612vgm.js','ym2203vgm.js','ym2608vgm.js','ym2610bvgm.js',
     'playground_vgm_import.js','rf5c164_vgm_export.js','ym2608_vgm_import.js','playground_vgm_presets.js']
-    .map(name=>[name,'vgm-frequency-order-2']))};
+    .map(name=>[name,'vgm-frequency-order-2'])),
+  ...Object.fromEntries(['playground.js','playground_mode_keyboard.js','playground_operator_keyboard.js',
+    'playground_chip_tabs.js','playground_nes_voice_panel.js','playground_ui.js','playground_workbench.js',
+    'playground_tfi_editor.js'].map(name=>[name,'operator-tab-keyboard-1']))};
 const revisionFor=name=>pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...Object.keys(pageRevisions),

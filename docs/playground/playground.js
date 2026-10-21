@@ -1,9 +1,9 @@
-import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=audio-numeric-bindings-1';
+import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=operator-tab-keyboard-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=audio-numeric-bindings-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=operator-tab-keyboard-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
-import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=audio-numeric-bindings-1';
+import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab-keyboard-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
@@ -49,7 +49,7 @@ import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2"
 import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js?v=audio-stability-2";
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=audio-numeric-bindings-1";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=operator-tab-keyboard-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-numeric-bindings-1";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=audio-numeric-bindings-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=audio-numeric-bindings-1";
@@ -86,9 +86,9 @@ import {
 } from "../js/playground_runtime.js?v=audio-numeric-bindings-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=audio-numeric-bindings-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
-import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=audio-stability-2";
+import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=audio-numeric-bindings-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=operator-tab-keyboard-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=audio-stability-2";
@@ -505,6 +505,7 @@ const operatorTab = hasPrimaryFM ?
     },
   }) : null;
 const primaryKeyboardChips = playgroundPrimaryKeyboardChips(selectedMode,megaDrive.capabilities);
+let editorKeyboardSelection = null;
 const keyboardRouting = createPlaygroundKeyboardRouting({
   primaryChips:primaryKeyboardChips, getInspector:() => keyboardInspector,
   onTargetChange:target => operatorKeyboard.attachNoteTarget(target),
@@ -514,7 +515,9 @@ const operatorKeyboard = createPlaygroundOperatorKeyboard({
   root: operatorKeyboardRoot,
   auditionPriority: true,
   minimizeHost: keyboardPanel,
-  onControlsMinimizedChange: minimized => operatorPanel.classList.toggle('keyboard-controls-minimized', minimized),
+  onControlsMinimizedChange: minimized => {
+    for (const panel of document.querySelectorAll('#operatorPanel, .chip-editor')) panel.classList.toggle('keyboard-controls-minimized', minimized);
+  },
   // The opened instrument's independent preview owns computer keys while visible.
   // The main Keyboard panel remains available for pointer auditions.
   canHandleComputerKeys: () => !(activeTfiFilePath && !codePanel.hidden),
@@ -547,6 +550,14 @@ const operatorKeyboard = createPlaygroundOperatorKeyboard({
 });
 
 operatorKeyboard.attachNoteTarget(keyboardRouting.getTarget());
+function syncEditorKeyboard(selection = editorKeyboardSelection) {
+  editorKeyboardSelection = selection;
+  // Primary metadata exists before the audio device is prepared. Keep that
+  // first key's target stable when the real instance connects asynchronously.
+  const instance = selection?.id || primaryKeyboardChips.find(entry => entry.kind === selection?.kind)?.id;
+  operatorKeyboard.attachEditorTarget(instance ? keyboardRouting.getEditorTarget(instance, selection.channel) : null);
+}
+keyboardRouting.subscribe(() => syncEditorKeyboard());
 
 operatorTabRoot.addEventListener("change", () => operatorKeyboard?.syncChannel());
 
@@ -1873,6 +1884,7 @@ chipTabs = createPlaygroundChipTabs({
   listFiles: () => virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)),
   readFile: path => virtualFiles.get(path),
   ensureAudioReady: () => runtime.prepareAudition(),
+  onAuditionTargetChange: syncEditorKeyboard,
   onKeyboardTargetChange: target => {
     keyboardRouting.setCustomTarget('panel',target);
     if (target) setBottomTab('keyboard');

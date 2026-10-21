@@ -53,7 +53,8 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   root.append(explorer, fileDivider, right);
   root.classList.add('workbench');
   const keyboardPanel = document.getElementById('keyboardPanel');
-  const operatorPanel = document.getElementById('operatorPanel');
+  const auditionPanels = new Map(['operator', 'segapsg', 'rf5c164', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']
+    .map(name => [name, document.getElementById(`${name}Panel`)]));
   let drag = null, visibilityHandler = null;
   function save() {try {storage?.setItem(key, JSON.stringify(state));} catch {}}
   function maxHeight() {return Math.max(120, right.clientHeight - 180);}
@@ -65,12 +66,13 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   }
   function sync({primaryTab, bottomTab, dockOpen}) {
     state.bottomTab = bottomTab; state.dockOpen = dockOpen;
-    // Reuse the same keyboard controls for Operator's compact audition overlay.
+    // Reuse the same keyboard controls for each chip's compact audition overlay.
     // Keep it outside the dock while floating, including when the dock is hidden.
-    const floatingKeyboard = primaryTab === 'operator' && !(dockOpen && bottomTab === 'keyboard');
+    const floatingKeyboard = auditionPanels.has(primaryTab) && !(dockOpen && bottomTab === 'keyboard');
     const keyboardHost = floatingKeyboard ? primaryPanels : dock;
     if (keyboardPanel.parentElement !== keyboardHost) keyboardHost.appendChild(keyboardPanel);
-    operatorPanel.classList.toggle('has-floating-keyboard', floatingKeyboard);
+    keyboardPanel.classList.toggle('is-floating-keyboard', floatingKeyboard);
+    for (const [name, panel] of auditionPanels) panel?.classList.toggle('has-floating-keyboard', floatingKeyboard && name === primaryTab);
     dock.hidden = divider.hidden = !dockOpen;
     toggle.setAttribute('aria-expanded', String(dockOpen));
     toggle.setAttribute('aria-label', dockOpen ? 'Hide bottom panel' : 'Show bottom panel');
