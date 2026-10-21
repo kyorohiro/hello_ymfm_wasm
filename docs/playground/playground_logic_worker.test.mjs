@@ -23,6 +23,8 @@ import {createSampleInstrument as createSampleInstrumentFactory} from '../../web
 import {createGameboyClient} from '../../web/playground_gameboy.js';
 import {createNativeSampleController} from "../../web/native_sample.js";
 import {createNativeNoiseController, controlNativeNoise} from "../../web/native_noise.js";
+import {createNativeNoiseOwnership} from '../../web/native_genesis_noise.js';
+import {createNativeGenesisFX} from '../../web/native_genesis_fx.js';
 import {createNativeFXController,createLiveFxLifecycle} from "../../web/native_fx.js";
 import {createWorkerDac} from "../../web/playground_worker_dac.js";
 import {createWorkerChip} from "../../web/playground_worker_chip.js";
@@ -42,7 +44,7 @@ const workerSource = readFileSync(
 function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
-    createPerformanceSender, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
+    createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
@@ -892,6 +894,103 @@ test('native noise is controlled without any main-thread audio request',async()=
  assert.ok(!worker.messages.some(m=>m.command?.startsWith('noise.')||m.command?.startsWith('audio.')));
  await worker.send({type:'stop'});
  assert.ok(commands.some(c=>c.op==='noise'&&c.action==='dispose'));
+});
+
+test('Native Genesis Worker noise keeps timed controls and sends scoped terminal cleanup for a cancelled loop',async()=>{
+ const f=createTimedWorkerHarness(),packets=[];
+ f.worker.post({type:'native-fx',port:{postMessage:data=>packets.push(data),start(){},close(){}}});
+ const options={capabilities:{...performanceCapabilities,backend:'native-genesis',noise:true},performance:performanceClock(f)};
+ try {
+  await f.run(`
+   globalThis.nativeNoisePrepared=noise.create({type:'pink',seed:123,autoStart:false});
+   control(globalThis.nativeNoisePrepared,{gain:.2,pan:-.5,cutoff:800,q:.7,slide:.1});
+   liveLoop('owned-noise',async()=>{noise.create({seed:7,release:.4});await sleep(100);});
+  `,0,options);
+  const created=packets.filter(packet=>packet.commands?.some(command=>command.op==='noise'&&command.action==='create'));
+  assert.equal(created.length,2);assert.equal(created[0].nativePerformance.owner,'script');
+  assert.equal(created[0].nativePerformance.session,options.performance.session);assert.equal(created[0].performance,undefined);
+  assert.equal(created[0].commands[0].seed,123);assert.equal(created[0].commands[0].type,1);
+  const owner=commandPackets(packets,command=>command.op==='noise'&&command.action==='start')[0].performance.owner;
+  const ramps=commandPackets(packets,command=>command.op==='noise'&&command.action==='parameter'&&command.seconds===.1);
+  assert.equal(ramps.length,4);assert.ok(ramps.every(packet=>packet.performance.time===30.15));
+  await f.run('',0,options);
+  const cleanup=packets.find(packet=>packet.nativeNoiseCleanup?.owner===owner);
+  assert.ok(cleanup);assert.equal(cleanup.nativeNoiseCleanup.session,options.performance.session);
+  assert.deepEqual(Array.from(cleanup.commands,command=>command.action),['retire']);assert.equal(cleanup.commands[0].token,2);
+  assert.ok(!f.worker.messages.some(message=>message.command?.startsWith('noise.')||message.command==='audio.call'));
+ }finally{await f.stop();}
+});
+
+test('Native Worker shared prepared noise transfers its lease before old parent cancellation and remains reusable',async()=>{
+ const f=createTimedWorkerHarness(),packets=[];
+ f.worker.post({type:'native-fx',port:{postMessage:data=>packets.push(data),start(){},close(){}}});
+ const options={capabilities:{...performanceCapabilities,backend:'native-genesis',noise:true},performance:performanceClock(f)};
+ try {
+  await f.run(`
+   const shared=noise.create({seed:5,autoStart:false});globalThis.sharedNativeNoise=shared;
+   liveLoop('a',async()=>{try{shared.start();await sleep(100);}finally{shared.stop();shared.dispose();}});
+   liveLoop('b',async()=>{await sleep(.01);shared.start();await sleep(100);});
+  `,0,options);
+  await f.advance(.01);
+  const starts=commandPackets(packets,command=>command.op==='noise'&&command.action==='start');
+  assert.equal(starts.length,2);assert.notEqual(starts[0].performance.owner,starts[1].performance.owner);
+  const marker=packets.length;
+  await f.run(`liveLoop('b',async()=>{await sleep(100);});`,0,options);
+  assert.ok(!packets.slice(marker).some(packet=>packet.nativeNoiseCleanup));
+  assert.ok(!packets.slice(marker).some(packet=>(packet.commands??[packet]).some(command=>command.op==='noise'&&['stop','dispose','retire'].includes(command.action))));
+  await f.run('',0,options);
+  const cleanup=packets.find(packet=>packet.nativeNoiseCleanup?.owner===starts[1].performance.owner);
+  assert.ok(cleanup);assert.equal(cleanup.commands[0].action,'stop');
+  await f.run('globalThis.sharedNativeNoise.start();',0,options);
+  assert.equal(packets.filter(packet=>packet.commands?.some(command=>command.op==='noise'&&command.action==='create')).length,1);
+  assert.equal(commandPackets(packets,command=>command.op==='noise'&&command.action==='start').length,3);
+ }finally{await f.stop();}
+});
+
+test('Native Worker Stop and Run reuses noise slots beyond 32 sessions and invalidates stale handles',async()=>{
+ const f=createTimedWorkerHarness(),packets=[];
+ f.worker.post({type:'native-fx',port:{postMessage:data=>packets.push(data),start(){},close(){}}});
+ try {
+  for(let session=1;session<=35;session++) {
+   await f.run(`
+    if(globalThis.previousNativeNoise){let rejected=false;try{globalThis.previousNativeNoise.stop();}catch(error){rejected=/disposed/.test(error.message);}if(!rejected)throw Error('Old noise handle survived Stop');}
+    globalThis.previousNativeNoise=noise.create({seed:${session}});
+   `,0,{capabilities:{...performanceCapabilities,backend:'native-genesis',noise:true},performance:performanceClock(f,session)});
+   await f.stop();
+  }
+  const creates=packets.filter(packet=>packet.commands?.some(command=>command.op==='noise'&&command.action==='create')).map(packet=>packet.commands.find(command=>command.action==='create'));
+  assert.equal(creates.length,35);assert.ok(creates.every(command=>command.slot===0));assert.equal(new Set(creates.map(command=>command.token)).size,35);
+ }finally{await f.stop();}
+});
+
+test('Native Worker factory prepares silent state under the session lease before a creating loop transfers its voice',async()=>{
+ const f=createTimedWorkerHarness(),packets=[];
+ f.worker.post({type:'native-fx',port:{postMessage:data=>packets.push(data),start(){},close(){}}});
+ const options={capabilities:{...performanceCapabilities,backend:'native-genesis',noise:true},performance:performanceClock(f)};
+ try {
+  await f.run(`
+   liveLoop('a',async()=>{
+    globalThis.adoptedNativeNoise=noise.create({type:'brown',seed:42,gain:.12,pan:-.4,attack:.2,release:.3});
+    globalThis.adoptedNativeNoise.gain.set(.25);
+    await sleep(100);
+   });
+   liveLoop('b',async()=>{await sleep(.01);globalThis.adoptedNativeNoise.start();await sleep(100);});
+  `,0,options);
+  await f.advance(.01);
+  const setup=packets.filter(packet=>packet.nativePerformance&&packet.commands?.some(command=>command.op==='noise'));
+  assert.equal(setup.length,5);
+  assert.ok(setup.every(packet=>packet.nativePerformance.session===options.performance.session&&packet.nativePerformance.owner==='script'&&!packet.performance));
+  assert.deepEqual(setup.map(packet=>packet.commands[0].action),['create','parameter','parameter','parameter','parameter']);
+  assert.deepEqual(setup.slice(1).map(packet=>packet.commands[0].value),[.12,-.4,.2,.3]);
+  const starts=commandPackets(packets,command=>command.op==='noise'&&command.action==='start');
+  assert.equal(starts.length,2);assert.notEqual(starts[0].performance.owner,starts[1].performance.owner);
+  assert.ok(packets.indexOf(setup.at(-1))<packets.indexOf(starts[0]));
+  const later=commandPackets(packets,command=>command.op==='noise'&&command.action==='parameter'&&command.value===.25);
+  assert.equal(later.length,1);assert.equal(later[0].performance.owner,starts[0].performance.owner);
+  const marker=packets.length;
+  await f.run(`liveLoop('b',async()=>{await sleep(100);});`,0,options);
+  assert.ok(!packets.slice(marker).some(packet=>packet.nativeNoiseCleanup),'the replacement owner retains the adopted voice');
+ }finally{await f.stop();}
 });
 
 test('prepared sample playback and voice stop use the direct Worklet port',async()=>{

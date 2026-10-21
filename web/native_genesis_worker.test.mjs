@@ -56,6 +56,106 @@ test('DAC/sample request replies and unsupported clock errors reach the real por
   } finally {await h.close();}
 });
 
+test('noise commands keep a trusted Worker namespace and shared performance timing across owner changes',async()=>{
+  const h=harness({synth:{allocateNoiseNamespace:()=>77}});
+  try {
+    const clock=await h.start();
+    const message={op:'noise',action:'create',slot:0,token:1,type:0,seed:0,namespace:999};
+    h.bridge.fxPort.postMessage({performance:{session:clock.session,owner:'loop:noise',time:12.5},commands:[message]});
+    await until(()=>h.calls.length===2);
+    assert.deepEqual(h.calls[1],['fx',message,{time:12.5,performance:clock.session,owner:1,noiseNamespace:77}]);
+    h.bridge.fxPort.postMessage({nativePerformance:{session:clock.session,owner:'keyboard'},commands:[{op:'noise',action:'start',slot:0,token:1}]});
+    await until(()=>h.calls.length===3);
+    assert.deepEqual(h.calls[2][2],{performance:clock.session,owner:2,noiseNamespace:77});
+    assert.equal(h.errors.length,0);
+  } finally {await h.close();}
+});
+
+test('retired Worker instances cannot share noise identities with a replacement',async()=>{
+  const a=harness(),b=harness();
+  try {
+    const first=await a.start(),second=await b.start();
+    for(const [h,clock] of [[a,first],[b,second]]) h.bridge.fxPort.postMessage({performance:{session:clock.session,owner:'script',time:13},commands:[{op:'noise',action:'create',slot:0,token:1,type:0,seed:1}]});
+    await until(()=>a.calls.length===2&&b.calls.length===2);
+    assert.notEqual(a.calls[1][2].noiseNamespace,b.calls[1][2].noiseNamespace);
+  } finally {await a.close();await b.close();}
+});
+
+test('exact noise retirement survives cross-port owner cancellation without permitting new sound',async()=>{
+  const h=harness({synth:{allocateNoiseNamespace:()=>78}});
+  try {
+    const clock=await h.start(),owner='loop:noise:old';
+    h.bridge.port.postMessage({type:'performance-cancel-owner',session:clock.session,owner});
+    await until(()=>h.calls.some(call=>call[1].op==='cancel-owner'));
+    const nativeNoiseCleanup={session:clock.session,owner};
+    const commands=[{op:'noise',action:'stop',slot:1,token:9},{op:'noise',action:'retire',slot:2,token:10}];
+    h.bridge.fxPort.postMessage({nativeNoiseCleanup,commands});
+    await until(()=>h.calls.filter(call=>call[0]==='fx').length===2);
+    assert.deepEqual(h.calls.filter(call=>call[0]==='fx'),commands.map(command=>['fx',command,{noiseNamespace:78}]));
+    for(const action of ['create','start','parameter','dispose']) {
+      h.bridge.fxPort.postMessage({nativeNoiseCleanup,commands:[{op:'noise',action,slot:1,token:9}]});
+    }
+    await until(()=>h.errors.length===4);
+    assert(h.errors.every(error=>/noise cleanup/.test(error.message)));
+    assert.equal(h.calls.filter(call=>call[0]==='fx').length,2);
+  } finally {await h.close();}
+});
+
+test('noise cleanup retains the session fence across delayed cancellation and a replacement Run',async()=>{
+  const gate=deferred(),entered=deferred();
+  const h=harness({synth:{async dispatchNativeCommand(command){h.calls.push(['chip',command]);entered.resolve();await gate.promise;}}});
+  try {
+    const old=await h.start();
+    h.bridge.chipPort.postMessage({type:'write',data:1});await entered.promise;
+    const cleanup={nativeNoiseCleanup:{session:old.session,owner:'loop:noise'},commands:[{op:'noise',action:'retire',slot:0,token:1}]};
+    h.bridge.fxPort.postMessage(cleanup);await delay();
+    h.host.stop();await delay();gate.resolve();
+    await until(()=>h.calls.some(call=>call[1].op==='stop'));
+    await h.start();
+    h.bridge.fxPort.postMessage(cleanup);
+    h.bridge.fxPort.postMessage({op:'parameter',id:1,name:'gain',value:.5});
+    await until(()=>h.calls.some(call=>call[0]==='fx'));
+    assert.deepEqual(h.calls.filter(call=>call[0]==='fx').map(call=>call[1].op),['parameter']);
+    assert.equal(h.errors.length,0);
+  } finally {gate.resolve();await h.close();}
+});
+
+test('silent noise preparation survives a cancelled creator before queued IPC drains, while its start stays cancelled',async()=>{
+  const gate=deferred(),entered=deferred(),state=new Map(),started=[];
+  const h=harness({synth:{
+    async dispatchNativeCommand(command){h.calls.push(['chip',command]);entered.resolve();await gate.promise;},
+    async dispatchNativeFxCommand(command,timing){
+      h.calls.push(['fx',command,timing]);
+      const key=`${timing.noiseNamespace}:${command.slot}:${command.token}`;
+      if(command.action==='create')state.set(key,{gain:.3});
+      if(command.action==='parameter')state.get(key).gain=command.value;
+      if(command.action==='start')started.push({...state.get(key),owner:timing.owner});
+    },
+  }});
+  let loop={performanceOwner:'loop:creator'};
+  const sender=createPerformanceSender({leaseUntimed:true,getLoop:()=>loop});
+  try {
+    const clock=await h.start();sender.configure(clock);
+    h.bridge.chipPort.postMessage({type:'write'});await entered.promise;
+    const port=sender.port(h.bridge.fxPort,'fx'),base={op:'noise',slot:0,token:1};
+    for(const command of [{...base,action:'create',type:0,seed:7},{...base,action:'parameter',param:0,value:0,seconds:0}]) {
+      h.bridge.fxPort.postMessage({nativePerformance:{session:clock.session,owner:'script'},commands:[command]});
+    }
+    port.postMessage({...base,action:'start'});
+    loop={performanceOwner:'loop:replacement'};port.postMessage({...base,action:'start'});
+    sender.cancelOwner('loop:creator');
+    // Same FX port delivers the cancellation before the blocked IPC resumes.
+    await delay();await delay();gate.resolve();
+    await until(()=>h.calls.some(call=>call[1].op==='cancel-owner'));
+    assert.equal(started.length,1);assert.equal(started[0].gain,0);
+    const commands=h.calls.filter(call=>call[0]==='fx');
+    assert.deepEqual(commands.map(call=>call[1].action),['create','parameter','start']);
+    assert.equal(commands[0][2].time,undefined);assert.equal(commands[1][2].time,undefined);
+    assert(commands[2][2].time>=12.5);assert.notEqual(commands[2][2].owner,commands[0][2].owner);
+    assert.equal(h.errors.length,0);
+  } finally {gate.resolve();await h.close();}
+});
+
 test('owner cancellation invalidates queued notes, preserving other owners and interactive input',async()=>{
   const gate=deferred(),entered=deferred();let blocked=false;
   const h=harness({synth:{async dispatchNativeCommand(command,timing){h.calls.push(['chip',command,timing]);if(!blocked){blocked=true;entered.resolve();await gate.promise;}}}});

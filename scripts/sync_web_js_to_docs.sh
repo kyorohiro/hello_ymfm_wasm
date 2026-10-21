@@ -67,6 +67,7 @@ megasynth.js
 native_genesis_synth.js
 native_genesis_media.js
 native_genesis_fx.js
+native_genesis_noise.js
 native_genesis_worker.js
 native_genesis_monitor.js
 megasynth_fx.js

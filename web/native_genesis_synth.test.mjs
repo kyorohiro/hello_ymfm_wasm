@@ -63,7 +63,7 @@ test('scheduled seconds map to device frames and invalid groups never partially 
   await f.synth.flush();assert.equal(f.commands().length,3);
   f.synth.fm.write(0,0x2b,128);f.synth.fm.write(0,0x2a,128);await f.synth.flush();
   assert.deepEqual(f.commands().slice(-2).map(command=>command.register),[0x2b,0x2a]);
-  await assert.rejects(f.synth.sample.play('a'),/Unknown sample/);assert.throws(()=>f.synth.noise.create(),/Select Web Audio/);
+  await assert.rejects(f.synth.sample.play('a'),/Unknown sample/);assert.throws(()=>f.synth.noise.create({seed:-1}),/seed/);
   await f.synth.close();
 });
 
@@ -165,7 +165,7 @@ test('real Playground Main APIs run on the explicit native clock, borrow primary
   await assert.rejects(runtime.playSource('await useSoundChip("dx7");'),/Additional sound chips/);
   await runtime.playSource('fx.setChain([fx.gain({gain:0.5})]);');
   assert.ok(f.calls.some(call=>call.command==='native_genesis_fx'&&call.args.message.op==='chain'));
-  assert.equal(f.synth.capabilities.worker,true);assert.equal(f.synth.capabilities.dynamicSoundChips,false);assert.equal(f.synth.capabilities.noise,false);
+  assert.equal(f.synth.capabilities.worker,true);assert.equal(f.synth.capabilities.dynamicSoundChips,false);assert.equal(f.synth.capabilities.noise,true);
   await runtime.stopWithFade();assert.equal(f.calls.at(-1).command,'native_genesis_stop');
 });
 
@@ -203,4 +203,63 @@ test('Native Main reevaluation disposes replaced FX units and retains a prepared
   await runtime.playSource(source);const prepared=globalThis.nativePreparedFx;
   await runtime.playSource(source);assert.equal(globalThis.nativePreparedFx,prepared);
   assert.equal(f.synth.getFXChain()[0],prepared);assert.equal(f.errors.length,0);
+});
+
+test('Main native noise commands coalesce with FM writes and retain the public controls',async t=>{
+  const f=fixture();await f.synth.start();t.after(()=>f.synth.close());f.calls.length=0;
+  const voice=f.synth.noise.create({type:'brown',seed:0xffffffff,gain:.2,release:.3});
+  voice.filter.set('lowpass',1000,.7);voice.gain.rampTo(.5,.1);f.synth.fm.write(0,0x22,0);
+  await f.synth.flush();assert.equal(f.calls.length,1);
+  const noise=f.commands().filter(command=>command.type==='noise');assert.ok(noise.length>5);
+  assert.ok(noise.every(command=>command.frame===0&&command.message.namespace===0));
+  assert.equal(noise[0].message.type,2);assert.equal(noise[0].message.seed,0xffffffff);
+  assert.equal(voice.gain.get(),.5);assert.equal(voice.release.get(),.3);assert.equal(f.synth.audioContext,null);
+  await f.synth.stopNativeAudio();assert.throws(()=>voice.start(),/disposed/);
+});
+
+test('Worker native noise has trusted namespaces, sample-clock timing and no collision with Main voices',async t=>{
+  const f=fixture();await f.synth.start();t.after(()=>f.synth.close());f.calls.length=0;
+  f.synth.noise.create({seed:1});await f.synth.flush();
+  const namespace=f.synth.allocateNoiseNamespace(),next=f.synth.allocateNoiseNamespace();
+  const message={op:'noise',action:'create',namespace:999,slot:0,token:1,type:1,seed:2};
+  await f.synth.dispatchNativeFxCommand(message,{noiseNamespace:namespace,performance:3,owner:4,time:.5});
+  await f.synth.dispatchNativeFxCommand({...message,seed:3},{noiseNamespace:next,performance:3,owner:5});
+  const creates=f.commands().filter(command=>command.type==='noise'&&command.message.action==='create');
+  assert.deepEqual(creates.map(command=>command.message.namespace),[0,namespace,next]);
+  assert.deepEqual([creates[1].frame,creates[1].performance,creates[1].owner],[24000,3,4]);assert.equal(creates[2].frame,0);
+  await assert.rejects(f.synth.dispatchNativeFxCommand(message,{noiseNamespace:99}),/namespace/);
+});
+
+test('Native Main liveLoop cancellation retires only its noise and prepared voices remain reusable',async t=>{
+  const previous=globalThis.window;globalThis.window={setTimeout,addEventListener(){},removeEventListener(){}};
+  const f=fixture(),runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false});
+  t.after(async()=>{await runtime.finalize();globalThis.window=previous;delete globalThis.nativeLoopNoise;delete globalThis.nativePreparedNoise;});
+  await runtime.playSource(`liveLoop('owned-noise',async()=>{globalThis.nativeLoopNoise=noise.create({seed:1,release:.2});await sleep(60);});`);
+  await ticks();assert.ok(globalThis.nativeLoopNoise);await f.synth.flush();f.calls.length=0;
+  await runtime.playSource(`stopLoop('owned-noise');`);await f.synth.flush();
+  const retire=f.commands().find(command=>command.type==='noise'&&command.message.action==='retire');assert.ok(retire);
+  assert.throws(()=>globalThis.nativeLoopNoise.start(),/disposed/);
+  await runtime.playSource(`
+    globalThis.nativePreparedNoise=await livePrepare('noise',()=>noise.create({seed:2,autoStart:false}));
+    liveLoop('prepared-noise',async()=>{globalThis.nativePreparedNoise.start();await sleep(60);});
+  `);await ticks();await f.synth.flush();f.calls.length=0;
+  await runtime.playSource(`stopLoop('prepared-noise');`);await f.synth.flush();
+  assert.ok(f.commands().some(command=>command.type==='noise'&&command.message.action==='stop'));
+  assert.ok(!f.commands().some(command=>command.type==='noise'&&command.message.action==='retire'));
+  await runtime.playSource(`globalThis.nativePreparedNoise.start();control(globalThis.nativePreparedNoise,{gain:.1,pan:-.25,cutoff:800,q:.8,slide:.2});`);
+  await f.synth.flush();assert.equal(globalThis.nativePreparedNoise.gain.get(),.1);
+  assert.ok(f.commands().some(command=>command.type==='noise'&&command.message.action==='parameter'&&command.message.seconds===.2));
+});
+
+test('more than 32 Main Stop and Run cycles reuse noise slots and old handles cannot mute the next Run',async t=>{
+  const previous=globalThis.window;globalThis.window={setTimeout,addEventListener(){},removeEventListener(){}};
+  const f=fixture(),runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false});let old;
+  t.after(async()=>{await runtime.finalize();globalThis.window=previous;delete globalThis.nativeRepeatedNoise;});
+  for(let run=0;run<35;run++) {
+    await runtime.playSource(`globalThis.nativeRepeatedNoise=noise.create({seed:${run}});`);await f.synth.flush();
+    if(old){const before=f.commands().length;assert.throws(()=>old.stop(),/disposed/);old.dispose();assert.equal(f.commands().length,before);}
+    old=globalThis.nativeRepeatedNoise;await runtime.stopWithFade();
+  }
+  const creates=f.commands().filter(command=>command.type==='noise'&&command.message.action==='create');
+  assert.equal(creates.length,35);assert.ok(creates.every(command=>command.message.slot===0));assert.equal(f.errors.length,0);
 });

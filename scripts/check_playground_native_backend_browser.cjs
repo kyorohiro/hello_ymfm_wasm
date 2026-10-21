@@ -227,6 +227,60 @@ async function compressedSampleRuns(page,native) {
   }
   assert(await page.evaluate(before=>window.__audioConstructions.offline>before,beforeOffline),'Compressed samples must use the real offline decoder');
 }
+async function nativeNoiseRuns(page,native) {
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  for(const execution of ['main','worker']) {
+    const first=native.calls.length;
+    const commands=()=>native.calls.slice(first).flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]).filter(command=>command.type==='noise');
+    await page.evaluate(async execution=>{
+      await window.__nativeBackendTest.runtime.playSource(`
+        liveLoop('native-noise',async()=>{
+          const voice=noise.create({type:'pink',seed:1234,autoStart:false,gain:0.05,pan:-0.25,attack:0.01,release:0.02});
+          voice.filter.set('highpass',400,0.7);
+          voice.start();
+          control(voice,{gain:0.08,pan:0.5,cutoff:1200,q:0.8,slide:0.1});
+          await sleep(60);
+        });
+      `,{execution});
+    },execution);
+    await until(()=>commands().some(command=>command.message.action==='parameter'&&command.message.seconds===0.1));
+    const created=commands().find(command=>command.message.action==='create');
+    assert.equal(created.message.type,1);assert.equal(created.message.seed,1234);
+    assert(commands().some(command=>command.message.action==='filter'&&command.message.mode===1));
+    assert(commands().some(command=>command.message.action==='start'));
+    if(execution==='main') {
+      assert(commands().every(command=>command.frame===0&&command.message.namespace===0));
+      const before=commands().length;
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource('stopLoop("native-noise");',{execution:'main'}));
+      await until(()=>commands().slice(before).some(command=>command.message.action==='retire'));
+    } else {
+      assert(commands().every(command=>command.performance&&command.owner&&command.message.namespace>0));
+      assert.equal(created.frame,0,'Silent voice preparation must survive loop cancellation');
+      assert(commands().some(command=>command.message.action==='start'&&command.frame>0));
+      assert(commands().some(command=>command.message.action==='parameter'&&command.message.seconds===0.1&&command.frame>0));
+      const identity=created.message.namespace;
+      assert(commands().every(command=>command.message.namespace===identity));
+      const cancelled=native.calls.length;
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource('stopLoop("native-noise");',{execution:'worker'}));
+      await until(()=>native.calls.slice(cancelled).some(call=>call.command==='native_genesis_performance'&&call.args.op==='cancel-owner'));
+      await until(()=>commands().some(command=>command.message.action==='retire'));
+      const retired=commands().find(command=>command.message.action==='retire');
+      assert.equal(retired.message.namespace,identity);
+      assert.equal(retired.message.token,created.message.token);
+      assert.equal(retired.frame,0);
+      assert.equal(retired.performance,undefined);
+      assert.equal(retired.owner,undefined);
+    }
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    await assertNoLiveAudio(page);
+  }
+  // Native Stop retires descriptor identities, so a later Run starts again
+  // from a free logical slot and a fresh token without reinitializing audio.
+  const first=native.calls.length;
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.playSource('const v=noise.create({type:"brown",seed:0});v.stop();v.start();v.dispose();',{execution:'main'}));
+  await until(()=>native.calls.slice(first).some(call=>call.command==='native_genesis_commands'&&call.args.commands.some(command=>command.type==='noise'&&command.message.action==='dispose')));
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+}
 async function monitorTrace(page,id,color,after=-1,expected={}) {
   await page.waitForFunction(({id,color,after,expected})=>{
     const trace=window.__monitorDrawings?.[id]?.traces[color];
@@ -435,6 +489,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await keyboard(page, native);
     await workerMediaRun(page,native);
     await compressedSampleRuns(page,native);
+    await nativeNoiseRuns(page,native);
     await nativeRun(page, native);
     await nativeAudioMonitor(page,native,artifacts,name);
     await nativeRecording(page,native);
@@ -471,7 +526,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX/noise, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 

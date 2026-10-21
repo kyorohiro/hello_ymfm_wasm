@@ -5,6 +5,7 @@ import {midiToOpnPitch} from './soundchip_pitch.js';
 import {createNativeGenesisMedia} from './native_genesis_media.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeGenesisMonitor} from './native_genesis_monitor.js';
+import {createNativeGenesisNoise,nativeGenesisNoiseMessage} from './native_genesis_noise.js';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -60,7 +61,7 @@ export class NativeGenesisSynth {
     this.invoke = invoke; this.now = now; this.onError = onError;
     this.backend = 'native-genesis'; this.chip = 'ym2612';
     this.capabilities = Object.freeze({chip:'ym2612', fmChannels:6, psg:true, dac:true,
-      pcm:false, recorder:true, worker:true, noise:false, dynamicSoundChips:false, backend:'native-genesis'});
+      pcm:false, recorder:true, worker:true, noise:true, dynamicSoundChips:false, backend:'native-genesis'});
     this.clock = new NativeAudioClock(now);
     this.outputMonitor = createNativeGenesisMonitor({invoke:(command,args)=>this.invoke(command,args),
       getSession:()=>this.session,getSampleRate:()=>this.clock.sampleRate,
@@ -103,7 +104,8 @@ export class NativeGenesisSynth {
     Object.defineProperty(this.psg,'id',{value:'segapsg',enumerable:true});
     this.sample = this.media.sample;
     this.stream = this.unavailableMedia('Streaming playback');
-    this.noise = {create:() => unsupported('Web Audio noise'),stopAll(){}};
+    this.nextNoiseNamespace=0;
+    this.noise=createNativeGenesisNoise({send:message=>this.enqueue({type:'noise',frame:0,message}),getSampleRate:()=>this.clock.sampleRate});
     this.chipInspector = this.createInspector();
   }
   unavailableMedia(feature) {
@@ -260,6 +262,14 @@ export class NativeGenesisSynth {
   }
   dispatchNativeFxCommand(message,timing={}) {
     if(message?.op==='sample')return this.media.dispatchSample(message,timing);
+    if(message?.op==='noise') {
+      const namespace=timing.noiseNamespace;
+      if(!Number.isSafeInteger(namespace)||namespace<1||namespace>this.nextNoiseNamespace)return Promise.reject(new RangeError('Invalid Native Worker noise namespace'));
+      this.enqueue({type:'noise',frame:timing.time===undefined?0:this.frameAt(timing.time),
+        ...(timing.performance===undefined?{}:{performance:timing.performance}),...(timing.owner===undefined?{}:{owner:timing.owner}),
+        message:nativeGenesisNoiseMessage(message,{namespace,sampleRate:this.clock.sampleRate})});
+      return this.flush();
+    }
     if(message?.op?.startsWith('live-fx'))return Promise.reject(new Error('JavaScript LiveFX is unavailable in Native Genesis. Select Web Audio to use it.'));
     return this.nativeRequest('native_genesis_fx',{message,
       ...(timing.time===undefined?{}:{frame:this.frameAt(timing.time)}),
@@ -348,6 +358,7 @@ export class NativeGenesisSynth {
     if (this.stopping) return this.stopping;
     if (this.session === null) return Promise.resolve();
     void this.outputMonitor.pause().catch(()=>{});
+    this.noise.reset();
     // Native Stop resets the rendered rack. Retire its JS descriptors too, so
     // repeated Runs reuse slots and old parameter handles cannot edit a new rack.
     this.fx?.dispose();
@@ -484,6 +495,10 @@ export class NativeGenesisSynth {
   getFXChain() {return this.fx?.getChain()??[];}
   setFXChain(effects) {return (this.fx??this.createFXApi()).setChain(effects);}
   syncFXTempo() {if(this.isReady()&&!this.stopping&&!this.closing)this.fx?.syncTempo();}
+  allocateNoiseNamespace() {
+    if(this.nextNoiseNamespace>=Number.MAX_SAFE_INTEGER)throw new RangeError('Native noise namespace limit reached');
+    return ++this.nextNoiseNamespace;
+  }
   startOutputRecording(options) {return this.media.startRecording(options);}
   stopOutputRecording() {return this.media.stopRecording();}
   getAudioContext() {return null;}

@@ -24,6 +24,7 @@ import {createYm2608Client} from './playground_ym2608.js?v=audio-numeric-binding
 import {createRf5c164Client} from './playground_rf5c164.js?v=audio-numeric-bindings-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
+import {createNativeNoiseOwnership} from './native_genesis_noise.js';
 import {serializeLogError} from './playground_log.js';
 /**
  * @file playground_logic_worker.js
@@ -270,7 +271,10 @@ function createClock(run) {
       // A runner may be awaiting an RPC or user Promise, not a clock wait.
       // Mark its identity stopped before a later Run can reuse the same name.
       for (const [key, loop] of run.runningLoops) {
-        if (name === undefined || key === name) { run.performance.cancelOwner(loop.performanceOwner); loop.stopped = true; }
+        if (name === undefined || key === name) {
+          run.releaseNoiseOwner?.(loop);
+          run.performance.cancelOwner(loop.performanceOwner); loop.stopped = true;
+        }
       }
       run.loopTasks?.releaseName(name);
       run.midi?.cancelOwner(name);
@@ -534,7 +538,32 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     return (...args)=>liveFxLifecycle.track(target, run.collectingLiveFx ?? run.liveFxDefinitions).liveFx(...args);
   }});
   run.syncFXTempo = () => { if (nativeFXPort) fx.syncTempo(); };
-  const nativeNoise = nativeFXPort && capabilities.noise !== false ? createNativeNoiseController(data=>fxPort.postMessage(data)) : null;
+  let nativeNoiseCleanup=null,preparingNativeNoise=null;
+  const rawNativeNoiseController = nativeFXPort && capabilities.noise !== false ? createNativeNoiseController(data=>{
+    if(nativeNoiseCleanup)nativeFXPort.postMessage({nativeNoiseCleanup,commands:[data]});
+    else if(preparingNativeNoise&&['create','parameter'].includes(data.action))
+      nativeFXPort.postMessage({nativePerformance:{session:preparingNativeNoise.session,owner:'script'},commands:[data]});
+    else fxPort.postMessage(data);
+  }) : null;
+  const nativeNoiseController=capabilities.backend==='native-genesis'&&rawNativeNoiseController?{
+    ...rawNativeNoiseController,
+    create(options){
+      // Construction only prepares silent DSP state. Keep it session-scoped so
+      // a new loop can adopt this handle even if its creating loop is cancelled
+      // before the bridge drains. AutoStart still uses the timed loop lease.
+      const previous=preparingNativeNoise;preparingNativeNoise=performanceTransport.timestamp();
+      try{return rawNativeNoiseController.create(options);}finally{preparingNativeNoise=previous;}
+    },
+  }:rawNativeNoiseController;
+  const nativeNoiseOwnership=capabilities.backend==='native-genesis'&&nativeNoiseController
+    ? createNativeNoiseOwnership(nativeNoiseController,{getContext:()=>run.currentLoop}) : null;
+  const nativeNoise=nativeNoiseOwnership?.api??nativeNoiseController;
+  run.noiseOwnership=nativeNoiseOwnership;
+  run.releaseNoiseOwner=loop=>{
+    const timestamp=performanceTransport.timestamp();
+    if(nativeNoiseOwnership&&timestamp)nativeNoiseCleanup={session:timestamp.session,owner:loop.performanceOwner};
+    try{nativeNoiseOwnership?.releaseOwner(loop);}finally{nativeNoiseCleanup=null;}
+  };
   const noise = nativeNoise ?? {
     create(options = {}) {
       const id = createHandle("noise");
@@ -603,7 +632,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       for(const pcm of pcmClients)pcm.dispose();
       pcmClients.clear();
       nativeSample?.stopAll();
-      nativeNoise?.disposeAll();
+      nativeNoiseOwnership?.clear();nativeNoiseController?.disposeAll();
       chip?.stop();
       primaryPcmReleases.push(native.stop().catch(()=>{}));
       primaryPcmClient?._cancelClockRequests('Run stopped');

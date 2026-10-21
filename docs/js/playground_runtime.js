@@ -61,6 +61,7 @@ import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playg
 import { createPlaygroundLive } from "./playground_live.js?v=audio-numeric-bindings-1";
 import { createPlaygroundMusic } from "./playground_music.js?v=audio-stability-2";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
+import {createNativeNoiseOwnership} from './native_genesis_noise.js';
 import { createFmProxy } from "./playground_sync.js?v=audio-stability-2";
 import { parseTfi } from "./tfi.js";
 import { parseVgi } from "./vgi.js?v=audio-stability-2";
@@ -182,10 +183,6 @@ export function createPlaygroundRuntime(
     ...FM_PRESETS,
     ...(options.presets ?? {}),
   };
-  const noiseApi =
-    createPlaygroundNoiseApi(
-      megaDrive
-    );
   const capabilities =
     megaDrive.capabilities ?? {
       chip: "ym2612",
@@ -193,6 +190,10 @@ export function createPlaygroundRuntime(
       psg: Boolean(megaDrive.psg),
       dac: true,
     };
+  const rawNoiseApi=createPlaygroundNoiseApi(megaDrive);
+  const noiseOwnership=capabilities.backend==='native-genesis'
+    ? createNativeNoiseOwnership(rawNoiseApi,{getContext:()=>currentLoopContext}) : null;
+  const noiseApi=noiseOwnership?.api??rawNoiseApi;
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
@@ -856,6 +857,7 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    noiseOwnership?.clear();
     const fromKeyboardCleanup=currentLoopContext?.keyboardCleanup===true;
     soundChips.clear();
     const retiringDevices=[...pcmDevices];
@@ -983,6 +985,8 @@ export function createPlaygroundRuntime(
       releaseTasks: loop => loopTasks.release(loop),
       getKeyboardNames: () => [...keyboardHandlers.values()].map(handler => handler.name),
       cancelWaits: state => {
+        if(megaDrive.isReady?.()&&!megaDrive.stopping&&!megaDrive.closing)noiseOwnership?.releaseOwner(state);
+        else noiseOwnership?.clear();
         const pcmChannels = [];
         for (const [channel, owner] of primaryPcmOwners) if (owner === state) {
           primaryPcmOwners.delete(channel); pcmChannels.push(channel);

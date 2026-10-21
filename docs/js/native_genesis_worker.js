@@ -1,8 +1,13 @@
 /** Real MessagePorts connect the existing logic Worker to the native transport.
  * Only commands and one-off sample preparation cross this bridge, never audio
  * blocks. Chip and FX share one performance clock and bounded owner registry. */
+let fallbackNoiseNamespace = 0;
 export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = MessageChannel, onError = () => {}, maxPending = 65536}) {
   if (!Number.isSafeInteger(maxPending) || maxPending < 1 || maxPending > 65536) throw new RangeError('Invalid Native Worker queue limit');
+  // A new Worker can reuse logical slot/token IDs. Give its noise controller a
+  // trusted identity independent of Main and previous Worker instances.
+  const noiseNamespace = synth.allocateNoiseNamespace?.() ?? ++fallbackNoiseNamespace;
+  if (!Number.isSafeInteger(noiseNamespace) || noiseNamespace < 1) throw new RangeError('Invalid Native Worker noise namespace');
   const admin = new MessageChannelClass(), chip = new MessageChannelClass(), fx = new MessageChannelClass();
   const ports = [admin.port1, chip.port1, fx.port1];
   let serial = Promise.resolve(), active = null, epoch = 0, pending = 0, pendingMessages = 0, pendingBytes = 0, disposed = false;
@@ -57,17 +62,25 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
     if (disposed || !message) return;
     try {
       if (message.type?.startsWith('performance-')) { control(port,message); return; }
-      if(message.performance && message.nativePerformance)throw new TypeError('Native Worker command has two performance leases');
-      const envelope = message.performance ?? message.nativePerformance;
+      const cleanup = message.nativeNoiseCleanup;
+      if ([message.performance,message.nativePerformance,cleanup].filter(Boolean).length > 1) throw new TypeError('Native Worker command has two performance leases');
+      const envelope = message.performance ?? message.nativePerformance ?? cleanup;
       const messages = envelope ? message.commands : Array.isArray(message) ? message : [message];
       if (!Array.isArray(messages) || !messages.length) throw new TypeError('Native Worker commands must be a non-empty array');
+      // Loop retirement is already scoped by the Worker's voice ownership
+      // wrapper. It must survive cancel-owner arriving first on another port,
+      // while keeping the session fence and the bridge's trusted namespace.
+      if (cleanup && (kind !== 'fx' || messages.some(command => command.op !== 'noise' ||
+          !['stop','retire'].includes(command.action) || !Number.isInteger(command.slot) || command.slot < 0 || command.slot >= 32 ||
+          !Number.isSafeInteger(command.token) || command.token < 1))) throw new TypeError('Invalid Native Worker noise cleanup');
       const version = epoch;
       const timing = {};
       if (envelope) {
         if (envelope.session !== active || !validSession(envelope.session) ||
             message.performance && (!Number.isFinite(envelope.time) || envelope.time < 0)) throw abort();
         if(message.performance)timing.time=envelope.time;
-        timing.performance = envelope.session; timing.owner = ownerId(envelope.owner);
+        const owner = ownerId(envelope.owner);
+        if (!cleanup) { timing.performance = envelope.session; timing.owner = owner; }
       }
       const failed = error => {
         let replied = false;
@@ -86,12 +99,13 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       enqueue(async () => {
         // Stop invalidates already queued work immediately, including the
         // Worker's ordinary untimed cleanup after performance-stop.
-        if (!active || disposed || version !== epoch || (envelope && cancelled.has(envelope.owner))) throw abort();
+        if (!active || disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
         if (kind === 'chip' && messages.length > 1 && messages.every(m => ['write','psg-write','psg-stereo','reset'].includes(m.type))) {
           await synth.dispatchNativeCommand(messages,timing);
         } else for (const command of messages) {
-          if (disposed || version !== epoch || (envelope && cancelled.has(envelope.owner))) throw abort();
-          const result = kind === 'fx' ? await synth.dispatchNativeFxCommand(command,timing) : await synth.dispatchNativeCommand(command,timing);
+          if (disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
+          const result = kind === 'fx' ? await synth.dispatchNativeFxCommand(command,
+            command.op === 'noise' ? {...timing,noiseNamespace} : timing) : await synth.dispatchNativeCommand(command,timing);
           if (result) port.postMessage(result);
         }
       }, count, failed, bytes);

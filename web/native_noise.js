@@ -10,6 +10,11 @@ export function createNativeNoiseController(send){
  const voices=new Map();let sequence=1;
  const api={
   create(options={}){
+   if(!options||typeof options!=='object'||Array.isArray(options))throw new TypeError('noise.create options must be an object');
+   if(options.seed!=null&&(!Number.isInteger(options.seed)||options.seed<0||options.seed>0xffffffff))throw new RangeError('Noise seed must be an unsigned 32-bit integer');
+   // Validate all initial parameters before reserving a slot or emitting create.
+   for(const key of ['gain','pan','attack','release'])if(options[key]!=null&&!Number.isFinite(Number(options[key])))throw new Error(`Invalid noise ${key}`);
+   if(sequence>Number.MAX_SAFE_INTEGER)throw new RangeError('Native noise voice token limit reached');
    let slot=0;while(voices.has(slot))slot++;
    if(slot>=32)throw new Error('Native noise supports at most 32 voices; dispose unused voices');
    const token=sequence++,type=types.includes(options.type)?options.type:'white';
@@ -30,6 +35,9 @@ export function createNativeNoiseController(send){
     start:()=>emit('start'),stop:()=>emit('stop'),
     dispose(){if(disposed)return;emit('dispose');disposed=true;voices.delete(slot);},
    };
+   // Native device backends can release a cancelled loop's tail while retiring
+   // its logical slot. This is not part of the public noise voice API.
+   Object.defineProperty(voice,'_retire',{value(){if(disposed)return;emit('retire');disposed=true;voices.delete(slot);}});
    voices.set(slot,voice);
    try{for(const key of ['gain','pan','attack','release'])if(options[key]!=null)controls[key].set(options[key]);if(options.autoStart!==false)voice.start();}
    catch(e){voice.dispose();throw e;}

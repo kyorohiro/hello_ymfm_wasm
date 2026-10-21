@@ -2,6 +2,7 @@
 
 AudioタブのEnvelope／Waveform／Spectrumは、[Native Audioモニターの作業記録](native_audio_monitor_01.md)を参照。
 表示中だけ観測用データを取得する方式で対応した。
+`noise.create()`のNative生成は、[Native noiseの作業記録](native_noise_01.md)を参照。
 
 ## 第2段階：Genesisの実用機能を増やす
 
@@ -42,7 +43,7 @@ NativeはPCMとDACを含むbankを64 MiB以内に保持し、サンプルvoice�
 FXは既存のC DSPと同じ13種類を使う。直列／branch／parallel、パラメーター変更とramp、tempo同期に対応。
 音声callback内ではgraphを構築しない。構成変更は制御側で準備し、5msで出力を切り替える。
 パラメーター変更はDSPの履歴を保持するが、`setChain`／clearで構成を組み直すとdelay／reverbの履歴は初期化する。
-任意のJavaScriptを実行する`liveFx`とWeb Audioのnoiseは、理由を示して拒否する。
+`noise.create()`は既存のC DSPをNativeでも共有する。任意のJavaScriptを実行する`liveFx`は、理由を示して拒否する。
 
 **Menu → Audio diagnostics…** はNativeでも使用できる。FM／PSG／PCMとFX・音量を適用した
 最終ステレオ出力を、最大30秒／32 MiBまで明示的に記録する。終了時だけPCMを受け取り、
@@ -190,11 +191,12 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | Worker実行 | 対応 | 共通Worker、lookahead、loopのowner取消し。通常のPCM block転送は行わない |
 | DAC、`fm.dac`、DAC bank／sample clock | 対応 | PCM登録・pan・時刻指定・packed stream、生のDACレジスター書込み |
 | 汎用sample再生 | PCM／WAV＋ブラウザーでデコード可能な圧縮形式 | FLAC／MP3等は読込み時にofflineデコード。rate・逆再生・loop・pan・fade |
+| `noise.create()`／`control()` | 5種類に対応 | 共通C DSP、32声まで。Main／Worker、filter、ramp、attack／release、loop取消し |
 | 組込みFX | 13種類に対応 | branch／parallel／setChain、パラメーターramp、tempo。構成変更でDSP履歴を初期化 |
 | Audio diagnostics | 最終出力に対応 | output WAV／JSON、noise marker。最大30秒／32 MiB。chip単独出力は未対応 |
 | AudioのEnvelope／Waveform／Spectrum | 対応 | 左右CH、Pause、共通Yスケール。表示中だけ最大15Hzの観測。FFTは音声callback外で実行 |
 | 追加チップ、Genesis以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
-| stream／Web Audio noise、JavaScript `liveFx` | 未対応 | 別の音声経路で代用しない |
+| stream、JavaScript `liveFx` | 未対応 | 別の音声経路で代用しない |
 | 独立した音色ファイル試聴 | 未対応 | Web Audioへ切り戻して使用 |
 | Chip clock変更、同期status／IRQ読取 | 未対応 | 固定のYM2612／PSG clockを使用。コア内timerの進行とは区別 |
 
