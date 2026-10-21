@@ -59,9 +59,12 @@ class NativeAudioClock extends EventTarget {
  * native; uploads, requested monitor snapshots and recording retrieval are
  * explicit data transfers rather than a playback PCM bridge.
  * Web Audio remains the application's default and supports the full feature set.
- * @param {{invoke:(command:string,args?:object)=>Promise<unknown>,now?:()=>number,onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,decodeAudio?:(bytes:ArrayBuffer)=>Promise<unknown>,megaCD?:boolean}} options
  */
 export class NativeGenesisSynth {
+  /** @param {{invoke:(command:string,args?:object)=>Promise<any>,now?:()=>number,
+   * onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,
+   * decodeAudio?:(bytes:ArrayBuffer)=>Promise<any>,megaCD?:boolean,dx7?:boolean,
+   * mode?:'genesis'|'mega-cd'|'dx7'|'nes'}} [options] */
   constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1, decodeAudio,megaCD=false,dx7=false,mode} = {}) {
     if (typeof invoke !== 'function') throw new TypeError('Native Genesis requires the Tauri invoke transport');
     this.invoke = invoke; this.now = now; this.onError = onError;

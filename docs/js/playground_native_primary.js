@@ -1,5 +1,5 @@
 import {createAy8910Client} from './playground_ay8910.js?v=audio-numeric-bindings-1';
-import {createNesClient} from './playground_nes.js?v=audio-numeric-bindings-1';
+import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-numeric-bindings-1';
 import {createHuc6280Client} from './playground_huc6280.js?v=audio-numeric-bindings-1';

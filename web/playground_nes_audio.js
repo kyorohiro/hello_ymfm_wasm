@@ -1,14 +1,19 @@
 import {NES_APU_CLOCK, validateNesApuClock} from './nesapu.js';
+const nativeFetch=globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
  * @param {AudioNode|null} destination
  * @param {{fds?:boolean,clock?:number,signal?:AbortSignal,workletUrl?:string|URL}} [options] */
 export async function createNesAudio(context, destination, {fds = false, clock = NES_APU_CLOCK, signal, workletUrl} = {}) {
   validateNesApuClock(clock);
   signal?.throwIfAborted();
-  await waitForInitialization(context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js', import.meta.url)), signal);
+  const wasmUrl=new URL('./generated/nesapu_wasm.wasm',import.meta.url);
+  const [wasmBinary]=await waitForInitialization(Promise.all([
+    nativeFetch(wasmUrl,{signal}).then(response=>{if(!response.ok)throw new Error(`NES WASM HTTP ${response.status}`);return response.arrayBuffer();}),
+    context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js', import.meta.url)),
+  ]), signal);
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-nes', {
-    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {fds, clock},
+    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {fds, clock,wasmBinary},
   });
   const channel = new MessageChannel();
   let disposed = false, readyTimer;

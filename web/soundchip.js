@@ -182,7 +182,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   gameboy: import('./gameboyapu.js').GameboyApu,
  *   segapsg: import('./segapsg.js').SegaPSG,
  *   pwm: import('./pwm32x.js').PWM32X,
- *   nes: import('./nesapu.js').NesApu,
+ *   nes: import('./nesapu_wasm.js').NesApuWasm,
  *   ay8910: import('./ay8910.js').Ay8910,
  *   y8950: import('./y8950.js').Y8950,
  *   ym2610b: import('./ym2610b.js').Ym2610B,
@@ -226,9 +226,9 @@ export function createSoundChip(name, options = {}) {
   if (options.mixer && options.execution !== 'worklet') return Promise.reject(new Error('An output mixer requires execution: worklet; direct chips generate raw PCM'));
   if (options.execution === 'worklet') {
     if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
-    const moduleName = name === 'gameboy' ? 'gameboy_apu' : name;
+    const moduleName = name === 'gameboy' ? 'gameboy_apu' : name==='nes'?'nesapu':name;
     return createWorkletSoundChip(name, options, async () => {
-      if (name === 'pwm' || name === 'nes') return undefined;
+      if (name === 'pwm') return undefined;
       const loaded = await loadModule(moduleName, options);
       const bytes = loaded.moduleOptions.wasmBinary;
       if (!bytes) throw new Error('Worklet execution requires WASM bytes; use wasmBinary or default asset loading');

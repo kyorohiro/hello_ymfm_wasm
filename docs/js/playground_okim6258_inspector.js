@@ -10,7 +10,7 @@ const channel=value=>{if(value!==0)throw new RangeError('OKIM6258 has one channe
 export class Oki6258VoiceInspector {
   /**
    * @param {import('./okim6258synth.js?v=audio-numeric-bindings-1').Oki6258Stream} stream
-   * @param {Omit<import('./playground_native_voice_inspector.js?v=audio-numeric-bindings-1').NativeVoiceInspectorOptions, 'clock'>} [options]
+   * @param {Omit<import('./playground_native_voice_inspector.js?v=nes-wasm-1').NativeVoiceInspectorOptions, 'clock'>} [options]
    */
   constructor(stream,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.stream=stream;this.sampleRate=sampleRate;this.dispatch=dispatch;

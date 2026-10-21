@@ -1,5 +1,5 @@
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
-import {NesApuSynth} from './nesapusynth.js?v=audio-numeric-bindings-1';
+import {NesApuSynth} from './nesapusynth.js?v=nes-wasm-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 
 const DUTY=[.125,.25,.5,.75],LEVEL=[0,1,.5,.25];

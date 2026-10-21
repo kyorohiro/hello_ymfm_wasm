@@ -70,6 +70,9 @@ const segaFiles=new Set(['segapsg.js','segapsgsynth.js','segapsg_api.js',
   'native_runtime_synth.js','playground_native_primary.js','tetorica_synth.js',
   'playground_runtime.js','playground_logic_worker.js','playground_performance_processor.js']);
 const megaCdVersion='audio-numeric-bindings-1';
+const nesVersion='nes-wasm-1';
+const nesFiles=new Set(['nesapu.js','nesapu_wasm.js','playground_nes_audio.js','playground_nes_worklet.js',
+  'soundchip.js','soundchip-output-worklet.js']);
 const megaCdFiles=new Set(['ym2612.js','segapsg.js','playground_runtime.js','playground_logic_worker.js','playground_live.js',
   'playground_chip_clock.js','playground_audition_guard.js','playground_keyboard_channels.js','playground_opn_inspector.js',
   'ym2612-worklet.js','ym2612-worklet-nuked.js','ym2203-worklet.js','ym2608-worklet.js','ym2610b-worklet.js',
@@ -100,6 +103,16 @@ do {
     if(imports.some(match=>audioFiles.has(match[1]))) {audioFiles.add(name);propagated=true;}
   }
 } while(propagated);
+do {
+  propagated=false;
+  for(const {name,source} of sources) {
+    if(nesFiles.has(name))continue;
+    const runtimeSource=source.replace(/\/\*[\s\S]*?\*\//g,'');
+    const imports=[...runtimeSource.matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+    if(imports.some(match=>nesFiles.has(match[1]))) {nesFiles.add(name);propagated=true;}
+  }
+} while(propagated);
+nesFiles.add('playground.js');
 do {
   propagated=false;
   for(const {name,source} of sources) {
@@ -141,11 +154,12 @@ const pageRevisions={'playground.js':megaCdVersion,'playground_audio_input.js':m
   ...Object.fromEntries(['playground.js','playground_mode_keyboard.js','playground_operator_keyboard.js',
     'playground_chip_tabs.js','playground_nes_voice_panel.js','playground_ui.js','playground_workbench.js',
     'playground_tfi_editor.js'].map(name=>[name,'operator-tab-keyboard-1']))};
-const revisionFor=name=>pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const revisionFor=name=>nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...Object.keys(pageRevisions),
   ...segaFiles,
   ...megaCdFiles,
+  ...nesFiles,
   ...audioFiles,
   ...pcmFiles,
   ...nativeFiles,
@@ -180,7 +194,9 @@ for(const currentDirectory of [directory,join(directory,'../playground')])for(co
     .replace(/(['"])((?:(?:\.\.?\/)+generated\/)?segapsg_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v='+segaVersion+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
-      (_match,quote,path)=>quote+path+'?v=spc-events-1'+quote);
+      (_match,quote,path)=>quote+path+'?v=spc-events-1'+quote)
+    .replace(/(['"])((?:\.\.?\/)+generated\/nesapu_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
+      (_match,quote,path)=>quote+path+'?v='+nesVersion+quote);
   if(next!==source){await writeFile(path,next);changed++;}
 }
 console.log('Versioned Playground browser runtime references in '+changed+' modules ('+version+').');

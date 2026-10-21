@@ -1,8 +1,8 @@
 /** NES + FDS controls for the callback-owned Native core; no audio bridge. */
-import {NesApuSynth} from './nesapusynth.js?v=audio-numeric-bindings-1';
-import {NES_APU_CLOCK} from './nesapu.js';
+import {NesApuSynth} from './nesapusynth.js?v=nes-wasm-1';
+import {NES_APU_CLOCK} from './nesapu.js?v=nes-wasm-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=audio-numeric-bindings-1';
+import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=nes-wasm-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 
 const integer=(value,max,name)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`Invalid NES ${name}`);return value;};
@@ -79,6 +79,7 @@ export function createNativeGenesisNes(synth){
     if(typeof snapshot.fdsActive==='boolean'){result.fds.active=snapshot.fdsActive;result.channels[5].active=snapshot.fdsActive;}
     return result;
   }
+  /** @param {{after?:number}} [options] */
   async function read({after}={}){const token=capture(),snapshot=await synth.nativeRequest('native_genesis_nes_status',after===undefined?{}:{after});current(token);return adopt(snapshot);}
   async function dispatch(message,timing={}){
     const token=capture();if(message.method==='dispose')return message.id===undefined?undefined:{id:message.id,value:true};

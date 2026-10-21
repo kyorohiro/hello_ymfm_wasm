@@ -30,6 +30,7 @@ export function nativeGenesisNoiseMessage(message,{namespace,sampleRate}) {
   }
 }
 
+/** @param {{send:(message:any)=>void, getSampleRate?:()=>number}} [options] */
 export function createNativeGenesisNoise({send,getSampleRate=()=>48000}={}) {
   if(typeof send!=='function')throw new TypeError('Native noise requires an ordered sender');
   let resetting=false;

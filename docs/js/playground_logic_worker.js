@@ -3,8 +3,8 @@ import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1'
 import {createPerformanceSender} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNesClient} from './playground_nes.js?v=audio-numeric-bindings-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=audio-numeric-bindings-1';
+import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=nes-wasm-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
 import {OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';

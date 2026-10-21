@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as immediate} from 'node:timers/promises';
-import {NativeRuntimeSynth} from './native_runtime_synth.js';
 import {SnesSynth} from './snessynth.js';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js';
+
+// Browser audio helpers capture fetch when imported. Route that captured
+// function into each deterministic device harness without fetching file: URLs.
+const browserFetch=globalThis.fetch;
+let fetchAsset;
+globalThis.fetch=(...args)=>fetchAsset?fetchAsset(...args):browserFetch(...args);
+const {NativeRuntimeSynth}=await import('./native_runtime_synth.js');
+globalThis.fetch=browserFetch;
 
 const deferred = () => { let resolve; return {promise:new Promise(done => { resolve = done; }), resolve:() => resolve()}; };
 async function until(predicate) {
@@ -14,6 +21,7 @@ async function until(predicate) {
 /** Real client MessageChannels, with deterministic device/module boundaries. */
 function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' : chip, stereoEnabled = true,ym2413=false,opllOptions,ayOptions,oplOptions} = {}) {
   const previous = globalThis.AudioWorkletNode;
+  const previousFetchAsset=fetchAsset;
   const gate = deferred(), nodes = [], fetches = [], moduleLoads = [], ports = new Set();
   let reached = false, contextCloses = 0;
   const graphNode = () => ({connections:[], connect(node) { this.connections.push(node); }, disconnect() { this.connections.length = 0; }});
@@ -28,6 +36,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
     if (stage === 'fetch' && String(url).includes(target === 'snes' ? 'spc' : target)) { reached = true; await gate.promise; }
     return {ok:true, arrayBuffer:async () => new ArrayBuffer(1)};
   };
+  fetchAsset=fetchBytes;
   globalThis.AudioWorkletNode = class {
     constructor(audioContext, name, options) {
       this.context = audioContext; this.name = name; this.options = options; this.messages = []; this.connections = [];
@@ -60,7 +69,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
   };
   const synth = new NativeRuntimeSynth({chip, audioContext:context, fetch:fetchBytes, extraOki:{fetch:fetchBytes}, stereoEnabled,ym2413,opllOptions,ayOptions,oplOptions});
   t.after(async () => {
-    gate.resolve(); await synth.close(); for (const port of ports) port.close(); globalThis.AudioWorkletNode = previous;
+    gate.resolve(); await synth.close(); for (const port of ports) port.close(); globalThis.AudioWorkletNode = previous;fetchAsset=previousFetchAsset;
   });
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }

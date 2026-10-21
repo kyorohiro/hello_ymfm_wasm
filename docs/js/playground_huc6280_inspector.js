@@ -9,7 +9,7 @@ function identity(v){if(typeof v!=='string'||!v.length||v.length>128)throw new T
 
 /** Applied register/RAM mirror. No reads advance the chip or change its latch. */
 export class Huc6280VoiceInspector {
-  /** @param {import('./playground_native_voice_inspector.js?v=audio-numeric-bindings-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {import('./playground_native_voice_inspector.js?v=nes-wasm-1').NativeVoiceInspectorOptions} [options] */
   constructor({clock=()=>3579545,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.clock=typeof clock==='function'?clock:()=>clock;this.sampleRate=sampleRate;this.dispatch=dispatch;this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();
   }

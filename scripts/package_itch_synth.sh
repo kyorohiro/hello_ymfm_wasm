@@ -48,6 +48,7 @@ playground_chip_inspector_state.js
 soundchip_pitch.js
 playground_chip_clock.js
 nesapu.js
+nesapu_wasm.js
 nesapuaudioengine.js
 fds_audio.js
 rf5c164.js
@@ -216,6 +217,7 @@ for chip in jsnes fixnes-fds; do
   cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
 done
 cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
+node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.js" "${STAGE_DIR}/generated/ym2612_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/ym2612_wasm.wasm" "${STAGE_DIR}/generated/ym2612_wasm.wasm"
@@ -223,6 +225,8 @@ cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.js" "${STAGE_DIR}/generated/nuked_op
 cp "${SOURCE_GENERATED_DIR}/nuked_opn2_wasm.wasm" "${STAGE_DIR}/generated/nuked_opn2_wasm.wasm"
 cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.js" "${STAGE_DIR}/generated/segapsg_wasm.js"
 cp "${SOURCE_GENERATED_DIR}/segapsg_wasm.wasm" "${STAGE_DIR}/generated/segapsg_wasm.wasm"
+cp "${SOURCE_GENERATED_DIR}/nesapu_wasm.js" "${STAGE_DIR}/generated/nesapu_wasm.js"
+cp "${SOURCE_GENERATED_DIR}/nesapu_wasm.wasm" "${STAGE_DIR}/generated/nesapu_wasm.wasm"
 for chip in ym2203 ym2608 rf5c164; do
   if [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" ] && [ -f "${SOURCE_GENERATED_DIR}/${chip}_wasm.wasm" ]; then
     cp "${SOURCE_GENERATED_DIR}/${chip}_wasm.js" "${STAGE_DIR}/generated/${chip}_wasm.js"
@@ -243,6 +247,7 @@ cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
+NES/FDS shared WASM port: Apache-2.0 and MIT. See licenses/tetorica-nes/ and sources/NES-FDS.md for source, authors and rebuilding.
 Virtual filesystem: tetorica-virtual-files core, BSD-3-Clause. See licenses/tetorica-virtual-files/.
 Cassette ZIP: fflate, MIT. See playground/vendor/fflate-LICENSE.
 

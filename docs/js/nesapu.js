@@ -1,16 +1,19 @@
 import {NesApuAudioEngine, validateNesApuClock} from './nesapuaudioengine.js';
 export {validateNesApuClock};
 export const NES_APU_CLOCK = 1789773;
-/** NES APU with optional FDS. JavaScript cores; no CPU, cartridge or ROM required. */
+/** NES APU with optional FDS. `new` retains the synchronous JavaScript reference
+ * core; asynchronous create() uses the shared Native/WASM core by default. */
 export class NesApu {
   /** @param {{clock?: number, sampleRate?: number, fds?: boolean}} [options] */
   constructor({clock = NES_APU_CLOCK, sampleRate = 44100, fds = false} = {}) {
     this.clock = clock; this.fdsEnabled = Boolean(fds); this.disposed = false; this.enableMask = 0;
+    this.backend = 'javascript';
     this.engine = new NesApuAudioEngine({clock, outputSampleRate: sampleRate, fds});
     this.clearHistory();
   }
-  /** @param {{clock?: number, sampleRate?: number, fds?: boolean}} [options] */
-  static async create(options = {}) {return new NesApu(options);}
+  /** @param {import('./soundchip.js?v=nes-wasm-1').SoundChipOptions} [options]
+   * @returns {Promise<import('./nesapu_wasm.js?v=nes-wasm-1').NesApuWasm>} */
+  static async create(options = {}) {options.signal?.throwIfAborted();const {NesApuWasm}=await import('./nesapu_wasm.js?v=nes-wasm-1');return NesApuWasm.create(options);}
   clearHistory() {
     // Seed the integer core's filter at the silent DAC baseline, without advancing time.
     this.engine.apu.prevSampleL = this.engine.apu.prevSampleR = -this.engine.apu.dcValue;

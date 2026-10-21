@@ -40,7 +40,7 @@ import {
 } from "../js/megasynth.js?v=audio-numeric-bindings-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=audio-numeric-bindings-1";
+} from "../js/tetorica_synth.js?v=nes-wasm-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -85,7 +85,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=audio-numeric-bindings-1";
+} from "../js/playground_runtime.js?v=nes-wasm-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=audio-numeric-bindings-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
@@ -277,7 +277,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 }
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=audio-numeric-bindings-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=nes-wasm-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',

@@ -89,6 +89,12 @@ WASM の独自 factory 関数を Worklet に送ることはできないため、
 `execution` を省略した `createSoundChip()` は従来どおり呼び出し元で WASM を作る。
 Game Boy と Genesis PSG も `createSoundChip('gameboy')` / `createSoundChip('segapsg')` で生成できる。
 
+NES＋FDSも`await createSoundChip('nes', {fds:true})`でWASMを生成する。
+Native版と共通のC++コアを使い、Direct／Workletとも既存の`NesApuSynth`とTransportを使える。
+WASMの読込み失敗はエラーにし、JS音源への自動切替は行わない。
+同期的な`new NesApu(...)`は従来のJS音源として互換性・比較用に残す。
+通常の非同期APIを使う場合、CPUプログラム・ゲームROM・音色ROMは不要。
+
 ```js
 import {YM2612AudifyTransport} from 'tetorica-fm2612/node/transports';
 const chip = await createSoundChip('ym2612');

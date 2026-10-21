@@ -117,7 +117,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
     // Keep complete relative filenames so the website versioner can invalidate
     // each processor together with the modules it imports.
-    const worklet = {nes:'./playground_nes_worklet.js?v=audio-numeric-bindings-1',snes:'./playground_snes_worklet.js?v=audio-numeric-bindings-1',x68000:'./playground_ym2151_worklet.js?v=audio-numeric-bindings-1',huc6280:'./playground_huc6280_worklet.js?v=audio-numeric-bindings-1'}[mode.chip];
+    const worklet = {nes:'./playground_nes_worklet.js?v=nes-wasm-1',snes:'./playground_snes_worklet.js?v=audio-numeric-bindings-1',x68000:'./playground_ym2151_worklet.js?v=audio-numeric-bindings-1',huc6280:'./playground_huc6280_worklet.js?v=audio-numeric-bindings-1'}[mode.chip];
     const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
     return {chip:mode.chip,clock:mode.clock,fds:mode.chip === 'nes',
       workletUrl:new URL(worklet,base).href,
@@ -127,7 +127,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   }
   if (mode.chip === 'gameboy') return {
     chip:mode.chip,
-    workletUrl:new URL('./playground_gameboy_worklet.js?v=audio-numeric-bindings-1', base).href,
+    workletUrl:new URL('./playground_gameboy_worklet.js?v=nes-wasm-1', base).href,
     wasmUrl:new URL('gameboy_apu_wasm.wasm', generated).href,
     segaPsgWasmUrl:null,
     megaCD:false,

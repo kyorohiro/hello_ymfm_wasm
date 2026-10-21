@@ -15,7 +15,7 @@ import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js';
 
 async function setup(file) {
   let Type;const messages=[],rate=48000;
-  const chip={value:0,clock:4000000,frame:0,sampleRate:()=>rate,
+  const chip={backend:'wasm',value:0,clock:4000000,frame:0,sampleRate:()=>rate,
     reset(){this.value=0;},dispose(){this.disposed=true;},
     writeRegister(_register,value){this.value=value;},
     write(address,value){if(arguments.length===1)this.value=address;else if(address&1)this.value=value;},
@@ -28,8 +28,8 @@ async function setup(file) {
   class SyncChip {constructor(){return chip;}static async create(){return chip;}}
   class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;}});}}
   const scope={OpnKeyboardInspector,createOpnAuditionGuard,Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
-    NesApu:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,Ay8910:SyncChip,Ym2413:SyncChip,Ym3526:SyncChip,Ym3812:SyncChip,Y8950:SyncChip,Ymf262:SyncChip,
-    Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},ay8910Factory:{},ym2413Factory:{},ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},gameboyFactory:{},psgFactory:{},
+    NesApuWasm:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,Ay8910:SyncChip,Ym2413:SyncChip,Ym3526:SyncChip,Ym3812:SyncChip,Y8950:SyncChip,Ymf262:SyncChip,
+    Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},nesFactory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},ay8910Factory:{},ym2413Factory:{},ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},gameboyFactory:{},psgFactory:{},
     createRf5c164Control:()=>({reset:()=>chip.reset(),writeRegister:(reg,value)=>chip.writeRegister(reg,value),dispose:()=>chip.dispose()}),
     createSoundChipFactory:()=>async()=>chip,ChipPCMRenderer:class{render(n){return chip.generateStereo(n);}renderInto(left,right,offset=0,frames=left.length-offset){const pcm=chip.generateStereo(frames);left.set(pcm.left,offset);right.set(pcm.right,offset);}resetHistory(){}},
     YM2612DirectTransport:class{},YM2612DacPlayer:class{},performanceNoteRelease,
@@ -80,6 +80,15 @@ for(const [file,command,readValue,expected]of[
   assert.equal(readValue(read()),before,'scheduled values must not masquerade as applied register state');
   p.render(4);assert.equal(readValue(read()),before,'reading must not drain the performance queue');
   p.render(2);assert.equal(readValue(read()),expected);
+  p.processor.receive({method:'dispose'},p.port);
+});
+
+test('generic NES Worklet exposes applied snapshots and reports the WASM backend without draining future commands',async()=>{
+  const p=await setup('./soundchip-output-worklet.js');
+  assert.equal(p.messages.find(message=>message.type==='ready').backend,'wasm');
+  p.enqueue({method:'writeRegister',args:[0x4000,7]},3);
+  p.processor.receive({method:'getState',id:41},p.port);const response=p.messages.at(-1);assert.equal(response.type,'response');assert.equal(response.id,41);assert.equal(response.value.currentFrame,0);assert.equal(p.chip.value,0);
+  p.render(4);p.processor.receive({method:'getState',id:42},p.port);assert.equal(p.messages.at(-1).value.currentFrame,4);assert.equal(p.chip.value,7);
   p.processor.receive({method:'dispose'},p.port);
 });
 

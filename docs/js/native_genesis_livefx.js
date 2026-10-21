@@ -31,7 +31,12 @@ export function nativeGenesisLiveFxMessage(message) {
 
 const empty=()=>Object.freeze({active:0,initialized:false,latencyFrames:0,blockFrames:128,underruns:0,overruns:0,queuedCommands:0,error:null});
 /** Low-frequency control diagnostics. Does not share the audio command queue,
- * reanchor its clock, transfer PCM or create an AudioContext/AudioNode. */
+ * reanchor its clock, transfer PCM or create an AudioContext/AudioNode.
+ * @param {{invoke:(command:string,args?:object)=>Promise<any>, getSession:()=>number|null,
+ * getGeneration:()=>number, isReady:()=>boolean, onChange?:(status:any)=>void,
+ * onError?:(message:string)=>void, now?:()=>number, setTimer?:typeof setTimeout,
+ * clearTimer?:typeof clearTimeout}} [options]
+ */
 export function createNativeGenesisLiveFxStatus({invoke,getSession,getGeneration,isReady,
   onChange=()=>{},onError=()=>{},now=()=>performance.now(),setTimer=setTimeout,clearTimer=clearTimeout}={}) {
   let current=empty(),timer=null,inflight=null,watching=false,epoch=0,watchRevision=0,watchUntil=0;

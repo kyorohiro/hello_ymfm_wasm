@@ -193,6 +193,7 @@ playground_opl_audio.js
 playground_opl_worklet.js
 playground_opl_inspector.js
 nesapu.js
+nesapu_wasm.js
 nesapusynth.js
 nesapuaudioengine.js
 fds_audio.js
@@ -330,6 +331,8 @@ synth_keyboard.js
 "
 
 GENERATED_FILES="
+nesapu_wasm.js
+nesapu_wasm.wasm
 ay8910_wasm.js
 ay8910_wasm.wasm
 ym2413_wasm.js
@@ -457,6 +460,7 @@ for chip in jsnes fixnes-fds; do
 done
 
 cp "${ROOT_DIR}/third_party/jsnes/AUTHORS.md" "${STAGE_DIR}/licenses/jsnes/"
+node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 
 for file in ${SYNTH_SUPPORT_FILES}; do
   src="${DOCS_SYNTH_DIR}/${file}"
@@ -522,6 +526,7 @@ Browser Git: isomorphic-git and bundled dependencies. See js/tetorica_virtual_fi
 
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
+The default NES/FDS WASM uses the shared C++ port. See licenses/tetorica-nes/ and sources/NES-FDS.md for source and rebuilding.
 
 DX7: tetorica-msfa-dx7-wasm 0.1.0 / Google MSFA, Apache-2.0.
 See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.

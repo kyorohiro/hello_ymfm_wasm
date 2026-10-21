@@ -3,21 +3,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
-import {NesApu} from './nesapu.js';
+import {NesApuWasm} from './nesapu_wasm.js';
 import {createNesClient} from './playground_nes.js';
 import {NesApuSynth} from './nesapusynth.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {NesVoiceInspector} from './playground_native_voice_inspector.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
+import factory from '../docs/generated/nesapu_wasm.js';
 async function setup(fds, sampleRate) {
   let Processor;
   const source = (await readFile(new URL('./playground_nes_worklet.js', import.meta.url), 'utf8')).replace(/^import .*;$/gm, '');
-  vm.runInNewContext(source, {NesVoiceInspector,receiveChipInspector,CHIP_CLOCKS, ChipClockResampler,NesApu, sampleRate,
+  vm.runInNewContext(source, {factory,NesVoiceInspector,receiveChipInspector,CHIP_CLOCKS, ChipClockResampler,NesApuWasm, sampleRate,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:sampleRate,nowFrame:()=>0}),
     AudioWorkletProcessor: class {constructor() {this.port = {postMessage() {}};}},
     registerProcessor: (_, value) => {Processor = value;},
   });
-  const processor = new Processor({processorOptions: {fds}});
+  const processor = new Processor({processorOptions: {fds,wasmBinary:await readFile(new URL('../docs/generated/nesapu_wasm.wasm',import.meta.url))}});
+  await processor.initializing;assert.equal(processor.chip?.backend,'wasm');
   const port = {start() {}, close() {}, postMessage(data) {
     processor.receive(data, {postMessage(reply) {queueMicrotask(() => port.onmessage({data: reply}));}});
   }};

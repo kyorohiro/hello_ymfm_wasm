@@ -8,22 +8,23 @@ import {createProcessorPerformance} from './playground_performance_processor.js'
 import {CHIP_CLOCKS,ChipClockResampler,validateChipClock} from './playground_chip_clock.js';
 import {GameboyApu} from './gameboyapu.js';
 import {GameboySynth} from './gameboysynth.js';
-import {NesApu} from './nesapu.js';
+import {NesApuWasm} from './nesapu_wasm.js';
 import {NesApuSynth} from './nesapusynth.js';
 import {createNesClient} from './playground_nes.js';
 import {createNativeWorkerApis} from './playground_native_primary.js';
 import {NativeRuntimeSynth} from './native_runtime_synth.js';
 import factory from '../docs/generated/gameboy_apu_wasm.js';
+import nesFactory from '../docs/generated/nesapu_wasm.js';
 
 const RATE=48000,peak=values=>values.reduce((p,v)=>Math.max(p,Math.abs(v)),0);
 async function setup(kind){
   let Processor,frame=0;const messages=[];
   const port={postMessage:m=>messages.push(m)};
   const source=(await readFile(new URL(`./playground_${kind}_worklet.js`,import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
-  vm.runInNewContext(source,{GameboyVoiceInspector,NesVoiceInspector,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,validateChipClock,GameboyApu,NesApu,factory,sampleRate:RATE,
+  vm.runInNewContext(source,{GameboyVoiceInspector,NesVoiceInspector,receiveChipInspector,CHIP_CLOCKS,ChipClockResampler,validateChipClock,GameboyApu,NesApuWasm,factory:kind==='nes'?nesFactory:factory,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),
     AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Processor=Value});
-  const processor=new Processor({processorOptions:{fds:true,...(kind==='gameboy'?{wasmBinary:await readFile(new URL('../docs/generated/gameboy_apu_wasm.wasm',import.meta.url))}:{})}});
+  const processor=new Processor({processorOptions:{fds:true,wasmBinary:await readFile(new URL(`../docs/generated/${kind==='nes'?'nesapu':'gameboy_apu'}_wasm.wasm`,import.meta.url))}});
   for(let i=0;i<100&&!messages.some(m=>m.ready||m.error);i++)await new Promise(r=>setTimeout(r,1));
   assert(messages.some(m=>m.ready),JSON.stringify(messages));
   const transport={clock:CHIP_CLOCKS[kind],fdsEnabled:true,writeRegister:(...args)=>processor.receive({method:'writeRegister',args},port),setChannelEnabled:(...args)=>processor.receive({method:'setChannelEnabled',args},port),reset:()=>processor.receive({method:'reset',args:[]},port),loadMemory:(...args)=>processor.receive({method:'loadMemory',args},port)};

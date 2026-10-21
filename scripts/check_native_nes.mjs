@@ -14,9 +14,19 @@ const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const option=name=>{const index=process.argv.indexOf(name);assert(index<0||process.argv[index+1],`${name} requires a value`);return index<0?null:process.argv[index+1];};
 let fixture=option('--fixture'),temporary;
 const reportPath=option('--out'),rates=[44100,48000,96000];
+const withWasm=process.argv.includes('--wasm');
 const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),rates,cases:[],maximumDifference:0,totalStereoFrames:0,
   reference:'Current NesApu / JSNES APU and fixNES FDS JavaScript, including Float32 interstage rounding and output filters.',
   limits:'Direct core PCM and the shared outer clock adapter. Whole-bus FX, scheduling, ownership and UI are tested separately.'};
+let wasm,wasmOutput=0,wasmUpload=0;
+if(withWasm){
+  const {default:factory}=await import('../docs/generated/nesapu_wasm.js');
+  wasm=await factory({wasmBinary:await fs.readFile(path.join(root,'docs/generated/nesapu_wasm.wasm'))});
+  wasmOutput=wasm._malloc(8);wasmUpload=wasm._malloc(65536);
+  assert(wasmOutput&&wasmUpload,'WASM fixture buffers must be allocated');
+  report.implementations=['native-cpp','wasm','javascript-reference'];
+  report.wasmMaximumDifference=0;report.wasmNativeMaximumDifference=0;
+}
 
 const cases=[];
 function scenario(name,build,{frames=6144,fds=true,clock=1789773,sounding=true}={}){
@@ -134,7 +144,9 @@ try{
       input:sorted.map(eventText).join('\n')+'\n',maxBuffer:scenario.frames*8+1048576,timeout:30000});
     assert.equal(bytes.length,scenario.frames*8,'Native fixture must return every stereo frame');
     const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4),chip=new NesApu({sampleRate:rate,clock:scenario.clock,fds:scenario.fds});
-    let next=0,resampler,maximumDifference=0,peak=0,firstDifference;
+    const wasmHandle=wasm?wasm._native_nes_create(rate,scenario.clock,Number(scenario.fds)):0;
+    if(wasm)assert(wasmHandle,'WASM fixture must create a NES core');
+    let next=0,resampler,maximumDifference=0,peak=0,firstDifference,wasmMaximumDifference=0,wasmNativeMaximumDifference=0;
     const registers=new Uint8Array(0x90),left=new Float32Array(1),right=new Float32Array(1);
     try{
       for(let frame=0;frame<scenario.frames;frame++){
@@ -148,22 +160,40 @@ try{
           else if(op==='reset'){chip.reset();registers.fill(0);resampler?.resetPhase();}
           else if(op==='stop'){for(let ch=0;ch<5;ch++)chip.setChannelEnabled(ch,false);if(scenario.fds){chip.writeRegister(0x4083,registers[0x83]|128);chip.writeRegister(0x4080,128);registers[0x83]|=128;registers[0x80]=128;}}
           else throw Error('Unknown reference event '+op);
+          if(wasm){
+            if(op==='write')wasm._native_nes_write(wasmHandle,...args);
+            else if(op==='enable')wasm._native_nes_enable(wasmHandle,...args);
+            else if(op==='load'){wasm.HEAPU8.set(args[1],wasmUpload);assert.equal(wasm._native_nes_load(wasmHandle,wasmUpload,args[0],args[1].length),1);}
+            else if(op==='mute')wasm._native_nes_set_mute(wasmHandle,args[0]);
+            else if(op==='clock')assert.equal(wasm._native_nes_set_clock(wasmHandle,args[0]),1);
+            else if(op==='reset')wasm._native_nes_reset(wasmHandle);
+            else if(op==='stop')wasm._native_nes_stop(wasmHandle);
+          }
         }
         let expected;
         if(resampler){resampler.render(chip,left,right);expected=[left[0],right[0]];}
         else{const pcm=chip.generateStereo(1);expected=[pcm.left[0],pcm.right[0]];}
+        if(wasm)wasm._nesapu_generate(wasmHandle,wasmOutput,wasmOutput+4,1);
         for(let ch=0;ch<2;ch++){
           const value=actual[frame*2+ch];assert(Number.isFinite(value),'Native NES must produce finite PCM');
           const difference=Math.abs(value-expected[ch]);maximumDifference=Math.max(maximumDifference,difference);peak=Math.max(peak,Math.abs(value));
           if(difference>1e-7&&!firstDifference)firstDifference={frame,ch,actual:value,expected:expected[ch]};
+          if(wasm){
+            const sample=wasm.HEAPF32[(wasmOutput>>>2)+ch];assert(Number.isFinite(sample),'WASM NES must produce finite PCM');
+            wasmMaximumDifference=Math.max(wasmMaximumDifference,Math.abs(sample-expected[ch]));
+            wasmNativeMaximumDifference=Math.max(wasmNativeMaximumDifference,Math.abs(sample-value));
+          }
         }
       }
       assert(maximumDifference<=1e-7,`${rate} Hz ${scenario.name}: PCM difference ${maximumDifference}, first ${JSON.stringify(firstDifference)}`);
+      if(wasm){assert(wasmMaximumDifference<=1e-7,`${rate} Hz ${scenario.name}: WASM/JS difference ${wasmMaximumDifference}`);assert(wasmNativeMaximumDifference<=1e-7,`${rate} Hz ${scenario.name}: WASM/Native difference ${wasmNativeMaximumDifference}`);}
       if(scenario.sounding)assert(peak>1e-4,scenario.name+' must contain sounding PCM');
-      report.cases.push({name:scenario.name,sampleRate:rate,baseClock:scenario.clock,fds:scenario.fds,frames:scenario.frames,maximumDifference,peak});
+      report.cases.push({name:scenario.name,sampleRate:rate,baseClock:scenario.clock,fds:scenario.fds,frames:scenario.frames,maximumDifference,peak,...(wasm?{wasmMaximumDifference,wasmNativeMaximumDifference}:{})});
+      if(wasm){report.wasmMaximumDifference=Math.max(report.wasmMaximumDifference,wasmMaximumDifference);report.wasmNativeMaximumDifference=Math.max(report.wasmNativeMaximumDifference,wasmNativeMaximumDifference);}
       report.maximumDifference=Math.max(report.maximumDifference,maximumDifference);report.totalStereoFrames+=scenario.frames;
-    }finally{chip.dispose();}
+    }finally{chip.dispose();if(wasmHandle)wasm._native_nes_destroy(wasmHandle);}
   }
   report.status='passed';if(reportPath)await fs.writeFile(reportPath,JSON.stringify(report,null,2)+'\n');
   console.log(`Native NES/FDS: ${report.cases.length} cases, ${report.totalStereoFrames} stereo frames, maximum difference ${report.maximumDifference}`);
-}finally{if(temporary)await fs.rm(temporary,{recursive:true,force:true});}
+  if(wasm)console.log(`WASM NES/FDS: maximum difference vs JS ${report.wasmMaximumDifference}, vs Native ${report.wasmNativeMaximumDifference}`);
+}finally{if(wasm){wasm._free(wasmOutput);wasm._free(wasmUpload);}if(temporary)await fs.rm(temporary,{recursive:true,force:true});}

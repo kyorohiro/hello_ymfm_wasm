@@ -3,7 +3,7 @@ import {PWM32XPlayback} from './pwm32x_playback.js?v=audio-numeric-bindings-1';
 
 /** Main-side command API; chip rendering and the schedule live in AudioWorklet. */
 export class PWM32XWorkletTransport {
-  /** @param {import("./soundchip_worklet.js?v=audio-numeric-bindings-1").WorkletSoundChip} chip */
+  /** @param {import("./soundchip_worklet.js?v=nes-wasm-1").WorkletSoundChip} chip */
   constructor(chip) {
     if (chip.execution !== 'worklet' || chip.name !== 'pwm') throw new TypeError('Expected a PWM worklet endpoint');
     this.chip = chip;

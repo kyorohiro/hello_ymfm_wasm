@@ -9,7 +9,10 @@ import {createOfflineAudioDecoder} from './audio_decode.js';
 const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`Invalid ${name}`);return v;};
 const abort=()=>new DOMException('Native PCM operation was cancelled','AbortError');
 
-/** Shared Main/Worker endpoint; all masks and register batches have one author. */
+/** Shared Main/Worker endpoint; all masks and register batches have one author.
+ * @param {any} synth
+ * @param {{decodeAudio?:(bytes:ArrayBuffer)=>Promise<any>, fetcher?:typeof globalThis.fetch}} [options]
+ */
 export function createNativeGenesisRf5c164(synth,{decodeAudio=createOfflineAudioDecoder({getSampleRate:()=>synth.clock.sampleRate}),fetcher=globalThis.fetch?.bind(globalThis)}={}) {
   let clock=CHIP_CLOCKS.rf5c164,collecting=null,nextVoice=0;
   const auditionVoices=new Map();
@@ -53,6 +56,7 @@ export function createNativeGenesisRf5c164(synth,{decodeAudio=createOfflineAudio
   const client={
     id:'rf5c164',
     loadMemory(bytes,address=0){return perform('loadMemory',[sampleBytes(bytes).slice(),address]);},
+    /** @param {any} source @param {{address?:number,loopStart?:number,endGuardBytes?:number}} [options] */
     async loadSample(source,{address=0,loopStart,endGuardBytes=0}={}) {
       const token=capture();integer(address,65535,'address');integer(endGuardBytes,65536,'endGuardBytes');
       if(address%256)throw new RangeError('Start must be 256-byte aligned');
@@ -114,6 +118,7 @@ export function createNativeGenesisRf5c164(synth,{decodeAudio=createOfflineAudio
       }
       await perform(method,args);return true;
     },
+    /** @param {any} source @param {{name?:string,address?:number,loopStart?:number}} [options] */
     async loadSample(source,options={}) {
       const token=capture();const selected={name:options.name??'Sample',address:options.address,loopStart:options.loopStart};
       if(typeof selected.name!=='string'||!selected.name.length||selected.name.length>256)throw new TypeError('Sample name must contain 1..256 characters');

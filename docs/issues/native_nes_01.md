@@ -1,8 +1,8 @@
 # NES＋FDSのNative音声対応
 
 2026-10-22。TauriのNativeバックエンドへ、現在のNES APU＋FDSを移植する。
-今回はNative対応を先に完成させる。Browser版の音源は現在のJSを維持し、比較基準として使う。
-同じC++コアのWASM化は後続の候補とする。
+Native対応を先に完成させ、この時点ではBrowser版のJSを比較基準として維持した。
+その後のBrowser／packageへのWASM対応は[作業記録](nes_wasm_01.md)にまとめる。
 
 ## 音源コア
 

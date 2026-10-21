@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSoundChip} from './soundchip.js';
 import {NesApuSynth,NesApuDirectTransport,NesApuWorkletTransport} from './nesapusynth.js';
+import {NesApu} from './nesapu.js';
 
 for(const channel of [0,1,2,5])test(`NES/FDS tone ${channel}: A4, off/on, owned PCM`,async()=>{
  const chip=await createSoundChip('nes',{fds:true});const synth=new NesApuSynth({transport:new NesApuDirectTransport(chip)});
@@ -19,8 +20,8 @@ test('noise modes, FDS custom wave/modulation and channel isolation',async()=>{
  const chip=await createSoundChip('nes',{fds:true});const synth=new NesApuSynth({transport:new NesApuDirectTransport(chip)});
  try{
   for(const shortMode of [false,true]){synth.reset();synth.noise.setVoice({volume:10,period:5,shortMode});synth.noise.noteOn();assert.ok(chip.generateStereo(10000).left.some(v=>Math.abs(v)>.01));synth.noise.noteOff();}
-  const wave=Uint8Array.from({length:64},(_,i)=>i);synth.fds.setWave(wave);assert.deepEqual(chip.engine.fds.wave,wave);
-  const mod=Array.from({length:32},(_,i)=>i%8);synth.fds.setModulation({table:mod,rate:120,depth:8,bias:-3});assert.deepEqual([...chip.engine.fds.modulation],mod);
+  const wave=Uint8Array.from({length:64},(_,i)=>i);synth.fds.setWave(wave);assert.deepEqual(chip.getState().wave,[...wave]);
+  const mod=Array.from({length:32},(_,i)=>i%8);synth.fds.setModulation({table:mod,rate:120,depth:8,bias:-3});assert.deepEqual(chip.getState().modulation,mod);
   synth.fds.noteOn('C4');assert.ok(chip.generateStereo(10000).left.some(v=>Math.abs(v)>.01));
   synth.pulse.noteOn(0,'C4');synth.pulse.noteOn(1,'E4');synth.pulse.noteOff(0);assert.equal(chip.enableMask&3,2);
  }finally{chip.dispose();}
@@ -29,10 +30,10 @@ test('DMC owns padded bytes and does not restart completed samples when a pulse 
  const chip=await createSoundChip('nes');const synth=new NesApuSynth({transport:new NesApuDirectTransport(chip)});
  try{
   const input=new Uint8Array(32).fill(0xff);const sample=await synth.dmc.loadSample(input);assert.deepEqual(sample,{address:0xc000,length:33});input.fill(0);
-  assert.equal(chip.engine.memory[0xc000],255);assert.equal(chip.engine.memory[0xc020],0xaa);
-  synth.dmc.play({rate:15});const pcm=chip.generateStereo(5000);assert.ok(pcm.left.some(v=>Math.abs(v)>.001));assert.equal(chip.engine.apu.dmc.playLengthCounter,0);
-  synth.pulse.noteOn(0,'C4');assert.equal(chip.enableMask&16,0);assert.equal(chip.engine.apu.dmc.playLengthCounter,0);
-  synth.dmc.play({rate:8,loop:true});chip.generateStereo(5000);assert.ok(chip.engine.apu.dmc.playLengthCounter>0);synth.dmc.stop();assert.equal(chip.enableMask&16,0);
+  assert.equal(chip.readMemory(0xc000),255);assert.equal(chip.readMemory(0xc020),0xaa);
+  synth.dmc.play({rate:15});const pcm=chip.generateStereo(5000);assert.ok(pcm.left.some(v=>Math.abs(v)>.001));assert.equal(chip.getState().dmcRemaining,0);
+  synth.pulse.noteOn(0,'C4');assert.equal(chip.enableMask&16,0);assert.equal(chip.getState().dmcRemaining,0);
+  synth.dmc.play({rate:8,loop:true});chip.generateStereo(5000);assert.ok(chip.getState().dmcRemaining>0);synth.dmc.stop();assert.equal(chip.enableMask&16,0);
  }finally{chip.dispose();}
 });
 test('invalid NES/FDS parameters fail before writes, and FDS is explicitly enabled',()=>{
@@ -59,14 +60,15 @@ test('source clocks preserve pulse pitch and PAL switches noise, DMC and frame t
    synth.pulse.noteOn(0,'A4');chip.generateStereo(4410);const pcm=chip.generateStereo(44100).left;
    let crossings=0;for(let i=1;i<pcm.length;i++)if(pcm[i-1]<0&&pcm[i]>=0)crossings++;
    assert.ok(Math.abs(crossings-440)<4,`${clock}: ${crossings}`);
-   const apu=chip.engine.apu,steps=[];apu.frameStep=0;apu.frameCycleCounter=0;apu.countSequence=0;
+   // Internal algorithm probes stay on the explicit JavaScript reference.
+   const reference=new NesApu({clock}),apu=reference.engine.apu,steps=[];apu.frameStep=0;apu.frameCycleCounter=0;apu.countSequence=0;
    apu.fireFrameStep=i=>steps.push(i);
    const first=clock<1700000?8313:7457;
    apu._advanceFrameSteps(first-1);assert.equal(steps.length,0);apu._advanceFrameSteps(1);assert.deepEqual(steps,[0]);
    apu.frameStep=0;apu.frameCycleCounter=0;apu.countSequence=1;steps.length=0;
    const period=clock<1700000?41566:37282;apu._advanceFrameSteps(period);assert.deepEqual(steps,[0,1,2,3,4]);assert.equal(apu.frameCycleCounter,0);
    if(clock<1700000){assert.equal(apu.noiseWavelengthLookup[2],14);assert.equal(apu.getDmcFrequency(0),398*8);assert.equal(apu.getDmcFrequency(15),50*8);}else{assert.equal(apu.noiseWavelengthLookup[2],16);assert.equal(apu.getDmcFrequency(0),428*8);}
-   chip.reset();assert.equal(chip.engine.apu.noiseWavelengthLookup[2],clock<1700000?14:16);
+   reference.reset();assert.equal(reference.engine.apu.noiseWavelengthLookup[2],clock<1700000?14:16);reference.dispose();
   }finally{chip.dispose();}
  }
 });

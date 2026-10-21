@@ -24,7 +24,7 @@ export class YM2608DirectTransport extends OPNDirectTransport {
 }
 
 export class YM2608WorkletTransport extends OPNWorkletTransport {
-  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip} endpoint */
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=nes-wasm-1').WorkletSoundChip} endpoint */
   constructor(endpoint) {super(endpoint, {chipName: 'YM2608', portCount: 2});}
 }
 

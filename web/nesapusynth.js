@@ -14,7 +14,7 @@ function table(values,length,max,label){
 }
 /** Owns no chip or audio device. */
 export class NesApuDirectTransport {
- /** @param {import('./nesapu.js').NesApu} chip */
+ /** @param {import('./nesapu.js').NesApu | import('./nesapu_wasm.js').NesApuWasm} chip */
  constructor(chip){this.chip=chip;this.clock=chip.clock;this.fdsEnabled=chip.fdsEnabled;}
  /** @param {number} address @param {number} value */
  writeRegister(address,value){this.chip.writeRegister(address,value);}

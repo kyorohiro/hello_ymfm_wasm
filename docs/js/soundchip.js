@@ -6,7 +6,7 @@ export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js?v=chip-
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
-import {createWorkletSoundChip} from './soundchip_worklet.js?v=audio-numeric-bindings-1';
+import {createWorkletSoundChip} from './soundchip_worklet.js?v=nes-wasm-1';
 import {PWM32X} from './pwm32x.js?v=pcm-views-1';
 export {encodeWav} from './wav.js';
 
@@ -80,7 +80,7 @@ async function loadModule(name, options = {}) {
 const loaders = {
   nes: async options => {
     options.signal?.throwIfAborted();
-    const {NesApu} = await import('./nesapu.js');
+    const {NesApu} = await import('./nesapu.js?v=nes-wasm-1');
     options.signal?.throwIfAborted();
     return NesApu.create(options);
   },
@@ -182,7 +182,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   gameboy: import('./gameboyapu.js?v=audio-stability-2').GameboyApu,
  *   segapsg: import('./segapsg.js?v=audio-numeric-bindings-1').SegaPSG,
  *   pwm: import('./pwm32x.js?v=pcm-views-1').PWM32X,
- *   nes: import('./nesapu.js').NesApu,
+ *   nes: import('./nesapu_wasm.js?v=nes-wasm-1').NesApuWasm,
  *   ay8910: import('./ay8910.js?v=audio-stability-2').Ay8910,
  *   y8950: import('./y8950.js?v=audio-stability-2').Y8950,
  *   ym2610b: import('./ym2610b.js?v=audio-stability-2').Ym2610B,
@@ -205,7 +205,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions & {execution: 'worklet'}} options
- * @returns {Promise<import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip & {name: Name}>}
+ * @returns {Promise<import('./soundchip_worklet.js?v=nes-wasm-1').WorkletSoundChip & {name: Name}>}
  */
 /**
  * @template {keyof SoundChipMap} Name
@@ -219,16 +219,16 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions} options
- * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=audio-numeric-bindings-1').WorkletSoundChip>}
+ * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=nes-wasm-1').WorkletSoundChip>}
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {
   if (options.mixer && options.execution !== 'worklet') return Promise.reject(new Error('An output mixer requires execution: worklet; direct chips generate raw PCM'));
   if (options.execution === 'worklet') {
     if (options.moduleFactory) return Promise.reject(new Error('Worklet execution uses the packaged chip factory'));
-    const moduleName = name === 'gameboy' ? 'gameboy_apu' : name;
+    const moduleName = name === 'gameboy' ? 'gameboy_apu' : name==='nes'?'nesapu':name;
     return createWorkletSoundChip(name, options, async () => {
-      if (name === 'pwm' || name === 'nes') return undefined;
+      if (name === 'pwm') return undefined;
       const loaded = await loadModule(moduleName, options);
       const bytes = loaded.moduleOptions.wasmBinary;
       if (!bytes) throw new Error('Worklet execution requires WASM bytes; use wasmBinary or default asset loading');

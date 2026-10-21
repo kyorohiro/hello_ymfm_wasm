@@ -115,7 +115,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'audio-numeric-bindings-1', `${id} cannot reuse its pre-mode processor URL`);
+    assert.equal(url.searchParams.get('v'), ['gameboy','nes'].includes(id)?'nes-wasm-1':'audio-numeric-bindings-1', `${id} cannot reuse its pre-mode processor URL`);
   }
 });
 

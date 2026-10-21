@@ -8,8 +8,8 @@ import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNesAudio} from './playground_nes_audio.js?v=audio-numeric-bindings-1';
-import {createNesClient} from './playground_nes.js?v=audio-numeric-bindings-1';
+import {createNesAudio} from './playground_nes_audio.js?v=nes-wasm-1';
+import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createDx7Audio} from './playground_dx7_audio.js?v=audio-numeric-bindings-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
 import {createPWM32XAudio} from './playground_pwm_audio.js?v=audio-numeric-bindings-1';
@@ -30,10 +30,10 @@ import {createOpnClient} from './playground_opn.js?v=audio-numeric-bindings-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=audio-numeric-bindings-1';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=nes-wasm-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=audio-numeric-bindings-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=nes-wasm-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=audio-numeric-bindings-1';
 import {createOki6258Audio} from './playground_okim6258_audio.js?v=audio-numeric-bindings-1';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=audio-numeric-bindings-1';
@@ -55,7 +55,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=audio-numeric-bindings-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=audio-numeric-bindings-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=nes-wasm-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=audio-numeric-bindings-1";
@@ -153,7 +153,7 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=audio-numeric-bindings-1', import.meta.url).href
+        (['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=nes-wasm-1', import.meta.url).href
           : options.chip === 'ym2203' ? './ym2203-worklet.js?v=audio-numeric-bindings-1'
           : options.chip === 'ym2608' ? './ym2608-worklet.js?v=audio-numeric-bindings-1'
           : ['ym2610','ym2610b'].includes(options.chip)
@@ -246,7 +246,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=audio-numeric-bindings-1",
+      "./playground_logic_worker.js?v=nes-wasm-1",
       import.meta.url
     );
   const logicWorkerUrl =

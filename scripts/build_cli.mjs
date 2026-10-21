@@ -1,9 +1,10 @@
 // Stage a dependency closure, not a second implementation of the analyzer.
 import { readFile, writeFile, mkdir, cp, rm, chmod, stat } from 'node:fs/promises';
-import { resolve, dirname, relative } from 'node:path';
+import { resolve, dirname, relative, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { copyOpnaRhythm } from './copy_opna_rhythm.mjs';
 import { copySpcSources } from './copy_spc_sources.mjs';
+import { copyNesSources } from './copy_nes_sources.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = resolve(root, 'dist/vgm');
 await rm(out, { recursive:true, force:true });
@@ -33,9 +34,12 @@ async function copy(file) {
     if (spec.endsWith('/')) { await mkdir(resolve(out, relative(root, resolve(dirname(file),spec))), {recursive:true}); continue; }
     if (spec.startsWith('.')) await copy(resolve(dirname(file),spec));
   }
-  if (file.endsWith('_wasm.js')) await copy(file.replace(/\.js$/, '.wasm'));
+  // Runtime adapters such as nesapu_wasm.js are JavaScript modules, not generated loaders.
+  if (file.endsWith('_wasm.js') && basename(dirname(file)) === 'generated') await copy(file.replace(/\.js$/, '.wasm'));
 }
 await copy(resolve(root,'cli/main.js'));
+// The NES adapter resolves its factory dynamically; preserve the staged docs layout.
+await copy(resolve(root,'docs/generated/nesapu_wasm.js'));
 await copyOpnaRhythm(out, 'web');
 // CLI --version works identically in the source tree and staged package.
 const pkg = JSON.parse(await readFile(resolve(root,'packages/vgm/package.json'),'utf8'));
@@ -52,3 +56,4 @@ console.error(`Staged ${seen.size} dependency files in dist/vgm/`);
 
 await cp(resolve(root,'third_party/fixnes-fds'),resolve(out,'licenses/fixnes-fds'),{recursive:true});
 await copySpcSources(out);
+await copyNesSources(out);

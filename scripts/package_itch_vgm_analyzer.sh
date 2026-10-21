@@ -120,6 +120,7 @@ playground_audition_guard.js
 playground_performance_queue.js
 playground_performance_processor.js
 nesapu.js
+nesapu_wasm.js
 nesapusynth.js
 soundchip.js
 soundchip_factory.js
@@ -218,6 +219,8 @@ ym2612_dac.js
 "
 
 GENERATED_FILES="
+nesapu_wasm.js
+nesapu_wasm.wasm
 spc_wasm.js
 spc_wasm.wasm
 huc6280_wasm.js
@@ -398,7 +401,11 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+NES APU: JSNES, Apache-2.0. See licenses/jsnes/ for authors and licenses.
+FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
+NES/FDS shared WASM port: Apache-2.0 and MIT. See licenses/tetorica-nes/ and sources/NES-FDS.md for source and rebuilding.
 SNES SPC700 / S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
 AY-3-8910 / YM2149: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 

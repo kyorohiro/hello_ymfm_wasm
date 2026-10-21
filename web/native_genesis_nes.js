@@ -79,6 +79,7 @@ export function createNativeGenesisNes(synth){
     if(typeof snapshot.fdsActive==='boolean'){result.fds.active=snapshot.fdsActive;result.channels[5].active=snapshot.fdsActive;}
     return result;
   }
+  /** @param {{after?:number}} [options] */
   async function read({after}={}){const token=capture(),snapshot=await synth.nativeRequest('native_genesis_nes_status',after===undefined?{}:{after});current(token);return adopt(snapshot);}
   async function dispatch(message,timing={}){
     const token=capture();if(message.method==='dispose')return message.id===undefined?undefined:{id:message.id,value:true};

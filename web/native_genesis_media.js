@@ -86,13 +86,19 @@ async function decodeSource(source, fetcher, decodeAudio) {
   return decodedBuffer(await readSamplePCM(source,{decodeAudio}));
 }
 
-/** Shared one-off decoder for native sample banks and RF5C164 RAM uploads. */
+/** Shared one-off decoder for native sample banks and RF5C164 RAM uploads.
+ * @param {any} source
+ * @param {{fetcher?:typeof globalThis.fetch, decodeAudio?:(bytes:ArrayBuffer)=>Promise<any>}} [options]
+ */
 export async function decodeNativeGenesisPCM(source, {fetcher=globalThis.fetch?.bind(globalThis),decodeAudio} = {}) {
   const buffer=await decodeSource(source,fetcher,decodeAudio);
   return {sampleRate:buffer.sampleRate,channels:Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i))};
 }
 
-/** The synth owns ordering, session invalidation, and failure reporting. */
+/** The synth owns ordering, session invalidation, and failure reporting.
+ * @param {any} synth
+ * @param {{fetch?:typeof globalThis.fetch, decodeAudio?:(bytes:ArrayBuffer)=>Promise<any>}} [options]
+ */
 export function createNativeGenesisMedia(synth, {fetch:fetcher = globalThis.fetch?.bind(globalThis),
   decodeAudio = createOfflineAudioDecoder({getSampleRate:()=>synth.clock.sampleRate})} = {}) {
   const banks = new Map(), dacBanks = new Map(), packedBanks = new Map();

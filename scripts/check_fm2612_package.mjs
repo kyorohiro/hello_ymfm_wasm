@@ -13,6 +13,10 @@ try {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
+  for(const file of ['nesapu_wasm.js','nesapu_wasm.d.ts','generated/nesapu_wasm.js','generated/nesapu_wasm.wasm',
+    'licenses/tetorica-nes/LICENSE-JSNES','licenses/tetorica-nes/LICENSE-FDS','licenses/tetorica-nes/AUTHORS-JSNES.md','licenses/tetorica-nes/UPSTREAM-JSNES.md','licenses/tetorica-nes/UPSTREAM-FDS.md','licenses/tetorica-nes/README.md','licenses/jsnes/AUTHORS.md',
+    'sources/third_party/tetorica-nes/nes_core.cpp','sources/third_party/tetorica-nes/nes_core.h','sources/wasm/nesapu_wasm.cpp','sources/scripts/build_nesapu_wasm.sh','sources/NES-FDS.md',
+  ])assert(packedPaths.has(file),'NES/FDS WASM package payload missing '+file);
   for (const file of ['playground_dx7.js', 'playground_dx7_audio.js', 'playground_dx7_worklet.js', 'playground_keyboard_channels.js','playground_opn_inspector.js','playground_dx7_inspector.js', 'playground_snes_inspector.js',
     'msfa_dx7/src/index.js', 'msfa_dx7/src/index.d.ts', 'msfa_dx7/src/preset.js', 'msfa_dx7/src/preset.d.ts', 'msfa_dx7/src/sysex.js', 'msfa_dx7/wasm/msfa.wasm',
     'msfa_dx7/LICENSE', 'msfa_dx7/THIRD_PARTY_NOTICES.md', 'msfa_dx7/README.vendor.md', 'msfa_dx7/vendor/msfa/COPYING']) {
@@ -79,6 +83,7 @@ try {
 } finally {opmChip.dispose();}
 const nesChip = await createSoundChip('nes', {fds: true});
 try {
+  assert.equal(nesChip.backend,'wasm','Installed NES creation must use the actual WASM renderer');
   const synth = new NesApuSynth({transport: new NesApuDirectTransport(nesChip)});
   synth.fds.noteOn('A4');
   const pcm = nesChip.generateStereo(4096);
@@ -143,7 +148,7 @@ assert.equal(createTetoricaSynth({megaCD: true}).capabilities.pcmChannels, 8);
 for (const name of ['ym2203synth', 'ym2608synth', 'ym2610bsynth', 'playground_runtime', 'tetorica_audio_runtime', 'vgm_runtime']) {
   await import('tetorica-fm2612/' + name);
 }
-for (const path of ['ym2612-worklet.js', 'playground_logic_worker.js', 'generated/segapsg_wasm.wasm', 'native_audio_effect.wasm', 'tetorica_ym2608_adpcm_rom.bin']) {
+for (const path of ['ym2612-worklet.js', 'playground_logic_worker.js', 'generated/segapsg_wasm.wasm', 'generated/nesapu_wasm.js', 'generated/nesapu_wasm.wasm', 'native_audio_effect.wasm', 'tetorica_ym2608_adpcm_rom.bin']) {
   await access(runtimeAssetUrl(path));
 }
 await import('tetorica-fm2612/generated/ym2612_wasm.js');

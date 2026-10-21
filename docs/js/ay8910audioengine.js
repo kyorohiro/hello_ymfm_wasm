@@ -13,7 +13,7 @@ import {Ay8910} from './ay8910.js?v=audio-stability-2';
 export class Ay8910AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=audio-numeric-bindings-1').WasmModuleOptions, clock?: number, type?: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js?v=nes-wasm-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=nes-wasm-1').WasmModuleOptions, clock?: number, type?: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ay8910AudioEngine>} Initialized engine owned by the caller.

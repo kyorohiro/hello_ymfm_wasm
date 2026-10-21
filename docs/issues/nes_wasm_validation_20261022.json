@@ -1,0 +1,878 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-21T20:45:30.261Z",
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "pulse duty 0.125, retrigger and independent enables",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1310809701681137,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.25, retrigger and independent enables",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12064836174249649,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.5, retrigger and independent enables",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.10481178760528564,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.75, retrigger and independent enables",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11351432651281357,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse envelopes, sweep negate differences and 4/5-step frame counter",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.22013846039772034,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "triangle linear and length counters, reload and mute",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20484896004199982,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "noise long LFSR, envelopes and periods",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12561623752117157,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "noise short LFSR, envelopes and periods",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12523192167282104,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 0, loop, RAM upload and DAC",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2862107753753662,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 5, loop, RAM upload and DAC",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2920505106449127,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 10, loop, RAM upload and DAC",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2961198091506958,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 15, loop, RAM upload and DAC",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.29835259914398193,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC RAM wrap, finite completion and pulse enable without DMC restart",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.3465213179588318,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "all APU voices, nonlinear mix and independent output mute masks",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6262247562408447,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS waveform, master volume, frequency and gated RAM writes",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15557026863098145,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS modulation, signed bias, force bit and volume/sweep envelopes",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.2590468227863312,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS halt, wave/mod table replacement, clock phase preservation and reset",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2658873200416565,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "Stop gates preserve DMC RAM and FDS waveform for restart",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.3037698268890381,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "base clock 1662607, region frame/noise/DMC periods",
+      "sampleRate": 44100,
+      "baseClock": 1662607,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.30424970388412476,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "base clock 1773448, region frame/noise/DMC periods",
+      "sampleRate": 44100,
+      "baseClock": 1773448,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.37462669610977173,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "APU without FDS expansion",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": false,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.34603720903396606,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "deterministic raw-register writes, RAM replacement and channel enables",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 16384,
+      "maximumDifference": 0,
+      "peak": 0.4629691243171692,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "long noise/DMC overlap, filter decay and integer state wrap",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 48000,
+      "maximumDifference": 0,
+      "peak": 0.5162694454193115,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "minimum and maximum outer clock with preserved fractional phase",
+      "sampleRate": 44100,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 512,
+      "maximumDifference": 0,
+      "peak": 0.2634984850883484,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.125, retrigger and independent enables",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.13586080074310303,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.25, retrigger and independent enables",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12967745959758759,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.5, retrigger and independent enables",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11940081417560577,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.75, retrigger and independent enables",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.10407457500696182,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse envelopes, sweep negate differences and 4/5-step frame counter",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.22321821749210358,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "triangle linear and length counters, reload and mute",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20419028401374817,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "noise long LFSR, envelopes and periods",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12445034086704254,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "noise short LFSR, envelopes and periods",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12777988612651825,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 0, loop, RAM upload and DAC",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.286137193441391,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 5, loop, RAM upload and DAC",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.29187044501304626,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 10, loop, RAM upload and DAC",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.29573312401771545,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 15, loop, RAM upload and DAC",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2989790439605713,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC RAM wrap, finite completion and pulse enable without DMC restart",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.3465614318847656,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "all APU voices, nonlinear mix and independent output mute masks",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5656957626342773,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS waveform, master volume, frequency and gated RAM writes",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15556961297988892,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS modulation, signed bias, force bit and volume/sweep envelopes",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.25907623767852783,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS halt, wave/mod table replacement, clock phase preservation and reset",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2662161886692047,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "Stop gates preserve DMC RAM and FDS waveform for restart",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.30404412746429443,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "base clock 1662607, region frame/noise/DMC periods",
+      "sampleRate": 48000,
+      "baseClock": 1662607,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.31419825553894043,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "base clock 1773448, region frame/noise/DMC periods",
+      "sampleRate": 48000,
+      "baseClock": 1773448,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.3738979399204254,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "APU without FDS expansion",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": false,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.34484022855758667,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "deterministic raw-register writes, RAM replacement and channel enables",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 16384,
+      "maximumDifference": 0,
+      "peak": 0.4547576308250427,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "long noise/DMC overlap, filter decay and integer state wrap",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 48000,
+      "maximumDifference": 0,
+      "peak": 0.5166650414466858,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "minimum and maximum outer clock with preserved fractional phase",
+      "sampleRate": 48000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 512,
+      "maximumDifference": 0,
+      "peak": 0.2754576802253723,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.125, retrigger and independent enables",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.13877294957637787,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.25, retrigger and independent enables",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.13528680801391602,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.5, retrigger and independent enables",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11823240667581558,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse duty 0.75, retrigger and independent enables",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.10028242319822311,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "pulse envelopes, sweep negate differences and 4/5-step frame counter",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.19864988327026367,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "triangle linear and length counters, reload and mute",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20611125230789185,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "noise long LFSR, envelopes and periods",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11160502582788467,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "noise short LFSR, envelopes and periods",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14363817870616913,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 0, loop, RAM upload and DAC",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2854881286621094,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 5, loop, RAM upload and DAC",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.28825318813323975,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 10, loop, RAM upload and DAC",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.29374176263809204,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC rate 15, loop, RAM upload and DAC",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2983529567718506,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "DMC RAM wrap, finite completion and pulse enable without DMC restart",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.34678834676742554,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "all APU voices, nonlinear mix and independent output mute masks",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5663980841636658,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS waveform, master volume, frequency and gated RAM writes",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1556924283504486,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS modulation, signed bias, force bit and volume/sweep envelopes",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.25931432843208313,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "FDS halt, wave/mod table replacement, clock phase preservation and reset",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.2662239670753479,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "Stop gates preserve DMC RAM and FDS waveform for restart",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 8192,
+      "maximumDifference": 0,
+      "peak": 0.30323001742362976,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "base clock 1662607, region frame/noise/DMC periods",
+      "sampleRate": 96000,
+      "baseClock": 1662607,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.3283206820487976,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "base clock 1773448, region frame/noise/DMC periods",
+      "sampleRate": 96000,
+      "baseClock": 1773448,
+      "fds": true,
+      "frames": 12288,
+      "maximumDifference": 0,
+      "peak": 0.365490585565567,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "APU without FDS expansion",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": false,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.33093148469924927,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "deterministic raw-register writes, RAM replacement and channel enables",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 16384,
+      "maximumDifference": 0,
+      "peak": 0.38137125968933105,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "long noise/DMC overlap, filter decay and integer state wrap",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 48000,
+      "maximumDifference": 0,
+      "peak": 0.5237018465995789,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    },
+    {
+      "name": "minimum and maximum outer clock with preserved fractional phase",
+      "sampleRate": 96000,
+      "baseClock": 1789773,
+      "fds": true,
+      "frames": 512,
+      "maximumDifference": 0,
+      "peak": 0.27606701850891113,
+      "wasmMaximumDifference": 0,
+      "wasmNativeMaximumDifference": 0
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 710784,
+  "reference": "Current NesApu / JSNES APU and fixNES FDS JavaScript, including Float32 interstage rounding and output filters.",
+  "limits": "Direct core PCM and the shared outer clock adapter. Whole-bus FX, scheduling, ownership and UI are tested separately.",
+  "implementations": [
+    "native-cpp",
+    "wasm",
+    "javascript-reference"
+  ],
+  "wasmMaximumDifference": 0,
+  "wasmNativeMaximumDifference": 0,
+  "status": "passed",
+  "wasmSha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+  "canonicalCoreSha256": "e34cc1bba1d9141575883603797dacfd20aadee5956a1f20697c3629fcaef47e",
+  "javascriptTests": {
+    "passed": 3172,
+    "failed": 0,
+    "scope": "web/*.test.mjs docs/playground/*.test.mjs test/*.test.mjs"
+  },
+  "package": {
+    "version": "0.2.24",
+    "packedFiles": 702,
+    "installedTarballCheck": "passed",
+    "typeChecks": "NodeNext/Bundler/browser passed",
+    "published": false,
+    "archive": "tetorica-fm2612-0.2.24.tgz",
+    "sha256": "fe754b704ff44caf5652c6dae1634ceba96a073a6a212ccdebe7275722bc6a28",
+    "archiveMatchesStagedFiles": true
+  },
+  "browsers": {
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "nativeIpcMocked": false,
+    "source": {
+      "status": "passed",
+      "reports": "/private/tmp/nes-wasm-source-final",
+      "scope": "Main/Worker Pulse/FDS440Hz and DMC PCM; six physical PC Keyboard channels; Operators edits/hold/release; Stop RAM/wave retention; actual backend wasm; no hidden Genesis chips"
+    },
+    "flatNpm": {
+      "status": "passed",
+      "reports": "/private/tmp/nes-wasm-npm-final",
+      "scope": "Direct, generic Worklet, embedded Playground Main/Worker PCM and pitch; default packaged URLs"
+    },
+    "realListeningPerformed": false,
+    "packagedTauri": {
+      "status": "passed",
+      "reports": "/private/tmp/nes-wasm-packaged-final",
+      "scope": "Real WASM Main/Worker, pulse/FDS pitch, DMC PCM, six Keyboard channels, Operators, Stop and RAM/wave retention"
+    },
+    "nativeRegression": {
+      "status": "passed",
+      "reports": "/private/tmp/nes-wasm-native-regression-final",
+      "nativeIpcMocked": true
+    }
+  },
+  "playgroundPackage": {
+    "files": 812,
+    "sha256": "bbc37620a9c9d6ca7960798f6696d62441728ac29dbbc784ab9c2bd78ba09328",
+    "tauriImportVerified": true,
+    "localAssetReferencesVerified": 736
+  },
+  "nativeBuild": {
+    "status": "passed",
+    "offline": true,
+    "locked": true
+  },
+  "nativeRustTests": {
+    "passed": 13,
+    "failed": 0,
+    "filter": "native_genesis::nes_tests",
+    "audioDeviceOpened": false
+  }
+}

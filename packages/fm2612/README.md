@@ -143,6 +143,37 @@ start with the task table above when choosing an application API. See the
 [runnable examples](https://github.com/kyorohiro/tetorica-fm2612-examples) for
 complete setup, playback and cleanup.
 
+### NES + FDS WASM
+
+Available in the local `tetorica-fm2612@0.2.24` distribution.
+
+`await createSoundChip('nes', {fds:true})` creates the default WASM NES APU and
+FDS renderer. It uses the same C++ core as Native NES, including pulse,
+triangle, noise, DMC RAM and FDS wave/modulation memory. The Synth API and
+register addresses are unchanged. Direct rendering opens no audio device;
+`execution:'worklet'` renders through browser Web Audio.
+
+```js
+import {createSoundChip} from 'tetorica-fm2612';
+import {NesApuSynth, NesApuDirectTransport} from 'tetorica-fm2612/nesapusynth.js';
+
+const chip = await createSoundChip('nes', {fds:true, sampleRate:48000});
+try {
+  const nes = new NesApuSynth({transport:new NesApuDirectTransport(chip)});
+  nes.fds.noteOn('A4');
+  const pcm = chip.generateStereo(4096);
+  nes.fds.keyOff();
+} finally { chip.dispose(); }
+```
+
+Ship both `generated/nesapu_wasm.js` and `generated/nesapu_wasm.wasm` when
+copying a smaller deployment. `runtimeAssetUrl()` resolves these assets from
+the installed package. The original JavaScript renderer remains available for
+compatibility and PCM comparison; the Analyzer's existing JavaScript path is
+preserved. `sources/NES-FDS.md` describes rebuilding the shared C++ core and
+WASM wrapper. Apache-2.0 and MIT notices and the original authors ship under
+`licenses/`.
+
 ### Master System: Sega PSG and YM2413 OPLL
 
 Available in `tetorica-fm2612@0.2.23` and later.
@@ -816,10 +847,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.23.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.24.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.23.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.24.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -1009,9 +1040,12 @@ installation check also runs the consumer type tests against the installed packa
 
 ## NES APU + FDS Synth
 
-Version 0.2.12 adds `createSoundChip('nes')` and `NesApuSynth`. Enable FDS
-with `{fds: true}`. It reuses the Analyzer's JSNES APU and fixNES-derived FDS
-engines; no WASM, CPU program, cartridge or instrument ROM is needed.
+Version 0.2.12 introduced `createSoundChip('nes')` and `NesApuSynth`. Enable FDS
+with `{fds: true}`. Since 0.2.24, asynchronous creation uses the shared C++
+JSNES/fixNES port through WASM. No CPU program, cartridge or instrument ROM is
+needed. The synchronous `new NesApu()` constructor keeps the original JavaScript
+implementation for compatibility and reference comparisons; the Analyzer's
+existing JavaScript renderer is unchanged.
 
 ```javascript
 import {createSoundChip} from 'tetorica-fm2612';
