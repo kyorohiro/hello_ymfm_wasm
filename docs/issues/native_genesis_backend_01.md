@@ -1,5 +1,8 @@
 # TauriのNative Genesis音声バックエンド
 
+AudioタブのEnvelope／Waveform／Spectrumは、[Native Audioモニターの作業記録](native_audio_monitor_01.md)を参照。
+表示中だけ観測用データを取得する方式で対応した。
+
 ## 第2段階：Genesisの実用機能を増やす
 
 2026-10-21、未対応機能を順次追加する指示を受け、次を進める。
@@ -189,6 +192,7 @@ Native初期化失敗を自動フォールバックで隠さず、エラーを�
 | 汎用sample再生 | PCM／WAV＋ブラウザーでデコード可能な圧縮形式 | FLAC／MP3等は読込み時にofflineデコード。rate・逆再生・loop・pan・fade |
 | 組込みFX | 13種類に対応 | branch／parallel／setChain、パラメーターramp、tempo。構成変更でDSP履歴を初期化 |
 | Audio diagnostics | 最終出力に対応 | output WAV／JSON、noise marker。最大30秒／32 MiB。chip単独出力は未対応 |
+| AudioのEnvelope／Waveform／Spectrum | 対応 | 左右CH、Pause、共通Yスケール。表示中だけ最大15Hzの観測。FFTは音声callback外で実行 |
 | 追加チップ、Genesis以外のmode | 未対応 | Web Audioを使用。Native選択中の未対応APIは理由を示して拒否 |
 | stream／Web Audio noise、JavaScript `liveFx` | 未対応 | 別の音声経路で代用しない |
 | 独立した音色ファイル試聴 | 未対応 | Web Audioへ切り戻して使用 |

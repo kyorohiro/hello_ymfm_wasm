@@ -34,7 +34,24 @@ const server = http.createServer(async (request, response) => {
 });
 
 class FakeNative {
-  constructor() {this.calls = []; this.sessions = 0; this.current = null; this.failStart = false;}
+  constructor() {
+    this.calls = []; this.sessions = 0; this.current = null; this.failStart = false;
+    this.monitor = {pending:0,maxPending:0,reads:[],gate:null};
+  }
+  holdNextMonitor(mode) {
+    let release,arrive;
+    const gate={mode,promise:new Promise(done=>{release=done;}),arrived:new Promise(done=>{arrive=done;}),release:()=>release(),arrive};
+    gate.arrive=value=>{gate.request=value;arrive(value);};
+    this.monitor.gate=gate;return gate;
+  }
+  monitorSnapshot(args) {
+    const amplitude=args.channel===1?.1:.4;
+    const result={session:args.session,frame:this.status().frame,sampleRate:48000,frames:4096,rms:amplitude/Math.SQRT2,peak:amplitude};
+    const bin=args.channel===1?96:32;
+    if(args.mode==='waveform')result.samples=Array.from({length:4096},(_,i)=>amplitude*Math.sin(2*Math.PI*bin*i/4096));
+    if(args.mode==='spectrum'){result.bins=Array(2048).fill(-100);result.bins[bin]=args.channel===1?-30:-12;}
+    return result;
+  }
   status() {
     if (!this.current) throw Error('No native session');
     return {session:this.current.session,sampleRate:48000,frame:Math.floor((performance.now() - this.current.began) * 48),
@@ -53,6 +70,17 @@ class FakeNative {
       return null;
     }
     if (!this.current || this.current.session !== args.session) throw Error('Stale native audio session');
+    if(command==='native_genesis_monitor') {
+      assert(['off','envelope','waveform','spectrum'].includes(args.mode));assert([0,1].includes(args.channel));
+      if(args.mode==='off')return null;
+      const observation={...args,time:performance.now()};this.monitor.reads.push(observation);
+      this.monitor.pending++;this.monitor.maxPending=Math.max(this.monitor.maxPending,this.monitor.pending);
+      const result=this.monitorSnapshot(args),gate=this.monitor.gate;
+      try {
+        if(gate&&gate.mode===args.mode){this.monitor.gate=null;gate.arrive(observation);await gate.promise;}
+        return result;
+      } finally {this.monitor.pending--;}
+    }
     if (command === 'native_genesis_status' || command === 'native_genesis_stop') return this.status();
     if (command === 'native_genesis_commands') {
       assert(Array.isArray(args.commands) && args.commands.length > 0 && args.commands.length <= 4096);
@@ -78,6 +106,26 @@ function observeAudioCreation() {
       return Reflect.construct(Type,args,Target);
     }});
   }
+}
+function observeMonitorDrawing() {
+  window.__monitorDrawings={};
+  const Type=window.CanvasRenderingContext2D;if(!Type)return;
+  const paths=new WeakMap(),proto=Type.prototype;
+  const observed=context=>context.canvas?.id?.startsWith('audioMonitor');
+  const begin=proto.beginPath;proto.beginPath=function(...args){if(observed(this))paths.set(this,[]);return begin.apply(this,args);};
+  for(const key of ['moveTo','lineTo']) {
+    const original=proto[key];proto[key]=function(x,y,...args){
+      if(observed(this)){const points=paths.get(this);if(points&&points.length<8192)points.push([x,y]);}
+      return original.call(this,x,y,...args);
+    };
+  }
+  const stroke=proto.stroke;proto.stroke=function(...args){
+    if(observed(this)&&['#69cfff','#ffba69'].includes(this.strokeStyle)) {
+      const drawing=window.__monitorDrawings[this.canvas.id]??={revision:0,traces:{}};
+      drawing.traces[this.strokeStyle]={revision:++drawing.revision,points:(paths.get(this)??[]).map(point=>point.slice())};
+    }
+    return stroke.apply(this,args);
+  };
 }
 async function assertNoLiveAudio(page) {
   assert.deepEqual(await page.evaluate(() => ({contexts:window.__audioConstructions.contexts,worklets:window.__audioConstructions.worklets})),{contexts:0,worklets:[]});
@@ -179,6 +227,104 @@ async function compressedSampleRuns(page,native) {
   }
   assert(await page.evaluate(before=>window.__audioConstructions.offline>before,beforeOffline),'Compressed samples must use the real offline decoder');
 }
+async function monitorTrace(page,id,color,after=-1,expected={}) {
+  await page.waitForFunction(({id,color,after,expected})=>{
+    const trace=window.__monitorDrawings?.[id]?.traces[color];
+    if(!trace||trace.revision<=after||!trace.points.length)return false;
+    const ys=trace.points.map(point=>point[1]),low=Math.min(...ys),high=Math.max(...ys);
+    return (expected.span===undefined||Math.abs(high-low-expected.span)<.05)&&
+      (expected.minY===undefined||Math.abs(low-expected.minY)<.01);
+  },{id,color,after,expected});
+  return page.evaluate(({id,color})=>window.__monitorDrawings[id].traces[color],{id,color});
+}
+const traceSpan=trace=>Math.max(...trace.points.map(point=>point[1]))-Math.min(...trace.points.map(point=>point[1]));
+async function nativeAudioMonitor(page,native,artifacts,name) {
+  const reads=native.monitor.reads;
+  assert.equal(reads.length,0,'Hidden Audio tab must not request native analysis');
+  await page.click('#audioMonitorTab');
+  await page.selectOption('#audioMonitorMode','envelope');
+  await page.selectOption('#audioMonitorChannel','0');
+  await page.selectOption('#audioMonitorScale','1');
+  await until(()=>reads.some(read=>read.mode==='envelope'&&read.channel===0));
+  await page.waitForFunction(()=>document.getElementById('audioMonitorStatus').textContent.includes('native mixed output'));
+  const envelope=await monitorTrace(page,'audioMonitorEnvelope','#69cfff');
+  const peak=await monitorTrace(page,'audioMonitorEnvelope','#ffba69');
+  assert(Math.abs(envelope.points.at(-1)[1]-(130-.4/Math.SQRT2*112))<.01,'Native envelope must draw the reported RMS');
+  assert(Math.abs(peak.points.at(-1)[1]-(130-.4*112))<.01,'Native envelope must draw the reported peak');
+
+  await page.selectOption('#audioMonitorMode','waveform');
+  await until(()=>reads.some(read=>read.mode==='waveform'&&read.channel===0));
+  const left=await monitorTrace(page,'audioMonitorWave','#69cfff',-1,{span:.4*112});
+  assert(Math.abs(traceSpan(left)-.4*112)<.05,'Left native PCM must reach the oscilloscope');
+  await page.selectOption('#audioMonitorChannel','1');
+  await until(()=>reads.some(read=>read.mode==='waveform'&&read.channel===1));
+  await page.waitForFunction(()=>document.getElementById('audioMonitorStatus').textContent.includes('Right · native'));
+  const right=await monitorTrace(page,'audioMonitorWave','#69cfff',left.revision,{span:.1*112});
+  assert(Math.abs(traceSpan(right)-.1*112)<.05,'Channel switch must use the right native PCM');
+
+  await page.selectOption('#audioMonitorMode','spectrum');
+  await until(()=>reads.some(read=>read.mode==='spectrum'&&read.channel===1));
+  const spectrumRight=await monitorTrace(page,'audioMonitorSpectrum','#ffba69',-1,{minY:18+.3*112});
+  assert(Math.abs(Math.min(...spectrumRight.points.map(point=>point[1]))-(18+.3*112))<.01,'Spectrum must draw the native -30 dBFS peak');
+  await page.selectOption('#audioMonitorChannel','0');
+  await until(()=>reads.some(read=>read.mode==='spectrum'&&read.channel===0));
+  await page.waitForFunction(()=>document.getElementById('audioMonitorStatus').textContent.includes('Left · native'));
+  const spectrumLeft=await monitorTrace(page,'audioMonitorSpectrum','#ffba69',spectrumRight.revision,{minY:18+.12*112});
+  assert(Math.abs(Math.min(...spectrumLeft.points.map(point=>point[1]))-(18+.12*112))<.01,'Spectrum channel switch must draw the native -12 dBFS peak');
+
+  const waitStopped=async(action,label)=>{
+    const offBefore=native.calls.filter(call=>call.command==='native_genesis_monitor'&&call.args.mode==='off').length;
+    await action();
+    await until(()=>native.calls.filter(call=>call.command==='native_genesis_monitor'&&call.args.mode==='off').length>offBefore);
+    const count=reads.length;
+    await page.waitForTimeout(250);
+    assert.equal(reads.length,count,`${label} must stop native analysis requests`);
+  };
+  const clockBefore=await page.evaluate(()=>window.__nativeBackendTest.runtime.megaDrive.clock.currentTime);
+  await waitStopped(()=>page.click('#audioMonitorPause'),'Pause');
+  assert.equal(await page.locator('#audioMonitorPause').textContent(),'Resume');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.runtime.getState().playback),'running');
+  assert(await page.evaluate(before=>window.__nativeBackendTest.runtime.megaDrive.clock.currentTime>before+.15,clockBefore));
+  const commandsBefore=native.count('native_genesis_commands');
+  await page.evaluate(async()=>{
+    const synth=window.__nativeBackendTest.runtime.megaDrive;synth.fm.write(0,0x22,0);await synth.flush();
+  });
+  assert(native.count('native_genesis_commands')>commandsBefore,'Pausing analysis must leave native command processing active');
+  let before=reads.length;await page.click('#audioMonitorPause');await until(()=>reads.length>before);
+  await waitStopped(()=>page.click('#consoleTab'),'Hiding Audio tab');
+  before=reads.length;await page.click('#audioMonitorTab');await until(()=>reads.length>before);
+
+  const originalStyle=await page.locator('#audioMonitorPanel').getAttribute('style');
+  await waitStopped(()=>page.locator('#audioMonitorPanel').evaluate(panel=>{
+    panel.style.position='fixed';panel.style.top='-10000px';panel.style.left='0';panel.style.width='700px';
+  }),'Offscreen Audio panel');
+  before=reads.length;
+  await page.locator('#audioMonitorPanel').evaluate((panel,value)=>{
+    if(value===null)panel.removeAttribute('style');else panel.setAttribute('style',value);
+  },originalStyle);
+  await until(()=>reads.length>before);
+
+  await page.selectOption('#audioMonitorMode','waveform');
+  const gate=native.holdNextMonitor('waveform');
+  try {
+    await until(()=>Boolean(gate.request));
+    await page.selectOption('#audioMonitorMode','spectrum');
+    const waveRevision=await page.evaluate(()=>window.__monitorDrawings.audioMonitorWave?.revision??0);
+    const heldCount=reads.length;await page.waitForTimeout(120);
+    assert.equal(reads.length,heldCount,'A delayed snapshot must not start parallel native reads');
+    gate.release();
+    await until(()=>reads.length>heldCount&&reads.at(-1).mode==='spectrum');
+    await page.waitForFunction(()=>document.getElementById('audioMonitorStatus').textContent.includes('native mixed output'));
+    assert.equal(await page.evaluate(()=>window.__monitorDrawings.audioMonitorWave?.revision??0),waveRevision,'A stale mode response must not repaint its canvas');
+  } finally {gate.release();}
+  const rateStart=performance.now(),rateBefore=reads.length;await page.waitForTimeout(500);
+  assert(reads.length-rateBefore<=Math.ceil((performance.now()-rateStart)*15/1000)+2,'Steady native analysis must stay at or below 15 requests/sec');
+  assert.equal(native.monitor.maxPending,1,'Only one native observation read may be in flight');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.runtime.getState().playback),'running');
+  await assertNoLiveAudio(page);
+  await page.screenshot({path:path.join(artifacts,name+'-native-audio-monitor.png')});
+  await waitStopped(()=>page.click('#consoleTab'),'Closing Audio tab');
+}
 async function nativeRecording(page,native) {
   await page.locator('#mainMenu > summary').click();
   await page.click('#audioDiagnosticsButton');
@@ -215,10 +361,43 @@ async function keyboard(page, native) {
       : entry.type === 'psg-write' && entry.value === 0x9f));
   }
 }
+async function compareNativeFft(browser,name,fixture) {
+  assert.equal(fixture.samples?.length,4096);assert.equal(fixture.bins?.length,2048);
+  assert(fixture.samples.every(Number.isFinite)&&fixture.bins.every(Number.isFinite));
+  const page=await browser.newPage();
+  try {
+    const result=await page.evaluate(async({sampleRate,samples})=>{
+      const Type=window.OfflineAudioContext??window.webkitOfflineAudioContext;
+      const context=new Type(1,8192,sampleRate),analyser=context.createAnalyser();
+      analyser.fftSize=4096;analyser.smoothingTimeConstant=0;analyser.minDecibels=-100;analyser.maxDecibels=0;
+      // Repeat the exact native period so every analyser window sees the same
+      // steady source, regardless of the browser's final render quantum.
+      const buffer=context.createBuffer(1,8192,sampleRate),pcm=buffer.getChannelData(0);
+      pcm.set(samples);pcm.set(samples,4096);
+      const source=context.createBufferSource();source.buffer=buffer;source.connect(analyser);analyser.connect(context.destination);source.start();
+      await context.startRendering();
+      const bins=new Float32Array(2048),wave=new Float32Array(4096);
+      analyser.getFloatFrequencyData(bins);analyser.getFloatTimeDomainData(wave);
+      let square=0,peak=0;for(const value of wave){square+=value*value;peak=Math.max(peak,Math.abs(value));}
+      return {bins:Array.from(bins),rms:Math.sqrt(square/wave.length),peak};
+    },fixture);
+    const clamp=value=>Math.max(-100,Math.min(0,value));
+    let maxError=0,maxBin=0;
+    for(let i=0;i<2048;i++) {
+      assert(!Number.isNaN(result.bins[i]));const error=Math.abs(clamp(result.bins[i])-clamp(fixture.bins[i]));
+      if(error>maxError){maxError=error;maxBin=i;}
+    }
+    assert(maxError<.02,`${name}: native FFT differs from OfflineAudioContext by ${maxError} dB at bin ${maxBin}`);
+    assert(Math.abs(result.rms-fixture.rms)<1e-6,`${name}: native RMS must match the offline analyser window`);
+    assert(Math.abs(result.peak-fixture.peak)<1e-6,`${name}: native peak must match the offline analyser window`);
+    console.log(`${name}: PASS actual native 4096-point Blackman FFT/RMS/peak vs offline Web Audio; maximum ${maxError.toExponential(3)} dB at bin ${maxBin}; no output device`);
+  } finally {await page.close();}
+}
 
-async function checkBrowser(name, type, url, artifacts) {
+async function checkBrowser(name, type, url, artifacts,fftFixture) {
   const browser = await type.launch({headless:true,...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   try {
+    if(fftFixture)await compareNativeFft(browser,name,fftFixture);
     const plain = await browser.newContext({serviceWorkers:'block'});
     const normal = await plain.newPage();
     // Exercise the real textarea fallback; external Monaco CDN availability is
@@ -232,6 +411,7 @@ async function checkBrowser(name, type, url, artifacts) {
     const native = new FakeNative(), errors = [];
     await page.exposeBinding('__nativeInvoke', (_event, command, args) => native.invoke(command, args));
     await page.addInitScript(observeAudioCreation);
+    await page.addInitScript(observeMonitorDrawing);
     await page.addInitScript(() => {window.__TAURI_INTERNALS__ = {invoke:(command,args) => window.__nativeInvoke(command,args)};});
     await page.route('**/vs/loader*.js', route => route.abort());
     page.on('pageerror', error => errors.push(error.message));
@@ -256,6 +436,7 @@ async function checkBrowser(name, type, url, artifacts) {
     await workerMediaRun(page,native);
     await compressedSampleRuns(page,native);
     await nativeRun(page, native);
+    await nativeAudioMonitor(page,native,artifacts,name);
     await nativeRecording(page,native);
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
     await openSettings(page);
@@ -290,7 +471,7 @@ async function checkBrowser(name, type, url, artifacts) {
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC aliases through OfflineAudioContext, DAC/sample/FX, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Main/Worker, real FLAC decoding, DAC/sample/FX, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, mode cleanup; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 
@@ -298,11 +479,13 @@ async function checkBrowser(name, type, url, artifacts) {
   const option = process.argv.find(value => value.startsWith('--out='));
   const artifacts = option ? path.resolve(option.slice(6)) : await fs.mkdtemp(path.join(os.tmpdir(), 'playground-native-backend-'));
   await fs.mkdir(artifacts, {recursive:true});
+  const fftOption=process.argv.find(value=>value.startsWith('--fft-fixture='));
+  const fftFixture=fftOption?JSON.parse(await fs.readFile(path.resolve(fftOption.slice(14)),'utf8')):null;
   await new Promise((resolve,reject) => {server.once('error',reject); server.listen(0,'127.0.0.1',resolve);});
   try {
     const url = `http://127.0.0.1:${server.address().port}${entryPath}?mode=genesis`;
     for (const [name,type] of [['chromium',chromium],['webkit',webkit]]) {
-      if (!process.argv.includes('--chromium') && !process.argv.includes('--webkit') || process.argv.includes('--' + name)) await checkBrowser(name,type,url,artifacts);
+      if (!process.argv.includes('--chromium') && !process.argv.includes('--webkit') || process.argv.includes('--' + name)) await checkBrowser(name,type,url,artifacts,fftFixture);
     }
     console.log('Artifacts: ' + artifacts);
   } finally {await new Promise(resolve => server.close(resolve));}

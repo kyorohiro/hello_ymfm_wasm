@@ -36,7 +36,7 @@ function setup(t, options = {}) {
     result.getContext = () => context;
     return result;
   }
-  const channel = {value: '0'}, status = {};
+  const channel = {...events(),value: '0'}, status = {}, description = {};
   const pauseButton = {...events(),setAttribute(){}};
   const mode = {...events(), value: ''};
   const scaleSelect = {...events(), value: ''}, scaleControl = {};
@@ -59,9 +59,9 @@ function setup(t, options = {}) {
     return {audioContext: context,masterOutputNode: {gain: {value: 1}},outputMonitors: new Set(),
       connectOutputMonitor(node) {this.outputMonitors.add(node); return () => {this.outputMonitors.delete(node);detached++;};}};
   }
-  monitor = createAudioMonitor(() => source,{panel:{},envelopeCanvas,waveCanvas,spectrumCanvas,modeSelect:mode,modePanels,scaleSelect,scaleControl,channel,status,pauseButton,storage,...options.monitorOptions});
+  monitor = createAudioMonitor(() => source,{panel:{},envelopeCanvas,waveCanvas,spectrumCanvas,modeSelect:mode,modePanels,scaleSelect,scaleControl,channel,status,pauseButton,description,storage,...options.monitorOptions});
   return { monitor, advance, channel, status, pauseButton, mode, modePanels, scaleSelect, scaleControl, envelopeCanvas, waveCanvas, spectrumCanvas,
-    captured, frequencyReads, writes, frames, audio, sampleBuffers,
+    captured, frequencyReads, writes, frames, audio, sampleBuffers, description,
     setSource(next) { source = next; },
     setSignal(next) { signal = next; },
     get source() { return source; },
@@ -542,4 +542,105 @@ test('range changes in a hidden or offscreen panel never paint cached snapshots 
   assert.equal(f.frameRequests, hiddenRequests);
   assert.equal(f.captured.length, reads + 2);
   assert.equal(f.frames.size, 0);
+});
+
+async function settled() {for(let i=0;i<8;i++)await Promise.resolve();}
+function nativeFixture(f,options={}) {
+  let session=1,ready=options.ready!==false,frame=0,pauses=0;
+  const reads=[],pending=[];
+  const snapshot=(request,extra={})=>({session,frame:frame+=4096,sampleRate:48000,frames:4096,rms:.1,peak:.4,
+    ...(request.mode==='waveform'?{samples:Float32Array.from({length:4096},(_,i)=>i%2?-.02:.02)}:{}),
+    ...(request.mode==='spectrum'?{bins:new Float32Array(2048).fill(-40)}:{}),...extra});
+  const audio={backend:'native-genesis',isReady:()=>ready,getSession:()=>session,
+    read(request){reads.push(request);if(options.deferred)return new Promise((resolve,reject)=>pending.push({request,resolve,reject}));if(options.fail)return Promise.reject(new Error('snapshot failed'));return Promise.resolve(snapshot(request));},
+    pause(){pauses++;return Promise.resolve();},
+  };
+  f.setSource(audio);
+  return {audio,reads,pending,snapshot,get pauses(){return pauses;},setSession:value=>{session=value;},setReady:value=>{ready=value;}};
+}
+
+test('Native Envelope uses supplied RMS and peak, and Wave/Spectrum draw explicit snapshots without Web Audio',async t=>{
+  const f=setup(t,{savedRange:'1'}),n=nativeFixture(f,{ready:false});
+  f.monitor.setVisible(true);f.advance(0);await settled();assert.equal(n.reads.length,0);assert.match(f.status.textContent,/Press Run/);
+  n.setReady(true);f.advance(100);await settled();
+  const traces=envelopeTraces(f),{bottom}=plotBounds(f.envelopeCanvas);
+  assert(Math.abs((bottom-traces.peak[0][1])/(bottom-traces.rms[0][1])-4)<1e-6,'native summary RMS/peak must not be inferred from fabricated PCM');
+  assert.equal(f.created,0);assert.equal(f.captured.length,0);assert.equal(f.frequencyReads.length,0);
+  assert.match(f.status.textContent,/48000 Hz.*Left.*native mixed output/);
+  selectMode(f,'waveform');f.advance(200);await settled();assert(n.pauses>=1);assert.equal(n.reads.at(-1).mode,'waveform');assert(f.waveCanvas.strokes.at(-1).points.length>100);
+  selectMode(f,'spectrum');f.channel.value='1';f.channel.listeners.get('change')();f.advance(300);await settled();
+  assert.deepEqual(n.reads.at(-1),{mode:'spectrum',channel:1});assert.match(f.status.textContent,/Right/);assert.match(f.description.textContent,/4096-point Blackman/);
+  assert(f.spectrumCanvas.strokes.at(-1).points.length>100);assert.equal(f.created,0);
+});
+
+test('Native monitor keeps one read in flight across mode/channel changes and ignores stale completions',async t=>{
+  const f=setup(t),n=nativeFixture(f,{deferred:true});
+  f.monitor.setVisible(true);f.advance(0);await settled();assert.equal(n.pending.length,1);
+  const before=f.envelopeCanvas.draws;f.advance(100);f.advance(200);await settled();assert.equal(n.reads.length,1);
+  selectMode(f,'waveform');f.channel.value='1';f.channel.listeners.get('change')();f.advance(300);await settled();assert.equal(n.reads.length,1);
+  n.pending[0].resolve(n.snapshot(n.pending[0].request));await settled();assert.equal(f.envelopeCanvas.draws,before);assert.equal(f.waveCanvas.draws,0);
+  f.advance(400);await settled();assert.equal(n.reads.length,2);assert.deepEqual(n.reads[1],{mode:'waveform',channel:1});
+  n.pending[1].resolve(n.snapshot(n.pending[1].request));await settled();assert.equal(f.waveCanvas.draws,1);
+  f.advance(420);await settled();assert.equal(n.reads.length,2,'no extra request inside the 15Hz interval');
+  f.monitor.setVisible(false);assert(n.pauses>=2);
+});
+
+test('Native view changes cannot exceed the 15Hz request limit after fast responses',async t=>{
+  const f=setup(t),n=nativeFixture(f);f.monitor.setVisible(true);f.advance(0);await settled();assert.equal(n.reads.length,1);
+  selectMode(f,'waveform');f.advance(10);await settled();assert.equal(n.reads.length,1);
+  f.channel.value='1';f.channel.listeners.get('change')();f.advance(20);await settled();assert.equal(n.reads.length,1);
+  selectMode(f,'spectrum');f.advance(50);await settled();assert.equal(n.reads.length,1);
+  f.advance(130);await settled();assert.equal(n.reads.length,2);
+});
+
+test('a valid empty Native snapshot waits for audio without reporting an error or drawing invented data',async t=>{
+  const f=setup(t),n=nativeFixture(f,{deferred:true});f.monitor.setVisible(true);f.advance(0);await settled();
+  n.pending[0].resolve(n.snapshot(n.pending[0].request,{frame:0,frames:0,rms:0,peak:0}));await settled();
+  assert.match(f.status.textContent,/waiting for audio frames/);assert.doesNotMatch(f.status.textContent,/unavailable/);assert.equal(f.envelopeCanvas.draws,0);
+  f.advance(100);await settled();n.pending[1].resolve(n.snapshot(n.pending[1].request));await settled();assert.equal(f.envelopeCanvas.draws,1);
+});
+
+test('Native hide, document visibility, viewport, Pause and disposal retire observation without restarting audio',async t=>{
+  const f=setup(t),n=nativeFixture(f,{deferred:true});
+  f.monitor.setVisible(true);f.advance(0);await settled();
+  f.pauseButton.listeners.get('click')();const pausedStatus=f.status.textContent;
+  n.pending[0].reject(Error('late old failure'));await settled();assert.equal(f.status.textContent,pausedStatus);assert.equal(f.frames.size,0);assert.equal(n.pauses,1);
+  f.pauseButton.listeners.get('click')();f.advance(100);await settled();assert.equal(n.reads.length,2);
+  document.hidden=true;document.listeners.get('visibilitychange')();assert.equal(n.pauses,2);
+  n.pending[1].resolve(n.snapshot(n.pending[1].request));await settled();assert.equal(f.envelopeCanvas.draws,0);
+  document.hidden=false;document.listeners.get('visibilitychange')();f.advance(200);await settled();
+  f.intersect(false);assert.equal(n.pauses,3);n.pending[2].resolve(n.snapshot(n.pending[2].request));await settled();
+  f.intersect(true);f.advance(300);await settled();
+  f.monitor.dispose();assert.equal(n.pauses,4);const status=f.status.textContent;
+  n.pending[3].resolve(n.snapshot(n.pending[3].request));await settled();assert.equal(f.status.textContent,status);assert.equal(f.envelopeCanvas.draws,0);
+  f.monitor.setVisible(true);assert.equal(f.frames.size,0);assert.equal(f.created,0);
+});
+
+test('Native cached Y-scale changes draw only the paused snapshot and never recycle a previous session',async t=>{
+  const f=setup(t),n=nativeFixture(f);
+  f.monitor.setVisible(true);f.advance(0);await settled();
+  f.pauseButton.listeners.get('click')();const reads=n.reads.length;selectScale(f,'1');
+  assert.equal(envelopeTraces(f).rms.length,1);assert.equal(n.reads.length,reads);assert.equal(f.frames.size,0);
+  n.setSession(2);selectScale(f,'0.5');assert.equal(envelopeTraces(f).rms.length,0,'old session data cannot become a new session history point');
+  f.pauseButton.listeners.get('click')();f.advance(100);await settled();assert.equal(envelopeTraces(f).rms.length,1);assert.equal(n.reads.length,reads+1);
+});
+
+test('Native errors are visible, rate-limited and recoverable without stopping playback',async t=>{
+  const f=setup(t),n=nativeFixture(f,{deferred:true});
+  f.monitor.setVisible(true);f.advance(0);await settled();n.pending[0].reject(Error('snapshot failed'));await settled();
+  assert.match(f.status.textContent,/snapshot failed.*Retrying slowly.*playback continues/);
+  for(let time=100;time<1000;time+=100)f.advance(time);await settled();assert.equal(n.reads.length,1);
+  f.advance(1100);await settled();assert.equal(n.reads.length,2);n.pending[1].reject(Error('again'));await settled();
+  f.advance(2000);f.advance(3000);await settled();assert.equal(n.reads.length,2);
+  f.advance(3200);await settled();n.pending[2].resolve(n.snapshot(n.pending[2].request));await settled();assert.match(f.status.textContent,/native mixed output/);
+  assert.equal(f.created,0);assert.equal(n.pauses,0);
+});
+
+test('Native replaced sources and session IDs reject in-flight snapshots, including malformed data',async t=>{
+  const f=setup(t),old=nativeFixture(f,{deferred:true});f.monitor.setVisible(true);f.advance(0);await settled();
+  const next=nativeFixture(f,{deferred:true});f.advance(100);await settled();assert.equal(next.reads.length,0,'replacement waits for old read completion');
+  old.pending[0].resolve(old.snapshot(old.pending[0].request));await settled();assert.equal(f.envelopeCanvas.draws,0);
+  f.advance(200);await settled();next.setSession(2);next.pending[0].resolve(next.snapshot(next.pending[0].request,{session:1}));await settled();assert.equal(f.envelopeCanvas.draws,0);
+  f.advance(300);await settled();next.pending[1].resolve(next.snapshot(next.pending[1].request,{rms:NaN}));await settled();assert.match(f.status.textContent,/Invalid native monitor snapshot/);assert.equal(f.envelopeCanvas.draws,0);
+  assert(old.pauses>=1);assert.equal(f.created,0);
 });

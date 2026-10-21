@@ -1708,7 +1708,7 @@ if (inlineAudioMonitor) {
 }
 const audioMonitor = createAudioMonitor(() => activeTfiFilePath && !codePanel.hidden
   ? tfiFileEditor.getAudioRuntime()
-  : runtime.megaDrive?.audio, {
+  : runtime.megaDrive?.outputMonitor ?? runtime.megaDrive?.audio, {
   getSourceLabel: () => activeTfiFilePath && !codePanel.hidden ? 'File preview' : '',
   panel: audioMonitorPanel,
   envelopeCanvas: document.getElementById("audioMonitorEnvelope"),

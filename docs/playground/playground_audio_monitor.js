@@ -1,6 +1,6 @@
 import {createMonitorScale, normalizeMonitorRange, formatMonitorAmplitude} from './playground_monitor_scale.js';
 
-/** Read Web Audio analyser snapshots and draw the mixed output without changing audible routing. */
+/** Draw explicit native snapshots or Web Audio analyser data, without changing audible routing. */
 export function createAudioMonitor(getAudio, {
   panel, envelopeCanvas, waveCanvas, spectrumCanvas, modeSelect, modePanels = {},
   channel, status, pauseButton, description, storage, getSourceLabel = () => '',
@@ -25,6 +25,10 @@ export function createAudioMonitor(getAudio, {
   let samples = null, bins = null;
   let idleDrawn = false;
   let hasSnapshot = false, snapshotRate = 48000, snapshotTime = 0;
+  let nativeAudio = null, nativeSession = null, nativePending = null, nativeEpoch = 0;
+  let nativeRetryAt = 0, nativeErrors = 0, nativeFrame = -1, capturedRmsPeak = null;
+  let nativeLastRequest = -Infinity;
+  let cachedNative = null, disposed = false;
   // Bounded snapshot history, with real elapsed time on the horizontal axis.
   const historyTimes = new Float64Array(80);
   const historyRms = new Float32Array(80), historyPeaks = new Float32Array(80);
@@ -33,7 +37,7 @@ export function createAudioMonitor(getAudio, {
   function resetHistory() { historyHead = historySize = 0; }
 
   function resetObservation() {
-    resetHistory(); autoScale.reset(); hasSnapshot = false;
+    resetHistory(); autoScale.reset(); hasSnapshot = false; capturedRmsPeak = null; cachedNative = null; nativeFrame = -1;
   }
 
   function amplitudeRange(peak, time) {
@@ -48,7 +52,8 @@ export function createAudioMonitor(getAudio, {
       envelope: 'Last 5 seconds · RMS (blue) and sampled peak (orange). Y selects Auto or a fixed amplitude range.',
       waveform: 'Waveform over 20 milliseconds. Y selects Auto or a fixed ±amplitude range.',
       spectrum: 'Spectrum: −100 to 0 dBFS · 4096-point FFT · logarithmic frequency axis.',
-    }[mode] + ' Up to 15 updates/sec. Mixed output after effects and master volume. Pause stops analysis while audio keeps playing.';
+    }[mode] + (nativeAudio?.backend === 'native-genesis' && mode === 'spectrum' ? ' Native 4096-point Blackman window; no temporal smoothing.' : '') +
+      ' Up to 15 updates/sec. Mixed output after effects and master volume. Pause stops analysis while audio keeps playing.';
   }
   updateModeUI();
 
@@ -57,6 +62,13 @@ export function createAudioMonitor(getAudio, {
   }
 
   function detach() {
+    const retiring = nativeAudio;
+    nativeAudio = nativeSession = null; nativeEpoch++;
+    if (retiring) {
+      // Pause is an observation barrier, never an audio stop/restart. Keep one
+      // read in flight until it settles, even when the selected view changes.
+      try { void Promise.resolve(retiring.pause()).catch(() => {}); } catch {}
+    }
     release?.(); release = null;
     splitter?.disconnect();
     analyser?.disconnect();
@@ -112,13 +124,17 @@ export function createAudioMonitor(getAudio, {
 
   function drawEnvelope(time, capture) {
     if (capture) {
-      let sum = 0, peak = 0;
-      for (let i = 0; i < samples.length; i++) {
-        const value = samples[i];
-        sum += value * value; peak = Math.max(peak, Math.abs(value));
+      let rms = capturedRmsPeak?.rms, peak = capturedRmsPeak?.peak;
+      if (!capturedRmsPeak) {
+        let sum = 0; peak = 0;
+        for (let i = 0; i < samples.length; i++) {
+          const value = samples[i];
+          sum += value * value; peak = Math.max(peak, Math.abs(value));
+        }
+        rms = Math.sqrt(sum / samples.length);
       }
       historyTimes[historyHead] = time;
-      historyRms[historyHead] = Math.sqrt(sum / samples.length);
+      historyRms[historyHead] = rms;
       historyPeaks[historyHead] = peak;
       historyHead = (historyHead + 1) % historyTimes.length;
       historySize = Math.min(historySize + 1, historyTimes.length);
@@ -198,14 +214,72 @@ export function createAudioMonitor(getAudio, {
     idleDrawn = true;
   }
 
+  function nativeCurrent(request) {
+    return !disposed && visible && inView && !paused && !document.hidden && nativeEpoch === request.epoch &&
+      nativeAudio === request.audio && getAudio() === request.audio && request.audio.isReady() &&
+      request.audio.getSession() === request.session && mode === request.mode &&
+      (Number(channel.value) === 1 ? 1 : 0) === request.channel;
+  }
+
+  function tickNative(next, time, sourceLabel) {
+    const session = next.getSession();
+    if (!next.isReady() || !Number.isSafeInteger(session) || session < 1) {
+      detach(); if (!idleDrawn) drawIdle();
+      setStatus(sourceLabel ? `${sourceLabel} · Play a note to observe audio.` : 'Press Run to observe audio.'); return;
+    }
+    const requestedChannel = Number(channel.value) === 1 ? 1 : 0;
+    if (nativeAudio !== next || nativeSession !== session || selectedChannel !== requestedChannel) {
+      detach(); resetObservation(); nativeAudio = next; nativeSession = session; selectedChannel = requestedChannel;
+      nativeRetryAt = nativeErrors = 0; idleDrawn = false; updateModeUI();
+    }
+    if (nativePending || time < nativeRetryAt || time - nativeLastRequest < 1000 / 15) return;
+    const request = {audio:next, session, mode, channel:requestedChannel, epoch:nativeEpoch, time};
+    nativePending = request;
+    nativeLastRequest = time;
+    // Native PCM/FFT are bounded one-off snapshots. The native adapter owns its
+    // session/observation handshake; no AudioContext or analyser is fabricated.
+    Promise.resolve().then(() => {
+      if (!nativeCurrent(request)) return null;
+      return next.read({mode:request.mode, channel:request.channel});
+    }).then(snapshot => {
+      if (!nativeCurrent(request) || !snapshot) return;
+      if (snapshot.session !== session || !Number.isSafeInteger(snapshot.frame) || snapshot.frame < 0 ||
+          !Number.isFinite(snapshot.sampleRate) || snapshot.sampleRate < 8000 ||
+          !Number.isInteger(snapshot.frames) || snapshot.frames < 0 || snapshot.frames > 4096 ||
+          !Number.isFinite(snapshot.rms) || snapshot.rms < 0 || !Number.isFinite(snapshot.peak) || snapshot.peak < 0 ||
+          request.mode === 'waveform' && (!(snapshot.samples instanceof Float32Array) || snapshot.samples.length !== 4096) ||
+          request.mode === 'spectrum' && (!(snapshot.bins instanceof Float32Array) || snapshot.bins.length !== 2048)) {
+        throw new Error('Invalid native monitor snapshot');
+      }
+      if (!snapshot.frames) {
+        nativeRetryAt = nativeErrors = 0;
+        setStatus('Native audio monitor is waiting for audio frames.'); return;
+      }
+      if (snapshot.frame <= nativeFrame) return;
+      nativeFrame = snapshot.frame; nativeRetryAt = nativeErrors = 0;
+      capturedRmsPeak = {rms:snapshot.rms,peak:snapshot.peak};
+      if (request.mode === 'waveform') samples = snapshot.samples;
+      if (request.mode === 'spectrum') bins = snapshot.bins;
+      draw(snapshot.sampleRate, snapshot.frame / snapshot.sampleRate * 1000, true);
+      cachedNative = {audio:next,session};
+      setStatus(`${sourceLabel ? sourceLabel + ' · ' : ''}${snapshot.sampleRate} Hz · ${request.channel ? 'Right' : 'Left'} · native mixed output after effects and volume`);
+    }).catch(error => {
+      if (!nativeCurrent(request)) return;
+      nativeErrors++; nativeRetryAt = Math.max(request.time,lastDraw) + Math.min(8000, 1000 * 2 ** Math.min(3,nativeErrors-1));
+      setStatus(`Native audio monitor unavailable: ${error.message ?? error}. Retrying slowly; audio playback continues.`);
+    }).finally(() => { if (nativePending === request) nativePending = null; });
+  }
+
   function tick(time) {
     frame = 0;
-    if (!visible || !inView || paused || document.hidden) return;
+    if (disposed || !visible || !inView || paused || document.hidden) return;
     frame = requestAnimationFrame(tick);
     if (time - lastDraw < 1000 / 15) return;
     lastDraw = time;
     const next = getAudio();
     const sourceLabel = getSourceLabel();
+    if (next?.backend === 'native-genesis') { tickNative(next,time,sourceLabel); return; }
+    if (nativeAudio) { detach(); resetObservation(); idleDrawn = false; updateModeUI(); }
     if (!next?.masterOutputNode || !next.audioContext || next.audioContext.state === 'closed') {
       detach();
       if (!idleDrawn) drawIdle();
@@ -215,10 +289,12 @@ export function createAudioMonitor(getAudio, {
     if (audio !== next || context !== next.audioContext || !next.outputMonitors.has(splitter) || selectedChannel !== (Number(channel.value) === 1 ? 1 : 0)) attach(next);
     if (mode === 'spectrum') analyser.getFloatFrequencyData(bins);
     else analyser.getFloatTimeDomainData(samples);
+    capturedRmsPeak = null;
     draw(context.sampleRate, time, true);
     setStatus(`${sourceLabel ? sourceLabel + ' · ' : ''}${context.sampleRate} Hz · ${channel.value === '1' ? 'Right' : 'Left'} · mixed output after effects and volume`);
   }
   function changeMode() {
+    if (nativeAudio) detach();
     mode = modes.includes(modeSelect.value) ? modeSelect.value : 'envelope';
     try { storage?.setItem(preferenceKey, mode); } catch { /* Analysis works without persistence. */ }
     updateModeUI(); resetObservation(); idleDrawn = false; lastDraw = -Infinity;
@@ -233,6 +309,7 @@ export function createAudioMonitor(getAudio, {
     try { storage?.setItem(rangeKey, range); } catch { /* The display also works without storage. */ }
     autoScale.reset();
     if (visible && inView && !document.hidden && mode !== 'spectrum') {
+      if (cachedNative && (getAudio() !== cachedNative.audio || cachedNative.audio.getSession() !== cachedNative.session)) resetObservation();
       if (hasSnapshot) draw(snapshotRate, snapshotTime);
       else drawIdle();
     }
@@ -241,7 +318,7 @@ export function createAudioMonitor(getAudio, {
 
   function refresh() {
     cancelAnimationFrame(frame); frame = 0;
-    if (visible && inView && !paused && !document.hidden) frame = requestAnimationFrame(tick);
+    if (!disposed && visible && inView && !paused && !document.hidden) frame = requestAnimationFrame(tick);
     else detach();
   }
   function togglePause() {
@@ -253,6 +330,14 @@ export function createAudioMonitor(getAudio, {
     refresh();
   }
   pauseButton?.addEventListener('click', togglePause);
+  const changeChannel = () => {
+    if (nativeAudio || getAudio()?.backend === 'native-genesis') {
+      detach(); resetObservation(); idleDrawn = false; lastDraw = -Infinity;
+      if (visible && inView && paused && !document.hidden) drawIdle();
+      refresh();
+    }
+  };
+  channel.addEventListener?.('change', changeChannel);
   const observer = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
     inView = entries[0].isIntersecting; refresh();
   }) : null;
@@ -261,14 +346,17 @@ export function createAudioMonitor(getAudio, {
   const onPageHide = () => { visible = false; refresh(); };
   window.addEventListener('pagehide', onPageHide);
   return {
-    setVisible(value) { visible = Boolean(value); refresh(); },
+    setVisible(value) { if (disposed) return; visible = Boolean(value); refresh(); },
     dispose() {
+      if (disposed) return;
+      disposed = true;
       visible = false; refresh(); observer?.disconnect();
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('pagehide', onPageHide);
       pauseButton?.removeEventListener('click', togglePause);
       modeSelect.removeEventListener('change', changeMode);
       scaleSelect?.removeEventListener('change', changeScale);
+      channel.removeEventListener?.('change', changeChannel);
     },
   };
 }

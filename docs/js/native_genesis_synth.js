@@ -4,6 +4,7 @@ import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=chip-tabs-2';
 import {midiToOpnPitch} from './soundchip_pitch.js';
 import {createNativeGenesisMedia} from './native_genesis_media.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
+import {createNativeGenesisMonitor} from './native_genesis_monitor.js';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -47,8 +48,9 @@ class NativeAudioClock extends EventTarget {
 
 /** Genesis-only native audio owner for the existing Playground runtime.
  * `invoke` is a captured Tauri command transport, injected by the host. Import
- * and construction open no audio devices. Generated playback PCM stays native;
- * media uploads and explicit recording retrieval are one-off operations.
+ * and construction open no audio devices. Continuous rendering/output stays
+ * native; uploads, requested monitor snapshots and recording retrieval are
+ * explicit data transfers rather than a playback PCM bridge.
  * Web Audio remains the application's default and supports the full feature set.
  * @param {{invoke:(command:string,args?:object)=>Promise<unknown>,now?:()=>number,onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,decodeAudio?:(bytes:ArrayBuffer)=>Promise<unknown>}} options
  */
@@ -60,6 +62,9 @@ export class NativeGenesisSynth {
     this.capabilities = Object.freeze({chip:'ym2612', fmChannels:6, psg:true, dac:true,
       pcm:false, recorder:true, worker:true, noise:false, dynamicSoundChips:false, backend:'native-genesis'});
     this.clock = new NativeAudioClock(now);
+    this.outputMonitor = createNativeGenesisMonitor({invoke:(command,args)=>this.invoke(command,args),
+      getSession:()=>this.session,getSampleRate:()=>this.clock.sampleRate,
+      isReady:()=>this.isReady() && !this.stopping && !this.closing && this.clock.state === 'running'});
     this.audioContext = null; this.node = null; this.audio = null;
     this.state = 'idle'; this.session = null; this.generation = 0;
     this.pending = []; this.acceptedCommands = 0; this.acceptedRequests = 0; this.serial = Promise.resolve(); this.flushQueued = false;
@@ -342,6 +347,7 @@ export class NativeGenesisSynth {
   stopNativeAudio() {
     if (this.stopping) return this.stopping;
     if (this.session === null) return Promise.resolve();
+    void this.outputMonitor.pause().catch(()=>{});
     // Native Stop resets the rendered rack. Retire its JS descriptors too, so
     // repeated Runs reuse slots and old parameter handles cannot edit a new rack.
     this.fx?.dispose();

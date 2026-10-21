@@ -68,6 +68,7 @@ native_genesis_synth.js
 native_genesis_media.js
 native_genesis_fx.js
 native_genesis_worker.js
+native_genesis_monitor.js
 megasynth_fx.js
 playground_chip_port.js
 playground_chip_clock.js
