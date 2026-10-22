@@ -7,7 +7,7 @@ import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-ym2203-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-nuked-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -277,7 +277,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 }
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=native-ym2203-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=native-nuked-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',
@@ -2881,7 +2881,7 @@ async function changePlaygroundMode(id) {
 
 async function changePlaygroundAudioEngine(engine) {
   if (!supportsPlaygroundAudioEngineMode(engine, selectedMode.id) || engine === 'native' && !audioEngineSelection.available) {
-    throw new Error('Native is available in Genesis, Mega CD, 32X, NES + FDS, DX7, Game Boy, SNES and PC Engine modes only.');
+    throw new Error('Native is unavailable for this mode. Select Web Audio for this mode.');
   }
   if (changingMode) throw new Error('A mode or engine change is already in progress.');
   changingMode = true;

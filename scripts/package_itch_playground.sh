@@ -537,8 +537,10 @@ for file in ${NUKED_LICENSE_FILES}; do
 done
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 SNES S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
+Nuked OPN2: LGPL-2.1-or-later. See licenses/nuked-opn2/ and sources/Nuked-OPN2.md for corresponding source and rebuilding.
 JavaScript import parser: es-module-lexer 3.0.3, MIT. See vendor/es-module-lexer-LICENSE.
 
 Browser Git: isomorphic-git and bundled dependencies. See js/tetorica_virtual_files/GIT_LICENSES.txt.
@@ -574,6 +576,7 @@ This package includes two YM2612 engine options:
   - Included license files:
     - ./licenses/nuked-opn2/LICENSE
     - ./licenses/nuked-opn2/README.md
+  - Corresponding source and rebuild recipe: ./sources/Nuked-OPN2.md
 EOF
 
 # Make the playground runnable from itch.io as a standalone app.

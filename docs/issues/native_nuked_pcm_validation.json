@@ -1,0 +1,1585 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T19:23:43.802Z",
+  "reference": "Actual deployed docs/js/ym2612-worklet-nuked.js and Nuked/PSG WASM; raw reset DC preserved; explicit Native Stop modeled separately with real WASM reset and authored-register replay",
+  "wasmSha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1",
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "natural reset idle ladder DC matches uncentered shipped Worklet",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02175292931497097
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12507934868335724
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12870483100414276
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20030823349952698
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12054748833179474
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19849547743797302
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12779846787452698
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12870483100414276
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19758911430835724
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12145385891199112
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.190338134765625
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11964111030101776
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19396361708641052
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12326660007238388
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12779846787452698
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.190338134765625
+    },
+    {
+      "name": "six simultaneous channels, shared raw write latch and exact pan routing",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.24109497666358948
+    },
+    {
+      "name": "all operator key masks and SSG-EG modes with ordinary release",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11057738959789276
+    },
+    {
+      "name": "operator detune multiplication total level rates key scaling and amplitude modulation",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "normal and special frequency high bytes are shared across bank latches",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6163330078125
+    },
+    {
+      "name": "LFO all eight frequencies and independent AMS PMS routing",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.26556700468063354
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 10",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 15",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 69",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1858062744140625
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 133",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.252877801656723
+    },
+    {
+      "name": "cold channel-3 special mode and timers without register28 keying",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02175292931497097
+    },
+    {
+      "name": "DAC full unsigned range and FM6 handover independent stereo pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.23565673828125
+    },
+    {
+      "name": "PSG physical voice 0, noise and exact stereo mask",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 1, noise and exact stereo mask",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 2, noise and exact stereo mask",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 3, noise and exact stereo mask",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.05683603510260582
+    },
+    {
+      "name": "PSG all noise feedback rates and tone3 dependency with data-only latch writes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "mixed FM and PSG clipping, source gain ramps and held upsampling",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 2.9802322387695312e-08,
+      "peak": 1
+    },
+    {
+      "name": "independent FM and PSG gain ramps overlap without restarting the other source",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 4.656612873077393e-10,
+      "peak": 0.13919828832149506
+    },
+    {
+      "name": "reset clears retained held PCM and write latches at arbitrary source phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 7.450580596923828e-09,
+      "peak": 0.1936982125043869
+    },
+    {
+      "name": "Stop is immediately silent and retains normal/special latches, patch and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5492614507675171
+    },
+    {
+      "name": "Stop remains silent through edits and FM trigger resumes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2018909454345703
+    },
+    {
+      "name": "Stop remains silent through edits and DAC trigger resumes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2018909454345703
+    },
+    {
+      "name": "Stop remains silent through edits and PSG trigger resumes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2018909454345703
+    },
+    {
+      "name": "Stop remains silent through edits and CSM trigger resumes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "natural reset idle ladder DC matches uncentered shipped Worklet",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02175292931497097
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12689208984375
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12689208984375
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20030823349952698
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12598571181297302
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12689208984375
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19849547743797302
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12054748833179474
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19940185546875
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12870483100414276
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19668273627758026
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12598571181297302
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19305725395679474
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12326660007238388
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12054748833179474
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.18852539360523224
+    },
+    {
+      "name": "six simultaneous channels, shared raw write latch and exact pan routing",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.24109497666358948
+    },
+    {
+      "name": "all operator key masks and SSG-EG modes with ordinary release",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12145385891199112
+    },
+    {
+      "name": "operator detune multiplication total level rates key scaling and amplitude modulation",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "normal and special frequency high bytes are shared across bank latches",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6380859613418579
+    },
+    {
+      "name": "LFO all eight frequencies and independent AMS PMS routing",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.24653320014476776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 10",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 15",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 69",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.16677245497703552
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 133",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.252877801656723
+    },
+    {
+      "name": "cold channel-3 special mode and timers without register28 keying",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02175292931497097
+    },
+    {
+      "name": "DAC full unsigned range and FM6 handover independent stereo pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.23565673828125
+    },
+    {
+      "name": "PSG physical voice 0, noise and exact stereo mask",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 1, noise and exact stereo mask",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 2, noise and exact stereo mask",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 3, noise and exact stereo mask",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.05683603510260582
+    },
+    {
+      "name": "PSG all noise feedback rates and tone3 dependency with data-only latch writes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "mixed FM and PSG clipping, source gain ramps and held upsampling",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 1.4901161193847656e-08,
+      "peak": 1
+    },
+    {
+      "name": "independent FM and PSG gain ramps overlap without restarting the other source",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 4.656612873077393e-10,
+      "peak": 0.13919828832149506
+    },
+    {
+      "name": "reset clears retained held PCM and write latches at arbitrary source phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 7.450580596923828e-09,
+      "peak": 0.1936982125043869
+    },
+    {
+      "name": "Stop is immediately silent and retains normal/special latches, patch and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5474487543106079
+    },
+    {
+      "name": "Stop remains silent through edits and FM trigger resumes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20098456740379333
+    },
+    {
+      "name": "Stop remains silent through edits and DAC trigger resumes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20098456740379333
+    },
+    {
+      "name": "Stop remains silent through edits and PSG trigger resumes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20098456740379333
+    },
+    {
+      "name": "Stop remains silent through edits and CSM trigger resumes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "natural reset idle ladder DC matches uncentered shipped Worklet",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02175292931497097
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12507934868335724
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1223602294921875
+    },
+    {
+      "name": "FM physical channel 0, all four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20030823349952698
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12507934868335724
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12054748833179474
+    },
+    {
+      "name": "FM physical channel 1, all four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19849547743797302
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12961120903491974
+    },
+    {
+      "name": "FM physical channel 2, all four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19940185546875
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12598571181297302
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12598571181297302
+    },
+    {
+      "name": "FM physical channel 3, all four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19668273627758026
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12417297065258026
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12779846787452698
+    },
+    {
+      "name": "FM physical channel 4, all four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19215087592601776
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0770416259765625
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12326660007238388
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12054748833179474
+    },
+    {
+      "name": "FM physical channel 5, all four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19305725395679474
+    },
+    {
+      "name": "six simultaneous channels, shared raw write latch and exact pan routing",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21027831733226776
+    },
+    {
+      "name": "all operator key masks and SSG-EG modes with ordinary release",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14139404892921448
+    },
+    {
+      "name": "operator detune multiplication total level rates key scaling and amplitude modulation",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.04350585862994194
+    },
+    {
+      "name": "normal and special frequency high bytes are shared across bank latches",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5900481939315796
+    },
+    {
+      "name": "LFO all eight frequencies and independent AMS PMS routing",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21843567490577698
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 10",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 15",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17402343451976776
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 69",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1858062744140625
+    },
+    {
+      "name": "timers A/B flags IRQ CSM and channel3 mode 133",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.252877801656723
+    },
+    {
+      "name": "cold channel-3 special mode and timers without register28 keying",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02175292931497097
+    },
+    {
+      "name": "DAC full unsigned range and FM6 handover independent stereo pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.23565673828125
+    },
+    {
+      "name": "PSG physical voice 0, noise and exact stereo mask",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 1, noise and exact stereo mask",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 2, noise and exact stereo mask",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "PSG physical voice 3, noise and exact stereo mask",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.05683603510260582
+    },
+    {
+      "name": "PSG all noise feedback rates and tone3 dependency with data-only latch writes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    },
+    {
+      "name": "mixed FM and PSG clipping, source gain ramps and held upsampling",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 1.4901161193847656e-08,
+      "peak": 0.9776281714439392
+    },
+    {
+      "name": "independent FM and PSG gain ramps overlap without restarting the other source",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.13919828832149506
+    },
+    {
+      "name": "reset clears retained held PCM and write latches at arbitrary source phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 7.450580596923828e-09,
+      "peak": 0.19460459053516388
+    },
+    {
+      "name": "Stop is immediately silent and retains normal/special latches, patch and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5492614507675171
+    },
+    {
+      "name": "Stop remains silent through edits and FM trigger resumes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20098456740379333
+    },
+    {
+      "name": "Stop remains silent through edits and DAC trigger resumes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20098456740379333
+    },
+    {
+      "name": "Stop remains silent through edits and PSG trigger resumes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20098456740379333
+    },
+    {
+      "name": "Stop remains silent through edits and CSM trigger resumes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049620430916547775
+    }
+  ],
+  "maximumDifference": 2.9802322387695312e-08,
+  "totalStereoFrames": 1363968,
+  "sanitizer": "none",
+  "limits": "Offline selected Nuked plus SegaPSG, no device or cross-platform compiler. Native legacy fixed clocks 7,670,454 / 3,579,545 Hz; runtime clock switching is not added. Stop retains the existing Native authored-patch replay policy and suppresses emitted PCM until a voice trigger; natural reset matches Browser raw idle. Status, IRQ and all four read ports are compared after every output frame. Callback C++ new/delete and Nuked C malloc/free are counted; the alternate ymfm API links to fail-fast stubs to prove no hidden ymfm calls. The combined gain transport preserves independent ramps for FM/PSG targets that did not change; overlapping source edits are compared.",
+  "selfTest": "Native Nuked self-test passed: raw reset DC, exact Stop silence, FM/CSM/DAC/PSG retrigger, finite PCM and no alternate ymfm calls and zero C/C++ callback allocations/deallocations",
+  "status": "passed",
+  "sanitizerValidation": {
+    "status": "passed",
+    "sanitizer": "AddressSanitizer + UndefinedBehaviorSanitizer (macOS LeakSanitizer unsupported)",
+    "cases": 222,
+    "totalStereoFrames": 1363968,
+    "maximumDifference": 2.9802322387695312e-08,
+    "callbackAllocations": 0,
+    "callbackDeallocations": 0,
+    "alternateYmfmCalls": 0,
+    "command": "node scripts/check_native_nuked.mjs --sanitize"
+  }
+}

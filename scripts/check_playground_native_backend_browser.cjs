@@ -9,7 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
-const nativeModeIds=['genesis','mega-cd','genesis-full','pc98-26','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system','msx','msx-audio','dx7','ym3812','ym3526','ymf262'];
+const nativeModeIds=['genesis','mega-cd','genesis-full','genesis-full-nuked','pc98-26','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system','msx','msx-audio','dx7','ym3812','ym3526','ymf262'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -57,7 +57,7 @@ class FakeNative {
   status() {
     if (!this.current) throw Error('No native session');
     return {session:this.current.session,sampleRate:48000,frame:Math.floor((performance.now() - this.current.began) * 48),
-      ymClock:7670454,psgClock:3579545,mode:this.current.mode,rf5c164Clock:['mega-cd','32x'].includes(this.current.mode)?12500000:null,pwmClock:this.current.mode==='32x'?23011361:null,running:true,queued:0,lateCommands:0,queueOverflows:0,error:null,
+      ymClock:7670454,psgClock:3579545,mode:this.current.mode,engine:['genesis-full-nuked','genesis-nuked'].includes(this.current.mode)?'nuked':'ymfm',rf5c164Clock:['mega-cd','32x','genesis-full-nuked'].includes(this.current.mode)?12500000:null,pwmClock:['32x','genesis-full-nuked'].includes(this.current.mode)?23011361:null,running:true,queued:0,lateCommands:0,queueOverflows:0,error:null,
       liveFx:{active:this.liveFx.size,initialized:this.liveFx.size>0,latencyFrames:this.liveFx.size?2048:0,
         blockFrames:128,queuedCommands:0,processCalls:0,underruns:0,overruns:0,error:this.liveFxError}};
   }
@@ -66,7 +66,7 @@ class FakeNative {
     if (command === 'native_genesis_start') {
       if (this.failStart) {this.failStart = false; throw Error('Simulated native device unavailable');}
       this.liveFx.clear(); this.liveFxError = null;
-      assert(args.mode===undefined||nativeModeIds.includes(args.mode)||args.mode==='32x');
+      assert(args.mode===undefined||nativeModeIds.includes(args.mode)||args.mode==='32x'||args.mode==='genesis-nuked');
       this.current = {session:++this.sessions,began:performance.now(),mode:args.mode??'genesis'};
       const {RfInspectorState}=await import('../web/playground_chip_inspector_state.js');
       this.pcm=new RfInspectorState({writeRegister(){},loadMemory(){},reset(){}},{sampleRate:48000});
@@ -120,11 +120,11 @@ class FakeNative {
     if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopYm2203Voices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.stopMasterSystemVoices(undefined,this.gameGear);this.stopMsxVoices();this.stopOplVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if(command==='native_genesis_pwm_status') {
-      assert.equal(this.current.mode,'32x');this.applyPwmQueue();
+      assert(['32x','genesis-full-nuked'].includes(this.current.mode));this.applyPwmQueue();
       return {model:'mame',outputMode:'duty',clock:this.pwm.clock,sampleRate:48000,currentFrame:this.status().frame,queuedWrites:this.pwmQueue.length,
         registers:Array.from({length:5},(_,reg)=>this.pwm.read(reg)),lastSchedule:this.pwmLastSchedule,revision:0,pendingCommands:[]};
     }
-    if (command === 'native_genesis_rf5c164_status') {assert(['mega-cd','32x'].includes(this.current.mode));const state=this.pcm.read();return {...state,mask:this.pcm.mask,selected:this.pcm.selected,channels:state.channels.map(channel=>({...channel,configuredStep:this.pcm.configuredSteps[channel.channel]}))};}
+    if (command === 'native_genesis_rf5c164_status') {assert(['mega-cd','32x','genesis-full-nuked'].includes(this.current.mode));const state=this.pcm.read();return {...state,mask:this.pcm.mask,selected:this.pcm.selected,channels:state.channels.map(channel=>({...channel,configuredStep:this.pcm.configuredSteps[channel.channel]}))};}
     if(command==='native_genesis_dx7_status') {
       assert.equal(this.current.mode,'dx7');
       return {...this.dx7,voices:this.dx7.voices.map(voice=>voice.slice()),frame:this.status().frame,
@@ -209,7 +209,7 @@ class FakeNative {
       assert(Array.isArray(args.commands) && args.commands.length > 0 && args.commands.length <= 4096);
       assert(args.commands.every(entry => Number.isSafeInteger(entry.frame) && entry.frame >= 0));
       for(const entry of args.commands.filter(entry=>entry.type==='pwm')){
-        assert.equal(this.current.mode,'32x');const m=entry.message;
+        assert(['32x','genesis-full-nuked'].includes(this.current.mode));const m=entry.message;
         if(m.method==='write'){assert(Number.isInteger(m.register)&&m.register>=0&&m.register<=4);assert(Number.isInteger(m.value)&&m.value>=0&&m.value<=65535);this.pwm.write(m.register,m.value);}
         else if(m.method==='schedule-writes'){
           assert(Array.isArray(m.entries)&&m.entries.length+this.pwmQueue.length<=1000000);
@@ -317,7 +317,7 @@ class FakeNative {
       }
       if(this.current.mode==='dx7')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'DX7 mode must never send hidden FM/PSG/PCM chip commands');
       for(const entry of args.commands.filter(entry=>entry.type.startsWith('rf5c164-'))) {
-        assert(['mega-cd','32x'].includes(this.current.mode),'Genesis must never accept PCM commands');
+        assert(['mega-cd','32x','genesis-full-nuked'].includes(this.current.mode),'Genesis must never accept PCM commands');
         if(entry.type==='rf5c164-write') {assert(Number.isInteger(entry.register)&&entry.register>=0&&entry.register<=8);assert(Number.isInteger(entry.value)&&entry.value>=0&&entry.value<=255);if(entry.audition)this.pcm.auditionWriting++;try{this.pcm.write(entry.register,entry.value);}finally{if(entry.audition)this.pcm.auditionWriting--;}}
         else if(entry.type==='rf5c164-load-memory') {assert(Number.isInteger(entry.offset)&&entry.offset>=0&&entry.offset<=65536);assert(Array.isArray(entry.data)&&entry.data.length<=65536-entry.offset);assert(entry.data.every(value=>Number.isInteger(value)&&value>=0&&value<=255));this.pcmMemory.set(entry.data,entry.offset);}
         else if(entry.type==='rf5c164-key-on'||entry.type==='rf5c164-key-off') {
@@ -580,8 +580,8 @@ async function assertNativeModeRestriction(page,native) {
   // A forged option/change must pass the same support check as the visible UI.
   await page.evaluate(()=>{
     const select=document.getElementById('playgroundMode');
-    const option=new Option('Forged 32X Nuked','genesis-full-nuked');option.dataset.forgedMode='true';select.append(option);
-    select.value='genesis-full-nuked';select.dispatchEvent(new Event('change',{bubbles:true}));
+    const option=new Option('Forged unknown machine','unknown-machine');option.dataset.forgedMode='true';select.append(option);
+    select.value='unknown-machine';select.dispatchEvent(new Event('change',{bubbles:true}));
   });
   assert.equal(await page.locator('#playgroundMode').inputValue(),'genesis');
   assert.equal(await page.locator('#changeModeDialog').evaluate(dialog=>dialog.open),false,'Unsupported mode must not open the project-transfer dialog');
@@ -1166,9 +1166,20 @@ async function nativeMegaCd(page,native,artifacts,name) {
   await nativeRun(page,native);
   assert.equal(native.current.mode,'genesis');
 }
-async function native32x(page,native,artifacts,name) {
-  await changeNativeMode(page,native,'genesis-full');
+async function native32x(page,native,artifacts,name,{nuked=false}={}) {
+  const mode=nuked?'genesis-full-nuked':'genesis-full',nativeMode=nuked?mode:'32x';
+  await changeNativeMode(page,native,mode);
   const allCommands=()=>native.calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+  if(nuked){
+    const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/genesis-full-nuked/index.js'),'utf8');
+    for(const execution of ['main','worker']){
+      const first=allCommands().length;
+      await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+      await until(()=>allCommands().slice(first).some(c=>c.type==='write'&&c.register===0x28&&(c.value&0xf0))&&allCommands().slice(first).some(c=>c.type==='psg-write'),execution+' shipped 32X Nuked starter');
+      assert.equal(native.current.mode,'genesis-full-nuked');assert.equal(native.status().engine,'nuked');await assertNoLiveAudio(page);
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    }
+  }
   const phrase=`
     if(await useSoundChip('pwm')!==pwm)throw Error('32X PWM must borrow the built-in Native endpoint');
     fm.setPreset(CH1,FM_PRESETS['one-op-basic']);
@@ -1196,16 +1207,17 @@ async function native32x(page,native,artifacts,name) {
     await until(()=>pwmCommands().some(command=>command.message.method==='mix')&&
       commands().some(command=>command.type==='write'&&command.register===0x28&&(command.value&0xf0))&&
       commands().some(command=>command.type==='psg-write')&&commands().some(command=>command.type==='rf5c164-key-on'),`${execution} shared Native FM/PSG/RF/PWM playback`);
-    assert.equal(native.current.mode,'32x');
+    assert.equal(native.current.mode,nativeMode);
     assert(pwmCommands().some(command=>command.message.method==='schedule-writes'&&command.message.entries.length===2));
     assert(native.calls.slice(calls).some(call=>call.command==='native_genesis_pwm_status'&&Number.isSafeInteger(call.args.after)),'PWM state/read must await their applied command barrier');
     if(execution==='worker')assert(pwmCommands().some(command=>command.message.method==='write'&&command.performance&&command.owner&&command.frame>0),'Worker PWM must preserve loop ownership and frame timing');
     const state=await page.evaluate(async()=>{
       const synth=window.__nativeBackendTest.runtime.megaDrive;
-      return {backend:synth.backend,mode:synth.mode,pwm:synth.capabilities.pwm,pcm:synth.capabilities.pcm,
+      return {backend:synth.backend,mode:synth.mode,engine:synth.engine,pwm:synth.capabilities.pwm,pcm:synth.capabilities.pcm,
         endpoints:synth.primaryEndpoints.map(endpoint=>endpoint.name),chips:await synth.chipInspector.list(),state:await synth.chipInspector.read('pwm')};
     });
-    assert.equal(state.backend,'native-genesis');assert.equal(state.mode,'32x');assert.equal(state.pwm,true);assert.equal(state.pcm,true);
+    assert.equal(state.backend,'native-genesis');assert.equal(state.mode,nativeMode);assert.equal(state.pwm,true);assert.equal(state.pcm,true);
+    assert.equal(state.engine,nuked?'nuked':'ymfm');
     assert.deepEqual(state.endpoints,['pwm']);assert.deepEqual(state.chips.map(chip=>chip.id).sort(),['pwm','rf5c164','segapsg','ym2612']);
     assert.equal(state.state.kind,'pwm');assert.equal(state.state.cycle,767);assert.equal(state.state.queuedWrites,0);
     await assertNoLiveAudio(page);
@@ -1252,9 +1264,31 @@ async function native32x(page,native,artifacts,name) {
   const inspected=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.invoke('pwm','writeRegister',[1,1023]));
   assert.equal(inspected.cycle,1023,'Operators PWM edits must reach Native');
   await assertNoLiveAudio(page);
-  await page.screenshot({path:path.join(artifacts,name+'-native-32x.png')});
+  await page.screenshot({path:path.join(artifacts,name+(nuked?'-native-32x-nuked.png':'-native-32x.png'))});
   await changeNativeMode(page,native,'genesis','keep');
   await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
+}
+async function nativeNuked(page,native,artifacts,name){
+  await native32x(page,native,artifacts,name,{nuked:true});
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/genesis-nuked/index.js'),'utf8');
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.finalize());
+  const legacy=new URL(page.url());legacy.searchParams.set('mode','genesis-nuked');legacy.searchParams.set('audioEngine','native');legacy.searchParams.set('src',Buffer.from(starter).toString('base64url'));legacy.searchParams.delete('modeProject');
+  await page.goto(legacy.href);await ready(page);
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'genesis-nuked');
+  assert.deepEqual(await modeIds(page),[...nativeModeIds,'genesis-nuked']);
+  const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]);
+  for(const execution of ['main','worker']){
+    const first=all().length;
+    await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+    await until(()=>all().slice(first).some(c=>c.type==='write'&&c.register===0x28&&(c.value&0xf0)),execution+' hidden legacy Nuked starter');
+    assert.equal(native.current.mode,'genesis-nuked');assert.equal(native.status().engine,'nuked');
+    assert.deepEqual(await page.evaluate(()=>{const s=window.__nativeBackendTest.runtime.megaDrive;return {engine:s.engine,pcm:s.pcm,pwm:s.pwm,chips:s.chipInspector.list().map(c=>c.id)};}),{engine:'nuked',pcm:null,pwm:null,chips:['ym2612','segapsg']});
+    assert(!all().slice(first).some(c=>c.type.startsWith('rf5c164')||c.type==='pwm'),'Legacy Nuked has no hidden PCM/PWM');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());await assertNoLiveAudio(page);
+  }
+  await keyboard(page,native);await page.screenshot({path:path.join(artifacts,name+'-native-genesis-nuked.png')});
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
 async function nativeDx7State(page,predicate,label) {
   const deadline=Date.now()+10000;
@@ -2250,6 +2284,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--nuked-only')) {
+      await assertNativeModeRestriction(page,native);await nativeNuked(page,native,artifacts,name);assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-nuked.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS Native 32X Nuked and legacy Genesis Nuked Main/Worker starters, FM/PSG/RF/PWM, Keyboard/Operators, scheduling, Stop and mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--ym2203-only')) {
       await nativeYm2203(page,native,artifacts,name);assert.deepEqual(errors,[]);
       await fs.writeFile(path.join(artifacts,name+'-native-ym2203.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
@@ -2331,6 +2370,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
     await nativeMegaCd(page,native,artifacts,name);
     await native32x(page,native,artifacts,name);
+    await nativeNuked(page,native,artifacts,name);
     await nativeDx7(page,native,artifacts,name);
     await nativeNes(page,native,artifacts,name);
     await nativeConsoles(page,native,artifacts,name);
@@ -2359,46 +2399,21 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await assertNoLiveAudio(page);
     await selectEngine(page, 'webaudio'); await run(page);
     assert(await page.evaluate(() => window.__audioConstructions.contexts > 0));
-    // Unsupported machines can be selected after explicitly returning to Web Audio.
+    // Every listed mode, including Nuked, can now select the Native backend.
     assert.deepEqual(await modeIds(page),allModeIds);
     await page.locator('#mainMenu > summary').click();
-    await page.selectOption('#playgroundMode', 'genesis-full-nuked');
+    await page.selectOption('#playgroundMode','genesis-full-nuked');
     await page.locator('#changeModeDialog').waitFor({state:'visible'});
-    await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'genesis-full-nuked'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
-    await ready(page);
-    assert.equal(native.current, null);
-    assert.notEqual(await page.evaluate(() => window.__nativeBackendTest.runtime.megaDrive.backend), 'native-genesis');
-    assert.deepEqual(await modeIds(page),allModeIds,'Non-Genesis Web Audio must retain the complete mode list');
-    await openSettings(page);
-    assert.equal(await page.locator('#audioEngineSelect option[value="native"]').isDisabled(), true);
-    assert.equal(await page.locator('#audioEngineSelect').inputValue(), 'webaudio');
-    const gameboyUrl=page.url(),gameboyStarts=native.count('native_genesis_start');
-    await page.locator('#audioEngineSelect').evaluate(select=>{select.value='native';});
-    await page.click('#audioEngineApply');
-    assert.equal(page.url(),gameboyUrl,'A forged disabled Native selection must not navigate');
-    assert.equal(native.count('native_genesis_start'),gameboyStarts);
-    await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
-    // A manually supplied incompatible URL must truthfully display the actual Web Audio backend.
-    const starts=native.count('native_genesis_start');
-    const preservedSource=await page.evaluate(()=>window.__nativeBackendTest.editor.getValue());
-    const incompatible=new URL(page.url());incompatible.searchParams.set('audioEngine','native');
-    const encodedSource=Buffer.from(preservedSource).toString('base64url');incompatible.searchParams.set('src',encodedSource);
-    await page.goto(incompatible.href);await ready(page);
-    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'genesis-full-nuked');
-    assert.equal(new URL(page.url()).searchParams.get('audioEngine'),null,'The incompatible Native query must be removed');
-    assert.equal(new URL(page.url()).searchParams.get('src'),encodedSource,'URL normalization must preserve the source parameter');
-    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),preservedSource,'URL normalization must preserve the current project');
-    assert.notEqual(await page.evaluate(()=>window.__nativeBackendTest.runtime.megaDrive.backend),'native-genesis');
-    assert.equal(native.count('native_genesis_start'),starts,'An incompatible URL must never start Native');
-    assert.deepEqual(await modeIds(page),allModeIds,'An incompatible URL uses the full Web Audio mode list');
-    await openSettings(page);
-    assert.equal(await page.locator('#audioEngineSelect').inputValue(),'webaudio');
-    assert.equal(await page.locator('#audioEngineSelect option[value="native"]').isDisabled(),true);
-    assert.equal(await page.locator('#audioEngineButton .menu-value').textContent(),'Web Audio');
+    await Promise.all([page.waitForURL(url=>url.searchParams.get('mode')==='genesis-full-nuked'),page.locator('#changeModeDialog').evaluate(dialog=>dialog.close('keep'))]);
+    await ready(page);await openSettings(page);
+    assert.equal(await page.locator('#audioEngineSelect option[value="native"]').isDisabled(),false);
+    await page.locator('#audioEngineDialog').evaluate(dialog=>dialog.close());
+    await selectEngine(page,'native');await nativeRun(page,native);
+    assert.equal(native.current.mode,'genesis-full-nuked');assert.equal(native.status().engine,'nuked');
     assert.deepEqual(errors, []);
     await fs.writeFile(path.join(artifacts, name + '-native-settings.json'), JSON.stringify({mockedNative:true, calls:native.calls}, null, 2));
     await context.close();
-    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD/32X/NES + FDS/DX7 Main/Worker and shipped starters, 32X FM/PSG/RF/PWM scheduled writes/read/state/mixer/loop ownership, actual RF High/Write and NES Raw/Readable/High VGM imports with shared cleanup/RAM retention and PAL guard, RF RAM/loadSample and polyphonic sample Keyboard, NES six-channel Keyboard/Operators/DMC RAM/FDS wave/modulation and Stop retention, DX7 SysEx/live operators/PC and Guitar Keyboard/Operators audition and bank retention, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, Native mode restrictions and incompatible URL; no native live AudioContext/Worklet (native IPC mocked)`);
+    console.log(`${name}: PASS Web Audio default, project handoff, Native Genesis/Mega CD/32X/32X Nuked/legacy Genesis Nuked/NES + FDS/DX7 Main/Worker and shipped starters, 32X FM/PSG/RF/PWM scheduled writes/read/state/mixer/loop ownership, actual RF High/Write and NES Raw/Readable/High VGM imports with shared cleanup/RAM retention and PAL guard, RF RAM/loadSample and polyphonic sample Keyboard, NES six-channel Keyboard/Operators/DMC RAM/FDS wave/modulation and Stop retention, DX7 SysEx/live operators/PC and Guitar Keyboard/Operators audition and bank retention, real FLAC decoding, DAC/sample/FX/noise/liveFx, Envelope/Wave/Spectrum and observation lifecycle, loop cancellation, recording, Stop/Run, failure/recovery, unknown-mode rejection and Web Audio/Nuked handoff; no native live AudioContext/Worklet (native IPC mocked)`);
   } finally {await browser.close();}
 }
 
