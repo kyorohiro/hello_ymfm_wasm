@@ -19,7 +19,8 @@ import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=native-x68
 import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=native-game-gear-1';
 import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=native-game-gear-1';
 import {createNativeGenesisMsx} from './native_genesis_msx.js?v=native-msx-1';
-import {createNativeGenesisOpl} from './native_genesis_opl.js?v=native-opl-1';
+import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=native-msx-audio-1';
+import {createNativeGenesisOpl} from './native_genesis_opl.js?v=native-msx-audio-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -79,7 +80,7 @@ export class NativeGenesisSynth {
   /** @param {{invoke:(command:string,args?:object)=>Promise<any>,now?:()=>number,
    * onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,
    * decodeAudio?:(bytes:ArrayBuffer)=>Promise<any>,fetcher?:typeof globalThis.fetch,megaCD?:boolean,dx7?:boolean,
-   * mode?:'genesis'|'mega-cd'|'dx7'|'nes'|'gameboy'|'snes'|'pc-engine'|'pc98'|'ym2608'|'neogeo'|'neogeo-b'|'ym2610'|'ym2610b'|'x68000'|'master-system'|'game-gear'|'msx'|'ym3526'|'ym3812'|'ymf262'|'genesis-full'|'32x'}} [options] */
+   * mode?:'genesis'|'mega-cd'|'dx7'|'nes'|'gameboy'|'snes'|'pc-engine'|'pc98'|'ym2608'|'neogeo'|'neogeo-b'|'ym2610'|'ym2610b'|'x68000'|'master-system'|'game-gear'|'msx'|'msx-audio'|'ym3526'|'ym3812'|'ymf262'|'genesis-full'|'32x'}} [options] */
   constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1, decodeAudio,fetcher,megaCD=false,dx7=false,mode} = {}) {
     if (typeof invoke !== 'function') throw new TypeError('Native Genesis requires the Tauri invoke transport');
     if(mode==='genesis-full')mode='32x';
@@ -88,8 +89,8 @@ export class NativeGenesisSynth {
     if(mode==='ym2610b')mode='neogeo-b';
     this.invoke = invoke; this.now = now; this.onError = onError;
     this.backend = 'native-genesis';this.consoleKind=mode==='gameboy'?'gameboy':mode==='pc-engine'||mode==='huc6280'?'huc6280':null;this.snesMode=mode==='snes';
-    this.gameGearMode=mode==='game-gear';this.oplMode=['ym3526','ym3812','ymf262'].includes(mode);this.msxMode=mode==='msx';this.masterSystemMode=mode==='master-system';this.x68000Mode=mode==='x68000';this.opnaMode=mode==='pc98';this.opnbMode=['neogeo','neogeo-b'].includes(mode);this.nesMode=mode==='nes';this.dx7Mode=!this.consoleKind&&!this.snesMode&&!this.nesMode&&!this.opnaMode&&!this.opnbMode&&!this.x68000Mode&&!this.masterSystemMode&&!this.gameGearMode&&!this.msxMode&&!this.oplMode&&(dx7===true||mode==='dx7');this.primaryMode=!!this.consoleKind||this.snesMode||this.nesMode||this.dx7Mode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.gameGearMode||this.msxMode||this.oplMode;
-    this.chip = this.oplMode?mode:this.consoleKind??(this.msxMode?'msx':this.masterSystemMode||this.gameGearMode?'segapsg':this.x68000Mode?'x68000':this.opnaMode?'ym2608':this.opnbMode?(mode==='neogeo-b'?'ym2610b':'ym2610'):this.snesMode?'snes':this.nesMode?'nes':this.dx7Mode?'dx7':'ym2612');this.mode=this.gameGearMode?'game-gear':this.masterSystemMode?'master-system':this.opnbMode?mode:this.opnaMode?'pc98':this.chip==='huc6280'?'pc-engine':this.chip==='ym2612'?mode??(megaCD?'mega-cd':'genesis'):this.chip;this.pwmMode=!this.primaryMode&&mode==='32x';this.megaCD=!this.primaryMode&&(megaCD===true||mode==='mega-cd'||this.pwmMode);
+    this.gameGearMode=mode==='game-gear';this.oplMode=['ym3526','ym3812','ymf262'].includes(mode);this.msxMode=mode==='msx';this.msxAudioMode=mode==='msx-audio';this.masterSystemMode=mode==='master-system';this.x68000Mode=mode==='x68000';this.opnaMode=mode==='pc98';this.opnbMode=['neogeo','neogeo-b'].includes(mode);this.nesMode=mode==='nes';this.dx7Mode=!this.consoleKind&&!this.snesMode&&!this.nesMode&&!this.opnaMode&&!this.opnbMode&&!this.x68000Mode&&!this.masterSystemMode&&!this.gameGearMode&&!this.msxMode&&!this.msxAudioMode&&!this.oplMode&&(dx7===true||mode==='dx7');this.primaryMode=!!this.consoleKind||this.snesMode||this.nesMode||this.dx7Mode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.gameGearMode||this.msxMode||this.msxAudioMode||this.oplMode;
+    this.chip = this.oplMode?mode:this.consoleKind??(this.msxAudioMode?'msx-audio':this.msxMode?'msx':this.masterSystemMode||this.gameGearMode?'segapsg':this.x68000Mode?'x68000':this.opnaMode?'ym2608':this.opnbMode?(mode==='neogeo-b'?'ym2610b':'ym2610'):this.snesMode?'snes':this.nesMode?'nes':this.dx7Mode?'dx7':'ym2612');this.mode=this.gameGearMode?'game-gear':this.masterSystemMode?'master-system':this.opnbMode?mode:this.opnaMode?'pc98':this.chip==='huc6280'?'pc-engine':this.chip==='ym2612'?mode??(megaCD?'mega-cd':'genesis'):this.chip;this.pwmMode=!this.primaryMode&&mode==='32x';this.megaCD=!this.primaryMode&&(megaCD===true||mode==='mega-cd'||this.pwmMode);
     this.capabilities = Object.freeze({chip:this.chip, fmChannels:this.opnbMode?(mode==='neogeo-b'?6:4):this.opnaMode?6:this.primaryMode?0:6, psg:!this.primaryMode||this.masterSystemMode||this.gameGearMode, dac:!this.primaryMode,
       pcm:this.megaCD,pwm:this.pwmMode, recorder:true, worker:true, noise:true, dynamicSoundChips:false, backend:'native-genesis'});
     this.clock = new NativeAudioClock(now);
@@ -160,13 +161,15 @@ export class NativeGenesisSynth {
     this.segapsg=this.nativeMasterSystem?.segapsg.client??this.nativeGameGear?.segapsg.client??null;
     if(this.segapsg)this.psg=this.segapsg;
     this.nativeMsx=this.msxMode?createNativeGenesisMsx(this):null;
-    this.opll=this.ym2413=this.nativeMasterSystem?.ym2413.client??this.nativeMsx?.ym2413.client??null;
-    this.ay=this.ay8910=this.nativeMsx?.ay8910.client??null;
+    this.nativeMsxAudio=this.msxAudioMode?createNativeGenesisMsxAudio(this):null;
+    this.opll=this.ym2413=this.nativeMasterSystem?.ym2413.client??this.nativeMsx?.ym2413.client??this.nativeMsxAudio?.ym2413.client??null;
+    this.ay=this.ay8910=this.nativeMsx?.ay8910.client??this.nativeMsxAudio?.ay8910.client??null;
     this.nativeOpl=this.oplMode?createNativeGenesisOpl(this,{chip:this.chip}):null;
-    this.opl=this.nativeOpl?.client??null;
+    this.opl=this.nativeOpl?.client??this.nativeMsxAudio?.y8950.client??null;
+    this.y8950=this.nativeMsxAudio?.y8950.client??null;
     for(const kind of ['ym3526','ym3812','ymf262'])this[kind]=this.chip===kind?this.opl:null;
-    this.nativeVoiceChips=this.nativeGameGear??this.nativeMsx??this.nativeMasterSystem??this.nativeX68000??(this.nativeOpl?{[this.chip]:this.nativeOpl}:null);
-    this.primaryEndpoints=this.nativeGameGear?[{name:'segapsg',globalName:'psg',client:this.psg}]:this.nativeOpl?[{name:this.chip,globalName:'opl',client:this.opl}]:this.nativeMsx?[{name:'ym2413',globalName:'opll',client:this.opll},{name:'ay8910',globalName:'ay',client:this.ay}]:this.nativeMasterSystem?[{name:'segapsg',globalName:'psg',client:this.psg},{name:'ym2413',globalName:'opll',client:this.opll}]:this.nativeX68000?[{name:'ym2151',globalName:'opm',client:this.opm},{name:'okim6258',globalName:'adpcm',client:this.adpcm}]:this.pwm?[{name:'pwm',globalName:'pwm',client:this.pwm}]:this.nativeConsole?[{name:this.consoleKind,globalName:this.gameboy?'gameboy':'pce',client:this.nativeConsole.client}]:this.snes?[{name:'snes',globalName:'snes',client:this.snes}]:this.nes?[{name:'nes',globalName:'nes',client:this.nes}]:this.dx7?[{name:'dx7',globalName:'dx7',client:this.dx7}]:[];
+    this.nativeVoiceChips=this.nativeMsxAudio??this.nativeGameGear??this.nativeMsx??this.nativeMasterSystem??this.nativeX68000??(this.nativeOpl?{[this.chip]:this.nativeOpl}:null);
+    this.primaryEndpoints=this.nativeMsxAudio?[{name:'y8950',globalName:'opl',client:this.opl},{name:'ym2413',globalName:'opll',client:this.opll},{name:'ay8910',globalName:'ay',client:this.ay}]:this.nativeGameGear?[{name:'segapsg',globalName:'psg',client:this.psg}]:this.nativeOpl?[{name:this.chip,globalName:'opl',client:this.opl}]:this.nativeMsx?[{name:'ym2413',globalName:'opll',client:this.opll},{name:'ay8910',globalName:'ay',client:this.ay}]:this.nativeMasterSystem?[{name:'segapsg',globalName:'psg',client:this.psg},{name:'ym2413',globalName:'opll',client:this.opll}]:this.nativeX68000?[{name:'ym2151',globalName:'opm',client:this.opm},{name:'okim6258',globalName:'adpcm',client:this.adpcm}]:this.pwm?[{name:'pwm',globalName:'pwm',client:this.pwm}]:this.nativeConsole?[{name:this.consoleKind,globalName:this.gameboy?'gameboy':'pce',client:this.nativeConsole.client}]:this.snes?[{name:'snes',globalName:'snes',client:this.snes}]:this.nes?[{name:'nes',globalName:'nes',client:this.nes}]:this.dx7?[{name:'dx7',globalName:'dx7',client:this.dx7}]:[];
     this.stream = this.unavailableMedia('Streaming playback');
     this.nextNoiseNamespace=0;
     this.noise=createNativeGenesisNoise({send:message=>this.enqueue({type:'noise',frame:0,message}),getSampleRate:()=>this.clock.sampleRate});
@@ -208,7 +211,7 @@ export class NativeGenesisSynth {
     const pending = (async () => {
       let status;
       try {
-        status = await this.invoke('native_genesis_start',...(this.consoleKind||this.snesMode||this.pwmMode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.gameGearMode||this.msxMode||this.oplMode?[{mode:this.mode}]:this.nesMode?[{mode:'nes'}]:this.dx7Mode?[{mode:'dx7'}]:this.megaCD?[{mode:'mega-cd'}]:[]));
+        status = await this.invoke('native_genesis_start',...(this.consoleKind||this.snesMode||this.pwmMode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.gameGearMode||this.msxMode||this.msxAudioMode||this.oplMode?[{mode:this.mode}]:this.nesMode?[{mode:'nes'}]:this.dx7Mode?[{mode:'dx7'}]:this.megaCD?[{mode:'mega-cd'}]:[]));
         if (generation !== this.generation) {
           if (status?.session != null) await this.invoke('native_genesis_shutdown',{session:status.session});
           throw new DOMException('Native audio initialization was cancelled','AbortError');
@@ -328,7 +331,7 @@ export class NativeGenesisSynth {
         catch(error) {
           // A held manual voice rejects an isolated clock edit atomically. The
           // caller keeps that rejection, while the running audio remains usable.
-          if(this.oplMode && batch.every(command=>command.type==='opl'&&command.message?.method==='clock') &&
+          if((this.oplMode||this.msxAudioMode) && batch.every(command=>command.type==='opl'&&command.message?.method==='clock'&&(!this.msxAudioMode||command.message.chip==='y8950')) &&
               (error?.message??String(error))===OPL_HELD_CLOCK_ERROR) {
             const rejected=new Error(OPL_HELD_CLOCK_ERROR);rejected.code='OPL_CLOCK_HELD';throw rejected;
           }
@@ -529,7 +532,7 @@ export class NativeGenesisSynth {
         if(this.nativeDx7){const snapshot=await this.invoke('native_genesis_dx7_status',{session});if(session===this.session)this.nativeDx7.adoptStopped(snapshot);}
         if(this.nativeNes){const snapshot=await this.invoke('native_genesis_nes_status',{session});if(session===this.session)this.nativeNes.adoptStopped(snapshot);}
         if(this.nativeVoiceChips){
-          const command=this.nativeGameGear?'native_genesis_game_gear_status':this.nativeOpl?'native_genesis_opl_status':this.nativeMsx?'native_genesis_msx_status':this.nativeMasterSystem?'native_genesis_master_system_status':'native_genesis_x68000_status';
+          const command=this.nativeMsxAudio?'native_genesis_msx_audio_status':this.nativeGameGear?'native_genesis_game_gear_status':this.nativeOpl?'native_genesis_opl_status':this.nativeMsx?'native_genesis_msx_status':this.nativeMasterSystem?'native_genesis_master_system_status':'native_genesis_x68000_status';
           const snapshot=await this.invoke(command,{session});
           if(session===this.session)for(const [kind,endpoint]of Object.entries(this.nativeVoiceChips))endpoint.adoptStopped(snapshot[kind]);
         }
@@ -611,7 +614,7 @@ export class NativeGenesisSynth {
    * AudioNode or PCM bridge is fabricated for the shared Keyboard UI. */
   createInspector() {
     const listeners = new Set(); let disposed = false;
-    const list = () => disposed || !this.isReady() ? [] : this.nativeVoiceChips?Object.keys(this.nativeVoiceChips).map(id=>({id,kind:id,name:id,label:`${({segapsg:'Sega PSG',ay8910:'AY-3-8910'})[id]??id.toUpperCase()} (Native)`,connected:true,...(['ym2413','ym3526','ym3812','ymf262'].includes(id)?{registers:this.nativeVoiceChips[id].client._getState().registers}:{})})):this.nativeOpn?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip.toUpperCase()} (Native)`,connected:true}]:this.nativeConsole||this.nativeSnes?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip==='gameboy'?'Game Boy':this.chip==='huc6280'?'HuC6280':'S-DSP'} (Native)`,connected:true}]:this.nesMode?[
+    const list = () => disposed || !this.isReady() ? [] : this.nativeVoiceChips?Object.keys(this.nativeVoiceChips).map(id=>({id,kind:id,name:id,label:`${({segapsg:'Sega PSG',ay8910:'AY-3-8910'})[id]??id.toUpperCase()} (Native)`,connected:true,...(['ym2413','ym3526','ym3812','ymf262','y8950'].includes(id)?{registers:this.nativeVoiceChips[id].client._getState().registers}:{})})):this.nativeOpn?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip.toUpperCase()} (Native)`,connected:true}]:this.nativeConsole||this.nativeSnes?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip==='gameboy'?'Game Boy':this.chip==='huc6280'?'HuC6280':'S-DSP'} (Native)`,connected:true}]:this.nesMode?[
       {id:'nes',kind:'nes',name:'nes',label:'NES + FDS (Native)',connected:true},
     ]:this.dx7Mode?[
       {id:'dx7',kind:'dx7',name:'dx7',label:'DX7 (Native)',connected:true},

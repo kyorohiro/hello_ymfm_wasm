@@ -288,6 +288,7 @@ native_genesis_game_gear.js
 native_genesis_opll.js
 native_genesis_voice_endpoint.js
 native_genesis_msx.js
+native_genesis_msx_audio.js
 native_genesis_opl.js
 native_genesis_livefx.js
 native_livefx_context.js

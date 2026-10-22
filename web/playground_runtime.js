@@ -2545,8 +2545,8 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port,ym2151Port,okim6258Port,segapsgPort,ym2413Port,ay8910Port,ym3526Port,ym3812Port,ymf262Port} = nativeWorkerBridge;
-        const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port,ym2151:ym2151Port,okim6258:okim6258Port,segapsg:segapsgPort,ym2413:ym2413Port,ay8910:ay8910Port,ym3526:ym3526Port,ym3812:ym3812Port,ymf262:ymf262Port};
+        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port,ym2151Port,okim6258Port,segapsgPort,ym2413Port,ay8910Port,ym3526Port,ym3812Port,ymf262Port,y8950Port} = nativeWorkerBridge;
+        const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port,ym2151:ym2151Port,okim6258:okim6258Port,segapsg:segapsgPort,ym2413:ym2413Port,ay8910:ay8910Port,ym3526:ym3526Port,ym3812:ym3812Port,ymf262:ymf262Port,y8950:y8950Port};
         const consoleEndpoints=(megaDrive.primaryEndpoints??[]).filter(endpoint=>consolePorts[endpoint.name]);
         if (consoleEndpoints.length) {
           const endpoints=consoleEndpoints.map(({name,globalName,client})=>({name,globalName,native:true,

@@ -8,13 +8,13 @@ import {createNativeVoiceContext, createNativeVoiceEndpoint, nativeInteger as in
 const CHIPS = Object.freeze(['ym3526', 'ym3812', 'ymf262']);
 const PAIRS = [0, 1, 2, 9, 10, 11];
 
-export function createNativeGenesisOpl(synth, {chip = 'ym3812'} = {}) {
-  if (!CHIPS.includes(chip)) throw new RangeError('Native DOS PC requires YM3526, YM3812 or YMF262');
+export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false} = {}) {
+  if (!CHIPS.includes(chip) && !(msxAudio && chip === 'y8950')) throw new RangeError('Native DOS PC requires YM3526, YM3812 or YMF262');
   const baseClock = chip === 'ymf262' ? 14318180 : 3579545;
   const channels = chip === 'ymf262' ? 18 : 9;
   const registerCount = chip === 'ymf262' ? 512 : 256;
   const context = createNativeVoiceContext(synth, {
-    backend: 'opl', statusCommand: 'native_genesis_opl_status', label: 'DOS PC OPL',
+    backend: 'opl', statusCommand: 'native_genesis_opl_status', label: chip === 'y8950' ? 'MSX Audio Y8950' : 'DOS PC OPL',
   });
   let clock = baseClock, appliedClock = baseClock, initialized = false;
   let layout = [0, 0, 0], notification = null;

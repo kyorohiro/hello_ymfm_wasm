@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createNativeGenesisOpl} from './native_genesis_opl.js';
 import {createOplClient} from './playground_opl.js';
 
-const CHIPS = ['ym3526', 'ym3812', 'ymf262'];
+const CHIPS = ['ym3526', 'ym3812', 'ymf262', 'y8950'];
 const PAIRS = [0, 1, 2, 9, 10, 11];
 const address = channel => (channel >= 9 ? 256 : 0) + 0xb0 + channel % 9;
 async function until(predicate) {
@@ -62,7 +62,7 @@ function fixture(chip = 'ym3812') {
       return statusHook ? statusHook() : snapshot();
     },
     emit: event => events.push(event)};
-  const endpoint = createNativeGenesisOpl(synth, {chip});
+  const endpoint = createNativeGenesisOpl(synth, {chip, msxAudio: chip === 'y8950'});
   return {endpoint, client: endpoint.client, state, synth, commands, requests, events, held, snapshot,
     setFlushHook: hook => { flushHook = hook; }, setStatusHook: hook => { statusHook = hook; },
     async start() { await endpoint.initialize(); commands.length = 0; events.length = 0; },
@@ -219,8 +219,8 @@ for (const chip of CHIPS) test(`Native ${chip} clock rejection while held leaves
   assert(f.requests.some(request => Number.isSafeInteger(request.args?.after)));
 });
 
-for (const requested of [3579545, 4000000]) test(`Native OPL scheduled clock ${requested} detects a manual hold acquired after admission`, async () => {
-  const f = fixture(); await f.start();
+for (const chip of ['ym3812','y8950']) for (const requested of [3579545, 4000000]) test(`Native ${chip} scheduled clock ${requested} detects a manual hold acquired after admission`, async () => {
+  const f = fixture(chip); await f.start();
   const pending = f.endpoint.dispatch({method: 'clock', args: [requested]}, {time: 1});
   const rejected = assert.rejects(pending, /held/);
   await until(() => f.commands.some(c => c.message.method === 'clock'));
