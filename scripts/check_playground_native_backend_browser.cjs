@@ -9,7 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
-const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','master-system','dx7'];
+const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','master-system','msx','dx7'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -94,6 +94,7 @@ class FakeNative {
       this.opnb={registers:[Array(256).fill(0),Array(256).fill(0)],clock:8000000,roms:[new Uint8Array(0x1000000),new Uint8Array(0x1000000)],loaded:[0,0],held:new Map(),revision:0};
       this.x68000={ym2151:{clock:4000000,registers:Array(256).fill(0),keyMasks:Array(8).fill(0),amDepth:0,pmDepth:0,status:0,irq:false,sourceMuteMask:0,held:new Map()},okim6258:{clock:8000000,divider:512,pan:0,playing:false,streaming:false,repeat:false,positionFrames:0,fedBytes:0,memoryRevision:0,sampleId:0,sample:null,held:new Map()},memory:new Uint8Array(),staging:null};
       this.masterSystem={segapsg:{clock:3579545,periods:[0,0,0],attenuations:[15,15,15,15],lastVolumes:[0,0,0,0],latched:0,mode:0,sourceMuteMask:0,held:new Map()},ym2413:{clock:3579545,registers:Array(64).fill(0),sourceMuteMask:0,status:0,irq:false,held:new Map()}};
+      this.msx={ym2413:{clock:3579545,registers:Array(64).fill(0),sourceMuteMask:0,status:0,irq:false,held:new Map()},ay8910:{clock:1789773,registers:Array(16).fill(0),levels:[9,9,9],gates:[false,false,false],sourceMuteMask:0,held:new Map()}};
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -113,7 +114,7 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.stopMsxVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if(command==='native_genesis_pwm_status') {
       assert.equal(this.current.mode,'32x');this.applyPwmQueue();
@@ -149,6 +150,10 @@ class FakeNative {
       const {began,...timeline}=s.timeline;
       return {clock:1024000,registers:Array.from(s.registers),...(args.ram?{ram:Array.from(s.ram)}:{}),nativeFrames:s.nativeFrames,enabled:s.enabled,
         frame:this.status().frame,revision:0,pendingCommands:[],timeline};
+    }
+    if(command==='native_genesis_msx_status') {
+      assert.equal(this.current.mode,'msx');
+      return {sampleRate:48000,frame:this.status().frame,revision:this.calls.length,...Object.fromEntries(['ym2413','ay8910'].map(chip=>{const s=this.msx[chip];return [chip,{...s,held:[...s.held.keys()],pendingCommands:[],sampleRate:48000}];}))};
     }
     if(command==='native_genesis_master_system_status') {
       assert.equal(this.current.mode,'master-system');
@@ -246,6 +251,8 @@ class FakeNative {
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2608')){assert.equal(this.current.mode,'pc98');this.applyOpna(entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2610b')){assert(['neogeo','neogeo-b'].includes(this.current.mode));this.applyOpnb(entry.message);}
+      for(const entry of args.commands.filter(entry=>entry.type==='msx')){assert.equal(this.current.mode,'msx');this.applyMsx(entry.message);}
+      if(this.current.mode==='msx')assert(args.commands.every(entry=>['msx','mix','noise','fx'].includes(entry.type)),'Native MSX has only OPLL and AY');
       for(const entry of args.commands.filter(entry=>entry.type==='master-system')){assert.equal(this.current.mode,'master-system');this.applyMasterSystem(entry.message);}
       if(this.current.mode==='master-system')assert(args.commands.every(entry=>['master-system','mix','noise','fx'].includes(entry.type)),'Native Master System has only PSG and OPLL');
       for(const entry of args.commands.filter(entry=>entry.type==='x68000')){assert.equal(this.current.mode,'x68000');this.applyX68000(entry.message);}
@@ -339,12 +346,12 @@ class FakeNative {
     else assert(['mix','source-mute'].includes(message.method),'Unknown Native YM2608 operation '+message.method);
     s.revision++;
   }
-  applyMasterSystem(m) {
-    assert(['segapsg','ym2413'].includes(m.chip));const s=this.masterSystem[m.chip];
+  applyMasterSystem(m,states=this.masterSystem) {
+    assert(['segapsg','ym2413'].includes(m.chip));const s=states[m.chip];
     if(m.method==='batch'){
       if(m.action==='off'&&s.held.get(m.channel)!==m.voice)return;
       if(m.action==='on')s.held.set(m.channel,m.voice);
-      m.commands.forEach(op=>this.applyMasterSystem({...op,chip:m.chip}));if(m.action==='off')s.held.delete(m.channel);
+      m.commands.forEach(op=>this.applyMasterSystem({...op,chip:m.chip},states));if(m.action==='off')s.held.delete(m.channel);
     }else if(m.method==='write'){
       if(m.chip==='ym2413')s.registers[m.register]=m.value;
       else{const b=m.value;if(b&128)s.latched=b>>4&7;else if(m.psgRegister!==undefined)s.latched=m.psgRegister;const ch=s.latched>>1;
@@ -361,14 +368,35 @@ class FakeNative {
       if(m.chip==='segapsg')s.attenuations[m.channel]=s.lastVolumes[m.channel];
       else if(m.channel<9)s.registers[0x20+m.channel]|=16;
       else s.registers[0x0e]|=[16,8,4,2,1][m.channel-9];
-    }else if(m.method==='stop-voices')this.stopMasterSystemVoices(m.chip);
+    }else if(m.method==='stop-voices')this.stopMasterSystemVoices(m.chip,states);
     else if(m.method==='reset'){
-      this.stopMasterSystemVoices(m.chip);if(m.chip==='ym2413')s.registers.fill(0);else{s.periods.fill(0);s.attenuations.fill(15);s.lastVolumes.fill(0);s.latched=s.mode=0;}
+      this.stopMasterSystemVoices(m.chip,states);if(m.chip==='ym2413')s.registers.fill(0);else{s.periods.fill(0);s.attenuations.fill(15);s.lastVolumes.fill(0);s.latched=s.mode=0;}
     }else if(m.method==='source-mute')s.sourceMuteMask=m.mask;
     else assert.equal(m.method,'mix','Unknown Native Master System operation '+m.method);
   }
-  stopMasterSystemVoices(chip){
-    if(!this.masterSystem)return;for(const [name,s]of Object.entries(this.masterSystem)){if(chip&&name!==chip)continue;s.held.clear();if(name==='segapsg')s.attenuations.fill(15);else{for(let ch=0;ch<9;ch++)s.registers[0x20+ch]&=~16;s.registers[0x0e]&=~31;}}
+  stopMasterSystemVoices(chip,states=this.masterSystem){
+    if(!states)return;for(const [name,s]of Object.entries(states)){if(chip&&name!==chip)continue;s.held.clear();if(name==='segapsg')s.attenuations.fill(15);else{for(let ch=0;ch<9;ch++)s.registers[0x20+ch]&=~16;s.registers[0x0e]&=~31;}}
+  }
+  applyMsx(m){
+    assert(['ym2413','ay8910'].includes(m.chip));if(m.chip==='ym2413')return this.applyMasterSystem(m,{ym2413:this.msx.ym2413});const s=this.msx.ay8910;
+    if(m.method==='batch'){
+      if(m.action==='off'&&s.held.get(m.channel)!==m.voice)return;
+      if(m.action==='on')s.held.set(m.channel,m.voice);
+      m.commands.forEach(op=>this.applyMsx({...op,chip:m.chip}));if(m.action==='off')s.held.delete(m.channel);
+    }else if(m.method==='write'){
+      s.registers[m.register]=m.value;
+      if(m.register>=8&&m.register<=10){const ch=m.register-8;s.gates[ch]=!!(m.value&31);if(m.value&31)s.levels[ch]=m.value&31;}
+    }else if(m.method==='set-retained-level')s.levels[m.channel]=m.level;
+    else if(m.method==='key-off'){s.registers[8+m.channel]=0;s.gates[m.channel]=false;}
+    else if(m.method==='clock')s.clock=m.hz;
+    else if(m.method==='stop-voices')this.stopMsxVoices('ay8910');
+    else if(m.method==='reset'){this.stopMsxVoices('ay8910');s.registers.fill(0);s.levels.fill(9);}
+    else if(m.method==='source-mute')s.sourceMuteMask=m.mask;
+    else assert.equal(m.method,'mix','Unknown Native MSX AY operation '+m.method);
+  }
+  stopMsxVoices(chip){
+    if(!this.msx)return;if(!chip||chip==='ym2413')this.stopMasterSystemVoices('ym2413',{ym2413:this.msx.ym2413});
+    if(!chip||chip==='ay8910'){const s=this.msx.ay8910;s.held.clear();s.gates.fill(false);for(let ch=0;ch<3;ch++)s.registers[8+ch]=0;}
   }
   applyX68000(m) {
     assert(['ym2151','okim6258'].includes(m.chip));const x=this.x68000,s=x[m.chip];
@@ -481,8 +509,8 @@ async function assertNativeModeRestriction(page,native) {
   // A forged option/change must pass the same support check as the visible UI.
   await page.evaluate(()=>{
     const select=document.getElementById('playgroundMode');
-    const option=new Option('Forged MSX','msx');option.dataset.forgedMode='true';select.append(option);
-    select.value='msx';select.dispatchEvent(new Event('change',{bubbles:true}));
+    const option=new Option('Forged MSX Audio','msx-audio');option.dataset.forgedMode='true';select.append(option);
+    select.value='msx-audio';select.dispatchEvent(new Event('change',{bubbles:true}));
   });
   assert.equal(await page.locator('#playgroundMode').inputValue(),'genesis');
   assert.equal(await page.locator('#changeModeDialog').evaluate(dialog=>dialog.open),false,'Unsupported mode must not open the project-transfer dialog');
@@ -1302,6 +1330,74 @@ async function nativeNeoGeo(page,native,artifacts,name) {
   }
   await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
+async function nativeMsx(page,native,artifacts,name) {
+  await changeNativeMode(page,native,'msx');
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/msx/index.js'),'utf8');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter);
+  const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]),flatten=ms=>ms.flatMap(m=>m.method==='batch'?flatten(m.commands).map(op=>({...op,chip:m.chip})):[m]);
+  for(const execution of ['main','worker']) {
+    let first=all().length;const commands=()=>all().slice(first).filter(c=>c.type==='msx'),writes=()=>flatten(commands().map(c=>c.message));
+    await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+    await until(()=>writes().some(m=>m.chip==='ay8910'&&m.method==='write'&&m.register===8&&m.value)&&writes().some(m=>m.chip==='ym2413'&&m.method==='write'&&m.register===0x20&&(m.value&16)),execution+' MSX starter');
+    const info=await page.evaluate(async()=>{const s=window.__nativeBackendTest.runtime.megaDrive;return {chip:s.chip,fm:s.fm,psg:s.psg,mixer:s.mixer.list().filter(c=>c.connected).map(c=>c.id),inspected:s.chipInspector.list().map(c=>c.id),ay:await s.chipInspector.read('ay8910'),opll:await s.chipInspector.read('ym2413')};});
+    assert.equal(info.chip,'msx');assert.equal(info.fm,null);assert.equal(info.psg,null);assert.deepEqual(info.mixer,['ym2413','ay8910']);assert.deepEqual(info.inspected,['ym2413','ay8910']);assert.equal(info.ay.clock,1789773);assert.equal(info.opll.clock,3579545);
+    if(execution==='worker')assert(commands().some(c=>c.frame>0&&c.performance&&c.owner),'MSX Worker timed lease');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());first=all().length;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
+      if(await useSoundChip('ym2413')!==opll||await useSoundChip('ay8910')!==ay)throw Error('MSX primary was not reused');
+      ay.setVoice(0,{tone:true,noise:false,volume:7,envelope:false});ay.noteOn(0,'A4');
+      ay.setVoice(1,{tone:false,noise:true,volume:5,envelope:false});ay.keyOn(1);
+      ay.setVoice(2,{tone:true,noise:true,volume:9,envelope:true});ay.noteOn(2,'C3');
+      ay.setNoisePeriod(21);ay.setEnvelope({period:1234,shape:10});ay.setEnvelope({shape:10});
+      ay.writeRegister(14,0xab);ay.writeRegister(15,0xcd);
+      opll.setUserPatch({feedback:3});opll.setVoice(8,{instrument:0,attenuation:4});opll.noteOn(8,'A4');
+      await ay.setClock(1800000);await opll.setClock(3600000);
+      await mixer.set(ay.id,{volume:.6,pan:.2});await mixer.set(opll.id,{volume:.4,pan:-.1});
+    `,{execution}),execution);
+    await until(()=>writes().filter(m=>m.method==='clock').length>=2&&writes().some(m=>m.chip==='ay8910'&&m.method==='set-retained-level'&&m.channel===0),execution+' MSX clocks and retained levels');
+    const applied=await page.evaluate(async()=>({ay:await window.__nativeBackendTest.runtime.chipInspector.read('ay8910'),opll:await window.__nativeBackendTest.runtime.chipInspector.read('ym2413')}));
+    assert.equal(applied.ay.noise.period,21);assert.equal(applied.ay.envelope.period,1234);assert.equal(applied.ay.envelope.shape,10);assert.equal(applied.ay.registers[14],0xab);assert.equal(applied.ay.registers[15],0xcd);assert.equal(applied.ay.clock,1800000);assert.equal(applied.opll.clock,3600000);assert.equal(applied.opll.registers[0x38],4);
+    assert.equal(applied.ay.channels[1].toneEnabled,false);assert.equal(applied.ay.channels[1].noiseEnabled,true);assert.equal(applied.ay.channels[2].configuredEnvelope,true);assert.equal(applied.ay.channels[2].configuredVolume,9);
+    assert.equal(writes().filter(m=>m.chip==='ay8910'&&m.method==='write'&&m.register===13).length,2,'equal envelope-shape writes retrigger twice');assert(writes().some(m=>m.method==='mix'&&m.chip==='ay8910'));assert(writes().some(m=>m.method==='mix'&&m.chip==='ym2413'));
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const stopped=await page.evaluate(async()=>({ay:await window.__nativeBackendTest.runtime.chipInspector.read('ay8910'),opll:await window.__nativeBackendTest.runtime.chipInspector.read('ym2413')}));
+    assert.equal(stopped.ay.envelope.period,1234);assert.equal(stopped.ay.envelope.shape,10);assert.equal(stopped.ay.noise.period,21);assert.equal(stopped.ay.registers[14],0xab);assert(stopped.ay.channels.every(c=>!c.active));assert.deepEqual(stopped.ay.channels.map(c=>c.configuredVolume),[7,5,9]);assert.equal(stopped.ay.channels[2].configuredEnvelope,true);assert.equal(stopped.opll.registers[0x38],4);assert(stopped.opll.channels.every(c=>!c.active));await assertNoLiveAudio(page);
+    await page.evaluate(async()=>{const s=window.__nativeBackendTest.runtime.megaDrive;await s.ay.setClock(1789773);await s.opll.setClock(3579545);});
+    first=all().length;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`ay.setVolume(0,0,false);ay.keyOff(0);ay.keyOn(0);`,{execution}),execution);
+    await until(()=>writes().some(m=>m.chip==='ay8910'&&m.method==='set-retained-level'&&m.channel===0&&m.level===0),'explicit zero volume metadata');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    assert.equal((await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('ay8910'))).channels[0].configuredVolume,0);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.invoke('ay8910','setVoice',[0,{tone:true,noise:false,volume:9,envelope:false}]));
+  }
+  for(const [chip,count]of [['ym2413',9],['ay8910',3]]){
+    await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:'+chip);
+    for(let ch=0;ch<count;ch++){
+      await page.selectOption('#playgroundKeyboardTargetChannel',String(ch));await page.locator('#keyboardTab').focus();const first=all().length,added=()=>all().slice(first).filter(c=>c.type==='msx'&&c.message.chip===chip);
+      await page.keyboard.down('z');await until(()=>added().some(c=>c.message.action==='on'&&c.message.channel===ch),chip+' MSX Keyboard '+ch);await page.keyboard.up('z');await until(()=>added().some(c=>c.message.action==='off'),chip+' MSX Keyboard release '+ch);
+    }
+  }
+  await page.evaluate(async()=>{const i=window.__nativeBackendTest.runtime.chipInspector;await i.invoke('ym2413','setRhythm',[{enabled:true}]);await i.invoke('ym2413','setRhythmLevels',[{bassDrum:4,snare:5,tom:6,cymbal:7,hiHat:8}]);});
+  await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:ym2413');await page.waitForFunction(()=>document.querySelectorAll('#playgroundKeyboardTargetChannel option').length===11);
+  for(let drum=0;drum<5;drum++){await page.selectOption('#playgroundKeyboardTargetChannel','rhythm:'+drum);await page.locator('#keyboardTab').focus();const first=all().length;await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='msx'&&c.message.action==='on'&&c.message.channel===9+drum),'MSX OPLL drum '+drum);await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='msx'&&c.message.action==='off'),'MSX OPLL drum release');}
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.invoke('ym2413','setRhythm',[{enabled:false}]));
+  for(const [chip,prefix]of [['ym2413','opll'],['ay8910','ay']]){
+    const tab='#'+chip+'Tab',root='#'+chip+'Panel';await page.click(tab);
+    if(chip==='ym2413'){
+      await page.selectOption(root+' [data-chip-control="opll-instrument"]','0');await page.locator(root+' [data-chip-control="opll-user-feedback"]').evaluate(node=>{node.value='6';node.dispatchEvent(new Event('change',{bubbles:true}));});await until(()=>(native.msx.ym2413.registers[3]&7)===6,'MSX User patch edit');
+    }else{
+      await page.locator(root+' [data-chip-control="ay-volume"]').evaluate(node=>{node.value='11';node.dispatchEvent(new Event('change',{bubbles:true}));});await until(()=>native.msx.ay8910.levels[0]%16===11,'AY live volume edit');
+      await page.locator(root+' [data-chip-control="ay-envelope-period"]').evaluate(node=>{node.value='2345';node.dispatchEvent(new Event('change',{bubbles:true}));});await until(()=>(native.msx.ay8910.registers[11]|native.msx.ay8910.registers[12]<<8)===2345,'AY live shared envelope edit');
+      const first=all().length;await page.click(root+' [data-chip-action="ay-envelope-retrigger"]');await until(()=>flatten(all().slice(first).filter(c=>c.type==='msx').map(c=>c.message)).some(m=>m.chip==='ay8910'&&m.method==='write'&&m.register===13),'AY envelope UI retrigger');
+    }
+    await page.click(root+' [data-chip-action="'+prefix+'-keyboard"]');await page.locator(tab).focus();const first=all().length;
+    await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='msx'&&c.message.chip===chip&&c.message.action==='on'),chip+' MSX Operators Keyboard');await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='msx'&&c.message.chip===chip&&c.message.action==='off'),chip+' MSX Operators release');
+  }
+  await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:ay8910');await page.selectOption('#playgroundKeyboardTargetChannel','2');const key=page.locator('#operatorKeyboardRoot .key').first();await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();let first=all().length;
+  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>all().slice(first).some(c=>c.type==='msx'&&c.message.chip==='ay8910'&&c.message.action==='on'),'MSX AY Guitar pointer');await page.mouse.up();await until(()=>all().slice(first).some(c=>c.type==='msx'&&c.message.action==='off'),'MSX AY Guitar release');
+  await page.screenshot({path:path.join(artifacts,name+'-native-msx.png')});await assertNoLiveAudio(page);await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
+}
 async function nativeMasterSystem(page,native,artifacts,name) {
   await changeNativeMode(page,native,'master-system');
   const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/master-system/index.js'),'utf8');
@@ -1879,6 +1975,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--msx-only')) {
+      await nativeMsx(page,native,artifacts,name);assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-msx.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS Native MSX Main/Worker, OPLL/AY tone-noise-envelope, retained levels, Keyboard/Operators, independent mixers, Stop retention and mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--master-system-only')) {
       await nativeMasterSystem(page,native,artifacts,name);assert.deepEqual(errors,[]);
       await fs.writeFile(path.join(artifacts,name+'-native-master-system.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
@@ -1942,6 +2043,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeNeoGeo(page,native,artifacts,name);
     await nativeX68000(page,native,artifacts,name);
     await nativeMasterSystem(page,native,artifacts,name);
+    await nativeMsx(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
@@ -1961,9 +2063,9 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     // Unsupported machines can be selected after explicitly returning to Web Audio.
     assert.deepEqual(await modeIds(page),allModeIds);
     await page.locator('#mainMenu > summary').click();
-    await page.selectOption('#playgroundMode', 'msx');
+    await page.selectOption('#playgroundMode', 'msx-audio');
     await page.locator('#changeModeDialog').waitFor({state:'visible'});
-    await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'msx'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
+    await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'msx-audio'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
     await ready(page);
     assert.equal(native.current, null);
     assert.notEqual(await page.evaluate(() => window.__nativeBackendTest.runtime.megaDrive.backend), 'native-genesis');
@@ -1983,7 +2085,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const incompatible=new URL(page.url());incompatible.searchParams.set('audioEngine','native');
     const encodedSource=Buffer.from(preservedSource).toString('base64url');incompatible.searchParams.set('src',encodedSource);
     await page.goto(incompatible.href);await ready(page);
-    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'msx');
+    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'msx-audio');
     assert.equal(new URL(page.url()).searchParams.get('audioEngine'),null,'The incompatible Native query must be removed');
     assert.equal(new URL(page.url()).searchParams.get('src'),encodedSource,'URL normalization must preserve the source parameter');
     assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),preservedSource,'URL normalization must preserve the current project');

@@ -1,0 +1,677 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T09:04:18.654Z",
+  "reference": "Actual deployed AY-3-8910 / YM2413 WASM running shipped Worklet renderSegment and controls",
+  "wasmSha256": {
+    "ay8910": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
+    "ym2413": "67bf8fb4dc9b0359aef94db4ee567a3966a59529ca401e898b578e35bf1d7c78"
+  },
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "AY all three tones, zero/one periods, ignored coarse bits and independent volumes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY shared noise all zero/one/31 periods, tone+noise combinations and mixer I/O direction bits",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY envelope shape 0, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 1, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 2, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 3, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 4, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 5, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 6, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 7, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 8, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 9, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 10, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 11, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 12, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 13, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 14, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 15, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY all eight per-voice tone/noise gate combinations with exact zero-volume DC suppression",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY external channel mute preserves oscillator noise envelope counters",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY clocks preserve base core and tone/noise/envelope phase through slow holds and fast averaging",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY Stop retains configured fixed/envelope levels and all shared source state; intentional zero retained",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY raw I/O port latches, coarse masks, independent reset at retained clock and no hidden tone",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "mixed AY and OPLL independent mono planes, reset Stop source clocks and replay",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0833333358168602
+    },
+    {
+      "name": "OPLL all nine ROM voices, distinct pitches, sustain and mono melody bus",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.210052490234375
+    },
+    {
+      "name": "OPLL shared user patch, both operators, waveform feedback, vibrato AM and channel edits",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11370849609375
+    },
+    {
+      "name": "OPLL all five rhythm voices, shared SD/HH and TOM/CYM volume nibbles",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.258636474609375
+    },
+    {
+      "name": "OPLL rhythm layout switches restore authored ROM instruments and user patch volumes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.345458984375
+    },
+    {
+      "name": "OPLL deferred manual melody retrigger and pending on cancellation by off Stop reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.061187744140625
+    },
+    {
+      "name": "OPLL deferred rhythm preview, shared physical replacement and cancellation",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.256072998046875
+    },
+    {
+      "name": "OPLL clock edits include source averaging, upsample holds and retained phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.053802490234375
+    },
+    {
+      "name": "AY all three tones, zero/one periods, ignored coarse bits and independent volumes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY shared noise all zero/one/31 periods, tone+noise combinations and mixer I/O direction bits",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY envelope shape 0, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 1, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 2, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 3, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2083333283662796
+    },
+    {
+      "name": "AY envelope shape 4, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 5, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 6, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 7, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 8, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 9, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 10, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 11, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 12, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 13, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 14, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 15, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY all eight per-voice tone/noise gate combinations with exact zero-volume DC suppression",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY external channel mute preserves oscillator noise envelope counters",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY clocks preserve base core and tone/noise/envelope phase through slow holds and fast averaging",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY Stop retains configured fixed/envelope levels and all shared source state; intentional zero retained",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.18311038613319397
+    },
+    {
+      "name": "AY raw I/O port latches, coarse masks, independent reset at retained clock and no hidden tone",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "mixed AY and OPLL independent mono planes, reset Stop source clocks and replay",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0833333358168602
+    },
+    {
+      "name": "OPLL all nine ROM voices, distinct pitches, sustain and mono melody bus",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22003173828125
+    },
+    {
+      "name": "OPLL shared user patch, both operators, waveform feedback, vibrato AM and channel edits",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1141357421875
+    },
+    {
+      "name": "OPLL all five rhythm voices, shared SD/HH and TOM/CYM volume nibbles",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.247802734375
+    },
+    {
+      "name": "OPLL rhythm layout switches restore authored ROM instruments and user patch volumes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.335052490234375
+    },
+    {
+      "name": "OPLL deferred manual melody retrigger and pending on cancellation by off Stop reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.061187744140625
+    },
+    {
+      "name": "OPLL deferred rhythm preview, shared physical replacement and cancellation",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.256072998046875
+    },
+    {
+      "name": "OPLL clock edits include source averaging, upsample holds and retained phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.054229736328125
+    },
+    {
+      "name": "AY all three tones, zero/one periods, ignored coarse bits and independent volumes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY shared noise all zero/one/31 periods, tone+noise combinations and mixer I/O direction bits",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY envelope shape 0, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 1, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 2, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 3, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 4, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 5, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 6, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 7, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 8, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 9, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 10, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 11, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 12, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 13, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 14, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY envelope shape 15, all channels, period-only change and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.375
+    },
+    {
+      "name": "AY all eight per-voice tone/noise gate combinations with exact zero-volume DC suppression",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY external channel mute preserves oscillator noise envelope counters",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14144372940063477
+    },
+    {
+      "name": "AY clocks preserve base core and tone/noise/envelope phase through slow holds and fast averaging",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20038831233978271
+    },
+    {
+      "name": "AY Stop retains configured fixed/envelope levels and all shared source state; intentional zero retained",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.125
+    },
+    {
+      "name": "AY raw I/O port latches, coarse masks, independent reset at retained clock and no hidden tone",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.09025433659553528
+    },
+    {
+      "name": "mixed AY and OPLL independent mono planes, reset Stop source clocks and replay",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0833333358168602
+    },
+    {
+      "name": "OPLL all nine ROM voices, distinct pitches, sustain and mono melody bus",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.182708740234375
+    },
+    {
+      "name": "OPLL shared user patch, both operators, waveform feedback, vibrato AM and channel edits",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.112823486328125
+    },
+    {
+      "name": "OPLL all five rhythm voices, shared SD/HH and TOM/CYM volume nibbles",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.258636474609375
+    },
+    {
+      "name": "OPLL rhythm layout switches restore authored ROM instruments and user patch volumes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.368896484375
+    },
+    {
+      "name": "OPLL deferred manual melody retrigger and pending on cancellation by off Stop reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.061187744140625
+    },
+    {
+      "name": "OPLL deferred rhythm preview, shared physical replacement and cancellation",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.256072998046875
+    },
+    {
+      "name": "OPLL clock edits include source averaging, upsample holds and retained phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049896240234375
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 571392,
+  "limits": "Offline comparison of independent mono AY and OPLL output planes. Native ownership/scheduling/IPC/UI verified separately. External mutes call real WASM mute APIs merged with volume-zero/force-mute masks. Native Stop clears held AY PCM for immediate silence. State fixture checks retained levels including intentionally zero, all pitch/noise/envelope/I/O state, shared rhythm, deferred retriggers and zero callback allocations/frees. No real audio device or cross-platform compiler was used.",
+  "selfTest": "MSX mono AY/OPLL, independent resets/mutes, source clocks, AY I/O and retained envelope levels, shared rhythm, deferred retrigger and cancellation passed; callback allocations 0, frees 0",
+  "status": "passed",
+  "addressSanitizer": {
+    "status": "passed",
+    "scope": "The allocation/state fixture and all 93 deployed WASM/Worklet PCM scenarios were repeated using clang AddressSanitizer; no memory errors, PCM maximum difference 0."
+  }
+}

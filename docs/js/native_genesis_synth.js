@@ -16,7 +16,8 @@ import {createNativeGenesisPwm} from './native_genesis_pwm.js?v=pwm-wasm-1';
 import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=native-neogeo-1';
 import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=native-neogeo-1';
 import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=native-x68000-1';
-import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=native-master-system-1';
+import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=native-msx-1';
+import {createNativeGenesisMsx} from './native_genesis_msx.js?v=native-msx-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -73,7 +74,7 @@ export class NativeGenesisSynth {
   /** @param {{invoke:(command:string,args?:object)=>Promise<any>,now?:()=>number,
    * onError?:(error:Error)=>void,mixer?:SoundChipMixer,masterVolume?:number,
    * decodeAudio?:(bytes:ArrayBuffer)=>Promise<any>,fetcher?:typeof globalThis.fetch,megaCD?:boolean,dx7?:boolean,
-   * mode?:'genesis'|'mega-cd'|'dx7'|'nes'|'gameboy'|'snes'|'pc-engine'|'pc98'|'ym2608'|'neogeo'|'neogeo-b'|'ym2610'|'ym2610b'|'x68000'|'master-system'|'genesis-full'|'32x'}} [options] */
+   * mode?:'genesis'|'mega-cd'|'dx7'|'nes'|'gameboy'|'snes'|'pc-engine'|'pc98'|'ym2608'|'neogeo'|'neogeo-b'|'ym2610'|'ym2610b'|'x68000'|'master-system'|'msx'|'genesis-full'|'32x'}} [options] */
   constructor({invoke, now = () => performance.now(), onError = () => {}, mixer = new SoundChipMixer(), masterVolume = 1, decodeAudio,fetcher,megaCD=false,dx7=false,mode} = {}) {
     if (typeof invoke !== 'function') throw new TypeError('Native Genesis requires the Tauri invoke transport');
     if(mode==='genesis-full')mode='32x';
@@ -82,8 +83,8 @@ export class NativeGenesisSynth {
     if(mode==='ym2610b')mode='neogeo-b';
     this.invoke = invoke; this.now = now; this.onError = onError;
     this.backend = 'native-genesis';this.consoleKind=mode==='gameboy'?'gameboy':mode==='pc-engine'||mode==='huc6280'?'huc6280':null;this.snesMode=mode==='snes';
-    this.masterSystemMode=mode==='master-system';this.x68000Mode=mode==='x68000';this.opnaMode=mode==='pc98';this.opnbMode=['neogeo','neogeo-b'].includes(mode);this.nesMode=mode==='nes';this.dx7Mode=!this.consoleKind&&!this.snesMode&&!this.nesMode&&!this.opnaMode&&!this.opnbMode&&!this.x68000Mode&&!this.masterSystemMode&&(dx7===true||mode==='dx7');this.primaryMode=!!this.consoleKind||this.snesMode||this.nesMode||this.dx7Mode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode;
-    this.chip = this.consoleKind??(this.masterSystemMode?'segapsg':this.x68000Mode?'x68000':this.opnaMode?'ym2608':this.opnbMode?(mode==='neogeo-b'?'ym2610b':'ym2610'):this.snesMode?'snes':this.nesMode?'nes':this.dx7Mode?'dx7':'ym2612');this.mode=this.masterSystemMode?'master-system':this.opnbMode?mode:this.opnaMode?'pc98':this.chip==='huc6280'?'pc-engine':this.chip==='ym2612'?mode??(megaCD?'mega-cd':'genesis'):this.chip;this.pwmMode=!this.primaryMode&&mode==='32x';this.megaCD=!this.primaryMode&&(megaCD===true||mode==='mega-cd'||this.pwmMode);
+    this.msxMode=mode==='msx';this.masterSystemMode=mode==='master-system';this.x68000Mode=mode==='x68000';this.opnaMode=mode==='pc98';this.opnbMode=['neogeo','neogeo-b'].includes(mode);this.nesMode=mode==='nes';this.dx7Mode=!this.consoleKind&&!this.snesMode&&!this.nesMode&&!this.opnaMode&&!this.opnbMode&&!this.x68000Mode&&!this.masterSystemMode&&!this.msxMode&&(dx7===true||mode==='dx7');this.primaryMode=!!this.consoleKind||this.snesMode||this.nesMode||this.dx7Mode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.msxMode;
+    this.chip = this.consoleKind??(this.msxMode?'msx':this.masterSystemMode?'segapsg':this.x68000Mode?'x68000':this.opnaMode?'ym2608':this.opnbMode?(mode==='neogeo-b'?'ym2610b':'ym2610'):this.snesMode?'snes':this.nesMode?'nes':this.dx7Mode?'dx7':'ym2612');this.mode=this.masterSystemMode?'master-system':this.opnbMode?mode:this.opnaMode?'pc98':this.chip==='huc6280'?'pc-engine':this.chip==='ym2612'?mode??(megaCD?'mega-cd':'genesis'):this.chip;this.pwmMode=!this.primaryMode&&mode==='32x';this.megaCD=!this.primaryMode&&(megaCD===true||mode==='mega-cd'||this.pwmMode);
     this.capabilities = Object.freeze({chip:this.chip, fmChannels:this.opnbMode?(mode==='neogeo-b'?6:4):this.opnaMode?6:this.primaryMode?0:6, psg:!this.primaryMode||this.masterSystemMode, dac:!this.primaryMode,
       pcm:this.megaCD,pwm:this.pwmMode, recorder:true, worker:true, noise:true, dynamicSoundChips:false, backend:'native-genesis'});
     this.clock = new NativeAudioClock(now);
@@ -152,8 +153,10 @@ export class NativeGenesisSynth {
     this.nativeMasterSystem=this.masterSystemMode?createNativeGenesisMasterSystem(this):null;
     this.segapsg=this.nativeMasterSystem?.segapsg.client??null;
     if(this.segapsg)this.psg=this.segapsg;
-    this.opll=this.ym2413=this.nativeMasterSystem?.ym2413.client??null;
-    this.primaryEndpoints=this.nativeMasterSystem?[{name:'segapsg',globalName:'psg',client:this.psg},{name:'ym2413',globalName:'opll',client:this.opll}]:this.nativeX68000?[{name:'ym2151',globalName:'opm',client:this.opm},{name:'okim6258',globalName:'adpcm',client:this.adpcm}]:this.pwm?[{name:'pwm',globalName:'pwm',client:this.pwm}]:this.nativeConsole?[{name:this.consoleKind,globalName:this.gameboy?'gameboy':'pce',client:this.nativeConsole.client}]:this.snes?[{name:'snes',globalName:'snes',client:this.snes}]:this.nes?[{name:'nes',globalName:'nes',client:this.nes}]:this.dx7?[{name:'dx7',globalName:'dx7',client:this.dx7}]:[];
+    this.nativeMsx=this.msxMode?createNativeGenesisMsx(this):null;
+    this.opll=this.ym2413=this.nativeMasterSystem?.ym2413.client??this.nativeMsx?.ym2413.client??null;
+    this.ay=this.ay8910=this.nativeMsx?.ay8910.client??null;
+    this.primaryEndpoints=this.nativeMsx?[{name:'ym2413',globalName:'opll',client:this.opll},{name:'ay8910',globalName:'ay',client:this.ay}]:this.nativeMasterSystem?[{name:'segapsg',globalName:'psg',client:this.psg},{name:'ym2413',globalName:'opll',client:this.opll}]:this.nativeX68000?[{name:'ym2151',globalName:'opm',client:this.opm},{name:'okim6258',globalName:'adpcm',client:this.adpcm}]:this.pwm?[{name:'pwm',globalName:'pwm',client:this.pwm}]:this.nativeConsole?[{name:this.consoleKind,globalName:this.gameboy?'gameboy':'pce',client:this.nativeConsole.client}]:this.snes?[{name:'snes',globalName:'snes',client:this.snes}]:this.nes?[{name:'nes',globalName:'nes',client:this.nes}]:this.dx7?[{name:'dx7',globalName:'dx7',client:this.dx7}]:[];
     this.stream = this.unavailableMedia('Streaming playback');
     this.nextNoiseNamespace=0;
     this.noise=createNativeGenesisNoise({send:message=>this.enqueue({type:'noise',frame:0,message}),getSampleRate:()=>this.clock.sampleRate});
@@ -170,7 +173,7 @@ export class NativeGenesisSynth {
   }
   isReady() {return this.state === 'ready' && this.session !== null;}
   addListener(listener) {this.listeners.add(listener); return () => this.listeners.delete(listener);}
-  emit(event) {for (const listener of this.listeners) {try {listener(event);} catch (error) {console.error(error);}}if(this.nativeMasterSystem&&event.type==='native-state')this.chipInspector?.notify();}
+  emit(event) {for (const listener of this.listeners) {try {listener(event);} catch (error) {console.error(error);}}if((this.nativeMasterSystem||this.nativeMsx)&&event.type==='native-state')this.chipInspector?.notify();}
   installFmEvents() {
     const events = {
       reset:()=>({type:'reset'}),setPreset:(channel,preset)=>({type:'setPreset',channel,preset}),
@@ -195,7 +198,7 @@ export class NativeGenesisSynth {
     const pending = (async () => {
       let status;
       try {
-        status = await this.invoke('native_genesis_start',...(this.consoleKind||this.snesMode||this.pwmMode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode?[{mode:this.mode}]:this.nesMode?[{mode:'nes'}]:this.dx7Mode?[{mode:'dx7'}]:this.megaCD?[{mode:'mega-cd'}]:[]));
+        status = await this.invoke('native_genesis_start',...(this.consoleKind||this.snesMode||this.pwmMode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.msxMode?[{mode:this.mode}]:this.nesMode?[{mode:'nes'}]:this.dx7Mode?[{mode:'dx7'}]:this.megaCD?[{mode:'mega-cd'}]:[]));
         if (generation !== this.generation) {
           if (status?.session != null) await this.invoke('native_genesis_shutdown',{session:status.session});
           throw new DOMException('Native audio initialization was cancelled','AbortError');
@@ -224,7 +227,7 @@ export class NativeGenesisSynth {
         for(const adapter of [this.nativeConsole,this.nativeSnes,this.nativePwm,this.nativeOpn])if(adapter){const id=adapter===this.nativePwm?'pwm':this.chip;this.mixerReleases.push(this.mixer.register(id,id,settings=>{
           if(this.isReady()&&!this.stopping&&!this.closing)adapter.mix(settings.effectiveMuted?0:settings.volume,settings.pan).catch(error=>this.reportAsyncError(error));
         }));if(adapter!==this.nativeOpn)adapter.initialize?.();}
-        for(const pair of [this.nativeX68000,this.nativeMasterSystem])if(pair)for(const [id,endpoint]of Object.entries(pair)){
+        for(const pair of [this.nativeX68000,this.nativeMasterSystem,this.nativeMsx])if(pair)for(const [id,endpoint]of Object.entries(pair)){
           this.mixerReleases.push(this.mixer.register(id,id,settings=>{
             if(this.isReady()&&!this.stopping&&!this.closing)endpoint.mix(settings.effectiveMuted?0:settings.volume,settings.pan).catch(error=>this.reportAsyncError(error));
           }));
@@ -444,6 +447,7 @@ export class NativeGenesisSynth {
     return this.nativePwm.dispatch(message,timing);
   }
   async dispatchNativeConsoleCommand(kind,message,timing={}) {
+    if(this.nativeMsx?.[kind])return this.nativeMsx[kind].dispatch(message,timing);
     if(this.nativeMasterSystem?.[kind])return this.nativeMasterSystem[kind].dispatch(message,timing);
     if(this.nativeX68000?.[kind])return this.nativeX68000[kind].dispatch(message,timing);
     if(!this.nativeConsole||kind!==this.consoleKind)throw new Error(`${kind} requires its Native mode`);
@@ -491,7 +495,7 @@ export class NativeGenesisSynth {
     this.nativeDx7?.stopped();
     this.nativeNes?.stopped();
     this.nativeConsole?.stopped();this.nativeSnes?.stopped();this.nativePwm?.stopped();this.nativeOpn?.stopped();
-    for(const pair of [this.nativeX68000,this.nativeMasterSystem])if(pair)for(const endpoint of Object.values(pair))endpoint.stopped();
+    for(const pair of [this.nativeX68000,this.nativeMasterSystem,this.nativeMsx])if(pair)for(const endpoint of Object.values(pair))endpoint.stopped();
     this.workerSampleOrigin=null;
     this.auditions.clear(); this.psgAuditions.clear();
     const session = this.session;
@@ -501,7 +505,7 @@ export class NativeGenesisSynth {
         this.clock.update(status,this.now());
         if(this.nativeDx7){const snapshot=await this.invoke('native_genesis_dx7_status',{session});if(session===this.session)this.nativeDx7.adoptStopped(snapshot);}
         if(this.nativeNes){const snapshot=await this.invoke('native_genesis_nes_status',{session});if(session===this.session)this.nativeNes.adoptStopped(snapshot);}
-        for(const [pair,command]of [[this.nativeX68000,'native_genesis_x68000_status'],[this.nativeMasterSystem,'native_genesis_master_system_status']])if(pair){
+        for(const [pair,command]of [[this.nativeX68000,'native_genesis_x68000_status'],[this.nativeMasterSystem,'native_genesis_master_system_status'],[this.nativeMsx,'native_genesis_msx_status']])if(pair){
           const snapshot=await this.invoke(command,{session});
           if(session===this.session)for(const [kind,endpoint]of Object.entries(pair))endpoint.adoptStopped(snapshot[kind]);
         }
@@ -524,7 +528,7 @@ export class NativeGenesisSynth {
       this.nativeDx7?.reset();
       this.nativeNes?.reset();
       this.nativeConsole?.reset();this.nativeSnes?.reset();this.nativePwm?.reset();this.nativeOpn?.reset();
-      for(const pair of [this.nativeX68000,this.nativeMasterSystem])if(pair)for(const endpoint of Object.values(pair))endpoint.reset();
+      for(const pair of [this.nativeX68000,this.nativeMasterSystem,this.nativeMsx])if(pair)for(const endpoint of Object.values(pair))endpoint.reset();
       this.auditions.clear(); this.psgAuditions.clear(); this.chipInspector.notify();
       if (session !== null) await this.invoke('native_genesis_shutdown',{session});
     })();
@@ -560,9 +564,9 @@ export class NativeGenesisSynth {
     this.fm.noteOff(channel);
   }
   clearAuditions() {
-    if(this.nativeX68000||this.nativeMasterSystem){
+    if(this.nativeX68000||this.nativeMasterSystem||this.nativeMsx){
       if(!this.isReady()||this.stopping||this.closing)return;
-      for(const endpoint of Object.values(this.nativeX68000??this.nativeMasterSystem))endpoint.invoke('auditionAllOff').catch(error=>{if(error?.name!=='AbortError')this.reportAsyncError(error);});
+      for(const endpoint of Object.values(this.nativeX68000??this.nativeMasterSystem??this.nativeMsx))endpoint.invoke('auditionAllOff').catch(error=>{if(error?.name!=='AbortError')this.reportAsyncError(error);});
       return;
     }
     if(this.nativeOpn){
@@ -583,7 +587,7 @@ export class NativeGenesisSynth {
    * AudioNode or PCM bridge is fabricated for the shared Keyboard UI. */
   createInspector() {
     const listeners = new Set(); let disposed = false;
-    const list = () => disposed || !this.isReady() ? [] : this.nativeMasterSystem?['segapsg','ym2413'].map(id=>({id,kind:id,name:id,label:`${id==='segapsg'?'Sega PSG':'YM2413'} (Native)`,connected:true,...(id==='ym2413'?{registers:this.opll._getState().registers}:{})})):this.nativeX68000?['ym2151','okim6258'].map(id=>({id,kind:id,name:id,label:`${id.toUpperCase()} (Native)`,connected:true})):this.nativeOpn?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip.toUpperCase()} (Native)`,connected:true}]:this.nativeConsole||this.nativeSnes?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip==='gameboy'?'Game Boy':this.chip==='huc6280'?'HuC6280':'S-DSP'} (Native)`,connected:true}]:this.nesMode?[
+    const list = () => disposed || !this.isReady() ? [] : this.nativeMsx?['ym2413','ay8910'].map(id=>({id,kind:id,name:id,label:`${id==='ay8910'?'AY-3-8910':'YM2413'} (Native)`,connected:true,...(id==='ym2413'?{registers:this.opll._getState().registers}:{})})):this.nativeMasterSystem?['segapsg','ym2413'].map(id=>({id,kind:id,name:id,label:`${id==='segapsg'?'Sega PSG':'YM2413'} (Native)`,connected:true,...(id==='ym2413'?{registers:this.opll._getState().registers}:{})})):this.nativeX68000?['ym2151','okim6258'].map(id=>({id,kind:id,name:id,label:`${id.toUpperCase()} (Native)`,connected:true})):this.nativeOpn?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip.toUpperCase()} (Native)`,connected:true}]:this.nativeConsole||this.nativeSnes?[{id:this.chip,kind:this.chip,name:this.chip,label:`${this.chip==='gameboy'?'Game Boy':this.chip==='huc6280'?'HuC6280':'S-DSP'} (Native)`,connected:true}]:this.nesMode?[
       {id:'nes',kind:'nes',name:'nes',label:'NES + FDS (Native)',connected:true},
     ]:this.dx7Mode?[
       {id:'dx7',kind:'dx7',name:'dx7',label:'DX7 (Native)',connected:true},
@@ -611,6 +615,7 @@ export class NativeGenesisSynth {
       notify: () => {for (const listener of listeners) {try {listener(list());} catch(error) {console.error(error);}}},
       read: async id => {
         endpoint(id);
+        if(this.nativeMsx?.[id])return this.nativeMsx[id].read();
         if(this.nativeMasterSystem?.[id])return this.nativeMasterSystem[id].read();
         if(this.nativeX68000?.[id])return this.nativeX68000[id].read();
         if(this.nativeOpn&&id===this.chip)return this.nativeOpn.read();
@@ -626,6 +631,7 @@ export class NativeGenesisSynth {
       },
       invoke: async (id,method,args=[]) => {
         endpoint(id);
+        if(this.nativeMsx?.[id])return this.nativeMsx[id].invoke(method,args);
         if(this.nativeMasterSystem?.[id])return this.nativeMasterSystem[id].invoke(method,args);
         if(this.nativeX68000?.[id])return this.nativeX68000[id].invoke(method,args);
         if(this.nativeOpn&&id===this.chip)return this.nativeOpn.invoke(method,args);
