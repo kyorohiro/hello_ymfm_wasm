@@ -175,8 +175,17 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>pwmFiles.has(match[1]))){pwmFiles.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const pc98Version='native-pc98-1';
+const pc98Files=new Set(['native_genesis_ym2608.js','native_genesis_synth.js','native_genesis_worker.js',
+  'playground_runtime.js','playground_logic_worker.js','playground_sync.js','playground_audio_engine.js','playground_operator_tab.js','playground.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(pc98Files.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>pc98Files.has(match[1]))){pc98Files.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...pc98Files,
   ...pwmFiles,
   ...consoleFiles,
   ...Object.keys(pageRevisions),

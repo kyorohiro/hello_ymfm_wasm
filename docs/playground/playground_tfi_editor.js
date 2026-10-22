@@ -1,4 +1,4 @@
-import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=audio-stability-2';
+import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=native-pc98-1';
 import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=operator-tab-keyboard-1';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js?v=audio-stability-2';

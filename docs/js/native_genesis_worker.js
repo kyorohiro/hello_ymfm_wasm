@@ -100,7 +100,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       // buffer. Account for retained storage, rather than only the view length.
       const bytesOf = data => Array.isArray(data) ? data.length * 8 :
         ArrayBuffer.isView(data) ? data.buffer.byteLength : data?.byteLength ?? 0;
-      const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.command?.data) +
+      const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.bytes) + bytesOf(m.command?.data) +
         (m.method==='scheduleWrites'?(m.args?.[0]?.length??0)*24:0) +
         (m.method==='loadMemory'?bytesOf(m.args?.[0]):0) +
         (m.method==='loadBRR'?bytesOf(m.args?.[0]):0) +

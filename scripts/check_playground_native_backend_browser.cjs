@@ -9,7 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
-const nativeModeIds=['genesis','mega-cd','genesis-full','gameboy','nes','snes','pc-engine','dx7'];
+const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','gameboy','nes','snes','pc-engine','dx7'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -89,6 +89,8 @@ class FakeNative {
       const {PWM32X}=await import('../web/pwm32x.js');
       this.pwm=new PWM32X({sampleRate:48000,outputMode:'duty',gain:1});
       this.pwmQueue=[];this.pwmLastSchedule=null;
+      this.opna={registers:[Array(256).fill(0),Array(256).fill(0)],clock:8000000,romLoaded:false,adpcmMemoryBytes:0,
+        memory:new Uint8Array(0x200000),held:new Map(),revision:0};
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -108,7 +110,7 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if(command==='native_genesis_pwm_status') {
       assert.equal(this.current.mode,'32x');this.applyPwmQueue();
@@ -144,6 +146,11 @@ class FakeNative {
       const {began,...timeline}=s.timeline;
       return {clock:1024000,registers:Array.from(s.registers),...(args.ram?{ram:Array.from(s.ram)}:{}),nativeFrames:s.nativeFrames,enabled:s.enabled,
         frame:this.status().frame,revision:0,pendingCommands:[],timeline};
+    }
+    if(command==='native_genesis_ym2608_status') {
+      assert.equal(this.current.mode,'pc98');const s=this.opna;
+      return {clock:s.clock,sampleRate:48000,registers:s.registers.map(row=>row.slice()),romLoaded:s.romLoaded,adpcmMemoryBytes:s.adpcmMemoryBytes,
+        held:[...s.held.keys()],sourceMuteMask:0,status:0,statusHi:0,irq:false,frame:this.status().frame,revision:s.revision,pendingCommands:[]};
     }
     if (command === 'native_genesis_live_fx') {
       const message=args.message;
@@ -221,6 +228,8 @@ class FakeNative {
         }
       };
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
+      for(const entry of args.commands.filter(entry=>entry.type==='ym2608')){assert.equal(this.current.mode,'pc98');this.applyOpna(entry.message);}
+      if(this.current.mode==='pc98')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native PC-98 must not send hidden YM2612/PSG/other-chip commands');
       if(['gameboy','snes','pc-engine'].includes(this.current.mode))assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native consoles must never send hidden sound chips');
       if(this.current.mode==='nes')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'NES mode must never send hidden OPN/PSG/DX7/PCM commands');
       for(const entry of args.commands.filter(entry=>entry.type==='dx7')) {
@@ -277,6 +286,38 @@ class FakeNative {
   }
   count(command) {return this.calls.filter(call => call.command === command).length;}
   applyPwmQueue(){const frame=this.status().frame;while(this.pwmQueue[0]?.frame<=frame){const op=this.pwmQueue.shift();this.pwm.write(op.register,op.value);}}
+  applyOpna(message,bypass=false) {
+    const s=this.opna;
+    if(message.method==='batch'){
+      assert(Number.isInteger(message.channel)&&message.channel>=0&&message.channel<16);assert(Array.isArray(message.commands));
+      if(message.action==='off'&&s.held.get(message.channel)!==message.voice)return;
+      if(message.action==='on'){assert(Number.isSafeInteger(message.voice)&&message.voice>0);s.held.set(message.channel,message.voice);}
+      for(const op of message.commands)this.applyOpna(op,true);
+      if(message.action==='off')s.held.delete(message.channel);
+    }else if(message.method==='write'){
+      const {port,register}=message;let {value}=message;
+      assert(Number.isInteger(port)&&port>=0&&port<=1);assert(Number.isInteger(register)&&register>=0&&register<=255);assert(Number.isInteger(value)&&value>=0&&value<=255);
+      if(!bypass){
+        if(port===0&&register===0x28){const code=value&7,channel=(code&3)+(code&4?3:0);if(s.held.has(channel))return;}
+        if(((register>=0xa0&&register<=0xa2)||(register>=0xa4&&register<=0xa6))&&s.held.has(port*3+(register&3)))return;
+        if(port===0&&register<6&&s.held.has(6+(register>>1)))return;
+        if(port===0&&register>=8&&register<=10&&s.held.has(register-2)&&!(value&31))return;
+        if(port===0&&register===7)for(let ch=0;ch<3;ch++)if(s.held.has(6+ch)){const bits=(1<<ch)|(8<<ch);value=(value&~bits)|(s.registers[0][7]&bits);}
+        if(port===0&&register===0x10)for(let ch=0;ch<6;ch++)if(s.held.has(9+ch))value&=~(1<<ch);
+        if(port===1&&[0,9,10].includes(register)&&s.held.has(15))return;
+      }
+      s.registers[port][register]=value;
+    }else if(message.method==='rom'){
+      assert.equal(message.offset,0);assert.equal(message.data.length,8192);s.romLoaded=true;
+    }else if(message.method==='memory'){
+      assert(message.data.length<=65536);assert(message.offset+message.data.length<=0x200000);s.memory.set(message.data,message.offset);s.adpcmMemoryBytes=Math.max(s.adpcmMemoryBytes,message.offset+message.data.length);
+    }else if(message.method==='clock')s.clock=message.hz;
+    else if(message.method==='reset'){if(!s.held.size)for(const row of s.registers)row.fill(0);}
+    else if(message.method==='stop-voices')this.stopOpnaVoices();
+    else assert(['mix','source-mute'].includes(message.method),'Unknown Native YM2608 operation '+message.method);
+    s.revision++;
+  }
+  stopOpnaVoices(){const s=this.opna;if(!s)return;s.held.clear();for(let channel=0;channel<3;channel++)s.registers[0][8+channel]=0;s.registers[0][0x10]=0xbf;s.registers[1][0]=1;}
   stopConsoleVoices(kind) {
     if(!kind||kind==='gameboy'){const i=this.gameboyInspector;if(i){for(const address of [2,7,10,17])i.observeWrite(address,0);i.gates.fill(false);}}
     if(!kind||kind==='huc6280')for(const row of this.hucInspector?.registers??[])row[4]&=127;
@@ -1030,6 +1071,78 @@ async function nativeDx7State(page,predicate,label) {
   }
   throw Error('Native DX7 '+label+' snapshot timed out');
 }
+async function nativePc98(page,native,artifacts,name) {
+  await changeNativeMode(page,native,'pc98');
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/pc98/index.js'),'utf8');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter,'PC-98 selection installs its shipped starter');
+  const allCommands=()=>native.calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+  const flatten=messages=>messages.flatMap(message=>message.method==='batch'?flatten(message.commands):[message]);
+  for(const execution of ['main','worker']) {
+    let first=allCommands().length;
+    const commands=()=>allCommands().slice(first).filter(command=>command.type==='ym2608');
+    const writes=()=>flatten(commands().map(command=>command.message));
+    await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+    await until(()=>writes().some(message=>message.method==='write'&&message.port===0&&message.register===0x28&&(message.value&0xf0)),execution+' PC-98 FM starter');
+    await until(()=>writes().some(message=>message.method==='write'&&message.port===0&&message.register===0x10&&!(message.value&128)),execution+' PC-98 rhythm starter');
+    const state=await page.evaluate(async()=>{
+      const synth=window.__nativeBackendTest.runtime.megaDrive;
+      return {backend:synth.backend,chip:synth.chip,fmId:synth.fm.id,sections:['ssg','rhythm','adpcm'].map(name=>!!synth.fm[name]),
+        psg:synth.psg,pcm:synth.pcm,dx7:synth.dx7,nes:synth.nes,mixer:synth.mixer.list(),inspected:synth.chipInspector.list(),
+        snapshot:await synth.chipInspector.read('ym2608')};
+    });
+    assert.equal(state.backend,'native-genesis');assert.equal(state.chip,'ym2608');assert.equal(state.fmId,'ym2608');assert.deepEqual(state.sections,[true,true,true]);
+    for(const key of ['psg','pcm','dx7','nes'])assert.equal(state[key],null,'PC-98 must not construct a hidden '+key);
+    assert.deepEqual(state.mixer.filter(entry=>entry.connected).map(entry=>entry.id),['ym2608']);assert.deepEqual(state.inspected.map(entry=>entry.id),['ym2608']);
+    assert.equal(state.snapshot.romLoaded,true);assert.equal(state.snapshot.registers[0][0x29],0x9f);
+    if(execution==='worker')assert(commands().some(command=>command.frame>0&&command.performance&&command.owner),'Worker PC-98 notes retain timing and ownership');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const session=native.current.session;first=allCommands().length;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
+      const shared=await useSoundChip('ym2608');
+      if(shared!==fm||!shared.ssg||!shared.rhythm||!shared.adpcm)throw Error('Native YM2608 sections were not reused');
+      await fm.setClock(7000000);
+      fm.setPreset(CH6,FM_PRESETS['one-op-basic']);fm.setAlgo(CH6,7,3);
+      ssg.tone(1,{frequency:440,volume:11});ssg.setEnvelope({period:192,shape:9});
+      rhythm.setVolume(49);rhythm.setVoice('snare',{volume:23,left:true,right:false});rhythm.keyOn('snare');
+      const loaded=await shared.adpcm.loadSample({sampleRate:16000,channels:[Float32Array.from({length:130},(_,i)=>Math.sin(i/8)*.4)]},{address:64});
+      if(loaded.start!==64||loaded.end<=64)throw Error('ADPCM-B sample preparation failed');
+      adpcm.setVolume(190);adpcm.setPan(true,false);adpcm.keyOn({repeat:true});
+      await mixer.set(fm.id,{volume:0.65,pan:0.2});
+      liveLoop('native-pc98-sixth',async()=>{await play('E4',{channel:CH6,beats:.04});await beat(.04);});
+    `,{execution}),execution);
+    await until(()=>writes().some(message=>message.method==='memory')&&writes().some(message=>message.method==='write'&&message.port===1&&message.register===0&&(message.value&128)),execution+' PC-98 ADPCM-B');
+    const applied=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('ym2608'));
+    assert.equal(applied.clock,7000000);assert(applied.adpcmMemoryBytes>64);assert.equal(applied.fmState.channels[5].algorithm,7);assert.equal(applied.registers[0][9],11);
+    assert.equal(applied.registers[0][0x19],0x80|23);assert.equal(applied.registers[1][11],190);assert.equal(applied.registers[1][1]&0xc0,128);
+    assert.equal(writes().filter(message=>message.method==='clock').length,1,'observing a Worker clock acknowledgement must not send it back to Native');
+    assert.doesNotMatch(await page.locator('#consoleOutput').textContent(),/Observer:.*(?:_adoptClock|setClock)/);
+    assert(writes().some(message=>message.method==='mix'),'PC-98 mixer reaches its Native chip');
+    if(execution==='worker')assert(commands().some(command=>command.message.method==='memory'&&command.frame===0&&command.performance&&command.owner),'Worker ADPCM preparation retains ownership without future scheduling');
+    const memory=Array.from(native.opna.memory.slice(64,applied.adpcmMemoryBytes));
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());const stopped=await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('ym2608'));
+    assert.equal(native.current.session,session);assert.equal(stopped.clock,7000000);assert.equal(stopped.romLoaded,true);assert.equal(stopped.fmState.channels[5].algorithm,7);assert.equal(stopped.registers[1][0],1);
+    assert.deepEqual(Array.from(native.opna.memory.slice(64,applied.adpcmMemoryBytes)),memory,'Stop preserves uploaded ADPCM-B memory');assert.deepEqual(stopped.held,[]);
+    await assertNoLiveAudio(page);
+  }
+  await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:ym2608');
+  const channels=[...Array.from({length:6},(_,ch)=>[`fm:${ch}`,ch]),...Array.from({length:3},(_,ch)=>[`ssg:${ch}`,ch+6]),...Array.from({length:6},(_,ch)=>[`rhythm:${ch}`,ch+9]),['adpcm-b:0',15]];
+  for(const [target,channel]of channels){
+    await page.selectOption('#playgroundKeyboardTargetChannel',target);await page.locator('#keyboardTab').focus();const first=allCommands().length;
+    const added=()=>allCommands().slice(first).filter(command=>command.type==='ym2608');
+    await page.keyboard.down('z');await until(()=>added().some(command=>command.message.method==='batch'&&command.message.channel===channel&&command.message.action==='on'),'PC-98 Keyboard '+target);
+    await page.keyboard.up('z');await until(()=>added().some(command=>command.message.method==='batch'&&command.message.channel===channel&&command.message.action==='off'),'PC-98 Keyboard release '+target);
+  }
+  await page.selectOption('#playgroundKeyboardTargetChannel','fm:0');const first=allCommands().length;
+  const key=page.locator('#operatorKeyboardRoot .key').first();await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();
+  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>allCommands().slice(first).some(command=>command.type==='ym2608'&&command.message.action==='on'),'PC-98 Guitar pointer');
+  await page.mouse.up();await until(()=>allCommands().slice(first).some(command=>command.type==='ym2608'&&command.message.action==='off'),'PC-98 Guitar pointer release');
+  await page.click('#operatorTabButton');await page.locator('#operatorTabButton').focus();const operatorFirst=allCommands().length;
+  await page.keyboard.down('z');await until(()=>allCommands().slice(operatorFirst).some(command=>command.type==='ym2608'&&command.message.action==='on'),'PC-98 Operators Keyboard');
+  await page.keyboard.up('z');await until(()=>allCommands().slice(operatorFirst).some(command=>command.type==='ym2608'&&command.message.action==='off'),'PC-98 Operators Keyboard release');
+  await page.screenshot({path:path.join(artifacts,name+'-native-pc98.png')});await assertNoLiveAudio(page);
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
+}
 async function nativeDx7(page,native,artifacts,name) {
   const {createInitVoice,createBankSysex}=await import('../web/msfa_dx7/src/sysex.js');
   const {voiceToPreset}=await import('../web/msfa_dx7/src/preset.js');
@@ -1477,6 +1590,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--pc98-only')) {
+      await nativePc98(page,native,artifacts,name);assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-pc98.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS focused Native PC-98 Main/Worker, FM/SSG/rhythm/ADPCM-B sample preparation, Keyboard physical voices, Operators audition, Stop retention and mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--pwm-only')) {
       await native32x(page,native,artifacts,name);
       assert.deepEqual(errors,[]);
@@ -1516,6 +1634,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeDx7(page,native,artifacts,name);
     await nativeNes(page,native,artifacts,name);
     await nativeConsoles(page,native,artifacts,name);
+    await nativePc98(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());

@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T03:08:01.512Z",
+  "reference": "Actual deployed YM2608 WASM plus Ym2608AudioEngine",
+  "wasmSha256": "fd5afee961c5f1999a5cea1128dd9dda46822fff4fe68c6830743b18d36fdcfe",
+  "rhythmRomSha256": "c33441f88d712f2864a33a962a88ae5800d2c5a5df418a8a345f2532cecb7704",
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "six FM voices, stereo gates, independent frequencies, LFO and key gates",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038626931607723236
+    },
+    {
+      "name": "FM special CH3 frequencies and prescaler changes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.012673118151724339
+    },
+    {
+      "name": "three SSG tones, noise, all shared envelope shapes and targeted key-off",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "all six fixed rhythm voices, ROM reload, retrigger, pan and hardware levels",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2252197265625
+    },
+    {
+      "name": "ADPCM-B encoded sample, repeat, Delta-N, stereo gates, volume and retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21696804463863373
+    },
+    {
+      "name": "ADPCM-B final RAM range and in-flight memory replacement/clear",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.351531982421875
+    },
+    {
+      "name": "all sections together and every source mute combination preserve running phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.43317049741744995
+    },
+    {
+      "name": "clock edits use exact integer sample-rate accumulation including upsample holds",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.300714910030365
+    },
+    {
+      "name": "reset retains uploaded rhythm/ADPCM memory, edited clock and source mute",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4475513696670532
+    },
+    {
+      "name": "Stop retains preloaded ROM/RAM for later rhythm and ADPCM retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4421771466732025
+    },
+    {
+      "name": "six FM voices, stereo gates, independent frequencies, LFO and key gates",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0386032834649086
+    },
+    {
+      "name": "FM special CH3 frequencies and prescaler changes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0127098448574543
+    },
+    {
+      "name": "three SSG tones, noise, all shared envelope shapes and targeted key-off",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "all six fixed rhythm voices, ROM reload, retrigger, pan and hardware levels",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2252197265625
+    },
+    {
+      "name": "ADPCM-B encoded sample, repeat, Delta-N, stereo gates, volume and retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2170889675617218
+    },
+    {
+      "name": "ADPCM-B final RAM range and in-flight memory replacement/clear",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.3515625
+    },
+    {
+      "name": "all sections together and every source mute combination preserve running phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4336097240447998
+    },
+    {
+      "name": "clock edits use exact integer sample-rate accumulation including upsample holds",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.3005807101726532
+    },
+    {
+      "name": "reset retains uploaded rhythm/ADPCM memory, edited clock and source mute",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4516339898109436
+    },
+    {
+      "name": "Stop retains preloaded ROM/RAM for later rhythm and ADPCM retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.453642338514328
+    },
+    {
+      "name": "six FM voices, stereo gates, independent frequencies, LFO and key gates",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03863525390625
+    },
+    {
+      "name": "FM special CH3 frequencies and prescaler changes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.012652588076889515
+    },
+    {
+      "name": "three SSG tones, noise, all shared envelope shapes and targeted key-off",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "all six fixed rhythm voices, ROM reload, retrigger, pan and hardware levels",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2252197265625
+    },
+    {
+      "name": "ADPCM-B encoded sample, repeat, Delta-N, stereo gates, volume and retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21746826171875
+    },
+    {
+      "name": "ADPCM-B final RAM range and in-flight memory replacement/clear",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.3515625
+    },
+    {
+      "name": "all sections together and every source mute combination preserve running phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.40850830078125
+    },
+    {
+      "name": "clock edits use exact integer sample-rate accumulation including upsample holds",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2825067639350891
+    },
+    {
+      "name": "reset retains uploaded rhythm/ADPCM memory, edited clock and source mute",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.448974609375
+    },
+    {
+      "name": "Stop retains preloaded ROM/RAM for later rhythm and ADPCM retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.448974609375
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 184320,
+  "limits": "Offline core/output-rate comparison; Native bus scheduling, ownership, cancellation and UI/Keyboard IPC are validated separately. Stop gating/retained controls and zero callback allocations are covered by the fixture self-test.",
+  "selfTest": "YM2608 state/Stop/reset/memory/clock self-test passed; callback allocations 0, frees 0",
+  "status": "passed",
+  "nativeToolchain": {
+    "os": "Ubuntu 24.04",
+    "architecture": "aarch64",
+    "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "linker": "GNU ld (GNU Binutils for Ubuntu) 2.42",
+    "cxxStandard": "c++14",
+    "staticArchiveOrder": [
+      "tetorica_native_ym2608",
+      "tetorica_native_genesis"
+    ],
+    "providerBeforeWrapperReproducedUndefinedReferences": true,
+    "extraLinkerLibraries": [],
+    "readOnlyRepositoryMount": true,
+    "disposableContainerRemoved": true
+  }
+}

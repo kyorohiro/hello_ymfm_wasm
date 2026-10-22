@@ -745,9 +745,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
         if (endpoint) return native.apis[endpoint.globalName];
         if (chipName === 'rf5c164' && primaryPcm) return primaryPcm;
         if (chipName === 'gameboy' && isGameboy) return gameboy;
-        if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && (capabilities.chip ?? 'ym2612') === chipName) return fm;
+        if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && (capabilities.chip ?? 'ym2612') === chipName) return fm;
         return globals.createSoundChip(chipName, {id:`${chipName}:shared`});
-      }, {evictOnDispose: !(name === 'rf5c164' && primaryPcm) && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
+      }, {evictOnDispose: !(name === 'rf5c164' && primaryPcm) && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
       check();
       return chip;
     },

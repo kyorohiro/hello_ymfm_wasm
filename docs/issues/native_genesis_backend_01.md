@@ -8,6 +8,7 @@ QuickJS-NGによる`liveFx`も[Native再生へ接続した](native_livefx_01.md)
 Mega CDのRF5C164も[Native対応した](native_megacd_01.md)。Genesisと同じ最終出力経路へ混ぜる。
 DX7 modeも[Native対応した](native_dx7_01.md)。MSFA音源を直接ビルドし、共通の最終出力へ接続する。
 NES＋FDSも[Native対応した](native_nes_01.md)。現在のJS音源をC++へ移植し、共通の最終出力へ接続する。
+PC-98のYM2608も[Native対応した](native_pc98_01.md)。FM／SSG／rhythm／ADPCM-Bと共通のKeyboard・Sample Editorを使う。
 
 ## 第2段階：Genesisの実用機能を増やす
 

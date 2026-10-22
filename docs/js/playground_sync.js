@@ -255,6 +255,7 @@ export function createFmProxy(
       return targetSynth.readStatus();
     },
     getIrq() {
+      if (typeof targetSynth.getIrq === 'function') return targetSynth.getIrq();
       if (
         !targetSynth.transport ||
         typeof targetSynth.transport.getIrq !==

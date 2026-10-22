@@ -236,6 +236,7 @@ export function createPlaygroundOperatorTab(
     presetOrder,
     onStatus,
     channelCount = 6,
+    supportsDac = true,
   } = options;
 
   if (!root) {
@@ -508,7 +509,7 @@ export function createPlaygroundOperatorTab(
           globalCommonState.lfoEnabled,
           globalCommonState.lfoFrequency
         );
-        synth.setDacEnabled?.(
+        if (supportsDac) synth.setDacEnabled?.(
           globalCommonState.dacEnabled
         );
         synth.setChannel3SpecialMode(
@@ -784,7 +785,7 @@ export function createPlaygroundOperatorTab(
 
   buildCommonControls({
     root: commonControlsRoot,
-    defs: COMMON_PARAM_DEFS,
+    defs: COMMON_PARAM_DEFS.filter(config => supportsDac || config.id !== 'dacEnabled'),
     state: {
       ...currentState(),
       ...globalCommonState,

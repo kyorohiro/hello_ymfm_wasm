@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pwm-wasm-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-pc98-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -62,7 +62,7 @@ import { createPlaygroundLive } from "./playground_live.js?v=audio-numeric-bindi
 import { createPlaygroundMusic } from "./playground_music.js?v=audio-stability-2";
 import { createPlaygroundNoiseApi } from "./playground_noise.js";
 import {createNativeNoiseOwnership} from './native_genesis_noise.js';
-import { createFmProxy } from "./playground_sync.js?v=audio-stability-2";
+import { createFmProxy } from "./playground_sync.js?v=native-pc98-1";
 import { parseTfi } from "./tfi.js";
 import { parseVgi } from "./vgi.js?v=audio-stability-2";
 
@@ -160,21 +160,21 @@ export function createPlaygroundRuntime(
             ? "./ym2610b-worklet.js?v=audio-numeric-bindings-1" : "./ym2612-worklet.js?v=audio-numeric-bindings-1"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
-        "../generated/ym2612_wasm.wasm",
+        "./generated/ym2612_wasm.wasm",
       wasmUrl:
         options.wasmUrl ??
         (options.chip === "gameboy"
           ? options.gameboyWasmUrl ?? new URL("../generated/gameboy_apu_wasm.wasm", import.meta.url).href
           : options.chip === "ym2203"
-          ? options.ym2203WasmUrl ?? "../generated/ym2203_wasm.wasm"
+          ? options.ym2203WasmUrl ?? "./generated/ym2203_wasm.wasm"
           : options.chip === "ym2608"
-            ? options.ym2608WasmUrl ?? "../generated/ym2608_wasm.wasm"
+            ? options.ym2608WasmUrl ?? "./generated/ym2608_wasm.wasm"
             : ['ym2610','ym2610b'].includes(options.chip)
-              ? options.ym2610bWasmUrl ?? "../generated/ym2610b_wasm.wasm"
+              ? options.ym2610bWasmUrl ?? "./generated/ym2610b_wasm.wasm"
             : undefined),
       segaPsgWasmUrl:
         options.segaPsgWasmUrl ??
-        "../generated/segapsg_wasm.wasm?v=audio-numeric-bindings-1",
+        "./generated/segapsg_wasm.wasm?v=audio-numeric-bindings-1",
     });
   // Audio backends provide timing explicitly; a native backend does not
   // manufacture an AudioContext or an AudioNode to satisfy browser APIs.
@@ -247,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=pwm-wasm-1",
+      "./playground_logic_worker.js?v=native-pc98-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -951,10 +951,12 @@ export function createPlaygroundRuntime(
       sectionLoads = new AbortController();
       const core = synth?.fm ?? synth;
       core?.transport?.cancelPending?.('Run stopped');
-      for (let channel = 0; channel < 3; channel++) core?.ssg?.keyOff(channel);
-      core?.rhythm?.keyOff([0,1,2,3,4,5]);
-      core?.adpcmA?.keyOff([0,1,2,3,4,5]);
-      core?.adpcm?.keyOff();
+      if (typeof megaDrive.stopNativeAudio !== 'function') {
+        for (let channel = 0; channel < 3; channel++) core?.ssg?.keyOff(channel);
+        core?.rhythm?.keyOff([0,1,2,3,4,5]);
+        core?.adpcmA?.keyOff([0,1,2,3,4,5]);
+        core?.adpcm?.keyOff();
+      }
     }
     if (capabilities.chip !== 'segapsg') megaDrive.psg?.reset?.();
     megaDrive.sample.stopAll();
@@ -1716,6 +1718,10 @@ export function createPlaygroundRuntime(
           const {method,args}=message.event;
           if (method === 'gameboyState') { core?._adoptState(args[0]); return; }
           if (method === 'ssgState') core?.ssg?._adoptState(args[0]);
+          if (method === 'setClock' && megaDrive.nativeOpna) {
+            core._adoptClock(args[0]);
+            return;
+          }
           if (method === 'setClock') sharedFm?._adoptClock(args[0]);
           if(typeof synth?.[method]==="function" && !method.startsWith("_")) synth[method](...args);
         } catch(error){emitLog(`Observer: ${error.message}`);}
@@ -1903,8 +1909,12 @@ export function createPlaygroundRuntime(
       sharedFm = createFmProxy(synth);
       if (megaDrive.clock && !megaDrive.node?.port) Object.defineProperty(sharedFm,'clock',{
         enumerable:true, get:()=>synth.clock,
-        set:()=>{throw new Error('Changing the chip clock is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
+        set:()=>{throw new Error(megaDrive.nativeOpna ? 'Use await fm.setClock(hz) to change the Native YM2608 clock.' : 'Changing the chip clock is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
       });
+      if (megaDrive.nativeOpna) sharedFm.setClock = async hz => {
+        await synth.setClock(hz);
+        logicWorker?.postMessage({type:'chip-clock-state',clock:synth.clock});
+      };
       if (megaDrive.node?.port) attachChipClock(sharedFm, megaDrive.node.port, CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], {
         primary:true,
         onApplied: hz => {
@@ -1924,6 +1934,7 @@ export function createPlaygroundRuntime(
     const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
     const sections = Object.fromEntries(Object.entries(primaryChipSections()).map(([name,api])=>[name,keyboardApi(api)]));
+    if (capabilities.chip === 'ym2608' && capabilities.backend === 'native-genesis') Object.assign(sharedFm, sections);
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:
@@ -2072,10 +2083,10 @@ export function createPlaygroundRuntime(
           if (endpoint) return nativeApis[endpoint.globalName];
           if (chipName === 'rf5c164' && megaDrive.pcm) return keyboardApi(primaryPcmApi());
           if (chipName === 'gameboy' && isGameboy) return gameboy;
-          if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
+          if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && capabilities.chip === chipName) return fm;
           if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
-        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
+        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && capabilities.chip === name)});
         check();
         return chip;
       },

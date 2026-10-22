@@ -951,10 +951,12 @@ export function createPlaygroundRuntime(
       sectionLoads = new AbortController();
       const core = synth?.fm ?? synth;
       core?.transport?.cancelPending?.('Run stopped');
-      for (let channel = 0; channel < 3; channel++) core?.ssg?.keyOff(channel);
-      core?.rhythm?.keyOff([0,1,2,3,4,5]);
-      core?.adpcmA?.keyOff([0,1,2,3,4,5]);
-      core?.adpcm?.keyOff();
+      if (typeof megaDrive.stopNativeAudio !== 'function') {
+        for (let channel = 0; channel < 3; channel++) core?.ssg?.keyOff(channel);
+        core?.rhythm?.keyOff([0,1,2,3,4,5]);
+        core?.adpcmA?.keyOff([0,1,2,3,4,5]);
+        core?.adpcm?.keyOff();
+      }
     }
     if (capabilities.chip !== 'segapsg') megaDrive.psg?.reset?.();
     megaDrive.sample.stopAll();
@@ -1716,6 +1718,10 @@ export function createPlaygroundRuntime(
           const {method,args}=message.event;
           if (method === 'gameboyState') { core?._adoptState(args[0]); return; }
           if (method === 'ssgState') core?.ssg?._adoptState(args[0]);
+          if (method === 'setClock' && megaDrive.nativeOpna) {
+            core._adoptClock(args[0]);
+            return;
+          }
           if (method === 'setClock') sharedFm?._adoptClock(args[0]);
           if(typeof synth?.[method]==="function" && !method.startsWith("_")) synth[method](...args);
         } catch(error){emitLog(`Observer: ${error.message}`);}
@@ -1903,8 +1909,12 @@ export function createPlaygroundRuntime(
       sharedFm = createFmProxy(synth);
       if (megaDrive.clock && !megaDrive.node?.port) Object.defineProperty(sharedFm,'clock',{
         enumerable:true, get:()=>synth.clock,
-        set:()=>{throw new Error('Changing the chip clock is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
+        set:()=>{throw new Error(megaDrive.nativeOpna ? 'Use await fm.setClock(hz) to change the Native YM2608 clock.' : 'Changing the chip clock is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
       });
+      if (megaDrive.nativeOpna) sharedFm.setClock = async hz => {
+        await synth.setClock(hz);
+        logicWorker?.postMessage({type:'chip-clock-state',clock:synth.clock});
+      };
       if (megaDrive.node?.port) attachChipClock(sharedFm, megaDrive.node.port, CHIP_CLOCKS[capabilities.chip ?? 'ym2612'], {
         primary:true,
         onApplied: hz => {
@@ -1924,6 +1934,7 @@ export function createPlaygroundRuntime(
     const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
     const sections = Object.fromEntries(Object.entries(primaryChipSections()).map(([name,api])=>[name,keyboardApi(api)]));
+    if (capabilities.chip === 'ym2608' && capabilities.backend === 'native-genesis') Object.assign(sharedFm, sections);
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:
@@ -2072,10 +2083,10 @@ export function createPlaygroundRuntime(
           if (endpoint) return nativeApis[endpoint.globalName];
           if (chipName === 'rf5c164' && megaDrive.pcm) return keyboardApi(primaryPcmApi());
           if (chipName === 'gameboy' && isGameboy) return gameboy;
-          if (['ym2612', 'ym2203', 'ym2610'].includes(chipName) && capabilities.chip === chipName) return fm;
+          if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && capabilities.chip === chipName) return fm;
           if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
-        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'gameboy') && capabilities.chip === name)});
+        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && capabilities.chip === name)});
         check();
         return chip;
       },

@@ -7,7 +7,7 @@ import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=pwm-wasm-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-pc98-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -50,7 +50,7 @@ import {
 import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2";
 import {
   createPlaygroundOperatorTab,
-} from "./playground_operator_tab.js?v=audio-stability-2";
+} from "./playground_operator_tab.js?v=native-pc98-1";
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=operator-tab-keyboard-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-numeric-bindings-1";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=audio-numeric-bindings-1";
@@ -85,7 +85,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=pwm-wasm-1";
+} from "../js/playground_runtime.js?v=native-pc98-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=audio-numeric-bindings-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
@@ -93,7 +93,7 @@ import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
 import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=operator-tab-keyboard-1";
 import {
   handleMegaSynthEvent,
-} from "./playground_sync.js?v=audio-stability-2";
+} from "./playground_sync.js?v=native-pc98-1";
 
 const REFERENCE_MIDI = 62;
 window.__playgroundStartup?.stage('Starting Playground… Preparing your project.');
@@ -277,7 +277,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 }
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=pwm-wasm-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=native-pc98-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',
@@ -524,6 +524,7 @@ const operatorTab = hasPrimaryFM ?
       FM_PRESET_ORDER,
     channelCount:
       megaDrive.capabilities.fmChannels,
+    supportsDac: megaDrive.capabilities.dac,
     onStatus(message) {
       setStatus(message);
     },
