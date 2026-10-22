@@ -281,6 +281,7 @@ native_genesis_snes.js
 native_genesis_pwm.js
 native_genesis_ym2608.js
 native_genesis_ym2610b.js
+native_genesis_x68000.js
 native_genesis_livefx.js
 native_livefx_context.js
 native_genesis_worker.js

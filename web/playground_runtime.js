@@ -2538,8 +2538,8 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port} = nativeWorkerBridge;
-        const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port};
+        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port,ym2151Port,okim6258Port} = nativeWorkerBridge;
+        const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port,ym2151:ym2151Port,okim6258:okim6258Port};
         const consoleEndpoints=(megaDrive.primaryEndpoints??[]).filter(endpoint=>consolePorts[endpoint.name]);
         if (consoleEndpoints.length) {
           const endpoints=consoleEndpoints.map(({name,globalName,client})=>({name,globalName,native:true,

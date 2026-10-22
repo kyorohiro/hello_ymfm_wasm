@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T06:45:48.689Z",
+  "reference": "Actual deployed YM2151 / OKIM6258 WASM, Ym2151AudioEngine and Oki6258Stream (flags 12)",
+  "wasmSha256": {
+    "ym2151": "4064e4285b688c07afc41a54de6643362fb175ff2bf28a15f935dd519af54ace",
+    "okim6258": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+  },
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "eight FM channels, stereo, key codes and key fractions",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.086669921875
+    },
+    {
+      "name": "independent LFO AM and PM depths, all waveforms and channel-seven noise",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.071044921875
+    },
+    {
+      "name": "immediate force-key-off, Stop and authored total-level restoration",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07080078125
+    },
+    {
+      "name": "FM channel mute preserves clocks, LFO and envelopes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.035888671875
+    },
+    {
+      "name": "percussive manual audition retrigger waits for a real FM interval and cancellation wins",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02325439453125
+    },
+    {
+      "name": "FM clock changes including upsample holds and core reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01812744140625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 1024, finite end and retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 768, finite end and retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 512, finite end and retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI repeat restarts predictor, sample replacement and retained sample after Stop",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI single-byte samples, fractional clocks and VCLK faster than output",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.015625
+    },
+    {
+      "name": "OKI raw FIFO writes, low nibble first, raw play/stop and clock registers",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "name": "OKI clock/divider/pan edits while streaming preserve fractional phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "independent FM and OKI clocks, resets, Stop and retained uploaded sample",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "eight FM channels, stereo, key codes and key fractions",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.086669921875
+    },
+    {
+      "name": "independent LFO AM and PM depths, all waveforms and channel-seven noise",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0693359375
+    },
+    {
+      "name": "immediate force-key-off, Stop and authored total-level restoration",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.070556640625
+    },
+    {
+      "name": "FM channel mute preserves clocks, LFO and envelopes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03594970703125
+    },
+    {
+      "name": "percussive manual audition retrigger waits for a real FM interval and cancellation wins",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02325439453125
+    },
+    {
+      "name": "FM clock changes including upsample holds and core reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01812744140625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 1024, finite end and retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 768, finite end and retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 512, finite end and retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI repeat restarts predictor, sample replacement and retained sample after Stop",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI single-byte samples, fractional clocks and VCLK faster than output",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.015625
+    },
+    {
+      "name": "OKI raw FIFO writes, low nibble first, raw play/stop and clock registers",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "name": "OKI clock/divider/pan edits while streaming preserve fractional phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "independent FM and OKI clocks, resets, Stop and retained uploaded sample",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "eight FM channels, stereo, key codes and key fractions",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.086669921875
+    },
+    {
+      "name": "independent LFO AM and PM depths, all waveforms and channel-seven noise",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.071533203125
+    },
+    {
+      "name": "immediate force-key-off, Stop and authored total-level restoration",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.071533203125
+    },
+    {
+      "name": "FM channel mute preserves clocks, LFO and envelopes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0357666015625
+    },
+    {
+      "name": "percussive manual audition retrigger waits for a real FM interval and cancellation wins",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02325439453125
+    },
+    {
+      "name": "FM clock changes including upsample holds and core reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01812744140625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 1024, finite end and retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 768, finite end and retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI encoded 12-bit sample, divider 512, finite end and retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI repeat restarts predictor, sample replacement and retained sample after Stop",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "OKI single-byte samples, fractional clocks and VCLK faster than output",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.015625
+    },
+    {
+      "name": "OKI raw FIFO writes, low nibble first, raw play/stop and clock registers",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "name": "OKI clock/divider/pan edits while streaming preserve fractional phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    },
+    {
+      "name": "independent FM and OKI clocks, resets, Stop and retained uploaded sample",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.70947265625
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 258048,
+  "limits": "Offline synthesis/output-rate/stream comparison with independent FM and OKI outputs. Native ownership, scheduling, IPC and UI are verified separately. Browser Worklet immediate force-key-off and authored total-level restoration are reproduced over the real WASM. C++ fixture asserts retained samples, atomic 16 MiB uploads, observational IRQ/status and zero callback allocations.",
+  "selfTest": "X68000 FM/OKI state, independent reset, IRQ, atomic 16 MiB sample replacement and Stop self-test passed; callback allocations 0, frees 0",
+  "status": "passed"
+}
