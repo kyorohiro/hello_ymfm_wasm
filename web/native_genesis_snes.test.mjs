@@ -93,7 +93,10 @@ test('Native SNES Worker ports handle BRR RPC, scheduled notes and asynchronous 
     sender.configure(await host.start([bridge.port],.1));
     snes=createSnesClient(sender.port(bridge.snesPort,'independent'));
     const sample=await snes.loadBRR(wave(),{rootNote:'A4',loopStartSamples:0});snes.setPreset(0,{sample});snes.keyOn(0);
-    await new Promise(resolve=>setTimeout(resolve,15));assert(f.commands().some(entry=>entry.message.method==='key-on'));
+    // A same-port RPC acknowledges the preceding fire-and-forget writes after
+    // the bridge's FIFO has admitted them. Its existing request deadline bounds
+    // the wait without guessing how quickly concurrent tests dispatch messages.
+    await snes.readDsp(0);assert(f.commands().some(entry=>entry.message.method==='key-on'));
     const trace={version:1,clockRate:1024000,durationClocks:32000,initialState:{ram:new Uint8Array(65536),dsp:new Uint8Array(128),outputDelayFrames:4},events:new Uint32Array()};
     await snes.prepareTimeline(trace);const playback=snes.playTimeline(),rejection=assert.rejects(playback,{name:'AbortError'});await snes.stopTimeline();await rejection;
     assert.deepEqual(f.errors,[]);

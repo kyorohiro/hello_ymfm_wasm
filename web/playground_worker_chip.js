@@ -111,7 +111,9 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
  }
  if(sections.adpcmB)sections.adpcm=sections.adpcmB;
  const fm=new Proxy({}, {get:(_t,method)=> method==='clock'?raw.clock:method==='dac'?raw.dac:sections[method]??((...args)=>invoke(String(method),args))});
- const psg=capabilities.psg?createSegaPsgApi({write:value=>send({type:'psg-write',value}),reset:()=>send({type:'psg-reset'}),resetAll:()=>fm.reset()}):null;
+ const psg=capabilities.psg?createSegaPsgApi({write:value=>send({type:'psg-write',value}),
+  ...(capabilities.backend==='native-genesis'?{setStereo:value=>send({type:'psg-stereo',value})}:{}),
+  reset:()=>send({type:'psg-reset'}),resetAll:()=>fm.reset()}):null;
  return {fm,psg,...sections,raw,send,adoptState,
   resume(){stopped=false;if(sampleController.signal.aborted)sampleController=new AbortController();},
   write(...args){if(args.length===2)return fm.write(0,...args);if(args.length===3)return fm.write(...args);throw new Error('write expects register,value or port,register,value');},

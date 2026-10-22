@@ -608,6 +608,49 @@ async function nativeRun(page, native) {
   await assertNoLiveAudio(page);
   assert.equal(await page.evaluate(() => window.__nativeBackendTest.runtime.capabilities.worker), true);
 }
+async function nativePrimaryLookupRuns(page,native,artifacts,name) {
+  const program=`
+    const [a,b,p,q]=await Promise.all([
+      useSoundChip('ym2612'),useSoundChip('ym2612'),
+      useSoundChip('segapsg'),useSoundChip('segapsg'),
+    ]);
+    if(a!==fm||b!==fm||p!==psg||q!==psg)throw Error('Primary chip identity changed');
+    if(a.id!=='ym2612'||p.id!=='segapsg')throw Error('Primary mixer id missing');
+    if(typeof a.dispose!=='undefined'||typeof p.dispose!=='undefined')throw Error('Borrowed primary exposes dispose');
+    await mixer.set(p.id,{volume:0.6,pan:-0.25});
+    p.setStereo(0xf0);
+    p.tone(PSG1,{note:'C4',attenuation:7});
+    a.setPreset(CH1,FM_PRESETS['one-op-basic']);
+    a.noteOn(CH1,4,1000);
+  `;
+  const rows=[];
+  for(const mode of ['genesis','mega-cd','genesis-full','genesis-full-nuked']) {
+    if(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id)!==mode)await changeNativeMode(page,native,mode,'keep');
+    let session;
+    for(const execution of ['main','worker','worker','main']) {
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+      const first=native.calls.length;
+      await page.evaluate(async({program,execution})=>{
+        await window.__nativeBackendTest.runtime.playSource(program,{execution});
+      },{program,execution});
+      const commands=()=>native.calls.slice(first).filter(c=>c.command==='native_genesis_commands').flatMap(c=>c.args.commands);
+      await until(()=>commands().some(c=>c.type==='psg-write'&&c.value===0x97)&&
+        commands().some(c=>c.type==='write'&&c.register===0x28&&(c.value&0xf0))&&
+        commands().some(c=>c.type==='psg-stereo'&&c.value===0xf0),mode+' '+execution+' borrowed FM/PSG writes');
+      if(session===undefined)session=native.current.session;
+      assert.equal(native.current.session,session,'Borrowed lookups and Stop/Run must reuse the Native session');
+      const mixer=await page.evaluate(()=>window.__nativeBackendTest.runtime.megaDrive.mixer.list().filter(s=>s.connected).map(s=>s.id).sort());
+      assert.deepEqual(mixer,['ym2612','segapsg',...(mode==='mega-cd'?['rf5c164']:mode.startsWith('genesis-full')?['rf5c164','pwm']:[])].sort(),'Borrowed lookups must not connect extra mixer sources');
+      await assertNoLiveAudio(page);
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+      rows.push({mode,execution,session,commands:commands().length,mixer});
+    }
+  }
+  await fs.writeFile(path.join(artifacts,name+'-native-primary-lookup.json'),JSON.stringify({passed:true,mockedNative:true,rows},null,2));
+  await changeNativeMode(page,native,'genesis','keep');
+  await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
+  await nativeRun(page,native);
+}
 async function workerMediaRun(page,native) {
   await page.evaluate(() => window.__nativeBackendTest.runtime.stopWithFade());
   const first=native.calls.length;
@@ -2304,6 +2347,12 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--primary-lookup-only')) {
+      await nativePrimaryLookupRuns(page,native,artifacts,name);
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.finalize());
+      assert.deepEqual(errors,[]);await context.close();
+      console.log(name+': PASS Native Genesis/Mega CD/32X/32X Nuked borrowed FM/PSG identity, mixer ids, stereo, Main/Worker reuse and Stop/Run; Native IPC mocked');return;
+    }
     if(process.argv.includes('--diagnostics-only')) {
       await nativeRecording(page,native,artifacts,name+'-main');
       await page.evaluate(source=>window.__nativeBackendTest.runtime.playSource(source,{execution:'worker'}),source);
@@ -2418,6 +2467,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeMsx(page,native,artifacts,name);
     await nativeMsx(page,native,artifacts,name,{audio:true});
     await nativeOpl(page,native,artifacts,name);
+    await nativePrimaryLookupRuns(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());

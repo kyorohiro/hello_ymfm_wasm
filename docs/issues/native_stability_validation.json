@@ -385,7 +385,7 @@
     }
   },
   "githubActions": {
-    "conclusion": "",
+    "conclusion": "success",
     "headSha": "21fea61d0a2e92b0d208d0f0f645e379c39e3c82",
     "jobs": [
       {
@@ -401,10 +401,10 @@
         "step": null
       },
       {
-        "conclusion": "",
+        "conclusion": "success",
         "name": "build (linux-x86_64, ubuntu-24.04, deb,appimage)",
-        "status": "in_progress",
-        "step": "Install Linux dependencies"
+        "status": "completed",
+        "step": null
       },
       {
         "conclusion": "success",
@@ -419,11 +419,12 @@
         "step": null
       }
     ],
-    "status": "in_progress",
+    "status": "completed",
     "url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/39842524904",
-    "coversUncommittedStabilityChanges": false,
     "releasePublished": false,
-    "checkedAtUtc": "2026-10-22T20:09:10.241470+00:00"
+    "checkedAtUtc": "2026-10-22T20:32:06.466641+00:00",
+    "coversStabilityChecks": false,
+    "note": "Baseline run completed on all five platforms. The committed stability-check run is recorded separately."
   },
   "limits": [
     "Offline simulated duration is aggregate across modes/runs; it is not a physical-device listening test.",

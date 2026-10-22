@@ -34,7 +34,7 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=native-ym2203-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=native-primary-lookup-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -404,6 +404,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       if (property === 'setClock' && !chip) return async hz => { await request('fm.setClock', [hz], run.currentLoop); fallbackClock = hz; };
       if (property === "id") return capabilities.chip ?? "ym2612";
       if (property === "then") return undefined;
+      if (property === 'dispose' && capabilities.backend === 'native-genesis') return undefined;
       if (property === "dac") {
         if (!capabilities.dac) return undefined;
         if (chip) return chip.fm.dac;
@@ -466,6 +467,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   });
   const stream = new Proxy({}, { get: (_target, property) => requestProxy(`stream.${String(property)}`) });
   const unavailable = (name) => () => { throw new Error(`${name} is not available for ${capabilities.chip ?? "this chip"}`); };
+  if (chip?.psg && capabilities.backend === 'native-genesis') Object.defineProperty(chip.psg, 'id', {value:'segapsg',enumerable:true});
   const psg = keyboardApi(native.apis.psg ?? chip?.psg ?? (capabilities.psg ? new Proxy({}, {
     get(_target, property) {
       return commandProxy(`psg.${String(property)}`);
@@ -746,10 +748,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
         if (endpoint) return native.apis[endpoint.globalName];
         if (chipName === 'rf5c164' && primaryPcm) return primaryPcm;
         if (chipName === 'gameboy' && isGameboy) return gameboy;
+        if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
         if (chipName === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') return fm;
         if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && (capabilities.chip ?? 'ym2612') === chipName) return fm;
         return globals.createSoundChip(chipName, {id:`${chipName}:shared`});
-      }, {evictOnDispose: !(name === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') && !(name === 'rf5c164' && primaryPcm) && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
+      }, {evictOnDispose: !(name === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') && !(name === 'rf5c164' && primaryPcm) && !(name === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
       check();
       return chip;
     },

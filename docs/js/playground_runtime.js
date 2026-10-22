@@ -247,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-ym2203-1",
+      "./playground_logic_worker.js?v=native-primary-lookup-1",
       import.meta.url
     );
   const logicWorkerUrl =

@@ -60,14 +60,15 @@ Windowsのautocrlfで原典・照合対象のC++が変わらないよう、属�
 
 現行の確定済みNukedコミット`21fea61d0a2e92b0d208d0f0f645e379c39e3c82`について、
 [GitHub Actionsの5環境ビルド](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/39842524904)を実行した。
-このrunには今回の未コミットの安定化用追加チェックは含まれない。リリースは公開しない。
+このrunには安定化用の追加チェックは含まれない。リリースは公開しない。
 
-確認時点ではWindows x86_64、macOS ARM64／x86_64、Linux ARM64の4環境が成功。
-Linux x86_64は`Install Linux dependencies`が実行中で、アプリのビルド判定は未完了。
+その後Linux x86_64も完了し、5環境すべて成功した。
 最終ローカルソースのmacOSアプリビルドも成功した。
 
-今回の追加チェックはコミット後のタグpush／手動実行から有効になる。ローカルでの実行に加え、
-配布ソースZIPを展開した親checkoutのない状態でも原典と短時間版を確認する。
+追加チェックを含む確定済みコミット`c7cbd2845e1008b68567ba7b884ae6bf5293669f`では、
+[新しい5環境CI](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/39848306605)を手動実行した。
+Main／Workerの主音源API修正はこのコミットより後の変更なので、このrunには含まれない。
+ローカルでは配布ソースZIPを展開した親checkoutのない状態でも原典と短時間版を確認済み。
 
 ## 再実行
 
