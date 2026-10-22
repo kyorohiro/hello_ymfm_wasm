@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-msx-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-opl-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -433,9 +433,16 @@ export function createPlaygroundRuntime(
         return {events:names.flatMap((name,index)=>name in settings||settings.enabled===false?[{key:`rhythm:${index}`,on:enabled&&(settings[name]??!!(before&(16>>index)))}]:[])};
       }
     }
-    if (name === 'opl' && method === 'writeRegister') {
-      const [register,value,bank=0]=args,local=register&255;
-      if(local>=0xb0&&local<=0xb8)return {key:((register>>8)||bank)*9+local-0xb0,on:!!(value&32)};
+    if (name === 'opl') {
+      if(method==='writeRegister'){
+        const [register,value,bank=0]=args,local=register&255,physicalBank=(register>>8)||bank;
+        if(local>=0xb0&&local<=0xb8)return {key:physicalBank*9+local-0xb0,on:!!(value&32)};
+        if(local===0xbd&&physicalBank===0)return {events:Array.from({length:5},(_,index)=>({key:`rhythm:${index}`,on:!!(value&32)&&!!(value&(16>>index))}))};
+      }
+      if(method==='setRhythm'){
+        const names=['bassDrum','snare','tom','cymbal','hiHat'],before=raw?._getState?.().registers?.[0xbd]??0,settings=args[0]??{},enabled=settings.enabled??!!(before&32);
+        return {events:names.flatMap((name,index)=>name in settings||settings.enabled===false?[{key:`rhythm:${index}`,on:enabled&&(settings[name]??!!(before&(16>>index)))}]:[])};
+      }
     }
     if (name === 'opm' && method === 'writeRegister' && args[0] === 8) return {key:args[1]&7,on:!!(args[1]&0x78)};
     return null;
@@ -444,7 +451,7 @@ export function createPlaygroundRuntime(
     const raw = megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
     if (!raw) return;
     if(name==='pwm'){Promise.resolve(raw._stopVoices()).catch(error=>emitLog(`[pwm] ${formatLogArgs([error])}`));return;}
-    if(name==='opll'&&typeof key==='string'&&key.startsWith('rhythm:'))raw._forceRhythmOff(Number(key.slice(7)));
+    if((name==='opll'||name==='opl')&&typeof key==='string'&&key.startsWith('rhythm:'))raw._forceRhythmOff(Number(key.slice(7)));
     else if (name === 'adpcm') raw.stop(); else if (name === 'dx7') raw.noteOff(key); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
   }
   function nativePrimaryApis() {
@@ -2538,8 +2545,8 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port,ym2151Port,okim6258Port,segapsgPort,ym2413Port,ay8910Port} = nativeWorkerBridge;
-        const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port,ym2151:ym2151Port,okim6258:okim6258Port,segapsg:segapsgPort,ym2413:ym2413Port,ay8910:ay8910Port};
+        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port,ym2151Port,okim6258Port,segapsgPort,ym2413Port,ay8910Port,ym3526Port,ym3812Port,ymf262Port} = nativeWorkerBridge;
+        const consolePorts={gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port,ym2151:ym2151Port,okim6258:okim6258Port,segapsg:segapsgPort,ym2413:ym2413Port,ay8910:ay8910Port,ym3526:ym3526Port,ym3812:ym3812Port,ymf262:ymf262Port};
         const consoleEndpoints=(megaDrive.primaryEndpoints??[]).filter(endpoint=>consolePorts[endpoint.name]);
         if (consoleEndpoints.length) {
           const endpoints=consoleEndpoints.map(({name,globalName,client})=>({name,globalName,native:true,

@@ -9,7 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
-const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','master-system','msx','dx7'];
+const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','master-system','msx','dx7','ym3812','ym3526','ymf262'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -95,6 +95,7 @@ class FakeNative {
       this.x68000={ym2151:{clock:4000000,registers:Array(256).fill(0),keyMasks:Array(8).fill(0),amDepth:0,pmDepth:0,status:0,irq:false,sourceMuteMask:0,held:new Map()},okim6258:{clock:8000000,divider:512,pan:0,playing:false,streaming:false,repeat:false,positionFrames:0,fedBytes:0,memoryRevision:0,sampleId:0,sample:null,held:new Map()},memory:new Uint8Array(),staging:null};
       this.masterSystem={segapsg:{clock:3579545,periods:[0,0,0],attenuations:[15,15,15,15],lastVolumes:[0,0,0,0],latched:0,mode:0,sourceMuteMask:0,held:new Map()},ym2413:{clock:3579545,registers:Array(64).fill(0),sourceMuteMask:0,status:0,irq:false,held:new Map()}};
       this.msx={ym2413:{clock:3579545,registers:Array(64).fill(0),sourceMuteMask:0,status:0,irq:false,held:new Map()},ay8910:{clock:1789773,registers:Array(16).fill(0),levels:[9,9,9],gates:[false,false,false],sourceMuteMask:0,held:new Map()}};
+      const oplChip=['ym3526','ym3812','ymf262'].includes(args.mode)?args.mode:'ym3812';this.opl={chip:oplChip,clock:oplChip==='ymf262'?14318180:3579545,registers:Array(oplChip==='ymf262'?512:256).fill(0),sourceMuteMask:oplChip==='ymf262'?262143:511,status:0,irq:false,held:new Map()};
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -114,7 +115,7 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.stopMsxVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.stopMsxVoices();this.stopOplVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if(command==='native_genesis_pwm_status') {
       assert.equal(this.current.mode,'32x');this.applyPwmQueue();
@@ -150,6 +151,10 @@ class FakeNative {
       const {began,...timeline}=s.timeline;
       return {clock:1024000,registers:Array.from(s.registers),...(args.ram?{ram:Array.from(s.ram)}:{}),nativeFrames:s.nativeFrames,enabled:s.enabled,
         frame:this.status().frame,revision:0,pendingCommands:[],timeline};
+    }
+    if(command==='native_genesis_opl_status') {
+      assert.equal(this.current.mode,this.opl.chip);const s=this.opl;
+      return {sampleRate:48000,frame:this.status().frame,revision:this.calls.length,[s.chip]:{...s,held:[...s.held.keys()],pendingCommands:[],sampleRate:48000}};
     }
     if(command==='native_genesis_msx_status') {
       assert.equal(this.current.mode,'msx');
@@ -251,6 +256,8 @@ class FakeNative {
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2608')){assert.equal(this.current.mode,'pc98');this.applyOpna(entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2610b')){assert(['neogeo','neogeo-b'].includes(this.current.mode));this.applyOpnb(entry.message);}
+      for(const entry of args.commands.filter(entry=>entry.type==='opl')){assert.equal(this.current.mode,this.opl.chip);this.applyOpl(entry.message);}
+      if(['ym3526','ym3812','ymf262'].includes(this.current.mode))assert(args.commands.every(entry=>['opl','mix','noise','fx'].includes(entry.type)),'Native DOS PC has only selected OPL');
       for(const entry of args.commands.filter(entry=>entry.type==='msx')){assert.equal(this.current.mode,'msx');this.applyMsx(entry.message);}
       if(this.current.mode==='msx')assert(args.commands.every(entry=>['msx','mix','noise','fx'].includes(entry.type)),'Native MSX has only OPLL and AY');
       for(const entry of args.commands.filter(entry=>entry.type==='master-system')){assert.equal(this.current.mode,'master-system');this.applyMasterSystem(entry.message);}
@@ -398,6 +405,28 @@ class FakeNative {
     if(!this.msx)return;if(!chip||chip==='ym2413')this.stopMasterSystemVoices('ym2413',{ym2413:this.msx.ym2413});
     if(!chip||chip==='ay8910'){const s=this.msx.ay8910;s.held.clear();s.gates.fill(false);for(let ch=0;ch<3;ch++)s.registers[8+ch]=0;}
   }
+  applyOpl(m){
+    const s=this.opl;assert.equal(m.chip,s.chip);const r=s.registers,n=s.chip==='ymf262'?18:9,pairs=[0,1,2,9,10,11],physical=ch=>{const bit=pairs.indexOf(ch);return bit>=0&&(r[0x104]&(1<<bit))?[ch,ch+3]:[ch];};
+    if(m.method==='batch'){
+      if(m.action==='off'&&s.held.get(m.channel)!==m.voice)return;if(m.action==='on')s.held.set(m.channel,m.voice);
+      m.commands.forEach(op=>this.applyOpl({...op,chip:m.chip}));if(m.action==='off')s.held.delete(m.channel);
+    }else if(m.method==='write'){
+      const reg=m.register+(m.bank??0)*256;r[reg]=m.value;
+      if((reg&255)>=0xb0&&(reg&255)<=0xb8&&(m.value&32))for(const ch of physical((reg>=256?9:0)+(reg&255)-0xb0))s.sourceMuteMask&=~(1<<ch);
+      if(reg===0xbd&&(m.value&31))s.sourceMuteMask&=~(7<<6);
+    }else if(m.method==='key-off'){
+      if(m.channel>=18){r[0xbd]&=~(16>>(m.channel-18));return;}
+      for(const ch of physical(m.channel)){r[(ch>=9?256:0)+0xb0+ch%9]&=~32;s.sourceMuteMask|=1<<ch;}
+    }else if(m.method==='rhythm-off')r[0xbd]&=~(16>>m.index);
+    else if(m.method==='audition-key-on'){
+      r[(m.channel>=9?256:0)+0xb0+m.channel%9]|=32;for(const ch of physical(m.channel))s.sourceMuteMask&=~(1<<ch);
+    }else if(m.method==='clock')s.clock=m.hz;
+    else if(m.method==='stop-voices')this.stopOplVoices();
+    else if(m.method==='reset'){this.stopOplVoices();r.fill(0);s.status=0;s.irq=false;}
+    else if(m.method==='source-mute')s.sourceMuteMask=m.mask;
+    else assert.equal(m.method,'mix','Unknown Native OPL operation '+m.method);
+  }
+  stopOplVoices(){if(!this.opl)return;const s=this.opl,n=s.chip==='ymf262'?18:9;s.held.clear();for(let ch=0;ch<n;ch++)s.registers[(ch>=9?256:0)+0xb0+ch%9]&=~32;s.registers[0xbd]&=~31;s.sourceMuteMask=(1<<n)-1;}
   applyX68000(m) {
     assert(['ym2151','okim6258'].includes(m.chip));const x=this.x68000,s=x[m.chip];
     if(m.method==='batch'){
@@ -1330,6 +1359,65 @@ async function nativeNeoGeo(page,native,artifacts,name) {
   }
   await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
+async function nativeOpl(page,native,artifacts,name) {
+  const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]),flatten=ms=>ms.flatMap(m=>m.method==='batch'?flatten(m.commands).map(op=>({...op,chip:m.chip})):[m]);
+  for(const chip of ['ym3526','ym3812','ymf262']){
+    const stereo=chip==='ymf262',count=stereo?18:9,baseClock=stereo?14318180:3579545,editedClock=stereo?14000000:4000000,last=count-1,bank=stereo?256:0,wave=stereo?7:chip==='ym3812'?3:0;
+    await changeNativeMode(page,native,chip);
+    const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/'+chip+'/index.js'),'utf8');assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter);
+    for(const execution of ['main','worker']){
+      let first=all().length;const commands=()=>all().slice(first).filter(c=>c.type==='opl'),writes=()=>flatten(commands().map(c=>c.message));
+      await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+      await until(()=>writes().some(m=>m.method==='write'&&m.register===0xb0&&(m.value&32)),chip+' '+execution+' starter');
+      const info=await page.evaluate(async()=>{const s=window.__nativeBackendTest.runtime.megaDrive;return {chip:s.chip,fm:s.fm,psg:s.psg,mixer:s.mixer.list().filter(c=>c.connected).map(c=>c.id),inspected:s.chipInspector.list().map(c=>c.id),voice:await s.chipInspector.read(s.chip)};});
+      assert.equal(info.chip,chip);assert.equal(info.fm,null);assert.equal(info.psg,null);assert.deepEqual(info.mixer,[chip]);assert.deepEqual(info.inspected,[chip]);assert.equal(info.voice.clock,baseClock);assert.equal(info.voice.channels.length,count);
+      if(execution==='worker')assert(commands().some(c=>c.frame>0&&c.performance&&c.owner),chip+' Worker timing');
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());first=all().length;
+      await page.evaluate(({chip,execution,last,editedClock,stereo,wave})=>window.__nativeBackendTest.runtime.playSource(`
+        if(await useSoundChip('${chip}')!==opl)throw Error('Selected OPL primary was not reused');
+        opl.setRhythm({enabled:false});${stereo?'for(const ch of [0,1,2,9,10,11])opl.setFourOp(ch,false);':''}
+        for(const ch of [6,7,8]){opl.setPreset(ch,OPL_PRESETS.organ);opl.setNote(ch,'G3');}
+        opl.setPreset(${last},OPL_PRESETS.organ);opl.setAlgo(${last},1,5);
+        opl.setOperator(${last},0,{mul:3,tl:23,ar:14,dr:5,sl:6,rr:9,waveform:${wave}});opl.setOperator(${last},1,{tl:7});
+        ${stereo?`opl.setPan(${last},false,true);opl.writeRegister(0x1c8,0x2b);`:''}
+        opl.noteOn(${last},'A4');opl.setLFO({amDepth:true,pmDepth:true});
+        opl.setRhythm({enabled:true,bassDrum:true,snare:true,tom:true,cymbal:true,hiHat:true});
+        await opl.setClock(${editedClock});await mixer.set(opl.id,{volume:.6,pan:-.2});
+      `,{execution}),{chip,execution,last,editedClock,stereo,wave});
+      await until(()=>writes().some(m=>m.method==='clock')&&writes().some(m=>m.method==='mix'),chip+' edited voice clock and mix');
+      const applied=await page.evaluate(()=>{const s=window.__nativeBackendTest.runtime.megaDrive;return s.chipInspector.read(s.chip);});
+      assert.equal(applied.clock,editedClock);assert.equal(applied.registers[bank+0x32]&15,3);assert.equal(applied.registers[bank+0x52]&63,23);assert.equal(applied.registers[bank+0x55]&63,7);assert.equal(applied.registers[bank+0xf2]&7,wave);assert.equal(applied.registers[0xbd],255);
+      if(stereo){assert.equal(applied.registers[0x1c8]&48,32);assert(writes().some(m=>m.method==='write'&&m.register>=256),'OPL3 bank one writes');}
+      assert.equal(writes().filter(m=>m.method==='clock').length,1);await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+      const stopped=await page.evaluate(()=>{const s=window.__nativeBackendTest.runtime.megaDrive;return s.chipInspector.read(s.chip);});
+      assert.equal(stopped.clock,editedClock);assert.equal(stopped.registers[bank+0x55]&63,7);assert.equal(stopped.registers[0xbd],224);assert(stopped.channels.every(c=>!c.active));assert.deepEqual(stopped.held,[]);await assertNoLiveAudio(page);
+      await page.evaluate(baseClock=>window.__nativeBackendTest.runtime.megaDrive.opl.setClock(baseClock),baseClock);
+    }
+    await page.evaluate(stereo=>{const s=window.__nativeBackendTest.runtime.megaDrive;s.opl.setRhythm({enabled:false});if(stereo)for(const ch of [0,1,2,9,10,11])s.opl.setFourOp(ch,false);},stereo);
+    await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:'+chip);await page.waitForFunction(n=>document.querySelectorAll('#playgroundKeyboardTargetChannel option').length===n,count);
+    for(let ch=0;ch<count;ch++){
+      await page.selectOption('#playgroundKeyboardTargetChannel',String(ch));await page.locator('#keyboardTab').focus();const first=all().length,added=()=>all().slice(first).filter(c=>c.type==='opl');
+      await page.keyboard.down('z');await until(()=>added().some(c=>c.message.action==='on'&&c.message.channel===ch),chip+' Keyboard '+ch);await page.keyboard.up('z');await until(()=>added().some(c=>c.message.action==='off'),chip+' Keyboard release '+ch);
+    }
+    if(stereo){
+      await page.evaluate(async()=>{const i=window.__nativeBackendTest.runtime.chipInspector;for(const ch of [0,1,2,9,10,11])await i.invoke('ymf262','setFourOp',[ch,true]);});
+      await page.waitForFunction(()=>document.querySelectorAll('#playgroundKeyboardTargetChannel option').length===12);
+      const ids=await page.locator('#playgroundKeyboardTargetChannel option').evaluateAll(nodes=>nodes.map(n=>n.value));for(const ch of [3,4,5,12,13,14])assert(!ids.includes(String(ch)),'Borrowed secondary must be excluded');
+      for(const ch of [0,1,2,9,10,11]){await page.selectOption('#playgroundKeyboardTargetChannel',String(ch));await page.locator('#keyboardTab').focus();const first=all().length;await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='opl'&&c.message.action==='on'&&c.message.channel===ch),'OPL3 four-op pair '+ch);await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='opl'&&c.message.action==='off'),'OPL3 four-op release');}
+    }
+    const root='#'+chip+'Panel',tab='#'+chip+'Tab';await page.click(tab);const selected=stereo?9:0;await page.locator(root+' [data-chip-channel="'+selected+'"]').click();
+    if(stereo){await page.locator(root+' [data-chip-control="opl-four-op"]').setChecked(false);await until(()=>!(native.opl.registers[0x104]&8),'OPL3 pair disabled');await page.locator(root+' [data-chip-control="opl-four-op"]').setChecked(true);await until(()=>!!(native.opl.registers[0x104]&8),'OPL3 pair enabled');await page.selectOption(root+' [data-chip-control="opl-algorithm"]','3');await page.locator(root+' [data-chip-control="opl-op-3-tl"]').evaluate(node=>{node.value='12';node.dispatchEvent(new Event('change',{bubbles:true}));});await until(()=>native.opl.registers[0x14b]===12&&(native.opl.registers[0x1c0]&1)&&(native.opl.registers[0x1c3]&1),'OPL3 fourth operator and routing');}
+    else{await page.locator(root+' [data-chip-control="opl-op-0-tl"]').evaluate(node=>{node.value='19';node.dispatchEvent(new Event('change',{bubbles:true}));});await until(()=>(native.opl.registers[0x40]&63)===19,chip+' operator edit');}
+    await page.locator(root+' [data-chip-control="opl-rhythm"]').setChecked(true);await until(()=>!!(native.opl.registers[0xbd]&32),chip+' rhythm UI enable');
+    await page.locator(root+' [data-chip-control="opl-rhythm-bassDrum"]').setChecked(true);await until(()=>!!(native.opl.registers[0xbd]&16),chip+' rhythm UI trigger');await page.locator(root+' [data-chip-control="opl-rhythm-bassDrum"]').setChecked(false);await until(()=>!(native.opl.registers[0xbd]&16),chip+' rhythm UI release');await page.locator(root+' [data-chip-control="opl-rhythm"]').setChecked(false);
+    await page.click(root+' [data-chip-action="opl-keyboard"]');await page.locator(tab).focus();let first=all().length;
+    await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='opl'&&c.message.action==='on'&&c.message.channel===selected),chip+' Operators Keyboard');await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='opl'&&c.message.action==='off'),chip+' Operators release');
+    await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:'+chip);await page.selectOption('#playgroundKeyboardTargetChannel',String(selected));const key=page.locator('#operatorKeyboardRoot .key').first();await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();first=all().length;
+    await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>all().slice(first).some(c=>c.type==='opl'&&c.message.action==='on'),chip+' Guitar pointer');await page.mouse.up();await until(()=>all().slice(first).some(c=>c.type==='opl'&&c.message.action==='off'),chip+' Guitar release');
+    await page.screenshot({path:path.join(artifacts,name+'-native-'+chip+'.png')});await assertNoLiveAudio(page);await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+  await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
+}
 async function nativeMsx(page,native,artifacts,name) {
   await changeNativeMode(page,native,'msx');
   const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/msx/index.js'),'utf8');
@@ -1581,9 +1669,9 @@ async function nativeDx7(page,native,artifacts,name) {
     assert.equal(edited.preset.name,'NATIVE UI');assert.equal(edited.preset.operators[1].fine,17);
     assert.equal(edited.preset.operators[2].coarse,3);assert.equal(edited.preset.operators[6].outputLevel,50);
     assert(commands().some(entry=>entry.type==='dx7'&&entry.message.method==='mix'),'DX7 mixer must use the Native chip gain');
-    assert(native.calls.slice(first).some(call=>call.command==='native_genesis_fx'&&call.args.message.op==='chain'));
     // Chip and FX use independent Worker ports. A delivered note does not
     // acknowledge the FX installation on its separate preparation queue.
+    await until(()=>native.calls.slice(first).some(call=>call.command==='native_genesis_fx'&&call.args.message.op==='chain'),execution+' Native DX7 FX chain installation');
     await until(()=>native.liveFx.has('native-dx7-fx'),execution+' Native DX7 JavaScript FX installation');
     assert(native.liveFx.has('native-dx7-fx'),'DX7 must share the existing Native JavaScript FX stage');
     assert.equal(native.current.session,session,'Patch loading and editing must reuse one Native DX7 instance');
@@ -1975,6 +2063,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--opl-only')) {
+      await nativeOpl(page,native,artifacts,name);assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-opl.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS Native DOS PC YM3526/YM3812/YMF262 Main/Worker, banked registers, 2op/4op/rhythm, Keyboard/Operators, clock/mixer, Stop retention and mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--msx-only')) {
       await nativeMsx(page,native,artifacts,name);assert.deepEqual(errors,[]);
       await fs.writeFile(path.join(artifacts,name+'-native-msx.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
@@ -2044,6 +2137,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeX68000(page,native,artifacts,name);
     await nativeMasterSystem(page,native,artifacts,name);
     await nativeMsx(page,native,artifacts,name);
+    await nativeOpl(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());

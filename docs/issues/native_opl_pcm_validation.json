@@ -1,0 +1,1607 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T10:00:22.263Z",
+  "reference": "Actual deployed OPL WASM running shipped Worklet renderSegment and controls",
+  "wasmSha256": {
+    "ym3526": "fc8e600e4a50cf9443a2a71e99b0c84ee37293809d9668d572cb15ed1456de21",
+    "ym3812": "cb7fbf2d59d02ca3bec669b9cf0db3a6d1cc33c94ade8b7a0d89bcb04b4286f3",
+    "ymf262": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+  },
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "chip": "ym3526",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21044921875
+    },
+    {
+      "chip": "ym3526",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3526",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2236328125
+    },
+    {
+      "chip": "ym3526",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22216796875
+    },
+    {
+      "chip": "ym3526",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.080810546875
+    },
+    {
+      "chip": "ym3526",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.074951171875
+    },
+    {
+      "chip": "ym3526",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038330078125
+    },
+    {
+      "chip": "ym3526",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2080078125
+    },
+    {
+      "chip": "ym3526",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03857421875
+    },
+    {
+      "chip": "ym3526",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0382080078125
+    },
+    {
+      "chip": "ym3812",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21044921875
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 1, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 2, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013824462890625
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 3, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01373291015625
+    },
+    {
+      "chip": "ym3812",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2236328125
+    },
+    {
+      "chip": "ym3812",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22216796875
+    },
+    {
+      "chip": "ym3812",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.080810546875
+    },
+    {
+      "chip": "ym3812",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.074951171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038330078125
+    },
+    {
+      "chip": "ym3812",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2080078125
+    },
+    {
+      "chip": "ym3812",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03857421875
+    },
+    {
+      "chip": "ym3812",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0382080078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.722076416015625
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0205078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 1, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0205078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 2, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0277099609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 3, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0277099609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 4, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.020050048828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 5, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02801513671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 6, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02801513671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 7, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "chip": "ymf262",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4461669921875
+    },
+    {
+      "chip": "ymf262",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.44451904296875
+    },
+    {
+      "chip": "ymf262",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1622314453125
+    },
+    {
+      "chip": "ymf262",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.145904541015625
+    },
+    {
+      "chip": "ymf262",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0750732421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.716949462890625
+    },
+    {
+      "chip": "ymf262",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.075042724609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0750732421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 0, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.023956298828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 1, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.110107421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 2, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.078857421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 3, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.146881103515625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 0, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 1, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11065673828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 2, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07928466796875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 3, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.145751953125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 0, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 1, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1112060546875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 2, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.077789306640625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 3, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14520263671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 0, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02398681640625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 1, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.109344482421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 2, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.080047607421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 3, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.13641357421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 0, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 1, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1082763671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 2, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.080322265625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 3, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.137908935546875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 0, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.023956298828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 1, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1036376953125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 2, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.079498291015625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 3, feedback and pan",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.138824462890625
+    },
+    {
+      "chip": "ymf262",
+      "name": "all four OPL3 hardware buses fold A+C left B+D right with per-bus saturation",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "chip": "ymf262",
+      "name": "pair maps and OPL3 compatibility routing change without hidden secondary gates",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.394378662109375
+    },
+    {
+      "chip": "ym3526",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21923828125
+    },
+    {
+      "chip": "ym3526",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3526",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22314453125
+    },
+    {
+      "chip": "ym3526",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22412109375
+    },
+    {
+      "chip": "ym3526",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.081298828125
+    },
+    {
+      "chip": "ym3526",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.074462890625
+    },
+    {
+      "chip": "ym3526",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038330078125
+    },
+    {
+      "chip": "ym3526",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2109375
+    },
+    {
+      "chip": "ym3526",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03857421875
+    },
+    {
+      "chip": "ym3526",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0382080078125
+    },
+    {
+      "chip": "ym3812",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21923828125
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 1, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 2, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0137786865234375
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 3, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013458251953125
+    },
+    {
+      "chip": "ym3812",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22314453125
+    },
+    {
+      "chip": "ym3812",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22412109375
+    },
+    {
+      "chip": "ym3812",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.081298828125
+    },
+    {
+      "chip": "ym3812",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.074462890625
+    },
+    {
+      "chip": "ym3812",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038330078125
+    },
+    {
+      "chip": "ym3812",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2109375
+    },
+    {
+      "chip": "ym3812",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03857421875
+    },
+    {
+      "chip": "ym3812",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0382080078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.71478271484375
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0205078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 1, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0205078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 2, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02764892578125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 3, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.027435302734375
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 4, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.020050048828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 5, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02801513671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 6, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02801513671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 7, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "chip": "ymf262",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4456787109375
+    },
+    {
+      "chip": "ymf262",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.44720458984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1622314453125
+    },
+    {
+      "chip": "ymf262",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14599609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0750732421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.716949462890625
+    },
+    {
+      "chip": "ymf262",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.075042724609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0750732421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 0, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 1, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.110504150390625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 2, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.078857421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 3, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15234375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 0, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 1, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11065673828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 2, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07928466796875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 3, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.145751953125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 0, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 1, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1112060546875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 2, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0789794921875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 3, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14520263671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 0, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 1, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.109344482421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 2, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.08087158203125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 3, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.13641357421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 0, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 1, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1082763671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 2, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.080322265625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 3, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.137908935546875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 0, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 1, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.107269287109375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 2, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.079498291015625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 3, feedback and pan",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.138824462890625
+    },
+    {
+      "chip": "ymf262",
+      "name": "all four OPL3 hardware buses fold A+C left B+D right with per-bus saturation",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "chip": "ymf262",
+      "name": "pair maps and OPL3 compatibility routing change without hidden secondary gates",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.394378662109375
+    },
+    {
+      "chip": "ym3526",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21337890625
+    },
+    {
+      "chip": "ym3526",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3526",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2177734375
+    },
+    {
+      "chip": "ym3526",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21142578125
+    },
+    {
+      "chip": "ym3526",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.081298828125
+    },
+    {
+      "chip": "ym3526",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.074951171875
+    },
+    {
+      "chip": "ym3526",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038330078125
+    },
+    {
+      "chip": "ym3526",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2109375
+    },
+    {
+      "chip": "ym3526",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03857421875
+    },
+    {
+      "chip": "ym3526",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0382080078125
+    },
+    {
+      "chip": "ym3812",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21337890625
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 1, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0106201171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 2, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013824462890625
+    },
+    {
+      "chip": "ym3812",
+      "name": "waveform 3, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.01373291015625
+    },
+    {
+      "chip": "ym3812",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2177734375
+    },
+    {
+      "chip": "ym3812",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21142578125
+    },
+    {
+      "chip": "ym3812",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.081298828125
+    },
+    {
+      "chip": "ym3812",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.074951171875
+    },
+    {
+      "chip": "ym3812",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038330078125
+    },
+    {
+      "chip": "ym3812",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2109375
+    },
+    {
+      "chip": "ym3812",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03857421875
+    },
+    {
+      "chip": "ym3812",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0382080078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "all melodic physical voices, both algorithms and ordinary gate release",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.737701416015625
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 0, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0205078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 1, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0205078125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 2, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0277099609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 3, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0277099609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 4, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.020050048828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 5, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02801513671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 6, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02801513671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "waveform 7, both operators, TL/KSL/multiplier/envelope/vibrato/AM",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "chip": "ymf262",
+      "name": "all five rhythm voices, shared physical channels and independent gate releases",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4351806640625
+    },
+    {
+      "chip": "ymf262",
+      "name": "rhythm layout changes retain operators and release old melodic ownership",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4222412109375
+    },
+    {
+      "chip": "ymf262",
+      "name": "clock edits preserve source phase through slow holds and fast sample averaging",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1622314453125
+    },
+    {
+      "chip": "ymf262",
+      "name": "forced off and Stop preserve authored TL routing rhythm LFO and clock settings",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14605712890625
+    },
+    {
+      "chip": "ymf262",
+      "name": "deferred same-frame preview retrigger and cancellation by force off Stop reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.075042724609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "external mute masks preserve operator oscillator envelope and source clocks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.690277099609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "independent resets, retained clock and subsequent initialization",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07501220703125
+    },
+    {
+      "chip": "ymf262",
+      "name": "timer A B expiration status and reset flags during melodic synthesis",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.075042724609375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 0, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 1, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.110504150390625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 2, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.078857421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 0+3, algorithm 3, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15234375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 0, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 1, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11065673828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 2, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0799560546875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 1+4, algorithm 3, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.145751953125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 0, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 1, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1112060546875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 2, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0789794921875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 2+5, algorithm 3, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14520263671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 0, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 1, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.109344482421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 2, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07989501953125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 9+12, algorithm 3, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.13641357421875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 0, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024017333984375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 1, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1082763671875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 2, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.080322265625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 10+13, algorithm 3, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.137908935546875
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 0, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.023956298828125
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 1, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.107269287109375
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 2, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.079498291015625
+    },
+    {
+      "chip": "ymf262",
+      "name": "four-operator pair 11+14, algorithm 3, feedback and pan",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.138824462890625
+    },
+    {
+      "chip": "ymf262",
+      "name": "all four OPL3 hardware buses fold A+C left B+D right with per-bus saturation",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "chip": "ymf262",
+      "name": "pair maps and OPL3 compatibility routing change without hidden secondary gates",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.394378662109375
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 1216512,
+  "limits": "Offline selected YM3526/YM3812/YMF262 output comparison. Native ownership/scheduling/IPC/UI verified separately. Worklet external mute merges authoring forced mute with real WASM mute API. Deferred manual previews use the shipped FM inspector semantics. Status/timer/IRQ retention and zero callback allocations/frees verified by the C++ fixture. No real audio device or cross-platform compiler was used.",
+  "selfTest": "Selected OPL/OPL2/OPL3 only; mono/stereo planes, retained clocks/TL/pairs/rhythm/routing, deferred retrigger and cancellation, timers/status/IRQ passed; callback allocations 0, frees 0",
+  "status": "passed"
+}
