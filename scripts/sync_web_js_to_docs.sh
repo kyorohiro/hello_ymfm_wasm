@@ -27,6 +27,7 @@ playground_snes_worklet.js
 playground_spc.js
 playground_spc_audio.js
 soundchip_mixer.js
+playground_audio_endpoint.js
 playground_chip_inspector.js
 playground_chip_inspector_state.js
 playground_keyboard.js

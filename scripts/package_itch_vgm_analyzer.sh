@@ -113,6 +113,7 @@ spc-worklet.js
 spc_resampler.js
 msm5205audioengine.js
 soundchip_mixer.js
+playground_audio_endpoint.js
 soundchip_pitch.js
 playground_chip_clock.js
 playground_chip_inspector_state.js

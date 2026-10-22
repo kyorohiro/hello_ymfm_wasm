@@ -1,3 +1,4 @@
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=mixer-state-1';
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
@@ -54,7 +55,7 @@ export async function createHuc6280Audio(context, destination, options = {}) {
     clearTimeout(timer); options.signal?.throwIfAborted();
     if (context.state === 'closed') throw new Error('HuC6280 AudioContext was closed');
     node.port.postMessage({port:channel.port1}, [channel.port1]); if (destination) node.connect(destination);
-    return {node, port:channel.port2, clock, dispose};
+    return watchAudioEndpoint({node, port:channel.port2, clock, dispose}, {context,label:'HuC6280',onError:options.onError});
   } catch (error) { dispose(); throw error; }
   finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }

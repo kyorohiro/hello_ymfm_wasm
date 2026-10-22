@@ -1,3 +1,4 @@
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=mixer-state-1';
 import {OKIM6258_CLOCK} from './okim6258synth.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 const nativeFetch = globalThis.fetch?.bind(globalThis);
@@ -69,7 +70,7 @@ export async function createOki6258Audio(context, destination, {clock = OKIM6258
     if (context.state === 'closed') throw new Error('OKIM6258 AudioContext was closed');
     if (destination) node.connect(destination);
     node.port.postMessage({port:channel.port1}, [channel.port1]);
-    return {node, port:channel.port2, clock, dispose};
+    return watchAudioEndpoint({node, port:channel.port2, clock, dispose}, {context,label:'OKIM6258'});
   } catch (error) { dispose(); throw error; }
   finally { signal?.removeEventListener('abort', abort); }
 }

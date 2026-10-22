@@ -31,6 +31,7 @@ playground_audio_diagnostics.js
 playground_audio_engine.js
 playground_monitor_scale.js
 playground_mixer.js
+playground_mixer_state.js
 playground_mixer.css
 playground_chip_tabs.js
 playground_chip_tabs.css
@@ -129,6 +130,7 @@ playground_snes.js
 playground_snes_audio.js
 playground_snes_worklet.js
 soundchip_mixer.js
+playground_audio_endpoint.js
 playground_chip_inspector.js
 playground_keyboard_channels.js
 playground_opn_inspector.js

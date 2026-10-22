@@ -36,6 +36,70 @@ export function chipMixGains({volume, pan, muted, effectiveMuted}) {
   return (effectiveMuted ?? muted) ? [0, 0] : [volume * (1 - Math.max(0, pan)), volume * (1 + Math.min(0, pan))];
 }
 
+const MIXER_POLICY_VERSION = 1;
+const MAX_MIXER_KINDS = 128;
+const MAX_MIXER_ENTRIES = 512;
+const MAX_MIXER_IDENTIFIER = 256;
+const MIX_FIELDS = ['volume', 'pan', 'muted', 'solo'];
+const COMMON_FIELDS = ['volume', 'pan'];
+function policyObject(value, fields, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(value)) ||
+      Reflect.ownKeys(value).some(key => typeof key !== 'string' || !fields.includes(key))) {
+    throw new TypeError(`Invalid ${label}`);
+  }
+}
+function policyIdentifier(value, label) {
+  if (typeof value !== 'string' || !value.trim() || value.length > MAX_MIXER_IDENTIFIER) {
+    throw new TypeError(`${label} must be a nonempty string of at most ${MAX_MIXER_IDENTIFIER} characters`);
+  }
+  return value;
+}
+function policySettings(value, fields, label) {
+  policyObject(value, fields, label);
+  const copy = {...value};
+  for (const [key, item] of Object.entries(copy)) {
+    if (typeof item !== (['volume', 'pan'].includes(key) ? 'number' : 'boolean')) throw new TypeError(`Invalid ${label}`);
+  }
+  validateChipMix({...stripDefaults(), ...copy});
+  return copy;
+}
+function parseDefaults(value) {
+  policyObject(value, ['version', 'kinds'], 'mixer defaults');
+  if (value.version !== MIXER_POLICY_VERSION || !Array.isArray(value.kinds) || value.kinds.length > MAX_MIXER_KINDS) {
+    throw new TypeError(`Mixer defaults require version 1 and at most ${MAX_MIXER_KINDS} kinds`);
+  }
+  const parsed = new Map(), names = new Set();
+  for (const record of value.kinds) {
+    policyObject(record, ['name', ...COMMON_FIELDS], 'mixer kind default');
+    const name = policyIdentifier(record.name, 'Mixer kind');
+    if (names.has(name)) throw new TypeError(`Duplicate mixer kind: ${name}`);
+    names.add(name);
+    const {name: ignored, ...settings} = record;
+    const next = policySettings(settings, COMMON_FIELDS, 'mixer kind settings');
+    if (Object.keys(next).length) parsed.set(name, next);
+  }
+  return parsed;
+}
+function parseState(value) {
+  policyObject(value, ['version', 'entries'], 'mixer project state');
+  if (value.version !== MIXER_POLICY_VERSION || !Array.isArray(value.entries) || value.entries.length > MAX_MIXER_ENTRIES) {
+    throw new TypeError(`Mixer project state requires version 1 and at most ${MAX_MIXER_ENTRIES} entries`);
+  }
+  const parsed = new Map(), ids = new Set();
+  for (const record of value.entries) {
+    policyObject(record, ['id', 'name', 'settings'], 'mixer project entry');
+    const id = policyIdentifier(record.id, 'Mixer id');
+    if (ids.has(id)) throw new TypeError(`Duplicate mixer project id: ${id}`);
+    ids.add(id);
+    const name = Object.hasOwn(record, 'name') ? policyIdentifier(record.name, 'Mixer kind') : undefined;
+    const settings = policySettings(record.settings, MIX_FIELDS, 'mixer project settings');
+    if (Object.keys(settings).length) parsed.set(id, {name, settings});
+  }
+  return parsed;
+}
+const policyOrder = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+
 // Observers must never interrupt output registration or cleanup.
 function dispatchMixerListener(listener, value) {
   try {listener(value);}
@@ -49,34 +113,111 @@ function dispatchMixerListener(listener, value) {
 export class SoundChipMixer {
   constructor() {
     this.entries = new Map(); this.retained = new Map(); this.reservedIds = new Set(); this.transientIds = new Set();
+    this.kindDefaults = new Map(); this.deferredState = new Map();
     this.listeners = new Set(); this.meterListeners = new Set();
+  }
+  defaults(name) { return {...stripDefaults(name), ...this.kindDefaults.get(name)}; }
+  settingsFor(entry) {
+    const overrides = entry.overrideName === undefined || entry.overrideName === entry.name ? entry.overrides : {};
+    return {...this.defaults(entry.name), ...overrides};
+  }
+  /** Effective common volume/pan, including factory fallbacks. */
+  getKindDefault(name) {
+    policyIdentifier(name, 'Mixer kind');
+    const {volume, pan} = this.defaults(name);
+    return {volume, pan};
+  }
+  /** Explicit common policy only; mute and solo belong to a project/session. */
+  exportDefaults() {
+    return {version:MIXER_POLICY_VERSION, kinds:[...this.kindDefaults].sort(([a], [b]) => policyOrder(a, b))
+      .map(([name, settings]) => ({name, ...settings}))};
+  }
+  /** Validate the whole common policy before replacing it. Does not access storage. */
+  configureDefaults(value) {
+    const next = parseDefaults(value);
+    this.kindDefaults = next;
+    for (const entry of [...this.entries.values(), ...this.retained.values(), ...this.deferredState.values()]) entry.settings = this.settingsFor(entry);
+    this.applyAll(); this.notify();
+    return this.exportDefaults();
+  }
+  setKindDefault(name, settings) {
+    policyIdentifier(name, 'Mixer kind');
+    const patch = policySettings(settings, COMMON_FIELDS, 'mixer kind settings');
+    const next = new Map(this.kindDefaults);
+    const merged = {...next.get(name), ...patch};
+    if (Object.keys(merged).length) next.set(name, merged);
+    return this.configureDefaults({version:MIXER_POLICY_VERSION, kinds:[...next].map(([name, values]) => ({name, ...values}))});
+  }
+  /** Persist authored overrides for stable IDs, including disconnected sources. */
+  exportState() {
+    const all = new Map([...this.retained, ...this.deferredState]);
+    for (const [id, entry] of this.entries) if (!this.transientIds.has(id)) all.set(id, entry);
+    const entries = [...all].filter(([, entry]) => Object.keys(entry.overrides).length)
+      .sort(([a], [b]) => policyOrder(a, b)).map(([id, entry]) => {
+        const name = entry.overrideName ?? (entry.kindKnown ? entry.name : undefined);
+        return {id, ...(name === undefined ? {} : {name}), settings:{...entry.overrides}};
+      });
+    const state = {version:MIXER_POLICY_VERSION, entries};
+    parseState(state);
+    return state;
+  }
+  /** Replace project policy without replacing connected entry objects or routes. */
+  restoreState(value) {
+    const next = parseState(value);
+    this.deferredState.clear();
+    for (const [id, entry] of this.entries) {
+      if (!entry.apply) {this.entries.delete(id); continue;}
+      const transient = this.transientIds.has(id);
+      const saved = transient ? undefined : next.get(id);
+      entry.overrides = {...saved?.settings};
+      entry.overrideName = saved?.name ?? entry.name;
+      entry.settings = this.settingsFor(entry);
+      if (!transient) next.delete(id);
+    }
+    this.retained.clear();
+    for (const [id, saved] of next) {
+      const entry = {name:saved.name ?? id, kindKnown:saved.name !== undefined, overrideName:saved.name,
+        overrides:{...saved.settings}, apply:null};
+      entry.settings = this.settingsFor(entry);
+      (this.transientIds.has(id) ? this.deferredState : this.retained).set(id, entry);
+    }
+    this.applyAll(); this.notify();
+    return this.exportState();
   }
   /** @param {string} id @param {ChipMixOptions} settings @returns {ChipMixSettings} */
   set(id, settings) {
     this.checkId(id);
-    if (!settings || typeof settings !== 'object' || Array.isArray(settings) || Object.keys(settings).some(k => !['volume', 'pan', 'muted', 'solo'].includes(k))) throw new TypeError('Unknown mixer setting');
-    const entry = this.entries.get(id) ?? this.retained.get(id) ?? {name: id, settings: stripDefaults(id), overrides: {}, apply: null};
-    const next = {...entry.settings, ...settings}; validateChipMix(next);
-    entry.settings = next; entry.overrides = {...entry.overrides, ...settings};
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings) || Object.keys(settings).some(k => !MIX_FIELDS.includes(k))) throw new TypeError('Unknown mixer setting');
+    const entry = this.entries.get(id) ?? this.retained.get(id) ?? {name:id, kindKnown:false, overrides:{}, apply:null};
+    const overrides = entry.overrideName !== undefined && entry.overrideName !== entry.name ? {} : entry.overrides;
+    const authored = {...overrides, ...settings};
+    const next = {...this.defaults(entry.name), ...authored}; validateChipMix(next);
+    entry.settings = next; entry.overrides = authored;
+    entry.overrideName = entry.kindKnown ? entry.name : undefined;
     this.retained.delete(id); this.entries.set(id, entry); this.applyAll(); this.notify();
     return {...next};
   }
   /** @param {string} id @returns {ChipMixSettings} */
-  get(id) { return {...((this.entries.get(id) ?? this.retained.get(id))?.settings ?? stripDefaults(id))}; }
+  get(id) { return {...((this.entries.get(id) ?? this.retained.get(id))?.settings ?? this.defaults(id))}; }
   /** @returns {Array<ChipMixSettings & {id: string, name: string, connected: boolean, effectiveMuted: boolean}>} */
   list() {
     const hasSolo = this.hasSolo();
-    return [...this.entries].map(([id, entry]) => ({id, name: entry.name, connected: Boolean(entry.apply), ...entry.settings,
-      effectiveMuted: entry.settings.muted || (hasSolo && !entry.settings.solo)}));
+    return [...this.entries].map(([id, entry]) => ({id, name:entry.name, connected:Boolean(entry.apply), ...entry.settings,
+      effectiveMuted:entry.settings.muted || (hasSolo && !entry.settings.solo)}));
   }
-  /** Reset settings explicitly, including settings retained for disconnected IDs. @param {string} [id] */
+  /** Clear authored overrides back to current common/factory defaults. */
   reset(id = undefined) {
     if (id !== undefined) {
+      this.checkId(id);
       const entry = this.entries.get(id) ?? this.retained.get(id);
-      return this.set(id, stripDefaults(entry?.name ?? id));
+      if (!entry) return this.set(id, {});
+      entry.overrides = {}; entry.overrideName = entry.kindKnown ? entry.name : undefined;
+      entry.settings = this.settingsFor(entry); this.applyAll(); this.notify();
+      return {...entry.settings};
     }
-    for (const entry of [...this.entries.values(), ...this.retained.values()]) {
-      entry.settings = stripDefaults(entry.name); entry.overrides = {...entry.settings};
+    for (const entry of [...this.entries.values(), ...this.retained.values(), ...this.deferredState.values()]) {
+      entry.overrides = {}; entry.overrideName = entry.kindKnown ? entry.name : undefined;
+      entry.settings = this.settingsFor(entry);
     }
     this.applyAll(); this.notify();
   }
@@ -116,11 +257,18 @@ export class SoundChipMixer {
   /** Reserve an ID until the initializing endpoint has registered or failed.
    * @param {string} name @param {string} [requested] */
   reserveId(name, requested) {
-    const id = allocateSoundChipId(name, requested, key => this.reservedIds.has(key) || Boolean(this.entries.get(key)?.apply));
+    const id = allocateSoundChipId(name, requested, key => this.reservedIds.has(key) || Boolean(this.entries.get(key)?.apply) ||
+      requested === undefined && (this.entries.has(key) || this.retained.has(key) || this.deferredState.has(key)));
     this.reservedIds.add(id);
     if (requested === undefined) this.transientIds.add(id);
     let released = false;
-    return {id, release: () => {if (released) return; released = true; this.reservedIds.delete(id); if (!this.entries.has(id)) this.transientIds.delete(id);}};
+    return {id, release: () => {if (released) return; released = true; this.reservedIds.delete(id); if (!this.entries.has(id)) this.releaseTransientId(id);}};
+  }
+  releaseTransientId(id) {
+    const transient = this.transientIds.delete(id);
+    const pending = this.deferredState.get(id);
+    if (transient && pending) {this.deferredState.delete(id); this.retained.set(id, pending);}
+    return transient;
   }
   checkId(id) { if (typeof id !== 'string' || !id.trim()) throw new TypeError('Mixer id must be a nonempty string'); }
   /** Register an output. Release disconnects the endpoint and retains settings only.
@@ -129,17 +277,23 @@ export class SoundChipMixer {
   register(id, name, apply, meter = undefined) {
     this.checkId(id);
     if (this.entries.get(id)?.apply) throw new Error(`Mixer id is already connected: ${id}`);
-    const previous = this.entries.get(id) ?? this.retained.get(id);
-    const entry = {name, settings: {...stripDefaults(name), ...previous?.overrides}, overrides: previous?.overrides ?? {}, apply, meter};
+    const previousEntry = this.entries.get(id), previous = previousEntry ?? (this.transientIds.has(id) ? undefined : this.retained.get(id));
+    const entry = {name, kindKnown:true, overrides:{...previous?.overrides},
+      overrideName:previous?.overrideName ?? (previous?.kindKnown ? previous.name : name), apply, meter};
+    entry.settings = this.settingsFor(entry);
     this.entries.set(id, entry);
     try { this.applyAll(); meter?.setMetering(this.meterListeners.size > 0); }
-    catch (error) {this.entries.delete(id); if (previous) this.entries.set(id, previous); this.applyAll(); throw error;}
+    catch (error) {this.entries.delete(id); if (previousEntry) this.entries.set(id, previousEntry); this.applyAll(); throw error;}
     this.retained.delete(id); this.notify();
     let released = false;
     return () => {
       if (released || this.entries.get(id) !== entry) return; released = true;
       meter?.setMetering(false); this.entries.delete(id);
-      if (!this.transientIds.delete(id)) this.retained.set(id, {name, settings: {...entry.settings}, overrides: {...entry.overrides}, apply: null});
+      if (!this.releaseTransientId(id)) {
+        const saved = {name:entry.overrideName ?? name, kindKnown:true, overrideName:entry.overrideName,
+          overrides:{...entry.overrides}, apply:null};
+        saved.settings = this.settingsFor(saved); this.retained.set(id, saved);
+      }
       this.applyAll(); this.notify();
     };
   }

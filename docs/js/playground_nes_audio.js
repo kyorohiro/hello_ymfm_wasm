@@ -1,3 +1,4 @@
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=mixer-state-1';
 import {NES_APU_CLOCK, validateNesApuClock} from './nesapu.js?v=nes-wasm-1';
 const nativeFetch=globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
@@ -37,7 +38,7 @@ export async function createNesAudio(context, destination, {fds = false, clock =
     clearTimeout(readyTimer); signal?.throwIfAborted();
     if (destination) node.connect(destination);
     node.port.postMessage({port: channel.port1}, [channel.port1]);
-    return {node, port:channel.port2, clock, fdsEnabled:fds, dispose};
+    return watchAudioEndpoint({node, port:channel.port2, clock, fdsEnabled:fds, dispose}, {context,label:'NES'});
   } catch (error) { dispose(); throw error; }
 }
 

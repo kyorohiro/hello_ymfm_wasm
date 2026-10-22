@@ -1,3 +1,4 @@
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=mixer-state-1';
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
@@ -37,7 +38,7 @@ export async function createYm2151Audio(context, destination, options = {}) {
     clearTimeout(readyTimer); signal?.throwIfAborted();
     if (destination) node.connect(destination);
     node.port.postMessage({port:channel.port1}, [channel.port1]);
-    return {node, port:channel.port2, dispose};
+    return watchAudioEndpoint({node, port:channel.port2, dispose}, {context,label:'YM2151',onError:options.onError});
   } catch (error) { dispose(); throw error; }
 }
 

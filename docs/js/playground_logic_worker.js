@@ -15,12 +15,12 @@ import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindi
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=audio-stability-2';
-import {createOpnClient} from './playground_opn.js?v=audio-numeric-bindings-1';
+import {createOpnClient} from './playground_opn.js?v=mixer-state-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
-import {createYm2608Client} from './playground_ym2608.js?v=audio-numeric-bindings-1';
+import {createYm2608Client} from './playground_ym2608.js?v=mixer-state-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=audio-numeric-bindings-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
@@ -34,7 +34,7 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=native-primary-lookup-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=mixer-state-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -393,7 +393,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   }, () => (!run.stopped || run.currentLoop?.keyboardCleanup) && !run.currentLoop?.stopped)) : null;
   const chip = !nativePrimary && chipConnection ? createWorkerChip({...chipConnection,port:performanceTransport.port(chipConnection.port,'chip'),capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
   run.adoptNativeState=(name,state)=>native.adopt(name,state);
-  run.adoptExtraOplState=(id,state)=>{for(const client of pcmClients)if(client.id===id)client._adoptState?.(state);};
+  run.adoptExtraOplState=(id,state,instance)=>{if(!Number.isSafeInteger(instance)||instance<1)return;for(const client of pcmClients)if(client.id===id&&pcmInstances.get(client)===instance)client._adoptState?.(state);};
   run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
@@ -599,6 +599,11 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     (run.collectingCleanups ?? run.cleanups).push({ names, fn });
   };
   const pcmClients = new Set();
+  const pcmInstances = new WeakMap();
+  run.disposeExtraChip=(id,instance)=>{
+    if(!Number.isSafeInteger(instance)||instance<1)return;
+    for(const client of pcmClients)if(client.id===id&&pcmInstances.get(client)===instance)client.dispose();
+  };
   let pcmSequence = 0;
   const soundChips = createSoundChipRegistry();
   const loopTasks = createLoopAsyncTasks({getLoop: () => run.currentLoop,
@@ -771,8 +776,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       }) : ['huc6280','okim6258','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
+      if(Number.isSafeInteger(response.instance)&&response.instance>0)pcmInstances.set(pcm,response.instance);
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
-      pcm.dispose=()=>{if(disposed)return;disposed=true;try{dispose();}finally{pcmClients.delete(pcm);postMessage({type:'command',command:'pcm.dispose',args:[mixerId],performance:performanceTransport.timestamp()});}};
+      pcm.dispose=()=>{if(disposed)return;disposed=true;try{dispose();}finally{pcmClients.delete(pcm);postMessage({type:'command',command:'pcm.dispose',args:[mixerId,response.instance],performance:performanceTransport.timestamp()});}};
       pcmClients.add(pcm);return keyboardApi(pcm);
     },
     mixer: Object.fromEntries(['set', 'get', 'reset', 'list'].map(method => [method, (...args) => request('mixer.' + method, args, run.currentLoop)])),
@@ -1008,7 +1014,8 @@ self.onmessage = (event) => {
   const message = event.data;
   if (message.type === 'musical-keyboard') {currentRun?.handleMusicalKeyboard(message);return;}
   if (message.type === 'tempo') { currentRun?.setBpm(message.bpm); return; }
-  if (message.type === 'extra-opl-state') {currentRun?.adoptExtraOplState(message.id,message.state);return;}
+  if (message.type === 'extra-opl-state') {currentRun?.adoptExtraOplState(message.id,message.state,message.instance);return;}
+  if (message.type === 'extra-chip-disposed') {currentRun?.disposeExtraChip(message.id,message.instance);return;}
   if (message.type === 'native-primary-state') {currentRun?.adoptNativeState(message.name,message.state);return;}
   if (message.type === 'chip-clock-state') { currentRun?.adoptChipClock(message.clock); return; }
   if (message.type === "chip-state") { currentRun?.adoptChipState(message.state); return; }

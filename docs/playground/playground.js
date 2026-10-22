@@ -2,12 +2,13 @@ import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
 import {installPlaygroundWorkbench} from './playground_workbench.js?v=operator-tab-keyboard-1';
-import {createPlaygroundMixer} from './playground_mixer.js?v=chip-tabs-2';
+import {createPlaygroundMixer} from './playground_mixer.js?v=mixer-state-1';
+import {createPlaygroundMixerState} from './playground_mixer_state.js?v=mixer-state-1';
 import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab-keyboard-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-primary-lookup-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=mixer-state-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -37,10 +38,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=pwm-wasm-1";
+} from "../js/megasynth.js?v=mixer-state-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=pwm-wasm-1";
+} from "../js/tetorica_synth.js?v=mixer-state-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -85,7 +86,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=native-primary-lookup-1";
+} from "../js/playground_runtime.js?v=mixer-state-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=audio-numeric-bindings-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
@@ -277,7 +278,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 }
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=native-primary-lookup-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=mixer-state-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',
@@ -606,11 +607,13 @@ const tfiFileEditor = createTfiFileEditor({
   onStatus: message => setStatus(message),
 });
 window.addEventListener("pagehide", event => {
+  mixerState.flush();
   audioDiagnostics?.cancel();
   if (!event.persisted) {
     audioDiagnostics?.dispose();
     operatorTab?.dispose();
     mixerPanel?.dispose();
+    mixerState.dispose();
     chipTabs?.dispose();
     keyboardRouting.dispose();
     void tfiFileEditor.dispose();
@@ -897,6 +900,7 @@ function promptCassetteExport() {
 function exportCassette() {
   try {
     saveActiveVirtualFile();
+    mixerState.flush();
     let existingMetadata = currentCassetteMetadata;
     try {
       const metadata = readCassetteMetadataFromVirtualFiles();
@@ -1799,6 +1803,23 @@ const {
   formatLogArgs,
   setBottomTab,
 } = ui;
+// Loading saved defaults can report an error synchronously. Initialize only
+// after the UI's status handler and editor are available.
+const mixerState = createPlaygroundMixerState({mixer:megaDrive.mixer,files:virtualFiles,
+  onWrite(path,{created,removed}) {
+    // Listing the whole VFS copies binary assets. Slider updates only change
+    // this JSON; refresh the file tree/models when its membership changes.
+    if(created||removed)editorAdapter.syncVirtualFiles?.(virtualFiles.list().filter(file=>!isCheckpointVirtualPath(file.path)));
+    if(activeVirtualPath===path){
+      const file=virtualFiles.get(path);
+      if(file?.type==='text')editorAdapter.setValue(file.data);
+      else openVirtualFile('/index.js');
+    }
+    if(created||removed)renderVirtualFileExplorer();
+    desktopAutosave?.changed();
+  },
+  onError:error=>setStatus(`Mixer: ${error.message}`),
+});
 const sampleAssets = createPlaygroundSampleAssets({
   fs: virtualFiles,
   getProjectIdentity: () => sampleProjectGeneration,
@@ -1907,7 +1928,7 @@ if (useNativeGenesis) {
 async function showAudioDiagnostics() {
   if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
   if (!audioDiagnosticsLoading) {
-    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=native-primary-lookup-1').then(({createAudioDiagnostics}) => {
+    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=mixer-state-1').then(({createAudioDiagnostics}) => {
       audioDiagnostics = createAudioDiagnostics({
         host: document.body,
         getSynth: () => runtime.megaDrive,
@@ -1934,6 +1955,7 @@ mixerPanel = createPlaygroundMixer({
   getAudio: () => megaDrive.audio,
   getOutputVolume: () => listeningVolume,
   getScriptVolume: () => megaDrive.getMasterVolume(),
+  getPersistence: () => mixerState,
   setOutputVolume(value) {
     listeningVolume = value;
     applyMasterVolume();
@@ -2200,7 +2222,7 @@ function restoreProjectFiles(files, directories = [], {prepared = false} = {}) {
   clearVirtualInstrumentPresets();
   const project = prepared ? {files, directories} : prepareModeProject({files, directories});
   invalidateSampleEditor();
-  virtualFiles.replace(project.files, project.directories);
+  mixerState.replaceProject(()=>virtualFiles.replace(project.files, project.directories));
   let entry = virtualFiles.get('/index.js');
   if (!entry || entry.type !== 'text') {
     entry = virtualFiles.list().find(file => file.type === 'text' && file.path.endsWith('.js') && !isHiddenVirtualPath(file.path));
@@ -2793,6 +2815,7 @@ installFileExplorerDropTarget();
 }
 
 function captureProjectSnapshot() {
+  mixerState.flush();
   return {
     version:1, modeId:selectedMode.id, activePath:activeVirtualPath, runPath:runVirtualPath,
     directories:virtualFiles.listDirectories(),

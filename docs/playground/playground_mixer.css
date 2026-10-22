@@ -19,3 +19,8 @@
 .playground-mixer-meter-side.is-clipping .playground-mixer-meter-fill { background: #d9592f; }
 .playground-mixer-strip.is-output-muted .playground-mixer-meter { opacity: .45; }
 .playground-mixer-status { color: #9e3b22; }
+.playground-mixer-status[data-state="saved"] { color: var(--ink); }
+.playground-mixer-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.playground-mixer-persistence { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.playground-mixer-persistence > p { flex: 1 1 280px; margin: 4px 0; }
+.playground-mixer-persistence[hidden], .playground-mixer-actions[hidden] { display: none; }

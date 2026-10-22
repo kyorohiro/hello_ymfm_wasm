@@ -1,3 +1,4 @@
+import {watchAudioEndpoint} from './playground_audio_endpoint.js';
 import {SEGAPSG_CLOCK} from './segapsg.js';
 import {validateChipClock} from './playground_chip_clock.js';
 
@@ -54,7 +55,7 @@ export async function createSegaPsgAudio(context, destination, options = {}) {
     clearTimeout(timer); options.signal?.throwIfAborted();
     if (context.state === 'closed') throw new Error('Sega PSG AudioContext was closed');
     node.port.postMessage({port:channel.port1}, [channel.port1]); if (destination) node.connect(destination);
-    return {node, port:channel.port2, clock, stereoEnabled:options.stereoEnabled ?? true, dispose};
+    return watchAudioEndpoint({node, port:channel.port2, clock, stereoEnabled:options.stereoEnabled ?? true, dispose}, {context,label:'Sega PSG',onError:options.onError});
   } catch (error) { dispose(); throw error; }
   finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }

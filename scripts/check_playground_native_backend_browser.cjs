@@ -7,12 +7,13 @@ const os = require('node:os');
 const path = require('node:path');
 const {chromium, webkit} = require('playwright');
 const {observeNativeLifecycle,trackNativeLifecycle,runNativeLifecycle}=require('./native_backend_lifecycle.cjs');
+const {runMixerState}=require('./native_backend_mixer_state.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
 const nativeModeIds=['genesis','mega-cd','genesis-full','genesis-full-nuked','pc98-26','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system','msx','msx-audio','dx7','ym3812','ym3526','ymf262'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
-const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
+const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,captureProjectSnapshot,restoreProjectSnapshot,exportCassette,loadCassetteSource,...(typeof mixerState==="undefined"?{}:{mixerState}),get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
 setBpm(120);
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
@@ -2310,7 +2311,9 @@ async function compareNativeFft(browser,name,fixture) {
 async function checkBrowser(name, type, url, artifacts,fftFixture) {
   const browser = await type.launch({headless:true,...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   try {
-    if(fftFixture)await compareNativeFft(browser,name,fftFixture);
+    const mixerStateOnly=process.argv.includes('--mixer-state-only');
+    if(fftFixture&&!mixerStateOnly)await compareNativeFft(browser,name,fftFixture);
+    if(!mixerStateOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
     const normal = await plain.newPage();
     // Exercise the real textarea fallback; external Monaco CDN availability is
@@ -2320,6 +2323,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await ready(normal);
     assert.equal(await normal.locator('#audioEngineButton').count(), 0);
     await plain.close();
+    }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
     const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
@@ -2333,6 +2337,14 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await page.route('**/vs/loader*.js', route => route.abort());
     page.on('pageerror', error => errors.push(error.message));
     page.setDefaultTimeout(20000);
+    if(mixerStateOnly) {
+      const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
+      await page.goto(nativeUrl.href);await ready(page);
+      assert.equal(native.count('native_genesis_start'),0,'Mixer restoration must not start the Native backend');
+      await runMixerState({page,native,artifacts,name,ready,nativeRun,source,assertNoLiveAudio});
+      assert.deepEqual(errors,[]);await context.close();
+      console.log(name+': PASS Mixer common defaults, project controls, IndexedDB reload, New Cassette, actual ZIP export/import, malformed JSON preservation and recovery; zero AudioContexts/Worklets, Native IPC mocked');return;
+    }
     await page.goto(url); await ready(page);
     const allModeIds=await modeIds(page);
     assert(allModeIds.length>1&&allModeIds.includes('genesis')&&allModeIds.includes('gameboy'),'Web Audio must list every machine mode');

@@ -28,7 +28,7 @@ export class NesApuDirectTransport {
  generateStereo(frames){return this.chip.generateStereo(frames);}
 }
 export class NesApuWorkletTransport extends ChipWorkletTransport {
- /** @param {import('./soundchip_worklet.js?v=pwm-wasm-1').WorkletSoundChip | MessagePort} endpoint */
+ /** @param {import('./soundchip_worklet.js?v=mixer-state-1').WorkletSoundChip | MessagePort} endpoint */
  constructor(endpoint){super(endpoint);this.clock=this.endpoint?.clock??NES_APU_CLOCK;this.fdsEnabled=this.endpoint?.fdsEnabled??false;}
  /** @param {number} channel @param {boolean} enabled */
  setChannelEnabled(channel,enabled){this.send('setChannelEnabled',[channel,enabled]);}

@@ -45,6 +45,7 @@ bitcrusher-worklet.js
 looper.js
 megasynth.js
 soundchip_mixer.js
+playground_audio_endpoint.js
 playground_chip_inspector_state.js
 playground_native_voice_inspector.js
 playground_opn_inspector.js

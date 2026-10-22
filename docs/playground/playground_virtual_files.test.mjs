@@ -36,6 +36,7 @@ test('Playground hides checkpoint files in Files and Run while preserving them i
     {path:'/sys/builtin.js', data:'system source'},
   ]);
   let treeEntries;
+  let mixerFlushes=0;
   const element = () => ({children:[], appendChild(child) {this.children.push(child);}});
   const runSelect = {...element(), replaceChildren() {this.children=[];}};
   const context = vm.createContext({
@@ -48,6 +49,7 @@ test('Playground hides checkpoint files in Files and Run while preserving them i
     runFileSelect:runSelect, document:{createElement:element},
     currentCassetteMetadata:null, currentCassetteHasMetadataFile:false,
     selectedMode:{id:'genesis'},
+    mixerState:{flush(){mixerFlushes++;files.writeText('/mixer/state.json','{"version":1,"entries":[]}');}},
     getEditorValue:()=>'latest editor source',
   });
   const policies = source.slice(source.indexOf('function isSystemVirtualPath('), source.indexOf('\nfunction createImportInput('));
@@ -62,6 +64,8 @@ test('Playground hides checkpoint files in Files and Run while preserving them i
   const captureEnd = source.indexOf('\nasync function restoreProjectSnapshot', captureStart);
   vm.runInContext(source.slice(captureStart, captureEnd), context);
   const snapshot = context.captureProjectSnapshot();
+  assert.equal(mixerFlushes,1);
+  assert(snapshot.files.some(file=>file.path==='/mixer/state.json'),'Pending Mixer changes must be captured with the project');
   assert.equal(snapshot.modeId, 'genesis');
   assert.equal(snapshot.files.find(file=>file.path==='/index.js').data, 'latest editor source');
   assert.equal(snapshot.files.find(file=>file.path==='/.tet.ss/index.js').data, 'previous source');

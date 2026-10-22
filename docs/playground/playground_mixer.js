@@ -3,7 +3,7 @@ const names = {ym2612: 'YM2612', segapsg: 'Sega PSG', rf5c164: 'RF5C164', pwm: '
 
 /** One view of the runtime's mixer. Listening volume remains independent of script master gain. */
 export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume, setOutputVolume,
-  getScriptVolume = () => 1, onError = console.error}) {
+  getScriptVolume = () => 1, getPersistence = () => null, onError = console.error}) {
   const doc = root.ownerDocument;
   const make = (tag, className, text) => {
     const node = doc.createElement(tag);
@@ -23,10 +23,15 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
   const scriptGain = make('span', 'subtext');
   master.append(masterName, masterLabel, masterMeter.host, scriptGain);
   const hint = make('p', 'subtext playground-mixer-hint', 'Chip levels are before shared effects and Master. Solo keeps manual Mute settings.');
+  const persistence = make('div', 'playground-mixer-persistence');
+  const persistenceHint = make('p', 'subtext', 'Project settings travel with your Cassette. Set a common Volume/Pan default to reuse it in new projects. Extra chips need a fixed id to keep their individual settings.');
+  const resetDefaults = make('button', 'playground-mixer-toggle', 'Reset common defaults');resetDefaults.type='button';
+  resetDefaults.addEventListener('click',()=>preference(()=>getPersistence().resetDefaults(),'Common defaults reset.'));
+  persistence.append(persistenceHint,resetDefaults);persistence.hidden=!getPersistence();
   const empty = make('p', 'subtext playground-mixer-empty', 'Run a script or play the keyboard to connect sound chips.');
   const strips = make('div', 'playground-mixer-strips');
   const status = make('p', 'subtext playground-mixer-status'); status.setAttribute('role', 'status');
-  root.append(master, hint, empty, strips, status);
+  root.append(master, hint, persistence, empty, strips, status);
   const rows = new Map();
   let visible = false, disposed = false, mixer = null, releaseChanges = null, releaseMeters = null;
   let frame = 0, lastDraw = -Infinity, meterAudio = null, meterOutput = null, meterContext = null, meterRelease = null, splitter = null, analysers = [];
@@ -58,8 +63,12 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
   }
 
   function change(id, patch) {
-    try {mixer.set(id, patch); status.textContent = '';}
+    try {mixer.set(id, patch); status.textContent = '';delete status.dataset.state;}
     catch (error) {status.textContent = error.message; onError(error); refresh();}
+  }
+  function preference(action,message) {
+    try {action();status.textContent=message;status.dataset.state='saved';}
+    catch(error){status.textContent=error.message;delete status.dataset.state;onError(error);}
   }
   function createRow(entry) {
     const host = make('section', 'playground-mixer-strip'); host.dataset.chipId = entry.id;
@@ -88,6 +97,13 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
     const pan = control('pan', 'Pan', -100, 100, value => value === 0 ? 'Center' : `${value < 0 ? 'L' : 'R'} ${Math.abs(value)}`);
     const meter = createMeter(entry.id), connection = make('span', 'subtext');
     host.append(heading, volume.row, pan.row, meter.host, connection);
+    const defaults = make('button','playground-mixer-toggle','Set common default');defaults.type='button';
+    defaults.title='Use this Volume and Pan for this chip type in new projects.';
+    const reset = make('button','playground-mixer-toggle','Use defaults');reset.type='button';
+    reset.title="Remove this project's settings for this ID.";
+    defaults.addEventListener('click',()=>preference(()=>getPersistence().saveDefault(entry.id),'Common Volume/Pan default saved.'));
+    reset.addEventListener('click',()=>preference(()=>getPersistence().resetProject(entry.id),'Project settings cleared for '+entry.id+'.'));
+    const actions=make('div','playground-mixer-actions');actions.append(defaults,reset);actions.hidden=!getPersistence();host.append(actions);
     return {host, meter, update(next) {
       current = next;
       const name = names[next.name] ?? next.name;
@@ -97,6 +113,8 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
       host.classList.toggle('is-output-muted', Boolean(next.effectiveMuted ?? next.muted));
       volume.update(next.volume, next.id); pan.update(next.pan, next.id);
       connection.textContent = !next.connected ? 'Not connected' : next.effectiveMuted && !next.muted ? 'Suppressed by Solo' : '';
+      defaults.disabled=!next.connected;
+      defaults.setAttribute('aria-label',`${next.id} set common default`);reset.setAttribute('aria-label',`${next.id} use defaults`);
     }};
   }
 

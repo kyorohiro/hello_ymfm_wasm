@@ -1,3 +1,4 @@
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=mixer-state-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
@@ -55,7 +56,7 @@ export async function createAy8910Audio(context, destination, options = {}) {
     clearTimeout(timer); options.signal?.throwIfAborted();
     if (context.state === 'closed') throw new Error('AY8910 AudioContext was closed');
     node.port.postMessage({port:channel.port1}, [channel.port1]); if (destination) node.connect(destination);
-    return {node, port:channel.port2, clock, chip, dispose};
+    return watchAudioEndpoint({node, port:channel.port2, clock, chip, dispose}, {context,label:'AY8910',onError:options.onError});
   } catch (error) { dispose(); throw error; }
   finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }

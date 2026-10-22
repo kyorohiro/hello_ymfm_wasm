@@ -1,9 +1,9 @@
-import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
+import {SoundChipMixer} from './soundchip_mixer.js?v=mixer-state-1';
 /**
  * @typedef {{
- * execution: 'worklet', name: import('./soundchip.js?v=pwm-wasm-1').WorkletChipName,
+ * execution: 'worklet', name: import('./soundchip.js?v=mixer-state-1').WorkletChipName,
  * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
- * mixer: import('./soundchip_mixer.js?v=chip-tabs-2').SoundChipMixer, readonly id: string,
+ * mixer: import('./soundchip_mixer.js?v=mixer-state-1').SoundChipMixer, readonly id: string,
  * readonly fdsEnabled?: boolean, readonly clock?: number,
  * sampleRate(): number, request(method: string, args?: unknown[]): Promise<unknown>,
  * createTransportPort(): MessagePort, start(): Promise<void>, stop(): Promise<void>, dispose(): Promise<void>
@@ -12,8 +12,8 @@ import {SoundChipMixer} from './soundchip_mixer.js?v=chip-tabs-2';
 /** Main-side chip endpoint. The actual chip is created inside AudioWorklet. */
 const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
 /**
- * @param {import('./soundchip.js?v=pwm-wasm-1').WorkletChipName} name
- * @param {import('./soundchip.js?v=pwm-wasm-1').SoundChipOptions} options
+ * @param {import('./soundchip.js?v=mixer-state-1').WorkletChipName} name
+ * @param {import('./soundchip.js?v=mixer-state-1').SoundChipOptions} options
  * @param {() => Promise<Uint8Array | ArrayBuffer | undefined>} loadBinary
  * @returns {Promise<WorkletSoundChip>}
  */

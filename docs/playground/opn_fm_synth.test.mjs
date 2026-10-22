@@ -7,14 +7,15 @@ import {
 } from "../js/ym2203synth.js?v=keyboard-chips-1";
 import {
   YM2608DirectTransport,
-  YM2608RuntimeSynth,
   YM2608Synth,
 } from "../js/ym2608synth.js?v=audio-numeric-bindings-1";
+// Public constructor identity uses canonical modules, independent of website cache URLs.
+import {YM2608RuntimeSynth} from '../../web/ym2608synth.js';
 import { OPNWorkletTransport } from "../js/opn_fm_synth.js?v=keyboard-chips-1";
 import {
   createTetoricaSynth,
   normalizeTetoricaChip,
-} from "../js/tetorica_synth.js?v=keyboard-chips-1";
+} from "../../web/tetorica_synth.js";
 
 function createTransport() {
   const writes = [];

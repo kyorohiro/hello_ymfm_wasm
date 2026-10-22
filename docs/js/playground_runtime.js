@@ -8,38 +8,38 @@ import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=nati
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNesAudio} from './playground_nes_audio.js?v=nes-wasm-1';
+import {createNesAudio} from './playground_nes_audio.js?v=mixer-state-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createDx7Audio} from './playground_dx7_audio.js?v=audio-numeric-bindings-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=pwm-wasm-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=mixer-state-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=audio-numeric-bindings-1';
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=audio-numeric-bindings-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=audio-numeric-bindings-1';
-import {createOplAudio} from './playground_opl_audio.js?v=audio-numeric-bindings-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=mixer-state-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=mixer-state-1';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=mixer-state-1';
+import {createOplAudio} from './playground_opl_audio.js?v=mixer-state-1';
 import {OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=audio-numeric-bindings-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-numeric-bindings-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=audio-numeric-bindings-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=mixer-state-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createOpnAudio} from './playground_opn_audio.js?v=audio-numeric-bindings-1';
-import {createOpnClient} from './playground_opn.js?v=audio-numeric-bindings-1';
+import {createOpnAudio} from './playground_opn_audio.js?v=mixer-state-1';
+import {createOpnClient} from './playground_opn.js?v=mixer-state-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=nes-wasm-1';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=mixer-state-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=pwm-wasm-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=audio-numeric-bindings-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=audio-numeric-bindings-1';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=audio-numeric-bindings-1';
-import {createYm2608Client} from './playground_ym2608.js?v=audio-numeric-bindings-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=mixer-state-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=mixer-state-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=mixer-state-1';
+import {createYm2608Client} from './playground_ym2608.js?v=mixer-state-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=audio-numeric-bindings-1';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=audio-numeric-bindings-1';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=mixer-state-1';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -54,8 +54,8 @@ import {parseMidiFile} from './midi_file.js?v=audio-numeric-bindings-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=pwm-wasm-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=pwm-wasm-1";
+} from "./megasynth.js?v=mixer-state-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=mixer-state-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=audio-numeric-bindings-1";
@@ -247,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-primary-lookup-1",
+      "./playground_logic_worker.js?v=mixer-state-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -334,6 +334,7 @@ export function createPlaygroundRuntime(
   const pendingPcmIds = new Set();
   const pendingPcmDisposals = new Map();
   let pcmSequence = 0;
+  let pcmInstanceSequence = 0;
   const soundChips = createSoundChipRegistry();
   const chipInspector = megaDrive.chipInspector ?? createChipInspector({decode:decodePcm,endpoints:()=>{
     const entries=[];
@@ -614,17 +615,23 @@ export function createPlaygroundRuntime(
       }
     } catch (error) {device.dispose(); throw error;}
     finally {pendingPcmIds.delete(mixerId);reservation?.release();}
+    if(pcmInstanceSequence>=Number.MAX_SAFE_INTEGER){release();device.dispose();throw new RangeError('Sound chip instance limit reached');}
+    device.instanceToken=++pcmInstanceSequence;
     const dispose = device.dispose; let disposed = false;
     device.dispose = () => {
       if (disposed) return; disposed = true;
       try {release();} finally {
         pcmDevices.delete(device);
-        try {device.detachOplState?.();dispose();} finally {chipInspector.notify();}
+        try {device.detachOplState?.();dispose();} finally {
+          chipInspector.notify();
+          const worker=device.workerOwner;device.workerOwner=null;
+          if(worker&&worker===logicWorker)worker.postMessage({type:'extra-chip-disposed',id:mixerId,instance:device.instanceToken});
+        }
       }
     };
     device.mixerId = mixerId; device.chipName = name;
     if(OPL_CHIPS.includes(name)||name==='ym2413'||name==='ay8910'){
-      const observer=({data})=>{if(!['opl-state','opll-state','ay-state'].includes(data?.type))return;device.client?._adoptState(data.state);logicWorker?.postMessage({type:'extra-opl-state',id:mixerId,state:data.state});};
+      const observer=({data})=>{if(!['opl-state','opll-state','ay-state'].includes(data?.type))return;device.client?._adoptState(data.state);logicWorker?.postMessage({type:'extra-opl-state',id:mixerId,instance:device.instanceToken,state:data.state});};
       device.node.port.addEventListener('message',observer);device.node.port.start?.();
       device.detachOplState=()=>device.node.port.removeEventListener('message',observer);
     }
@@ -1493,12 +1500,13 @@ export function createPlaygroundRuntime(
       throw new Error("Playground Worker is not running");
     }
 
-    if(command==='pcm.create'){const device=await openPcm(args[0], currentRunToken, args[1]);
+    if(command==='pcm.create'){const worker=logicWorker,token=currentRunToken,device=await openPcm(args[0],token,args[1]);
+      device.workerOwner=worker;
       try { await performanceHost.attach(device.node?.port); } catch(error) {device.dispose();throw error;}
-      if(!performanceHost.clock && playbackState !== 'running'){device.dispose();throw new Error('Run stopped');}
-      return {port:device.port,id:device.mixerId,clock:device.clock,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
+      if(worker!==logicWorker||token!==currentRunToken||!pcmDevices.has(device)||!performanceHost.clock&&playbackState!=='running'){device.dispose();throw new Error('Run stopped');}
+      return {port:device.port,id:device.mixerId,instance:device.instanceToken,clock:device.clock,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
     if(command==='pcm.dispose') {
-      const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]);
+      const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]&&(args[1]===undefined||device.instanceToken===args[1]));
       if(!devices.length)return;
       let finish;
       const pending=new Promise(resolve=>{finish=resolve;});

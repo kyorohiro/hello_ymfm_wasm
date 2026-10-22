@@ -334,6 +334,7 @@ export function createPlaygroundRuntime(
   const pendingPcmIds = new Set();
   const pendingPcmDisposals = new Map();
   let pcmSequence = 0;
+  let pcmInstanceSequence = 0;
   const soundChips = createSoundChipRegistry();
   const chipInspector = megaDrive.chipInspector ?? createChipInspector({decode:decodePcm,endpoints:()=>{
     const entries=[];
@@ -614,17 +615,23 @@ export function createPlaygroundRuntime(
       }
     } catch (error) {device.dispose(); throw error;}
     finally {pendingPcmIds.delete(mixerId);reservation?.release();}
+    if(pcmInstanceSequence>=Number.MAX_SAFE_INTEGER){release();device.dispose();throw new RangeError('Sound chip instance limit reached');}
+    device.instanceToken=++pcmInstanceSequence;
     const dispose = device.dispose; let disposed = false;
     device.dispose = () => {
       if (disposed) return; disposed = true;
       try {release();} finally {
         pcmDevices.delete(device);
-        try {device.detachOplState?.();dispose();} finally {chipInspector.notify();}
+        try {device.detachOplState?.();dispose();} finally {
+          chipInspector.notify();
+          const worker=device.workerOwner;device.workerOwner=null;
+          if(worker&&worker===logicWorker)worker.postMessage({type:'extra-chip-disposed',id:mixerId,instance:device.instanceToken});
+        }
       }
     };
     device.mixerId = mixerId; device.chipName = name;
     if(OPL_CHIPS.includes(name)||name==='ym2413'||name==='ay8910'){
-      const observer=({data})=>{if(!['opl-state','opll-state','ay-state'].includes(data?.type))return;device.client?._adoptState(data.state);logicWorker?.postMessage({type:'extra-opl-state',id:mixerId,state:data.state});};
+      const observer=({data})=>{if(!['opl-state','opll-state','ay-state'].includes(data?.type))return;device.client?._adoptState(data.state);logicWorker?.postMessage({type:'extra-opl-state',id:mixerId,instance:device.instanceToken,state:data.state});};
       device.node.port.addEventListener('message',observer);device.node.port.start?.();
       device.detachOplState=()=>device.node.port.removeEventListener('message',observer);
     }
@@ -1493,12 +1500,13 @@ export function createPlaygroundRuntime(
       throw new Error("Playground Worker is not running");
     }
 
-    if(command==='pcm.create'){const device=await openPcm(args[0], currentRunToken, args[1]);
+    if(command==='pcm.create'){const worker=logicWorker,token=currentRunToken,device=await openPcm(args[0],token,args[1]);
+      device.workerOwner=worker;
       try { await performanceHost.attach(device.node?.port); } catch(error) {device.dispose();throw error;}
-      if(!performanceHost.clock && playbackState !== 'running'){device.dispose();throw new Error('Run stopped');}
-      return {port:device.port,id:device.mixerId,clock:device.clock,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
+      if(worker!==logicWorker||token!==currentRunToken||!pcmDevices.has(device)||!performanceHost.clock&&playbackState!=='running'){device.dispose();throw new Error('Run stopped');}
+      return {port:device.port,id:device.mixerId,instance:device.instanceToken,clock:device.clock,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
     if(command==='pcm.dispose') {
-      const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]);
+      const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]&&(args[1]===undefined||device.instanceToken===args[1]));
       if(!devices.length)return;
       let finish;
       const pending=new Promise(resolve=>{finish=resolve;});

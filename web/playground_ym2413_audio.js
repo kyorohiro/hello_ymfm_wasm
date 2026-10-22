@@ -1,3 +1,4 @@
+import {watchAudioEndpoint} from './playground_audio_endpoint.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 import {validateChipClock} from './playground_chip_clock.js';
 
@@ -55,7 +56,7 @@ export async function createYm2413Audio(context, destination, options = {}) {
     clearTimeout(timer); options.signal?.throwIfAborted();
     if (context.state === 'closed') throw new Error('YM2413 AudioContext was closed');
     node.port.postMessage({port:channel.port1}, [channel.port1]); if (destination) node.connect(destination);
-    return {node, port:channel.port2, clock, chip, dispose};
+    return watchAudioEndpoint({node, port:channel.port2, clock, chip, dispose}, {context,label:'YM2413',onError:options.onError});
   } catch (error) { dispose(); throw error; }
   finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }

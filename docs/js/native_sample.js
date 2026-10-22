@@ -23,7 +23,7 @@ export function createNativeSampleController(send){
    * (the end for reverse); duration counts source seconds, loops use original-file bounds.
    * fadeIn/fadeOut are output seconds; fadeOut applies at a bounded natural end and on stop. */
   /** @param {string} name
-   * @param {import('./megasynth.js?v=pwm-wasm-1').MegaSynthSamplePlayOptions} [options] */
+   * @param {import('./megasynth.js?v=mixer-state-1').MegaSynthSamplePlayOptions} [options] */
   async play(name,options={}){
    if(!banks.has(name))throw new Error(`Unknown sample: ${name}`);
    const normalized={};
