@@ -13,7 +13,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   const pcm=synth.pcm?new MessageChannelClass():null;
   const dx7=synth.dx7?new MessageChannelClass():null;
   const nes=synth.nes?new MessageChannelClass():null;
-  const consoles = new Map(['gameboy','snes','huc6280','ym2151','okim6258'].filter(name => synth[name]).map(name => [name,new MessageChannelClass()]));
+  const consoles = new Map(['gameboy','snes','huc6280','ym2151','okim6258','segapsg','ym2413'].filter(name => synth[name]).map(name => [name,new MessageChannelClass()]));
   const ports = [admin.port1, chip.port1, fx.port1,...(pwm?[pwm.port1]:[]),...(pcm?[pcm.port1]:[]),...(dx7?[dx7.port1]:[]),...(nes?[nes.port1]:[]),...Array.from(consoles.values(),channel=>channel.port1)];
   let serial = Promise.resolve(), active = null, epoch = 0, pending = 0, pendingMessages = 0, pendingBytes = 0, disposed = false;
   const owners = new Map(), cancelled = new Set();
@@ -148,7 +148,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   }
   return {
     port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,pwmPort:pwm?.port2??null,pcmPort:pcm?.port2??null,dx7Port:dx7?.port2??null,nesPort:nes?.port2??null,
-    gameboyPort:consoles.get('gameboy')?.port2??null,snesPort:consoles.get('snes')?.port2??null,huc6280Port:consoles.get('huc6280')?.port2??null,ym2151Port:consoles.get('ym2151')?.port2??null,okim6258Port:consoles.get('okim6258')?.port2??null,
+    gameboyPort:consoles.get('gameboy')?.port2??null,snesPort:consoles.get('snes')?.port2??null,huc6280Port:consoles.get('huc6280')?.port2??null,ym2151Port:consoles.get('ym2151')?.port2??null,okim6258Port:consoles.get('okim6258')?.port2??null,segapsgPort:consoles.get('segapsg')?.port2??null,ym2413Port:consoles.get('ym2413')?.port2??null,
     dispose() {
       if (disposed) return serial;
       disposed = true; const performance = active; active = null; ++epoch;

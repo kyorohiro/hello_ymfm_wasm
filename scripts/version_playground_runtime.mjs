@@ -199,8 +199,17 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>x68000Files.has(match[1]))){x68000Files.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const masterSystemVersion='native-master-system-1';
+const masterSystemFiles=new Set(['native_genesis_master_system.js','native_genesis_synth.js','native_genesis_worker.js',
+  'playground_runtime.js','playground_audio_engine.js','playground.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(masterSystemFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>masterSystemFiles.has(match[1]))){masterSystemFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...masterSystemFiles,
   ...x68000Files,
   ...neoGeoFiles,
   ...pc98Files,

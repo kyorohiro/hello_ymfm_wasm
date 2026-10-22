@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T08:05:40.223Z",
+  "reference": "Actual deployed Sega PSG / YM2413 WASM running the shipped Worklet renderSegment and control implementation",
+  "wasmSha256": {
+    "segapsg": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+    "ym2413": "67bf8fb4dc9b0359aef94db4ee567a3966a59529ca401e898b578e35bf1d7c78"
+  },
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "PSG three tones, data latch changes, zero/one period DC and mono output",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2033882439136505
+    },
+    {
+      "name": "PSG periodic noise mode 0, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 1, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 2, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 3, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 0, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 1, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 2, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 3, tone-3 coupling and noise data latch",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG clock edits preserve original core counters, LFSR and fractional resampling phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.16155703365802765
+    },
+    {
+      "name": "PSG immediate Stop retains periods, noise mode and remembered attenuation without LFSR reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12985916435718536
+    },
+    {
+      "name": "OPLL all nine ROM voices, distinct pitches, sustain and mono melody bus",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.210052490234375
+    },
+    {
+      "name": "OPLL shared user patch, both operators, waveform feedback, vibrato AM and channel edits",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11370849609375
+    },
+    {
+      "name": "OPLL all five rhythm voices, shared SD/HH and TOM/CYM volume nibbles",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.258636474609375
+    },
+    {
+      "name": "OPLL rhythm layout switches restore authored ROM instruments and user patch volumes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.345458984375
+    },
+    {
+      "name": "OPLL deferred manual melody retrigger and pending on cancellation by off Stop reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.061187744140625
+    },
+    {
+      "name": "OPLL deferred rhythm preview, shared physical replacement and cancellation",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.256072998046875
+    },
+    {
+      "name": "OPLL clock edits include source averaging, upsample holds and retained phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.053802490234375
+    },
+    {
+      "name": "independent PSG/OPLL channel mutes preserve internal phase and masked voices",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.166396364569664
+    },
+    {
+      "name": "mixed PSG plus OPLL separate mono planes, independent reset Stop clocks and replay",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.09494341909885406
+    },
+    {
+      "name": "PSG three tones, data latch changes, zero/one period DC and mono output",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2033882439136505
+    },
+    {
+      "name": "PSG periodic noise mode 0, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 1, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 2, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 3, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 0, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 1, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 2, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 3, tone-3 coupling and noise data latch",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG clock edits preserve original core counters, LFSR and fractional resampling phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.16155703365802765
+    },
+    {
+      "name": "PSG immediate Stop retains periods, noise mode and remembered attenuation without LFSR reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12985916435718536
+    },
+    {
+      "name": "OPLL all nine ROM voices, distinct pitches, sustain and mono melody bus",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.22003173828125
+    },
+    {
+      "name": "OPLL shared user patch, both operators, waveform feedback, vibrato AM and channel edits",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1141357421875
+    },
+    {
+      "name": "OPLL all five rhythm voices, shared SD/HH and TOM/CYM volume nibbles",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.247802734375
+    },
+    {
+      "name": "OPLL rhythm layout switches restore authored ROM instruments and user patch volumes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.335052490234375
+    },
+    {
+      "name": "OPLL deferred manual melody retrigger and pending on cancellation by off Stop reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.061187744140625
+    },
+    {
+      "name": "OPLL deferred rhythm preview, shared physical replacement and cancellation",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.256072998046875
+    },
+    {
+      "name": "OPLL clock edits include source averaging, upsample holds and retained phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.054229736328125
+    },
+    {
+      "name": "independent PSG/OPLL channel mutes preserve internal phase and masked voices",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.166396364569664
+    },
+    {
+      "name": "mixed PSG plus OPLL separate mono planes, independent reset Stop clocks and replay",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.09494341909885406
+    },
+    {
+      "name": "PSG three tones, data latch changes, zero/one period DC and mono output",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2033882439136505
+    },
+    {
+      "name": "PSG periodic noise mode 0, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 1, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 2, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG periodic noise mode 3, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 0, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 1, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 2, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG white noise mode 3, tone-3 coupling and noise data latch",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886
+    },
+    {
+      "name": "PSG clock edits preserve original core counters, LFSR and fractional resampling phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.16155703365802765
+    },
+    {
+      "name": "PSG immediate Stop retains periods, noise mode and remembered attenuation without LFSR reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12985916435718536
+    },
+    {
+      "name": "OPLL all nine ROM voices, distinct pitches, sustain and mono melody bus",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.182708740234375
+    },
+    {
+      "name": "OPLL shared user patch, both operators, waveform feedback, vibrato AM and channel edits",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.112823486328125
+    },
+    {
+      "name": "OPLL all five rhythm voices, shared SD/HH and TOM/CYM volume nibbles",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.258636474609375
+    },
+    {
+      "name": "OPLL rhythm layout switches restore authored ROM instruments and user patch volumes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.368896484375
+    },
+    {
+      "name": "OPLL deferred manual melody retrigger and pending on cancellation by off Stop reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.061187744140625
+    },
+    {
+      "name": "OPLL deferred rhythm preview, shared physical replacement and cancellation",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.256072998046875
+    },
+    {
+      "name": "OPLL clock edits include source averaging, upsample holds and retained phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.049896240234375
+    },
+    {
+      "name": "independent PSG/OPLL channel mutes preserve internal phase and masked voices",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.166396364569664
+    },
+    {
+      "name": "mixed PSG plus OPLL separate mono planes, independent reset Stop clocks and replay",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.09494341909885406
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 368640,
+  "limits": "Offline comparison of independent mono PSG and OPLL output planes. Native ownership/scheduling/IPC/UI verified separately. External channel mute calls the real WASM mute API and merges the Worklet force-mute mask. Native Stop explicitly clears held PSG PCM for immediate silence. The fixture asserts state/level retention, shared rhythm gates, deferred retriggers, cancellation and zero callback allocations/frees. No real audio device or cross-platform compiler was used.",
+  "selfTest": "Master System mono PSG/OPLL state, independent reset, source clocks/mutes, shared rhythm, deferred retrigger and retained Stop levels passed; callback allocations 0, frees 0",
+  "status": "passed"
+}

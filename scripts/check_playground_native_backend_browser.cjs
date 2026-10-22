@@ -9,7 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
-const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','dx7'];
+const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','master-system','dx7'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -93,6 +93,7 @@ class FakeNative {
         memory:new Uint8Array(0x200000),held:new Map(),revision:0};
       this.opnb={registers:[Array(256).fill(0),Array(256).fill(0)],clock:8000000,roms:[new Uint8Array(0x1000000),new Uint8Array(0x1000000)],loaded:[0,0],held:new Map(),revision:0};
       this.x68000={ym2151:{clock:4000000,registers:Array(256).fill(0),keyMasks:Array(8).fill(0),amDepth:0,pmDepth:0,status:0,irq:false,sourceMuteMask:0,held:new Map()},okim6258:{clock:8000000,divider:512,pan:0,playing:false,streaming:false,repeat:false,positionFrames:0,fedBytes:0,memoryRevision:0,sampleId:0,sample:null,held:new Map()},memory:new Uint8Array(),staging:null};
+      this.masterSystem={segapsg:{clock:3579545,periods:[0,0,0],attenuations:[15,15,15,15],lastVolumes:[0,0,0,0],latched:0,mode:0,sourceMuteMask:0,held:new Map()},ym2413:{clock:3579545,registers:Array(64).fill(0),sourceMuteMask:0,status:0,irq:false,held:new Map()}};
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -112,7 +113,7 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if(command==='native_genesis_pwm_status') {
       assert.equal(this.current.mode,'32x');this.applyPwmQueue();
@@ -148,6 +149,10 @@ class FakeNative {
       const {began,...timeline}=s.timeline;
       return {clock:1024000,registers:Array.from(s.registers),...(args.ram?{ram:Array.from(s.ram)}:{}),nativeFrames:s.nativeFrames,enabled:s.enabled,
         frame:this.status().frame,revision:0,pendingCommands:[],timeline};
+    }
+    if(command==='native_genesis_master_system_status') {
+      assert.equal(this.current.mode,'master-system');
+      return {sampleRate:48000,frame:this.status().frame,revision:this.calls.length,...Object.fromEntries(['segapsg','ym2413'].map(chip=>{const s=this.masterSystem[chip];return [chip,{...s,held:[...s.held.keys()],pendingCommands:[],sampleRate:48000}];}))};
     }
     if(command==='native_genesis_x68000_status') {
       assert.equal(this.current.mode,'x68000');
@@ -241,6 +246,8 @@ class FakeNative {
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2608')){assert.equal(this.current.mode,'pc98');this.applyOpna(entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2610b')){assert(['neogeo','neogeo-b'].includes(this.current.mode));this.applyOpnb(entry.message);}
+      for(const entry of args.commands.filter(entry=>entry.type==='master-system')){assert.equal(this.current.mode,'master-system');this.applyMasterSystem(entry.message);}
+      if(this.current.mode==='master-system')assert(args.commands.every(entry=>['master-system','mix','noise','fx'].includes(entry.type)),'Native Master System has only PSG and OPLL');
       for(const entry of args.commands.filter(entry=>entry.type==='x68000')){assert.equal(this.current.mode,'x68000');this.applyX68000(entry.message);}
       if(this.current.mode==='x68000')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm','ym2608','ym2610b'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native X68000 must not send hidden chips');
       if(['neogeo','neogeo-b'].includes(this.current.mode))assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm','ym2608'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native Neo Geo must not send hidden chips');
@@ -331,6 +338,37 @@ class FakeNative {
     else if(message.method==='stop-voices')this.stopOpnaVoices();
     else assert(['mix','source-mute'].includes(message.method),'Unknown Native YM2608 operation '+message.method);
     s.revision++;
+  }
+  applyMasterSystem(m) {
+    assert(['segapsg','ym2413'].includes(m.chip));const s=this.masterSystem[m.chip];
+    if(m.method==='batch'){
+      if(m.action==='off'&&s.held.get(m.channel)!==m.voice)return;
+      if(m.action==='on')s.held.set(m.channel,m.voice);
+      m.commands.forEach(op=>this.applyMasterSystem({...op,chip:m.chip}));if(m.action==='off')s.held.delete(m.channel);
+    }else if(m.method==='write'){
+      if(m.chip==='ym2413')s.registers[m.register]=m.value;
+      else{const b=m.value;if(b&128)s.latched=b>>4&7;else if(m.psgRegister!==undefined)s.latched=m.psgRegister;const ch=s.latched>>1;
+        if(s.latched&1){s.attenuations[ch]=b&15;if((b&15)!==15)s.lastVolumes[ch]=b&15;}
+        else if(ch===3)s.mode=b&7;
+        else if(b&128)s.periods[ch]=(s.periods[ch]&1008)|(b&15);else s.periods[ch]=(s.periods[ch]&15)|((b&63)<<4);
+      }
+    }else if(m.method==='clock')s.clock=m.hz;
+    else if(m.method==='key-off'){
+      if(m.chip==='segapsg')s.attenuations[m.channel]=15;
+      else if(m.channel<9)s.registers[0x20+m.channel]&=~16;
+      else s.registers[0x0e]&=~[16,8,4,2,1][m.channel-9];
+    }else if(m.method==='audition-key-on'){
+      if(m.chip==='segapsg')s.attenuations[m.channel]=s.lastVolumes[m.channel];
+      else if(m.channel<9)s.registers[0x20+m.channel]|=16;
+      else s.registers[0x0e]|=[16,8,4,2,1][m.channel-9];
+    }else if(m.method==='stop-voices')this.stopMasterSystemVoices(m.chip);
+    else if(m.method==='reset'){
+      this.stopMasterSystemVoices(m.chip);if(m.chip==='ym2413')s.registers.fill(0);else{s.periods.fill(0);s.attenuations.fill(15);s.lastVolumes.fill(0);s.latched=s.mode=0;}
+    }else if(m.method==='source-mute')s.sourceMuteMask=m.mask;
+    else assert.equal(m.method,'mix','Unknown Native Master System operation '+m.method);
+  }
+  stopMasterSystemVoices(chip){
+    if(!this.masterSystem)return;for(const [name,s]of Object.entries(this.masterSystem)){if(chip&&name!==chip)continue;s.held.clear();if(name==='segapsg')s.attenuations.fill(15);else{for(let ch=0;ch<9;ch++)s.registers[0x20+ch]&=~16;s.registers[0x0e]&=~31;}}
   }
   applyX68000(m) {
     assert(['ym2151','okim6258'].includes(m.chip));const x=this.x68000,s=x[m.chip];
@@ -1264,6 +1302,62 @@ async function nativeNeoGeo(page,native,artifacts,name) {
   }
   await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
+async function nativeMasterSystem(page,native,artifacts,name) {
+  await changeNativeMode(page,native,'master-system');
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/master-system/index.js'),'utf8');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter);
+  const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]);
+  const flatten=ms=>ms.flatMap(m=>m.method==='batch'?flatten(m.commands).map(op=>({...op,chip:m.chip})):[m]);
+  for(const execution of ['main','worker']) {
+    let first=all().length;const commands=()=>all().slice(first).filter(c=>c.type==='master-system'),writes=()=>flatten(commands().map(c=>c.message));
+    await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+    await until(()=>writes().some(m=>m.chip==='segapsg'&&m.method==='write')&&writes().some(m=>m.chip==='ym2413'&&m.method==='write'&&m.register===0x20&&(m.value&16)),execution+' SMS starter');
+    const info=await page.evaluate(async()=>{const s=window.__nativeBackendTest.runtime.megaDrive;return {chip:s.chip,fm:s.fm,psgStereo:s.psg.stereoEnabled,hasStereo:typeof s.psg.setStereo,capabilities:s.capabilities,mixer:s.mixer.list().filter(c=>c.connected).map(c=>c.id),inspected:s.chipInspector.list().map(c=>c.id),psg:await s.chipInspector.read('segapsg'),opll:await s.chipInspector.read('ym2413')};});
+    assert.equal(info.chip,'segapsg');assert.equal(info.fm,null);assert.equal(info.capabilities.fmChannels,0);assert.equal(info.capabilities.psg,true);assert.equal(info.psgStereo,false);assert.equal(info.hasStereo,'undefined');assert.deepEqual(info.mixer,['segapsg','ym2413']);assert.deepEqual(info.inspected,['segapsg','ym2413']);assert.equal(info.psg.clock,3579545);assert.equal(info.opll.clock,3579545);
+    if(execution==='worker')assert(commands().some(c=>c.frame>0&&c.performance&&c.owner),'Master System Worker timed lease');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());first=all().length;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
+      if(await useSoundChip('segapsg')!==psg||await useSoundChip('ym2413')!==opll)throw Error('SMS primary was not reused');
+      if(psg.stereoEnabled!==false||typeof psg.setStereo!=='undefined')throw Error('Master System must be mono');
+      for(let ch=0;ch<9;ch++){opll.setVoice(ch,{instrument:ch%15+1,attenuation:5});opll.noteOn(ch,'A4');}
+      opll.setUserPatch({feedback:3});opll.setVoice(8,{instrument:0,attenuation:4});
+      psg.setPeriod(2,321);psg.setAttenuation(2,6);psg.noise({type:'white',rate:'tone3',attenuation:9});
+      await psg.setClock(3579546);await opll.setClock(3579546);
+      await mixer.set(psg.id,{volume:.6,pan:.2});await mixer.set(opll.id,{volume:.4,pan:-.1});
+    `,{execution}),execution);
+    await until(()=>writes().some(m=>m.chip==='ym2413'&&m.register===0x38)&&writes().filter(m=>m.method==='clock').length===2,execution+' SMS voices and clocks');
+    const applied=await page.evaluate(async()=>({psg:await window.__nativeBackendTest.runtime.chipInspector.read('segapsg'),opll:await window.__nativeBackendTest.runtime.chipInspector.read('ym2413')}));
+    assert.equal(applied.psg.channels[2].period,321);assert.equal(applied.psg.noise.rate,'tone3');assert.equal(applied.opll.registers[0x38],4);assert.equal(applied.opll.registers[3]&7,3);assert.equal(applied.psg.clock,3579546);assert.equal(applied.opll.clock,3579546);assert(writes().some(m=>m.method==='mix'&&m.chip==='segapsg'));assert(writes().some(m=>m.method==='mix'&&m.chip==='ym2413'));
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const stopped=await page.evaluate(async()=>({psg:await window.__nativeBackendTest.runtime.chipInspector.read('segapsg'),opll:await window.__nativeBackendTest.runtime.chipInspector.read('ym2413')}));
+    assert.equal(stopped.psg.channels[2].period,321);assert.equal(stopped.psg.noise.rate,'tone3');assert(stopped.psg.channels.every(c=>c.attenuation===15));assert.equal(stopped.opll.registers[0x38],4);assert(stopped.opll.channels.every(c=>!c.active));await assertNoLiveAudio(page);
+    await page.evaluate(async()=>{const s=window.__nativeBackendTest.runtime.megaDrive;await s.psg.setClock(3579545);await s.opll.setClock(3579545);});
+  }
+  for(const [chip,voices]of [['segapsg',['0','1','2','3']],['ym2413',Array.from({length:9},(_,i)=>String(i))]]){
+    await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:'+chip);
+    for(const voice of voices){await page.selectOption('#playgroundKeyboardTargetChannel',voice);await page.locator('#keyboardTab').focus();const first=all().length,added=()=>all().slice(first).filter(c=>c.type==='master-system'&&c.message.chip===chip);
+      await page.keyboard.down('z');await until(()=>added().some(c=>c.message.action==='on'),chip+' Keyboard '+voice);await page.keyboard.up('z');await until(()=>added().some(c=>c.message.action==='off'),chip+' Keyboard release '+voice);
+    }
+  }
+  await page.evaluate(async()=>{const i=window.__nativeBackendTest.runtime.chipInspector;await i.invoke('ym2413','setRhythm',[{enabled:true}]);await i.invoke('ym2413','setRhythmLevels',[{bassDrum:4,snare:5,tom:6,cymbal:7,hiHat:8}]);});
+  await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:ym2413');
+  await page.waitForFunction(()=>document.querySelectorAll('#playgroundKeyboardTargetChannel option').length===11);
+  for(let drum=0;drum<5;drum++){await page.selectOption('#playgroundKeyboardTargetChannel','rhythm:'+drum);await page.locator('#keyboardTab').focus();const first=all().length;await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.action==='on'&&c.message.channel===9+drum),'OPLL rhythm Keyboard '+drum);await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.action==='off'),'OPLL rhythm Keyboard release');}
+  await page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.invoke('ym2413','setRhythm',[{enabled:false}]));
+  await page.click('#ym2413Tab');await page.selectOption('#ym2413Panel [data-chip-control="opll-instrument"]','0');
+  await page.locator('#ym2413Panel [data-chip-control="opll-user-feedback"]').evaluate(node=>{node.value='6';node.dispatchEvent(new Event('change',{bubbles:true}));});
+  await until(()=>(native.masterSystem.ym2413.registers[3]&7)===6,'OPLL live User patch edit');
+  await page.click('#ym2413Panel [data-chip-action="opll-keyboard"]');await page.locator('#ym2413Tab').focus();let first=all().length;
+  await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.chip==='ym2413'&&c.message.action==='on'),'OPLL Operators Keyboard');await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.action==='off'),'OPLL Operators release');
+  await page.locator('#bottomDock .dock-close').click();
+  await page.click('#segapsgTab');await page.locator('#segapsgPanel [data-chip-keyboard-channel="2"]').click();
+  await page.locator('#segapsgPanel [data-chip-control="tone-2-volume"]').evaluate(node=>{node.value='8';node.dispatchEvent(new Event('input',{bubbles:true}));});await until(()=>native.masterSystem.segapsg.attenuations[2]===7,'PSG live volume edit');
+  await page.locator('#segapsgTab').focus();first=all().length;await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.chip==='segapsg'&&c.message.action==='on'),'PSG Operators Keyboard');await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.action==='off'),'PSG Operators release');
+  await page.locator('.dock-toggle').click();await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:segapsg');await page.selectOption('#playgroundKeyboardTargetChannel','0');const key=page.locator('#operatorKeyboardRoot .key').first();await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();first=all().length;
+  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.action==='on'),'SMS Guitar pointer');await page.mouse.up();await until(()=>all().slice(first).some(c=>c.type==='master-system'&&c.message.action==='off'),'SMS Guitar pointer release');
+  await page.screenshot({path:path.join(artifacts,name+'-native-master-system.png')});await assertNoLiveAudio(page);await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
+}
 async function nativeX68000(page,native,artifacts,name) {
   const {encodeWav}=await import('../web/wav.js');
   const wav=Array.from(encodeWav({sampleRate:16000,channels:[Float32Array.from({length:1024},(_,i)=>Math.sin(i/9)*.3)]}));
@@ -1785,6 +1879,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--master-system-only')) {
+      await nativeMasterSystem(page,native,artifacts,name);assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-master-system.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS Native Master System Main/Worker, PSG/OPLL, ROM/User/rhythm, Keyboard/Operators, independent mixers, Stop retention and mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--x68000-only')) {
       await nativeX68000(page,native,artifacts,name);assert.deepEqual(errors,[]);
       await fs.writeFile(path.join(artifacts,name+'-native-x68000.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
@@ -1842,6 +1941,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativePc98(page,native,artifacts,name);
     await nativeNeoGeo(page,native,artifacts,name);
     await nativeX68000(page,native,artifacts,name);
+    await nativeMasterSystem(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());
