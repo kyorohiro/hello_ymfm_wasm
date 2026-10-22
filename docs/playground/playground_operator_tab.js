@@ -564,10 +564,17 @@ export function createPlaygroundOperatorTab(
   function updatePanUi() {
     const state =
       currentState();
+    const mono = synth?.supportsPan === false;
+    panLeft.disabled = mono;
+    panRight.disabled = mono;
     panLeft.checked =
-      state.left;
+      mono || state.left;
     panRight.checked =
-      state.right;
+      mono || state.right;
+    for (const id of ['ams', 'pms', 'lfoEnabled', 'lfoFrequency']) {
+      const unavailable = id === 'ams' || id === 'pms' ? mono : synth?.supportsLfo === false;
+      for (const input of commonControls.get(id)?.element.querySelectorAll('input,button,select') ?? []) input.disabled = unavailable;
+    }
   }
 
   function updateAlgorithmDescription() {
@@ -1031,6 +1038,7 @@ export function createPlaygroundOperatorTab(
     },
     attachSynth(nextSynth) {
       synth = nextSynth;
+      updatePanUi();
 
       for (const channel of dirtyChannels) {
         applyChannelStateToSynth(

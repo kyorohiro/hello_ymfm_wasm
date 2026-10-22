@@ -77,6 +77,7 @@ native_genesis_console.js
 native_genesis_snes.js
 native_genesis_pwm.js
 native_genesis_ym2608.js
+native_genesis_ym2203.js
 native_genesis_ym2610b.js
 native_genesis_x68000.js
 native_genesis_master_system.js

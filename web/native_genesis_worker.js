@@ -122,7 +122,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         // Stop invalidates already queued work immediately, including the
         // Worker's ordinary untimed cleanup after performance-stop.
         if (!active || disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
-        if (kind === 'chip' && messages.length > 1 && messages.every(m => ['write','psg-write','psg-stereo','reset'].includes(m.type))) {
+        if (kind === 'chip' && messages.length > 1 && messages.every(m => ['write','psg-write','psg-stereo','reset',...(synth.nativeYm2203?['ssg-retained-level']:[])].includes(m.type))) {
           await synth.dispatchNativeCommand(messages,timing);
         } else for (const command of messages) {
           if (disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();

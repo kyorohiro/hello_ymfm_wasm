@@ -11,19 +11,19 @@ import {FM_PRESETS} from '../../web/megasynth-fm-presets.js';
 const source = (await readFile(new URL('./playground_operator_tab.js',import.meta.url),'utf8'))
   .replace(/^import[\s\S]*?;\n/gm,'').replace('export function createPlaygroundOperatorTab','function createPlaygroundOperatorTab');
 function fixture() {
-  const nodes = new Map(), frames = new Map(), updates = [], displayed = new Map(), documentEvents = new Map();
+  const nodes = new Map(), frames = new Map(), updates = [], displayed = new Map(), documentEvents = new Map(), inputs = new Map();
   let frameId = 0, commonOptions, operatorOptions, envelopeDisposals = 0;
   function node() {
     return {style:{},options:[],events:new Map(),
       addEventListener(type,callback) {this.events.set(type,callback);},
-      appendChild(child) {this.options.push(child);},blur() {},setAttribute() {},
+      appendChild(child) {this.options.push(child);},blur() {},setAttribute() {},querySelectorAll() {return [];},
     };
   }
   const root = {...node(),querySelector(selector) {
     if (!nodes.has(selector)) nodes.set(selector,node());
     return nodes.get(selector);
   }};
-  const control = key => ({element:node(),updateVisual(value) {updates.push([key,value]);displayed.set(key,value);}});
+  const control = key => {const element=node(),interactive=[{disabled:false},{disabled:false}];inputs.set(key,interactive);element.querySelectorAll=()=>interactive;return {element,updateVisual(value) {updates.push([key,value]);displayed.set(key,value);}};};
   const document = {hidden:false,createElement:node,
     addEventListener(type,callback) {documentEvents.set(type,callback);},
     removeEventListener(type,callback) {assert.equal(documentEvents.get(type),callback);documentEvents.delete(type);},
@@ -49,7 +49,7 @@ function fixture() {
     cancelAnimationFrame(id) {frames.delete(id);},
   });
   updates.length = 0;
-  return {tab,presets,frames,updates,displayed,nodes,document,documentEvents,
+  return {tab,presets,frames,updates,displayed,nodes,document,documentEvents,inputs,
     editCommon:(id,value)=>commonOptions.onChange(id,value),
     editOperator:(operator,id,value)=>operatorOptions.onChange(operator,id,value),
     get envelopeDisposals() {return envelopeDisposals;},
@@ -57,6 +57,18 @@ function fixture() {
     setDocumentHidden(hidden) {document.hidden=hidden;documentEvents.get('visibilitychange')?.();},
   };
 }
+
+test('YM2203 shows mono output and disables unsupported pan and LFO controls without bus writes',()=>{
+  const f=fixture(),writes=[];
+  f.tab.attachSynth(new YM2203Synth({transport:{write:(...args)=>writes.push(args)}}));
+  for(const id of ['#operatorTabPanLeft','#operatorTabPanRight']){assert.equal(f.nodes.get(id).disabled,true);assert.equal(f.nodes.get(id).checked,true);}
+  for(const id of ['ams','pms','lfoEnabled','lfoFrequency'])assert(f.inputs.get('common:'+id).every(input=>input.disabled));
+  assert(f.inputs.get('common:algorithm').every(input=>!input.disabled));assert.deepEqual(writes,[]);
+  f.tab.attachSynth(new YM2612Synth({transport:{write:(...args)=>writes.push(args)}}));
+  for(const id of ['#operatorTabPanLeft','#operatorTabPanRight'])assert.equal(f.nodes.get(id).disabled,false);
+  for(const id of ['ams','pms','lfoEnabled','lfoFrequency'])assert(f.inputs.get('common:'+id).every(input=>!input.disabled));
+  assert.deepEqual(writes,[]);f.tab.dispose();
+});
 
 for (const [parameter,value,register] of [['algorithm',3,0xb0],['feedback',6,0xb0],['ams',1,0xb4],['pms',7,0xb4]]) {
   test(`editing ${parameter} writes only its register without altering operators, global modes or CH3 pitch`, () => {

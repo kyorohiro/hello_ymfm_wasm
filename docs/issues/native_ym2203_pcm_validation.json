@@ -1,0 +1,1321 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T13:24:34.654Z",
+  "reference": "Actual deployed primary YM2203 WASM Worklet with mono mixed clamp, status/IRQ and four raw read ports",
+  "wasmSha256": "02ed70255298fe41b95ebe0092cb6c1b7081a9d24449633f9c739e9214d4fee8",
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "FM channel 0, four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024021314457058907
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.06099076569080353
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11711319535970688
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11603338271379471
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1875636875629425
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024025656282901764
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024021314457058907
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.060684867203235626
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11623313277959824
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11482377350330353
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.18826426565647125
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 0",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02398681640625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 1",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 2",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024021314457058907
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 3",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024036753922700882
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 4",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.06059464067220688
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 5",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1144382655620575
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 6",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11446866393089294
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 7",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.18628990650177002
+    },
+    {
+      "name": "FM three channels and all operator SSG-EG modes with ordinary release",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5538884997367859
+    },
+    {
+      "name": "FM operator key masks and independent physical key gates",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.3564453125
+    },
+    {
+      "name": "FM frequency high-byte shared latch and channel-3 supplementary pitches",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4632013440132141
+    },
+    {
+      "name": "FM channel-3 CSM timer mode status IRQ and ordinary pitch coexist",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17512312531471252
+    },
+    {
+      "name": "cold channel-3 CSM starts without register-28 key-on and resumes after Stop",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.024461830034852028
+    },
+    {
+      "name": "SSG three tone voices zero/one period and coarse register masks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5738636255264282
+    },
+    {
+      "name": "SSG shared noise all periods and per-channel tone/noise gates",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.875
+    },
+    {
+      "name": "SSG shared envelope shape 0, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 1, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 2, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 3, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 4, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 5, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 6, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 7, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 8, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 9, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 10, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 11, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 12, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 13, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 14, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 15, three voices and repeated-shape retrigger",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "mixed FM and SSG mono summation clips before resampling with source gain intact",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "name": "prescaler 6/3/2 address commands change FM and SSG divisors without output-rate changes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.8089374303817749
+    },
+    {
+      "name": "master clock edits preserve source phase and average/hold across FM and SSG",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.281463623046875
+    },
+    {
+      "name": "FM force off retains all authored operator TL and masked delayed audition",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.23783276975154877
+    },
+    {
+      "name": "deferred preview waits for real FM intervals at slow clock and all prescalers",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1552734375
+    },
+    {
+      "name": "SSG Stop retains authored fixed/envelope levels including explicit retained zero",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.748809814453125
+    },
+    {
+      "name": "Stop retains prescaler channel3 special frequencies shared noise/envelope and clock",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20727671682834625
+    },
+    {
+      "name": "independent FM physical masks and FM/SSG source mutes preserve source phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.69866943359375
+    },
+    {
+      "name": "reset follows primary Worklet held phase and subsequent FM/SSG setup",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.281463623046875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 5 with flags cleared during audio",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 10 with flags cleared during audio",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 15 with flags cleared during audio",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 69 with flags cleared during audio",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 133 with flags cleared during audio",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "SSG raw input/output direction and coarse bits match data read ports without side effects",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.281463623046875
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02403913252055645
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240362249314785
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0610874705016613
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1171061173081398
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1123628169298172
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1878255158662796
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240362249314785
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0607619509100914
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.116455078125
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11590576171875
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.18994140625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 0",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02398681640625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 1",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 2",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240362249314785
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 3",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02404174767434597
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 4",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.06058349460363388
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 5",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1165248304605484
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 6",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1149204820394516
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 7",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1866862028837204
+    },
+    {
+      "name": "FM three channels and all operator SSG-EG modes with ordinary release",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5536644458770752
+    },
+    {
+      "name": "FM operator key masks and independent physical key gates",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2998046875
+    },
+    {
+      "name": "FM frequency high-byte shared latch and channel-3 supplementary pitches",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4482421875
+    },
+    {
+      "name": "FM channel-3 CSM timer mode status IRQ and ordinary pitch coexist",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1790829598903656
+    },
+    {
+      "name": "cold channel-3 CSM starts without register-28 key-on and resumes after Stop",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02446637861430645
+    },
+    {
+      "name": "SSG three tone voices zero/one period and coarse register masks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.579388439655304
+    },
+    {
+      "name": "SSG shared noise all periods and per-channel tone/noise gates",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.875
+    },
+    {
+      "name": "SSG shared envelope shape 0, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 1, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 2, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 3, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 4, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 5, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 6, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 7, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 8, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 9, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 10, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 11, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 12, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 13, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 14, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 15, three voices and repeated-shape retrigger",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "mixed FM and SSG mono summation clips before resampling with source gain intact",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "name": "prescaler 6/3/2 address commands change FM and SSG divisors without output-rate changes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.8118852972984314
+    },
+    {
+      "name": "master clock edits preserve source phase and average/hold across FM and SSG",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.281463623046875
+    },
+    {
+      "name": "FM force off retains all authored operator TL and masked delayed audition",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2378772497177124
+    },
+    {
+      "name": "deferred preview waits for real FM intervals at slow clock and all prescalers",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1552734375
+    },
+    {
+      "name": "SSG Stop retains authored fixed/envelope levels including explicit retained zero",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.748809814453125
+    },
+    {
+      "name": "Stop retains prescaler channel3 special frequencies shared noise/envelope and clock",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.207198366522789
+    },
+    {
+      "name": "independent FM physical masks and FM/SSG source mutes preserve source phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.69866943359375
+    },
+    {
+      "name": "reset follows primary Worklet held phase and subsequent FM/SSG setup",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.404144287109375
+    },
+    {
+      "name": "timer A/B start and IRQ mode 5 with flags cleared during audio",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.155668705701828
+    },
+    {
+      "name": "timer A/B start and IRQ mode 10 with flags cleared during audio",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.155668705701828
+    },
+    {
+      "name": "timer A/B start and IRQ mode 15 with flags cleared during audio",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.155668705701828
+    },
+    {
+      "name": "timer A/B start and IRQ mode 69 with flags cleared during audio",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.155668705701828
+    },
+    {
+      "name": "timer A/B start and IRQ mode 133 with flags cleared during audio",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.155668705701828
+    },
+    {
+      "name": "SSG raw input/output direction and coarse bits match data read ports without side effects",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.281463623046875
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0611572265625
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.11767578125
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.117919921875
+    },
+    {
+      "name": "FM channel 0, four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19580078125
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0609130859375
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1181640625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.115478515625
+    },
+    {
+      "name": "FM channel 1, four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.19482421875
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 0",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 1",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 2",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 3",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0240478515625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 4",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.060791015625
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 5",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.117919921875
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 6",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1171875
+    },
+    {
+      "name": "FM channel 2, four operators and algorithm 7",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1904296875
+    },
+    {
+      "name": "FM three channels and all operator SSG-EG modes with ordinary release",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.548828125
+    },
+    {
+      "name": "FM operator key masks and independent physical key gates",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.3251953125
+    },
+    {
+      "name": "FM frequency high-byte shared latch and channel-3 supplementary pitches",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4345703125
+    },
+    {
+      "name": "FM channel-3 CSM timer mode status IRQ and ordinary pitch coexist",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17431640625
+    },
+    {
+      "name": "cold channel-3 CSM starts without register-28 key-on and resumes after Stop",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02447509765625
+    },
+    {
+      "name": "SSG three tone voices zero/one period and coarse register masks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5861844420433044
+    },
+    {
+      "name": "SSG shared noise all periods and per-channel tone/noise gates",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.875
+    },
+    {
+      "name": "SSG shared envelope shape 0, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 1, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 2, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 3, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 4, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 5, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 6, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 7, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.9998779296875
+    },
+    {
+      "name": "SSG shared envelope shape 8, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 9, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 10, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 11, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 12, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 13, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 14, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "SSG shared envelope shape 15, three voices and repeated-shape retrigger",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.999969482421875
+    },
+    {
+      "name": "mixed FM and SSG mono summation clips before resampling with source gain intact",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 1
+    },
+    {
+      "name": "prescaler 6/3/2 address commands change FM and SSG divisors without output-rate changes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.824859619140625
+    },
+    {
+      "name": "master clock edits preserve source phase and average/hold across FM and SSG",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.281951904296875
+    },
+    {
+      "name": "FM force off retains all authored operator TL and masked delayed audition",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.23814697563648224
+    },
+    {
+      "name": "deferred preview waits for real FM intervals at slow clock and all prescalers",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1552734375
+    },
+    {
+      "name": "SSG Stop retains authored fixed/envelope levels including explicit retained zero",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.680145263671875
+    },
+    {
+      "name": "Stop retains prescaler channel3 special frequencies shared noise/envelope and clock",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.207489013671875
+    },
+    {
+      "name": "independent FM physical masks and FM/SSG source mutes preserve source phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.639312744140625
+    },
+    {
+      "name": "reset follows primary Worklet held phase and subsequent FM/SSG setup",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.404144287109375
+    },
+    {
+      "name": "timer A/B start and IRQ mode 5 with flags cleared during audio",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 10 with flags cleared during audio",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 15 with flags cleared during audio",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 69 with flags cleared during audio",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "timer A/B start and IRQ mode 133 with flags cleared during audio",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.15576171875
+    },
+    {
+      "name": "SSG raw input/output direction and coarse bits match data read ports without side effects",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.281951904296875
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 1142784,
+  "limits": "Offline selected YM2203 only; ownership/IPC/UI verified independently. Forced voice-off and Stop use real WASM FM mute/TL and SSG volume controls, with Stop explicitly muting held output until next trigger. Native deferred FM preview is compared after one actual FM clock interval, tracked from the unchanged shared resampler index and prescaler. Source mutes clear held output for immediate silence. The primary Worklet reset retains output remainder/hold, matching this Native profile. All six physical voices, shared SSG noise/envelope, frequency latches/channel3 special mode, prescalers and timer/status/IRQ/data reads are exercised. No audio device or cross-platform compiler was used.",
+  "selfTest": "Selected mono YM2203 only; FM/SSG six voices, source clocks/mutes, prescalers, applied frequency pairs, retained TL/SSG levels and Stop, deferred retrigger/cancellation, timers/status/IRQ passed; callback allocations 0, frees 0",
+  "status": "passed"
+}

@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-msx-audio-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-ym2203-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -247,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-neogeo-1",
+      "./playground_logic_worker.js?v=native-ym2203-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -448,7 +448,7 @@ export function createPlaygroundRuntime(
     return null;
   }
   function releaseNativeVoice(name, key) {
-    const raw = megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
+    const raw = name==='ssg'&&megaDrive.nativeYm2203 ? megaDrive.nativeYm2203.client.ssg : megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
     if (!raw) return;
     if(name==='pwm'){Promise.resolve(raw._stopVoices()).catch(error=>emitLog(`[pwm] ${formatLogArgs([error])}`));return;}
     if((name==='opll'||name==='opl')&&typeof key==='string'&&key.startsWith('rhythm:'))raw._forceRhythmOff(Number(key.slice(7)));
@@ -471,6 +471,29 @@ export function createPlaygroundRuntime(
     }));
   }
   let sectionLoads = new AbortController();
+  function ym2203SsgEvent(method,args) {
+    if(method==='reset')return {allOff:true};
+    const channel=args[0];
+    if(method==='write'&&Number.isInteger(channel)&&channel>=8&&channel<=10)return {key:channel-8,on:!!(args[1]&31)};
+    if(!Number.isInteger(channel)||channel<0||channel>2)return null;
+    if(['noteOn','keyOn'].includes(method))return {key:channel,on:true};
+    if(['off','keyOff'].includes(method))return {key:channel,on:false};
+    if(method==='setVolume')return {key:channel,on:!!(args[1]||args[2])};
+    if(method==='tone'||method==='noise')return {key:channel,on:!!((args[1]?.volume??(method==='tone'?12:10))||args[1]?.envelope)};
+    return null;
+  }
+  function ym2203SsgApi(target) {
+    return borrowNativeApi(target,'ym2203:ssg',(path,args)=>{
+      const event=ym2203SsgEvent(path.at(-1),args);if(!event)return;
+      if(event.allOff){for(const key of nativeOwners.keys())if(key.startsWith('ssg:'))nativeOwners.delete(key);return;}
+      const key='ssg:'+event.key;
+      if(event.on)nativeOwners.set(key,{name:'ssg',key:event.key,owner:voiceOwner(currentLoopContext)});else nativeOwners.delete(key);
+    },(path,args)=>{
+      const loop=currentLoopContext;if(loop?.stopped)return false;
+      const event=ym2203SsgEvent(path.at(-1),args),previous=event&&nativeOwners.get('ssg:'+event.key);
+      return !event||event.allOff||event.on||!loop||!previous||previous.owner===voiceOwner(loop);
+    });
+  }
   function primaryChipSections() {
     if (!primarySectionNames.length) return {};
     if (sharedSectionSynth === synth) return sharedSections;
@@ -479,6 +502,7 @@ export function createPlaygroundRuntime(
     for (const section of primarySectionNames) {
       const target = core?.[section];
       if (!target) continue;
+      if(section==='ssg'&&megaDrive.nativeYm2203){sharedSections[section]=ym2203SsgApi(target);continue;}
       sharedSections[section] = Object.fromEntries(Object.getOwnPropertyNames(Object.getPrototypeOf(target))
         .filter(method => !method.startsWith('_') && !['constructor','resetState','observeWrite'].includes(method))
         .map(method => [method, (...args) => {
@@ -1941,7 +1965,7 @@ export function createPlaygroundRuntime(
     const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
     const sections = Object.fromEntries(Object.entries(primaryChipSections()).map(([name,api])=>[name,keyboardApi(api)]));
-    if (['ym2608','ym2610','ym2610b'].includes(capabilities.chip) && capabilities.backend === 'native-genesis') Object.assign(sharedFm, sections);
+    if (['ym2203','ym2608','ym2610','ym2610b'].includes(capabilities.chip) && capabilities.backend === 'native-genesis') Object.assign(sharedFm, sections);
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:

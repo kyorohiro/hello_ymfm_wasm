@@ -13,7 +13,7 @@ import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 /**
  * Create Worker-side primary controls that send ordered writes to a Worklet port.
  * Stop cancels outstanding DAC requests and mutes hardware; resume permits new work.
- * @param {{port: MessagePort, capabilities: {chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
+ * @param {{port: MessagePort, capabilities: {backend?:string,chip?: 'ym2612' | 'ym2203' | 'ym2608' | 'ym2610' | 'ym2610b' | 'gameboy', fmChannels?: number, psg?: boolean, dac?: boolean}, state?: {clock?:number, channels?:object[], lfo?:object, modeRegister?:number, dac?:object, initialized?:boolean, registers?:number[], voice?:number[]}, observe?: (event: {method: string, args: unknown[]}) => void}} options Port, chip capabilities, optional snapshot and observer.
  * @returns Selected primary controls, raw synth state, write sender and lifecycle methods.
  */
 export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
@@ -61,6 +61,8 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
  const name=capabilities.chip??'ym2612';
  const raw=name==='ym2612'?new YM2612Synth({transport}):name==='ym2203'?new YM2203Synth({transport}):name==='ym2608'?new YM2608Synth({transport}):['ym2610','ym2610b'].includes(name)?new YM2610BSynth({transport}):new OPNFMSynth({transport,chipName:name,channelCount:6,portCount:2,supportsPan:true,supportsLfo:true});
  const sectionNames=raw.adpcmA?['ssg','adpcmA','adpcmB']:['ssg','rhythm','adpcm'];
+ function retainedLevels(){return name==='ym2203'&&capabilities.backend==='native-genesis'?raw.ssg._getState().levels:null;}
+ function retainLevels(before){if(!before)return;const after=raw.ssg._getState().levels;for(let channel=0;channel<3;channel++)if(before[channel]!==after[channel])send({type:'ssg-retained-level',channel,level:after[channel]});}
  function adoptState(state){if(!state)return;if(state.clock!==undefined)raw._adoptClock(state.clock);raw.channels=structuredClone(state.channels);raw.lfo=structuredClone(state.lfo);raw._modeRegister=state.modeRegister??0;if(state.dac)Object.assign(raw.dac ??= {}, structuredClone(state.dac));
   for(const section of sectionNames){
    if(section==='ssg'&&state.ssg?.registers&&raw.ssg){raw.ssg._adoptState(state.ssg);continue;}
@@ -79,7 +81,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
   if(typeof raw[method]!=='function'||method.startsWith('_')||['setHooks'].includes(method))throw new Error(`Unsupported fm method: ${method}`);
   const physical=args.slice();
   if(name==='ym2610'&&channelMethods.has(method)){physical[0]=[1,2,4,5][args[0]];if(physical[0]===undefined)throw new Error('Neo Geo FM channel must be 0..3');}
-  batch=[];
+  const levels=retainedLevels();batch=[];
   let result;
   try{
    if((method==='noteOn'||method==='noteOnRaw'||method==='keyOn') && mutedChannels.delete(physical[0])) {
@@ -87,7 +89,7 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
     raw.channels[physical[0]].operators.forEach((operator,index)=>raw.setOperator(physical[0],index,{tl:operator.tl}));
    }
    result=raw[method](...physical);
-  }finally{const commands=batch;batch=null;if(commands.length)port.postMessage(commands);}
+  }finally{retainLevels(levels);const commands=batch;batch=null;if(commands.length)port.postMessage(commands);}
   if (method === 'setClock') return result.then(() => observe({method,args:structuredClone(args)}));
   observe({method,args:structuredClone(args)});
   return result;
@@ -102,9 +104,9 @@ export function createWorkerChip({port,capabilities,state,observe=()=>{}}){
      const options=args[1]??{};
      args[1]={...options,signal:options.signal?AbortSignal.any([options.signal,sampleController.signal]):sampleController.signal};
     }
-    batch=[];
+    const levels=retainedLevels();batch=[];
     try{return raw[section][method](...args);}
-    finally{const commands=batch;batch=null;if(commands.length)port.postMessage(commands);if(section==='ssg')observe({method:'ssgState',args:[raw.ssg._getState()]});}
+    finally{retainLevels(levels);const commands=batch;batch=null;if(commands.length)port.postMessage(commands);if(section==='ssg')observe({method:'ssgState',args:[raw.ssg._getState()]});}
    }]));
  }
  if(sections.adpcmB)sections.adpcm=sections.adpcmB;

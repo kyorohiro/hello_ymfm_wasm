@@ -9,7 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
-const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system','msx','msx-audio','dx7','ym3812','ym3526','ymf262'];
+const nativeModeIds=['genesis','mega-cd','genesis-full','pc98-26','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system','msx','msx-audio','dx7','ym3812','ym3526','ymf262'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -89,6 +89,7 @@ class FakeNative {
       const {PWM32X}=await import('../web/pwm32x.js');
       this.pwm=new PWM32X({sampleRate:48000,outputMode:'duty',gain:1});
       this.pwmQueue=[];this.pwmLastSchedule=null;
+      this.ym2203={clock:4000000,registers:[Array(256).fill(0)],keyMasks:[0,0,0],ssgLevels:[0,0,0],ssgGates:[false,false,false],held:new Map(),sourceMuteMask:0,status:0,irq:false,prescaler:6,revision:0};
       this.opna={registers:[Array(256).fill(0),Array(256).fill(0)],clock:8000000,romLoaded:false,adpcmMemoryBytes:0,
         memory:new Uint8Array(0x200000),held:new Map(),revision:0};
       this.opnb={registers:[Array(256).fill(0),Array(256).fill(0)],clock:8000000,roms:[new Uint8Array(0x1000000),new Uint8Array(0x1000000)],loaded:[0,0],held:new Map(),revision:0};
@@ -116,7 +117,7 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.stopMasterSystemVoices(undefined,this.gameGear);this.stopMsxVoices();this.stopOplVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopYm2203Voices();this.stopOpnaVoices();this.stopOpnbVoices();this.stopX68000Voices();this.stopMasterSystemVoices();this.stopMasterSystemVoices(undefined,this.gameGear);this.stopMsxVoices();this.stopOplVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if(command==='native_genesis_pwm_status') {
       assert.equal(this.current.mode,'32x');this.applyPwmQueue();
@@ -181,6 +182,10 @@ class FakeNative {
       assert(['neogeo','neogeo-b'].includes(this.current.mode));const s=this.opnb;
       return {variant:this.current.mode==='neogeo-b'?'ym2610b':'ym2610',clock:s.clock,sampleRate:48000,registers:s.registers.map(row=>row.slice()),adpcmARomBytes:s.loaded[0],adpcmBRomBytes:s.loaded[1],
         held:[...s.held.keys()],sourceMuteMask:0,status:0,statusHi:0,irq:false,frame:this.status().frame,revision:s.revision,pendingCommands:[]};
+    }
+    if(command==='native_genesis_ym2203_status') {
+      assert.equal(this.current.mode,'pc98-26');const s=this.ym2203;
+      return {...s,registers:s.registers.map(r=>r.slice()),keyMasks:s.keyMasks.slice(),ssgLevels:s.ssgLevels.slice(),ssgGates:s.ssgGates.slice(),held:[...s.held.keys()],frame:this.status().frame,sampleRate:48000,pendingCommands:[]};
     }
     if(command==='native_genesis_ym2608_status') {
       assert.equal(this.current.mode,'pc98');const s=this.opna;
@@ -263,6 +268,8 @@ class FakeNative {
         }
       };
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
+      for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
+      if(this.current.mode==='pc98-26')assert(args.commands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
       for(const entry of args.commands.filter(entry=>entry.type==='ym2608')){assert.equal(this.current.mode,'pc98');this.applyOpna(entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2610b')){assert(['neogeo','neogeo-b'].includes(this.current.mode));this.applyOpnb(entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='opl')){assert.equal(this.current.mode,this.opl.chip==='y8950'?'msx-audio':this.opl.chip);this.applyOpl(entry.message);}
@@ -362,6 +369,29 @@ class FakeNative {
     else if(message.method==='reset'){if(!s.held.size)for(const row of s.registers)row.fill(0);}
     else if(message.method==='stop-voices')this.stopOpnaVoices();
     else assert(['mix','source-mute'].includes(message.method),'Unknown Native YM2608 operation '+message.method);
+    s.revision++;
+  }
+  stopYm2203Voices(){if(!this.ym2203)return;const s=this.ym2203;s.keyMasks.fill(0);s.ssgGates.fill(false);s.registers[0].fill(0,8,11);s.held.clear();}
+  applyYm2203(m){
+    const s=this.ym2203,r=s.registers[0];
+    if(m.method==='batch'){
+      if(m.action==='off'&&s.held.get(m.channel)!==m.voice)return;
+      if(m.action==='on')s.held.set(m.channel,m.voice);
+      for(const op of m.commands)this.applyYm2203(op);
+      if(m.action==='off')s.held.delete(m.channel);
+    }else if(m.method==='write'){
+      assert.equal(m.port??0,0);r[m.register]=m.value;
+      if(m.register===0x28&&(m.value&3)<3)s.keyMasks[m.value&3]=m.value>>4&15;
+      if(m.register>=8&&m.register<=10){const ch=m.register-8;s.ssgGates[ch]=!!(m.value&31);if(m.value&31)s.ssgLevels[ch]=m.value&31;}
+      if(m.register>=0x2d&&m.register<=0x2f)s.prescaler=[6,3,2][m.register-0x2d];
+    }else if(m.method==='set-retained-level')s.ssgLevels[m.channel]=m.level;
+    else if(m.method==='clock')s.clock=m.hz;
+    else if(m.method==='key-off'){if(m.channel<3)s.keyMasks[m.channel]=0;else{r[8+m.channel-3]=0;s.ssgGates[m.channel-3]=false;}}
+    else if(m.method==='audition-key-on'){s.keyMasks[m.channel]=15;}
+    else if(m.method==='reset'){this.stopYm2203Voices();r.fill(0);s.ssgLevels.fill(0);s.prescaler=6;}
+    else if(m.method==='stop-voices')this.stopYm2203Voices();
+    else if(m.method==='source-mute')s.sourceMuteMask=m.mask;
+    else assert.equal(m.method,'mix','Unknown Native YM2203 operation '+m.method);
     s.revision++;
   }
   applyMasterSystem(m,states=this.masterSystem) {
@@ -550,8 +580,8 @@ async function assertNativeModeRestriction(page,native) {
   // A forged option/change must pass the same support check as the visible UI.
   await page.evaluate(()=>{
     const select=document.getElementById('playgroundMode');
-    const option=new Option('Forged PC-98 YM2203','pc98-26');option.dataset.forgedMode='true';select.append(option);
-    select.value='pc98-26';select.dispatchEvent(new Event('change',{bubbles:true}));
+    const option=new Option('Forged 32X Nuked','genesis-full-nuked');option.dataset.forgedMode='true';select.append(option);
+    select.value='genesis-full-nuked';select.dispatchEvent(new Event('change',{bubbles:true}));
   });
   assert.equal(await page.locator('#playgroundMode').inputValue(),'genesis');
   assert.equal(await page.locator('#changeModeDialog').evaluate(dialog=>dialog.open),false,'Unsupported mode must not open the project-transfer dialog');
@@ -1234,6 +1264,72 @@ async function nativeDx7State(page,predicate,label) {
     await page.waitForTimeout(20);
   }
   throw Error('Native DX7 '+label+' snapshot timed out');
+}
+async function nativeYm2203(page,native,artifacts,name) {
+  await changeNativeMode(page,native,'pc98-26');
+  const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/pc98-26/index.js'),'utf8');
+  assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter);
+  const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]);
+  const flatten=messages=>messages.flatMap(m=>m.method==='batch'?flatten(m.commands):[m]);
+  const read=()=>page.evaluate(()=>window.__nativeBackendTest.runtime.chipInspector.read('ym2203'));
+  for(const execution of ['main','worker']) {
+    let first=all().length;const commands=()=>all().slice(first),writes=()=>flatten(commands().filter(c=>c.type==='ym2203').map(c=>c.message));
+    await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+    await until(()=>writes().some(m=>m.method==='write'&&m.register===0x28&&(m.value&240))&&writes().some(m=>m.method==='write'&&m.register===8&&m.value===8),execution+' YM2203 starter FM/SSG');
+    const info=await page.evaluate(()=>{const s=window.__nativeBackendTest.runtime.megaDrive;return {chip:s.chip,mode:s.mode,id:s.fm.id,channels:s.capabilities.fmChannels,sections:[!!s.fm.ssg,!!s.fm.rhythm,!!s.fm.adpcm],psg:s.psg,pcm:s.pcm,mixer:s.mixer.list().filter(c=>c.connected).map(c=>c.id),inspector:s.chipInspector.list().map(c=>c.id)};});
+    assert.deepEqual(info,{chip:'ym2203',mode:'pc98-26',id:'ym2203',channels:3,sections:[true,false,false],psg:null,pcm:null,mixer:['ym2203'],inspector:['ym2203']});
+    assert.equal((await read()).keyboardChannels.length,6);
+    assert(commands().every(c=>['ym2203','mix','noise','fx'].includes(c.type)),'YM2203 must not send hidden Genesis/OPNA commands');
+    assert(writes().filter(m=>m.method==='write').every(m=>(m.port??0)===0));
+    if(execution==='worker')assert(commands().some(c=>c.type==='ym2203'&&c.frame>0&&c.performance&&c.owner),'Worker FM/SSG retain frame and owner');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());first=all().length;
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
+      if(await useSoundChip('ym2203')!==fm||fm.ssg!==ssg)throw Error('YM2203 primary/SSG was not reused');
+      await fm.setClock(3600000);
+      fm.setPreset(CH3,FM_PRESETS['one-op-basic']);fm.setAlgo(CH3,7,3);
+      fm.setChannel3SpecialMode(true);for(let op=0;op<4;op++)fm.setChannel3SpecialFrequency(op,3+op%2,700+op*80);fm.keyOn(CH3);
+      ssg.tone(0,{frequency:440,volume:7});ssg.noise(1,{period:21,volume:5});ssg.tone(2,{frequency:220,volume:9,envelope:true});ssg.setEnvelope({period:1234,shape:10});
+      fm.write(0,14,0xab);fm.write(0,15,0xcd);
+      await mixer.set(fm.id,{volume:.65,pan:-.2});
+    `,{execution}),execution);
+    // Mixer RPC and the ordered chip port have independent delivery. Wait for
+    // the final register write before inspecting the chip's applied state.
+    await until(()=>writes().some(m=>m.method==='mix')&&native.ym2203.clock===3600000&&writes().some(m=>m.method==='write'&&m.register===15&&m.value===0xcd),execution+' YM2203 custom voices and mixer');
+    const edited=await read(),r=edited.registers[0];
+    assert.equal(edited.clock,3600000);assert.equal(edited.fmState.channels.length,3);assert.equal(edited.fmState.channels[2].algorithm,7);assert.equal(r[0x27]&64,64,execution+' CH3 mode; writes='+JSON.stringify(writes().filter(m=>m.method==='write'&&m.register===0x27)));
+    assert.equal(r[6],21);assert.equal(r[11]|r[12]<<8,1234);assert.equal(r[13],10);assert.equal(r[14],0xab);assert.equal(r[15],0xcd);assert.deepEqual(edited.ssgLevels,[7,5,16]);
+    assert.equal(writes().filter(m=>m.method==='clock').length,1,'Worker clock observations must not echo commands');
+    assert.doesNotMatch(await page.locator('#consoleOutput').textContent(),/Observer:/);
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+    const stopped=await read();assert.equal(stopped.clock,3600000);assert.equal(stopped.registers[0][0x27]&64,64);assert.equal(stopped.registers[0][11]|stopped.registers[0][12]<<8,1234);assert.deepEqual(stopped.ssgLevels,[7,5,16]);assert(stopped.keyMasks.every(v=>v===0));assert(stopped.ssgGates.every(v=>!v));
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`ssg.setVolume(0,0);ssg.keyOff(0);ssg.keyOn(0);fm.write(0,9,0);fm.ssg.keyOn(1);`,{execution}),execution);
+    await until(()=>writes().some(m=>m.method==='set-retained-level'&&m.channel===0&&m.level===0)&&writes().some(m=>m.method==='set-retained-level'&&m.channel===1&&m.level===0),execution+' explicit SSG zero metadata');
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());assert.deepEqual((await read()).ssgLevels,[0,0,16]);
+    await page.evaluate(async()=>{const s=window.__nativeBackendTest.runtime.megaDrive;await s.fm.setClock(4000000);s.fm.setChannel3SpecialMode(false);await s.flush();});
+    await assertNoLiveAudio(page);
+  }
+  await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:ym2203');
+  assert.deepEqual(await page.locator('#playgroundKeyboardTargetChannel option').evaluateAll(nodes=>nodes.map(n=>n.value)),['fm:0','fm:1','fm:2','ssg:0','ssg:1','ssg:2','fm:all']);
+  for(const [voice,channel]of [['fm:0',0],['fm:1',1],['fm:2',2],['ssg:0',3],['ssg:1',4],['ssg:2',5]]) {
+    await page.selectOption('#playgroundKeyboardTargetChannel',voice);await page.locator('#keyboardTab').focus();const first=all().length,added=()=>all().slice(first).filter(c=>c.type==='ym2203');
+    await page.keyboard.down('z');await until(()=>added().some(c=>c.message.method==='batch'&&c.message.action==='on'&&c.message.channel===channel),'YM2203 Keyboard '+voice);
+    await page.keyboard.up('z');await until(()=>added().some(c=>c.message.method==='batch'&&c.message.action==='off'),'YM2203 Keyboard release '+voice);
+  }
+  await page.selectOption('#playgroundKeyboardTargetChannel','fm:all');await page.locator('#keyboardTab').focus();
+  let roundRobinFirst=all().length;for(const key of ['z','x','c'])await page.keyboard.down(key);
+  await until(()=>new Set(all().slice(roundRobinFirst).filter(c=>c.type==='ym2203'&&c.message.action==='on').map(c=>c.message.channel)).size===3,'YM2203 round-robin three voices');
+  for(const key of ['z','x','c'])await page.keyboard.up(key);
+  await page.selectOption('#playgroundKeyboardTargetChannel','ssg:1');const key=page.locator('#operatorKeyboardRoot .key').first();await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();let first=all().length;
+  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>all().slice(first).some(c=>c.type==='ym2203'&&c.message.action==='on'&&c.message.channel===4),'YM2203 SSG Guitar');
+  await page.mouse.up();await until(()=>all().slice(first).some(c=>c.type==='ym2203'&&c.message.action==='off'),'YM2203 Guitar release');
+  await page.click('#operatorTabButton');await page.selectOption('#operatorTabChannelSelect','0');
+  assert.equal(await page.locator('#operatorTabChannelSelect option').count(),3);
+  assert.equal(await page.locator('#operatorTabPanLeft').isDisabled(),true);assert.equal(await page.locator('#operatorTabPanRight').isDisabled(),true);
+  await page.locator('#operatorTabButton').focus();first=all().length;
+  await page.keyboard.down('z');await until(()=>all().slice(first).some(c=>c.type==='ym2203'&&c.message.action==='on'),'YM2203 Operators Keyboard');
+  await page.keyboard.up('z');await until(()=>all().slice(first).some(c=>c.type==='ym2203'&&c.message.action==='off'),'YM2203 Operators release');
+  await page.screenshot({path:path.join(artifacts,name+'-native-ym2203.png')});await assertNoLiveAudio(page);await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
 async function nativePc98(page,native,artifacts,name) {
   await changeNativeMode(page,native,'pc98');
@@ -2154,6 +2250,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--ym2203-only')) {
+      await nativeYm2203(page,native,artifacts,name);assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-ym2203.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS Native YM2203 Main/Worker, FM3/SSG3 mono, special mode, retained zero levels, Keyboard/Operators, clock/mixer, Stop and mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--game-gear-only')) {
       await nativeGameGear(page,native,artifacts,name);assert.deepEqual(errors,[]);
       await fs.writeFile(path.join(artifacts,name+'-native-game-gear.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
@@ -2233,6 +2334,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeDx7(page,native,artifacts,name);
     await nativeNes(page,native,artifacts,name);
     await nativeConsoles(page,native,artifacts,name);
+    await nativeYm2203(page,native,artifacts,name);
     await nativePc98(page,native,artifacts,name);
     await nativeNeoGeo(page,native,artifacts,name);
     await nativeX68000(page,native,artifacts,name);
@@ -2260,9 +2362,9 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     // Unsupported machines can be selected after explicitly returning to Web Audio.
     assert.deepEqual(await modeIds(page),allModeIds);
     await page.locator('#mainMenu > summary').click();
-    await page.selectOption('#playgroundMode', 'pc98-26');
+    await page.selectOption('#playgroundMode', 'genesis-full-nuked');
     await page.locator('#changeModeDialog').waitFor({state:'visible'});
-    await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'pc98-26'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
+    await Promise.all([page.waitForURL(url => url.searchParams.get('mode') === 'genesis-full-nuked'), page.locator('#changeModeDialog').evaluate(dialog => dialog.close('keep'))]);
     await ready(page);
     assert.equal(native.current, null);
     assert.notEqual(await page.evaluate(() => window.__nativeBackendTest.runtime.megaDrive.backend), 'native-genesis');
@@ -2282,7 +2384,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const incompatible=new URL(page.url());incompatible.searchParams.set('audioEngine','native');
     const encodedSource=Buffer.from(preservedSource).toString('base64url');incompatible.searchParams.set('src',encodedSource);
     await page.goto(incompatible.href);await ready(page);
-    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'pc98-26');
+    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.selectedMode.id),'genesis-full-nuked');
     assert.equal(new URL(page.url()).searchParams.get('audioEngine'),null,'The incompatible Native query must be removed');
     assert.equal(new URL(page.url()).searchParams.get('src'),encodedSource,'URL normalization must preserve the source parameter');
     assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),preservedSource,'URL normalization must preserve the current project');
