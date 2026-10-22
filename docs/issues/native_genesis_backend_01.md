@@ -13,6 +13,7 @@ PC-98のYM2608も[Native対応した](native_pc98_01.md)。FM／SSG／rhythm／A
 Neo GeoのYM2610／YM2610Bも[Native対応した](native_neogeo_01.md)。4／6CH FM・SSG・ADPCM-A/Bと既存サンプラーを使う。
 DOS PCのYM3526／YM3812／YMF262は[Native対応の作業記録](native_opl_01.md)を参照。
 32X Nukedと旧Genesis Nukedは[Nuked Native対応の作業記録](native_nuked_01.md)を参照。
+全Modeの反復・長時間生成、各OSのCI、録音時の遅延カウンターは[Native安定化の作業記録](native_stability_01.md)を参照。
 
 MSX AudioのY8950＋YM2413＋AY-3-8910は[Native対応の作業記録](native_msx_audio_01.md)を参照。
 

@@ -285,6 +285,31 @@ export class NativeGenesisSynth {
     this.liveFxDiagnostics.observe(status);
     this.clock.update(status,(before + this.now()) / 2);
   }
+  /** Observe an existing session without reanchoring its clock or sending audio commands. */
+  async readAudioDiagnostics() {
+    if(!this.isReady()||this.stopping||this.closing)throw new Error('Native audio is not ready for diagnostics');
+    const session=this.session,generation=this.generation;
+    // A UI timeout cannot cancel invoke(). Share one outstanding read even
+    // across Stop/Run in the same session, so a stalled IPC cannot accumulate.
+    let reading=this.diagnosticsReading;
+    if(!reading||reading.session!==session){
+      reading={session,generation,promise:Promise.resolve().then(()=>this.invoke('native_genesis_status',{session}))};
+      this.diagnosticsReading=reading;
+      const clear=()=>{if(this.diagnosticsReading===reading)this.diagnosticsReading=null;};
+      reading.promise.then(clear,clear);
+    }
+    const status=await reading.promise;
+    if(session!==this.session||generation!==this.generation||reading.generation!==generation||this.stopping||this.closing)throw new DOMException('Native diagnostic session was replaced','AbortError');
+    if(status?.session!==session||!Number.isSafeInteger(status.frame)||status.frame<0||status.sampleRate!==this.clock.sampleRate)throw new Error('Native audio returned an invalid diagnostic snapshot');
+    this.validateGenesisStatus(status);
+    const count=value=>Number.isSafeInteger(value)&&value>=0?value:null;
+    return {backend:this.backend,session,mode:this.mode,...(this.engine?{engine:this.engine}:{}),
+      sampleRate:status.sampleRate,frame:status.frame,running:status.running!==false,
+      queued:count(status.queued),lateCommands:count(status.lateCommands),queueOverflows:count(status.queueOverflows),
+      transport:{pendingCommands:this.pending.length,acceptedCommands:this.acceptedCommands,acceptedRequests:this.acceptedRequests},
+      liveFx:status.liveFx?{active:count(status.liveFx.active),processCalls:count(status.liveFx.processCalls),
+        underruns:count(status.liveFx.underruns),overruns:count(status.liveFx.overruns),latencyFrames:count(status.liveFx.latencyFrames)}:null};
+  }
   registerCommand({port=0,register,value,time}) {
     if (port !== 0 && port !== 1) throw new RangeError('FM port must be 0 or 1');
     byte(register,'FM register'); byte(value,'FM value');

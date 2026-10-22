@@ -6,6 +6,7 @@ const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 const {chromium, webkit} = require('playwright');
+const {observeNativeLifecycle,trackNativeLifecycle,runNativeLifecycle}=require('./native_backend_lifecycle.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -929,7 +930,7 @@ async function nativeAudioMonitor(page,native,artifacts,name) {
   await page.screenshot({path:path.join(artifacts,name+'-native-audio-monitor.png')});
   await waitStopped(()=>page.click('#consoleTab'),'Closing Audio tab');
 }
-async function nativeRecording(page,native) {
+async function nativeRecording(page,native,artifacts,name) {
   await page.locator('#mainMenu > summary').click();
   await page.click('#audioDiagnosticsButton');
   const panel=page.locator('.audio-diagnostics');await panel.waitFor({state:'visible'});
@@ -944,6 +945,23 @@ async function nativeRecording(page,native) {
   const saving=page.waitForEvent('download');await panel.getByRole('button',{name:'Save output WAV',exact:true}).click();
   const downloaded=await saving,bytes=await fs.readFile(await downloaded.path());
   assert.equal(bytes.toString('ascii',0,4),'RIFF');assert.equal(bytes.readUInt16LE(20),3);assert.equal(bytes.readUInt32LE(40),16*8);
+  const savingJson=page.waitForEvent('download');await panel.getByRole('button',{name:'Save JSON',exact:true}).click();
+  const jsonDownload=await savingJson,report=JSON.parse(await fs.readFile(await jsonDownload.path(),'utf8'));
+  assert.equal(report.format,'tetorica-audio-diagnostic-v1');assert.equal(report.backend,'native-genesis');assert.equal(report.audioContext,null);assert.equal(report.capture.frames,16);
+  const diagnostics=report.nativeDiagnostics;
+  for(const side of ['start','end']) {
+    const status=diagnostics[side];assert.equal(status.available,true,side+' Native diagnostic status');
+    const snapshot=status.snapshot;assert.equal(snapshot.session,native.current.session);assert.equal(snapshot.mode,native.current.mode);assert.equal(snapshot.sampleRate,48000);
+    assert(Number.isSafeInteger(snapshot.frame)&&snapshot.frame>=0);
+    for(const key of ['queued','lateCommands','queueOverflows'])assert.equal(snapshot[key],0,side+' '+key);
+    for(const key of ['pendingCommands','acceptedCommands','acceptedRequests'])assert(Number.isSafeInteger(snapshot.transport[key])&&snapshot.transport[key]>=0,side+' '+key);
+    assert.equal(snapshot.liveFx.underruns,0);assert.equal(snapshot.liveFx.overruns,0);
+    if(['genesis','mega-cd','32x','genesis-full-nuked','genesis-nuked'].includes(native.current.mode))assert.equal(snapshot.engine,native.status().engine);
+  }
+  assert(Number.isSafeInteger(diagnostics.delta.frames)&&diagnostics.delta.frames>=0);
+  for(const key of ['lateCommands','queueOverflows','liveFxUnderruns','liveFxOverruns'])assert.equal(diagnostics.delta[key],0,key+' recording delta');
+  assert.match(report.limitations,/not audio-device dropout counts/);
+  if(artifacts)await fs.writeFile(path.join(artifacts,name+'-'+native.current.mode+'-recording-diagnostics.json'),JSON.stringify({mockedNative:true,report},null,2));
   await panel.getByRole('button',{name:'Close diagnostics',exact:true}).click();
   await assertNoLiveAudio(page);
 }
@@ -1150,7 +1168,7 @@ async function nativeMegaCd(page,native,artifacts,name) {
   await page.evaluate(starter=>window.__nativeBackendTest.runtime.playSource(starter,{execution:'main'}),starter);
   native.monitor.reads.length=0;
   await nativeAudioMonitor(page,native,artifacts,name+'-megacd');
-  await nativeRecording(page,native);
+  await nativeRecording(page,native,artifacts,name);
   await assertNoLiveAudio(page);
   await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
   await changeNativeMode(page,native,'genesis','keep');
@@ -1952,7 +1970,7 @@ async function nativeDx7(page,native,artifacts,name) {
   await page.evaluate(starter=>window.__nativeBackendTest.runtime.playSource(starter,{execution:'main'}),starter);
   native.monitor.reads.length=0;
   await nativeAudioMonitor(page,native,artifacts,name+'-dx7');
-  await nativeRecording(page,native);
+  await nativeRecording(page,native,artifacts,name);
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
   assert.deepEqual(native.dx7WasmRequests,[],'Native DX7 must never fetch a WASM sound core');
   await assertNoLiveAudio(page);
@@ -2037,7 +2055,7 @@ async function nativeNes(page,native,artifacts,name) {
   await page.keyboard.up('z');await until(()=>allCommands().slice(first).some(entry=>entry.type==='nes'&&entry.message.action==='off'),'FDS Operator Keyboard release');
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
   await page.evaluate(starter=>window.__nativeBackendTest.runtime.playSource(starter,{execution:'main'}),starter);
-  native.monitor.reads.length=0;await nativeAudioMonitor(page,native,artifacts,name+'-nes');await nativeRecording(page,native);
+  native.monitor.reads.length=0;await nativeAudioMonitor(page,native,artifacts,name+'-nes');await nativeRecording(page,native,artifacts,name);
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());await assertNoLiveAudio(page);
   await nativeImportedNes(page,native);
   await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);
@@ -2261,11 +2279,13 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await plain.close();
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
+    const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
     await page.exposeBinding('__nativeInvoke', (_event, command, args) => native.invoke(command, args));
     await page.addInitScript(observeAudioCreation);
     await page.addInitScript(observeMonitorDrawing);
+    if(lifecycle)await page.addInitScript(observeNativeLifecycle);
     await page.addInitScript(() => {window.__TAURI_INTERNALS__ = {invoke:(command,args) => window.__nativeInvoke(command,args)};});
     await page.route('**/vs/loader*.js', route => route.abort());
     page.on('pageerror', error => errors.push(error.message));
@@ -2284,6 +2304,21 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--diagnostics-only')) {
+      await nativeRecording(page,native,artifacts,name+'-main');
+      await page.evaluate(source=>window.__nativeBackendTest.runtime.playSource(source,{execution:'worker'}),source);
+      await nativeRecording(page,native,artifacts,name+'-worker');
+      await changeNativeMode(page,native,'genesis-full-nuked');
+      await page.evaluate(source=>window.__nativeBackendTest.runtime.playSource(source),source);
+      await nativeRecording(page,native,artifacts,name+'-nuked');
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.finalize());
+      assert.deepEqual(errors,[]);await context.close();console.log(name+': PASS Native Genesis Main/Worker and Nuked recording WAV/JSON with start/end queue, late, overflow, liveFx and transport diagnostic counters; Native IPC mocked');return;
+    }
+    if(lifecycle) {
+      await runNativeLifecycle({page,native,tracker:lifecycle,name,artifacts,modeIds:nativeModeIds,
+        changeMode:changeNativeMode,selectEngine,assertNoLiveAudio,until,source,errors});
+      await context.close();return;
+    }
     if(process.argv.includes('--nuked-only')) {
       await assertNativeModeRestriction(page,native);await nativeNuked(page,native,artifacts,name);assert.deepEqual(errors,[]);
       await fs.writeFile(path.join(artifacts,name+'-native-nuked.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
@@ -2366,7 +2401,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeLiveFxDiagnostics(page,native);
     await nativeRun(page, native);
     await nativeAudioMonitor(page,native,artifacts,name);
-    await nativeRecording(page,native);
+    await nativeRecording(page,native,artifacts,name);
     assert.equal(native.current.session, firstSession, 'Stop/Run should reuse the stream clock');
     await nativeMegaCd(page,native,artifacts,name);
     await native32x(page,native,artifacts,name);

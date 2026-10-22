@@ -253,6 +253,7 @@ function setupNative(t, options={}) {
       channels:[Float32Array.from({length:64},(_,index)=>index===0?1.25:0),Float32Array.from({length:64},(_,index)=>index===0?-.5:0)],
     };},
   };
+  if(options.diagnostics)synth.readAudioDiagnostics=options.diagnostics;
   f.setSource(synth);
   return {...f,synth,get starts(){return starts;},get stops(){return stops;},get requested(){return requested;}};
 }
@@ -320,4 +321,49 @@ test('native clock shutdown cancels capture and discards its late completion',as
   for(let i=0;i<8;i++)await Promise.resolve();
   assert.equal(f.stops,1);assert.equal(f.controller.getState().phase,'idle');assert.equal(f.controller.getResult(),null);assert.equal(f.timers.size,0);
   assert.equal(f.context.listeners.get('statechange').size,0);
+});
+
+test('native recording reports bounded start/end counters without polling or changing playback',async t=>{
+  let reads=0;
+  const f=setupNative(t,{diagnostics:async()=>({session:4,mode:'genesis',engine:'ymfm',sampleRate:48000,
+    frame:reads++?96128:96000,lateCommands:reads===1?2:5,queueOverflows:1,
+    liveFx:{underruns:reads===1?1:3,overruns:0}})});
+  await f.controller.start();await f.controller.stop();
+  const counters=f.controller.getResult().report.nativeDiagnostics;
+  assert.equal(reads,2);assert.equal(counters.start.available,true);assert.equal(counters.end.available,true);
+  assert.deepEqual(counters.delta,{frames:128,lateCommands:3,queueOverflows:0,liveFxUnderruns:2,liveFxOverruns:0});
+  assert.equal(f.starts,1);assert.equal(f.stops,1);assert.equal(f.modules,0);assert.equal(f.timers.size,0);
+  assert.match(f.controller.getResult().report.limitations,/not audio-device dropout counts/);
+});
+
+test('native optional counter failures never discard a successful recording',async t=>{
+  const f=setupNative(t,{diagnostics:async()=>{throw Error('status unsupported');}});
+  await f.controller.start();await f.controller.stop();
+  const result=f.controller.getResult();assert.equal(result.report.capture.frames,64);
+  assert.equal(result.report.nativeDiagnostics.start.available,false);assert.equal(result.report.nativeDiagnostics.delta,null);
+  assert.equal(f.controller.getState().phase,'ready');assert.equal(f.timers.size,0);
+});
+
+test('native counter timeout and cancellation close their timers and ignore late replies',async t=>{
+  let release;
+  const pending=new Promise(resolve=>{release=resolve;});
+  const f=setupNative(t,{diagnostics:()=>pending});await f.controller.start();
+  const readTimer=[...f.timers.values()].find(timer=>timer.milliseconds===1000);assert(readTimer);readTimer.callback();
+  const stopping=f.controller.stop();
+  for(let i=0;i<12;i++)await Promise.resolve();
+  assert([...f.timers.values()].every(timer=>timer.milliseconds!==5000),'A received PCM result cannot expire while optional status is pending');
+  const endTimer=[...f.timers.values()].find(timer=>timer.milliseconds===1000);assert(endTimer);endTimer.callback();await stopping;
+  assert.equal(f.controller.getResult().report.nativeDiagnostics.delta,null);assert.equal(f.timers.size,0);
+  await f.controller.start();f.controller.cancel();assert.equal(f.timers.size,0);
+  release({session:4,mode:'genesis',sampleRate:48000,frame:123});
+  for(let i=0;i<12;i++)await Promise.resolve();
+  assert.equal(f.controller.getResult(),null);assert.equal(f.controller.getState().phase,'idle');assert.equal(f.timers.size,0);
+});
+
+test('native counter reset or session replacement cannot produce misleading deltas',async t=>{
+  let reads=0;
+  const f=setupNative(t,{diagnostics:async()=>({session:++reads,mode:'genesis',sampleRate:48000,frame:96000,lateCommands:0,queueOverflows:0})});
+  await f.controller.start();await f.controller.stop();assert.equal(f.controller.getResult().report.nativeDiagnostics.delta,null);
+  const g=setupNative(t,{diagnostics:async()=>({session:4,mode:'genesis',sampleRate:48000,frame:reads++===2?96000:96064,lateCommands:reads===3?4:0,queueOverflows:0})});
+  await g.controller.start();await g.controller.stop();assert.equal(g.controller.getResult().report.nativeDiagnostics.delta.lateCommands,null);
 });

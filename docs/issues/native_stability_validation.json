@@ -1,0 +1,434 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-23",
+  "scope": "Native stability validation; no production DSP changes",
+  "physicalAudioDevicesOpened": false,
+  "tests": {
+    "rust": {
+      "passed": 305,
+      "ignored": 4
+    },
+    "javascriptFullSuiteBeforeFinalDedupe": {
+      "passed": 4058,
+      "skipped": 1
+    },
+    "javascriptNativeAfterFinalDedupe": {
+      "passed": 447
+    },
+    "diagnosticsFocusedAfterFinalDedupe": {
+      "passed": 25
+    },
+    "tauriNpm": {
+      "pythonPassed": 14,
+      "nodePassed": 31
+    },
+    "localMacosAppBuild": "passed"
+  },
+  "offlineBounded": {
+    "passed": true,
+    "deviceOpened": false,
+    "profile": "bounded",
+    "sampleRate": 48000,
+    "secondsPerRun": 0.125,
+    "rounds": 2,
+    "timingBuild": "debug",
+    "totals": {
+      "constructorCount": 88,
+      "events": 14648,
+      "futureEventsDiscardedByStop": 1456,
+      "modes": 22,
+      "ownerCancellations": 88,
+      "reclaimedBankGuards": 88,
+      "reclaimedCommandGuards": 7168,
+      "renderSeconds": 0.7385503809999998,
+      "renderedFrames": 604032,
+      "runStopTransitions": 88,
+      "simulatedSeconds": 12.583999999999993
+    },
+    "limits": {
+      "absolutePerformanceGate": false,
+      "maximumBatch": 4096,
+      "mediaBudgetBytes": 67108864,
+      "nonFinitePcm": 0,
+      "pendingAfterStop": 0,
+      "queueCapacity": 65536,
+      "stoppedPeak": 0,
+      "testBankGuardsAfterReclaim": 0
+    },
+    "notes": [
+      "Offline callback/control timings include assertion and snapshot overhead; no OS audio device or scheduling is measured.",
+      "Bounded queue, metadata, and weak command/bank guards are verified; this is not a general heap or RSS leak proof."
+    ]
+  },
+  "offlineLong": {
+    "passed": true,
+    "deviceOpened": false,
+    "profile": "long",
+    "sampleRate": 48000,
+    "secondsPerRun": 30,
+    "rounds": 3,
+    "timingBuild": "debug",
+    "totals": {
+      "constructorCount": 110,
+      "events": 21972,
+      "futureEventsDiscardedByStop": 2184,
+      "modes": 22,
+      "ownerCancellations": 132,
+      "reclaimedBankGuards": 132,
+      "reclaimedCommandGuards": 10752,
+      "renderSeconds": 163.303869121,
+      "renderedFrames": 190194048,
+      "runStopTransitions": 132,
+      "simulatedSeconds": 3962.3760000000016
+    },
+    "limits": {
+      "absolutePerformanceGate": false,
+      "maximumBatch": 4096,
+      "mediaBudgetBytes": 67108864,
+      "nonFinitePcm": 0,
+      "pendingAfterStop": 0,
+      "queueCapacity": 65536,
+      "stoppedPeak": 0,
+      "testBankGuardsAfterReclaim": 0
+    },
+    "notes": [
+      "Offline callback/control timings include assertion and snapshot overhead; no OS audio device or scheduling is measured.",
+      "Bounded queue, metadata, and weak command/bank guards are verified; this is not a general heap or RSS leak proof."
+    ]
+  },
+  "webNativeContinuous": {
+    "status": "passed",
+    "continuous": true,
+    "rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "cases": [
+      {
+        "name": "continuous-fm",
+        "sampleRate": 44100,
+        "frames": 2646000,
+        "seconds": 60,
+        "events": 1229,
+        "seed": "0x2612",
+        "resetsDuringSegment": 0,
+        "maximumDifference": 1.862645149230957e-09,
+        "peak": 0.03056945651769638,
+        "nativeRenderMilliseconds": 400.848411,
+        "nativeSetupMilliseconds": 6.53175,
+        "nativeWriteMilliseconds": 131.884774,
+        "nativeStreamMilliseconds": 533.23175,
+        "nativeProcessWallMilliseconds": 684.527458,
+        "wasmInitialiseMilliseconds": 3.6866249999998217,
+        "wasmRenderMilliseconds": 450.23703999998133,
+        "wasmCommandMilliseconds": 1.5446710000128405,
+        "jsComparisonMilliseconds": 69.35880600002656,
+        "commandStreamSha256": "bc0ed1cc91375c1a2625d02d42f44a4629009df809a37e2d916a137ce11442b0",
+        "nativeRenderRealtimeFactor": 149.68251926037945,
+        "wasmRenderRealtimeFactor": 133.2631362359758,
+        "streamedPcmBytes": 21168000,
+        "maximumNativeChunkBytes": 65536,
+        "referencePcmBufferBytes": 1024
+      },
+      {
+        "name": "continuous-fm-and-psg",
+        "sampleRate": 44100,
+        "frames": 2646000,
+        "seconds": 60,
+        "events": 2189,
+        "seed": "0x2612",
+        "resetsDuringSegment": 0,
+        "maximumDifference": 3.725290298461914e-09,
+        "peak": 0.03756945580244064,
+        "nativeRenderMilliseconds": 345.564428,
+        "nativeSetupMilliseconds": 5.814708,
+        "nativeWriteMilliseconds": 182.498032,
+        "nativeStreamMilliseconds": 528.5245,
+        "nativeProcessWallMilliseconds": 540.0632909999999,
+        "wasmInitialiseMilliseconds": 1.460207999999966,
+        "wasmRenderMilliseconds": 442.8651389999927,
+        "wasmCommandMilliseconds": 1.0311470000415284,
+        "jsComparisonMilliseconds": 78.94703500000696,
+        "commandStreamSha256": "4fcffeeb1e02a5b4b130fbe5955718067f7c8945b2393017e41b0ac3e596e6a9",
+        "nativeRenderRealtimeFactor": 173.62898243681494,
+        "wasmRenderRealtimeFactor": 135.48142474136125,
+        "streamedPcmBytes": 21168000,
+        "maximumNativeChunkBytes": 65536,
+        "referencePcmBufferBytes": 1024
+      },
+      {
+        "name": "continuous-fm",
+        "sampleRate": 48000,
+        "frames": 2880000,
+        "seconds": 60,
+        "events": 1229,
+        "seed": "0x2612",
+        "resetsDuringSegment": 0,
+        "maximumDifference": 1.862645149230957e-09,
+        "peak": 0.03056945651769638,
+        "nativeRenderMilliseconds": 377.902689,
+        "nativeSetupMilliseconds": 3.905791,
+        "nativeWriteMilliseconds": 154.850454,
+        "nativeStreamMilliseconds": 533.270792,
+        "nativeProcessWallMilliseconds": 541.415125,
+        "wasmInitialiseMilliseconds": 1.0548330000001442,
+        "wasmRenderMilliseconds": 433.9269500000091,
+        "wasmCommandMilliseconds": 0.8844000000394772,
+        "jsComparisonMilliseconds": 90.82865500002754,
+        "commandStreamSha256": "95229eee4e3797fbc27f51c67eb7738bfab8c5879688fea65845633f0991e9a8",
+        "nativeRenderRealtimeFactor": 158.77103219024727,
+        "wasmRenderRealtimeFactor": 138.27212160940624,
+        "streamedPcmBytes": 23040000,
+        "maximumNativeChunkBytes": 65536,
+        "referencePcmBufferBytes": 1024
+      },
+      {
+        "name": "continuous-fm-and-psg",
+        "sampleRate": 48000,
+        "frames": 2880000,
+        "seconds": 60,
+        "events": 2189,
+        "seed": "0x2612",
+        "resetsDuringSegment": 0,
+        "maximumDifference": 3.725290298461914e-09,
+        "peak": 0.03756945580244064,
+        "nativeRenderMilliseconds": 346.336787,
+        "nativeSetupMilliseconds": 5.836625,
+        "nativeWriteMilliseconds": 190.653879,
+        "nativeStreamMilliseconds": 537.501792,
+        "nativeProcessWallMilliseconds": 547.7512500000003,
+        "wasmInitialiseMilliseconds": 0.9979160000002594,
+        "wasmRenderMilliseconds": 442.3677369999914,
+        "wasmCommandMilliseconds": 0.9584669999894686,
+        "jsComparisonMilliseconds": 87.5853919999663,
+        "commandStreamSha256": "57ecfa52000b6996564357b6d37ca15ccfb98acfed5835fb9793cb59cd717c21",
+        "nativeRenderRealtimeFactor": 173.24177578629553,
+        "wasmRenderRealtimeFactor": 135.63376119357721,
+        "streamedPcmBytes": 23040000,
+        "maximumNativeChunkBytes": 65536,
+        "referencePcmBufferBytes": 1024
+      },
+      {
+        "name": "continuous-fm",
+        "sampleRate": 96000,
+        "frames": 5760000,
+        "seconds": 60,
+        "events": 1229,
+        "seed": "0x2612",
+        "resetsDuringSegment": 0,
+        "maximumDifference": 1.862645149230957e-09,
+        "peak": 0.03056945651769638,
+        "nativeRenderMilliseconds": 402.332905,
+        "nativeSetupMilliseconds": 3.923542,
+        "nativeWriteMilliseconds": 281.447328,
+        "nativeStreamMilliseconds": 684.829,
+        "nativeProcessWallMilliseconds": 691.8907499999996,
+        "wasmInitialiseMilliseconds": 1.043666999999914,
+        "wasmRenderMilliseconds": 517.9324140000872,
+        "wasmCommandMilliseconds": 1.6443959999387516,
+        "jsComparisonMilliseconds": 146.51850000007107,
+        "commandStreamSha256": "956880b471a1b549c915881d2504ca3aad6d88f85cc67be0a054e50e74a60e32",
+        "nativeRenderRealtimeFactor": 149.13023333251851,
+        "wasmRenderRealtimeFactor": 115.84523072539325,
+        "streamedPcmBytes": 46080000,
+        "maximumNativeChunkBytes": 65536,
+        "referencePcmBufferBytes": 1024
+      },
+      {
+        "name": "continuous-fm-and-psg",
+        "sampleRate": 96000,
+        "frames": 5760000,
+        "seconds": 60,
+        "events": 2189,
+        "seed": "0x2612",
+        "resetsDuringSegment": 0,
+        "maximumDifference": 3.725290298461914e-09,
+        "peak": 0.03756945580244064,
+        "nativeRenderMilliseconds": 352.582917,
+        "nativeSetupMilliseconds": 5.86775,
+        "nativeWriteMilliseconds": 312.218967,
+        "nativeStreamMilliseconds": 665.826,
+        "nativeProcessWallMilliseconds": 674.7507499999992,
+        "wasmInitialiseMilliseconds": 0.9773329999998168,
+        "wasmRenderMilliseconds": 510.74082099992575,
+        "wasmCommandMilliseconds": 1.5758649998842884,
+        "jsComparisonMilliseconds": 140.45773999983703,
+        "commandStreamSha256": "4a3cbb411330a4dde605ee62085c3da6d07685d11f8f008663ffb5d27578cbc7",
+        "nativeRenderRealtimeFactor": 170.17273698487213,
+        "wasmRenderRealtimeFactor": 117.47641373668216,
+        "streamedPcmBytes": 46080000,
+        "maximumNativeChunkBytes": 65536,
+        "referencePcmBufferBytes": 1024
+      }
+    ],
+    "maximumDifference": 3.725290298461914e-09,
+    "totalStereoFrames": 22572000,
+    "totalSimulatedSeconds": 360,
+    "timingNotes": "Timing is diagnostic, with no speed threshold. Native render time measures 128-frame render blocks including command application and timing instrumentation, excluding stdout writes/backpressure; setup includes command parsing and construction. WASM render time measures the actual Worklet renderFrames method in blocks of at most 128 output frames. WASM module initialization and command writes are measured separately. Compiler, process wall, pipe transport and JS comparison overhead are reported separately; native and JS run concurrently and wall times are not additive. These are wall-clock measurements, not OS CPU accounting. PCM is streamed through bounded chunks and two 128-frame reference buffers; full recordings are never retained in continuous mode. No listening or output device is involved.",
+    "reference": {
+      "worklet": "docs/js/ym2612-worklet.js",
+      "workletSha256": "f92f2e713a6fdcf61ffa3dca885584513b872d9215e9930ff70f6bdb281fe985",
+      "fmWasmSha256": "5184f6440860c438fb424fae60255f666358657571810e51a0f8e147cc8b8b13",
+      "psgWasmSha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+    }
+  },
+  "browserLifecycle": [
+    {
+      "browser": "chromium",
+      "passed": true,
+      "mockedNative": true,
+      "cycles": 2,
+      "modes": 21,
+      "modeVisits": 42,
+      "runStopChecks": 168,
+      "keyboardChecks": 42,
+      "engineBoundaryChecks": 4,
+      "injectedStartupFailuresRecovered": 2,
+      "delayedStopFences": 4,
+      "transport": {
+        "pending": 0,
+        "maxPending": 1,
+        "workersCreated": 44,
+        "workersClosed": 44,
+        "activeWorkers": 0,
+        "commandsApplied": 10598
+      },
+      "finalResources": {
+        "workersCreated": 0,
+        "workersActive": 0,
+        "portsCreated": 0,
+        "localPortsOpen": 0,
+        "transferredPortsOpen": 0,
+        "activeTargetListeners": 0,
+        "activePropertyHandlers": 0
+      },
+      "finalPendingCommands": 0,
+      "finalAcceptedCommands": 0,
+      "finalAcceptedRequests": 0,
+      "limits": [
+        "No physical Native audio device or callback is exercised.",
+        "MessagePort counters cover main-page handles; transferred handles are retired with their owning Worker.",
+        "Listener counters cover tracked Worker/MessagePort targets and exclude closed targets; they do not measure JavaScript garbage collection."
+      ]
+    },
+    {
+      "browser": "webkit",
+      "passed": true,
+      "mockedNative": true,
+      "cycles": 2,
+      "modes": 21,
+      "modeVisits": 42,
+      "runStopChecks": 168,
+      "keyboardChecks": 42,
+      "engineBoundaryChecks": 4,
+      "injectedStartupFailuresRecovered": 2,
+      "delayedStopFences": 4,
+      "transport": {
+        "pending": 0,
+        "maxPending": 1,
+        "workersCreated": 44,
+        "workersClosed": 44,
+        "activeWorkers": 0,
+        "commandsApplied": 10669
+      },
+      "finalResources": {
+        "workersCreated": 0,
+        "workersActive": 0,
+        "portsCreated": 0,
+        "localPortsOpen": 0,
+        "transferredPortsOpen": 0,
+        "activeTargetListeners": 0,
+        "activePropertyHandlers": 0
+      },
+      "finalPendingCommands": 0,
+      "finalAcceptedCommands": 0,
+      "finalAcceptedRequests": 0,
+      "limits": [
+        "No physical Native audio device or callback is exercised.",
+        "MessagePort counters cover main-page handles; transferred handles are retired with their owning Worker.",
+        "Listener counters cover tracked Worker/MessagePort targets and exclude closed targets; they do not measure JavaScript garbage collection."
+      ]
+    }
+  ],
+  "browserFinalRegression": {
+    "chromium": "passed",
+    "webkit": "passed",
+    "nativeTransport": "mocked"
+  },
+  "importedDistDiagnostics": {
+    "chromium": "passed",
+    "webkit": "passed",
+    "casesPerBrowser": [
+      "genesis-main",
+      "genesis-worker",
+      "32x-nuked"
+    ],
+    "wavAndCounterJsonVerified": true,
+    "nativeTransport": "mocked"
+  },
+  "sourceVerification": {
+    "snapshots": 21,
+    "status": "passed",
+    "sourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "69e941f9de17da31184dcf927b894b3d4af6090fd6c3282bb2f09ef6f78e05e3",
+      "files": 1304,
+      "applicationVersion": "0.85.1",
+      "frontendArchiveSha256": "7f66062dd8f5b96b05ad43d548ea2122fdb0d51b2a7da094c9739f805062e921"
+    },
+    "detachedArchive": {
+      "status": "passed",
+      "snapshots": 21,
+      "offline22ModeRebuild": "passed"
+    }
+  },
+  "githubActions": {
+    "conclusion": "",
+    "headSha": "21fea61d0a2e92b0d208d0f0f645e379c39e3c82",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "build (linux-arm64, ubuntu-24.04-arm, deb,appimage)",
+        "status": "completed",
+        "step": null
+      },
+      {
+        "conclusion": "success",
+        "name": "build (windows-x86_64, windows-latest, nsis)",
+        "status": "completed",
+        "step": null
+      },
+      {
+        "conclusion": "",
+        "name": "build (linux-x86_64, ubuntu-24.04, deb,appimage)",
+        "status": "in_progress",
+        "step": "Install Linux dependencies"
+      },
+      {
+        "conclusion": "success",
+        "name": "build (macos-x86_64, macos-15-intel, dmg)",
+        "status": "completed",
+        "step": null
+      },
+      {
+        "conclusion": "success",
+        "name": "build (macos-arm64, macos-14, dmg)",
+        "status": "completed",
+        "step": null
+      }
+    ],
+    "status": "in_progress",
+    "url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/39842524904",
+    "coversUncommittedStabilityChanges": false,
+    "releasePublished": false,
+    "checkedAtUtc": "2026-10-22T20:09:10.241470+00:00"
+  },
+  "limits": [
+    "Offline simulated duration is aggregate across modes/runs; it is not a physical-device listening test.",
+    "Tracked queues, command references and Worker/port lifetimes are bounded checks, not a proof of general heap/RSS leak absence.",
+    "Native diagnostics are optional start/end snapshots, not device-dropout counters; normal playback has no new polling.",
+    "GitHub Actions builds the committed baseline. New local stability checks must be committed before remote validation."
+  ]
+}

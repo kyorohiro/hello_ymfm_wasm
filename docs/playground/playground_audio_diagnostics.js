@@ -1,6 +1,7 @@
 const MAX_SECONDS = 30;
 const MAX_BYTES = 32 * 1024 * 1024;
 const MAX_MARKERS = 32;
+const STATUS_TIMEOUT_MS = 1000;
 const loadedModules = new WeakMap();
 
 /** Encode the recorded floats without clipping, normalization or PCM16 conversion. */
@@ -84,6 +85,7 @@ export function createAudioDiagnostics({
   function clean(active) {
     if (!active || active.cleaned) return;
     active.cleaned = true;
+    for(const cancel of active.statusReads??[])cancel();
     clearTimer(active.timer);
     active.context?.removeEventListener('statechange', active.contextListener);
     if (active.native) {
@@ -194,6 +196,7 @@ export function createAudioDiagnostics({
         fail(active, 'Recording cancelled: the audio session changed.'); return;
       }
       active.metadata = getMetadata(); active.requestedAtWallMs = now();
+      active.diagnosticsStart = readNativeStatus(active);
       active.nativeStart = Promise.resolve().then(() => synth.startOutputRecording({seconds:capacity/context.sampleRate}));
       await active.nativeStart;
       if (session !== active) return;
@@ -212,6 +215,32 @@ export function createAudioDiagnostics({
     return active.nativeStop;
   }
 
+  // Two bounded observations per explicit recording, never a polling loop.
+  // Status reads do not change the audio clock, synthesis or playback state.
+  function readNativeStatus(active) {
+    if(typeof active.synth.readAudioDiagnostics!=='function')return Promise.resolve({available:false,reason:'Native status diagnostics are unavailable'});
+    return new Promise(resolve=>{
+      active.statusReads??=new Set();let settled=false,timer;
+      const finish=value=>{if(settled)return;settled=true;clearTimer(timer);active.statusReads.delete(cancel);resolve(value);};
+      const cancel=()=>finish({available:false,reason:'Recording was cancelled'});
+      active.statusReads.add(cancel);
+      timer=setTimer(()=>finish({available:false,reason:'Native status read timed out'}),STATUS_TIMEOUT_MS);
+      Promise.resolve().then(()=>active.synth.readAudioDiagnostics()).then(
+        snapshot=>finish(snapshot&&typeof snapshot==='object'?{available:true,snapshot}:{available:false,reason:'Native status snapshot was invalid'}),
+        error=>finish({available:false,reason:String(error?.message??error).slice(0,300)}));
+    });
+  }
+
+  function nativeStatusDelta(start,end) {
+    if(!start?.available||!end?.available)return null;
+    const a=start.snapshot,b=end.snapshot;
+    if(a.session!==b.session||a.sampleRate!==b.sampleRate||a.mode!==b.mode||a.engine!==b.engine)return null;
+    const difference=(first,last)=>Number.isSafeInteger(first)&&Number.isSafeInteger(last)&&first>=0&&last>=first?last-first:null;
+    return {frames:difference(a.frame,b.frame),lateCommands:difference(a.lateCommands,b.lateCommands),
+      queueOverflows:difference(a.queueOverflows,b.queueOverflows),
+      liveFxUnderruns:difference(a.liveFx?.underruns,b.liveFx?.underruns),liveFxOverruns:difference(a.liveFx?.overruns,b.liveFx?.overruns)};
+  }
+
   async function stopNative(active) {
     clearTimer(active.timer);
     active.timer = setTimer(() => fail(active, 'Recording cancelled: no native result was received.'), 5000);
@@ -227,6 +256,14 @@ export function createAudioDiagnostics({
           !data.channels.every(channel => channel instanceof Float32Array && channel.length === data.frames)) {
         fail(active, 'Recording cancelled: invalid native diagnostic data.'); return;
       }
+      // The PCM has arrived. Optional status reads have their own bounded
+      // timeout and must not turn a successful capture into a recording error.
+      clearTimer(active.timer);active.timer=null;
+      const [diagnosticsStart,diagnosticsEnd]=await Promise.all([active.diagnosticsStart,readNativeStatus(active)]);
+      if(session!==active)return;
+      if(getSynth()!==active.synth||active.context.state!=='running'){
+        fail(active,'Recording cancelled: the audio session changed.');return;
+      }
       const {channels, ...capture} = data;
       result = {channels, report:{
         format:'tetorica-audio-diagnostic-v1', backend:'native-genesis',
@@ -235,7 +272,8 @@ export function createAudioDiagnostics({
         capture, channelOrder:['output-left','output-right'],
         marks:active.marks.map(mark=>({...mark,frameOffset:Math.round(mark.audioTime*data.sampleRate)-data.firstFrame})),
         droppedMarkers:active.droppedMarkers,
-        limitations:'Native final-output PCM precedes the audio device. Continuous capture frames do not prove that the device played without dropouts. Chip-only PCM is unavailable. Marker timing follows the Main-thread estimate of the native audio clock.',
+        nativeDiagnostics:{start:diagnosticsStart,end:diagnosticsEnd,delta:nativeStatusDelta(diagnosticsStart,diagnosticsEnd)},
+        limitations:'Native final-output PCM precedes the audio device. Continuous capture frames do not prove that the device played without dropouts. Status counters are sampled near recording start and end, not at exact capture boundaries. Late commands and liveFx underruns are not audio-device dropout counts. Chip-only PCM is unavailable. Marker timing follows the Main-thread estimate of the native audio clock.',
       }};
       clean(active); session=null; phase='ready';
       update(`Recorded ${(data.frames/data.sampleRate).toFixed(2)} s of native output. Save output WAV and JSON.`);

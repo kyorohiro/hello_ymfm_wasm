@@ -7,7 +7,7 @@ import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-nuked-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-stability-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -277,7 +277,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 }
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=native-nuked-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=native-stability-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',
@@ -1907,7 +1907,7 @@ if (useNativeGenesis) {
 async function showAudioDiagnostics() {
   if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
   if (!audioDiagnosticsLoading) {
-    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js').then(({createAudioDiagnostics}) => {
+    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=native-stability-1').then(({createAudioDiagnostics}) => {
       audioDiagnostics = createAudioDiagnostics({
         host: document.body,
         getSynth: () => runtime.megaDrive,
