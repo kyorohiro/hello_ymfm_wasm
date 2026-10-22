@@ -9,7 +9,7 @@ const {chromium, webkit} = require('playwright');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
-const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','gameboy','nes','snes','pc-engine','dx7'];
+const nativeModeIds=['genesis','mega-cd','genesis-full','pc98','neogeo','neogeo-b','gameboy','nes','snes','pc-engine','dx7'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
 const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,get editor(){return editorAdapter}};';
 const source = `// Native/Web Audio project handoff regression.
@@ -91,6 +91,7 @@ class FakeNative {
       this.pwmQueue=[];this.pwmLastSchedule=null;
       this.opna={registers:[Array(256).fill(0),Array(256).fill(0)],clock:8000000,romLoaded:false,adpcmMemoryBytes:0,
         memory:new Uint8Array(0x200000),held:new Map(),revision:0};
+      this.opnb={registers:[Array(256).fill(0),Array(256).fill(0)],clock:8000000,roms:[new Uint8Array(0x1000000),new Uint8Array(0x1000000)],loaded:[0,0],held:new Map(),revision:0};
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -110,7 +111,7 @@ class FakeNative {
         return result;
       } finally {this.monitor.pending--;}
     }
-    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
+    if (command === 'native_genesis_stop') {this.liveFx.clear();this.liveFxError=null;if(this.pcm)this.pcm.mask=255;this.pcmVoices.fill(0);this.dx7Notes.clear();this.nesInspector?.stopVoices();this.stopConsoleVoices();this.stopOpnaVoices();this.stopOpnbVoices();this.pwm?.reset();this.pwmQueue=[];return this.status();}
     if (command === 'native_genesis_status') return this.status();
     if(command==='native_genesis_pwm_status') {
       assert.equal(this.current.mode,'32x');this.applyPwmQueue();
@@ -146,6 +147,11 @@ class FakeNative {
       const {began,...timeline}=s.timeline;
       return {clock:1024000,registers:Array.from(s.registers),...(args.ram?{ram:Array.from(s.ram)}:{}),nativeFrames:s.nativeFrames,enabled:s.enabled,
         frame:this.status().frame,revision:0,pendingCommands:[],timeline};
+    }
+    if(command==='native_genesis_ym2610b_status') {
+      assert(['neogeo','neogeo-b'].includes(this.current.mode));const s=this.opnb;
+      return {variant:this.current.mode==='neogeo-b'?'ym2610b':'ym2610',clock:s.clock,sampleRate:48000,registers:s.registers.map(row=>row.slice()),adpcmARomBytes:s.loaded[0],adpcmBRomBytes:s.loaded[1],
+        held:[...s.held.keys()],sourceMuteMask:0,status:0,statusHi:0,irq:false,frame:this.status().frame,revision:s.revision,pendingCommands:[]};
     }
     if(command==='native_genesis_ym2608_status') {
       assert.equal(this.current.mode,'pc98');const s=this.opna;
@@ -229,6 +235,8 @@ class FakeNative {
       };
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2608')){assert.equal(this.current.mode,'pc98');this.applyOpna(entry.message);}
+      for(const entry of args.commands.filter(entry=>entry.type==='ym2610b')){assert(['neogeo','neogeo-b'].includes(this.current.mode));this.applyOpnb(entry.message);}
+      if(['neogeo','neogeo-b'].includes(this.current.mode))assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm','ym2608'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native Neo Geo must not send hidden chips');
       if(this.current.mode==='pc98')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native PC-98 must not send hidden YM2612/PSG/other-chip commands');
       if(['gameboy','snes','pc-engine'].includes(this.current.mode))assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native consoles must never send hidden sound chips');
       if(this.current.mode==='nes')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'NES mode must never send hidden OPN/PSG/DX7/PCM commands');
@@ -317,6 +325,26 @@ class FakeNative {
     else assert(['mix','source-mute'].includes(message.method),'Unknown Native YM2608 operation '+message.method);
     s.revision++;
   }
+  applyOpnb(message) {
+    const s=this.opnb;
+    if(message.method==='batch') {
+      assert(Number.isInteger(message.channel)&&message.channel>=0&&message.channel<16);
+      if(message.action==='off'&&s.held.get(message.channel)!==message.voice)return;
+      if(message.action==='on')s.held.set(message.channel,message.voice);
+      message.commands.forEach(op=>this.applyOpnb(op));
+      if(message.action==='off')s.held.delete(message.channel);
+    }else if(message.method==='write')s.registers[message.port][message.register]=message.value;
+    else if(message.method==='memory') {
+      assert([0,1].includes(message.kind));assert(message.data.length<=65536);assert(message.offset+message.data.length<=0x1000000);
+      s.roms[message.kind].set(message.data,message.offset);s.loaded[message.kind]=Math.max(s.loaded[message.kind],message.offset+message.data.length);
+    }else if(message.method==='clock')s.clock=message.hz;
+    else if(message.method==='reset')s.registers.forEach(row=>row.fill(0));
+    else if(message.method==='stop-voices')this.stopOpnbVoices();
+    else if(message.method==='clear-memory')for(const kind of message.kind===undefined?[0,1]:[message.kind]){s.roms[kind].fill(0);s.loaded[kind]=0;}
+    else assert(['mix','source-mute'].includes(message.method),'Unknown Native YM2610/B operation '+message.method);
+    s.revision++;
+  }
+  stopOpnbVoices(){const s=this.opnb;if(!s)return;s.held.clear();for(let channel=0;channel<3;channel++)s.registers[0][8+channel]=0;s.registers[1][0]=0xbf;s.registers[0][0x10]=1;}
   stopOpnaVoices(){const s=this.opna;if(!s)return;s.held.clear();for(let channel=0;channel<3;channel++)s.registers[0][8+channel]=0;s.registers[0][0x10]=0xbf;s.registers[1][0]=1;}
   stopConsoleVoices(kind) {
     if(!kind||kind==='gameboy'){const i=this.gameboyInspector;if(i){for(const address of [2,7,10,17])i.observeWrite(address,0);i.gates.fill(false);}}
@@ -1143,6 +1171,70 @@ async function nativePc98(page,native,artifacts,name) {
   await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
   await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
 }
+async function nativeNeoGeo(page,native,artifacts,name) {
+  const allCommands=()=>native.calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[]);
+  const flatten=messages=>messages.flatMap(message=>message.method==='batch'?flatten(message.commands):[message]);
+  for(const mode of ['neogeo','neogeo-b']) {
+    await changeNativeMode(page,native,mode);
+    const variant=mode==='neogeo-b',chip=variant?'ym2610b':'ym2610',count=variant?6:4;
+    const starter=await fs.readFile(path.resolve(__dirname,'../docs/playground/defaults/'+mode+'/index.js'),'utf8');
+    assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),starter);
+    for(const execution of ['main','worker']) {
+      let first=allCommands().length;
+      const commands=()=>allCommands().slice(first).filter(command=>command.type==='ym2610b');
+      const writes=()=>flatten(commands().map(command=>command.message));
+      await page.evaluate(({starter,execution})=>window.__nativeBackendTest.runtime.playSource(starter,{execution}),{starter,execution});
+      await until(()=>writes().some(m=>m.method==='write'&&m.port===0&&m.register===0x28&&(m.value&0xf0)),mode+' '+execution+' FM starter');
+      const state=await page.evaluate(async chip=>{const s=window.__nativeBackendTest.runtime.megaDrive;return {chip:s.chip,fmId:s.fm.id,channels:s.capabilities.fmChannels,mixer:s.mixer.list().filter(c=>c.connected).map(c=>c.id),inspector:s.chipInspector.list(),psg:s.psg,pcm:s.pcm,snapshot:await s.chipInspector.read(chip)};},chip);
+      assert.equal(state.chip,chip);assert.equal(state.fmId,chip);assert.equal(state.channels,count);assert.deepEqual(state.mixer,[chip]);assert.deepEqual(state.inspector.map(c=>c.id),[chip]);assert.equal(state.psg,null);assert.equal(state.pcm,null);
+      assert.equal(state.snapshot.keyboardChannels.length,count+10);
+      if(execution==='worker')assert(commands().some(c=>c.frame>0&&c.performance&&c.owner),'Worker timing and ownership');
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());first=allCommands().length;
+      await page.evaluate(({execution,variant})=>window.__nativeBackendTest.runtime.playSource(`
+        const shared=await useSoundChip('${variant?'ym2610b':'ym2610'}');
+        if(shared!==fm||!shared.ssg||!shared.adpcmA||!shared.adpcmB)throw Error('Native OPNB sections were not reused');
+        await fm.setClock(7000000);
+        fm.setPreset(${variant?'CH6':'CH4'},FM_PRESETS['one-op-basic']);fm.setAlgo(${variant?'CH6':'CH4'},7,3);
+        ssg.tone(1,{frequency:440,volume:11});ssg.setEnvelope({period:192,shape:9});
+        await adpcmA.loadMemory(new Uint8Array(256).fill(0x17),256);
+        adpcmA.setVolume(50);adpcmA.setSample(5,{start:256,end:512});adpcmA.setVoice(5,{volume:25,left:true,right:false});adpcmA.keyOn(5);
+        const sample=await createSampleInstrument({sampleRate:16000,channels:[Float32Array.from({length:512},(_,i)=>Math.sin(i/8)*.4)]});
+        await sample.noteOn({id:'browser-sample',midi:60,velocity:100});
+        await mixer.set(fm.id,{volume:.65,pan:.2});
+        liveLoop('native-neogeo-last',async()=>{await play('E4',{channel:${variant?'CH6':'CH4'},beats:.04});await beat(.04);});
+      `,{execution}),{execution,variant});
+      await until(()=>writes().some(m=>m.method==='memory'&&m.kind===0)&&writes().some(m=>m.method==='memory'&&m.kind===1)&&writes().some(m=>m.method==='write'&&m.port===0&&m.register===0x10&&(m.value&128)),mode+' '+execution+' ADPCM-A/B and sampler');
+      const applied=await page.evaluate(chip=>window.__nativeBackendTest.runtime.chipInspector.read(chip),chip);
+      assert.equal(applied.clock,7000000);assert(applied.adpcmARomBytes>=512);assert(applied.adpcmBRomBytes>=256);assert.equal(applied.fmState.channels[5].algorithm,7);assert.equal(applied.registers[0][9],11);assert.equal(applied.registers[1][13],0x80|25);
+      assert.equal(writes().filter(m=>m.method==='clock').length,1,'clock observer must not echo to Native');
+      assert.doesNotMatch(await page.locator('#consoleOutput').textContent(),/Observer:.*(?:_adoptClock|setClock)/);
+      assert(writes().some(m=>m.method==='mix'));
+      if(execution==='worker')assert(commands().filter(c=>c.message.method==='memory').every(c=>c.frame===0&&c.performance&&c.owner),'sample preparation retains ownership without future scheduling');
+      const a=Array.from(native.opnb.roms[0].slice(0,512)),b=Array.from(native.opnb.roms[1].slice(0,512));
+      await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+      const stopped=await page.evaluate(chip=>window.__nativeBackendTest.runtime.chipInspector.read(chip),chip);
+      assert.equal(stopped.clock,7000000);assert.equal(stopped.fmState.channels[5].algorithm,7);assert.equal(stopped.registers[0][0x10],1);assert.deepEqual(stopped.held,[]);
+      assert.deepEqual(Array.from(native.opnb.roms[0].slice(0,512)),a);assert.deepEqual(Array.from(native.opnb.roms[1].slice(0,512)),b);await assertNoLiveAudio(page);
+    }
+    await page.click('#keyboardTab');await page.selectOption('#playgroundKeyboardChip','chip:'+chip);
+    const channels=[...Array.from({length:count},(_,ch)=>[`fm:${ch}`,variant?ch:[1,2,4,5][ch]]),...Array.from({length:3},(_,ch)=>[`ssg:${ch}`,ch+6]),...Array.from({length:6},(_,ch)=>[`adpcm-a:${ch}`,ch+9]),['adpcm-b:0',15]];
+    for(const [target,channel]of channels){
+      await page.selectOption('#playgroundKeyboardTargetChannel',target);await page.locator('#keyboardTab').focus();const first=allCommands().length;
+      const added=()=>allCommands().slice(first).filter(c=>c.type==='ym2610b');
+      await page.keyboard.down('z');await until(()=>added().some(c=>c.message.action==='on'&&c.message.channel===channel),mode+' Keyboard '+target);
+      await page.keyboard.up('z');await until(()=>added().some(c=>c.message.action==='off'&&c.message.channel===channel),mode+' Keyboard release '+target);
+    }
+    await page.selectOption('#playgroundKeyboardTargetChannel','fm:0');let first=allCommands().length;
+    const key=page.locator('#operatorKeyboardRoot .key').first();await key.scrollIntoViewIfNeeded();const rect=await key.boundingBox();
+    await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();await until(()=>allCommands().slice(first).some(c=>c.type==='ym2610b'&&c.message.action==='on'),mode+' Guitar pointer');
+    await page.mouse.up();await until(()=>allCommands().slice(first).some(c=>c.type==='ym2610b'&&c.message.action==='off'),mode+' Guitar release');
+    await page.click('#operatorTabButton');await page.locator('#operatorTabButton').focus();first=allCommands().length;
+    await page.keyboard.down('z');await until(()=>allCommands().slice(first).some(c=>c.type==='ym2610b'&&c.message.action==='on'),mode+' Operators Keyboard');
+    await page.keyboard.up('z');await until(()=>allCommands().slice(first).some(c=>c.type==='ym2610b'&&c.message.action==='off'),mode+' Operators Keyboard release');
+    await page.screenshot({path:path.join(artifacts,name+'-native-'+mode+'.png')});await assertNoLiveAudio(page);await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
+  }
+  await changeNativeMode(page,native,'genesis','keep');await page.evaluate(source=>window.__nativeBackendTest.editor.setValue(source),source);await nativeRun(page,native);
+}
 async function nativeDx7(page,native,artifacts,name) {
   const {createInitVoice,createBankSysex}=await import('../web/msfa_dx7/src/sysex.js');
   const {voiceToPreset}=await import('../web/msfa_dx7/src/preset.js');
@@ -1590,6 +1682,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await selectEngine(page, 'native');
     assert.equal(native.count('native_genesis_start'), 0, 'Selection alone must not open a device');
     await nativeRun(page, native);
+    if(process.argv.includes('--neogeo-only')) {
+      await nativeNeoGeo(page,native,artifacts,name);assert.deepEqual(errors,[]);
+      await fs.writeFile(path.join(artifacts,name+'-native-neogeo.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
+      await context.close();console.log(name+': PASS Native Neo Geo/YM2610B Main/Worker, A/B ROM isolation, sampler, Keyboard, Operators, Stop retention and mode handoff; Native IPC mocked');return;
+    }
     if(process.argv.includes('--pc98-only')) {
       await nativePc98(page,native,artifacts,name);assert.deepEqual(errors,[]);
       await fs.writeFile(path.join(artifacts,name+'-native-pc98.json'),JSON.stringify({mockedNative:true,calls:native.calls},null,2));
@@ -1635,6 +1732,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await nativeNes(page,native,artifacts,name);
     await nativeConsoles(page,native,artifacts,name);
     await nativePc98(page,native,artifacts,name);
+    await nativeNeoGeo(page,native,artifacts,name);
     await openSettings(page);
     await page.screenshot({path:path.join(artifacts, name + '-native-settings.png')});
     await page.locator('#audioEngineDialog').evaluate(dialog => dialog.close());

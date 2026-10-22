@@ -31,6 +31,8 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
     if (message?.id === undefined) return false;
     const detail = String(error.message ?? error);
     if (message.type === 'pcm-dac') port.postMessage({type:'pcm-dac-result',id:message.id,error:detail});
+    else if (message.type === 'loadAdpcmMemory') port.postMessage({type:'adpcm-memory-loaded',id:message.id,error:detail});
+    else if (message.type === 'loadRhythmRom') port.postMessage({type:'rhythm-rom-loaded',id:message.id,error:detail});
     else if (message.type === 'chip-clock') port.postMessage({type:'chip-clock-result',id:message.id,error:detail});
     else if (message.op === 'sample') port.postMessage({op:'sample-response',id:message.id,error:detail});
     else if (typeof message.method==='string') port.postMessage({id:message.id,error:detail});
@@ -88,6 +90,13 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         const owner = ownerId(envelope.owner);
         if (!cleanup) { timing.performance = envelope.session; timing.owner = owner; }
       }
+      // A sample upload may await several native flushes inside one dispatch.
+      // Cancellation fences its remaining chunks immediately, before the
+      // queued native cancel command can run after that dispatch returns.
+      Object.defineProperty(timing, 'checkCurrent', {value: () => {
+        if (!active || disposed || version !== epoch ||
+            (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
+      }});
       const failed = error => {
         let replied = false;
         for (const command of messages) replied = replyError(port,command,error) || replied;
@@ -103,6 +112,8 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.bytes) + bytesOf(m.command?.data) +
         (m.method==='scheduleWrites'?(m.args?.[0]?.length??0)*24:0) +
         (m.method==='loadMemory'?bytesOf(m.args?.[0]):0) +
+        (m.method==='memory'?bytesOf(m.args?.[synth.nativeOpnb?1:0]):0) +
+        (m.method==='rom'?bytesOf(m.args?.[0]):0) +
         (m.method==='loadBRR'?bytesOf(m.args?.[0]):0) +
         (m.method==='prepareTimeline'?bytesOf(m.args?.[0]?.events)+bytesOf(m.args?.[0]?.initialState?.ram)+bytesOf(m.args?.[0]?.initialState?.dsp):0) +
         (m.method==='loadSysex'?bytesOf(m.args?.[0]):0) +

@@ -1,0 +1,599 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T05:31:48.202Z",
+  "reference": "Actual deployed YM2610/YM2610B WASM plus Ym2610BAudioEngine",
+  "wasmSha256": "2b14473809584320dfd30f3cf89079171b5f0119ee91cd96fe1c047682956635",
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "variants": [
+    "YM2610",
+    "YM2610B"
+  ],
+  "cases": [
+    {
+      "name": "all six physical FM slots, YM2610 mask, stereo, LFO and independent gates",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03109186328947544
+    },
+    {
+      "name": "B-only physical FM slots are silent on original YM2610",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0
+    },
+    {
+      "name": "CH3 special-mode frequency latches including cross-port latch reuse",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013433283194899559
+    },
+    {
+      "name": "SSG tones, noise, all envelope shapes and targeted key-off",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "six independently addressed ADPCM-A voices, level, pan and retrigger",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.451171875
+    },
+    {
+      "name": "ADPCM-B encoded sample, looping, Delta-N, pan and retrigger",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21695201098918915
+    },
+    {
+      "name": "independent overlapping A/B ROM addresses, partial replacement and per-bank clear",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6493391394615173
+    },
+    {
+      "name": "ADPCM-A and B final 16 MiB ROM ranges and independent end flags",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6488758325576782
+    },
+    {
+      "name": "all sections and every source mute combination preserve running phase",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6759421825408936
+    },
+    {
+      "name": "clock changes and integer resampling including upsample sample holds",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.3007049560546875
+    },
+    {
+      "name": "chip reset preserves both ROM banks, source mute and edited clock",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.648223876953125
+    },
+    {
+      "name": "Stop retains preloaded independent ROM banks for later retrigger",
+      "variant": "YM2610",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.580810546875
+    },
+    {
+      "name": "all six physical FM slots, YM2610 mask, stereo, LFO and independent gates",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.031125156208872795
+    },
+    {
+      "name": "B-only physical FM slots are silent on original YM2610",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0
+    },
+    {
+      "name": "CH3 special-mode frequency latches including cross-port latch reuse",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013422185555100441
+    },
+    {
+      "name": "SSG tones, noise, all envelope shapes and targeted key-off",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "six independently addressed ADPCM-A voices, level, pan and retrigger",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.451171875
+    },
+    {
+      "name": "ADPCM-B encoded sample, looping, Delta-N, pan and retrigger",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2170659899711609
+    },
+    {
+      "name": "independent overlapping A/B ROM addresses, partial replacement and per-bank clear",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.649859607219696
+    },
+    {
+      "name": "ADPCM-A and B final 16 MiB ROM ranges and independent end flags",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6489654779434204
+    },
+    {
+      "name": "all sections and every source mute combination preserve running phase",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.677233874797821
+    },
+    {
+      "name": "clock changes and integer resampling including upsample sample holds",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.30057594180107117
+    },
+    {
+      "name": "chip reset preserves both ROM banks, source mute and edited clock",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6486755609512329
+    },
+    {
+      "name": "Stop retains preloaded independent ROM banks for later retrigger",
+      "variant": "YM2610",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5835205316543579
+    },
+    {
+      "name": "all six physical FM slots, YM2610 mask, stereo, LFO and independent gates",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.02868041954934597
+    },
+    {
+      "name": "B-only physical FM slots are silent on original YM2610",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0
+    },
+    {
+      "name": "CH3 special-mode frequency latches including cross-port latch reuse",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0125732421875
+    },
+    {
+      "name": "SSG tones, noise, all envelope shapes and targeted key-off",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "six independently addressed ADPCM-A voices, level, pan and retrigger",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.456787109375
+    },
+    {
+      "name": "ADPCM-B encoded sample, looping, Delta-N, pan and retrigger",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21746826171875
+    },
+    {
+      "name": "independent overlapping A/B ROM addresses, partial replacement and per-bank clear",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.609649658203125
+    },
+    {
+      "name": "ADPCM-A and B final 16 MiB ROM ranges and independent end flags",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.61456298828125
+    },
+    {
+      "name": "all sections and every source mute combination preserve running phase",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.555267333984375
+    },
+    {
+      "name": "clock changes and integer resampling including upsample sample holds",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2824859619140625
+    },
+    {
+      "name": "chip reset preserves both ROM banks, source mute and edited clock",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.580963134765625
+    },
+    {
+      "name": "Stop retains preloaded independent ROM banks for later retrigger",
+      "variant": "YM2610",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5816650390625
+    },
+    {
+      "name": "all six physical FM slots, YM2610 mask, stereo, LFO and independent gates",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038626931607723236
+    },
+    {
+      "name": "B-only physical FM slots are silent on original YM2610",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.021248556673526764
+    },
+    {
+      "name": "CH3 special-mode frequency latches including cross-port latch reuse",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013433283194899559
+    },
+    {
+      "name": "SSG tones, noise, all envelope shapes and targeted key-off",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "six independently addressed ADPCM-A voices, level, pan and retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.451171875
+    },
+    {
+      "name": "ADPCM-B encoded sample, looping, Delta-N, pan and retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21695201098918915
+    },
+    {
+      "name": "independent overlapping A/B ROM addresses, partial replacement and per-bank clear",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6493391394615173
+    },
+    {
+      "name": "ADPCM-A and B final 16 MiB ROM ranges and independent end flags",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6488758325576782
+    },
+    {
+      "name": "all sections and every source mute combination preserve running phase",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6759421825408936
+    },
+    {
+      "name": "clock changes and integer resampling including upsample sample holds",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.3007049560546875
+    },
+    {
+      "name": "chip reset preserves both ROM banks, source mute and edited clock",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.648223876953125
+    },
+    {
+      "name": "Stop retains preloaded independent ROM banks for later retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.580810546875
+    },
+    {
+      "name": "all six physical FM slots, YM2610 mask, stereo, LFO and independent gates",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.038604736328125
+    },
+    {
+      "name": "B-only physical FM slots are silent on original YM2610",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.021206943318247795
+    },
+    {
+      "name": "CH3 special-mode frequency latches including cross-port latch reuse",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.013422185555100441
+    },
+    {
+      "name": "SSG tones, noise, all envelope shapes and targeted key-off",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "six independently addressed ADPCM-A voices, level, pan and retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.451171875
+    },
+    {
+      "name": "ADPCM-B encoded sample, looping, Delta-N, pan and retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2170659899711609
+    },
+    {
+      "name": "independent overlapping A/B ROM addresses, partial replacement and per-bank clear",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.649859607219696
+    },
+    {
+      "name": "ADPCM-A and B final 16 MiB ROM ranges and independent end flags",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6489654779434204
+    },
+    {
+      "name": "all sections and every source mute combination preserve running phase",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.677233874797821
+    },
+    {
+      "name": "clock changes and integer resampling including upsample sample holds",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.30057594180107117
+    },
+    {
+      "name": "chip reset preserves both ROM banks, source mute and edited clock",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.6486755609512329
+    },
+    {
+      "name": "Stop retains preloaded independent ROM banks for later retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5835205316543579
+    },
+    {
+      "name": "all six physical FM slots, YM2610 mask, stereo, LFO and independent gates",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.03863525390625
+    },
+    {
+      "name": "B-only physical FM slots are silent on original YM2610",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0208740234375
+    },
+    {
+      "name": "CH3 special-mode frequency latches including cross-port latch reuse",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.0125732421875
+    },
+    {
+      "name": "SSG tones, noise, all envelope shapes and targeted key-off",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4610595703125
+    },
+    {
+      "name": "six independently addressed ADPCM-A voices, level, pan and retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.456787109375
+    },
+    {
+      "name": "ADPCM-B encoded sample, looping, Delta-N, pan and retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.21746826171875
+    },
+    {
+      "name": "independent overlapping A/B ROM addresses, partial replacement and per-bank clear",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.609649658203125
+    },
+    {
+      "name": "ADPCM-A and B final 16 MiB ROM ranges and independent end flags",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.61456298828125
+    },
+    {
+      "name": "all sections and every source mute combination preserve running phase",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.555267333984375
+    },
+    {
+      "name": "clock changes and integer resampling including upsample sample holds",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.2824859619140625
+    },
+    {
+      "name": "chip reset preserves both ROM banks, source mute and edited clock",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.580963134765625
+    },
+    {
+      "name": "Stop retains preloaded independent ROM banks for later retrigger",
+      "variant": "YM2610B",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.5816650390625
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 442368,
+  "limits": "Offline core/output-rate comparison. Native scheduling, ownership, cancellation and UI IPC are validated separately. Stop gate/control retention, status/IRQ/end flags and zero callback allocations are asserted in the C++ fixture self-test. Chip reset preserves ROM like Synth.reset(), whereas the VGM AudioEngine.reset() explicitly clears ROM.",
+  "selfTest": "YM2610/YM2610B variant/status/EOS/Stop/reset/independent ROM self-test passed; callback allocations 0, frees 0",
+  "status": "passed"
+}

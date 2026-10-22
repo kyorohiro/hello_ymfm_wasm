@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-pc98-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-neogeo-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -247,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-pc98-1",
+      "./playground_logic_worker.js?v=native-neogeo-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -1718,7 +1718,7 @@ export function createPlaygroundRuntime(
           const {method,args}=message.event;
           if (method === 'gameboyState') { core?._adoptState(args[0]); return; }
           if (method === 'ssgState') core?.ssg?._adoptState(args[0]);
-          if (method === 'setClock' && megaDrive.nativeOpna) {
+          if (method === 'setClock' && megaDrive.nativeOpn) {
             core._adoptClock(args[0]);
             return;
           }
@@ -1909,9 +1909,9 @@ export function createPlaygroundRuntime(
       sharedFm = createFmProxy(synth);
       if (megaDrive.clock && !megaDrive.node?.port) Object.defineProperty(sharedFm,'clock',{
         enumerable:true, get:()=>synth.clock,
-        set:()=>{throw new Error(megaDrive.nativeOpna ? 'Use await fm.setClock(hz) to change the Native YM2608 clock.' : 'Changing the chip clock is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
+        set:()=>{throw new Error(megaDrive.nativeOpn ? 'Use await fm.setClock(hz) to change the Native OPN clock.' : 'Changing the chip clock is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.');},
       });
-      if (megaDrive.nativeOpna) sharedFm.setClock = async hz => {
+      if (megaDrive.nativeOpn) sharedFm.setClock = async hz => {
         await synth.setClock(hz);
         logicWorker?.postMessage({type:'chip-clock-state',clock:synth.clock});
       };
@@ -1934,7 +1934,7 @@ export function createPlaygroundRuntime(
     const gameboy = isGameboy ? nativeApis.gameboy ?? keyboardApi(sharedGameboy) : undefined;
     const psg = nativeApis.psg ?? keyboardApi(megaDrive.psg);
     const sections = Object.fromEntries(Object.entries(primaryChipSections()).map(([name,api])=>[name,keyboardApi(api)]));
-    if (capabilities.chip === 'ym2608' && capabilities.backend === 'native-genesis') Object.assign(sharedFm, sections);
+    if (['ym2608','ym2610','ym2610b'].includes(capabilities.chip) && capabilities.backend === 'native-genesis') Object.assign(sharedFm, sections);
     const musicApi =
       createPlaygroundMusic({
         noteToSemitone:
@@ -2077,16 +2077,18 @@ export function createPlaygroundRuntime(
       useSoundChip: async (name, options) => {
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
+        if (capabilities.backend === 'native-genesis' && capabilities.chip === 'ym2610b' && name === 'ym2610b') name = 'ym2610';
         const chip = await soundChips.use(name, options, chipName => {
           check();
           const endpoint = megaDrive.primaryEndpoints?.find(endpoint => endpoint.name === chipName);
           if (endpoint) return nativeApis[endpoint.globalName];
           if (chipName === 'rf5c164' && megaDrive.pcm) return keyboardApi(primaryPcmApi());
           if (chipName === 'gameboy' && isGameboy) return gameboy;
+          if (chipName === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') return fm;
           if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && capabilities.chip === chipName) return fm;
           if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
-        }, {evictOnDispose: !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && capabilities.chip === name)});
+        }, {evictOnDispose: !(name === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') && !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && capabilities.chip === name)});
         check();
         return chip;
       },

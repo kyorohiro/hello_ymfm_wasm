@@ -9,6 +9,7 @@ Mega CDのRF5C164も[Native対応した](native_megacd_01.md)。Genesisと同じ
 DX7 modeも[Native対応した](native_dx7_01.md)。MSFA音源を直接ビルドし、共通の最終出力へ接続する。
 NES＋FDSも[Native対応した](native_nes_01.md)。現在のJS音源をC++へ移植し、共通の最終出力へ接続する。
 PC-98のYM2608も[Native対応した](native_pc98_01.md)。FM／SSG／rhythm／ADPCM-Bと共通のKeyboard・Sample Editorを使う。
+Neo GeoのYM2610／YM2610Bも[Native対応した](native_neogeo_01.md)。4／6CH FM・SSG・ADPCM-A/Bと既存サンプラーを使う。
 
 ## 第2段階：Genesisの実用機能を増やす
 

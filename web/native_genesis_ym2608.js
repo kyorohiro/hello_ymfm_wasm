@@ -84,10 +84,10 @@ export function createNativeGenesisYm2608(synth,{
   client.readStatus=async()=>client.read(0);client.getIrq=async()=>!!(await snapshot()).irq;
 
   async function upload(method,input,offset=0,timing={}){
-    const token=capture(),bytes=copyBytes(input);integer(offset,MAX_MEMORY,'memory address');
+    const token=capture();timing.checkCurrent?.();const bytes=copyBytes(input);integer(offset,MAX_MEMORY,'memory address');
     if(method==='rom'&&(offset!==0||bytes.length!==8192))throw new RangeError('Rhythm ROM must be an 8192-byte Uint8Array');
     if(method==='memory'&&bytes.length>MAX_MEMORY-offset)throw new RangeError('ADPCM-B memory exceeds 2 MiB');
-    for(let start=0;start<bytes.length;start+=CHUNK){current(token);send({method,offset:offset+start,data:Array.from(bytes.subarray(start,start+CHUNK))},{...timing,time:undefined});await synth.flush();current(token);}
+    for(let start=0;start<bytes.length;start+=CHUNK){current(token);timing.checkCurrent?.();send({method,offset:offset+start,data:Array.from(bytes.subarray(start,start+CHUNK))},{...timing,time:undefined});await synth.flush();current(token);timing.checkCurrent?.();}
   }
   // Reuse the public sample encoder and range setup, staging its operations so
   // cancellation during decoding cannot key off or reconfigure a new session.
