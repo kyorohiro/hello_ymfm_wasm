@@ -1,0 +1,547 @@
+{
+  "schemaVersion": 1,
+  "deviceOpened": false,
+  "startedAt": "2026-10-22T11:24:24.907Z",
+  "reference": "Actual deployed Sega PSG WASM running the shipped stereo-enabled Game Gear Worklet",
+  "wasmSha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+  "rates": [
+    44100,
+    48000,
+    96000
+  ],
+  "cases": [
+    {
+      "name": "all 256 stereo masks across three tones plus noise: low nibble right, high nibble left",
+      "sampleRate": 44100,
+      "frames": 16384,
+      "maximumDifference": 0,
+      "peak": 0.2536259591579437,
+      "stereoDifference": 0.2536259889602661
+    },
+    {
+      "name": "individual channel 0 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 1 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 2 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 3 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "periodic noise rate 0, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 1, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 2, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 3, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 0, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 1, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 2, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 3, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "three tone latches, zero/one period DC and volume data bytes route independently",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14014269411563873,
+      "stereoDifference": 0.2033882513642311
+    },
+    {
+      "name": "all sixteen tone and noise attenuation values preserve stereo source amplitudes",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4000000059604645,
+      "stereoDifference": 0.800000011920929
+    },
+    {
+      "name": "clock edits preserve original core counters LFSR and fractional average/hold stereo phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.16155703365802765,
+      "stereoDifference": 0.16155702993273735
+    },
+    {
+      "name": "stereo changes during very slow source holds match the shipped Worklet boundary",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1512245386838913,
+      "stereoDifference": 0.1512245386838913
+    },
+    {
+      "name": "Stop retains stereo periods noise mode and remembered attenuation without LFSR reset",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.12985916063189507
+    },
+    {
+      "name": "slow-clock Stop clears held stereo PCM immediately and retains routing for replay",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17985887825489044,
+      "stereoDifference": 0.17985887825489044
+    },
+    {
+      "name": "reset restores stereo ff and phase while retaining selected clock and external source mute",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1504751741886139,
+      "stereoDifference": 0.19518086314201355
+    },
+    {
+      "name": "independent four-channel source mute preserves oscillators LFSR stereo mask and clock phase",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14014269411563873,
+      "stereoDifference": 0.24329349398612976
+    },
+    {
+      "name": "reset and Stop do not revive silent voices until a new explicit volume or audition",
+      "sampleRate": 44100,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20000000298023224,
+      "stereoDifference": 0.2014622762799263
+    },
+    {
+      "name": "all 256 stereo masks across three tones plus noise: low nibble right, high nibble left",
+      "sampleRate": 48000,
+      "frames": 16384,
+      "maximumDifference": 0,
+      "peak": 0.2536259591579437,
+      "stereoDifference": 0.2536259889602661
+    },
+    {
+      "name": "individual channel 0 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 1 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 2 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 3 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "periodic noise rate 0, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 1, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 2, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 3, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 0, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 1, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 2, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 3, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "three tone latches, zero/one period DC and volume data bytes route independently",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14014269411563873,
+      "stereoDifference": 0.2033882513642311
+    },
+    {
+      "name": "all sixteen tone and noise attenuation values preserve stereo source amplitudes",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4000000059604645,
+      "stereoDifference": 0.800000011920929
+    },
+    {
+      "name": "clock edits preserve original core counters LFSR and fractional average/hold stereo phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.16155703365802765,
+      "stereoDifference": 0.16155702993273735
+    },
+    {
+      "name": "stereo changes during very slow source holds match the shipped Worklet boundary",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1512245386838913,
+      "stereoDifference": 0.1512245386838913
+    },
+    {
+      "name": "Stop retains stereo periods noise mode and remembered attenuation without LFSR reset",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.12985916063189507
+    },
+    {
+      "name": "slow-clock Stop clears held stereo PCM immediately and retains routing for replay",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17985887825489044,
+      "stereoDifference": 0.17985887825489044
+    },
+    {
+      "name": "reset restores stereo ff and phase while retaining selected clock and external source mute",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1504751741886139,
+      "stereoDifference": 0.19518086314201355
+    },
+    {
+      "name": "independent four-channel source mute preserves oscillators LFSR stereo mask and clock phase",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14014269411563873,
+      "stereoDifference": 0.24329349398612976
+    },
+    {
+      "name": "reset and Stop do not revive silent voices until a new explicit volume or audition",
+      "sampleRate": 48000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20000000298023224,
+      "stereoDifference": 0.2014622762799263
+    },
+    {
+      "name": "all 256 stereo masks across three tones plus noise: low nibble right, high nibble left",
+      "sampleRate": 96000,
+      "frames": 16384,
+      "maximumDifference": 0,
+      "peak": 0.2536259591579437,
+      "stereoDifference": 0.2536259815096855
+    },
+    {
+      "name": "individual channel 0 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 1 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 2 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "individual channel 3 left/right/both/disconnected and unrelated channel masks",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.07962143421173096
+    },
+    {
+      "name": "periodic noise rate 0, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 1, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 2, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "periodic noise rate 3, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 0, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 1, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 2, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "white noise rate 3, tone-3 coupling, latch continuation and stereo",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.12619148194789886,
+      "stereoDifference": 0.12619148194789886
+    },
+    {
+      "name": "three tone latches, zero/one period DC and volume data bytes route independently",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14014269411563873,
+      "stereoDifference": 0.2033882513642311
+    },
+    {
+      "name": "all sixteen tone and noise attenuation values preserve stereo source amplitudes",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.4000000059604645,
+      "stereoDifference": 0.800000011920929
+    },
+    {
+      "name": "clock edits preserve original core counters LFSR and fractional average/hold stereo phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.16155703365802765,
+      "stereoDifference": 0.16155702993273735
+    },
+    {
+      "name": "stereo changes during very slow source holds match the shipped Worklet boundary",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1512245386838913,
+      "stereoDifference": 0.1512245386838913
+    },
+    {
+      "name": "Stop retains stereo periods noise mode and remembered attenuation without LFSR reset",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.07962143421173096,
+      "stereoDifference": 0.12985916063189507
+    },
+    {
+      "name": "slow-clock Stop clears held stereo PCM immediately and retains routing for replay",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.17985887825489044,
+      "stereoDifference": 0.17985887825489044
+    },
+    {
+      "name": "reset restores stereo ff and phase while retaining selected clock and external source mute",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.1504751741886139,
+      "stereoDifference": 0.19518086314201355
+    },
+    {
+      "name": "independent four-channel source mute preserves oscillators LFSR stereo mask and clock phase",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.14014269411563873,
+      "stereoDifference": 0.24329349398612976
+    },
+    {
+      "name": "reset and Stop do not revive silent voices until a new explicit volume or audition",
+      "sampleRate": 96000,
+      "frames": 6144,
+      "maximumDifference": 0,
+      "peak": 0.20000000298023224,
+      "stereoDifference": 0.2014622762799263
+    }
+  ],
+  "maximumDifference": 0,
+  "totalStereoFrames": 436224,
+  "limits": "Offline standalone Sega PSG output only; fixture links solely the Game Gear wrapper and common SegaPSG synthesis, without any OPLL/Genesis source. Native IPC/ownership/UI verified separately. Source mutes use the real WASM channel mute API. Native Stop explicitly clears held PCM for immediate silence. State fixture checks 28-byte FFI layout, retained stereo/clock/periods/noise/levels, reset semantics, observational snapshots and zero callback allocations/frees. No real audio device or cross-platform compiler was used.",
+  "selfTest": "Standalone PSG only; all stereo routes, retained clock/levels/periods/noise/Stop, reset mask, source mute, observational snapshots passed; callback allocations 0, frees 0",
+  "status": "passed"
+}

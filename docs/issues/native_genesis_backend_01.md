@@ -14,6 +14,8 @@ DOS PCのYM3526／YM3812／YMF262は[Native対応の作業記録](native_opl_01.
 
 MSXのYM2413＋AY-3-8910は[Native対応の作業記録](native_msx_01.md)を参照。
 
+Game GearのSega PSGは[Native対応の作業記録](native_game_gear_01.md)を参照。
+
 Master SystemのSega PSG＋YM2413は[Native対応の作業記録](native_master_system_01.md)を参照。
 
 X68000のYM2151＋OKIM6258は[Native対応の作業記録](native_x68000_01.md)を参照。

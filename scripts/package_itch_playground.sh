@@ -283,6 +283,8 @@ native_genesis_ym2608.js
 native_genesis_ym2610b.js
 native_genesis_x68000.js
 native_genesis_master_system.js
+native_genesis_segapsg.js
+native_genesis_game_gear.js
 native_genesis_opll.js
 native_genesis_voice_endpoint.js
 native_genesis_msx.js
