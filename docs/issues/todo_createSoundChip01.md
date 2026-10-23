@@ -1,7 +1,7 @@
 # Native版 createSoundChip() 対応計画
 
 2026-10-23。追加音源の対象と必要な作業を整理する。
-Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2151の追加生成まで実装済み。残りは今後の計画。
+Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY-3-8910の追加生成まで実装済み。残りは今後の計画。
 
 ## 目的と範囲
 
@@ -36,9 +36,10 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加YM2608のFM 6CH＋SSG 3CH＋rhythm 6音色＋ADPCM-B、独立ROM／RAM、再利用可能timeline、編集・Keyboardに対応する。
 - [x] 追加YM2610のFM 4CH＋SSG 3CH＋ADPCM-A 6voice／B、疎なROM、編集・Keyboardに対応する。
 - [x] 追加YM2151の独立FM 8CH、LFO／noise・全CH CSM、音色編集・Keyboardに対応する。
-- [x] 対応済み6種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
+- [x] 追加YM2413の単独9CH・User patch・rhythmと、AYの単独3CH・共有noise／envelope・音量0保持に対応する。
+- [x] 対応済み8種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
 
-現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151の合計16台・64 MiB**。
+現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910の合計16台・64 MiB**。
 YM2608は1台ごとにRAM 2 MiB＋ROM 8 KiBを持つ。YM2610はA／B各16 MiB空間の使用箇所を64 KiB単位で確保する。
 固定queue・管理余裕、転送・timeline、ROMの旧版・新版の重複保持も数える。
 IPCのJSON／DTO一時data・JS・decode・主音源・FXは別枠。全対象への予算展開と、実機の負荷上限の評価は継続する。
@@ -56,8 +57,8 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 | `ym2608` | 対応済み | FM 6CH＋SSG＋rhythm＋ADPCM-B、独立ROM／RAM、再利用timeline、編集・試奏、合計メモリー予算 |
 | `ym2610` | 対応済み | FM 4CHのphysical対応、SSG、ADPCM-A／B、疎なROMと制御側COW準備、編集・試奏 |
 | `ym2151` | 対応済み | OPM 8CHの単独生成、operator、LFO／noise、CSM、pan、clock、編集・試奏 |
-| `ym2413` | 未対応・共通コアあり | OPLL単独のwrapper。9CH、共有user patch、rhythm、mono出力を保持 |
-| `ay8910` | 未対応・複合から分離 | MSX用からAY単独化。tone 3CH、共有noise／envelope、clock・音量0の保持 |
+| `ym2413` | 対応済み | OPLL単独9CH、共有User patch、rhythm 5voice、mono出力、編集・試奏 |
+| `ay8910` | 対応済み | AY単独tone 3CH、共有noise／envelope、clock・音量0の保持、編集・試奏 |
 | `ym3526` | 未対応・既存コアあり | OPL 9CH、2op／rhythm、共有設定・状態取得を独立化 |
 | `ym3812` | 未対応・既存コアあり | OPL2のprofile、波形選択、9CH／rhythm、clockを独立化 |
 | `y8950` | 未対応・既存コアあり | 現行Playground APIのFM 9CH／rhythmを接続。ADPCM拡張は別項目 |
@@ -94,7 +95,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
    4種類合計64 MiBの予算を用意し、準備・置換・取消し・退役の参照が残る間も予約を保持する。
 4. **YM2610（完了）**：FM4／SSG／ADPCM-A／Bを接続した。ROMは必要な64 KiB pagesを制御側で作り、
    callbackはpointerのみ切り替える。旧版・新版・退役待ちも64 MiB予算へ含める。
-5. **他の既存コア**：YM2151 OPM 8CHの単独化は完了。次はOPLL／AY／OPL、
+5. **他の既存コア**：YM2151 OPM・YM2413 OPLL・AYの単独化は完了。次はOPL、
    Game Boy／NES／PC Engine／DX7／PWMへ、利用頻度と単独化の容易さに応じて広げる。
    YM2608で実装した合計メモリー予算へ、新しい種類の固定確保と所有payloadを追加する。
 6. **サンプル・timelineを含む仕上げ**：RF5C164／OKIM6258／SNESを含め、
@@ -106,11 +107,11 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 
 ## 共通で必要な作業
 
-以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2151では適用済みでも、他の種類への展開が残るものは未完了とする。
+以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2151／YM2413／AYでは適用済みでも、他の種類への展開が残るものは未完了とする。
 
 ### ラック・生成・寿命管理
 
-- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2151も追加できる入口を作る。
+- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AYも追加できる入口を作る。
   各チップの命令検証・DSP状態・voice管理は、そのチップの実装へ委譲する。
 - [ ] 単独チップを生成するC ABIとRust wrapperを用意し、不要な同居音源の生成を避ける。
   例：YM2151だけの追加で、X68000複合のOKI用メモリーまで確保しない。
@@ -200,5 +201,6 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [実装済みの追加YM2608・メモリー予算と検証結果](native_dynamic_ym2608_01.md)
 - [実装済みの追加YM2610・疎なROMと検証結果](native_dynamic_ym2610_01.md)
 - [実装済みの追加YM2151・単独OPMと検証結果](native_dynamic_ym2151_01.md)
+- [実装済みの追加YM2413・AYと検証結果](native_dynamic_opll_ay01.md)
 - [Mixerの保存規則](playground_mixer_state_01.md)、[Native安定化・継続検証](native_stability_01.md)
 - [Neo Geoの4CH／6CH](native_neogeo_01.md)、[Native SNESなどの対応範囲](native_consoles_01.md)、[MSX Audioの対応範囲](native_msx_audio_01.md)

@@ -1,3 +1,4 @@
+const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 // Actual Main/Worker, editor and Keyboard; Native IPC only is mocked. No device.
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
@@ -47,7 +48,7 @@ function installExtraYm2203Mock(native){
       native.calls.push({command,args});assert.equal(args.session,native.current?.session);assert(Number.isSafeInteger(args.instance)&&args.instance>0);
       if(command==='native_genesis_extra_ym2203_create'){
         assert(!native.extraYm2203.has(args.instance)&&!native.extraYm2612.has(args.instance)&&!native.extraPsg.has(args.instance));
-        assert(native.extraYm2203.size+native.extraYm2612.size+native.extraPsg.size+(native.extraYm2608?.size??0)+(native.extraYm2610?.size??0)+(native.extraYm2151?.size??0)<16);const s=fresh();native.extraYm2203.set(args.instance,s);return snapshot(s);
+        assert(extraChipCount(native)<16);const s=fresh();native.extraYm2203.set(args.instance,s);return snapshot(s);
       }
       if(command==='native_genesis_extra_ym2203_dispose'){native.extraYm2203.delete(args.instance);return null;}
       assert.equal(command,'native_genesis_extra_ym2203_status');const s=native.extraYm2203.get(args.instance);assert(s);return snapshot(s);

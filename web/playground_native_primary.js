@@ -55,8 +55,8 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
   return wrap(raw);
 }
 
-export function createNativePrimaryClient(name, port, options = {}) {
-  const client = name==='pwm'?createPWM32XClient(port,{native:true}):name==='ay8910'?createAy8910Client(port,options):name==='ym2413'?createYm2413Client(port,options):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
+export function createNativePrimaryClient(name, port, options = {}, lifecycle = {}) {
+  const client = name==='pwm'?createPWM32XClient(port,{native:true}):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
     : name === 'nes' ? createNesClient(port, options)
     : name === 'gameboy' ? createGameboyClient(port)
     : name === 'snes' ? createSnesClient(port, options)

@@ -1,9 +1,9 @@
-import {createYm2151RegisterClient} from './playground_ym2151.js?v=native-extra-ym2151-1';
+import {createYm2151RegisterClient} from './playground_ym2151.js?v=native-extra-opll-ay-1';
 import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js?v=audio-numeric-bindings-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-msx-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-ym2151-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-opll-ay-1';
 
 export const EXTRA_YM2151_CLOCK_HELD_ERROR='Release the manually held additional YM2151 voices before changing the clock';
 const CLOCK=CHIP_CLOCKS.ym2151;

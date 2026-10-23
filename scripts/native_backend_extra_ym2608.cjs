@@ -1,3 +1,4 @@
+const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 // Real Main/Worker, Mixer, Inspector, Keyboard and exports; only Native IPC is mocked.
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
@@ -48,7 +49,7 @@ function installExtraYm2608Mock(native){
   native.invoke=async(command,args={})=>{
     if(command.startsWith('native_genesis_extra_ym2608_')){
       native.calls.push({command,args});assert.equal(args.session,native.current?.session);assert(Number.isSafeInteger(args.instance)&&args.instance>0);
-      if(command.endsWith('_create')){assert([...native.extraPsg.keys(),...native.extraYm2612.keys(),...native.extraYm2203.keys(),...native.extraYm2608.keys(),...(native.extraYm2610?.keys()??[]),...(native.extraYm2151?.keys()??[])].length<16);assert(!native.extraYm2608.has(args.instance));const s=fresh();native.extraYm2608.set(args.instance,s);return snapshot(s);}
+      if(command.endsWith('_create')){assert(extraChipCount(native)<16);assert(!native.extraYm2608.has(args.instance));const s=fresh();native.extraYm2608.set(args.instance,s);return snapshot(s);}
       if(command.endsWith('_dispose')){native.extraYm2608.delete(args.instance);return null;}assert(command.endsWith('_status'));const s=native.extraYm2608.get(args.instance);assert(s);return snapshot(s);
     }
     if(command==='native_genesis_commands')for(const c of args.commands.filter(c=>c.type==='extra-ym2608')){const s=native.extraYm2608.get(c.instance);assert(s);update(s);apply(s,c.message,c);}

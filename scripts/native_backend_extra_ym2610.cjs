@@ -1,3 +1,4 @@
+const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 // Real Main/Worker/Inspector/UI/Keyboard, with Native IPC mocked and no output device.
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
@@ -38,7 +39,7 @@ function installExtraYm2610Mock(native){
   native.invoke=async(command,args={})=>{
     if(command.startsWith('native_genesis_extra_ym2610_')){
       native.calls.push({command,args});assert.equal(args.session,native.current?.session);assert(Number.isSafeInteger(args.instance)&&args.instance>0);
-      if(command.endsWith('_create')){assert(native.extraPsg.size+native.extraYm2612.size+native.extraYm2203.size+native.extraYm2608.size+native.extraYm2610.size+(native.extraYm2151?.size??0)<16);assert(!native.extraYm2610.has(args.instance));const s=fresh();native.extraYm2610.set(args.instance,s);return snapshot(s);}
+      if(command.endsWith('_create')){assert(extraChipCount(native)<16);assert(!native.extraYm2610.has(args.instance));const s=fresh();native.extraYm2610.set(args.instance,s);return snapshot(s);}
       if(command.endsWith('_dispose')){native.extraYm2610.delete(args.instance);return null;}assert(command.endsWith('_status'));const s=native.extraYm2610.get(args.instance);assert(s);return snapshot(s);
     }
     if(command==='native_genesis_commands')for(const c of args.commands.filter(c=>c.type==='extra-ym2610')){const s=native.extraYm2610.get(c.instance);assert(s);apply(s,c.message);}

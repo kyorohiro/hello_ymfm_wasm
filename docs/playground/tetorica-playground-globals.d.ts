@@ -1826,7 +1826,7 @@ declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipO
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends OPNFmChannel, Stereo extends boolean = true> = Omit<PlaygroundOPNFm<C, Stereo>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
-/** Native supports independent ymfm FM6/DAC-register chips; YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
+/** Native supports independent ymfm FM6/DAC-register chips; YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
 declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2, false> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 /** Native: independent FM3/SSG3 mono OPN, including completion-based 44100 Hz register schedules. Shares the 16-instance rack limit. */
@@ -1862,7 +1862,7 @@ type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
 type PlaygroundPrimaryGameGearPsg = Omit<PlaygroundSegaPsg, 'dispose'> & PlaygroundChipClock & {readonly id: string};
 /** The Master System PSG has a mono output and no Game Gear stereo register. */
 type PlaygroundPrimaryMasterSystemPsg = Omit<PlaygroundPrimaryGameGearPsg, 'setStereo'>;
-/** Native YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
+/** Native YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
 declare function createSoundChip(name: 'segapsg', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundSegaPsg & PlaygroundChipClock & {readonly id: string}>;
 
 /** AY has three channels mixing tone and shared noise, plus one shared envelope. */
@@ -1906,6 +1906,7 @@ interface PlaygroundAy8910 {
   dispose():void;
 }
 type PlaygroundPrimaryAy8910 = Omit<PlaygroundAy8910,'dispose'> & PlaygroundChipClock & {readonly id:string};
+/** Native: independent AY-3-8910 at 1,789,773 Hz; three voices share noise/envelope. Configured volume zero is retained across keyOff. Shares the 16-instance / 64 MiB additional rack. */
 declare function createSoundChip(name:'ay8910',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundAy8910 & PlaygroundChipClock & {readonly id:string}>;
 
 /** OPLL has 15 built-in instruments and one user patch shared by all channels. */
@@ -1961,6 +1962,7 @@ interface PlaygroundYm2413 {
   dispose():void;
 }
 type PlaygroundPrimaryYm2413 = Omit<PlaygroundYm2413,'dispose'> & PlaygroundChipClock & {readonly id:string};
+/** Native: independent 9-channel OPLL at 3,579,545 Hz; User patch and rhythm settings are shared within one chip. Shares the 16-instance / 64 MiB additional rack. */
 declare function createSoundChip(name:'ym2413',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundYm2413 & PlaygroundChipClock & {readonly id:string}>;
 
 /** OPL family. Y8950 exposes FM here; its ADPCM bus remains a raw-register API. */

@@ -41,6 +41,13 @@ test('preset and later note batches remain ordered across delayed native acknowl
   gate.resolve();gate=null;await first;await second;
   assert.equal(f.calls.length,2);assert.equal(f.calls[1].args.commands.at(-1).register,0x28);await f.synth.close();
 });
+test('read-only OPLL layout observers validate progress identities and never block writes or session Stop',async()=>{
+  const gate=deferred(),f=fixture({invoke:command=>command==='native_genesis_extra_ym2413_status'?gate.promise:undefined});await f.synth.start();f.calls.length=0;
+  await assert.rejects(f.synth.observeNativeSnapshot('native_genesis_shutdown',{instance:1,afterLayoutRevision:0}),/Unsupported/);
+  for(const args of [{instance:1,afterLayoutRevision:-1},{instance:0,afterLayoutRevision:0},{instance:1,afterLayoutRevision:1.5},{instance:1,afterLayoutRevision:0,after:9}])await assert.rejects(f.synth.observeNativeSnapshot('native_genesis_extra_ym2413_status',args),/Invalid Native layout/);
+  assert.equal(f.calls.length,0);const pending=f.synth.observeNativeSnapshot('native_genesis_extra_ym2413_status',{instance:1,afterLayoutRevision:0}),cancelled=assert.rejects(pending,{name:'AbortError'});await ticks();assert.equal(f.synth.acceptedRequests,1);
+  f.synth.fm.write(0,0x22,8);await f.synth.flush();assert.equal(f.commands().at(-1).register,0x22);await f.synth.close();assert.equal(f.calls.at(-1).command,'native_genesis_shutdown');gate.resolve({ym2413:{layoutRevision:1,layoutPending:false}});await cancelled;assert.equal(f.synth.acceptedRequests,0);assert.deepEqual(f.errors,[]);
+});
 
 test('Stop discards pending old writes, fences queued batches, and awaits the native reset acknowledgement',async()=>{
   let gate=null;const f=fixture({invoke:(command)=>command==='native_genesis_commands'&&gate?gate.promise:undefined});await f.synth.start();f.calls.length=0;
@@ -282,7 +289,7 @@ test('more than 32 Main Stop and Run cycles reuse noise slots and old handles ca
 
 
 test('aggregate additional-chip budget rejection preserves the engine across all kinds and mixed primary batches',async()=>{
-  const kinds=['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151'];
+  const kinds=['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910'];
   for(const types of [...kinds.map(kind=>[kind]),[...kinds,'write']]){
     for(const asString of [false,true]){
       let reject=false;

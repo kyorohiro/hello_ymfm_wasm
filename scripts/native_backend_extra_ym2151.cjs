@@ -1,3 +1,4 @@
+const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 // Real Main/Worker, Inspector, Keyboard and UI; mocked Native IPC, no audio device.
 const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
@@ -28,7 +29,7 @@ function installExtraYm2151Mock(native){
   native.invoke=async(command,args={})=>{
     if(command.startsWith('native_genesis_extra_ym2151_')){
       native.calls.push({command,args});assert.equal(args.session,native.current?.session);assert(Number.isSafeInteger(args.instance)&&args.instance>0);
-      if(command.endsWith('_create')){assert(kinds.reduce((sum,key)=>sum+(native[key]?.size??0),0)<16);assert(!native.extraYm2151.has(args.instance));const s=fresh();native.extraYm2151.set(args.instance,s);return snapshot(s);}
+      if(command.endsWith('_create')){assert(extraChipCount(native)<16);assert(!native.extraYm2151.has(args.instance));const s=fresh();native.extraYm2151.set(args.instance,s);return snapshot(s);}
       if(command.endsWith('_dispose')){native.extraYm2151.delete(args.instance);return null;}
       assert(command.endsWith('_status'));const s=native.extraYm2151.get(args.instance);assert(s);return snapshot(s);
     }

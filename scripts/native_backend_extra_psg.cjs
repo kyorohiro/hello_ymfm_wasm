@@ -1,3 +1,4 @@
+const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 // Native dynamic PSG regression. Only IPC is mocked; real Main/Worker clients,
 // Mixer, Inspector, keyboard selectors and MessagePorts run in the browser.
 // Enter directly in Native mode so no Web Audio context or worklet is created.
@@ -17,7 +18,7 @@ function installExtraPsgMock(native){
       assert(Number.isSafeInteger(args.instance)&&args.instance>0,'Extra PSG instance must be a positive safe integer');
       if(command==='native_genesis_extra_psg_create'){
         assert(!native.extraPsg.has(args.instance),'An active Native PSG instance cannot be recreated');
-        assert(native.extraPsg.size+(native.extraYm2612?.size??0)+(native.extraYm2203?.size??0)+(native.extraYm2608?.size??0)+(native.extraYm2610?.size??0)+(native.extraYm2151?.size??0)<16,'Native additional rack is bounded to sixteen instances');
+        assert(extraChipCount(native)<16);
         const entry={instance:args.instance,states:{segapsg:{clock:3579545,periods:[0,0,0],
           attenuations:[15,15,15,15],lastVolumes:[0,0,0,0],latched:0,mode:0,
           stereo:255,stereoEnabled:true,sourceMuteMask:0,held:new Map()}},mix:{volume:1,left:1,right:1}};
