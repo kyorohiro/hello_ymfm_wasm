@@ -248,6 +248,11 @@ export const EXAMPLE_FILES = [
     "data": "// Select Mode: Genesis, Mega CD, 32X, or 32X Nuked.\n// The built-in FM and PSG play together; no extra chip is needed.\nsetBpm(120);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\n\nliveLoop('fm-and-psg', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4']) {\n    psg.tone(PSG1, {note, attenuation: 10});\n    await play(note, {channel: CH1, beats: 0.4});\n    psg.off(PSG1);\n    await beat(0.1);\n  }\n});\n"
   },
   {
+    "path": "/examples/genesis/mixed-chip-stability.js",
+    "name": "mixed-chip-stability",
+    "data": "// Compare this same scene in Web Audio / Native, Main / Worker. One cycle = 40 seconds.\n// 同じコードで混合音源を聴き比べ。Run → Keyboard は独立した YM2612 CH2–6。\n// Original generated tones only; adjust scene-fm / scene-pcm / scene-dx7 in Mixer.\n// 自動検査・録音だけでは実際の出力機器でのノイズの有無は断定できません。\n// Live edits reuse these IDs; Stop disposes them before a fresh Run.\nconst {lead, bass, pad} = await livePrepare('mixed-chip-scene-chips', async () => ({\n  lead: await createSoundChip('ym2612', {id: 'scene-fm'}),\n  bass: await createSoundChip('rf5c164', {id: 'scene-pcm'}),\n  pad: await createSoundChip('dx7', {id: 'scene-dx7'}),\n}));\n\nfor (let channel = 0; channel < 6; channel++) {\n  lead.setPreset(channel, FM_PRESETS['one-op-basic']);\n  lead.setOperator(channel, 3, {tl: channel === 0 ? 20 : 28, ar: 18, rr: 10});\n}\nawait pad.setPreset({\n  name: 'SCENE PAD', algorithm: 31, feedback: 0,\n  operators: {\n    1: {\n      coarse: 1, outputLevel: 78,\n      envelope: {rates: [65, 70, 60, 65], levels: [99, 86, 80, 0]},\n    },\n  },\n});\n\n// A finite bass sample fades to zero before its gate closes, even at the lowest note.\nconst sampleRate = 12000, rootNote = 29; // F1; all bass notes below are >= F1.\nconst samples = new Float32Array(Math.round(sampleRate * 0.28));\nconst rootHz = 440 * 2 ** ((rootNote - 69) / 12);\nfor (let frame = 0; frame < samples.length; frame++) {\n  const time = frame / sampleRate;\n  const ramp = Math.min(1, time / 0.008, (samples.length - 1 - frame) / (sampleRate * 0.045));\n  const envelope = (1 - Math.cos(Math.PI * ramp)) / 2;\n  const phase = 2 * Math.PI * rootHz * time;\n  samples[frame] = 0.6 * (Math.sin(phase) + 0.22 * Math.sin(2 * phase)) / 1.22 * envelope;\n}\nconst wave = await bass.loadSample({sampleRate, channels: [samples]}, {endGuardBytes: 32});\nawait bass.setChannel(0, {...wave, volume: 145, pan: {left: 15, right: 15}});\nconst stepFor = midi => Math.round(wave.step * 2 ** ((midi - rootNote) / 12));\n\n// These are scene-specific starting levels, not new chip defaults or loudness normalization.\nawait mixer.set(lead.id, {volume: 0.45, pan: -0.15});\nawait mixer.set(bass.id, {volume: 0.55, pan: 0.10});\nawait mixer.set(pad.id, {volume: 0.30, pan: 0.15});\nsetBpm(96);\n\n// The sequence reserves CH1; Keyboard gets CH2–6 and its own press identities.\nconst held = new Map();\nkeyboard.bind('Mixed scene · YM2612 CH2–6', {\n  noteOn({id, midi}) {\n    if (held.has(id)) return;\n    const channel = [1, 2, 3, 4, 5].find(value => ![...held.values()].includes(value));\n    if (channel === undefined) return;\n    held.set(id, channel);\n    lead.noteOn(channel, midi);\n  },\n  noteOff({id}) {\n    const channel = held.get(id);\n    if (channel === undefined) return;\n    held.delete(id);\n    lead.keyOff(channel);\n  },\n  allNotesOff() {\n    held.clear();\n    for (let channel = 1; channel < 6; channel++) lead.keyOff(channel);\n  },\n});\n\nconst progression = [\n  {root: 36, chord: [60, 64, 67], melody: [72, 76, 79, 76, 74, 72, 67, 71]},\n  {root: 33, chord: [57, 60, 64], melody: [72, 76, 69, 72, 71, 69, 67, 64]},\n  {root: 29, chord: [53, 57, 60], melody: [69, 72, 77, 76, 72, 69, 67, 65]},\n  {root: 31, chord: [55, 59, 62], melody: [67, 71, 74, 79, 77, 74, 71, 67]},\n];\nliveCleanup(['mixed-chip-scene'], async () => {\n  lead.keyOff(0);\n  await bass.keyOff(0);\n  pad.allNotesOff();\n});\nliveLoop('mixed-chip-scene', async () => {\n  for (const section of progression) {\n    for (const midi of section.chord) pad.noteOn(midi, 68);\n    for (let bar = 0; bar < 4; bar++) {\n      for (let step = 0; step < 8; step++) {\n        if (step % 2 === 0) {\n          const midi = section.root + [0, 7, 12, 7][step / 2];\n          await bass.setPitch(0, stepFor(midi));\n          await bass.keyOn(0);\n        }\n        lead.noteOn(0, section.melody[(step + bar * 2) % 8]);\n        await beat(0.32);\n        lead.keyOff(0);\n        await beat(0.18);\n        if (step % 2 === 1) await bass.keyOff(0);\n      }\n    }\n    for (const midi of section.chord) pad.noteOff(midi);\n  }\n});\nlog('Mixed chip scene ready · YM2612 + RF5C164 + DX7 · Keyboard: YM2612 CH2–6');\n"
+  },
+  {
     "path": "/examples/genesis/mixer-chip-balance.js",
     "name": "mixer-chip-balance",
     "data": "// Open the Sega PSG tab and the lower Mixer panel while this plays.\n// The two chips use independent output controls. Mute/Solo do not stop their clocks.\nconst fmChip = await useSoundChip('ym2612');\nconst psgChip = await useSoundChip('segapsg');\nfmChip.setPreset(0, FM_PRESETS['one-op-basic']);\n\n// Optional script control of the same Mixer settings:\n// await mixer.set(fmChip.id, {volume: 0.5, pan: -0.3});\n// await mixer.set(psgChip.id, {solo: true});\n// await mixer.set(psgChip.id, {solo: false});\n// Kept commented so Run preserves the balance you set in the UI.\n\nsetBpm(110);\nliveLoop('mixer-chip-balance', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4']) {\n    fmChip.setNote(0, note);\n    fmChip.keyOn(0);\n    psgChip.tone(0, {note, attenuation: 9});\n    await beat(0.75);\n    fmChip.keyOff(0);\n    psgChip.off(0);\n    await beat(0.25);\n  }\n});\n"
@@ -605,6 +610,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/chip-raw/ym2612-raw-write-beep.js",
     "/examples/genesis/32x-pwm-sine.js",
     "/examples/genesis/genesis-mode-duet.js",
+    "/examples/genesis/mixed-chip-stability.js",
     "/examples/genesis/mixer-chip-balance.js",
     "/examples/genesis/rf5c164-sine.js",
     "/examples/genesis/segapsg-tone-noise.js",
@@ -629,17 +635,20 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
   "mega-cd": [
     "/examples/mega-cd/megacd-pcm-loop.js",
     "/examples/mega-cd/megacd-fm-pcm.js",
-    "/examples/mega-cd/megacd-sampler.js"
+    "/examples/mega-cd/megacd-sampler.js",
+    "/examples/genesis/mixed-chip-stability.js"
   ],
   "genesis-full": [
     "/examples/genesis/genesis-mode-duet.js",
     "/examples/genesis/rf5c164-sine.js",
-    "/examples/genesis/32x-pwm-sine.js"
+    "/examples/genesis/32x-pwm-sine.js",
+    "/examples/genesis/mixed-chip-stability.js"
   ],
   "genesis-full-nuked": [
     "/examples/genesis/genesis-mode-duet.js",
     "/examples/genesis/rf5c164-sine.js",
-    "/examples/genesis/32x-pwm-sine.js"
+    "/examples/genesis/32x-pwm-sine.js",
+    "/examples/genesis/mixed-chip-stability.js"
   ],
   "pc98-26": [
     "/examples/pc98/pc98-opn-melody.js",
@@ -764,6 +773,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/chip-raw/ym2612-raw-write-beep.js",
     "/examples/genesis/32x-pwm-sine.js",
     "/examples/genesis/genesis-mode-duet.js",
+    "/examples/genesis/mixed-chip-stability.js",
     "/examples/genesis/mixer-chip-balance.js",
     "/examples/genesis/rf5c164-sine.js",
     "/examples/genesis/segapsg-tone-noise.js",

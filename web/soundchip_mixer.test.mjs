@@ -44,6 +44,31 @@ test('browser stereo routing applies defaults, ramps changes and unregisters onl
   release(); assert.equal(source.targets.length, 0); assert.equal(mixer.list().length, 0);
 });
 
+test('a pre-disconnected Stop route still releases its mixer graph without touching a replacement route', () => {
+  const nodes=[];
+  function node(){
+    const value={targets:[],gain:{value:1},
+      connect(target){this.targets.push(target);},
+      disconnect(target){
+        if(target!==undefined&&!this.targets.includes(target))throw new DOMException('Destination is not connected','InvalidAccessError');
+        this.targets=target===undefined?[]:this.targets.filter(value=>value!==target);
+      }};
+    nodes.push(value);return value;
+  }
+  const context={currentTime:0,createGain:node,createChannelSplitter:node,createChannelMerger:node};
+  const source=node(),destination=node(),mixer=new SoundChipMixer();
+  const release=mixer.connect('scene','ym2612',source,destination,context),oldGraph=nodes.slice(2);
+  source.disconnect(); // Stop silences output before async Keyboard cleanup completes.
+  const unrelated=node();source.connect(unrelated);
+  assert.doesNotThrow(release);
+  assert.deepEqual(source.targets,[unrelated]);
+  assert(oldGraph.every(node=>node.targets.length===0),'Owned gain/splitter/merger graph is fully released');
+  assert.equal(mixer.list().length,0);
+  const replacement=mixer.connect('scene','ym2612',source,destination,context);
+  release();assert.equal(source.targets.length,2,'An old release leaves the new route intact');
+  replacement();assert.deepEqual(source.targets,[unrelated]);
+});
+
 test('initializing outputs reserve automatic and explicit IDs before any awaits', () => {
  const mixer=new SoundChipMixer();
  const a=mixer.reserveId('gameboy'),b=mixer.reserveId('gameboy');assert.notEqual(a.id,b.id);

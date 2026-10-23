@@ -59,11 +59,11 @@ function setup(t, capabilities, runtimeOptions = {}, createRuntime = createPlayg
 // production factory and public options unchanged. Other imports retain their
 // actual implementations, including the independent OPN client and Keyboard.
 let injectedRuntimeSequence=0;
-async function runtimeWithOpnAudio(factory){
+async function runtimeWithOpnAudio(factory,functionName='createOpnAudio'){
   const sourceUrl=new URL('./playground_runtime.js',import.meta.url),key=`__runtimeOpnAudio${++injectedRuntimeSequence}`;
   globalThis[key]=factory;
   const source=(await readFile(sourceUrl,'utf8'))
-    .replace(/^import \{createOpnAudio\} from ['"][^'"]+['"];$/m,`const createOpnAudio=globalThis[${JSON.stringify(key)}];`)
+    .replace(new RegExp(`^import \\{${functionName}\\} from ['"][^'"]+['"];$`,'m'),`const ${functionName}=globalThis[${JSON.stringify(key)}];`)
     .replace(/from\s*(['"])(\.[^'"]+)\1/g,(_match,_quote,path)=>`from ${JSON.stringify(new URL(path,sourceUrl).href)}`)
     .replaceAll('import.meta.url',JSON.stringify(sourceUrl.href));
   try{return (await import(`data:text/javascript,${encodeURIComponent(source)}`)).createPlaygroundRuntime;}
@@ -80,6 +80,21 @@ function independentOpnFixture(){
     }};
     return {port,node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){entry.disconnected=true;events.push(['disconnect',entry.id]);}},
       dispose(){entry.disposed=true;events.push(['dispose',entry.id]);}};
+  };
+  return {events,devices,factory};
+}
+function independentRfFixture(gate){
+  const events=[],devices=[];
+  const factory=async()=>{
+    const entry={id:devices.length,disposed:false,disconnected:false,waiting:false};devices.push(entry);events.push(['create',entry.id]);
+    const port={start(){},close(){events.push(['port-close',entry.id]);},postMessage(command){
+      if(entry.disposed)throw new Error('RF endpoint disposed before cleanup');
+      events.push(['command',entry.id,command.method,command.args]);
+      if(command.id===undefined)return;
+      const reply=()=>queueMicrotask(()=>port.onmessage?.({data:{id:command.id}}));
+      if(gate&&entry.id===0&&command.method==='keyOff'&&!entry.waiting){entry.waiting=true;gate.promise.then(reply);}else reply();
+    }};
+    return {port,node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){entry.disconnected=true;events.push(['disconnect',entry.id]);}},dispose(){entry.disposed=true;events.push(['dispose',entry.id]);}};
   };
   return {events,devices,factory};
 }
@@ -265,6 +280,57 @@ test('custom Keyboard cleanup can await pg.stopAll without waiting on its own de
       await pg.stopAll();extra.keyOff(0);globalThis.playgroundReview.released=true;}});`);
   runtime.stop();await runtime.finalize();
   assert.equal(globalThis.playgroundReview.released,true);assert.equal(fixture.devices[0].disposed,true);assert.deepEqual(logs,[]);
+});
+
+test('Stop silences RF output immediately but retains the real client until async liveCleanup acknowledgements and same-ID reuse',async t=>{
+  const gate=deferred(),fixture=independentRfFixture(gate),createRuntime=await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio');
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  globalThis.playgroundReview={finished:false};
+  await runtime.playSource(`const pcm=await createSoundChip('rf5c164',{id:'cleanup-pcm'});await pcm.keyOn(0);
+    liveLoop('rf-held',async()=>{await sleep(60);});
+    liveCleanup(['rf-held'],async()=>{await pcm.keyOff(0);await pcm.keyOff(1);globalThis.playgroundReview.finished=true;});`);
+  assert.equal(runtime.stop(),undefined);assert.equal(fixture.devices[0].disconnected,true);assert.equal(fixture.devices[0].disposed,false);
+  await until(()=>fixture.devices[0].waiting);let restarted=false;
+  const next=runtime.playSource(`await createSoundChip('rf5c164',{id:'cleanup-pcm'});`).then(()=>{restarted=true;});
+  for(let i=0;i<10;i++)await Promise.resolve();assert.equal(restarted,false);assert.equal(fixture.devices.length,1);
+  gate.resolve();await next;assert.equal(globalThis.playgroundReview.finished,true);assert.equal(fixture.devices[0].disposed,true);assert.equal(fixture.devices.length,2);
+  const lastRelease=fixture.events.findIndex(([kind,id,method,args])=>kind==='command'&&id===0&&method==='keyOff'&&args[0]===1),disposed=fixture.events.findIndex(([kind,id])=>kind==='dispose'&&id===0),replaced=fixture.events.findIndex(([kind,id])=>kind==='create'&&id===1);
+  assert(lastRelease<disposed&&disposed<replaced);assert.deepEqual(logs,[]);await runtime.finalize();
+});
+
+test('finalize and repeated Stop await asynchronous liveCleanup even without an additional audio device',async t=>{
+  const gate=deferred(),{runtime,megaDrive,logs}=setup(t);let closed=false;megaDrive.close=async()=>{closed=true;};
+  globalThis.playgroundReview={gate,finished:false};
+  await runtime.playSource(`liveLoop('cleanup-delay',async()=>{await sleep(60);});liveCleanup(['cleanup-delay'],async()=>{await globalThis.playgroundReview.gate.promise;globalThis.playgroundReview.finished=true;});`);
+  runtime.stop();const finishing=runtime.finalize();for(let i=0;i<10;i++)await Promise.resolve();assert.equal(closed,false);
+  gate.resolve();await finishing;assert.equal(globalThis.playgroundReview.finished,true);assert.equal(closed,true);assert.deepEqual(logs,[]);
+});
+
+test('async liveCleanup may await pg.stopAll after an arbitrary promise without waiting on its own retirement',async t=>{
+  const gate=deferred(),fixture=independentRfFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio');
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};globalThis.playgroundReview={gate,finished:false};
+  await runtime.playSource(`const pcm=await createSoundChip('rf5c164',{id:'nested-cleanup'});liveLoop('nested',async()=>{await sleep(60);});
+    liveCleanup(['nested'],async()=>{await globalThis.playgroundReview.gate.promise;await pg.stopAll();await pcm.keyOff(0);globalThis.playgroundReview.finished=true;});`);
+  runtime.stop();gate.resolve();await runtime.finalize();assert.equal(globalThis.playgroundReview.finished,true);assert.equal(fixture.devices[0].disposed,true);assert.deepEqual(logs,[]);
+});
+
+test('ordinary pg.stopAll still awaits the additional device disposal fence',async t=>{
+  const fixture=independentRfFixture(),createRuntime=await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio');
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  globalThis.playgroundReview={finished:false};await runtime.playSource(`await createSoundChip('rf5c164',{id:'ordinary-stop'});await pg.stopAll();globalThis.playgroundReview.finished=true;`);
+  assert.equal(globalThis.playgroundReview.finished,true);assert.equal(fixture.devices[0].disposed,true);assert.deepEqual(logs,[]);
+});
+
+test('the running AudioContext fade path waits for liveCleanup RF acknowledgement and disposal after reaching silence',async t=>{
+  const gate=deferred(),fixture=independentRfFixture(gate),createRuntime=await runtimeWithOpnAudio(fixture.factory,'createRf5c164Audio');
+  const {runtime,megaDrive,logs}=setup(t,undefined,{},createRuntime);
+  const gain={value:1,cancelScheduledValues(){},setValueAtTime(value){this.value=value;},setValueCurveAtTime(){},linearRampToValueAtTime(){}};
+  megaDrive.audioContext={state:'running',currentTime:0,destination:{},createGain:()=>({gain,connect(){},disconnect(){}})};
+  megaDrive.audio={masterInputNode:{},outputNode:null,connectOutput(){}};
+  await runtime.playSource(`const pcm=await createSoundChip('rf5c164',{id:'fading-cleanup'});liveLoop('fade-held',async()=>{await sleep(60);});liveCleanup(['fade-held'],async()=>{await pcm.keyOff(0);});`);
+  let finished=false;const fading=runtime.stopWithFade().then(()=>{finished=true;});megaDrive.audioContext.currentTime=.125;
+  await new Promise(resolve=>setTimeout(resolve,10));assert.equal(gain.value,0);assert.equal(fixture.devices[0].disconnected,true);assert.equal(fixture.devices[0].disposed,false);assert.equal(finished,false);
+  gate.resolve();await fading;assert.equal(fixture.devices[0].disposed,true);assert.deepEqual(logs,[]);await runtime.finalize();
 });
 
 test('Main shared PCM sample factory releases started voices across separate key callback leases',async t=>{
@@ -458,9 +524,9 @@ test('a fade started after an audition request retires that request rather than 
   const first=deferred(),second=deferred();let count=0;megaDrive.stopAllNative=()=>++count===1?first.promise:second.promise;
   runtime.stop();const audition=runtime.prepareAudition(),rejected=assert.rejects(audition,{name:'AbortError'});
   for(let i=0;i<8;i++)await Promise.resolve();
-  const fade=runtime.stopWithFade();first.resolve();
+  let faded=false;const fade=runtime.stopWithFade().then(()=>{faded=true;});first.resolve();
   for(let i=0;i<16;i++)await Promise.resolve();megaDrive.audioContext.currentTime=.125;
-  await fade;await rejected;second.resolve();megaDrive.stopAllNative=()=>{};
+  await new Promise(resolve=>setTimeout(resolve,10));assert.equal(faded,false,'fade completion also waits for its newer Stop barrier');second.resolve();await fade;await rejected;megaDrive.stopAllNative=()=>{};
 });
 
 test('stopping a Main Game Boy liveLoop releases its held voice', async t => {

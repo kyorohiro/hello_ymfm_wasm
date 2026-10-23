@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-lifetime-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-stability-1';
 import {NES_APU_CLOCK, validateNesApuClock} from './nesapu.js?v=nes-wasm-1';
 const nativeFetch=globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context

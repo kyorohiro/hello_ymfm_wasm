@@ -52,14 +52,40 @@ export function installCreationEnvironment(t, {holdResponse = () => false, holdN
   globalThis.Worker = class {
     constructor() {
       this.pending = []; this.messages = []; this.heldResponses = []; this.heldNotifications = []; this.ready = false;
+      this.closedHeldResponses = new Set(); this.releasedResponses = new Set();
       workers.push(this);
-      this.worker = new NodeWorker(`const {parentPort}=require('node:worker_threads');globalThis.self=globalThis;globalThis.postMessage=(message,transfer)=>parentPort.postMessage(message,transfer);import(${JSON.stringify(url)}).then(()=>{parentPort.on('message',data=>self.onmessage({data}));parentPort.postMessage({readyForTest:true});});`, {eval: true});
+      this.worker = new NodeWorker(`
+        const {parentPort}=require('node:worker_threads');
+        globalThis.self=globalThis;
+        globalThis.postMessage=(message,transfer)=>parentPort.postMessage(message,transfer);
+        const held=new Map();
+        import(${JSON.stringify(url)}).then(()=>{
+          parentPort.on('message',data=>{
+            if(data.holdCreationResponseForTest){
+              const message=data.message;held.set(message.id,message);
+              message.value.port.once('close',()=>parentPort.postMessage({closedHeldResponseForTest:message.id}));
+              return;
+            }
+            if(data.releaseCreationResponsesForTest){
+              for(const id of data.releaseCreationResponsesForTest){
+                const message=held.get(id);if(!message)throw Error('Unknown held creation response');
+                held.delete(id);self.onmessage({data:message});
+                parentPort.postMessage({releasedHeldResponseForTest:id});
+              }
+              return;
+            }
+            self.onmessage({data});
+          });
+          parentPort.postMessage({readyForTest:true});
+        });`, {eval: true});
       this.worker.on('message', data => {
         if (data.readyForTest) {
           this.ready = true;
           for (const [message, transfer] of this.pending.splice(0)) this.worker.postMessage(message, transfer);
           return;
         }
+        if (data.closedHeldResponseForTest) { this.closedHeldResponses.add(data.closedHeldResponseForTest); return; }
+        if (data.releasedHeldResponseForTest) { this.releasedResponses.add(data.releasedHeldResponseForTest); return; }
         this.messages.push(data);
         this.onmessage?.({data});
       });
@@ -68,25 +94,27 @@ export function installCreationEnvironment(t, {holdResponse = () => false, holdN
     postMessage(message, transfer) {
       if (holdNotification(message)) { assert(!transfer?.length); this.heldNotifications.push(message); return; }
       if (holdResponse(message)) {
-        // Transfer at the original send boundary. The retained delivery owns
-        // the remote port, so later host disposal cannot close a port still
-        // waiting in the Worker's transport queue.
+        // Transfer exactly once at the original send boundary, then hold the
+        // message inside the real Worker before its production onmessage.
+        // Closing its peer may close this queued port; delivery must not try
+        // transferring that already-closed port a second time.
         assert.equal(transfer?.length, 1); assert.equal(transfer[0], message.value.port);
-        const copy = structuredClone(message, {transfer});
-        this.heldResponses.push([copy, [trackPort(copy.value.port)]]); return;
+        this.heldResponses.push(message.id);
+        this.worker.postMessage({holdCreationResponseForTest:true,message},transfer); return;
       }
       if (this.ready) this.worker.postMessage(message, transfer);
       else this.pending.push([message, transfer]);
     }
     releaseResponses() {
-      for (const [message, transfer] of this.heldResponses.splice(0)) this.worker.postMessage(message, transfer);
+      const ids=this.heldResponses.splice(0);
+      if(ids.length)this.worker.postMessage({releaseCreationResponsesForTest:ids});
     }
     releaseNotifications() { for (const message of this.heldNotifications.splice(0)) this.worker.postMessage(message); }
     terminate() {
       if (this.terminated) return this.terminated;
-      // A response held by this transport shim has not entered the Worker.
-      // Termination discards that delivery and its transferable ports.
-      for (const [, transfer] of [...this.pending, ...this.heldResponses]) for (const port of transfer ?? []) port.close?.();
+      // Unsent startup messages still belong to the host. Held creation
+      // responses are already owned by the Worker and retire with its thread.
+      for (const [, transfer] of this.pending) for (const port of transfer ?? []) port.close?.();
       this.pending.length = this.heldResponses.length = this.heldNotifications.length = 0;
       return this.terminated = this.worker.terminate();
     }

@@ -382,7 +382,7 @@ export function createPlaygroundRuntime(
     // The Main and Worker control ports have independent message order. A new
     // performance must wait until every old Main-port release has been applied.
     primaryPcmSilence = Promise.all([primaryPcmSilence, ...pending]).then(() => {});
-    return primaryPcmSilence;
+    return Promise.all(pending).then(()=>{});
   }
   function primaryPcmApi() {
     const raw = megaDrive.pcm;
@@ -470,7 +470,11 @@ export function createPlaygroundRuntime(
         const value=Reflect.get(object,key,object);if(typeof value!=='function')return (['ssg','rhythm','adpcm','adpcmA','adpcmB'].includes(key)||device.chipName==='gameboy'&&['pulse','wave','noise'].includes(key)||device.chipName==='nes'&&['pulse','triangle','noise','dmc','fds'].includes(key)||(device.chipName==='ym2610'||['ym3526','ym3812','y8950','ymf262'].includes(device.chipName))&&['fm','transport'].includes(key))&&value?wrap(value,[...path,key]):value;
         if(key==='dispose'||typeof key==='string'&&key.startsWith('_'))return value.bind(object);
         return (...args)=>{
-          const loop=currentLoopContext,change=event(key,args,path);if(loop?.stopped)return;
+          const loop=currentLoopContext;
+          // Native Stop already silenced and retired this generation. A queued
+          // Keyboard release may still finish its awaited bookkeeping afterward.
+          if(loop?.keyboardCleanup&&device.ready===false)return Promise.resolve();
+          const change=event(key,args,path);if(loop?.stopped)return;
           if(!['ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','dx7','pwm','snes','spc'].includes(device.chipName)&&change&&!change.allOff&&!change.ssgOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
           const result=['ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','dx7','pwm','snes','spc'].includes(device.chipName)?raw._withMainOwner(groupFor(voiceOwner(loop)),()=>value.apply(object,args)):value.apply(object,args);
           if(['ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','dx7','pwm','snes','spc'].includes(device.chipName)){
@@ -1035,15 +1039,17 @@ export function createPlaygroundRuntime(
 
   function stopAllAudio() {
     noiseOwnership?.clear();
-    const fromKeyboardCleanup=currentLoopContext?.keyboardCleanup===true;
+    const fromCleanup=currentLoopContext?.keyboardCleanup===true||liveApi.hasPendingCleanups();
+    const physicalStops=[];
+    const cleanupFence=Promise.all([musicalKeyboard.settled(),liveApi.settled()]);
+    primaryPcmSilence=Promise.all([primaryPcmSilence,cleanupFence]).then(()=>{});
     soundChips.clear();
     const retiringDevices=[...pcmDevices];
     if(retiringDevices.length){
-      // Retire callbacks while their clients and ports still exist. Disconnect
-      // output immediately, so an awaited custom allNotesOff cannot keep Stop
-      // audible or send its final releases to a replacement instance.
-      const keyboardCleanup=musicalKeyboard.settled();
-      const released=keyboardCleanup.then(()=>{
+      // Retire Keyboard/liveCleanup callbacks while their clients still exist.
+      // Disconnect output now; awaited releases cannot keep Stop audible or
+      // send their final commands to a replacement instance.
+      const released=cleanupFence.then(()=>{
         for(const device of retiringDevices)try{device.dispose();}catch(error){emitLog(formatLogArgs([error]));}
       }).finally(()=>{
         for(const device of retiringDevices)if(pendingPcmDisposals.get(device.mixerId)===released)pendingPcmDisposals.delete(device.mixerId);
@@ -1069,6 +1075,7 @@ export function createPlaygroundRuntime(
     if (typeof megaDrive.stopNativeAudio === 'function') {
       clearAuditions(); activeNotes.clear();
       const pending = megaDrive.stopNativeAudio();
+      physicalStops.push(Promise.resolve(pending).catch(()=>{}));
       primaryPcmSilence = Promise.all([primaryPcmSilence,Promise.resolve(pending)]).then(()=>{}).catch(error=>{
         emitLog(formatLogArgs([error]));
       });
@@ -1078,11 +1085,13 @@ export function createPlaygroundRuntime(
     megaDrive.pcm?._cancelClockRequests?.('Run stopped');
     if (megaDrive.pcm?._stopVoices) {
       const stopped=megaDrive.pcm._stopVoices();
+      physicalStops.push(Promise.resolve(stopped).catch(()=>{}));
       primaryPcmSilence=Promise.all([primaryPcmSilence,Promise.resolve(stopped).catch(()=>{})]).then(()=>{});
-    } else if (megaDrive.pcm) silencePrimaryPcm([0,1,2,3,4,5,6,7]);
+    } else if (megaDrive.pcm) physicalStops.push(silencePrimaryPcm([0,1,2,3,4,5,6,7]));
     primaryPcmOwners.clear();
     if (nativePrimary) {
       const pending=typeof megaDrive.stopNativeAudio === 'function' ? undefined : megaDrive.stopAllNative();
+      if(pending?.then)physicalStops.push(Promise.resolve(pending).catch(()=>{}));
       if(pending?.then)primaryPcmSilence=Promise.all([primaryPcmSilence,Promise.resolve(pending).catch(()=>{})]).then(()=>{});
       nativeOwners.clear();
     }
@@ -1109,9 +1118,9 @@ export function createPlaygroundRuntime(
     megaDrive.sample.stopAll();
     megaDrive.stream.stop();
     noiseApi.stopAll();
-    // A custom allNotesOff may itself await pg.stopAll(). Its callback is one
-    // of the operations in this barrier, so it must not await its own release.
-    return fromKeyboardCleanup?Promise.resolve():primaryPcmSilence;
+    // Cleanup can await pg.stopAll(), but its own retirement belongs only to
+    // the full next-Run/finalize fence. Physical silence never waits on itself.
+    return fromCleanup?Promise.all(physicalStops).then(()=>{}):primaryPcmSilence;
   }
 
   const clockApi =
@@ -2684,12 +2693,14 @@ export function createPlaygroundRuntime(
     if (logicWorkerStopPromise) await logicWorkerStopPromise;
     await musicalKeyboard.settled();
     await primaryPcmSilence;
+    await liveApi.settled();
     if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     await primaryPcmSilence;
+    await liveApi.settled();
     if (runToken !== currentRunToken) return;
     if (!logicWorker) {
       liveFxLifecycle.clear();
@@ -2821,6 +2832,7 @@ export function createPlaygroundRuntime(
     }
 
     await primaryPcmSilence;
+    await liveApi.settled();
     if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
@@ -3045,6 +3057,7 @@ export function createPlaygroundRuntime(
       stop();
       generation.to=currentRunToken;
       if (logicWorkerStopPromise) await logicWorkerStopPromise;
+      await primaryPcmSilence;
     })().finally(() => {pendingFadeStop = null;pendingFadeGeneration=null;});
     return pendingFadeStop;
   }

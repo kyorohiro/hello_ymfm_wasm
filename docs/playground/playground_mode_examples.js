@@ -1,8 +1,10 @@
 // Each mode owns its starter and a small set of editable examples.
+const mixedChipScene = '/examples/genesis/mixed-chip-stability.js';
 const fullExamples = [
   '/examples/genesis/genesis-mode-duet.js',
   '/examples/genesis/rf5c164-sine.js',
   '/examples/genesis/32x-pwm-sine.js',
+  mixedChipScene,
 ];
 const opnbExamples = [
   '/examples/neogeo/neogeo-opnb-duet.js',
@@ -11,7 +13,7 @@ const opnbExamples = [
 ];
 const definitions = {
   genesis: null,
-  'mega-cd': ['/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-fm-pcm.js', '/examples/mega-cd/megacd-sampler.js'],
+  'mega-cd': ['/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-fm-pcm.js', '/examples/mega-cd/megacd-sampler.js', mixedChipScene],
   'genesis-full': fullExamples,
   'genesis-full-nuked': fullExamples,
   'pc98-26': ['/examples/pc98/pc98-opn-melody.js', '/examples/pc98/pc98-opn-ssg.js'],
@@ -46,6 +48,8 @@ const nativeExamples = new Set(Object.entries(definitions)
   .filter(([id]) => !id.startsWith('genesis') && id !== 'dx7').flatMap(([, examples]) => examples ?? []));
 // Keep the old mode-only example usable in saved cassettes without adding it to Genesis.
 nativeExamples.add('/examples/gameboy/gameboy-mode-noise.js');
+// Independent chips make this one source usable across the Genesis modes.
+nativeExamples.delete(mixedChipScene);
 
 export function selectModeExamples(files, modeId) {
   const definition = MODE_STARTERS[modeId];

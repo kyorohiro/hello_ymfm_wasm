@@ -44,7 +44,7 @@ test('samplers are discoverable in each target mode while curated catalogs stay 
     ['pc98', 'pc98/pc98-sampler'], ['neogeo', 'neogeo/neogeo-sampler'], ['neogeo-b', 'neogeo/neogeo-sampler'],
   ]) {
     const examples = MODE_STARTERS[mode].examples;
-    assert.equal(examples.length, 3);
+    assert.equal(examples.length, mode === 'mega-cd' ? 4 : 3);
     assert.ok(examples.includes(`/examples/${path}.js`));
   }
   assert.ok(MODE_STARTERS['neogeo-b'].examples.includes('/examples/neogeo/neogeo-b-six-channel.js'));

@@ -49,6 +49,7 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加SNESの独立8声・64 KiB RAM・BRR、原子的な転送／reset、timeline、音色編集・Keyboardに対応する。
 - [x] 追加SPCの独立SPC700／S-DSP・ファイル保持、play／pause／stop／seek、RAM／DSP snapshot、onEventに対応する。
 - [x] 全21種類でMain／Workerの生成待ち中のloop取消し、遅延応答の回収、Stop／再Run／同ID再生成、共有待機者の分離を確認する。
+- [x] 代表7種類の混在ラックを実コアで継続生成し、予算・所有者取消し・Stop／再開・回収を検証する。共通の試聴Exampleを用意する。
 - [x] 対応済み21種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
 
 現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262＋RF5C164＋OKIM6258＋Game Boy＋NES＋HuC6280＋DX7＋PWM＋SNES＋SPCの合計16台・64 MiB**。
@@ -203,6 +204,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [x] 全21種類へ[生成待ち中のloop取消し・遅延応答後の回収](native_dynamic_lifetime_01.md)を展開した。
   Main／Worker、Native応答前の取消し、Workerへの遅い配送、同ID再生成、共有cacheの別待機者を検証した。
 - [ ] 全21種類へ展開した16台・64 MiBの予算について、重い組合せの実機負荷を評価する。
+  [代表7種類の混在自動試験と共通Example](native_dynamic_stability_01.md)は追加済み。物理デバイスの試聴・dropout評価は別途行う。
 - [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
 - [ ] 追加YM2612でのNuked選択と、選択方法。
 - [ ] Y8950 ADPCMなど、現在のPlayground公開APIにない機能の追加。
@@ -234,3 +236,4 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [実装済みの追加SNES S-DSPと検証結果](native_dynamic_snes_01.md)
 - [実装済みの追加SPC700ファイルプレーヤーと検証結果](native_dynamic_spc_01.md)
 - [全21種類の生成取消し・寿命管理](native_dynamic_lifetime_01.md)
+- [代表的な混在ラックの継続再生と共通Example](native_dynamic_stability_01.md)

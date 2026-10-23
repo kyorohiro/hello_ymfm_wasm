@@ -82,10 +82,15 @@ for (const kind of selected) {
     const env = installCreationEnvironment(t, {holdResponse: message => message.type === 'response' && message.value?.id === 'pending'}), f = createLifecycleFixture(t, env);
     await f.runtime.playSource(`liveLoop('make',async()=>{await createSoundChip('${kind}',{id:'pending'});log('stale-transfer-stop');await beat(100);});`, {execution: 'worker'});
     await until(() => env.workers[0]?.heldResponses.length === 1, 'create response held before Worker consumption');
+    const worker=env.workers[0],response=worker.heldResponses[0];
     await f.runtime.stopWithFade();
     assert(!f.logs.includes('stale-transfer-stop')); assert.equal(f.reservedNativeUnits(), 0);
-    env.workers[0].releaseResponses();
-    assert.equal(env.workers[0].heldResponses.length, 0);
+    // Exercise the original failure deterministically: the port is already
+    // closed while its transferred response is queued inside the Worker.
+    await until(()=>worker.closedHeldResponses.has(response),'queued Worker response port closed by Stop');
+    worker.releaseResponses();
+    await until(()=>worker.releasedResponses.has(response)&&worker.messages.some(message=>message.command==='pcm.dispose'&&message.args?.[0]==='pending'),'closed late response delivered to production Worker cleanup');
+    assert.equal(worker.heldResponses.length, 0);assert(!f.logs.includes('stale-transfer-stop'));
     await f.finalize();
   });
 

@@ -1,7 +1,7 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
-import {YM2608Synth,YM2608AdpcmSynth} from './ym2608synth.js?v=native-extra-lifetime-1';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=native-extra-lifetime-1';
+import {YM2608Synth,YM2608AdpcmSynth} from './ym2608synth.js?v=native-extra-stability-1';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=native-extra-stability-1';
 import {readSamplePCM} from './adpcm_b_sample.js';
 
 /** @param {MessagePort} port */

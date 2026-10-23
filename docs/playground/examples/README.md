@@ -102,6 +102,12 @@ ADPCM はコード内で作るテスト用の符号化済みパターンを使�
 `setFrequency(ch, hz)`、`setNote(ch, note)`、`keyOn(ch)`、`keyOff(ch)`、`noteOn(ch, note)` を使います。
 音名やMIDI番号を渡すnoteOnと、Hzを渡すsetFrequencyは別の入口です。
 
+`genesis/mixed-chip-stability.js` は独立した YM2612・RF5C164・DX7 を混ぜる40秒の反復曲です。
+Genesis / Mega CD / 32X の examples から同じソースを開き、Web Audio / Native、Main / Worker を切り替えて比較できます。
+素材はコードで生成する短いベース音と自作の音色だけです。Run 後の Keyboard は `scene-fm` の CH2–6 を演奏し、曲の CH1 と分かれています。
+Mixer の `scene-fm` / `scene-pcm` / `scene-dx7` で各音源を Solo / Mute して確認できます。コード内の音量はこの曲の初期バランスで、共通初期値は変更しません。
+長時間再生・メニュー操作・Keyboard・Stop 後の再 Run を実際に聴いて比較してください。録音や自動検査だけでは、出力機器でのノイズの有無を断定できません。
+
 `nes/nes-pulse-frequency.js` は Hz 指定の例です。`nes.pulse.setFrequency(0, 440)`
 で周波数を設定し、`keyOn(0)` / `keyOff(0)` でその音程の発音・停止を行います。
 `noteOn(0, 'A4')` は音名または MIDI ノート番号を指定して発音する別の入口です。

@@ -45,6 +45,14 @@ export function createPlaygroundLive(
   } = options;
 
   let preparedGeneration = 0;
+  const pendingCleanups = new Set();
+  let executingCleanups = 0;
+  const hasPendingCleanups = () => executingCleanups > 0 || pendingCleanups.size > 0;
+  async function settled() {
+    // The first yield also lets a currently executing callback register its
+    // returned promise before a nested stopAll() asks for the retirement fence.
+    do { await Promise.all([...pendingCleanups]); } while (hasPendingCleanups());
+  }
 
   function markPreparedFxUnits(value) {
     if (!value) {
@@ -533,11 +541,12 @@ export function createPlaygroundLive(
 
   function runLiveCleanup(id, definition) {
     runtime.liveCleanupHooks.delete(id);
+    executingCleanups++;
     try {
       const result = executeCallback(
         () => definition.fn()
       );
-      Promise.resolve(result).catch(
+      const pending = Promise.resolve(result).catch(
         (error) => {
           console.error(error);
           logLine(
@@ -545,14 +554,15 @@ export function createPlaygroundLive(
           );
           setStatus("Cleanup error");
         }
-      );
+      ).finally(() => pendingCleanups.delete(pending));
+      pendingCleanups.add(pending);
     } catch (error) {
       console.error(error);
       logLine(
         `[liveCleanup:${definition.names.join(",")}] ${formatLogArgs([error])}`
       );
       setStatus("Cleanup error");
-    }
+    } finally { executingCleanups--; }
   }
 
   function commitLiveCleanups(
@@ -608,6 +618,8 @@ export function createPlaygroundLive(
     commitLiveLoops,
     commitLiveCleanups,
     flushLiveCleanups,
+    settled,
+    hasPendingCleanups,
     getActiveLoopNames,
   };
 }

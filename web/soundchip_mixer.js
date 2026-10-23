@@ -323,7 +323,13 @@ export class SoundChipMixer {
       });
       initialized = true;
     };
-    const disconnect = () => {node.disconnect(splitter); splitter.disconnect(); left.disconnect(); right.disconnect(); merger.disconnect();};
+    const disconnect = () => {
+      // Stop can silence the source before an awaited Keyboard release retires
+      // this route. Its splitter is then already detached; the owned graph
+      // still needs cleanup without disconnecting any newer source routes.
+      try {node.disconnect(splitter);} catch (error) {if(error?.name!=='InvalidAccessError')throw error;}
+      splitter.disconnect(); left.disconnect(); right.disconnect(); merger.disconnect();
+    };
     let meterTimer = null, meterNodes = null;
     const setMetering = enabled => {
       if (enabled === Boolean(meterNodes)) return;

@@ -77,7 +77,7 @@ test('all mode starters match their physical index.js sources', async () => {
   assert.equal(MODE_DEFAULT_CODES['genesis-nuked'], DEFAULT_CODE);
 });
 
-test('mode catalogs keep two or three examples while Genesis retains its library', () => {
+test('mode catalogs stay compact while Genesis retains its library and shares the mixed-chip scene', () => {
   assert.deepEqual(Object.keys(MODE_EXAMPLE_FILES), Object.keys(MODE_STARTERS));
   for (const [id, definition] of Object.entries(MODE_STARTERS)) {
     const files = MODE_EXAMPLE_FILES[id];
@@ -86,6 +86,7 @@ test('mode catalogs keep two or three examples while Genesis retains its library
     for (const file of files) assert.ok(EXAMPLE_FILES.includes(file), `${id} uses a bundled source`);
     if (definition.examples) {
       if (id === 'master-system') assert.equal(files.length,5,'Master System retains two PSG examples alongside three OPLL examples');
+      else if (['mega-cd','genesis-full','genesis-full-nuked'].includes(id)) assert.equal(files.length,4,'Genesis expansion modes include the shared mixed-chip scene');
       else assert.ok(files.length >= 2 && files.length <= 3, `${id} has two or three examples`);
       assert.deepEqual(files.map(file => file.path), definition.examples);
     }
@@ -156,7 +157,7 @@ test('Mega-CD starter and PCM demos use the shared PCM voices and valid waveform
   const {encodeRf5c164} = await import('../../web/rf5c164_pcm.js');
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   const sources = [MODE_DEFAULT_CODES['mega-cd'], ...MODE_EXAMPLE_FILES['mega-cd']
-    .filter(file => file.name !== 'megacd-sampler').map(file => file.data)];
+    .filter(file => file.path.startsWith('/examples/mega-cd/') && file.name !== 'megacd-sampler').map(file => file.data)];
   for (const source of sources) {
     const writes = [], loops = [], waits = [], memory = [];
     const control = new RF5C164Synth({transport: {
