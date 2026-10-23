@@ -17,7 +17,7 @@ function installExtraPsgMock(native){
       assert(Number.isSafeInteger(args.instance)&&args.instance>0,'Extra PSG instance must be a positive safe integer');
       if(command==='native_genesis_extra_psg_create'){
         assert(!native.extraPsg.has(args.instance),'An active Native PSG instance cannot be recreated');
-        assert(native.extraPsg.size<16,'Native PSG rack is bounded to sixteen instances');
+        assert(native.extraPsg.size+(native.extraYm2612?.size??0)<16,'Native additional rack is bounded to sixteen instances');
         const entry={instance:args.instance,states:{segapsg:{clock:3579545,periods:[0,0,0],
           attenuations:[15,15,15,15],lastVolumes:[0,0,0,0],latched:0,mode:0,
           stereo:255,stereoEnabled:true,sourceMuteMask:0,held:new Map()}},mix:{volume:1,left:1,right:1}};

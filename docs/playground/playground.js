@@ -2,13 +2,13 @@ import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
 import {installPlaygroundWorkbench} from './playground_workbench.js?v=operator-tab-keyboard-1';
-import {createPlaygroundMixer} from './playground_mixer.js?v=native-extra-psg-1';
-import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=native-extra-psg-1';
+import {createPlaygroundMixer} from './playground_mixer.js?v=native-extra-ym2612-1';
+import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=native-extra-ym2612-1';
 import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab-keyboard-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-extra-psg-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-extra-ym2612-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -23,6 +23,9 @@ let changingMode = false;
 let mixerPanel = null;
 let chipTabs = null;
 let keyboardInspector = null;
+let extraFmEditor = null;
+let operatorPanelShown = false;
+let keyboardDockShown = false;
 let pendingDesktopCassetteAssets = null;
 const cassettePresetNames = new Set();
 const cassetteSampleNames = new Set();
@@ -38,10 +41,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=native-extra-psg-1";
+} from "../js/megasynth.js?v=native-extra-ym2612-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=native-extra-psg-1";
+} from "../js/tetorica_synth.js?v=native-extra-ym2612-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -51,8 +54,9 @@ import {
 import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2";
 import {
   createPlaygroundOperatorTab,
-} from "./playground_operator_tab.js?v=native-ym2203-1";
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=operator-tab-keyboard-1";
+} from "./playground_operator_tab.js?v=native-extra-ym2612-1";
+import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=native-extra-ym2612-1';
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=native-extra-ym2612-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-numeric-bindings-1";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=audio-numeric-bindings-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=audio-numeric-bindings-1";
@@ -86,12 +90,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=native-extra-psg-1";
+} from "../js/playground_runtime.js?v=native-extra-ym2612-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=audio-numeric-bindings-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=operator-tab-keyboard-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=native-extra-ym2612-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";
@@ -278,7 +282,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 }
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=native-extra-psg-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=native-extra-ym2612-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',
@@ -613,6 +617,7 @@ window.addEventListener("pagehide", event => {
   if (!event.persisted) {
     audioDiagnostics?.dispose();
     operatorTab?.dispose();
+    extraFmEditor?.dispose();
     mixerPanel?.dispose();
     mixerState.dispose();
     chipTabs?.dispose();
@@ -1570,6 +1575,7 @@ function registerVirtualInstrumentPreset(path) {
     presetId,
     path.slice("/presets/".length)
   );
+  extraFmEditor?.registerPresetOption(presetId, path.slice("/presets/".length));
 }
 
 function registerVirtualInstrumentPresets() {
@@ -1583,6 +1589,7 @@ function clearVirtualInstrumentPresets() {
     delete playgroundPresets[presetId];
     delete runtime.presets[presetId];
     operatorTab?.removePresetOption(presetId);
+    extraFmEditor?.removePresetOption(presetId);
   }
   virtualPresetIds.clear();
 }
@@ -1783,14 +1790,17 @@ const ui =
         for (const id of ['shellMenu', 'shellHelp']) document.getElementById(id).hidePopover?.();
       }
       const primary = layout?.primaryTab ?? tabName;
+      operatorPanelShown = primary === 'operator';
+      keyboardDockShown = tool === 'keyboard';
       fxMonitor.setVisible(tool === "fxMonitor");
       const showAudio = tool === "audio" || (inlineAudioMonitor && primary === "code");
       if (inlineAudioMonitor) audioMonitorPanel.hidden = !showAudio;
       audioMonitor.setVisible(showAudio);
-      operatorTab?.setVisible(primary === "operator");
+      if (extraFmEditor) extraFmEditor.setVisible(primary === 'operator');
+      else operatorTab?.setVisible(primary === "operator");
       chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].includes(primary) ? primary : null);
       mixerPanel?.setVisible(tool === 'mixer');
-      operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary);
+      operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary === 'operator' && extraFmEditor?.isExtraSelected() ? 'extra-fm' : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
       refreshCodeFileActions();
     },
@@ -1929,7 +1939,7 @@ if (useNativeGenesis) {
 async function showAudioDiagnostics() {
   if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
   if (!audioDiagnosticsLoading) {
-    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=native-extra-psg-1').then(({createAudioDiagnostics}) => {
+    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=native-extra-ym2612-1').then(({createAudioDiagnostics}) => {
       audioDiagnostics = createAudioDiagnostics({
         host: document.body,
         getSynth: () => runtime.megaDrive,
@@ -1950,6 +1960,20 @@ if (new URLSearchParams(window.location.search).get('audio-diagnostic') === '1')
 }
 keyboardInspector = runtime.chipInspector;
 keyboardRouting.refresh();
+if (useNativeGenesis) extraFmEditor = createPlaygroundExtraFmEditor({
+  root:operatorPanel, primaryRoot:operatorTabRoot, primaryEditor:operatorTab, primaryKind:selectedChip, button:operatorTabButton,
+  getInspector:()=>runtime.chipInspector, presets:playgroundPresets, presetOrder:FM_PRESET_ORDER,
+  onAvailability:available=>{
+    ui.setChipTabAvailable('operator',hasPrimaryFM||available);
+    for (const button of [exportTfiButton, exportVgiButton]) if (button) button.hidden = !hasPrimaryFM&&!available;
+    document.getElementById('menuExport').hidden = !hasPrimaryFM&&!available;
+  },
+  onTargetChange:selection=>{
+    syncEditorKeyboard(selection);
+    if (operatorPanelShown && !keyboardDockShown) operatorKeyboard.setView(selection?'extra-fm':'operator');
+  },
+  onStatus:message=>setStatus(message),
+});
 mixerPanel = createPlaygroundMixer({
   root: document.getElementById('mixerPanel'),
   getMixer: () => megaDrive.mixer,
@@ -2175,6 +2199,7 @@ async function registerCassetteAssets(assets) {
     playgroundPresets[timbre.name] = timbre.preset;
     runtime.presets[timbre.name] = timbre.preset;
     operatorTab?.registerPresetOption(timbre.name);
+    extraFmEditor?.registerPresetOption(timbre.name);
   }
 
   for (const example of assets.examples) {
@@ -2439,6 +2464,7 @@ function installPlaygroundEventHandlers() {
     pendingDesktopCassetteAssets = null;
     for (const name of cassettePresetNames) {
       delete playgroundPresets[name]; delete runtime.presets[name]; operatorTab?.removePresetOption(name);
+      extraFmEditor?.removePresetOption(name);
     }
     cassettePresetNames.clear(); cassetteExamples.clear();
     for (const name of cassetteSampleNames) runtime.sample.unload(name);
@@ -2472,8 +2498,10 @@ function installPlaygroundEventHandlers() {
   });
   const exportCurrentPresets = (format) => {
     const files = {};
-    for (let channel = 0; channel < megaDrive.capabilities.fmChannels; channel += 1) {
-      const preset = operatorTab?.getChannelPreset?.(channel);
+    const editor = extraFmEditor?.getEditor() ?? operatorTab;
+    const channels = extraFmEditor?.isExtraSelected() ? 6 : megaDrive.capabilities.fmChannels;
+    for (let channel = 0; channel < channels; channel += 1) {
+      const preset = editor?.getChannelPreset?.(channel);
       if (!preset) continue;
       const bytes = format === "vgi"
         ? createVgiFromPreset(preset)
@@ -2490,7 +2518,7 @@ function installPlaygroundEventHandlers() {
     anchor.download = `playground_${extension}_presets.zip`;
     anchor.click();
     URL.revokeObjectURL(anchor.href);
-    setStatus(`Exported CH1-CH6 ${extension.toUpperCase()} presets as ZIP.`);
+    setStatus(`Exported CH1-CH${channels} ${extension.toUpperCase()} presets as ZIP.`);
   };
   exportTfiButton?.addEventListener("click", () => exportCurrentPresets("tfi"));
   exportVgiButton?.addEventListener("click", () => exportCurrentPresets("vgi"));

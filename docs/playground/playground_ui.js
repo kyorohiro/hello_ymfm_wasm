@@ -151,7 +151,7 @@ export function createPlaygroundUi(
     if (options.dockedPanels) {
       if (auxiliaryTabs.has(tabName)) { bottomTab = tabName; dockOpen = true; }
       else primaryTab = tabName;
-    }
+    } else bottomTab = tabName;
     const auditionTab = options.dockedPanels ? primaryTab : tabName;
     const dockKeyboard = options.dockedPanels && dockOpen && bottomTab === 'keyboard';
     const floatingKeyboard = options.fmKeyboard !== false && auditionTabNames.has(auditionTab) && !dockKeyboard;
@@ -215,8 +215,8 @@ export function createPlaygroundUi(
   }
 
   function installBottomTabHandlers() {
-    for (const { name, button, available } of bottomTabs) {
-      if (!available) continue;
+    // Include initially unavailable chip tabs: added sources can reveal them.
+    for (const { name, button } of bottomTabs) {
       const tabButton = button;
       tabButton?.addEventListener(
         "click",
@@ -257,5 +257,13 @@ export function createPlaygroundUi(
     setDockVisible,
     moveBottomTabFocus,
     installBottomTabHandlers,
+    setChipTabAvailable(name, available) {
+      const tab = bottomTabs.find(tab => tab.name === name);
+      if (!tab || !chipTabNames.has(name) || tab.available === Boolean(available)) return;
+      tab.available = Boolean(available);
+      if (tab.button) tab.button.hidden = !tab.available;
+      if (!tab.available && tab.panel) tab.panel.hidden = true;
+      if (!tab.available && (primaryTab === name || !options.dockedPanels && bottomTab === name)) setBottomTab('code');
+    },
   };
 }

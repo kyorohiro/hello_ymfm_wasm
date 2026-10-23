@@ -325,14 +325,17 @@ test('nested VGI assets register in the Playground preset list with unique virtu
     ['/outside.vgi', { type: 'binary', data: vgi }],
   ]);
   const options = [];
+  const additionalOptions = [];
   const context = vm.createContext({
     instrumentToEditorPreset, virtualPresetIds: new Map(), playgroundPresets: {}, runtime: { presets: {} },
     virtualFiles: { get: path => files.get(path), list: () => [...files].map(([path, file]) => ({ path, ...file })) },
     operatorTab: { registerPresetOption: (id, label) => options.push([id, label]) },
+    extraFmEditor: { registerPresetOption: (id, label) => additionalOptions.push([id, label]) },
   });
   vm.runInContext(registration, context);
   context.registerVirtualInstrumentPresets();
   assert.deepEqual(options.map(([, label]) => label), ['game-a/YM2612_CH1.vgi', 'game-b/YM2612_CH1.vgi', 'original.tfi']);
+  assert.deepEqual(additionalOptions, options);
   assert.equal(context.virtualPresetIds.size, 3);
   assert.equal(context.runtime.presets['vfs:/presets/game-a/YM2612_CH1.vgi'].ams, 3);
   assert.equal(context.runtime.presets['vfs:/presets/game-b/YM2612_CH1.vgi'].pms, 5);

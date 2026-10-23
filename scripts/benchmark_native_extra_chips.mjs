@@ -1,0 +1,34 @@
+/** Offline standalone DSP count-growth probe; never opens an audio device. */
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const option=name=>{const value=process.argv.find(arg=>arg.startsWith(name+'='));if(value)return value.slice(name.length+1);const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
+const seconds=Number(option('--seconds')??2),repeats=Number(option('--repeats')??3),out=option('--out');
+assert(Number.isFinite(seconds)&&seconds>0&&seconds<=60);assert(Number.isInteger(repeats)&&repeats>=1&&repeats<=10);
+const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-benchmark-')),fixture=path.join(temporary,'fixture');
+const median=values=>values.slice().sort((a,b)=>a-b)[Math.floor(values.length/2)];
+const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),host:{platform:process.platform,arch:process.arch,cpu:os.cpus()[0]?.model},
+  sampleRate:48000,audioSeconds:Math.round(seconds*48000)/48000,repeats,cases:[],
+  limits:'Offline 48 kHz core synthesis and stereo summation only; six FM channels/four operators and LFO active per YM2612, three tones plus noise per PSG. Each trial runs in a separate process after 4096 warmup frames. CPU is process CPU time, not callback deadline behavior. Heap bytes count C++ new request sizes retained by cores (excluding allocator overhead/rack/IPC/UI); peak RSS includes executable/runtime pages and is not core-only memory. No device, real-time scheduler, IPC, effects, command ingress or UI workload is present; these measurements are not a real-time guarantee.'};
+try{
+  const flags=['-std=c++14','-O2','-I'+path.join(project,'native-genesis')];
+  const sources=['src/native_genesis_extra_chip_benchmark.cpp','src/native_genesis_ym2612.cpp','src/native_genesis_game_gear.cpp','native-genesis/segapsg.cpp','native-genesis/ymfm_opn.cpp','native-genesis/ymfm_ssg.cpp','native-genesis/ymfm_adpcm.cpp'];
+  execFileSync('clang++',[...flags,...sources.map(file=>path.join(project,file)),'-o',fixture],{stdio:'pipe'});
+  report.compiler=execFileSync('clang++',['--version'],{encoding:'utf8'}).split('\n')[0];report.flags=flags.slice(0,2);
+  for(const [ym2612,segapsg]of[[1,0],[2,0],[4,0],[8,0],[16,0],[1,1],[2,2],[4,4],[8,8],[0,16]]){
+    const trials=[];
+    for(let trial=0;trial<repeats;trial++){
+      const result=JSON.parse(execFileSync(fixture,[String(ym2612),String(segapsg),String(Math.round(seconds*48000))],{encoding:'utf8',timeout:60000}));
+      assert.equal(result.renderAllocations,0);assert.equal(result.renderFrees,0);trials.push(result);
+    }
+    const result={ym2612,segapsg,medianCpuSeconds:median(trials.map(t=>t.cpuSeconds)),medianWallSeconds:median(trials.map(t=>t.wallSeconds)),
+      coreHeapBytes:trials[0].coreHeapBytes,medianPeakRssBytes:median(trials.map(t=>t.peakRssBytes)),medianPeakRssGrowthBytes:median(trials.map(t=>t.peakRssGrowthBytes)),renderAllocations:0,renderFrees:0,trials};
+    result.cpuPercentOfAudioDuration=result.medianCpuSeconds/report.audioSeconds*100;report.cases.push(result);
+    console.log(`${ym2612} YM2612 + ${segapsg} PSG: CPU ${(result.cpuPercentOfAudioDuration).toFixed(2)}% of offline audio duration, core heap ${result.coreHeapBytes} B, peak RSS ${(result.medianPeakRssBytes/1024/1024).toFixed(2)} MiB`);
+  }
+  report.status='passed';if(out)await fs.writeFile(out,JSON.stringify(report,null,2)+'\n');
+}finally{await fs.rm(temporary,{recursive:true,force:true});}

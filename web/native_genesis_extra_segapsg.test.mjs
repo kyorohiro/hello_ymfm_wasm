@@ -84,7 +84,7 @@ test('Native Main owns two independent PSGs, stereo/clock/Mixer/Inspector and ex
   assert.equal(f.synth.extraPsgDevices.size,2);assert.equal((await f.synth.chipInspector.read('bass')).periods[1],678);
   assert.equal(f.calls.filter(c=>c.command==='native_genesis_extra_psg_dispose'&&c.args.instance===oldToken).length,1);
   await assert.rejects(createSoundChip('segapsg',{id:'bass'}),/already/);
-  await assert.rejects(createSoundChip('ym2612',{id:'extra-fm'}),/Only additional Sega PSG/);
+  await assert.rejects(createSoundChip('ym2203',{id:'extra-fm'}),/Only additional Sega PSG and YM2612/);
   await f.runtime.stopWithFade();assert.equal(f.rack.size,0);assert.equal(f.synth.extraPsgDevices.size,0);
   assert.deepEqual(f.synth.mixer.list().filter(c=>c.connected).map(c=>c.id),['ym2612','segapsg']);
   assert.equal(f.synth.audioContext,null);assert.equal(f.synth.node,null);assert.deepEqual(f.errors,[]);

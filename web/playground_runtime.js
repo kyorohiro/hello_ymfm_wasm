@@ -395,6 +395,58 @@ export function createPlaygroundRuntime(
   let sharedSections = {};
   let sharedSectionSynth;
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
+  function ownedNativeExtraApi(device,raw) {
+    const owners=new Map();
+    function registerEvent(port,register,value){
+      if(port!==0)return null;
+      if(register===0x28){const code=value&7;if((code&3)!==3)return {key:(code&3)+(code&4?3:0),on:!!(value&240)};}
+      if(register===0x2b)return {key:'dac',on:!!(value&128),dacEnabled:!!(value&128)};
+      if(register===0x2a&&raw.dac?.enabled)return {key:'dac',on:true};
+      if(register===0x27)return {key:'csm',on:(value&0x81)===0x81,modeRegister:value};
+      return null;
+    }
+    function event(method,args) {
+      if(device.chipName==='segapsg')return nativeVoice('psg',[method],args,raw);
+      if(['reset','stopVoices','allNotesOff'].includes(method))return {allOff:true};
+      if(['keyOn','noteOn','noteOnRaw','keyOff','noteOff'].includes(method))return {key:args[0],on:['keyOn','noteOn','noteOnRaw'].includes(method)};
+      if(method==='setDacEnabled')return {key:'dac',on:args[0],dacEnabled:!!args[0]};
+      if(method==='writeDac'&&raw.dac?.enabled)return {key:'dac',on:true};
+      if(method==='setChannel3SpecialMode')return registerEvent(0,0x27,args[0]?(raw._modeRegister|0x40):(raw._modeRegister&~0x40));
+      if(['write','rawWrite'].includes(method))return registerEvent(...args);
+      if(method==='writeData')return registerEvent(raw._pendingAddressPort,raw._pendingAddressRegister,args[0]);
+      return null;
+    }
+    device.releaseOwner=owner=>{
+      const otherSource=key=>owners.has(key)&&owners.get(key)!==owner;
+      for(const [key,held]of owners)if(held===owner){
+        owners.delete(key);
+        if(key==='dac')raw.setDacEnabled(false);
+        else if(key==='csm')raw._cancelCsm();
+        // Normal FM can share CH3/CH6 with another loop's implicit source.
+        // Release its ordinary key while retaining that other source gate.
+        else if(key===2&&otherSource('csm')||key===5&&otherSource('dac'))raw.keyOff(key);
+        else if(raw._forceKeyOff)raw._forceKeyOff(key);else raw.keyOff(key);
+      }
+    };
+    return new Proxy(Object.create(null),{get(_target,key){
+      const value=Reflect.get(raw,key,raw);if(typeof value!=='function')return value;
+      if(key==='dispose'||typeof key==='string'&&key.startsWith('_'))return value.bind(raw);
+      return (...args)=>{
+        const loop=currentLoopContext,change=event(key,args);if(loop?.stopped)return;
+        if(change&&!change.allOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
+        const result=value.apply(raw,args);
+        if(change?.allOff)owners.clear();else if(change){
+          if(change.on)owners.set(change.key,voiceOwner(loop));else owners.delete(change.key);
+          // Keep the two control gates shared by raw and high-level calls in
+          // the authoring shadow, including later edits from the Operators UI.
+          if(change.dacEnabled!==undefined&&raw.dac)raw.dac.enabled=change.dacEnabled;
+          if(change.modeRegister!==undefined)raw._modeRegister=change.modeRegister;
+        }
+        return result;
+      };
+    },set:(_target,key,value)=>Reflect.set(raw,key,value,raw),has:(_target,key)=>key in raw,
+      ownKeys:()=>Reflect.ownKeys(raw),getOwnPropertyDescriptor:(_target,key)=>{const descriptor=Reflect.getOwnPropertyDescriptor(raw,key);return descriptor?{...descriptor,configurable:true}:undefined;}});
+  }
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
     if (['allNotesOff','stopVoices','reset','resetAll','panic'].includes(method)) return {allOff:true};
@@ -586,7 +638,7 @@ export function createPlaygroundRuntime(
       if(name==='nes' && capabilities.chip==='nes')throw new Error(options.clock!==undefined&&options.clock!==CHIP_CLOCKS.nes
         ? 'This NES file uses a different base clock or region. Select Web Audio to preserve its APU timing.'
         : 'NES + FDS is built into this mode. Use await useSoundChip("nes") to access it. Additional chip instances require Web Audio.');
-      throw new Error('Only additional Sega PSG chips are supported by the experimental Native backend. Select Web Audio for other chip types.');
+      throw new Error('Only additional Sega PSG and YM2612 chips are supported by the experimental Native backend. Select Web Audio for other chip types.');
     }
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
@@ -606,7 +658,7 @@ export function createPlaygroundRuntime(
     pendingPcmIds.add(mixerId);
     let device;
     try {device = nativeExtra
-      ? await megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge})
+      ? await (name==='ym2612'?megaDrive.createExtraYm2612({id:mixerId,bridge:nativeWorkerBridge}):megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge}))
       : await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
     catch (error) {pendingPcmIds.delete(mixerId); reservation?.release(); throw error;}
     if(token !== currentRunToken){pendingPcmIds.delete(mixerId);reservation?.release();device.dispose();throw new Error('Run stopped');}
@@ -1075,6 +1127,7 @@ export function createPlaygroundRuntime(
         for (const [key, voice] of nativeOwners) if (voice.owner === state) {
           nativeOwners.delete(key); releaseNativeVoice(voice.name,voice.key);
         }
+        for(const device of pcmDevices)device.releaseOwner?.(state);
         if (capabilities.chip === 'gameboy' && !nativePrimary) {
           releasingGameboy = true;
           try { for (const [channel, owner] of gameboyOwners) if (owner === state) {
@@ -1514,7 +1567,7 @@ export function createPlaygroundRuntime(
       device.workerOwner=worker;
       try { await performanceHost.attach(device.node?.port); } catch(error) {device.dispose();throw error;}
       if(worker!==logicWorker||token!==currentRunToken||!pcmDevices.has(device)||!performanceHost.clock&&playbackState!=='running'){device.dispose();throw new Error('Run stopped');}
-      return {port:device.port,id:device.mixerId,instance:device.instanceToken,clock:device.clock,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
+      return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,state:device.client?._getState?.(),clock:device.clock,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
     if(command==='pcm.dispose') {
       const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]&&(args[1]===undefined||device.instanceToken===args[1]));
       if(!devices.length)return;
@@ -2155,7 +2208,7 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        return keyboardApi(client);
+        return keyboardApi(device.native?ownedNativeExtraApi(device,client):client);
       },
       midi,
       ...nativeApis,

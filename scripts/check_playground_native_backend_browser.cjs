@@ -9,6 +9,7 @@ const {chromium, webkit} = require('playwright');
 const {observeNativeLifecycle,trackNativeLifecycle,runNativeLifecycle}=require('./native_backend_lifecycle.cjs');
 const {runMixerState}=require('./native_backend_mixer_state.cjs');
 const {installExtraPsgMock,runExtraPsg}=require('./native_backend_extra_psg.cjs');
+const {installExtraYm2612Mock,runExtraYm2612}=require('./native_backend_extra_ym2612.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -270,25 +271,26 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
+      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
-      if(this.current.mode==='pc98-26')assert(args.commands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
+      if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
       for(const entry of args.commands.filter(entry=>entry.type==='ym2608')){assert.equal(this.current.mode,'pc98');this.applyOpna(entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2610b')){assert(['neogeo','neogeo-b'].includes(this.current.mode));this.applyOpnb(entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='opl')){assert.equal(this.current.mode,this.opl.chip==='y8950'?'msx-audio':this.opl.chip);this.applyOpl(entry.message);}
-      if(['ym3526','ym3812','ymf262'].includes(this.current.mode))assert(args.commands.every(entry=>['opl','mix','noise','fx'].includes(entry.type)),'Native DOS PC has only selected OPL');
+      if(['ym3526','ym3812','ymf262'].includes(this.current.mode))assert(primaryCommands.every(entry=>['opl','mix','noise','fx'].includes(entry.type)),'Native DOS PC has only selected OPL');
       for(const entry of args.commands.filter(entry=>entry.type==='msx')){assert(['msx','msx-audio'].includes(this.current.mode));this.applyMsx(entry.message);}
-      if(this.current.mode==='msx-audio')assert(args.commands.every(entry=>['opl','msx','mix','noise','fx'].includes(entry.type)),'Native MSX Audio has only Y8950, OPLL and AY');
-      if(this.current.mode==='msx')assert(args.commands.every(entry=>['msx','mix','noise','fx'].includes(entry.type)),'Native MSX has only OPLL and AY');
+      if(this.current.mode==='msx-audio')assert(primaryCommands.every(entry=>['opl','msx','mix','noise','fx'].includes(entry.type)),'Native MSX Audio has only Y8950, OPLL and AY');
+      if(this.current.mode==='msx')assert(primaryCommands.every(entry=>['msx','mix','noise','fx'].includes(entry.type)),'Native MSX has only OPLL and AY');
       for(const entry of args.commands.filter(entry=>entry.type==='master-system')){assert(['master-system','game-gear'].includes(this.current.mode));if(this.current.mode==='game-gear')assert.equal(entry.message.chip,'segapsg');this.applyMasterSystem(entry.message,this.current.mode==='game-gear'?this.gameGear:this.masterSystem);}
-      if(this.current.mode==='game-gear')assert(args.commands.every(entry=>['master-system','mix','noise','fx'].includes(entry.type)),'Native Game Gear has only PSG');
-      if(this.current.mode==='master-system')assert(args.commands.every(entry=>['master-system','mix','noise','fx'].includes(entry.type)),'Native Master System has only PSG and OPLL');
+      if(this.current.mode==='game-gear')assert(primaryCommands.every(entry=>['master-system','mix','noise','fx'].includes(entry.type)),'Native Game Gear has only PSG');
+      if(this.current.mode==='master-system')assert(primaryCommands.every(entry=>['master-system','mix','noise','fx'].includes(entry.type)),'Native Master System has only PSG and OPLL');
       for(const entry of args.commands.filter(entry=>entry.type==='x68000')){assert.equal(this.current.mode,'x68000');this.applyX68000(entry.message);}
-      if(this.current.mode==='x68000')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm','ym2608','ym2610b'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native X68000 must not send hidden chips');
-      if(['neogeo','neogeo-b'].includes(this.current.mode))assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm','ym2608'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native Neo Geo must not send hidden chips');
-      if(this.current.mode==='pc98')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native PC-98 must not send hidden YM2612/PSG/other-chip commands');
-      if(['gameboy','snes','pc-engine'].includes(this.current.mode))assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native consoles must never send hidden sound chips');
-      if(this.current.mode==='nes')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'NES mode must never send hidden OPN/PSG/DX7/PCM commands');
+      if(this.current.mode==='x68000')assert(primaryCommands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm','ym2608','ym2610b'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native X68000 must not send hidden chips');
+      if(['neogeo','neogeo-b'].includes(this.current.mode))assert(primaryCommands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm','ym2608'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native Neo Geo must not send hidden chips');
+      if(this.current.mode==='pc98')assert(primaryCommands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes','gameboy','snes','huc6280','pwm'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native PC-98 must not send hidden YM2612/PSG/other-chip commands');
+      if(['gameboy','snes','pc-engine'].includes(this.current.mode))assert(primaryCommands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7','nes'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'Native consoles must never send hidden sound chips');
+      if(this.current.mode==='nes')assert(primaryCommands.every(entry=>!['write','psg-write','psg-stereo','reset','dx7'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'NES mode must never send hidden OPN/PSG/DX7/PCM commands');
       for(const entry of args.commands.filter(entry=>entry.type==='dx7')) {
         assert.equal(this.current.mode,'dx7','Only DX7 mode may accept DX7 commands');
         const message=entry.message;
@@ -2314,7 +2316,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
   try {
     const mixerStateOnly=process.argv.includes('--mixer-state-only');
     const extraPsgOnly=process.argv.includes('--extra-psg-only');
-    const nativeOnly=mixerStateOnly||extraPsgOnly;
+    const extraYm2612Only=process.argv.includes('--extra-ym2612-only');
+    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only;
     if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
     if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
@@ -2329,7 +2332,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
-    if(extraPsgOnly)installExtraPsgMock(native);
+    if(extraPsgOnly||extraYm2612Only)installExtraPsgMock(native);
+    if(extraYm2612Only)installExtraYm2612Mock(native);
     const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
@@ -2345,6 +2349,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
       await page.goto(nativeUrl.href);await ready(page);
       assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(extraYm2612Only){
+        await runExtraYm2612({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS independent Native YM2612/PSG Main/Worker, primary borrowing, FM/DAC/clock/Mixer/Inspector/Keyboard, Stop/Run and fixed-id replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+      }
       if(extraPsgOnly){
         await runExtraPsg({page,native,artifacts,name,assertNoLiveAudio,until});
         assert.deepEqual(errors,[]);await context.close();

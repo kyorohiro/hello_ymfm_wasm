@@ -4,42 +4,42 @@ import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindin
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=audio-numeric-bindings-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-extra-psg-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=native-extra-ym2612-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=audio-numeric-bindings-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNesAudio} from './playground_nes_audio.js?v=native-extra-psg-1';
+import {createNesAudio} from './playground_nes_audio.js?v=native-extra-ym2612-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createDx7Audio} from './playground_dx7_audio.js?v=audio-numeric-bindings-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=native-extra-psg-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=native-extra-ym2612-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-extra-psg-1';
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=native-extra-psg-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=native-extra-psg-1';
-import {createOplAudio} from './playground_opl_audio.js?v=native-extra-psg-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-extra-ym2612-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=native-extra-ym2612-1';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=native-extra-ym2612-1';
+import {createOplAudio} from './playground_opl_audio.js?v=native-extra-ym2612-1';
 import {OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=audio-numeric-bindings-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-numeric-bindings-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-extra-psg-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-extra-ym2612-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createOpnAudio} from './playground_opn_audio.js?v=native-extra-psg-1';
-import {createOpnClient} from './playground_opn.js?v=native-extra-psg-1';
+import {createOpnAudio} from './playground_opn_audio.js?v=native-extra-ym2612-1';
+import {createOpnClient} from './playground_opn.js?v=native-extra-ym2612-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=native-extra-psg-1';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=native-extra-ym2612-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=pwm-wasm-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-extra-psg-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-extra-psg-1';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=native-extra-psg-1';
-import {createYm2608Client} from './playground_ym2608.js?v=native-extra-psg-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-extra-ym2612-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-extra-ym2612-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=native-extra-ym2612-1';
+import {createYm2608Client} from './playground_ym2608.js?v=native-extra-ym2612-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=audio-numeric-bindings-1';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=native-extra-psg-1';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=native-extra-ym2612-1';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -54,8 +54,8 @@ import {parseMidiFile} from './midi_file.js?v=audio-numeric-bindings-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=native-extra-psg-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=native-extra-psg-1";
+} from "./megasynth.js?v=native-extra-ym2612-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=native-extra-ym2612-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=audio-numeric-bindings-1";
@@ -247,7 +247,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=native-extra-psg-1",
+      "./playground_logic_worker.js?v=native-extra-ym2612-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -395,6 +395,58 @@ export function createPlaygroundRuntime(
   let sharedSections = {};
   let sharedSectionSynth;
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
+  function ownedNativeExtraApi(device,raw) {
+    const owners=new Map();
+    function registerEvent(port,register,value){
+      if(port!==0)return null;
+      if(register===0x28){const code=value&7;if((code&3)!==3)return {key:(code&3)+(code&4?3:0),on:!!(value&240)};}
+      if(register===0x2b)return {key:'dac',on:!!(value&128),dacEnabled:!!(value&128)};
+      if(register===0x2a&&raw.dac?.enabled)return {key:'dac',on:true};
+      if(register===0x27)return {key:'csm',on:(value&0x81)===0x81,modeRegister:value};
+      return null;
+    }
+    function event(method,args) {
+      if(device.chipName==='segapsg')return nativeVoice('psg',[method],args,raw);
+      if(['reset','stopVoices','allNotesOff'].includes(method))return {allOff:true};
+      if(['keyOn','noteOn','noteOnRaw','keyOff','noteOff'].includes(method))return {key:args[0],on:['keyOn','noteOn','noteOnRaw'].includes(method)};
+      if(method==='setDacEnabled')return {key:'dac',on:args[0],dacEnabled:!!args[0]};
+      if(method==='writeDac'&&raw.dac?.enabled)return {key:'dac',on:true};
+      if(method==='setChannel3SpecialMode')return registerEvent(0,0x27,args[0]?(raw._modeRegister|0x40):(raw._modeRegister&~0x40));
+      if(['write','rawWrite'].includes(method))return registerEvent(...args);
+      if(method==='writeData')return registerEvent(raw._pendingAddressPort,raw._pendingAddressRegister,args[0]);
+      return null;
+    }
+    device.releaseOwner=owner=>{
+      const otherSource=key=>owners.has(key)&&owners.get(key)!==owner;
+      for(const [key,held]of owners)if(held===owner){
+        owners.delete(key);
+        if(key==='dac')raw.setDacEnabled(false);
+        else if(key==='csm')raw._cancelCsm();
+        // Normal FM can share CH3/CH6 with another loop's implicit source.
+        // Release its ordinary key while retaining that other source gate.
+        else if(key===2&&otherSource('csm')||key===5&&otherSource('dac'))raw.keyOff(key);
+        else if(raw._forceKeyOff)raw._forceKeyOff(key);else raw.keyOff(key);
+      }
+    };
+    return new Proxy(Object.create(null),{get(_target,key){
+      const value=Reflect.get(raw,key,raw);if(typeof value!=='function')return value;
+      if(key==='dispose'||typeof key==='string'&&key.startsWith('_'))return value.bind(raw);
+      return (...args)=>{
+        const loop=currentLoopContext,change=event(key,args);if(loop?.stopped)return;
+        if(change&&!change.allOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
+        const result=value.apply(raw,args);
+        if(change?.allOff)owners.clear();else if(change){
+          if(change.on)owners.set(change.key,voiceOwner(loop));else owners.delete(change.key);
+          // Keep the two control gates shared by raw and high-level calls in
+          // the authoring shadow, including later edits from the Operators UI.
+          if(change.dacEnabled!==undefined&&raw.dac)raw.dac.enabled=change.dacEnabled;
+          if(change.modeRegister!==undefined)raw._modeRegister=change.modeRegister;
+        }
+        return result;
+      };
+    },set:(_target,key,value)=>Reflect.set(raw,key,value,raw),has:(_target,key)=>key in raw,
+      ownKeys:()=>Reflect.ownKeys(raw),getOwnPropertyDescriptor:(_target,key)=>{const descriptor=Reflect.getOwnPropertyDescriptor(raw,key);return descriptor?{...descriptor,configurable:true}:undefined;}});
+  }
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
     if (['allNotesOff','stopVoices','reset','resetAll','panic'].includes(method)) return {allOff:true};
@@ -586,7 +638,7 @@ export function createPlaygroundRuntime(
       if(name==='nes' && capabilities.chip==='nes')throw new Error(options.clock!==undefined&&options.clock!==CHIP_CLOCKS.nes
         ? 'This NES file uses a different base clock or region. Select Web Audio to preserve its APU timing.'
         : 'NES + FDS is built into this mode. Use await useSoundChip("nes") to access it. Additional chip instances require Web Audio.');
-      throw new Error('Only additional Sega PSG chips are supported by the experimental Native backend. Select Web Audio for other chip types.');
+      throw new Error('Only additional Sega PSG and YM2612 chips are supported by the experimental Native backend. Select Web Audio for other chip types.');
     }
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
@@ -606,7 +658,7 @@ export function createPlaygroundRuntime(
     pendingPcmIds.add(mixerId);
     let device;
     try {device = nativeExtra
-      ? await megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge})
+      ? await (name==='ym2612'?megaDrive.createExtraYm2612({id:mixerId,bridge:nativeWorkerBridge}):megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge}))
       : await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
     catch (error) {pendingPcmIds.delete(mixerId); reservation?.release(); throw error;}
     if(token !== currentRunToken){pendingPcmIds.delete(mixerId);reservation?.release();device.dispose();throw new Error('Run stopped');}
@@ -1075,6 +1127,7 @@ export function createPlaygroundRuntime(
         for (const [key, voice] of nativeOwners) if (voice.owner === state) {
           nativeOwners.delete(key); releaseNativeVoice(voice.name,voice.key);
         }
+        for(const device of pcmDevices)device.releaseOwner?.(state);
         if (capabilities.chip === 'gameboy' && !nativePrimary) {
           releasingGameboy = true;
           try { for (const [channel, owner] of gameboyOwners) if (owner === state) {
@@ -1514,7 +1567,7 @@ export function createPlaygroundRuntime(
       device.workerOwner=worker;
       try { await performanceHost.attach(device.node?.port); } catch(error) {device.dispose();throw error;}
       if(worker!==logicWorker||token!==currentRunToken||!pcmDevices.has(device)||!performanceHost.clock&&playbackState!=='running'){device.dispose();throw new Error('Run stopped');}
-      return {port:device.port,id:device.mixerId,instance:device.instanceToken,clock:device.clock,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
+      return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,state:device.client?._getState?.(),clock:device.clock,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};}
     if(command==='pcm.dispose') {
       const devices=[...pcmDevices].filter(device=>device.mixerId===args[0]&&(args[1]===undefined||device.instanceToken===args[1]));
       if(!devices.length)return;
@@ -2155,7 +2208,7 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        return keyboardApi(client);
+        return keyboardApi(device.native?ownedNativeExtraApi(device,client):client);
       },
       midi,
       ...nativeApis,

@@ -1,0 +1,188 @@
+# Native版 createSoundChip() 対応計画
+
+2026-10-23。追加音源の対象と必要な作業を整理する。
+Sega PSGとYM2612の追加生成まで実装済み。残りは今後の計画で、次はYM2203を対象にする。
+
+## 目的と範囲
+
+Browser版Playgroundで使える追加音源を、TauriのNativeエンジンでも独立して生成できるようにする。
+選択中のModeの主音源と追加音源を一緒に鳴らし、それぞれをMixer・Keyboard・音色情報から操作する。
+
+```js
+// 実装済みの例。Mode内蔵のPSGとは別のインスタンス。
+const lead = await createSoundChip('segapsg', {id: 'lead'});
+const bass = await createSoundChip('segapsg', {id: 'bass'});
+await mixer.set(lead.id, {volume: 0.5, pan: -0.4});
+lead.tone(0, {note: 'C4', attenuation: 7});
+```
+
+- `createSoundChip()`は毎回、独立した音源を作る。追加音源には個別の`dispose()`を持たせる。
+- `useSoundChip()`は、該当するModeの主音源があれば借用する。
+  主音源がなければ追加音源を共有・キャッシュし、個別破棄後の再取得で作り直す。
+- Modeの固定構成と主音源の寿命を保ち、追加生成だけを段階的に広げる。
+- 対象は現在のPlayground公開API。チップごとの機能・戻り値・初期値をBrowser版と照合する。
+- Web Audioを既定のままにする。Nativeで未対応の種類・操作は理由を示して拒否する。
+
+## 現在の到達点
+
+- [x] Native主音源の`useSoundChip()`をMain／Workerで一致させる。
+- [x] 独立した`segapsg`を全Native Modeから生成する。
+- [x] PSGのMain／Worker、Mixer、Inspector、Keyboard、個別破棄、Stop／再Runに対応する。
+- [x] session・世代・インスタンス番号で、古い命令と同じMixer IDの新音源を分離する。
+- [x] 生成とC++コアの最終回収を音声callback外で行う。
+- [x] 追加ラックをYM2612へ拡張し、同種2台＋PSG＋Mode主音源を併用する。
+- [x] 追加YM2612のMain／Worker、Mixer、Keyboard、OPN音色編集、個別破棄、Stop／再Runに対応する。
+
+現在の上限は**PSG＋YM2612の合計16台**で、準備中・破棄待ちも含む。
+他のチップを追加する際の台数・メモリー予算は未決定。
+ROM・サンプルRAMを持つ音源は、台数と合計メモリー量の両方を制限する必要がある。
+
+## 対象一覧
+
+現在のBrowser版`createSoundChip()`が受け付ける21種類を基本対象とする。
+Nativeの「既存コア」はMode内蔵用の実装があるという意味で、追加生成への接続完了を意味しない。
+
+| 公開名 | Native追加生成 | 追加対応で必要な主な作業 |
+| --- | --- | --- |
+| `segapsg` | 対応済み | 今後の共通化でも、独立したtone／noise・stereo・clockと回収を維持 |
+| `ym2612` | 対応済み | ymfmのFM 6CH＋DAC register、OPN API、CH3特殊／CSM、timer、clock、音色編集・試奏 |
+| `ym2203` | 次の対象・既存コアあり | FM 3CH＋SSG 3CH、noise／envelope、mono出力、prescaler、`scheduleRegisters()`を照合 |
+| `ym2608` | 未対応・既存コアあり | FM 6CH＋SSG＋rhythm＋ADPCM-B。rhythm ROM・ADPCM RAM・転送・発音をインスタンスごとに分離 |
+| `ym2610` | 未対応・既存コアあり | FM 4CH＋SSG＋ADPCM-A／B。A/B ROM、範囲・repeat・状態・clockを分離 |
+| `ym2151` | 未対応・複合から分離 | X68000用からOPM 8CHだけを生成。operator、LFO／noise、pan、clockを接続 |
+| `ym2413` | 未対応・共通コアあり | OPLL単独のwrapper。9CH、共有user patch、rhythm、mono出力を保持 |
+| `ay8910` | 未対応・複合から分離 | MSX用からAY単独化。tone 3CH、共有noise／envelope、clock・音量0の保持 |
+| `ym3526` | 未対応・既存コアあり | OPL 9CH、2op／rhythm、共有設定・状態取得を独立化 |
+| `ym3812` | 未対応・既存コアあり | OPL2のprofile、波形選択、9CH／rhythm、clockを独立化 |
+| `y8950` | 未対応・既存コアあり | 現行Playground APIのFM 9CH／rhythmを接続。ADPCM拡張は別項目 |
+| `ymf262` | 未対応・既存コアあり | OPL3 18CH、2op／4opの組、rhythm、2bank・左右出力を分離 |
+| `rf5c164` | 未対応・既存コアあり | PCM 8CH、64 KiB RAM、bank・loop・pitch・pan、raw writeと転送を分離 |
+| `okim6258` | 未対応・複合から分離 | X68000用からOKI単独化。サンプル保持・ADPCM転送・divider・repeat・デコード状態を分離 |
+| `gameboy` | 未対応・既存コアあり | pulse 2CH／wave／noise、wave RAM、power・clock、音色状態と手動試奏を分離 |
+| `nes` | 未対応・既存コアあり | pulse／triangle／noise／DMC＋任意FDS。`{fds, clock}`、DMC memory、FDS波形を分離 |
+| `snes` | 未対応・既存S-DSPコアあり | 8voice、BRR・64 KiB RAM、DSP状態、echo、timelineを分離。楽器操作との排他も維持 |
+| `huc6280` | 未対応・既存コアあり | 6CHのwave／DDA／noise、共有LFO、波形RAM・clockを分離 |
+| `dx7` | 未対応・既存コアあり | 6operator、preset／SysEx bank、voice割当・note lease・状態取得を分離 |
+| `pwm` | 未対応・既存コアあり | 32X PWMのFIFO・register・clock・時刻付きscheduleを分離 |
+| `spc` | 未対応・別の実装が必要 | SPC700を含むSPCファイルプレーヤー。load／play／pause／seek／snapshot／onEventと取消しを実装 |
+
+### 公開名と機能の注意点
+
+- **`ym2610b`**：現在の汎用`createSoundChip()`にはない。
+  Neo Geo B modeの`useSoundChip('ym2610b')`は、内蔵6CH音源を借りるための別名。
+  追加生成にも6CH版を公開するなら、Browser／Nativeの名前・型・取得規則を別途決める。
+- **`snes`と`spc`**：`snes`はCPUを動かさないS-DSP楽器・取得済みtimelineの再生。
+  `spc`はSPC700も動かすファイルプレーヤーで、既存Native SNES対応には含まれない。
+- **Y8950 ADPCM**：低レベルコアの機能と現在のPlayground公開APIを区別する。
+  ADPCM memory APIの新規公開を、追加生成対応の完了条件へ暗黙に加えない。
+- **Nuked**：まず追加YM2612は通常のymfmを対象とする。
+  Nukedを追加生成時にも選べるようにするか、公開オプションとともに別途検討する。
+
+## 実装順の目安
+
+1. **YM2612（完了）**：独立FM＋DAC registerを、PSGと同じ追加ラックへ接続した。
+   異なるチップの併用・Main／Worker・Mixer・Keyboard・Inspector・回収を確認済み。
+2. **YM2203**：OPNの再利用を確認しつつ、FMとSSGの複合出力、mono、scheduleを扱う。
+3. **他の既存コア**：OPNのYM2608／YM2610、OPM／OPLL／AY／OPL、
+   Game Boy／NES／PC Engine／DX7／PWMへ、利用頻度と単独化の容易さに応じて広げる。
+   ROM・サンプルを持つ音源へ進む前に、下記の合計メモリー予算を実装する。
+4. **サンプル・timelineを含む仕上げ**：RF5C164／OKIM6258／SNESを含め、
+   転送・置換・停止・失敗・timeline完了の扱いを揃える。手順3の音源も同じ条件で確認する。
+5. **SPCプレーヤー**：楽器用ラックの対応とは分けて、CPU実行とファイル再生の制御を設計する。
+
+手順3以降の細かな順番は暫定。1種類ごとに公開APIと検証を完結させる。
+
+## 共通で必要な作業
+
+以下は全対象への完了条件。PSG／YM2612では適用済みでも、他の種類への展開が残るものは未完了とする。
+
+### ラック・生成・寿命管理
+
+- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612も追加できる入口を作る。
+  各チップの命令検証・DSP状態・voice管理は、そのチップの実装へ委譲する。
+- [ ] 単独チップを生成するC ABIとRust wrapperを用意し、不要な同居音源の生成を避ける。
+  例：YM2151だけの追加で、X68000複合のOKI用メモリーまで確保しない。
+- [ ] 種類別／合計台数、ROM・RAM・サンプル、準備中転送、待機命令、破棄待ちの上限を決める。
+  停止中やcallbackの進行が遅い場合も、上限を超えて確保しない。
+- [ ] 生成・大きな転送準備・最終解放を制御側で行い、callbackでallocation・最終free・待機lockを増やさない。
+- [ ] Mixer IDとNative識別子を分け、session／世代／instanceを確認する。
+  古いwrite・予約・状態応答・disposeが、同じIDで再生成した音源へ届かないこと。
+- [ ] 生成途中のStop、個別dispose、同じIDの再利用、再Run、Mode／backend変更、生成失敗を回収する。
+  ID予約・port・listener・キュー・ROM／RAMの保持参照も残さない。
+
+### 演奏命令と公開API
+
+- [ ] Main／Workerで同じ機能・初期値・validation・非同期完了条件を提供する。
+- [ ] 追加チップも既存の演奏時計・performance・ownerに参加させる。
+  `stopLoop()`が他のloop・音源・手動Keyboardの発音まで止めないこと。
+- [ ] raw write、clock、reset、keyOff、schedule・memoryなど、チップ固有の公開操作を一覧にして照合する。
+  アップロード完了と、未来に予約した命令の適用完了を区別する。
+- [ ] JSの予約済み／編集済み状態とNativeの適用済み状態を区別する。
+  clockは適用確認後に反映し、状態読取りで演奏時計を設定し直さない。
+- [ ] `useSoundChip()`の借用／共有生成、同時要求の集約、失敗後の再取得、dispose後のcache破棄を確認する。
+- [ ] 対応済み種類をcapabilitiesへ追加し、Main／Workerの受付・d.ts・説明を揃える。
+
+WASM／Direct用の同期`read()`・`generateStereo()`の契約は維持する。
+Native IPCで同じ同期呼出しを装ったり、戻り値を無条件にPromiseへ変えたりしない。
+Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapshot／適用確認で接続する。
+低レベルnpm API全体へのNative adapter公開や、パッケージの分離は別の作業として扱う。
+
+### Mixer・Keyboard・音色情報
+
+- [ ] インスタンスごとにMixerへ接続し、volume／pan／mute／soloを独立させる。
+  追加音源も共通FX・liveFx・monitor・録音へ流す。
+- [ ] 固定IDでMixer設定を再利用できるようにし、既存のPreset／default／current保存規則に従う。
+  音源の作成・破棄だけでは`mixer/current.json`を書き換えない。
+- [ ] Keyboardで対象インスタンスとCHを選べるようにし、PCキー／Guitar／手動試奏へ接続する。
+- [ ] 既存の音色情報・operator編集・試奏UIを追加インスタンスからも使えるようにする。
+  チップに存在する操作だけを表示し、固定Modeの主音源と追加音源を識別できること。
+- [ ] 状態通知を正しいinstanceへ送る。追加音源の通知で主音源や別インスタンスの表示を上書きしない。
+- [ ] viewの描画と音声生成を分離し、観測のための常時ポーリングを増やさない。
+  status待機中にもStop／disposeが進むようにする。
+
+## YM2612の完了項目
+
+- [x] ymfmのYM2612単独コアを用意する。FM 6CHとDACを持ち、PSGを同時生成しない。
+- [x] 2port write、operator／preset、pan／LFO、CH3特殊モード／CSM、timer・clockを照合する。
+- [x] DAC enable／dataを扱い、PCM用の公開操作は現在の追加YM2612 APIで実際に使える範囲を確認して接続する。
+  主音源側のDAC bank・所有者・停止と混線させない。
+- [x] 同じYM2612を2台追加した場合と、追加YM2612＋PSG＋Mode主音源の混在を確認する。
+- [x] Main／Worker、Mixer、Keyboard、音色情報、個別dispose、Stop／再Runを接続する。
+- [x] callback分割や状態読取りの有無でPCMが変わらず、Browser側の対応音源と一致することを確認する。
+- [x] 台数を増やしたオフラインDSPの処理時間とコアのメモリー量を記録する。
+  ラック・固定キュー・IPC・UIを含む全体負荷と、実機でのcallback締切は別途測定する。
+
+## 各チップの完了条件と検証
+
+1. 実C++／RustとBrowser／WASMをオフライン比較する。44.1／48／96 kHz、clock、
+   全CH、音量・pan、raw操作、reset、Stop／再発音、可変callbackを対象にする。
+   比較対象コア・丸めによる許容差はチップごとに根拠を残す。
+2. 同種2台と異種混在を確認する。一方の編集・reset・clock・dispose・owner取消しで、
+   他方の音色・波形・ROM／RAM・予約・発音が変わらないこと。
+3. 無効な操作・上限超過・転送失敗・古いsession・生成中Stop・同ID再利用を確認する。
+   受付失敗時に途中の設定や確保だけが残らないこと。
+4. 実logic WorkerとNative IPCのmockで、API・予約・取消し・portの寿命を検証する。
+   Chromium／WebKitではKeyboard・音色情報・Mixer・Run／Stopを確認する。
+5. Native再生経路でAudioContext／AudioWorkletや連続PCM転送を追加しないこと。
+   通常再生のテストでは物理音声デバイスを開かず、実機試聴・dropout確認とは結果を分ける。
+6. 新規C++／RustをMSVC／GCC／Clang、x86_64／ARM64の既存CIでビルドする。
+   ライセンス・原典照合・対応ソースと再ビルド材料の同梱も更新する。
+7. `web`→`docs/js`同期、cache revision、Playground ZIP、Tauri取込み、同梱ソースZIPを更新する。
+   最終distでも確認し、種類ごとの対応API・制限・検証結果を記録する。
+
+## 未決定・別途扱う項目
+
+- [ ] 重い音源を含むラック全体の台数・メモリー上限。
+- [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
+- [ ] 追加YM2612でのNuked選択と、選択方法。
+- [ ] Y8950 ADPCMなど、現在のPlayground公開APIにない機能の追加。
+- [ ] SPCプレーヤーのNative化と観測イベントの配送方式。
+- [ ] `tetorica-soundchip-native`／JS adapterのパッケージ分離、低レベルAPI全体への展開。
+
+## 関連する実装・記録
+
+- [公開名と追加生成の入口](../../web/playground_runtime.js)、[共有音源のcache](../../web/playground_soundchips.js)
+- [Native主音源API](native_primary_api_01.md)、[実装済みの追加Sega PSG](native_dynamic_psg_01.md)
+- [実装済みの追加YM2612と検証結果](native_dynamic_ym2612_01.md)
+- [Mixerの保存規則](playground_mixer_state_01.md)、[Native安定化・継続検証](native_stability_01.md)
+- [Neo Geoの4CH／6CH](native_neogeo_01.md)、[Native SNESなどの対応範囲](native_consoles_01.md)、[MSX Audioの対応範囲](native_msx_audio_01.md)
