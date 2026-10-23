@@ -1,6 +1,6 @@
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
-import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=native-extra-opl-1';
+import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=native-extra-opl3-1';
 import {midiToOpnPitch} from './soundchip_pitch.js';
 import {createNativeGenesisMedia} from './native_genesis_media.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
@@ -13,24 +13,24 @@ import {createNativeGenesisNes} from './native_genesis_nes.js?v=nes-wasm-1';
 import {createNativeGenesisConsole} from './native_genesis_console.js?v=native-consoles-1';
 import {createNativeGenesisSnes} from './native_genesis_snes.js?v=native-consoles-1';
 import {createNativeGenesisPwm} from './native_genesis_pwm.js?v=pwm-wasm-1';
-import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=native-extra-opl-1';
-import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=native-extra-opl-1';
-import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=native-extra-opl-1';
+import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=native-extra-opl3-1';
+import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=native-extra-opl3-1';
+import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=native-extra-opl3-1';
 import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=native-x68000-1';
-import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=native-extra-opl-1';
+import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=native-extra-opl3-1';
 import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=native-game-gear-1';
-import {createNativeGenesisMsx} from './native_genesis_msx.js?v=native-extra-opl-1';
-import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=native-extra-opl-1';
-import {createNativeGenesisOpl} from './native_genesis_opl.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraYm2610,EXTRA_YM2610_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=native-extra-opl-1';
-import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=native-extra-opl-1';
+import {createNativeGenesisMsx} from './native_genesis_msx.js?v=native-extra-opl3-1';
+import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=native-extra-opl3-1';
+import {createNativeGenesisOpl} from './native_genesis_opl.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraYm2610,EXTRA_YM2610_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=native-extra-opl3-1';
+import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=native-extra-opl3-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -106,7 +106,7 @@ export class NativeGenesisSynth {
     this.gameGearMode=mode==='game-gear';this.oplMode=['ym3526','ym3812','ymf262'].includes(mode);this.msxMode=mode==='msx';this.msxAudioMode=mode==='msx-audio';this.masterSystemMode=mode==='master-system';this.x68000Mode=mode==='x68000';this.ym2203Mode=mode==='pc98-26';this.opnaMode=mode==='pc98';this.opnbMode=['neogeo','neogeo-b'].includes(mode);this.nesMode=mode==='nes';this.dx7Mode=!this.consoleKind&&!this.snesMode&&!this.nesMode&&!this.ym2203Mode&&!this.opnaMode&&!this.opnbMode&&!this.x68000Mode&&!this.masterSystemMode&&!this.gameGearMode&&!this.msxMode&&!this.msxAudioMode&&!this.oplMode&&(dx7===true||mode==='dx7');this.primaryMode=!!this.consoleKind||this.snesMode||this.nesMode||this.dx7Mode||this.ym2203Mode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.gameGearMode||this.msxMode||this.msxAudioMode||this.oplMode;
     this.chip = this.oplMode?mode:this.consoleKind??(this.msxAudioMode?'msx-audio':this.msxMode?'msx':this.masterSystemMode||this.gameGearMode?'segapsg':this.x68000Mode?'x68000':this.ym2203Mode?'ym2203':this.opnaMode?'ym2608':this.opnbMode?(mode==='neogeo-b'?'ym2610b':'ym2610'):this.snesMode?'snes':this.nesMode?'nes':this.dx7Mode?'dx7':'ym2612');this.mode=this.gameGearMode?'game-gear':this.masterSystemMode?'master-system':this.opnbMode?mode:this.ym2203Mode?'pc98-26':this.opnaMode?'pc98':this.chip==='huc6280'?'pc-engine':this.chip==='ym2612'?mode??(megaCD?'mega-cd':'genesis'):this.chip;this.nukedMode=!this.primaryMode&&['genesis-full-nuked','genesis-nuked'].includes(mode);this.engine=this.chip==='ym2612'?(this.nukedMode?'nuked':'ymfm'):undefined;this.pwmMode=!this.primaryMode&&['32x','genesis-full-nuked'].includes(mode);this.megaCD=!this.primaryMode&&(megaCD===true||mode==='mega-cd'||this.pwmMode);
     this.capabilities = Object.freeze({chip:this.chip, fmChannels:this.ym2203Mode?3:this.opnbMode?(mode==='neogeo-b'?6:4):this.opnaMode?6:this.primaryMode?0:6, psg:!this.primaryMode||this.masterSystemMode||this.gameGearMode, dac:!this.primaryMode,
-      pcm:this.megaCD,pwm:this.pwmMode, recorder:true, worker:true, noise:true, dynamicSoundChips:false, dynamicSoundChipKinds:Object.freeze(['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950']), backend:'native-genesis',...(this.engine?{engine:this.engine}:{})});
+      pcm:this.megaCD,pwm:this.pwmMode, recorder:true, worker:true, noise:true, dynamicSoundChips:false, dynamicSoundChipKinds:Object.freeze(['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262']), backend:'native-genesis',...(this.engine?{engine:this.engine}:{})});
     this.clock = new NativeAudioClock(now);
     this.outputMonitor = createNativeGenesisMonitor({invoke:(command,args)=>this.invoke(command,args),
       getSession:()=>this.session,getSampleRate:()=>this.clock.sampleRate,
@@ -391,7 +391,7 @@ export class NativeGenesisSynth {
           // Aggregate admission is atomic across chip kinds and primary writes.
           // A rejected additional-chip reservation must leave the engine usable.
           const message=error?.message??String(error);
-          if(batch.some(command=>['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950'].includes(command.type)) &&
+          if(batch.some(command=>['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262'].includes(command.type)) &&
               ['Additional Native sound-chip memory budget (64 MiB) exceeded','Additional Native sound-chip memory budget exceeded (67108864 bytes)'].includes(message)) {
             const rejected=new Error(message);rejected.code='EXTRA_CHIP_MEMORY_LIMIT';throw rejected;
           }
@@ -468,7 +468,7 @@ export class NativeGenesisSynth {
   // Completion observers follow an already admitted command. Keep their
   // read-only wait outside the control FIFO so Stop can cancel that command.
   observeNativeSnapshot(command,args={}) {
-    if(!/^native_genesis_extra_(ym2413|ym3526|ym3812|y8950)_status$/.test(command))return Promise.reject(new Error('Unsupported Native completion observer'));
+    if(!/^native_genesis_extra_(ym2413|ym3526|ym3812|y8950|ymf262)_status$/.test(command))return Promise.reject(new Error('Unsupported Native completion observer'));
     if(!args||typeof args!=='object'||Array.isArray(args)||Object.keys(args).some(key=>!['instance','afterLayoutRevision'].includes(key))||!Number.isSafeInteger(args.instance)||args.instance<1||!Number.isSafeInteger(args.afterLayoutRevision)||args.afterLayoutRevision<0)return Promise.reject(new TypeError('Invalid Native layout completion observer'));
     if(!this.isReady()||this.stopping||this.closing)return Promise.reject(new DOMException('Native audio is stopping','AbortError'));
     if(this.acceptedRequests>=256)return Promise.reject(new RangeError('Native preparation request queue is full'));

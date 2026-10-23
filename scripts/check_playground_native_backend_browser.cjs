@@ -277,7 +277,7 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
-      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950'].includes(entry.type));
+      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
       if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
@@ -2370,7 +2370,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       if(extraOplOnly){
         await runExtraOpl({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
         assert.deepEqual(errors,[]);await context.close();
-        console.log(name+': PASS independent Native YM3526/YM3812/Y8950 plus eight chip kinds, Main/Worker, OPL editors/Keyboard/Mixer, primary borrowing, Stop/replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+        console.log(name+': PASS independent Native YM3526/YM3812/Y8950/YMF262 plus eight chip kinds, Main/Worker, OPL editors/Keyboard/Mixer, 4op pairs/banks/stereo, primary borrowing, Stop/replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
       }
       if(extraMsxOnly){
         await runExtraMsx({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});

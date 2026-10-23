@@ -11,7 +11,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
-const profiles=['ym3526','ym3812','y8950'],rates=[44100,48000,96000],scenarios=[];
+const profiles=['ym3526','ym3812','y8950','ymf262'],rates=[44100,48000,96000],scenarios=[];
 const binaries=Object.fromEntries(await Promise.all(profiles.map(async name=>[name,await fs.readFile(path.join(root,`docs/generated/${name}_wasm.wasm`))])));
 let Processor;globalThis.sampleRate=48000;globalThis.currentFrame=0;
 globalThis.AudioWorkletProcessor=class{constructor(){this.testReady=new Promise((resolve,reject)=>{this.port={postMessage:data=>{if(data.ready)resolve();else if(data.error)reject(new Error(data.error));},close(){}};});}};
@@ -29,7 +29,7 @@ for(const chip of profiles){
     at(701);api.setOperator(0,0,{tl:27,ksl:2,multi:7});at(1703);api.keyOff(0);
     at(2801);api.noteOn(0,76);at(3901);api.setAlgo(api.channels-1,1,7);at(5101);api.keyOff(api.channels-1);
   });
-  const waves=chip==='ym3812'?4:1;
+  const waves=chip==='ymf262'?8:chip==='ym3812'?4:1;
   for(let wave=0;wave<waves;wave++)scenario(chip,`waveform ${wave}, both operators, TL/KSL/multiplier/envelope/vibrato/AM`,({api,at})=>{
     note(api);for(let op=0;op<2;op++)api.setOperator(0,op,{waveform:wave,am:true,vibrato:true,ksr:true,ksl:1,ar:13,dr:5,sl:7,rr:3,multi:op?1:3});
     at(701);api.setLFO({amDepth:true,pmDepth:true});at(1703);api.setOperator(0,0,{tl:35,ksl:3,multi:9});
@@ -76,13 +76,13 @@ for(const chip of profiles){
   scenario(chip,'cold default silence with untouched authored state',()=>{},{initialize:false,allowSilent:true});
   scenario(chip,'public initialize silence defaults',()=>{},{allowSilent:true});
   for(let ch=0;ch<9;ch++)for(let algorithm=0;algorithm<2;algorithm++)scenario(chip,`FM${ch} algorithm${algorithm} feedback/operator register order`,({api,at})=>{
-    note(api,ch,48+ch*3,OPL_PRESETS.organ);api.setAlgo(ch,algorithm,7);at(701);api.setOperator(ch,0,{multi:7,tl:31,ksl:3});at(1703);api.setOperator(ch,1,{waveform:chip==='ym3812'?3:0,sl:9,rr:12});at(2801);api.keyOff(ch);at(3901);api.keyOn(ch);at(5101);api.setFrequency(ch,440);
+    note(api,ch,48+ch*3,OPL_PRESETS.organ);api.setAlgo(ch,algorithm,7);at(701);api.setOperator(ch,0,{multi:7,tl:31,ksl:3});at(1703);api.setOperator(ch,1,{waveform:chip==='ym3812'||chip==='ymf262'?3:0,sl:9,rr:12});at(2801);api.keyOff(ch);at(3901);api.keyOn(ch);at(5101);api.setFrequency(ch,440);
   });
   scenario(chip,'public allNotesOff retains release tails, timer/CSM and normal-key resume',({api,at,add})=>{
     for(let ch=0;ch<9;ch++)note(api,ch,48+ch*3,OPL_PRESETS.organ);api.writeRegister(2,255);api.writeRegister(8,128);api.writeRegister(4,1);
     at(701);add('public-off');at(1703);api.keyOn(0);at(2801);add('public-off');at(3901);api.keyOn(7);at(5101);api.writeRegister(4,128);
   });
-  for(const mode of[1,3,0x21,0x41])scenario(chip,`global CSM all9 timer control${mode} statusIRQ`,({api,at})=>{
+  for(const mode of chip==='ymf262'?[]:[1,3,0x21,0x41])scenario(chip,`global CSM all9 timer control${mode} statusIRQ`,({api,at})=>{
     for(let ch=0;ch<9;ch++){note(api,ch,48+ch*3);api.keyOff(ch);}api.writeRegister(2,255);api.writeRegister(3,253);api.writeRegister(8,128);api.writeRegister(4,mode);
     at(701);api.writeRegister(4,128);at(1703);api.writeRegister(4,mode);at(2801);api.writeRegister(8,0);at(3901);api.writeRegister(8,128);at(5101);api.writeRegister(2,249);
   });
@@ -100,6 +100,20 @@ for(const control of[0x80,0x90,0xa0,0xb0])scenario('y8950',`raw ADPCM zero-memor
   note(api,0,60);api.writeRegister(8,0x0f);api.writeRegister(9,0);api.writeRegister(10,0);api.writeRegister(11,31);api.writeRegister(12,0);api.writeRegister(16,255);api.writeRegister(17,255);api.writeRegister(18,220);api.writeRegister(7,control);
   for(let i=1;i<20;i++){at(i*263);api.writeRegister(15,(i*53+17)&255);}at(5501);api.writeRegister(7,1);
 });
+for(const primary of[0,1,2,9,10,11])for(let algorithm=0;algorithm<4;algorithm++)scenario('ymf262',`four-operator pair ${primary}+${primary+3}, algorithm ${algorithm}, feedback and pan`,({api,at,add})=>{
+  note(api,primary,57+primary,{fourOp:true,algorithm,feedback:5,pan:{left:true,right:true},operators:Array.from({length:4},(_,i)=>({multi:i+1,tl:12+i*5,ar:15,dr:4,sl:6,rr:8,sustain:true,waveform:i}))});
+  at(701);api.setPan(primary,true,false);at(1703);api.setPan(primary,false,true);
+  at(2801);api.setOperator(primary,2,{multi:7,tl:19,waveform:7});at(3901);add('off',primary);at(5101);add('audition',primary);
+});
+scenario('ymf262','all four OPL3 hardware buses fold A+C left B+D right with per-bus saturation',({api,at})=>{
+  for(let ch=0;ch<18;ch++)note(api,ch,40+ch*3,OPL_PRESETS.organ);
+  for(const [frame,value]of[[701,0x10],[1703,0x20],[2801,0x40],[3901,0x80],[5101,0xf0]]){at(frame);for(let ch=0;ch<18;ch++)api.writeRegister((ch>=9?256:0)+0xc0+ch%9,value|1);}
+});
+scenario('ymf262','pair maps and OPL3 compatibility routing change without hidden secondary gates',({api,at})=>{
+  for(const ch of[0,1,2,9,10,11])note(api,ch,45+ch,{...OPL_PRESETS['four-op-bell']});
+  at(701);api.setFourOp(0,false);note(api,3,77);at(1703);api.setFourOp(9,false);note(api,12,81);
+  at(2801);api.writeRegister(0x105,0);at(3901);api.writeRegister(0x105,1);at(5101);api.setFourOp(0,true);api.noteOn(0,69);
+});
 const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed OPL WASM running shipped Worklet renderSegment and controls',
   wasmSha256:Object.fromEntries(Object.entries(binaries).map(([name,data])=>[name,createHash('sha256').update(data).digest('hex')])),rates,cases:[],maximumDifference:0,totalStereoFrames:0,
   limits:'Offline selected YM3526/YM3812/YMF262 output comparison. Standalone additional native ownership/scheduling/IPC/UI verified separately. Reset restores captured power-on state without callback allocation; no PCM sample memory is provided. Worklet external mute merges authoring forced mute with real WASM mute API. Deferred manual previews use the shipped FM inspector semantics. Status/timer/IRQ retention and zero callback allocations/frees verified by the C++ fixture. No real audio device or cross-platform compiler was used.'};
@@ -109,10 +123,10 @@ try{
       ...['src/native_genesis_extra_opl.cpp','src/native_genesis_extra_opl_fixture.cpp','native-master-system/snapshot/src/ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
-    globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
+    globalThis.sampleRate=rate;const planes=(scenario.chip==='ymf262'?512:256)+7;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
     const input=events.map(({frame,op,args})=>`${frame} ${op} ${args.join(' ')}`).join('\n')+'\n';
-    const bytes=execFileSync(fixture,[String(scenario.chip==='y8950'?3:profiles.indexOf(scenario.chip)),String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*263*4+1048576,timeout:30000});
-    assert.equal(bytes.length,scenario.frames*263*4);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
+    const bytes=execFileSync(fixture,[String({ym3526:0,ym3812:1,ymf262:2,y8950:3}[scenario.chip]),String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*planes*4+1048576,timeout:30000});
+    assert.equal(bytes.length,scenario.frames*planes*4);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
     const reference=new Processor({processorOptions:{chip:scenario.chip,wasmBinary:binaries[scenario.chip]}});await reference.testReady;
     let externalMute=0;const update=reference.updateMuteMask.bind(reference);
     reference.updateMuteMask=()=>{update();let mask=externalMute;for(const ch of reference.mutedChannels)mask|=1<<ch;reference.chip.setMuteMask(mask);};
@@ -133,7 +147,7 @@ try{
       }
       reference.renderSegment(l,r);
       const expected=[l[0],r[0],...reference.registers,reference.clock,reference.chip.readStatus(),Number(reference.chip.getIrq()),reference.chip.readStatus(),Number(reference.chip.getIrq())];
-      for(let ch=0;ch<263;ch++){const value=actual[frame*263+ch],want=Math.fround(expected[ch]);assert(Number.isFinite(value));const difference=Math.abs(value-want);
+      for(let ch=0;ch<planes;ch++){const value=actual[frame*planes+ch],want=Math.fround(expected[ch]);assert(Number.isFinite(value));const difference=Math.abs(value-want);
         if(difference&&!first)first={frame,ch,native:value,wasm:want};maximumDifference=Math.max(maximumDifference,difference);if(ch<2)peak=Math.max(peak,Math.abs(value));}
     }
     assert(maximumDifference<=1e-7,`${scenario.chip} ${scenario.name} at ${rate}: difference ${maximumDifference}, ${JSON.stringify(first)}`);if(!scenario.allowSilent)assert(peak>1e-4,scenario.name+' must sound');

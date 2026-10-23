@@ -39,7 +39,7 @@ export class Ym2608AudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=native-extra-opl-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=native-extra-opl-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=native-extra-opl3-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=native-extra-opl3-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2608AudioEngine>} Initialized engine owned by the caller.

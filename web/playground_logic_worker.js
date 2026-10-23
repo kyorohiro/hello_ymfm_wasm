@@ -198,10 +198,10 @@ function postCommand(command, args = []) {
   postMessage({ type: "command", command, args });
 }
 
-function request(command, args = [], loopContext = null) {
+function request(command, args = [], loopContext = null, performanceInfo) {
   const id = nextRequestId;
   nextRequestId += 1;
-  postMessage({ type: "request", id, command, args });
+  postMessage({ type: "request", id, command, args, ...(performanceInfo?{performance:performanceInfo}:{}) });
   return new Promise((resolve, reject) => {
     pendingRequests.set(id, { resolve, reject, loopContext });
   });
@@ -393,7 +393,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   }, () => (!run.stopped || run.currentLoop?.keyboardCleanup) && !run.currentLoop?.stopped)) : null;
   const chip = !nativePrimary && chipConnection ? createWorkerChip({...chipConnection,port:performanceTransport.port(chipConnection.port,'chip'),capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
   run.adoptNativeState=(name,state)=>native.adopt(name,state);
-  run.adoptExtraOplState=(id,state,instance)=>{if(!Number.isSafeInteger(instance)||instance<1)return;for(const client of pcmClients)if(client.id===id&&pcmInstances.get(client)===instance)client._adoptState?.(state);};
+  run.adoptExtraOplState=(id,state,instance,authorEdit)=>{if(!Number.isSafeInteger(instance)||instance<1)return;for(const client of pcmClients)if(client.id===id&&pcmInstances.get(client)===instance){if(authorEdit&&client._applyAuthorEdit)client._applyAuthorEdit(authorEdit);else client._adoptState?.(state);}};
   run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
   run.resetSampleClock = () => { clock.resetSampleClock(); workerDac?.reset(); };
@@ -744,7 +744,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return result;
     },
     async useSoundChip(name, options) {
-      const token = run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950'].includes(name)&&!(name==='ym2610'?['ym2610','ym2610b'].includes(capabilities.chip):nativeConnections.some(endpoint=>endpoint.name===name)),caller=run.currentLoop;
+      const token = run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262'].includes(name)&&!(name==='ym2610'?['ym2610','ym2610b'].includes(capabilities.chip):nativeConnections.some(endpoint=>endpoint.name===name)),caller=run.currentLoop;
       const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
       check();
       if (capabilities.backend === 'native-genesis' && capabilities.chip === 'ym2610b' && name === 'ym2610b') name = 'ym2610';
@@ -766,10 +766,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
     async createSoundChip(name, options = {}){
       if(run.stopped)throw new Error('Run stopped');
-      const token=run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950'].includes(name),caller=run.currentLoop;
+      const token=run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262'].includes(name),caller=run.currentLoop;
       if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
       if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
-      const response=await request('pcm.create',[name, options],run.currentLoop);
+      const response=await request('pcm.create',[name, options],run.currentLoop,capabilities.backend==='native-genesis'&&name==='ymf262'?performanceTransport.timestamp():undefined);
       // Older test/host shims may return a bare port; production returns its allocated ID.
       const port=performanceTransport.port(response.port ?? response, name === 'spc' ? 'spc' : 'independent');
       const mixerId=response.id ?? options.id ?? `${name}:${++pcmSequence}`;
@@ -777,7 +777,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
         captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},
         invokeEvent:(callback,event)=>executeWithWorkerGuards(()=>callback(event)),
       }) : ['huc6280','okim6258','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'ym2151' ? createYm2151Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'segapsg' ? createSegaPsgClient(port,response) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
-      if(run.stopped || token!==run.token||scoped&&caller?.stopped){pcm.dispose();throw new Error('Run stopped');}
+      if(run.stopped || token!==run.token||scoped&&caller?.stopped){pcm.dispose();if(capabilities.backend==='native-genesis'&&name==='ymf262')postMessage({type:'command',command:'pcm.dispose',args:[mixerId,response.instance]});throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       if(Number.isSafeInteger(response.instance)&&response.instance>0)pcmInstances.set(pcm,response.instance);
       const dispose=pcm.dispose.bind(pcm); let disposed=false;
@@ -1017,7 +1017,7 @@ self.onmessage = (event) => {
   const message = event.data;
   if (message.type === 'musical-keyboard') {currentRun?.handleMusicalKeyboard(message);return;}
   if (message.type === 'tempo') { currentRun?.setBpm(message.bpm); return; }
-  if (message.type === 'extra-opl-state') {currentRun?.adoptExtraOplState(message.id,message.state,message.instance);return;}
+  if (message.type === 'extra-opl-state') {currentRun?.adoptExtraOplState(message.id,message.state,message.instance,message.authorEdit);return;}
   if (message.type === 'extra-chip-disposed') {currentRun?.disposeExtraChip(message.id,message.instance);return;}
   if (message.type === 'native-primary-state') {currentRun?.adoptNativeState(message.name,message.state);return;}
   if (message.type === 'chip-clock-state') { currentRun?.adoptChipClock(message.clock); return; }

@@ -7,7 +7,7 @@ export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,c
   if(synth.extraDevices.size>=16)throw new RangeError('Native audio supports at most 16 additional sound chips');
   if(synth.nextExtraChipInstance>=Number.MAX_SAFE_INTEGER)throw new RangeError('Native sound chip instance limit reached');
   const instance=++synth.nextExtraChipInstance,session=synth.session,generation=synth.generation;
-  const familyDevices=kind==='segapsg'?synth.extraPsgDevices:kind==='ym2203'?synth.extraYm2203Devices:kind==='ym2608'?synth.extraYm2608Devices:kind==='ym2610'?synth.extraYm2610Devices:kind==='ym2151'?synth.extraYm2151Devices:kind==='ym2413'?synth.extraYm2413Devices:kind==='ay8910'?synth.extraAy8910Devices:['ym3526','ym3812','y8950'].includes(kind)?synth.extraOplDevices:synth.extraYm2612Devices;
+  const familyDevices=kind==='segapsg'?synth.extraPsgDevices:kind==='ym2203'?synth.extraYm2203Devices:kind==='ym2608'?synth.extraYm2608Devices:kind==='ym2610'?synth.extraYm2610Devices:kind==='ym2151'?synth.extraYm2151Devices:kind==='ym2413'?synth.extraYm2413Devices:kind==='ay8910'?synth.extraAy8910Devices:['ym3526','ym3812','y8950','ymf262'].includes(kind)?synth.extraOplDevices:synth.extraYm2612Devices;
   const nativeKind=kind==='segapsg'?'psg':kind;
   let disposed=false,created=false,released=false,connection,device;
   const current=()=>!disposed&&session===synth.session&&generation===synth.generation&&synth.isReady()&&!synth.stopping&&!synth.closing;
@@ -20,7 +20,7 @@ export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,c
     enqueueMany:commands=>{if(!current())throw abort();synth.enqueueMany(commands.map(command=>({...command,instance})));},
     nativeRequest:(command,args)=>{if(!current())return Promise.reject(abort());return synth.nativeRequest(command,{...args,instance});},
     observeNativeSnapshot:(command,args)=>{if(!current())return Promise.reject(abort());return synth.observeNativeSnapshot(command,{...args,instance});},
-    emit:event=>{if(current()){device?.onState?.(event.state);synth.chipInspector?.notify();}},
+    emit:event=>{if(current()){device?.onState?.(event.state,event.authorEdit);synth.chipInspector?.notify();}},
     notifyLayout:layout=>{if(current()){device.layout={...device.layout,...layout};synth.chipInspector?.notify();}},
     reportAsyncError:error=>{if(current())synth.reportAsyncError(error);},
   };
