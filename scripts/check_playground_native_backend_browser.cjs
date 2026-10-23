@@ -18,6 +18,7 @@ const {installExtraMsxMock,runExtraMsx}=require('./native_backend_extra_msx.cjs'
 const {installExtraOplMock,runExtraOpl}=require('./native_backend_extra_opl.cjs');
 const {installExtraRf5c164Mock,runExtraRf5c164}=require('./native_backend_extra_rf5c164.cjs');
 const {installExtraOkim6258Mock,runExtraOkim6258}=require('./native_backend_extra_okim6258.cjs');
+const {installExtraGameboyMock,runExtraGameboy}=require('./native_backend_extra_gameboy.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -279,7 +280,7 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
-      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258'].includes(entry.type));
+      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
       if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
@@ -2327,7 +2328,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const extraOplOnly=process.argv.includes('--extra-opl-only');
     const extraRfOnly=process.argv.includes('--extra-rf5c164-only');
     const extraOkiOnly=process.argv.includes('--extra-okim6258-only');
-    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly;
+    const extraGbOnly=process.argv.includes('--extra-gameboy-only');
+    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly;
     if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
     if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
@@ -2342,16 +2344,17 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
-    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly)installExtraPsgMock(native);
-    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly)installExtraYm2612Mock(native);
-    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly)installExtraYm2203Mock(native);
-    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly)installExtraYm2608Mock(native);
-    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly)installExtraYm2610Mock(native);
-    if(extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly)installExtraYm2151Mock(native);
-    if(extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly)installExtraMsxMock(native);
-    if(extraOplOnly||extraRfOnly||extraOkiOnly)installExtraOplMock(native);
+    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraPsgMock(native);
+    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraYm2612Mock(native);
+    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraYm2203Mock(native);
+    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraYm2608Mock(native);
+    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraYm2610Mock(native);
+    if(extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraYm2151Mock(native);
+    if(extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraMsxMock(native);
+    if(extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly)installExtraOplMock(native);
     installExtraRf5c164Mock(native);
     installExtraOkim6258Mock(native);
+    installExtraGameboyMock(native);
     const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
@@ -2367,6 +2370,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
       await page.goto(nativeUrl.href);await ready(page);
       assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(extraGbOnly){
+        await runExtraGameboy({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS independent Native Game Boy plus fourteen chip kinds, Main/Worker, Wave RAM/pulse/noise editors, Keyboard/Mixer, primary borrowing, Stop/replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+      }
       if(extraOkiOnly){
         await runExtraOkim6258({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
         assert.deepEqual(errors,[]);await context.close();

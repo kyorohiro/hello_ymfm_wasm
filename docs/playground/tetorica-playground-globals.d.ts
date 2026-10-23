@@ -1398,6 +1398,7 @@ interface PlaygroundGameboy {
 }
 /** The selected APU has the same instrument API; its lifetime belongs to the mode. */
 type PlaygroundPrimaryGameboy = Omit<PlaygroundGameboy, 'dispose'> & PlaygroundChipClock & {readonly id: string};
+/** Native: independent pulse 2CH / wave / noise at 4,194,304 Hz, with private Wave RAM and power/routing state. Call initialize() before high-level operations. Shares the 16-instance / 64 MiB additional rack. */
 declare function createSoundChip(name: 'gameboy', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundGameboy & PlaygroundChipClock & {readonly id: string}>;
 /** Independent YM2608; memory uploads are asynchronous, register setters are ordered writes. */
 type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(): void; prepareTimeline(events: Array<[number, number, number, number]>, blocks: Uint8Array[], durationSamples: number): Promise<void>; playTimeline(): Promise<void>} & Pick<FMApi, 'reset' | 'setPreset' | 'setOperator' | 'setOperators' | 'setAlgo' | 'setPan' | 'setLfo' | 'setChannel3SpecialMode' | 'setChannel3SpecialFrequency' | 'setFrequency' | 'setNote' | 'setBlockFnum' | 'noteOnRaw' | 'keyOn' | 'keyOff' | 'noteOn' | 'noteOff' | 'writeAddress' | 'writeData'> & {
@@ -1827,7 +1828,7 @@ declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipO
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends OPNFmChannel, Stereo extends boolean = true> = Omit<PlaygroundOPNFm<C, Stereo>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
-/** Native supports independent ymfm FM6/DAC-register chips; OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
+/** Native supports independent ymfm FM6/DAC-register chips; Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
 declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2, false> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 /** Native: independent FM3/SSG3 mono OPN, including completion-based 44100 Hz register schedules. Shares the 16-instance rack limit. */
@@ -1863,7 +1864,7 @@ type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
 type PlaygroundPrimaryGameGearPsg = Omit<PlaygroundSegaPsg, 'dispose'> & PlaygroundChipClock & {readonly id: string};
 /** The Master System PSG has a mono output and no Game Gear stereo register. */
 type PlaygroundPrimaryMasterSystemPsg = Omit<PlaygroundPrimaryGameGearPsg, 'setStereo'>;
-/** Native OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
+/** Native Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
 declare function createSoundChip(name: 'segapsg', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundSegaPsg & PlaygroundChipClock & {readonly id: string}>;
 
 /** AY has three channels mixing tone and shared noise, plus one shared envelope. */

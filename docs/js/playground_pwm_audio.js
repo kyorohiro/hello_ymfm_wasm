@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-okim6258-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-gameboy-1';
 // Capture the trusted asset loader before user-code execution installs its
 // network guard, as the other Playground audio adapters do.
 const defaultFetch=globalThis.fetch?.bind(globalThis);
