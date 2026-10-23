@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-spc-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-lifetime-1';
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context

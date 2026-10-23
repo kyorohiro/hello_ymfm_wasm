@@ -1,10 +1,10 @@
-import {validateWorkerLookahead} from './playground_performance_sender.js?v=native-extra-spc-1';
+import {validateWorkerLookahead} from './playground_performance_sender.js?v=native-extra-lifetime-1';
 
 // One module-wide sequence also fences a retired Runtime sharing the same node.
 let nextSession = Date.now() * 1000;
 export function createPerformanceHost({getContext, onSuspended = () => {}}) {
   let active = null, starting = null, sequence = 0, context = null;
-  const ports = new Map(), pendingControls = new Set();
+  const ports = new Map(), pendingControls = new Map();
   function stateChanged() {
     if (active && context.state !== 'running') { stop(); onSuspended(); }
   }
@@ -18,7 +18,7 @@ export function createPerformanceHost({getContext, onSuspended = () => {}}) {
       const cancel = () => { cleanup(); reject(new DOMException('Run stopped', 'AbortError')); };
       const timer = setTimeout(() => { cleanup(); reject(new Error('Audio performance clock did not acknowledge initialization')); }, 5000);
       function cleanup() { clearTimeout(timer); port.removeEventListener('message', listener); pendingControls.delete(cancel); }
-      pendingControls.add(cancel);
+      pendingControls.set(cancel,port);
       port.addEventListener('message', listener); port.start?.();
       try { port.postMessage({...message, id}); } catch (error) { cleanup(); reject(error); }
     });
@@ -39,7 +39,7 @@ export function createPerformanceHost({getContext, onSuspended = () => {}}) {
     if (clock) for (const port of ports.keys()) {
       try { port.postMessage({type: 'performance-stop', session: clock.session}); } catch { /* Disposed source. */ }
     }
-    for (const cancel of [...pendingControls]) cancel();
+    for (const cancel of [...pendingControls.keys()]) cancel();
     ports.clear();
     context?.removeEventListener?.('statechange', stateChanged); context = null;
   }
@@ -69,7 +69,10 @@ export function createPerformanceHost({getContext, onSuspended = () => {}}) {
         try { port.postMessage({type: 'performance-cancel-owner', session, owner}); } catch { /* Disposed source. */ }
       }
     },
-    detach(port) { ports.delete(port); },
+    detach(port) {
+      ports.delete(port);
+      for(const [cancel,target] of pendingControls)if(target===port)cancel();
+    },
     stop,
     get clock() { return active; },
   };

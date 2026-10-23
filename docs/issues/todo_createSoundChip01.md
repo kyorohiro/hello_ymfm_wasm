@@ -48,6 +48,7 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加32X PWMの独立左右FIFO・clock・予約再生・owner別取消し、情報表示・Mixerに対応する。
 - [x] 追加SNESの独立8声・64 KiB RAM・BRR、原子的な転送／reset、timeline、音色編集・Keyboardに対応する。
 - [x] 追加SPCの独立SPC700／S-DSP・ファイル保持、play／pause／stop／seek、RAM／DSP snapshot、onEventに対応する。
+- [x] 全21種類でMain／Workerの生成待ち中のloop取消し、遅延応答の回収、Stop／再Run／同ID再生成、共有待機者の分離を確認する。
 - [x] 対応済み21種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
 
 現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262＋RF5C164＋OKIM6258＋Game Boy＋NES＋HuC6280＋DX7＋PWM＋SNES＋SPCの合計16台・64 MiB**。
@@ -199,13 +200,13 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 ## 未決定・別途扱う項目
 
-- [ ] YMF262・RF5C164・OKIM6258・Game Boy・NES・HuC6280・DX7・PWM・SNES・SPCで検証したWorker生成待ち中のloop取消し・遅延応答後の回収を、
-  同じRPC経路を使う他の追加音源にも照合し、必要なperformance metadataとcleanupを展開する。
+- [x] 全21種類へ[生成待ち中のloop取消し・遅延応答後の回収](native_dynamic_lifetime_01.md)を展開した。
+  Main／Worker、Native応答前の取消し、Workerへの遅い配送、同ID再生成、共有cacheの別待機者を検証した。
 - [ ] 全21種類へ展開した16台・64 MiBの予算について、重い組合せの実機負荷を評価する。
 - [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
 - [ ] 追加YM2612でのNuked選択と、選択方法。
 - [ ] Y8950 ADPCMなど、現在のPlayground公開APIにない機能の追加。
-- [ ] SPCプレーヤーのNative化と観測イベントの配送方式。
+- [x] [SPCプレーヤーのNative化と観測イベントの配送](native_dynamic_spc_01.md)。
 - [ ] `tetorica-soundchip-native`／JS adapterのパッケージ分離、低レベルAPI全体への展開。
 
 ## 関連する実装・記録
@@ -232,3 +233,4 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 - [実装済みの追加SNES S-DSPと検証結果](native_dynamic_snes_01.md)
 - [実装済みの追加SPC700ファイルプレーヤーと検証結果](native_dynamic_spc_01.md)
+- [全21種類の生成取消し・寿命管理](native_dynamic_lifetime_01.md)

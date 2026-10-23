@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-spc-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-lifetime-1';
 import {SEGAPSG_CLOCK} from './segapsg.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 

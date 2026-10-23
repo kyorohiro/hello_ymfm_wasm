@@ -1,7 +1,7 @@
 /** SNES instruments use JS for register generation; DSP and RAM live natively. */
 import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
 import {prepareSpcTimeline} from './spc.js?v=spc-events-1';
-import {SnesVoiceInspector} from './playground_snes_inspector.js?v=native-extra-spc-1';
+import {SnesVoiceInspector} from './playground_snes_inspector.js?v=native-extra-lifetime-1';
 
 const abort=()=>new DOMException('Native SNES playback stopped','AbortError');
 export const nativeSnesControls=new Set(['setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp']);

@@ -112,6 +112,25 @@ test('detached endpoints do not receive a subsequent Stop control',async()=>{
  f.host.detach(b);f.host.stop();assert.equal(a.messages.length,2);assert.equal(b.messages.length,1);
 });
 
+test('detaching a pending additional endpoint cancels its handshake without stopping siblings',async()=>{
+ const f=fixture(),a=new Port(),b=new Port(),c=new Port();
+ const started=f.host.start([a],.15);a.acknowledge();const clock=await started;
+ const attaching=f.host.attach(b),rejected=assert.rejects(attaching,{name:'AbortError'}),old=b.messages[0];
+ const sibling=f.host.attach(c);f.host.detach(b);
+ assert.equal(b.listeners.size,0);assert.equal(c.listeners.size,1);assert.equal(f.host.clock,clock);await rejected;
+ const replacement=f.host.attach(b);let ready=false;replacement.then(()=>{ready=true;});
+ b.acknowledge(old);await turn();assert.equal(ready,false,'Late old acknowledgement cannot complete replacement');
+ b.acknowledge(b.messages.at(-1));c.acknowledge();await Promise.all([replacement,sibling]);
+ assert.equal(f.host.clock,clock);assert.equal(a.messages.length,1);f.host.stop();
+});
+
+test('detaching during initial startup rejects it and clears the remaining handshakes',async()=>{
+ const f=fixture(),a=new Port(),b=new Port(),starting=f.host.start([a,b],.15);
+ const rejected=assert.rejects(starting,{name:'AbortError'});f.host.detach(b);await rejected;
+ assert.equal(f.host.clock,null);assert.equal(a.listeners.size,0);assert.equal(b.listeners.size,0);assert.equal(f.listeners.size,0);
+ const next=f.host.start([a],.15);a.acknowledge(a.messages.at(-1));await next;f.host.stop();
+});
+
 test('invalid leads create no session and non-Worklet hosts retain their immediate path',async()=>{
  const f=fixture(),a=new Port();await assert.rejects(f.host.start([a],NaN),/between 0 and 2/);
  assert.equal(f.host.clock,null);assert.equal(a.messages.length,0);assert.equal(f.listeners.size,0);

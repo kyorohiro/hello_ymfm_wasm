@@ -25,6 +25,7 @@ const {installExtraDx7Mock,runExtraDx7}=require('./native_backend_extra_dx7.cjs'
 const {installExtraPwmMock,runExtraPwm}=require('./native_backend_extra_pwm.cjs');
 const {installExtraSnesMock,runExtraSnes}=require('./native_backend_extra_snes.cjs');
 const {installExtraSpcMock,runExtraSpc}=require('./native_backend_extra_spc.cjs');
+const {holdExtraCreation,observeExtraCreationResponses,runExtraCreation}=require('./native_backend_extra_creation.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -2340,8 +2341,9 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const extraDx7Only=process.argv.includes('--extra-dx7-only');
     const extraSnesOnly=process.argv.includes('--extra-snes-only');
     const extraSpcOnly=process.argv.includes('--extra-spc-only');
+    const extraCreationOnly=process.argv.includes('--extra-creation-only');
     const extraPwmOnly=process.argv.includes('--extra-pwm-only');
-    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly;
+    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly;
     if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
     if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
@@ -2356,14 +2358,14 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
-    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraPsgMock(native);
-    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraYm2612Mock(native);
-    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraYm2203Mock(native);
-    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraYm2608Mock(native);
-    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraYm2610Mock(native);
-    if(extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraYm2151Mock(native);
-    if(extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraMsxMock(native);
-    if(extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly)installExtraOplMock(native);
+    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraPsgMock(native);
+    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraYm2612Mock(native);
+    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraYm2203Mock(native);
+    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraYm2608Mock(native);
+    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraYm2610Mock(native);
+    if(extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraYm2151Mock(native);
+    if(extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraMsxMock(native);
+    if(extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly)installExtraOplMock(native);
     installExtraRf5c164Mock(native);
     installExtraOkim6258Mock(native);
     installExtraGameboyMock(native);
@@ -2373,21 +2375,29 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     installExtraPwmMock(native);
     installExtraSnesMock(native);
     installExtraSpcMock(native);
-    const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
+    const lifecycle=process.argv.includes('--lifecycle-only')||extraCreationOnly?trackNativeLifecycle(native,page):null;
+    const creationGate=extraCreationOnly?holdExtraCreation(native):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
     await page.exposeBinding('__nativeInvoke', (_event, command, args) => native.invoke(command, args));
     await page.addInitScript(observeAudioCreation);
     await page.addInitScript(observeMonitorDrawing);
     if(lifecycle)await page.addInitScript(observeNativeLifecycle);
+    if(extraCreationOnly)await page.addInitScript(observeExtraCreationResponses);
     await page.addInitScript(() => {window.__TAURI_INTERNALS__ = {invoke:(command,args) => window.__nativeInvoke(command,args)};});
     await page.route('**/vs/loader*.js', route => route.abort());
     page.on('pageerror', error => errors.push(error.message));
     page.setDefaultTimeout(20000);
     if(nativeOnly) {
       const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
+      if(extraCreationOnly)nativeUrl.searchParams.set('mode','ym3812');
       await page.goto(nativeUrl.href);await ready(page);
       assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(extraCreationOnly){
+        await runExtraCreation({page,native,gate:creationGate,tracker:lifecycle,artifacts,name,assertNoLiveAudio,until});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS all21 Native creation cancellation, Main/Worker delayed native replies, held Worker responses, same-ID reuse/shared waiters; no retained source/ID/IPC/ports/listeners/Workers, zero AudioContexts/Worklets (Native IPC mocked)');return;
+      }
       if(extraSpcOnly){
         await runExtraSpc({page,native,artifacts,name,assertNoLiveAudio,until});
         assert.deepEqual(errors,[]);await context.close();
