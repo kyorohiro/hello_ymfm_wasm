@@ -801,6 +801,52 @@ namespace {
         write(0x4080,128);
       }
     }
+    void writeEnable(uint8_t value,uint8_t preserve) {
+      value=(value&~preserve)|(enableMask&preserve);
+      // A repeated $4015 DMC-enable write can refill DMA when its final byte
+      // is still shifting. Protected host gates must preserve that last byte
+      // exactly, rather than truncate it or restart the sample from the top.
+      if(preserve&16) {
+        const Dmc before=apu.dmc;
+        write(0x4015,value);
+        apu.dmc=before;
+      } else write(0x4015,value);
+    }
+    void enableChannel(uint8_t channel,bool on) {
+      if(channel<4)writeEnable(on?(enableMask|(1<<channel)):(enableMask&~(1<<channel)),16);
+      else if(channel==4)enable(channel,on);
+    }
+    void stopChannel(uint8_t channel) {
+      if(channel<5) {
+        enableChannel(channel,false);
+        // $4015 alone may leave the final DAC sample latched. A host lease
+        // release silences that output while retaining the authored $4011
+        // register and decoder level for the next explicit start.
+        if(channel==4)apu.dmc.sample=0;
+      }
+      else if(channel==5&&fdsEnabled) {
+        // $4023 disables register writes, not the running oscillator. A host
+        // owner release must still halt it without changing the authored IO
+        // setting, wave, envelope or other voices.
+        const bool io=fds.io;
+        fds.io=true;
+        write(0x4083,registers[0x83]|128);
+        fds.io=io;
+      }
+    }
+    uint32_t activeMask()const {
+      // A silent edited patch may become audible without another trigger, so
+      // volume/frequency/mute are not lifetime tests. Length exhaustion is.
+      // Triangle linear reload can occur on the following frame-counter tick.
+      uint32_t result=0;
+      if(apu.square1.enabled&&apu.square1.length>0)result|=1;
+      if(apu.square2.enabled&&apu.square2.length>0)result|=2;
+      if(apu.triangle.enabled&&apu.triangle.length>0)result|=4;
+      if(apu.noise.enabled&&apu.noise.length>0)result|=8;
+      if(apu.dmc.enabled&&(apu.dmc.remaining>0||apu.dmc.hasSample))result|=16;
+      if(fdsEnabled&&fds.enabled)result|=32;
+      return result;
+    }
     std::array<float,2> source() {
       while(!apu.ready) {
         if(fdsEnabled)fds.tick();
@@ -907,6 +953,21 @@ extern "C" {
   }
   void native_nes_stop(void *ptr) {
     static_cast<NativeNes*>(ptr)->stop();
+  }
+  void native_nes_stop_channel(void *ptr,uint8_t channel) {
+    static_cast<NativeNes*>(ptr)->stopChannel(channel);
+  }
+  void native_nes_write_enable(void *ptr,uint8_t value,uint8_t preserve_mask) {
+    static_cast<NativeNes*>(ptr)->writeEnable(value,preserve_mask&31);
+  }
+  void native_nes_enable_channel(void *ptr,uint8_t channel,bool enabled) {
+    static_cast<NativeNes*>(ptr)->enableChannel(channel,enabled);
+  }
+  uint32_t native_nes_active_mask(void *ptr) {
+    return static_cast<NativeNes*>(ptr)->activeMask();
+  }
+  uint32_t native_nes_core_size() {
+    return sizeof(NativeNes);
   }
   void native_nes_write(void *ptr,uint16_t address,uint8_t value) {
     static_cast<NativeNes*>(ptr)->write(address,value);

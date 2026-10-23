@@ -1,9 +1,9 @@
 import {Oki6258AudioEngine} from './okim6258audioengine.js?v=audio-stability-2';
-import {Oki6258Stream, OKIM6258_CLOCK} from './okim6258synth.js?v=native-extra-gameboy-1';
+import {Oki6258Stream, OKIM6258_CLOCK} from './okim6258synth.js?v=native-extra-nes-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import factory from '../generated/okim6258_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
-import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=native-extra-gameboy-1';
+import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=native-extra-nes-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 
 class Processor extends AudioWorkletProcessor {

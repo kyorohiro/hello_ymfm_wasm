@@ -1,5 +1,5 @@
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-gameboy-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-nes-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 const SLOTS=[0,1,2,8,9,10,16,17,18], PAIRS=[0,1,2,9,10,11];
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};

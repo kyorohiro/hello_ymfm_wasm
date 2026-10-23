@@ -19,6 +19,11 @@ void *native_nes_create(uint32_t rate, double base_clock, bool fds);
 void native_nes_destroy(void *ptr);
 void native_nes_reset(void *ptr); // Full public reset, clears DMC RAM and FDS wave.
 void native_nes_stop(void *ptr);  // Gates off; preserve RAM, patch/wave, clock/mute.
+void native_nes_stop_channel(void *ptr, uint8_t channel); // 0..4 APU, 5 FDS; also gates when FDS IO is disabled.
+void native_nes_write_enable(void *ptr, uint8_t value, uint8_t preserve_mask); // Host-protected $4015 merge; no protected DMC refill.
+void native_nes_enable_channel(void *ptr, uint8_t channel, bool enabled); // Independent 0..4 host gate; preserves other DMC phase.
+uint32_t native_nes_active_mask(void *ptr); // Gate/length state; never advances audio.
+uint32_t native_nes_core_size(); // Exact retained C++ allocation, including 64 KiB RAM.
 void native_nes_write(void *ptr, uint16_t address, uint8_t value);
 void native_nes_enable(void *ptr, uint8_t channel, bool enabled);
 int native_nes_load(void *ptr, const uint8_t *bytes, uint32_t offset, uint32_t size);

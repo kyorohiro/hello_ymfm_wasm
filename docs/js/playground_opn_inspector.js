@@ -1,5 +1,5 @@
 import {opnPitchFromHz} from './soundchip_pitch.js';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-gameboy-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-nes-1';
 
 const integer=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`${label} must be 0..${max}`);return value;};
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>256)throw new TypeError('Audition identity must contain 1..256 characters');return value;};

@@ -34,6 +34,19 @@ clears DMC RAM and FDS wave/modulation memories; gate-off retains authored
 parameters, wave, RAM and clock. The callback-owning host remains responsible
 for timestamped commands, owner/voice leases, output mixing and lifetime.
 
+The additive Native host helpers `native_nes_stop_channel`,
+`native_nes_write_enable`, `native_nes_enable_channel`,
+`native_nes_active_mask` and `native_nes_core_size` support independent rack
+instances without changing the 31-field Browser snapshot ABI. Individual gate
+release retains FDS gain/wave/modulation and also halts an oscillator whose
+register IO was disabled by `$4023`. DMC gate release clears a latched DAC
+output while retaining the authored `$4011` level. Independent and protected
+channel-enable updates preserve a DMC final prefetched byte without truncating
+it or refilling DMA. Read-only activity observations do not advance the core. DMC activity includes the final prefetched byte, and triangle
+activity retains a pending linear-counter reload. Additional Native RAM uploads
+use bounded copies into each core's existing 64 KiB RAM; the host accounts and
+limits queued payloads before admission.
+
 Browser build, from the root repository:
 
 ```sh
