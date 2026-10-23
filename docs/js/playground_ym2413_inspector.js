@@ -1,5 +1,5 @@
 import {YM2413Synth,YM2413_INSTRUMENTS} from './ym2413synth.js?v=audio-numeric-bindings-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-rf5c164-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-okim6258-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 const DRUMS=['bassDrum','snare','tom','cymbal','hiHat'],PHYSICAL=[6,7,8,8,7];
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};

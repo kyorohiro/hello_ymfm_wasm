@@ -63,7 +63,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
     : name === 'ym2151' ? createYm2151Client(port)
     : name === 'segapsg' ? createSegaPsgClient(port, options)
     : name === 'huc6280' ? createHuc6280Client(port, options)
-    : name === 'okim6258' ? createOki6258Client(port, options)
+    : name === 'okim6258' ? createOki6258Client(port, options,lifecycle)
     : name === 'dx7' ? createDx7Client(port, {...options,...options.state})
     : null;
   if(name==='pwm'){client._stopVoices=()=>client.stopVoices();if(options.clock!==undefined)client._adoptClock(options.clock);}

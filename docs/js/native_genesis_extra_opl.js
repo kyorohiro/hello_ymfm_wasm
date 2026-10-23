@@ -1,11 +1,11 @@
-import {createOplRegisterClient,stageOplAuthorEdit} from './playground_opl.js?v=native-extra-rf5c164-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=native-extra-rf5c164-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-rf5c164-1';
+import {createOplRegisterClient,stageOplAuthorEdit} from './playground_opl.js?v=native-extra-okim6258-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=native-extra-okim6258-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-okim6258-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-msx-1';
-import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=native-extra-rf5c164-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-rf5c164-1';
+import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=native-extra-okim6258-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-okim6258-1';
 
 export const EXTRA_OPL_CHIPS=Object.freeze(['ym3526','ym3812','y8950','ymf262']);
 export const extraOplClockHeldError=kind=>`Release the manually held additional ${kind.toUpperCase()} voices before changing the clock`;

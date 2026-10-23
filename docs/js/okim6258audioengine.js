@@ -24,7 +24,7 @@ export class Oki6258AudioEngine {
   #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js?v=native-extra-rf5c164-1').WasmModuleFactory, clock: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} options Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js?v=native-extra-okim6258-1').WasmModuleFactory, clock: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} options Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Oki6258AudioEngine>} Initialized engine owned by the caller.
@@ -34,7 +34,7 @@ export class Oki6258AudioEngine {
     if(!Number.isInteger(clock)||clock<=0||clock>0x3fffffff||!Number.isInteger(outputSampleRate)||outputSampleRate<8000)throw new RangeError('Invalid OKIM6258 clock/sample rate');
     const module=await moduleFactory();return new Oki6258AudioEngine(module,clock,flags,outputSampleRate,masterVolume);
   }
-  /** @param {import('./soundchip.js?v=native-extra-rf5c164-1').WasmChipModule} module
+  /** @param {import('./soundchip.js?v=native-extra-okim6258-1').WasmChipModule} module
    * @param {number} clock
    * @param {number} flags
    * @param {number} rate

@@ -1,0 +1,45 @@
+/** Standalone additional OKIM6258 against the actual deployed WASM Worklet. No device. */
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {encodeOki6258} from '../web/okim6258synth.js';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const option=name=>{const index=process.argv.indexOf(name);return index<0?null:process.argv[index+1];};
+const out=option('--out'),rates=[44100,48000,96000],scenarios=[];
+let fixture=option('--fixture'),temporary,Processor;
+const wasmBinary=await fs.readFile(path.join(root,'docs/generated/okim6258_wasm.wasm'));
+globalThis.sampleRate=48000;globalThis.currentFrame=0;
+globalThis.AudioWorkletProcessor=class{constructor(){this.testReady=new Promise((resolve,reject)=>{this.port={postMessage:data=>{if(data.ready)resolve();else if(data.error)reject(Error(data.error));},close(){}};});}};
+globalThis.registerProcessor=(name,processor)=>{if(name==='tetorica-okim6258')Processor=processor;};
+await import('../docs/js/playground_okim6258_worklet.js');
+const encoded=encodeOki6258({channels:[Float32Array.from({length:701},(_,i)=>Math.sin(i*Math.PI*2/31)*.7)],sampleRate:15625},15625).bytes;
+function scenario(name,build,{frames=6144,allowSilent=false}={}){let frame=0;const events=[],add=(op,...args)=>events.push({frame,op,args});build({add,at:value=>{frame=value;},write:(...args)=>add('write',...args)});scenarios.push({name,events,frames,allowSilent});}
+scenario('cold default state and silence',()=>{},{allowSilent:true});
+for(const [index,divider]of[1024,768,512].entries())scenario(`encoded sample divider${divider}, finite end and retrigger`,({add,at,write})=>{write(12,index);add('memory',encoded);add('play',0);at(701);write(2,2);at(1703);add('play',0);at(2501);write(2,1);at(3301);write(2,3);at(3901);write(2,0);at(4501);add('play',0);});
+scenario('repeat predictor restart, replacement immutable sample, stop/replay',({add,at,write})=>{add('memory',encoded.subarray(0,63));add('play',1);at(701);write(12,1);at(1703);add('memory',encoded.subarray(7,71));add('play',1);at(2801);add('stop');at(3301);add('play',1);at(4501);add('repeat',0);});
+scenario('one-byte and odd-length samples, fractional clocks and fast VCLK',({add,at,write})=>{add('memory',Uint8Array.of(0x7f));add('clock',100000);add('play',1);at(701);add('clock',24000000);at(1703);write(12,0);at(2801);add('memory',encoded.subarray(0,71));add('clock',100000000);add('play',1);at(3901);write(12,2);at(4501);add('repeat',0);});
+scenario('raw FIFO low nibble first, underflow and overflow, register clock',({add,at,write})=>{write(0,2);for(let i=0;i<12;i++)write(1,i*21);for(let frame=1;frame<1700;frame+=7){at(frame);write(1,((frame*11)^0xa5)&255);}at(1801);write(0,1);at(2101);for(let i=0;i<4;i++)write(8+i,(7680000>>>(i*8))&255);write(12,1);write(0,2);for(let frame=2101;frame<4700;frame+=9){at(frame);write(1,frame&255);}at(5101);write(0,1);});
+scenario('clock, divider and stereo edits preserve streaming fractional phase',({add,at,write})=>{add('memory',encoded);add('play',1);for(const[frame,clock]of[[701,7680000],[1703,4000000],[2801,16000000],[3901,8000000]]){at(frame);add('clock',clock);}at(1201);write(12,0);at(2201);write(12,1);at(3401);write(2,1);at(4401);write(2,2);at(5101);write(12,2);});
+scenario('reset retains sample/clock and resets divider/pan, raw to sample switch',({add,at,write})=>{add('memory',encoded);add('clock',7680000);write(12,1);write(2,1);add('play',1);at(701);add('reset');at(1201);add('play',0);at(1703);write(0,2);write(1,0x7f);at(2201);add('play',1);at(2801);add('stop');at(3301);add('play',1);at(4501);add('reset');at(5101);add('play',0);});
+for(const clock of[100000,100001,3579545,12500000,100000000])scenario(`independent clock${clock} with every divider and restart`,({add,at,write})=>{add('memory',encoded.subarray(0,61));add('clock',clock);add('play',1);at(701);write(12,0);at(1703);write(12,1);at(2801);write(12,2);at(3901);add('reset');add('play',1);at(5101);add('repeat',0);});
+scenario('per-frame raw data and tiny streamed sample replacements',({add,at,write})=>{add('memory',Uint8Array.of(0x7f));add('play',1);for(let frame=1;frame<1024;frame++){at(frame);if(!(frame%17)){add('memory',encoded.subarray(frame%50,frame%50+3));add('play',1);}if(!(frame%13))add('clock',100000+(frame*637127)%99900001);if(!(frame%11))write(12,frame%3);}},{frames:2048});
+const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed OKIM6258 WASM in shipped playground_okim6258_worklet.js renderSegment, flags12; one-frame/128-frame/irregular split rendering',wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,limits:'Offline PCM and applied clock/divider/pan/sample/position/feed/playback comparison. Standalone instance isolation, external sample lifetime, raw FIFO, sample retention, rate guards and callback allocation/free audit covered by C++ self-test. Native clocks must also be FIFO-safe at reset divider 512 (8 kHz clock maximum 57,344,000 Hz); the rejected next-Hz/raw-register boundary is covered by the C++ self-test. Rack/control/IPC/UI tested separately. No audio device, subjective listening or cross-platform compiler used.'};
+try{
+ if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-oki-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),'-I'+path.join(project,'native-x68000/snapshot/src'),'-I'+path.join(project,'native-x68000/snapshot/third_party/mame-okim6258'),...['src/native_genesis_extra_okim6258.cpp','src/native_genesis_extra_okim6258_fixture.cpp','native-x68000/okim6258.cpp'].map(file=>path.join(project,file)),'-o',fixture],{stdio:'pipe'});}
+ report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
+ for(const rate of rates)for(const scenario of scenarios){globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,args})=>`${frame} ${op} ${op==='memory'?Buffer.from(args[0]).toString('hex'):args.join(' ')}`).join('\n')+'\n';const bytes=execFileSync(fixture,[String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*12*4+1048576,timeout:30000});assert.equal(bytes.length,scenario.frames*12*4);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
+  for(const split of[[1],[128],[3,127,1,64,17,256]]){const reference=new Processor({processorOptions:{wasmBinary}});await reference.testReady;let next=0,frame=0,block=0,maximumDifference=0,peak=0,first;
+   try{while(frame<scenario.frames){globalThis.currentFrame=frame;while(next<events.length&&events[next].frame===frame){const{op,args}=events[next++];let method=op,values=args;if(op==='write')method='writeRegister';else if(op==='memory')method='loadMemory';else if(op==='repeat'){method='setRepeat';values=[!!args[0]];}else if(op==='play')values=[{repeat:!!args[0]}];reference.apply({method,args:values},reference.port);}
+    const count=Math.min(scenario.frames-frame,split[block++%split.length],next<events.length?events[next].frame-frame:Infinity),left=new Float32Array(count),right=new Float32Array(count);assert(count>0);reference.renderSegment(left,right);
+    for(let i=0;i<count;i++)for(let ch=0;ch<2;ch++){const value=actual[(frame+i)*12+ch],want=ch?right[i]:left[i],difference=Math.abs(value-want);assert(Number.isFinite(value));if(difference&&!first)first={frame:frame+i,ch,native:value,wasm:want};maximumDifference=Math.max(maximumDifference,difference);peak=Math.max(peak,Math.abs(value));}
+    const s=reference.stream,state=[s.clock,s.clockBuffer,s.divider,s.bytes.length,s.position,s.fedBytes,s.pan,+s.playing,+s.streaming,+!!s.repeat];for(let i=0;i<state.length;i++)assert.equal(actual[(frame+count-1)*12+2+i],Math.fround(state[i]),`${scenario.name} ${rate} state${i} at${frame+count-1} split${split}`);frame+=count;
+   }assert.equal(maximumDifference,0,`${scenario.name} at${rate} split${split}: ${JSON.stringify(first)}`);if(!scenario.allowSilent)assert(peak>1e-4,scenario.name+' must sound');report.cases.push({name:scenario.name,sampleRate:rate,split,frames:scenario.frames,maximumDifference,peak});report.maximumDifference=Math.max(report.maximumDifference,maximumDifference);report.totalStereoFrames+=scenario.frames;
+   }finally{reference.dispose();}
+  }
+ }
+ report.status='passed';if(out)await fs.writeFile(out,JSON.stringify(report,null,2)+'\n');console.log(`Native additional OKIM6258: ${report.cases.length} cases, ${report.totalStereoFrames} stereo frames, maximum difference ${report.maximumDifference}`);console.log(report.selfTest);
+}finally{if(temporary)await fs.rm(temporary,{recursive:true,force:true});}
