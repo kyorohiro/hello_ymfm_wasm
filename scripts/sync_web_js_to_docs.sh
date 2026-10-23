@@ -93,6 +93,7 @@ native_genesis_extra_ym2413.js
 native_genesis_extra_ay8910.js
 native_genesis_extra_register_voice.js
 native_genesis_extra_opl.js
+native_genesis_extra_rf5c164.js
 opn_ssg_retained.js
 native_genesis_extra_chip.js
 native_genesis_game_gear.js

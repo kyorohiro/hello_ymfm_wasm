@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-opl3-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-rf5c164-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
@@ -12,7 +12,7 @@ export async function createYm2413Audio(context, destination, options = {}) {
   const chip = 'ym2413';
   const clock = validateChipClock(options.clock ?? CHIP_CLOCKS[chip]);
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('YM2413 requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_ym2413_worklet.js?v=native-extra-opl3-1', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_ym2413_worklet.js?v=native-extra-rf5c164-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }

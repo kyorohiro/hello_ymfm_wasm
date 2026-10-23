@@ -16,6 +16,7 @@ const {installExtraYm2610Mock,runExtraYm2610}=require('./native_backend_extra_ym
 const {installExtraYm2151Mock,runExtraYm2151}=require('./native_backend_extra_ym2151.cjs');
 const {installExtraMsxMock,runExtraMsx}=require('./native_backend_extra_msx.cjs');
 const {installExtraOplMock,runExtraOpl}=require('./native_backend_extra_opl.cjs');
+const {installExtraRf5c164Mock,runExtraRf5c164}=require('./native_backend_extra_rf5c164.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -277,7 +278,7 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
-      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262'].includes(entry.type));
+      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
       if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
@@ -326,7 +327,7 @@ class FakeNative {
         } else if(['all-notes-off','panic'].includes(message.method))this.dx7Notes.clear();
         else assert.equal(message.method,'mix','Unknown Native DX7 command '+message.method);
       }
-      if(this.current.mode==='dx7')assert(args.commands.every(entry=>!['write','psg-write','psg-stereo','reset'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'DX7 mode must never send hidden FM/PSG/PCM chip commands');
+      if(this.current.mode==='dx7')assert(primaryCommands.every(entry=>!['write','psg-write','psg-stereo','reset'].includes(entry.type)&&!entry.type.startsWith('rf5c164-')),'DX7 mode must never send hidden FM/PSG/PCM chip commands');
       for(const entry of args.commands.filter(entry=>entry.type.startsWith('rf5c164-'))) {
         assert(['mega-cd','32x','genesis-full-nuked'].includes(this.current.mode),'Genesis must never accept PCM commands');
         if(entry.type==='rf5c164-write') {assert(Number.isInteger(entry.register)&&entry.register>=0&&entry.register<=8);assert(Number.isInteger(entry.value)&&entry.value>=0&&entry.value<=255);if(entry.audition)this.pcm.auditionWriting++;try{this.pcm.write(entry.register,entry.value);}finally{if(entry.audition)this.pcm.auditionWriting--;}}
@@ -1117,11 +1118,8 @@ async function nativeImportedMegaCd(page,native) {
     assert.deepEqual(Array.from(native.pcmMemory.slice(8448,8452)),expectedRam,'Stop must retain uploaded RF RAM');
   }
   for(const execution of ['main','worker']) {
-    const message=await page.evaluate(async execution=>{
-      try {await window.__nativeBackendTest.runtime.playSource(`const fm=await useSoundChip('ym2612');const rf=await createSoundChip('rf5c164');`,{execution});return null;}
-      catch(error){return error.message;}
-    },execution);
-    assert.match(message,/useSoundChip\(['"]rf5c164['"]\)/,'Existing independent-chip code must explain how to use the built-in Mega CD PCM');
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`const primary=await useSoundChip('rf5c164');const extra=await createSoundChip('rf5c164');if(primary===extra)throw Error('Independent PCM borrowed the primary');await extra.loadMemory(new Uint8Array([0xa1,0xff]),1024);`,{execution}),execution);
+    await until(()=>native.extraRf5c164.size===1&&[...native.extraRf5c164.values()][0].memory[1024]===0xa1,'Independent PCM beside Mega CD');
     await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
   }
 }
@@ -1227,11 +1225,8 @@ async function nativeMegaCd(page,native,artifacts,name) {
   await changeNativeMode(page,native,'genesis','keep');
   assert.equal(await page.evaluate(()=>window.__nativeBackendTest.editor.getValue()),source,'Returning from Mega CD must preserve edited project code');
   for(const execution of ['main','worker']) {
-    const message=await page.evaluate(async execution=>{
-      try {await window.__nativeBackendTest.runtime.playSource(`const rf=await createSoundChip('rf5c164');`,{execution});return null;}
-      catch(error){return error.message;}
-    },execution);
-    assert.match(message,/Mega CD/,'Genesis must still reject an independent RF chip and explain the supported machine');
+    await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`const rf=await createSoundChip('rf5c164');await rf.loadMemory(new Uint8Array([0xa1,0xff]));`,{execution}),execution);
+    await until(()=>native.extraRf5c164.size===1&&[...native.extraRf5c164.values()][0].memory[0]===0xa1,'Genesis independent PCM');
     await page.evaluate(()=>window.__nativeBackendTest.runtime.stopWithFade());
   }
   await nativeRun(page,native);
@@ -2329,7 +2324,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const extraYm2151Only=process.argv.includes('--extra-ym2151-only');
     const extraMsxOnly=process.argv.includes('--extra-msx-only');
     const extraOplOnly=process.argv.includes('--extra-opl-only');
-    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly;
+    const extraRfOnly=process.argv.includes('--extra-rf5c164-only');
+    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly;
     if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
     if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
@@ -2344,14 +2340,15 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
-    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly)installExtraPsgMock(native);
-    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly)installExtraYm2612Mock(native);
-    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly)installExtraYm2203Mock(native);
-    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly)installExtraYm2608Mock(native);
-    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly)installExtraYm2610Mock(native);
-    if(extraYm2151Only||extraMsxOnly||extraOplOnly)installExtraYm2151Mock(native);
-    if(extraMsxOnly||extraOplOnly)installExtraMsxMock(native);
-    if(extraOplOnly)installExtraOplMock(native);
+    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly)installExtraPsgMock(native);
+    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly)installExtraYm2612Mock(native);
+    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly)installExtraYm2203Mock(native);
+    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly)installExtraYm2608Mock(native);
+    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly)installExtraYm2610Mock(native);
+    if(extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly)installExtraYm2151Mock(native);
+    if(extraMsxOnly||extraOplOnly||extraRfOnly)installExtraMsxMock(native);
+    if(extraOplOnly||extraRfOnly)installExtraOplMock(native);
+    installExtraRf5c164Mock(native);
     const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
@@ -2367,6 +2364,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
       await page.goto(nativeUrl.href);await ready(page);
       assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(extraRfOnly){
+        await runExtraRf5c164({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS independent Native RF5C164 plus twelve chip kinds, Main/Worker, sample RAM/file loading, Keyboard/Inspector/Mixer, primary borrowing, Stop/replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+      }
       if(extraOplOnly){
         await runExtraOpl({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
         assert.deepEqual(errors,[]);await context.close();

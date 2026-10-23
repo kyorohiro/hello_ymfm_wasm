@@ -8,19 +8,24 @@ const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new Range
 /** @param {MessagePort} port Ordered Worklet command/acknowledgement port.
  * @param {(source: unknown) => Promise<import('./wav.js').ChannelPCM>} decode PCM decoder for loadSample.
  * @returns RF5C164 register, memory, voice and disposal controls. */
-export function createRf5c164Client(port,decode){
+export function createRf5c164Client(port,decode,options={}){
  let sequence=0,disposed=false;const pending=new Map();
+ const resume=(context,callback)=>options.native&&options.captureContext?new Promise((resolve,reject)=>setTimeout(()=>{try{if(disposed||options.isStopped?.(context))throw new Error('Run stopped');options.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0)):Promise.resolve().then(callback);
+ const scoped=(promise,context)=>options.native?promise.then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;})):promise;
  port.onmessage=({data})=>{const p=pending.get(data.id);if(!p)return;pending.delete(data.id);data.error?p.reject(new Error(data.error)):p.resolve(data.value);};port.start?.();
- const call=(method,args=[])=>{if(disposed)return Promise.reject(new Error('RF5C164 disposed'));return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});port.postMessage({id,method,args});});};
+ const call=(method,args=[])=>{if(disposed)return Promise.reject(new Error('RF5C164 disposed'));const context=options.captureContext?.();return scoped(new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});try{port.postMessage({id,method,args});}catch(error){pending.delete(id);reject(error);}}),context);};
  const client = {
   loadMemory(bytes,address=0){return call('loadMemory',[sampleBytes(bytes),address]);},
   /** endGuardBytes requests consecutive end markers for large pitch steps; 0 retains the legacy trailer.
    * @param {unknown} source @param {{address?: number, loopStart?: number, endGuardBytes?: number}} [options] */
   async loadSample(source,{address=0,loopStart,endGuardBytes=0}={}){
    if(disposed)throw new Error('RF5C164 disposed');
+   const context=options.captureContext?.();
    integer(address,65535,'address');integer(endGuardBytes,65536,'endGuardBytes');
    if(address%256)throw new RangeError('Start must be 256-byte aligned');
-   const data=encodeRf5c164(source?.channels&&source.sampleRate?source:await decode(source));
+   const data=encodeRf5c164(source?.channels&&source.sampleRate?source:await scoped(Promise.resolve().then(()=>decode(source)),context));
+   if(disposed||options.native&&options.isStopped?.(context))throw new Error('RF5C164 disposed or Run stopped');
+   if(options.native)options.restoreContext?.(context);
    let bytes=data.bytes;
    if(endGuardBytes){
     const length=data.frames+Math.max(3,endGuardBytes);
@@ -37,7 +42,9 @@ export function createRf5c164Client(port,decode){
   keyOn:ch=>call('keyOn',[ch]),keyOff:ch=>call('keyOff',[ch]),writeRegister:(r,v)=>call('writeRegister',[r,v]),reset:()=>call('reset'),
   dispose(){if(disposed)return;port.postMessage({method:'dispose',args:[]});disposed=true;for(const p of pending.values())p.reject(new Error('RF5C164 disposed'));pending.clear();port.close();},
  };
- const controlled=attachChipClock(client, port, CHIP_CLOCKS.rf5c164);
+ const controlled=attachChipClock(client, port, options.clock??CHIP_CLOCKS.rf5c164);
+ Object.defineProperty(client,'_adoptState',{value:state=>{if(state?.clock!==undefined)client._adoptClock(state.clock);}});
+ if(options.native){const setClock=client.setClock.bind(client);client.setClock=hz=>scoped(setClock(hz),options.captureContext?.());}
  Object.defineProperty(client,'_stopVoices',{value:()=>controlled._requestControl('stopVoices')});
  return controlled;
 }

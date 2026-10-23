@@ -1,7 +1,7 @@
 # Native版 createSoundChip() 対応計画
 
 2026-10-23。追加音源の対象と必要な作業を整理する。
-Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262の追加生成まで実装済み。残りは今後の計画。
+Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262・RF5C164の追加生成まで実装済み。残りは今後の計画。
 
 ## 目的と範囲
 
@@ -39,11 +39,12 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加YM2413の単独9CH・User patch・rhythmと、AYの単独3CH・共有noise／envelope・音量0保持に対応する。
 - [x] 追加YM3526／YM3812／Y8950の独立FM 9CH・rhythm 5voice、CSM・音色編集・Keyboardに対応する。
 - [x] 追加YMF262の独立18CH・4operator 6pair・rhythm・ステレオ、適用済みlayout・音色編集・Keyboardに対応する。
-- [x] 対応済み12種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
+- [x] 追加RF5C164の独立8CH・64 KiB RAM・サンプル転送・loop／step／pan、音色編集・Keyboardに対応する。
+- [x] 対応済み13種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
 
-現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262の合計16台・64 MiB**。
+現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262＋RF5C164の合計16台・64 MiB**。
 YM2608は1台ごとにRAM 2 MiB＋ROM 8 KiBを持つ。YM2610はA／B各16 MiB空間の使用箇所を64 KiB単位で確保する。
-固定queue・管理余裕、転送・timeline、ROMの旧版・新版の重複保持も数える。
+RF5C164は1台ごとに64 KiB RAMを持つ。固定queue・管理余裕、転送・timeline、ROMの旧版・新版の重複保持も数える。
 IPCのJSON／DTO一時data・JS・decode・主音源・FXは別枠。全対象への予算展開と、実機の負荷上限の評価は継続する。
 
 ## 対象一覧
@@ -65,7 +66,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 | `ym3812` | 対応済み | OPL2単独9CH／rhythm・waveform選択、clock、編集・試奏 |
 | `y8950` | 対応済み | 単独FM 9CH／rhythm・raw ADPCM制御、保持DCの所有権。memory API拡張は別項目 |
 | `ymf262` | 対応済み | OPL3単独18CH、6組の4operator・rhythm・2bank・ステレオ、NEW折返しと適用済みregister plane、編集・試奏 |
-| `rf5c164` | 未対応・既存コアあり | PCM 8CH、64 KiB RAM、bank・loop・pitch・pan、raw writeと転送を分離 |
+| `rf5c164` | 対応済み | 独立PCM 8CH・64 KiB RAM、bank／loop／step／pan、転送完了とguard、音色編集・Keyboard |
 | `okim6258` | 未対応・複合から分離 | X68000用からOKI単独化。サンプル保持・ADPCM転送・divider・repeat・デコード状態を分離 |
 | `gameboy` | 未対応・既存コアあり | pulse 2CH／wave／noise、wave RAM、power・clock、音色状態と手動試奏を分離 |
 | `nes` | 未対応・既存コアあり | pulse／triangle／noise／DMC＋任意FDS。`{fds, clock}`、DMC memory、FDS波形を分離 |
@@ -100,7 +101,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 5. **他の既存コア**：YM2151 OPM・YM2413 OPLL・AY・OPL1/2/Y8950・YMF262 OPL3の単独化は完了。次は
    Game Boy／NES／PC Engine／DX7／PWMへ、利用頻度と単独化の容易さに応じて広げる。
    YM2608で実装した合計メモリー予算へ、新しい種類の固定確保と所有payloadを追加する。
-6. **サンプル・timelineを含む仕上げ**：RF5C164／OKIM6258／SNESを含め、
+6. **サンプル・timelineを含む仕上げ**：RF5C164の追加生成・転送・手動試奏は完了。次はOKIM6258／SNESを含め、
    転送・置換・停止・失敗・timeline完了の扱いを揃える。手順5の音源も同じ条件で確認する。
 7. **SPCプレーヤー**：楽器用ラックの対応とは分けて、CPU実行とファイル再生の制御を設計する。
 
@@ -109,11 +110,11 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 
 ## 共通で必要な作業
 
-以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2151／YM2413／AY／YM3526／YM3812／Y8950／YMF262では適用済みでも、他の種類への展開が残るものは未完了とする。
+以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2151／YM2413／AY／YM3526／YM3812／Y8950／YMF262／RF5C164では適用済みでも、他の種類への展開が残るものは未完了とする。
 
 ### ラック・生成・寿命管理
 
-- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY・OPL1/2/Y8950・OPL3も追加できる入口を作る。
+- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY・OPL1/2/Y8950・OPL3・RF5C164も追加できる入口を作る。
   各チップの命令検証・DSP状態・voice管理は、そのチップの実装へ委譲する。
 - [ ] 単独チップを生成するC ABIとRust wrapperを用意し、不要な同居音源の生成を避ける。
   例：YM2151だけの追加で、X68000複合のOKI用メモリーまで確保しない。
@@ -187,7 +188,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 ## 未決定・別途扱う項目
 
-- [ ] YMF262で検証したWorker生成待ち中のloop取消し・遅延応答後の回収を、
+- [ ] YMF262・RF5C164で検証したWorker生成待ち中のloop取消し・遅延応答後の回収を、
   同じRPC経路を使う他の追加音源にも照合し、必要なperformance metadataとcleanupを展開する。
 - [ ] 16台・64 MiBの予算を残りの音源へ展開し、重い組合せの実機負荷を評価する。
 - [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
@@ -208,5 +209,6 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [実装済みの追加YM2413・AYと検証結果](native_dynamic_opll_ay01.md)
 - [実装済みの追加OPL1/2・Y8950と検証結果](native_dynamic_opl01.md)
 - [実装済みの追加OPL3・YMF262と検証結果](native_dynamic_opl3_01.md)
+- [実装済みの追加RF5C164と検証結果](native_dynamic_rf5c164_01.md)
 - [Mixerの保存規則](playground_mixer_state_01.md)、[Native安定化・継続検証](native_stability_01.md)
 - [Neo Geoの4CH／6CH](native_neogeo_01.md)、[Native SNESなどの対応範囲](native_consoles_01.md)、[MSX Audioの対応範囲](native_msx_audio_01.md)

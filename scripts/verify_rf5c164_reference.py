@@ -93,5 +93,5 @@ int main() {
 with tempfile.TemporaryDirectory(prefix='rf5c164-reference-') as folder:
     folder=Path(folder)
     (folder/'reference.cpp').write_text(source)
-    subprocess.run(['c++','-std=c++14','-O2','-I'+str(root/'third_party/mame-rf5c164'),str(folder/'reference.cpp'),str(root/'third_party/mame-rf5c164/rf5c164.cpp'),'-o',str(folder/'verify')],check=True)
+    subprocess.run(['c++','-std=c++14','-O2','-I'+str(root/'third_party/mame-rf5c164'),'-I'+str(root/'src'),str(folder/'reference.cpp'),str(root/'third_party/mame-rf5c164/rf5c164.cpp'),'-o',str(folder/'verify')],check=True)
     subprocess.run([str(folder/'verify')],check=True)

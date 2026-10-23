@@ -1,7 +1,7 @@
-import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=native-extra-opl3-1';
-import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=native-extra-opl3-1';
-import {createPlaygroundOpnbSampleEditor} from './playground_opnb_sample_editor.js?v=native-extra-opl3-1';
-import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=native-extra-opl3-1';
+import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=native-extra-rf5c164-1';
+import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=native-extra-rf5c164-1';
+import {createPlaygroundOpnbSampleEditor} from './playground_opnb_sample_editor.js?v=native-extra-rf5c164-1';
+import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=native-extra-rf5c164-1';
 
 /** Reuse the OPN editor for connected additional FM instances. Reads happen on
  * selection, visible state notifications and explicit Refresh; no polling. */

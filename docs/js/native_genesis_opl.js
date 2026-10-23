@@ -1,6 +1,6 @@
 /** DOS PC register authoring stays in JS; the selected OPL renders in Native. */
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=native-extra-opl3-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=native-extra-rf5c164-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {createNativeVoiceContext, createNativeVoiceEndpoint, nativeInteger as integer,
   nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-msx-1';
