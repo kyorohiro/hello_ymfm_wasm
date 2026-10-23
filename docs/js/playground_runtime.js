@@ -712,9 +712,9 @@ export function createPlaygroundRuntime(
     finally {pendingPcmIds.delete(mixerId);reservation?.release();}
     if(pcmInstanceSequence>=Number.MAX_SAFE_INTEGER){release();device.dispose();throw new RangeError('Sound chip instance limit reached');}
     device.instanceToken=++pcmInstanceSequence;
-    if(device.native)device.onState=state=>{
+    if(device.native)device.onState=(state,authorEdit)=>{
       const worker=device.workerOwner;
-      if(worker&&worker===logicWorker)worker.postMessage({type:'extra-opl-state',id:mixerId,instance:device.instanceToken,state});
+      if(worker&&worker===logicWorker)worker.postMessage({type:'extra-opl-state',id:mixerId,instance:device.instanceToken,state,...(authorEdit?{authorEdit}:{})});
     };
     const dispose = device.dispose; let disposed = false;
     device.dispose = () => {

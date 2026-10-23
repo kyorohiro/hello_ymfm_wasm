@@ -4,7 +4,7 @@ import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bind
 
 /** Shared lifecycle for OPL/OPLL/AY register-authoring clients. The audio thread
  * owns hardware state; applied readback never rewrites an author's cache. */
-export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialClock,registerCount,voiceCount,createClient,createInspector,logical=Number,physical=Number,voiceKey=Number,validate,adoptInspector,track,cancelAuthor,editChannel,melodicChannels=kind==='ym2413'?9:3,rhythmBase=kind==='ym2413'?9:undefined,layoutRegister=kind==='ym2413'?14:undefined,layoutRegisters=layoutRegister===undefined?[]:[layoutRegister],readLayout,physicalMatches,patchAuthor,readFields}){
+export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialClock,registerCount,voiceCount,createClient,createInspector,logical=Number,physical=Number,voiceKey=Number,validate,adoptInspector,track,cancelAuthor,editChannel,melodicChannels=kind==='ym2413'?9:3,rhythmBase=kind==='ym2413'?9:undefined,layoutRegister=kind==='ym2413'?14:undefined,layoutRegisters=layoutRegister===undefined?[]:[layoutRegister],readLayout,physicalMatches,patchAuthor,readFields,describeAuthorEdit}){
   const context=createNativeVoiceContext(synth,{backend:`extra-${kind}`,statusCommand:`native_genesis_extra_${kind}_status`,label:`additional ${label}`});
   const {capture,current}=context;let clock=initialClock,appliedClock=clock,initialized=false,mainGroup,collection=null,serial=Promise.resolve(),clockSerial=Promise.resolve();
   const leases=new Map(),authoredOwners=new Map(),sentRegisters=new Uint8Array(registerCount),clockRequests=new Set();let layout=false,layoutRevision=0,layoutGeneration=0,layoutPending=false,layoutObserver,layoutMetadata='{"rhythmEnabled":false}';
@@ -41,7 +41,7 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
   const client=createClient((method,args,metadata)=>send(translate({method,args,...metadata})),{clock,request:(method,args)=>dispatch({method,args})});
   Object.defineProperties(client,{clock:{configurable:true,enumerable:true,get:()=>clock},_adoptClock:{value:hz=>{clock=validateChipClock(hz);}}});
   const inspector=createInspector({clock:()=>appliedClock,sampleRate:synth.clock.sampleRate,dispatch(command,owner,options){if(!collection)throw new Error(`${label} inspector command outside an edit`);collection.push({command,owner,...options});}});
-  const notify=()=>synth.emit?.({type:'native-state',name:kind,state:client._getState()});
+  const notify=(method,args)=>synth.emit?.({type:'native-state',name:kind,state:client._getState(),...(describeAuthorEdit&&method?{authorEdit:describeAuthorEdit(method,args)}:{})});
   function adopt(data){
     nativeSnapshotArray(data.registers,registerCount,255,`${label} registers`);context.validateHeld(data,voiceCount-1);validate?.(data);applyLayout(data);appliedClock=validateChipClock(data.clock);inspector.sampleRate=data.sampleRate??synth.clock.sampleRate;inspector.registers.set(data.registers);adoptInspector?.(inspector,data);
     return {...data,...inspector.read(),...readFields?.(data),held:(data.held??[...leases.keys()].map(logical)).map(voiceKey)};
@@ -50,7 +50,7 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
   function clockCommand(hz,timing={},reply){
     const token=capture(),request={group:mainGroup,cancelled:false};validateChipClock(hz);timing.checkCurrent?.();clockRequests.add(request);
     const check=()=>{current(token);timing.checkCurrent?.();if(request.cancelled)throw new DOMException(`Native additional ${label} clock was cancelled`,'AbortError');};
-    const result=clockSerial.then(async()=>{check();await synth.flush();check();const command=identified({method:'clock',hz,...(request.group===undefined?{}:{group:request.group})});send(command,timing);await synth.flush();check();const data=await snapshot({after:command.id});check();if(data.clock!==hz)throw new Error(`Native additional ${label} clock was not applied`);client._adoptClock(hz);notify();return reply?.();}).finally(()=>clockRequests.delete(request));clockSerial=result.catch(()=>{});return result;
+    const result=clockSerial.then(async()=>{check();await synth.flush();check();const command=identified({method:'clock',hz,...(request.group===undefined?{}:{group:request.group})});send(command,timing);await synth.flush();check();const data=await snapshot({after:command.id});check();if(data.clock!==hz)throw new Error(`Native additional ${label} clock was not applied`);client._adoptClock(hz);notify('clock',[hz]);return reply?.();}).finally(()=>clockRequests.delete(request));clockSerial=result.catch(()=>{});return result;
   }
   client.setClock=hz=>clockCommand(hz);
   client._allocateMainOwner=()=>context.identity();
@@ -81,7 +81,7 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
         if(action==='off'&&!voice)continue;const channel=logical(key);let group=groups.at(-1);if(!group||group.channel!==channel||group.action!==action||group.voice!==voice){group=identified({method:'batch',channel,...(voice?{voice}:{}),audition:true,action,commands:[]});groups.push(group);}group.commands.push(translate(item.command));
       }
       const patch=['auditionOn','auditionOff','auditionAllOff'].includes(method)?null:authorPatch(method,copy);
-      for(const group of groups)send(group);await synth.flush();current(token);if(groups.length){await read({after:groups.at(-1).id});current(token);leases.clear();for(const [key,voice]of nextLeases)leases.set(key,voice);if(patch){client._adoptState(patch);notify();}}return value;
+      for(const group of groups)send(group);await synth.flush();current(token);if(groups.length){await read({after:groups.at(-1).id});current(token);leases.clear();for(const [key,voice]of nextLeases)leases.set(key,voice);if(patch){client._adoptState(patch);notify(method,copy);}}return value;
     });serial=result.catch(()=>{});return result;
   }
   return {client,dispatch,read,invoke,

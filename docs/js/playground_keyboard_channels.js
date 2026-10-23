@@ -3,7 +3,7 @@
  * @typedef {{id:string,label:string}} PlaygroundKeyboardChannel
  */
 /** @param {string} kind
- * @param {{fds?:boolean,fdsEnabled?:boolean,model?:string,registers?:ArrayLike<number>,rhythmEnabled?:boolean}} [options]
+ * @param {{fds?:boolean,fdsEnabled?:boolean,model?:string,registers?:ArrayLike<number>,rhythmEnabled?:boolean,rhythmVoices?:boolean,effectiveFourOpMask?:number,newMode?:boolean}} [options]
  * @returns {PlaygroundKeyboardChannel[]} */
 export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,rhythmEnabled,rhythmVoices=false,effectiveFourOpMask,newMode}={}) {
   const numbered=(prefix,count,label)=>Array.from({length:count},(_,index)=>({id:`${prefix}${index}`,label:`${label} ${index+1}`}));

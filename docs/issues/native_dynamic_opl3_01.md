@@ -91,4 +91,25 @@ Instance＋最大の新コアは41,760 Bで管理余裕に収まる。
 測定にRustラック・allocator overhead・IPC・FX・UI・実機の音声デバイスは含まない。
 実際のcallback締切・dropoutを保証する値ではない。
 
-最終の全体検証と配布物の照合結果は追記する。
+## 最終統合（2026-10-24）
+
+- JS全体：4,364成功・1 skip。最終web→docs同期後のPlayground検証も1,023成功。
+- Rust全体：489成功・4 ignored。物理音声デバイスやcredential storeを使うテストは有効化していない。
+- YMF262のJS／Worker重点監査：21成功。clock・音色編集後の4operator設定保持、
+  生成待ちのloop取消し、共有生成、遅延応答後のinstance照合と回収を確認した。
+- 最終Tauri配布物をChromium／WebKitで確認。4 profiles各2台と既存8種類の計16台、
+  実Main／logic Worker、全6pair・上位bank・operator／pan編集、Keyboard、Mixer、
+  NEW0時の適用済みlayout、主音源借用、Stop／再生成が成功。
+  Native IPCはmockし、AudioContext／AudioWorkletは0。
+
+| 成果物 | 照合結果 |
+| --- | --- |
+| `release/hello_ymfm_wasm_native-extra-opl3_itch_playground.zip` | SHA-256 `f64b7053989a56c907a90af98b797bbcc4365f607a0bf040b679e894a0d65b14` |
+| Tauri取込み | 863 files、release lock照合成功 |
+| 配布module／asset参照 | 912参照、Mode starter・Native API・WASM・license検証成功 |
+| Native対応ソースbundle | 1,354 files、SHA-256 `78b17b16c7498277d2f4dc8a254fed7759f70b1515c402b6e1b2d4eaa0c338fd` |
+| 固定ソースsnapshot | 21件、現在のソース・同梱ZIPとの照合成功 |
+
+ビルド・オフライン検証はmacOS ARM64で実施。
+実機試聴・長時間のdropout・他OS／CPUの確認は未実施。
+今回の最終同期ではcommit・npm公開・itch.io公開は行っていない。

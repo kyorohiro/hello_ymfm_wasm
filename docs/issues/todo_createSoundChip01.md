@@ -187,6 +187,8 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 ## 未決定・別途扱う項目
 
+- [ ] YMF262で検証したWorker生成待ち中のloop取消し・遅延応答後の回収を、
+  同じRPC経路を使う他の追加音源にも照合し、必要なperformance metadataとcleanupを展開する。
 - [ ] 16台・64 MiBの予算を残りの音源へ展開し、重い組合せの実機負荷を評価する。
 - [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
 - [ ] 追加YM2612でのNuked選択と、選択方法。

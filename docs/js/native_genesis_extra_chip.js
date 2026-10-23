@@ -20,7 +20,7 @@ export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,c
     enqueueMany:commands=>{if(!current())throw abort();synth.enqueueMany(commands.map(command=>({...command,instance})));},
     nativeRequest:(command,args)=>{if(!current())return Promise.reject(abort());return synth.nativeRequest(command,{...args,instance});},
     observeNativeSnapshot:(command,args)=>{if(!current())return Promise.reject(abort());return synth.observeNativeSnapshot(command,{...args,instance});},
-    emit:event=>{if(current()){device?.onState?.(event.state);synth.chipInspector?.notify();}},
+    emit:event=>{if(current()){device?.onState?.(event.state,event.authorEdit);synth.chipInspector?.notify();}},
     notifyLayout:layout=>{if(current()){device.layout={...device.layout,...layout};synth.chipInspector?.notify();}},
     reportAsyncError:error=>{if(current())synth.reportAsyncError(error);},
   };
