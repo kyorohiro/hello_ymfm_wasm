@@ -2,7 +2,7 @@ import {validateChipClock,ChipClockResampler} from './playground_chip_clock.js?v
 import {Ay8910} from './ay8910.js?v=audio-stability-2';
 import factory from '../generated/ay8910_wasm.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
-import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=native-extra-levels-1';
+import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=native-chip-comparison-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 class Processor extends AudioWorkletProcessor{
   constructor({processorOptions:{clock=1789773,wasmBinary}}){

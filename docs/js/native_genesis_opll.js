@@ -1,8 +1,8 @@
 /** Shared YM2413 authoring / inspection for Native Master System and MSX. */
 import {YM2413Synth} from './ym2413synth.js?v=audio-numeric-bindings-1';
-import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=native-extra-levels-1';
+import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=native-chip-comparison-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-extra-levels-1';
+import {createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-chip-comparison-1';
 const CLOCK=3579545;
 const logical=key=>typeof key==='string'&&/^rhythm:[0-4]$/.test(key)?9+Number(key.slice(7)):Number(key);
 const voiceKey=channel=>channel>=9?`rhythm:${channel-9}`:channel;

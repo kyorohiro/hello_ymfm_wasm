@@ -1,6 +1,6 @@
-import {PWM32XPlayback} from './pwm32x_playback.js?v=native-extra-levels-1';
+import {PWM32XPlayback} from './pwm32x_playback.js?v=native-chip-comparison-1';
 /** Experimental offline MegaSynth engine. Browser / Node; no audio device. */
-import {createSoundChip} from './soundchip.js?v=native-extra-levels-1';
+import {createSoundChip} from './soundchip.js?v=native-chip-comparison-1';
 import {YM2612Synth, YM2612DirectTransport} from './ym2612synth.js?v=audio-stability-2';
 import {NativeFXEngine} from './native_fx_engine.js?v=audio-stability-2';
 import {createNativeFXController} from './native_fx.js';
@@ -32,7 +32,7 @@ async function loadFX(options) {
  * Options: sampleRate (default 48000), masterVolume (default 1), chipOptions,
  * fxModule / fxWasmBinary / fxWasmUrl, signal, mega32X, pwmOptions.
  */
-/** @typedef {{sampleRate?: number, masterVolume?: number, chipOptions?: import('./soundchip.js?v=native-extra-levels-1').SoundChipOptions,
+/** @typedef {{sampleRate?: number, masterVolume?: number, chipOptions?: import('./soundchip.js?v=native-chip-comparison-1').SoundChipOptions,
  * fxModule?: WebAssembly.Module, fxWasmBinary?: Uint8Array | ArrayBuffer, fxWasmUrl?: string | URL,
  * signal?: AbortSignal, mega32X?: boolean, pwmOptions?: import('./pwm32x.js?v=pwm-wasm-1').PWM32XOptions}} MegaSynthOfflineOptions */
 /** @param {MegaSynthOfflineOptions} [options] */

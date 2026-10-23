@@ -11,7 +11,7 @@ export class NesApu {
     this.engine = new NesApuAudioEngine({clock, outputSampleRate: sampleRate, fds});
     this.clearHistory();
   }
-  /** @param {import('./soundchip.js?v=native-extra-levels-1').SoundChipOptions} [options]
+  /** @param {import('./soundchip.js?v=native-chip-comparison-1').SoundChipOptions} [options]
    * @returns {Promise<import('./nesapu_wasm.js?v=nes-wasm-1').NesApuWasm>} */
   static async create(options = {}) {options.signal?.throwIfAborted();const {NesApuWasm}=await import('./nesapu_wasm.js?v=nes-wasm-1');return NesApuWasm.create(options);}
   clearHistory() {

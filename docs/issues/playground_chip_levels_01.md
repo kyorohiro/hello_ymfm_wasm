@@ -74,6 +74,8 @@ New Cassetteも、引き継いだdefaultの明示値を優先する。
 
 npm向けの汎用初期値、VGM Analyzer、低レベル`generateStereo()`のPCM、C++コアの音量は変更しない。
 
+実機での聴き比べには[全21音源の共通Example](playground_chip_comparison_01.md)を使う。
+
 ## 再実行
 
 基準の実測JSONは[playground_chip_levels_01.json](playground_chip_levels_01.json)。

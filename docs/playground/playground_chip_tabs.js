@@ -1,7 +1,7 @@
 import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=audio-numeric-bindings-1';
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
 import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=audio-numeric-bindings-1';
-import {createPlaygroundSnesVoicePanel} from './playground_snes_voice_panel.js?v=native-extra-levels-1';
+import {createPlaygroundSnesVoicePanel} from './playground_snes_voice_panel.js?v=native-chip-comparison-1';
 import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=operator-tab-keyboard-1';
 import {createPlaygroundHuc6280VoicePanel} from './playground_huc6280_voice_panel.js?v=audio-numeric-bindings-1';
 import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=audio-numeric-bindings-1';

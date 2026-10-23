@@ -1,10 +1,10 @@
-import {Oki6258Synth,OKIM6258_CLOCK,OKIM6258_DIVIDERS,oki6258Rate,encodeOki6258,summarizeOki6258} from './okim6258synth.js?v=native-extra-levels-1';
-import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=native-extra-levels-1';
+import {Oki6258Synth,OKIM6258_CLOCK,OKIM6258_DIVIDERS,oki6258Rate,encodeOki6258,summarizeOki6258} from './okim6258synth.js?v=native-chip-comparison-1';
+import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=native-chip-comparison-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
-import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=native-extra-levels-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-levels-1';
+import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=native-chip-comparison-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-chip-comparison-1';
 
 export const EXTRA_OKIM6258_MEMORY_HELD_ERROR='Release the manually held additional OKIM6258 voices before replacing their sample';
 export const EXTRA_OKIM6258_CLOCK_HELD_ERROR='Release the manually held additional OKIM6258 voices before changing the clock';

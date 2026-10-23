@@ -1,4 +1,4 @@
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=native-extra-levels-1';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=native-chip-comparison-1';
 import {Ym2612} from './ym2612.js?v=audio-numeric-bindings-1';
 import {Ym2608} from './ym2608.js?v=audio-stability-2';
 import {Ay8910} from './ay8910.js?v=audio-stability-2';

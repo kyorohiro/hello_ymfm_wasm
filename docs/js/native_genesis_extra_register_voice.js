@@ -1,4 +1,4 @@
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-extra-levels-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-chip-comparison-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 

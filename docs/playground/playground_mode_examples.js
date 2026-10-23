@@ -1,10 +1,12 @@
 // Each mode owns its starter and a small set of editable examples.
 const mixedChipScene = '/examples/genesis/mixed-chip-stability.js';
+const chipComparison = '/examples/genesis/chip-level-comparison.js';
 const fullExamples = [
   '/examples/genesis/genesis-mode-duet.js',
   '/examples/genesis/rf5c164-sine.js',
   '/examples/genesis/32x-pwm-sine.js',
   mixedChipScene,
+  chipComparison,
 ];
 const opnbExamples = [
   '/examples/neogeo/neogeo-opnb-duet.js',
@@ -13,7 +15,7 @@ const opnbExamples = [
 ];
 const definitions = {
   genesis: null,
-  'mega-cd': ['/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-fm-pcm.js', '/examples/mega-cd/megacd-sampler.js', mixedChipScene],
+  'mega-cd': ['/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-fm-pcm.js', '/examples/mega-cd/megacd-sampler.js', mixedChipScene, chipComparison],
   'genesis-full': fullExamples,
   'genesis-full-nuked': fullExamples,
   'pc98-26': ['/examples/pc98/pc98-opn-melody.js', '/examples/pc98/pc98-opn-ssg.js'],
@@ -50,6 +52,7 @@ const nativeExamples = new Set(Object.entries(definitions)
 nativeExamples.add('/examples/gameboy/gameboy-mode-noise.js');
 // Independent chips make this one source usable across the Genesis modes.
 nativeExamples.delete(mixedChipScene);
+nativeExamples.delete(chipComparison);
 
 export function selectModeExamples(files, modeId) {
   const definition = MODE_STARTERS[modeId];

@@ -458,6 +458,7 @@ if [ ! -d "${NUKED_LICENSE_DIR}" ]; then
   exit 1
 fi
 
+node "${ROOT_DIR}/scripts/build_playground_chip_comparison.mjs" --check
 node "${ROOT_DIR}/scripts/build_playground_examples.mjs"
 
 mkdir -p "${RELEASE_DIR}"

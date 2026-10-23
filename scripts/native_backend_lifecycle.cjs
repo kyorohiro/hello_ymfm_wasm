@@ -54,6 +54,10 @@ function observeNativeLifecycle() {
     const result = remove.call(this,type,callback,options), key = listenerKey(this,type,callback,options);
     if (key) listeners.delete(key); return result;
   };
+  window.__nativeLifecyclePortState = port => {
+    const record = ports.get(port);
+    return record ? {open:!record.closed,workerOwned:Boolean(record.worker)} : null;
+  };
   window.__nativeLifecycleResources = () => {
     const openWorkers = [...workers].filter(([,r])=>!r.closed), openPorts = [...ports].filter(([,r])=>!r.closed);
     const handlers = [...openWorkers,...openPorts].reduce((sum,[object])=>sum+['onmessage','onmessageerror','onerror'].filter(name=>typeof object[name]==='function').length,0);
