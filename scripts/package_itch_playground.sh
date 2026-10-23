@@ -37,6 +37,7 @@ playground_chip_tabs.js
 playground_chip_tabs.css
 playground_gameboy_voice_panel.js
 playground_nes_voice_panel.js
+playground_snes_voice_panel.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
@@ -308,6 +309,7 @@ native_genesis_extra_nes.js
 native_genesis_extra_huc6280.js
 native_genesis_extra_dx7.js
 native_genesis_extra_pwm.js
+native_genesis_extra_snes.js
 opn_ssg_retained.js
 native_genesis_extra_chip.js
 native_genesis_game_gear.js

@@ -30,6 +30,13 @@ export class SnesVoiceInspector {
       auditions:[...this.auditions].map(([channel,id])=>({channel,id})),timeline:synth.getTimelineState()};
   }
   invoke(method,args=[]){
+    if(['setPreset','setChannel','setPitch','setFrequency','setNote'].includes(method)){
+      const ch=channel(args[0]);if(this.synth.timeline)throw new Error('SNES timeline playback has no editable keyboard instrument');
+      // Validate against the audible voice without emitting validation writes.
+      const p=this.voice(ch);if(method==='setPreset'||method==='setChannel')this.synth._preset(ch,args[1]);
+      else{const previous=this.synth.channels[ch];this.synth.channels[ch]={...p};const write=this.synth.core.writeDsp;this.synth.core.writeDsp=()=>{};try{this.synth[method](...args);}finally{this.synth.core.writeDsp=write;this.synth.channels[ch]=previous;}}
+      this.dispatch({method,args:structuredClone(args)});return true;
+    }
     if(method==='auditionAllOff'){for(const [ch,id]of [...this.auditions])this.invoke('auditionOff',[ch,id]);return true;}
     if(method==='auditionOff'){
       const [ch,id]=args;channel(ch);const owner=identity(id);if(this.auditions.get(ch)!==id)return false;

@@ -1,11 +1,12 @@
 /** SNES instruments use JS for register generation; DSP and RAM live natively. */
 import {SnesSynth} from './snessynth.js?v=spc-song-js-1';
 import {prepareSpcTimeline} from './spc.js?v=spc-events-1';
-import {SnesVoiceInspector} from './playground_snes_inspector.js?v=audio-numeric-bindings-1';
+import {SnesVoiceInspector} from './playground_snes_inspector.js?v=native-extra-snes-1';
 
 const abort=()=>new DOMException('Native SNES playback stopped','AbortError');
-const controls=new Set(['setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp']);
-function shadow(){
+export const nativeSnesControls=new Set(['setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','writeDsp']);
+const controls=nativeSnesControls;
+export function createNativeSnesShadow(){
   const registers=new Uint8Array(128);let capture=null;
   const core={nativeFrames:0,reset(){registers.fill(0);capture?.push({method:'reset'});},
     writeDsp(register,value){registers[register]=value;capture?.push({method:'write',register,value});},
@@ -13,9 +14,22 @@ function shadow(){
   const synth=new SnesSynth({core});
   return {synth,registers,collect(method,args=[]){const commands=[];capture=commands;try{synth[method](...args);}finally{capture=null;}return commands;}};
 }
+export function nativeSnesOperations(target,method,args,{partial=false}={}){
+  if(!controls.has(method)&&method!=='loadBRR')throw new Error(`Unsupported Native SNES operation: ${method}`);
+  let messages=target.collect(method,args);
+  if(partial&&['setPreset','setChannel'].includes(method)){
+    const offsets=new Set();for(const key of Object.keys(args[1]))for(const offset of ({volumeLeft:[0],volumeRight:[1],pitch:[2,3],sample:[4],adsr1:[5],adsr2:[6],gain:[7]})[key]??[])offsets.add(offset);
+    messages=messages.filter(message=>message.method!=='write'||offsets.has(message.register&15));
+  }
+  if(['keyOn','noteOn','keyOff','noteOff'].includes(method)){
+    messages=messages.filter(message=>message.register!==0x4c&&message.register!==0x5c);
+    messages.push({method:method==='keyOn'||method==='noteOn'?'key-on':'key-off',channel:args[0]});
+  }
+  return messages;
+}
 
 export function createNativeGenesisSnes(owner){
-  const projected=shadow(),applied=shadow(),held=new Map(),pending=new Set();
+  const projected=createNativeSnesShadow(),applied=createNativeSnesShadow(),held=new Map(),pending=new Set();
   let nextVoice=0,nextCommand=0,collecting=null,uiSerial=Promise.resolve(),timeline=null,timelineRevision=0;
   const check=()=>{if(!owner.isReady())throw new Error('Native SNES audio is not ready');if(owner.stopping||owner.closing)throw abort();};
   const capture=()=>{check();return {session:owner.session,generation:owner.generation};};
@@ -24,17 +38,7 @@ export function createNativeGenesisSnes(owner){
     ...(timing.performance===undefined?{}:{performance:timing.performance}),...(timing.owner===undefined?{}:{owner:timing.owner})});
   const send=(messages,timing={})=>{check();owner.enqueueMany(messages.map(message=>timed(message,message.method==='load-memory'||message.method==='prepare-timeline'?{}:timing)));};
   const identify=message=>{if(nextCommand>=Number.MAX_SAFE_INTEGER)throw new RangeError('Native SNES command identity limit reached');return {...message,id:++nextCommand};};
-  function operations(target,method,args){
-    if(!controls.has(method)&&method!=='loadBRR')throw new Error(`Unsupported Native SNES operation: ${method}`);
-    let messages=target.collect(method,args);
-    // KON/KOFF shadow masks cannot describe future notes on independent voices.
-    // Native applies each key action at its actual DSP frame instead.
-    if(['keyOn','noteOn','keyOff','noteOff'].includes(method)){
-      messages=messages.filter(message=>message.register!==0x4c&&message.register!==0x5c);
-      messages.push({method:method==='keyOn'||method==='noteOn'?'key-on':'key-off',channel:args[0]});
-    }
-    return messages;
-  }
+  const operations=nativeSnesOperations;
   function instrumentOnly(){if(timeline)throw new Error('SNES timeline mode is exclusive; reset() before editing instruments');}
   function control(method,args=[]){check();if(method!=='reset')instrumentOnly();const messages=operations(projected,method,args);send(messages);if(method==='reset'){timelineRevision++;cancelCompletion();timeline=null;projected.synth.timeline=null;}}
   projected.synth.getTimelineState=()=>timeline?{...timeline}:{loaded:false,playing:false,positionFrames:0,totalFrames:0,ended:false};
@@ -112,16 +116,16 @@ export function createNativeGenesisSnes(owner){
     const token=capture();await read();current(token);const commands=[],oldHeld=new Map(held);collecting=commands;let result;
     try{result=inspector.invoke(method,args);}finally{collecting=null;}
     const groups=[];
-    for(const entry of commands){const channel=entry.command.args[0],lease=held.get(channel)??oldHeld.get(channel),action=method==='auditionOn'?'on':'off';
-      let group=groups.at(-1);if(!group||group.channel!==channel){group={method:'batch',channel,voice:lease.voice,audition:true,action,commands:[]};groups.push(group);}
-      group.commands.push(...operations(applied,entry.command.method,entry.command.args));
+    for(const entry of commands){const channel=entry.command.args[0],lease=held.get(channel)??oldHeld.get(channel),action=entry.owner?(method==='auditionOn'?'on':'off'):'edit';
+      let group=groups.at(-1);if(!group||group.channel!==channel||group.action!==action){group={method:'batch',channel,...(lease?{voice:lease.voice}:{}),audition:true,action,commands:[]};groups.push(group);}
+      group.commands.push(...operations(applied,entry.command.method,entry.command.args,{partial:action==='edit'}));
     }
     for(let index=0;index<groups.length;index++)groups[index]=identify(groups[index]);
     send(groups);await owner.flush();current(token);
     if(method==='auditionOff'&&result)held.delete(args[0]);if(method==='auditionAllOff')held.clear();
     if(groups.length)await read({after:groups.at(-1).id});
     // Audition only updates the selected voice; other projected future voices survive.
-    for(const group of groups){const ch=group.channel;projected.synth.channels[ch]={...applied.synth.channels[ch]};for(let offset=0;offset<8;offset++)projected.registers[ch*16+offset]=applied.registers[ch*16+offset];}
+    for(const group of groups){const ch=group.channel;if(group.action==='edit'){for(const op of group.commands)if(op.method==='write')projected.registers[op.register]=op.value;const patch=method==='setPreset'||method==='setChannel'?Object.fromEntries(Object.keys(args[1]).map(key=>[key,applied.synth.channels[ch][key]])):['setPitch','setFrequency','setNote'].includes(method)?{pitch:applied.synth.channels[ch].pitch}:{};Object.assign(projected.synth.channels[ch],patch);}else{projected.synth.channels[ch]={...applied.synth.channels[ch]};for(let offset=0;offset<8;offset++)projected.registers[ch*16+offset]=applied.registers[ch*16+offset];}}
     return result;
   }
   return {client,dispatch,read,

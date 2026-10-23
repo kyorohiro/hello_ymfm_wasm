@@ -86,6 +86,10 @@ test('Native SNES timeline retains ordered resources and resolves at end, while 
   const stopped=snes.playTimeline();const rejection=assert.rejects(stopped,{name:'AbortError'});await f.synth.flush();await snes.stopTimeline();await rejection;
   snes.reset();await f.synth.flush();snes.setPitch(0,3000);await f.synth.flush();assert.equal(await snes.readDsp(2),3000&255);
 });
+test('Native primary SNES applied parameter edits retain a held Keyboard lease and avoid rewriting unrelated registers',async t=>{
+  const f=await fixture(t),snes=f.synth.snes,editor=f.synth.chipInspector,sample=await snes.loadBRR(wave(),{rootNote:69,loopStartSamples:0});snes.setPreset(0,{sample,volumeLeft:80,volumeRight:90,gain:100});await f.synth.flush();await editor.invoke('snes','auditionOn',[0,69,'held']);await editor.invoke('snes','setPreset',[0,{gain:70}]);
+  const batch=f.commands().filter(c=>c.message.method==='batch').at(-1).message;assert.equal(batch.action,'edit');assert(batch.voice);assert.deepEqual(batch.commands,[{method:'write',register:7,value:70}]);const view=await editor.read('snes');assert.equal(view.channels[0].active,true);assert.equal(view.channels[0].gain,70);assert.equal(view.channels[0].volumeLeft,80);assert.equal(view.channels[0].volumeRight,90);assert.equal(view.auditions[0].id,'held');await editor.invoke('snes','auditionOff',[0,'held']);assert.deepEqual(f.errors,[]);
+});
 test('Native SNES Worker ports handle BRR RPC, scheduled notes and asynchronous timeline completion without blocking Stop',async t=>{
   const f=await fixture(t),bridge=createNativeGenesisWorkerBridge({synth:f.synth,MessageChannelClass:MessageChannel,onError:error=>f.errors.push(error)});
   const host=createPerformanceHost({getContext:()=>f.synth.clock}),sender=createPerformanceSender({leaseUntimed:true});

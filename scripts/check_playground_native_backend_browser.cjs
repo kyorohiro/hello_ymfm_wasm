@@ -23,12 +23,13 @@ const {installExtraNesMock,runExtraNes}=require('./native_backend_extra_nes.cjs'
 const {installExtraHuc6280Mock,runExtraHuc6280}=require('./native_backend_extra_huc6280.cjs');
 const {installExtraDx7Mock,runExtraDx7}=require('./native_backend_extra_dx7.cjs');
 const {installExtraPwmMock,runExtraPwm}=require('./native_backend_extra_pwm.cjs');
+const {installExtraSnesMock,runExtraSnes}=require('./native_backend_extra_snes.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
 const nativeModeIds=['genesis','mega-cd','genesis-full','genesis-full-nuked','pc98-26','pc98','neogeo','neogeo-b','gameboy','nes','snes','x68000','pc-engine','game-gear','master-system','msx','msx-audio','dx7','ym3812','ym3526','ymf262'];
 const mime = {'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml'};
-const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,captureProjectSnapshot,restoreProjectSnapshot,exportCassette,loadCassetteSource,...(typeof mixerState==="undefined"?{}:{mixerState}),get editor(){return editorAdapter}};';
+const accessor = '\nwindow.__nativeBackendTest={runtime,selectedMode,importVgmFile,virtualFiles,captureProjectSnapshot,restoreProjectSnapshot,exportCassette,loadCassetteSource,...(typeof mixerState==="undefined"?{}:{mixerState}),get editor(){return editorAdapter},get editorSelection(){return editorKeyboardSelection},get routes(){return keyboardRouting.getState()}};';
 const source = `// Native/Web Audio project handoff regression.
 setBpm(120);
 fm.setPreset(CH1, FM_PRESETS['one-op-basic']);
@@ -284,7 +285,7 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
-      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm'].includes(entry.type));
+      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm','extra-snes'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
       if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
@@ -2336,8 +2337,9 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const extraNesOnly=process.argv.includes('--extra-nes-only');
     const extraHucOnly=process.argv.includes('--extra-huc6280-only');
     const extraDx7Only=process.argv.includes('--extra-dx7-only');
+    const extraSnesOnly=process.argv.includes('--extra-snes-only');
     const extraPwmOnly=process.argv.includes('--extra-pwm-only');
-    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly;
+    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly;
     if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
     if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
@@ -2352,14 +2354,14 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
-    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraPsgMock(native);
-    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraYm2612Mock(native);
-    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraYm2203Mock(native);
-    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraYm2608Mock(native);
-    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraYm2610Mock(native);
-    if(extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraYm2151Mock(native);
-    if(extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraMsxMock(native);
-    if(extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly)installExtraOplMock(native);
+    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraPsgMock(native);
+    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraYm2612Mock(native);
+    if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraYm2203Mock(native);
+    if(extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraYm2608Mock(native);
+    if(extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraYm2610Mock(native);
+    if(extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraYm2151Mock(native);
+    if(extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraMsxMock(native);
+    if(extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly)installExtraOplMock(native);
     installExtraRf5c164Mock(native);
     installExtraOkim6258Mock(native);
     installExtraGameboyMock(native);
@@ -2367,6 +2369,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     installExtraHuc6280Mock(native);
     installExtraDx7Mock(native);
     installExtraPwmMock(native);
+    installExtraSnesMock(native);
     const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
@@ -2382,6 +2385,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
       await page.goto(nativeUrl.href);await ready(page);
       assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(extraSnesOnly){
+        await runExtraSnes({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS independent Native SNES, twenty kinds across legal sixteen-slot racks, Main/Worker, BRR/RAM/timelines, eight voice editing/Keyboard/Mixer, primary borrowing, Stop/replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+      }
       if(extraPwmOnly){
         await runExtraPwm({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
         assert.deepEqual(errors,[]);await context.close();

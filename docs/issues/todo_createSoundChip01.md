@@ -1,7 +1,7 @@
 # Native版 createSoundChip() 対応計画
 
 2026-10-23。追加音源の対象と必要な作業を整理する。
-Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262・RF5C164・OKIM6258・Game Boy・NES＋任意FDS・PC Engine・DX7・32X PWMの追加生成まで実装済み。残りは今後の計画。
+Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262・RF5C164・OKIM6258・Game Boy・NES＋任意FDS・PC Engine・DX7・32X PWM・SNES S-DSPの追加生成まで実装済み。残りはSPCファイルプレーヤー。
 
 ## 目的と範囲
 
@@ -46,11 +46,12 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加HuC6280の独立6CH・波形RAM・DDA・noise・共有LFO、音色編集・Keyboardに対応する。
 - [x] 追加DX7の独立16voice・preset／SysEx bank・6operator、音色編集・Keyboardに対応する。
 - [x] 追加32X PWMの独立左右FIFO・clock・予約再生・owner別取消し、情報表示・Mixerに対応する。
-- [x] 対応済み19種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
+- [x] 追加SNESの独立8声・64 KiB RAM・BRR、原子的な転送／reset、timeline、音色編集・Keyboardに対応する。
+- [x] 対応済み20種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
 
-現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262＋RF5C164＋OKIM6258＋Game Boy＋NES＋HuC6280＋DX7＋PWMの合計16台・64 MiB**。
+現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262＋RF5C164＋OKIM6258＋Game Boy＋NES＋HuC6280＋DX7＋PWM＋SNESの合計16台・64 MiB**。
 YM2608は1台ごとにRAM 2 MiB＋ROM 8 KiBを持つ。YM2610はA／B各16 MiB空間の使用箇所を64 KiB単位で確保する。
-RF5C164とNESは1台ごとに64 KiB RAMを持つ。NESの待機uploadは1 batch 64 KiB・ラック全体1 MiB以内とする。OKIM6258は最大16 MiBのsampleを転送時に確保する。固定queue・管理余裕、転送・timeline、ROMの旧版・新版の重複保持も数える。
+RF5C164・NES・SNESは1台ごとに64 KiB RAMを持つ。NESの待機uploadは1 batch 64 KiB・ラック全体1 MiB以内とする。OKIM6258は最大16 MiBのsampleを転送時に確保する。固定queue・管理余裕、転送・timeline、ROMの旧版・新版の重複保持も数える。
 IPCのJSON／DTO一時data・JS・decode・主音源・FXは別枠。全対象への予算展開と、実機の負荷上限の評価は継続する。
 
 ## 対象一覧
@@ -76,7 +77,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 | `okim6258` | 対応済み | 単独1ストリーム、動的sample保持・原子的ADPCM転送・divider／pan／repeat、波形・音声ファイル・Keyboard |
 | `gameboy` | 対応済み | 独立pulse 2CH／wave／noise、Wave RAM・power／clock・左右routing、有限音の試奏保持解除、音色編集・Keyboard |
 | `nes` | 対応済み | 独立pulse／triangle／noise／DMC＋任意FDS。`{fds, clock}`、DMC memory・FDS波形・所有者を分離、編集・Keyboard |
-| `snes` | 未対応・既存S-DSPコアあり | 8voice、BRR・64 KiB RAM、DSP状態、echo、timelineを分離。楽器操作との排他も維持 |
+| `snes` | 対応済み | 独立8声・BRR・64 KiB RAM・DSP・echo・timeline。原子的な転送／reset、明示RAM snapshot、編集・Keyboard、owner／手動leaseの排他 |
 | `huc6280` | 対応済み | 独立6CHのwave／DDA／noise、共有LFO、波形RAM・clockを分離、音色編集・Keyboard |
 | `dx7` | 対応済み | 独立16voice・6operator、preset／SysEx bank、voice割当・note lease・適用済み／論理音色、編集・Keyboard |
 | `pwm` | 対応済み | 独立左右FIFO・register・clock・時刻付きschedule・tag付き保持出力、owner別取消し・情報表示・Mixer |
@@ -104,10 +105,10 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
    4種類合計64 MiBの予算を用意し、準備・置換・取消し・退役の参照が残る間も予約を保持する。
 4. **YM2610（完了）**：FM4／SSG／ADPCM-A／Bを接続した。ROMは必要な64 KiB pagesを制御側で作り、
    callbackはpointerのみ切り替える。旧版・新版・退役待ちも64 MiB予算へ含める。
-5. **他の既存コア**：YM2151 OPM・YM2413 OPLL・AY・OPL1/2/Y8950・YMF262 OPL3・Game Boy・NES＋任意FDS・PC Engine・DX7・PWMの単独化は完了。残る楽器用音源はSNES。
+5. **他の既存コア**：YM2151 OPM・YM2413 OPLL・AY・OPL1/2/Y8950・YMF262 OPL3・Game Boy・NES＋任意FDS・PC Engine・DX7・PWM・SNESの単独化は完了。
    YM2608で実装した合計メモリー予算へ、新しい種類の固定確保と所有payloadを追加する。
-6. **サンプル・timelineを含む仕上げ**：RF5C164・OKIM6258の追加生成・転送・手動試奏は完了。次はSNESを含め、
-   転送・置換・停止・失敗・timeline完了の扱いを揃える。手順5の音源も同じ条件で確認する。
+6. **サンプル・timelineを含む仕上げ**：RF5C164・OKIM6258・SNESの追加生成・転送・手動試奏は完了。
+   SNESのtimeline・RAM snapshotも所有者と寿命を分離し、置換・停止・失敗・完了を確認した。
 7. **SPCプレーヤー**：楽器用ラックの対応とは分けて、CPU実行とファイル再生の制御を設計する。
 
 手順5以降の細かな順番は暫定。共通部分の調査・実装は並行してよい。
@@ -115,11 +116,11 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 
 ## 共通で必要な作業
 
-以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2151／YM2413／AY／YM3526／YM3812／Y8950／YMF262／RF5C164／OKIM6258／Game Boy／NES／HuC6280／DX7／PWMでは適用済みでも、他の種類への展開が残るものは未完了とする。
+以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2151／YM2413／AY／YM3526／YM3812／Y8950／YMF262／RF5C164／OKIM6258／Game Boy／NES／HuC6280／DX7／PWM／SNESでは適用済みでも、他の種類への展開が残るものは未完了とする。
 
 ### ラック・生成・寿命管理
 
-- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY・OPL1/2/Y8950・OPL3・RF5C164・OKIM6258・Game Boy・NES・HuC6280・DX7・PWMも追加できる入口を作る。
+- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY・OPL1/2/Y8950・OPL3・RF5C164・OKIM6258・Game Boy・NES・HuC6280・DX7・PWM・SNESも追加できる入口を作る。
   各チップの命令検証・DSP状態・voice管理は、そのチップの実装へ委譲する。
 - [ ] 単独チップを生成するC ABIとRust wrapperを用意し、不要な同居音源の生成を避ける。
   例：YM2151だけの追加で、X68000複合のOKI用メモリーまで確保しない。
@@ -193,7 +194,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 ## 未決定・別途扱う項目
 
-- [ ] YMF262・RF5C164・OKIM6258・Game Boy・NES・HuC6280・DX7・PWMで検証したWorker生成待ち中のloop取消し・遅延応答後の回収を、
+- [ ] YMF262・RF5C164・OKIM6258・Game Boy・NES・HuC6280・DX7・PWM・SNESで検証したWorker生成待ち中のloop取消し・遅延応答後の回収を、
   同じRPC経路を使う他の追加音源にも照合し、必要なperformance metadataとcleanupを展開する。
 - [ ] 16台・64 MiBの予算を残りの音源へ展開し、重い組合せの実機負荷を評価する。
 - [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
@@ -223,3 +224,5 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [実装済みの追加32X PWMと検証結果](native_dynamic_pwm_01.md)
 - [Mixerの保存規則](playground_mixer_state_01.md)、[Native安定化・継続検証](native_stability_01.md)
 - [Neo Geoの4CH／6CH](native_neogeo_01.md)、[Native SNESなどの対応範囲](native_consoles_01.md)、[MSX Audioの対応範囲](native_msx_audio_01.md)
+
+- [実装済みの追加SNES S-DSPと検証結果](native_dynamic_snes_01.md)

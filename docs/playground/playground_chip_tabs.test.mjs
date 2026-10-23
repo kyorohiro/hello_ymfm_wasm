@@ -28,11 +28,45 @@ function fixture(inspector, options = {}) {
     fire(name) { for (const callback of listeners.get(name) ?? []) callback(); },
     listenerCount(name) { return listeners.get(name)?.size ?? 0; },
   };
-  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','ym2151','okim6258','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
+  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','snes','ym2151','okim6258','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
   const tabs = createPlaygroundChipTabs({roots, getInspector: () => inspector, pollMs: 100000, ...options});
   return {doc, roots, tabs};
 }
 const psgState = frequency => ({kind: 'segapsg', clock: 3579545, channels: [0, 1, 2].map(channel => ({channel, frequency, period: 254, attenuation: 4, active: true})), noise: {type: 'white', rate: 'tone3', attenuation: 7, active: true}});
+const snesState = (timeline={loaded:false}) => ({kind:'snes',samples:[{id:0,startAddress:1024,byteLength:9,frames:16,rootFrequencyHz:440,basePitch:4096,loop:true}],
+  channels:Array.from({length:8},(_,channel)=>({channel,sample:0,pitch:4096,adsr1:0,adsr2:0,gain:100,volumeLeft:80,volumeRight:90,active:channel===1})),timeline});
+
+test('SNES applied voice editor selects physical voice and sends only the edited parameter',async()=>{
+  const calls=[];let reads=0;
+  const inspector={list:()=>[{id:'brr-a',kind:'snes',additional:true}],read:async()=>{reads++;return snesState();},invoke:async(...args)=>calls.push(args)};
+  const {tabs,roots}=fixture(inspector,{eventDrivenAdditionalKinds:['snes']});tabs.setVisible('snes');await flush();
+  assert.equal(control(roots.snes,'snes-pitch').value,'4096');assert.equal(control(roots.snes,'snes-sample').value,'0');assert.deepEqual(calls,[]);
+  await walk(roots.snes).find(n=>n.dataset.chipChannel==='7').fire('click');
+  const gain=control(roots.snes,'snes-gain');gain.value='73';await gain.fire('change');
+  assert.deepEqual(calls,[['brr-a','setPreset',[7,{gain:73}]]]);
+  const before=reads;tabs.setVisible(null);await tabs.refresh();assert.equal(reads,before);tabs.dispose();
+});
+
+test('SNES preview is released on instance change and stale Keyboard targets cannot start a new voice',async()=>{
+  const calls=[],targets=[];
+  const inspector={list:()=>[{id:'brr-a',kind:'snes'},{id:'brr-b',kind:'snes'}],read:async()=>snesState(),invoke:async(...args)=>calls.push(args)};
+  const {tabs,roots}=fixture(inspector,{onKeyboardTargetChange:value=>targets.push(value)});tabs.setVisible('snes');await flush();
+  await walk(roots.snes).find(n=>n.dataset.chipAction==='snes-keyboard').fire('click');
+  const target=targets.at(-1);target.noteOn({id:'key-a',midi:60});await flush();
+  assert.equal(calls[0][1],'auditionOn');assert.equal(calls[0][0],'brr-a');
+  const instance=control(roots.snes,'instance');instance.value='brr-b';await instance.fire('change');
+  assert.equal(calls[1][1],'auditionOff');assert.equal(calls[1][0],'brr-a');
+  const count=calls.length;target.noteOn({id:'stale',midi:64});await flush();assert.equal(calls.length,count);tabs.dispose();
+});
+
+test('SNES timeline snapshots disable instrument editing without starting audio or an observer loop',async()=>{
+  const calls=[];
+  const inspector={list:()=>[{id:'trace',kind:'snes',additional:true}],read:async()=>snesState({loaded:true,playing:true,totalFrames:32000,positionFrames:100}),invoke:async(...args)=>calls.push(args)};
+  const {tabs,roots}=fixture(inspector,{eventDrivenAdditionalKinds:['snes']});tabs.setVisible('snes');await flush();
+  assert.match(walk(roots.snes).find(n=>n.dataset.chipOutput==='snes-timeline').textContent,/Timeline.*Playing/);
+  const fieldsets=walk(roots.snes).filter(n=>n.tagName==='fieldset');assert(fieldsets.some(n=>n.disabled));
+  await tabs.refresh();assert.deepEqual(calls,[]);tabs.dispose();
+});
 
 test('pitch labels include standard A4 and negative octaves', () => {
   assert.equal(frequencyNote(440), 'A4'); assert.equal(frequencyNote(261.625565), 'C4');

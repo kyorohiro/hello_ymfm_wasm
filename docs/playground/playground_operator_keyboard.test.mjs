@@ -180,7 +180,7 @@ test('missing editor targets and unsupported tabs never fall back to FM or the b
 test('all playable chip editor views accept computer and pointer audition', () => {
   const t = setup(undefined,{channelCount:0}), editor = targetFixture('Selected chip channel');
   t.keyboard.attachEditorTarget(editor.target);
-  const tabs = ['segapsg','rf5c164','gameboy','nes','ym2151','okim6258','huc6280','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'];
+  const tabs = ['segapsg','rf5c164','gameboy','nes','snes','ym2151','okim6258','huc6280','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'];
   for (const tab of tabs) {
     t.keyboard.setView(tab);
     t.send('keydown'); t.send('keyup'); t.pointerDown('s',{pointerId:1}); t.pointerUp('s',{pointerId:1});

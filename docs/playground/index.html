@@ -12,7 +12,7 @@
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
     <link rel="stylesheet" href="./playground_chip_tabs.css?v=audio-numeric-bindings-1">
-    <link rel="stylesheet" href="./playground_mixer.css?v=native-extra-pwm-1">
+    <link rel="stylesheet" href="./playground_mixer.css?v=native-extra-snes-1">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
     <style>
@@ -1997,6 +1997,7 @@
             <button id="rf5c164Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="rf5c164Panel" hidden>RF5C164</button>
             <button id="pwmTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pwmPanel" hidden>32X PWM</button>
             <button id="gameboyTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="gameboyPanel" hidden>Game Boy</button>
+            <button id="snesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="snesPanel" hidden>SNES</button>
             <button id="nesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="nesPanel" hidden>NES + FDS</button>
             <button id="ym2151Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym2151Panel" hidden>YM2151</button>
             <button id="okim6258Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="okim6258Panel" hidden>OKIM6258</button>
@@ -2413,6 +2414,7 @@
           <section id="rf5c164Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="rf5c164Tab" hidden></section>
           <section id="pwmPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="pwmTab" hidden></section>
           <section id="gameboyPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="gameboyTab" hidden></section>
+          <section id="snesPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="snesTab" hidden></section>
           <section id="nesPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="nesTab" hidden></section>
           <section id="ym2151Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym2151Tab" hidden></section>
           <section id="okim6258Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="okim6258Tab" hidden></section>
@@ -2478,7 +2480,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=native-extra-pwm-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=native-extra-snes-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

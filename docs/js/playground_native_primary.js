@@ -1,15 +1,15 @@
-import {createAy8910Client} from './playground_ay8910.js?v=native-extra-pwm-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=native-extra-pwm-1';
-import {createNesClient} from './playground_nes.js?v=native-extra-pwm-1';
-import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
-import {createYm2151Client} from './playground_ym2151.js?v=native-extra-pwm-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=native-extra-pwm-1';
+import {createAy8910Client} from './playground_ay8910.js?v=native-extra-snes-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=native-extra-snes-1';
+import {createNesClient} from './playground_nes.js?v=native-extra-snes-1';
+import {createSnesClient} from './playground_snes.js?v=native-extra-snes-1';
+import {createYm2151Client} from './playground_ym2151.js?v=native-extra-snes-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=native-extra-snes-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
-import {createOki6258Client} from './playground_okim6258.js?v=native-extra-pwm-1';
-import {createYm2413Client} from './playground_ym2413.js?v=native-extra-pwm-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=native-extra-pwm-1';
-import {createDx7Client} from './playground_dx7.js?v=native-extra-pwm-1';
-import {createGameboyClient} from './playground_gameboy.js?v=native-extra-pwm-1';
+import {createOki6258Client} from './playground_okim6258.js?v=native-extra-snes-1';
+import {createYm2413Client} from './playground_ym2413.js?v=native-extra-snes-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=native-extra-snes-1';
+import {createDx7Client} from './playground_dx7.js?v=native-extra-snes-1';
+import {createGameboyClient} from './playground_gameboy.js?v=native-extra-snes-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {
@@ -59,7 +59,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
   const client = name==='pwm'?createPWM32XClient(port,{native:true},lifecycle):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name},lifecycle)
     : name === 'nes' ? createNesClient(port, options,lifecycle)
     : name === 'gameboy' ? createGameboyClient(port,options,lifecycle)
-    : name === 'snes' ? createSnesClient(port, options)
+    : name === 'snes' ? createSnesClient(port, options,lifecycle)
     : name === 'ym2151' ? createYm2151Client(port)
     : name === 'segapsg' ? createSegaPsgClient(port, options)
     : name === 'huc6280' ? createHuc6280Client(port, options,lifecycle)
