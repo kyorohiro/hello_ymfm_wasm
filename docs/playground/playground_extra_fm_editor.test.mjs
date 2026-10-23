@@ -36,10 +36,10 @@ function inspector(entries=[]){
 }
 function setup({entries=[],primary=false,inspect=inspector(entries)}={}){
   const root=new Element(document),primaryRoot=new Element(document),button=new Element(document,'button');root.append(primaryRoot);
-  const editors=[],statuses=[],targets=[],availability=[],primaryVisibility=[];
+  const editors=[],ssgEditors=[],statuses=[],targets=[],availability=[],primaryVisibility=[];
   const primaryEditor=primary?{setVisible:value=>primaryVisibility.push(value)}:null;
   const source=readFileSync(new URL('./playground_extra_fm_editor.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export function','function');
-  const context=vm.createContext({DOMException,createPlaygroundOperatorTab(options){
+  const context=vm.createContext({DOMException,createPlaygroundOpnSsgEditor(options){const s={options,channel:0,updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedChannel(){return this.channel;},dispose(){this.disposed++;}};ssgEditors.push(s);return s;},createPlaygroundOperatorTab(options){
     const edits={options,channel:0,presets:[],globals:[],registered:[],removed:[],visibility:[],disposed:0,
       attachSynth(synth){this.synth=synth;},syncPreset(...args){this.presets.push(args);},syncLfo(...args){this.globals.push(['lfo',...args]);},syncDacEnabled(value){this.globals.push(['dac',value]);},
       syncChannel3SpecialMode(value){this.globals.push(['special',value]);},syncChannel3SpecialFrequency(...args){this.globals.push(['frequency',...args]);},
@@ -51,17 +51,32 @@ function setup({entries=[],primary=false,inspect=inspector(entries)}={}){
   const controller=context.createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,primaryKind:'ym2612',button,getInspector:()=>activeInspector,
     presets:{},presetOrder:[],onAvailability:value=>availability.push(value),onTargetChange:value=>targets.push(value),onStatus:value=>statuses.push(value)});
   const toolbar=root.children[0],select=toolbar.children[0].children[0],refresh=toolbar.children[1],status=toolbar.children[2],extraRoot=root.children.at(-1);
-  return {root,primaryRoot,button,primaryEditor,inspect,controller,toolbar,select,refresh,status,extraRoot,editors,statuses,targets,availability,primaryVisibility,
+  return {root,primaryRoot,button,primaryEditor,inspect,controller,toolbar,select,refresh,status,extraRoot,editors,ssgEditors,statuses,targets,availability,primaryVisibility,
     setInspector:value=>{activeInspector=value;},choose:id=>{select.value=id;select.dispatch('change');}};
 }
 const chip=(id,extra=true,kind='ym2612')=>({id,kind,connected:true,...(extra?{additional:true}:{})});
 
-test('only explicitly additional YM2612 instances appear, including a valid ym2612 ID outside Genesis',async()=>{
-  const f=setup({entries:[chip('ym2612'),chip('lead'),chip('borrowed',false),chip('other',true,'ym2203'),{...chip('gone'),connected:false}]});
+test('only supported explicitly additional OPN instances appear, including a valid ym2612 ID outside Genesis',async()=>{
+  const f=setup({entries:[chip('ym2612'),chip('lead'),chip('borrowed',false),chip('other',true,'ym2608'),{...chip('gone'),connected:false}]});
   assert.deepEqual(f.select.children.map(option=>option.value),['ym2612','lead']);
   assert.equal(f.select.value,'ym2612');assert.equal(f.editors.length,1);assert.equal(f.inspect.reads.length,0,'hidden tabs perform no state reads');
   assert.equal(f.toolbar.hidden,false);assert.equal(f.primaryRoot.hidden,true);assert.equal(f.availability.at(-1),true);
   f.controller.setVisible(true);await settle();assert.deepEqual(f.inspect.reads,['ym2612']);assert.equal(f.targets.at(-1).id,'ym2612');f.controller.dispose();
+});
+
+test('YM2203 uses three mono FM channels and SSG controls bound to its own instance',async()=>{
+  const inspect=inspector([chip('opn',true,'ym2203'),chip('fm')]);inspect.readResult=id=>{const data=snapshot();if(id==='opn'){data.fmState.channels.length=3;data.registers.length=1;data.ssgLevels=[12,0,16];}return data;};
+  const f=setup({inspect});f.controller.setVisible(true);await settle();
+  const editor=f.editors[0],ssg=f.ssgEditors[0];assert.equal(editor.options.channelCount,3);assert.equal(editor.options.supportsDac,false);
+  assert.equal(editor.synth.supportsPan,false);assert.equal(editor.synth.supportsLfo,false);assert.equal(editor.presets.length,3);assert.equal(ssg.updates.length,1);
+  assert.equal(f.controller.getChannelCount(),3);assert.deepEqual(inspect.writes,[]);
+  assert.equal(f.button.textContent,'YM2203');
+  ssg.channel=2;ssg.options.onTargetChange();assert.deepEqual(plain(f.targets.at(-1)),{kind:'ym2203',id:'opn',channel:'ssg:2'});
+  ssg.options.onEdit('ssg.setVolume',[2,7,false]);await settle();assert.deepEqual(plain(inspect.writes.at(-1)),{id:'opn',method:'ssg.setVolume',args:[2,7,false]});
+  f.choose('fm');await settle();assert.equal(ssg.disposed,1);assert.equal(f.controller.getChannelCount(),6);
+  assert.equal(f.button.textContent,'YM2612');
+  const lastTarget=plain(f.targets.at(-1));ssg.options.onTargetChange();assert.deepEqual(plain(f.targets.at(-1)),lastTarget,'detached SSG controls cannot redirect the new keyboard target');
+  const writes=inspect.writes.length;ssg.options.onEdit('ssg.write',[6,31]);await settle();assert.equal(inspect.writes.length,writes,'old SSG controls cannot change a newly selected chip');f.controller.dispose();
 });
 
 test('visible snapshots fill the existing OPN editor with all four logical operators and chip-wide controls without writes',async()=>{

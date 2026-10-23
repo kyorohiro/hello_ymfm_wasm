@@ -9,13 +9,14 @@ import {fileURLToPath} from 'node:url';
 import {opnPitchFromHz} from '../web/soundchip_pitch.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
+const option=name=>{const value=process.argv.find(arg=>arg.startsWith(name+'='));if(value)return value.slice(name.length+1);const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
+const extra=process.argv.includes('--extra'),fixtureProfile=extra?['--extra']:[];
 const binary=await fs.readFile(path.join(root,'docs/generated/ym2203_wasm.wasm'));
-let Processor;globalThis.sampleRate=48000;globalThis.currentFrame=0;
-globalThis.AudioWorkletProcessor=class{constructor(){this.port={postMessage(data){if(data.type==='error')throw Error(data.message);},close(){}};}};
-globalThis.registerProcessor=(name,processor)=>{if(name==='ym2203-processor')Processor=processor;};
-await import('../docs/js/ym2203-worklet.js');
+let Processor,resolveReady,rejectReady;globalThis.sampleRate=48000;globalThis.currentFrame=0;
+globalThis.AudioWorkletProcessor=class{constructor(){this.port={postMessage(data){if(data.type==='error')throw Error(data.message);if(extra&&data.ready)resolveReady();if(extra&&data.error)rejectReady(Error(data.error));},close(){}};}};
+globalThis.registerProcessor=(name,processor)=>{if(name===(extra?'tetorica-opn':'ym2203-processor'))Processor=processor;};
+await import(extra?'../docs/js/playground_opn_worklet.js':'../docs/js/ym2203-worklet.js');
 const rates=[44100,48000,96000],scenarios=[];
 function scenario(name,build,{frames=6144}={}){
   let frame=0;const events=[],add=(op,...args)=>events.push({frame,op,args}),write=(r,v)=>add('write',r,v);
@@ -115,47 +116,67 @@ scenario('SSG raw input/output direction and coarse bits match data read ports w
   fm();ssg();write(7,0xf8);write(14,0xaa);write(15,0x55);at(701);write(7,0x38);write(14,0x55);
   at(1703);write(15,0xaa);at(2801);write(7,0xf8);write(14,0x33);at(3901);write(15,0xcc);at(5101);write(1,0xf1);
 });
-const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed primary YM2203 WASM Worklet with mono mixed clamp, status/IRQ and four raw read ports',
+if(extra){
+  scenario('additional reset clears held mono PCM and fractional remainder at 100 kHz without resetting source phase',({fm,ssg,write,at,add})=>{
+    fm();ssg();write(7,0x38);add('clock',100000);at(701);add('reset');at(702);ssg(1,127,15);write(7,0x38);
+    at(1703);add('reset');at(2801);write(0x2f,0);fm(2,72,7);at(3901);add('reset');at(5101);ssg(2,233,11);write(7,0x38);
+  });
+  scenario('additional full clock bounds and mixed FM/SSG mono rendering',({fm,ssg,write,at,add})=>{
+    for(let ch=0;ch<3;ch++){fm(ch,48+ch*7,7);ssg(ch,127+ch*103,11);}write(7,0x38);
+    at(701);add('clock',100000);at(1703);add('clock',100000000);at(2801);add('clock',4000000);at(3901);add('clock',100000);at(5101);add('clock',4000000);
+  });
+  scenario('additional normal CH3 and CSM cancel separately while SSG and Timer B continue',({fm,ssg,write,at,add})=>{
+    fm(2,60,7,3);ssg(1,233,11);write(7,0x38);write(0x24,255);write(0x25,3);write(0x26,253);write(0x27,0xcf);
+    at(701);add('cancel-csm');at(1703);write(0x27,0xcf);at(2801);add('off-fm',2);at(3901);add('cancel-csm');at(5101);add('audition',2);
+  });
+}
+const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:extra?'Actual deployed additional playground_opn_worklet.js with mono YM2203 WASM, status/IRQ and four raw read ports':'Actual deployed primary YM2203 WASM Worklet with mono mixed clamp, status/IRQ and four raw read ports',
   wasmSha256:createHash('sha256').update(binary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,
-  limits:'Offline selected YM2203 only; ownership/IPC/UI verified independently. Forced voice-off and Stop use real WASM FM mute/TL and SSG volume controls, with Stop explicitly muting held output until next trigger. Native deferred FM preview is compared after one actual FM clock interval, tracked from the unchanged shared resampler index and prescaler. Source mutes clear held output for immediate silence. The primary Worklet reset retains output remainder/hold, matching this Native profile. All six physical voices, shared SSG noise/envelope, frequency latches/channel3 special mode, prescalers and timer/status/IRQ/data reads are exercised. No audio device or cross-platform compiler was used.'};
+  limits:'Offline isolated YM2203 only; ownership/IPC/UI verified independently. Forced voice-off and Stop use real WASM FM mute/TL and SSG volume controls. Deferred FM preview waits for an actual FM clock interval, tracked from the unchanged source resampler index and prescaler. Source mutes clear held output. All six voices, SSG noise/envelope, shared frequency latches, special/CSM modes, prescalers and timer/status/IRQ/data reads are exercised. No audio device or cross-platform compiler was used. '+(extra?'Additional Worklet reset clears output remainder and held PCM; force cancellation clears held PCM immediately and closes a cancelled CSM source while preserving independently keyed normal CH3.':'Primary Worklet reset retains output remainder/hold; existing primary behavior is retained.')};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2203-'));fixture=path.join(temporary,'fixture');
     execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),...['src/native_genesis_ym2203.cpp','src/native_genesis_ym2203_fixture.cpp','native-genesis/ymfm_opn.cpp','native-genesis/ymfm_ssg.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
-  report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
+  report.selfTest=execFileSync(fixture,[...fixtureProfile,'--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
     const input=events.map(({frame,op,args})=>`${frame} ${op} ${args.join(' ')}`).join('\n')+'\n';
-    const bytes=execFileSync(fixture,[String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*32+1048576,timeout:30000});
+    const bytes=execFileSync(fixture,[...fixtureProfile,String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*32+1048576,timeout:30000});
     assert.equal(bytes.length,scenario.frames*32);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
-    const reference=new Processor();await reference.initialize(binary);
-    let forced=0,external=0,source=0,stopped=false,prescaler=6,sourceIndex=0;const regs=new Uint8Array(256),levels=new Uint8Array(3),pending=new Map();
+    let reference;
+    if(extra){const ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});reference=new Processor({processorOptions:{name:'ym2203',wasmBinary:binary}});await ready;}
+    else {reference=new Processor();await reference.initialize(binary);}
+    const clearHold=()=>{if(extra)reference.left=reference.right=0;else reference.lastLeft=reference.lastRight=0;};
+    const chipRate=()=>extra?reference.rate:reference.chipRate;
+    let forced=0,external=0,source=0,stopped=false,prescaler=6,sourceIndex=0;const regs=new Uint8Array(256),levels=new Uint8Array(3),keys=new Uint8Array(3),pending=new Map();
     const updateMute=()=>reference.chip.setMuteMask(forced|external|(source&2?7:0));updateMute();
-    const raw=(r,v)=>reference.write(r,v);
+    const raw=(r,v)=>extra?reference.apply({method:'write',args:[0,r,v]},reference.port):reference.write(r,v);
     const restore=ch=>{if(forced&(1<<ch)){forced&=~(1<<ch);for(let op=0;op<4;op++)raw(0x40+ch+op*4,regs[0x40+ch+op*4]);updateMute();}};
     const write=(r,v,author=true)=>{
       regs[r]=v;
-      if(r===0x28&&(v&7)<3){const ch=v&7;pending.delete(ch);if(v&0xf0){restore(ch);stopped=false;}}
+      if(r===0x28&&(v&7)<3){const ch=v&7;keys[ch]=v>>4;pending.delete(ch);if(v&0xf0){restore(ch);stopped=false;}}
       if(r===0x27&&(v&0x81)===0x81){restore(2);stopped=false;}
       if(r>=8&&r<=10){if(author&&(v&31))levels[r-8]=v&31;if(v&31)stopped=false;}
       if(r===0x2d)prescaler=6;else if(r===0x2e&&prescaler===6)prescaler=3;else if(r===0x2f)prescaler=2;
       raw(r,r>=0x40&&r<=0x4e&&(r&3)<3&&(forced&(1<<(r&3)))?v|127:v);
     };
-    const off=voice=>{if(voice<3){pending.delete(voice);regs[0x28]=voice;raw(0x28,voice);forced|=1<<voice;for(let op=0;op<4;op++)raw(0x40+voice+op*4,regs[0x40+voice+op*4]|127);updateMute();}else write(8+voice-3,0,false);};
+    const off=voice=>{if(voice<3){pending.delete(voice);keys[voice]=0;regs[0x28]=voice;raw(0x28,voice);forced|=1<<voice;for(let op=0;op<4;op++)raw(0x40+voice+op*4,regs[0x40+voice+op*4]|127);updateMute();}else write(8+voice-3,0,false);if(extra){if(voice===2)write(0x27,regs[0x27]&~0x81);clearHold();}};
     const audition=(voice,mask=15)=>{if(voice<3){off(voice);if(mask)pending.set(voice,mask);}else write(8+voice-3,levels[voice-3],false);};
     let next=0,maximumDifference=0,peak=0,first;const l=new Float32Array(1),r=new Float32Array(1);
     try{for(let frame=0;frame<scenario.frames;frame++){
       globalThis.currentFrame=frame;
       while(next<events.length&&events[next].frame===frame){const {op,args}=events[next++];
         if(op==='write')write(...args);else if(op==='level')levels[args[0]]=args[1];
-        else if(op==='clock'){reference.clock=args[0];reference.chipRate=reference.chip.sampleRate(args[0]);}
+        else if(op==='clock'){if(extra)reference.apply({method:'clock',args},reference.port);else {reference.clock=args[0];reference.chipRate=reference.chip.sampleRate(args[0]);}}
         else if(op==='off')off(args[0]);else if(op==='audition'||op==='audition-mask')audition(...args);
-        else if(op==='stop'){for(let voice=0;voice<6;voice++)off(voice);write(0x27,regs[0x27]&0xc0);pending.clear();stopped=true;reference.lastLeft=reference.lastRight=0;}
-        else if(op==='reset'){reference.chip.reset();regs.fill(0);levels.fill(0);forced=0;pending.clear();stopped=false;updateMute();}
-        else if(op==='source'){source=args[0];reference.chip.setSourceMuteMask(source&1);updateMute();reference.lastLeft=reference.lastRight=0;}
-        else if(op==='mute'){external=args[0];updateMute();reference.lastLeft=reference.lastRight=0;}
+        else if(op==='off-fm'){const ch=args[0];if(ch===2&&(regs[0x27]&0x81)===0x81){pending.delete(ch);keys[ch]=0;regs[0x28]=ch;raw(0x28,ch);}else off(ch);}
+        else if(op==='cancel-csm'){write(0x27,regs[0x27]&~0x81);if(!keys[2]&&!pending.has(2))off(2);}
+        else if(op==='stop'){for(let voice=0;voice<6;voice++)off(voice);write(0x27,regs[0x27]&0xc0);pending.clear();stopped=true;clearHold();}
+        else if(op==='reset'){if(extra)reference.apply({method:'reset'},reference.port);else reference.chip.reset();regs.fill(0);levels.fill(0);keys.fill(0);forced=0;pending.clear();stopped=false;updateMute();}
+        else if(op==='source'){source=args[0];reference.chip.setSourceMuteMask(source&1);updateMute();clearHold();}
+        else if(op==='mute'){external=args[0];updateMute();clearHold();}
         else throw Error(op);
       }
-      const count=Math.floor((reference.remainder+reference.chipRate)/rate),divisor=prescaler*3;
+      const count=Math.floor((reference.remainder+chipRate())/rate),divisor=prescaler*3;
       let fmTick=false;for(let i=0;i<count;i++)if((sourceIndex+i)%divisor===0)fmTick=true;
       reference.process([],[[l,r]]);sourceIndex+=count;
       if(stopped)l[0]=r[0]=0;
@@ -167,8 +188,8 @@ try{
     }
     assert(maximumDifference<=1e-7,`${scenario.name} at ${rate}: difference ${maximumDifference}, ${JSON.stringify(first)}`);assert(peak>1e-4,scenario.name+' must sound');
     report.cases.push({name:scenario.name,sampleRate:rate,frames:scenario.frames,maximumDifference,peak});report.maximumDifference=Math.max(report.maximumDifference,maximumDifference);report.totalStereoFrames+=scenario.frames;
-    }finally{reference.chip.dispose();}
+    }finally{if(extra)reference.dispose();else reference.chip.dispose();}
   }
   report.status='passed';if(out)await fs.writeFile(out,JSON.stringify(report,null,2)+'\n');
-  console.log(`Native YM2203: ${report.cases.length} cases, ${report.totalStereoFrames} stereo frames with status/IRQ/read ports, maximum difference ${report.maximumDifference}`);console.log(report.selfTest);
+  console.log(`Native ${extra?'additional ':''}YM2203: ${report.cases.length} cases, ${report.totalStereoFrames} stereo frames with status/IRQ/read ports, maximum difference ${report.maximumDifference}`);console.log(report.selfTest);
 }finally{if(temporary)await fs.rm(temporary,{recursive:true,force:true});}

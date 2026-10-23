@@ -72,11 +72,11 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       if (joinedEndpoint) return;
       if (active !== performance) return;
       active = null; ++epoch;
-      enqueue(() => synth.setNativePerformance({op:'stop',performance}), 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
+      enqueue(async () => {await synth.setNativePerformance({op:'stop',performance});for(const endpoint of extraEndpoints)endpoint.stop(performance);}, 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
     } else if (message.type === 'performance-cancel-owner') {
       if (active !== performance || cancelled.has(message.owner)) return;
       const owner = ownerId(message.owner); cancelled.add(message.owner);
-      enqueue(() => synth.setNativePerformance({op:'cancel-owner',performance,owner}), 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
+      enqueue(async () => {await synth.setNativePerformance({op:'cancel-owner',performance,owner});for(const endpoint of extraEndpoints)endpoint.cancelOwner(performance,owner);}, 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
     }
   }
   function receive(port, kind, message) {
@@ -124,6 +124,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         ArrayBuffer.isView(data) ? data.buffer.byteLength : data?.byteLength ?? 0;
       const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.bytes) + bytesOf(m.command?.data) +
         (m.method==='scheduleWrites'?(m.args?.[0]?.length??0)*24:0) +
+        (m.method==='schedule'?(m.args?.[0]?.length??0)*24:0) +
         (m.method==='loadMemory'?bytesOf(m.args?.[0]):0) +
         (m.method==='memory'?bytesOf(m.args?.[synth.nativeOpnb?1:0]):0) +
         (m.method==='rom'?bytesOf(m.args?.[0]):0) +
@@ -162,14 +163,14 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   return {
     port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,pwmPort:pwm?.port2??null,pcmPort:pcm?.port2??null,dx7Port:dx7?.port2??null,nesPort:nes?.port2??null,
     gameboyPort:consoles.get('gameboy')?.port2??null,snesPort:consoles.get('snes')?.port2??null,huc6280Port:consoles.get('huc6280')?.port2??null,ym2151Port:consoles.get('ym2151')?.port2??null,okim6258Port:consoles.get('okim6258')?.port2??null,segapsgPort:consoles.get('segapsg')?.port2??null,ym2413Port:consoles.get('ym2413')?.port2??null,ay8910Port:consoles.get('ay8910')?.port2??null,y8950Port:consoles.get('y8950')?.port2??null,ym3526Port:consoles.get('ym3526')?.port2??null,ym3812Port:consoles.get('ym3812')?.port2??null,ymf262Port:consoles.get('ymf262')?.port2??null,
-    attachEndpoint(dispatch) {
+    attachEndpoint(dispatch,{cancelOwner=()=>{},stop=()=>{}}={}) {
       if (disposed) throw abort();
       if (typeof dispatch !== 'function') throw new TypeError('Native endpoint dispatch must be a function');
       const controlChannel = new MessageChannelClass(), commandChannel = new MessageChannelClass();
       let closed = false;
-      const endpoint = {port:commandChannel.port2, controlPort:controlChannel.port2,
+      const endpoint = {port:commandChannel.port2, controlPort:controlChannel.port2,cancelOwner,stop,
         dispose() {
-          if (closed) return; closed = true; extraEndpoints.delete(endpoint);
+          if (closed) return; closed = true;stop(active);extraEndpoints.delete(endpoint);
           for (const port of [controlChannel.port1,controlChannel.port2,commandChannel.port1,commandChannel.port2]) {
             port.onmessage = null; port.close();
           }

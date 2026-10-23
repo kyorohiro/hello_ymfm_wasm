@@ -38,7 +38,7 @@ export class Ym2203AudioEngine {
 
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2203ModuleFactory: import('./soundchip.js?v=native-extra-ym2612-1').WasmModuleFactory, ym2203ModuleOptions?: import('./soundchip.js?v=native-extra-ym2612-1').WasmModuleOptions, ym2203Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2203ModuleFactory: import('./soundchip.js?v=native-extra-ym2203-1').WasmModuleFactory, ym2203ModuleOptions?: import('./soundchip.js?v=native-extra-ym2203-1').WasmModuleOptions, ym2203Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2203AudioEngine>} Initialized engine owned by the caller.

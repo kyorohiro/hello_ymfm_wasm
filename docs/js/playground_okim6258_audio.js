@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-ym2612-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-ym2203-1';
 import {OKIM6258_CLOCK} from './okim6258synth.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 const nativeFetch = globalThis.fetch?.bind(globalThis);

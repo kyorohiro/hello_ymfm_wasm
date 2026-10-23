@@ -53,6 +53,7 @@ playground_monaco_definitions.js
 playground_monaco_completion.js
 playground_operator_tab.js
 playground_extra_fm_editor.js
+playground_opn_ssg_editor.js
 playground_operator_visual.js
 playground_operator_keyboard.js
 playground_query.js
@@ -290,6 +291,8 @@ native_genesis_master_system.js
 native_genesis_segapsg.js
 native_genesis_extra_segapsg.js
 native_genesis_extra_ym2612.js
+native_genesis_extra_ym2203.js
+opn_ssg_retained.js
 native_genesis_extra_chip.js
 native_genesis_game_gear.js
 native_genesis_opll.js

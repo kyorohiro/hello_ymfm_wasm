@@ -2,13 +2,13 @@ import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
 import {installPlaygroundWorkbench} from './playground_workbench.js?v=operator-tab-keyboard-1';
-import {createPlaygroundMixer} from './playground_mixer.js?v=native-extra-ym2612-1';
-import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=native-extra-ym2612-1';
+import {createPlaygroundMixer} from './playground_mixer.js?v=native-extra-ym2203-1';
+import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=native-extra-ym2203-1';
 import {createPlaygroundChipTabs} from './playground_chip_tabs.js?v=operator-tab-keyboard-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-extra-ym2612-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=native-extra-ym2203-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -41,10 +41,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=native-extra-ym2612-1";
+} from "../js/megasynth.js?v=native-extra-ym2203-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=native-extra-ym2612-1";
+} from "../js/tetorica_synth.js?v=native-extra-ym2203-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -54,9 +54,9 @@ import {
 import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2";
 import {
   createPlaygroundOperatorTab,
-} from "./playground_operator_tab.js?v=native-extra-ym2612-1";
-import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=native-extra-ym2612-1';
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=native-extra-ym2612-1";
+} from "./playground_operator_tab.js?v=native-extra-ym2203-1";
+import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=native-extra-ym2203-1';
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=native-extra-ym2203-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-numeric-bindings-1";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=audio-numeric-bindings-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=audio-numeric-bindings-1";
@@ -90,12 +90,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=native-extra-ym2612-1";
+} from "../js/playground_runtime.js?v=native-extra-ym2203-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=audio-numeric-bindings-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=native-extra-ym2612-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=native-extra-ym2203-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";
@@ -282,7 +282,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 }
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=native-extra-ym2612-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=native-extra-ym2203-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     megaCD:selectedMode.id === 'mega-cd',
@@ -1939,7 +1939,7 @@ if (useNativeGenesis) {
 async function showAudioDiagnostics() {
   if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
   if (!audioDiagnosticsLoading) {
-    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=native-extra-ym2612-1').then(({createAudioDiagnostics}) => {
+    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=native-extra-ym2203-1').then(({createAudioDiagnostics}) => {
       audioDiagnostics = createAudioDiagnostics({
         host: document.body,
         getSynth: () => runtime.megaDrive,
@@ -2499,7 +2499,7 @@ function installPlaygroundEventHandlers() {
   const exportCurrentPresets = (format) => {
     const files = {};
     const editor = extraFmEditor?.getEditor() ?? operatorTab;
-    const channels = extraFmEditor?.isExtraSelected() ? 6 : megaDrive.capabilities.fmChannels;
+    const channels = extraFmEditor?.getChannelCount() ?? megaDrive.capabilities.fmChannels;
     for (let channel = 0; channel < channels; channel += 1) {
       const preset = editor?.getChannelPreset?.(channel);
       if (!preset) continue;

@@ -46,7 +46,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 | --- | --- | --- |
 | `segapsg` | 対応済み | 今後の共通化でも、独立したtone／noise・stereo・clockと回収を維持 |
 | `ym2612` | 対応済み | ymfmのFM 6CH＋DAC register、OPN API、CH3特殊／CSM、timer、clock、音色編集・試奏 |
-| `ym2203` | 次の対象・既存コアあり | FM 3CH＋SSG 3CH、noise／envelope、mono出力、prescaler、`scheduleRegisters()`を照合 |
+| `ym2203` | 実装中 | FM 3CH＋SSG 3CH、noise／envelope、mono出力、prescaler、`scheduleRegisters()`を照合 |
 | `ym2608` | 未対応・既存コアあり | FM 6CH＋SSG＋rhythm＋ADPCM-B。rhythm ROM・ADPCM RAM・転送・発音をインスタンスごとに分離 |
 | `ym2610` | 未対応・既存コアあり | FM 4CH＋SSG＋ADPCM-A／B。A/B ROM、範囲・repeat・状態・clockを分離 |
 | `ym2151` | 未対応・複合から分離 | X68000用からOPM 8CHだけを生成。operator、LFO／noise、pan、clockを接続 |

@@ -6,7 +6,7 @@ export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,c
   if(synth.extraDevices.size>=16)throw new RangeError('Native audio supports at most 16 additional sound chips');
   if(synth.nextExtraChipInstance>=Number.MAX_SAFE_INTEGER)throw new RangeError('Native sound chip instance limit reached');
   const instance=++synth.nextExtraChipInstance,session=synth.session,generation=synth.generation;
-  const familyDevices=kind==='segapsg'?synth.extraPsgDevices:synth.extraYm2612Devices;
+  const familyDevices=kind==='segapsg'?synth.extraPsgDevices:kind==='ym2203'?synth.extraYm2203Devices:synth.extraYm2612Devices;
   const nativeKind=kind==='segapsg'?'psg':kind;
   let disposed=false,created=false,connection,device;
   const current=()=>!disposed&&session===synth.session&&generation===synth.generation&&synth.isReady()&&!synth.stopping&&!synth.closing;
@@ -36,7 +36,9 @@ export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,c
   try{
     await synth.nativeRequest(`native_genesis_extra_${nativeKind}_create`,{instance});created=true;if(!current())throw abort();
     await endpoint.initialize();if(!current())throw abort();
-    if(bridge){connection=bridge.attachEndpoint((message,timing)=>endpoint.dispatch(message,timing));device.port=connection.port;device.node={port:connection.controlPort};}
+    if(bridge){connection=bridge.attachEndpoint((message,timing)=>endpoint.dispatch(message,timing),{
+      cancelOwner:(performance,owner)=>endpoint.cancelOwner?.(performance,owner),stop:performance=>endpoint.cancelPerformance?.(performance),
+    });device.port=connection.port;device.node={port:connection.controlPort};}
     synth.chipInspector?.notify();return device;
   }catch(error){device.dispose();throw error;}
 }

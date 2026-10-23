@@ -124,6 +124,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         ArrayBuffer.isView(data) ? data.buffer.byteLength : data?.byteLength ?? 0;
       const bytes = messages.reduce((sum,m) => sum + bytesOf(m.data) + bytesOf(m.bytes) + bytesOf(m.command?.data) +
         (m.method==='scheduleWrites'?(m.args?.[0]?.length??0)*24:0) +
+        (m.method==='schedule'?(m.args?.[0]?.length??0)*24:0) +
         (m.method==='loadMemory'?bytesOf(m.args?.[0]):0) +
         (m.method==='memory'?bytesOf(m.args?.[synth.nativeOpnb?1:0]):0) +
         (m.method==='rom'?bytesOf(m.args?.[0]):0) +

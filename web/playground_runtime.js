@@ -282,6 +282,16 @@ export function createPlaygroundRuntime(
   }
   let currentRunToken = 0;
   let currentLoopContext = null;
+  // A shared Promise can release several Main callers in one microtask turn.
+  // Resume this Native endpoint's caller on its own host task so another
+  // coalesced lookup cannot replace its owner before user code continues.
+  const resumeNativeExtraCaller=(loop,operation)=>{
+    const token=currentRunToken;
+    return new Promise((resolve,reject)=>setTimeout(()=>{
+      if(token!==currentRunToken||loop?.stopped){reject(new Error('Run stopped'));return;}
+      currentLoopContext=loop;try{resolve(operation());}catch(error){reject(error);}
+    },0));
+  };
   const keyboardApi = createKeyboardApiGuard(() => currentLoopContext, value => {currentLoopContext=value;});
   const musicalKeyboard = createMusicalKeyboard({getContext:() => currentLoopContext,setContext:value => {currentLoopContext=value;},
     invoke:callback => executeUserCallback(callback),onChange:target => options.onKeyboardTargetChange?.(target),
@@ -396,19 +406,32 @@ export function createPlaygroundRuntime(
   let sharedSectionSynth;
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
   function ownedNativeExtraApi(device,raw) {
-    const owners=new Map();
+    const owners=new Map(),cache=new WeakMap(),mainGroups=new WeakMap();let keyboardGroupOwner,keyboardGroup;
+    function groupFor(owner){
+      if(owner&&typeof owner==='object'){if(!mainGroups.has(owner))mainGroups.set(owner,raw._allocateMainOwner());return mainGroups.get(owner);}
+      if(owner===undefined||owner===null)return undefined;
+      if(keyboardGroupOwner!==owner){keyboardGroupOwner=owner;keyboardGroup=raw._allocateMainOwner();}return keyboardGroup;
+    }
     function registerEvent(port,register,value){
       if(port!==0)return null;
       if(register===0x28){const code=value&7;if((code&3)!==3)return {key:(code&3)+(code&4?3:0),on:!!(value&240)};}
-      if(register===0x2b)return {key:'dac',on:!!(value&128),dacEnabled:!!(value&128)};
-      if(register===0x2a&&raw.dac?.enabled)return {key:'dac',on:true};
+      if(device.chipName==='ym2203'&&register>=8&&register<=10)return {key:3+register-8,on:!!(value&31)};
+      if(device.chipName==='ym2612'&&register===0x2b)return {key:'dac',on:!!(value&128),dacEnabled:!!(value&128)};
+      if(device.chipName==='ym2612'&&register===0x2a&&raw.dac?.enabled)return {key:'dac',on:true};
       if(register===0x27)return {key:'csm',on:(value&0x81)===0x81,modeRegister:value};
       return null;
     }
-    function event(method,args) {
+    function event(method,args,path) {
+      if(path[0]==='ssg'){
+        if(method==='reset')return {ssgOff:true};
+        if(['tone','noise','noteOn','keyOn','off','keyOff','setVolume'].includes(method))return {key:3+args[0],on:['tone','noise','noteOn','keyOn'].includes(method)||method==='setVolume'&&!!(args[1]||args[2])};
+        if(method==='write')return registerEvent(0,...args);
+        return null;
+      }
       if(device.chipName==='segapsg')return nativeVoice('psg',[method],args,raw);
       if(['reset','stopVoices','allNotesOff'].includes(method))return {allOff:true};
       if(['keyOn','noteOn','noteOnRaw','keyOff','noteOff'].includes(method))return {key:args[0],on:['keyOn','noteOn','noteOnRaw'].includes(method)};
+      if(method==='scheduleRegisters')return {key:'schedule',on:true};
       if(method==='setDacEnabled')return {key:'dac',on:args[0],dacEnabled:!!args[0]};
       if(method==='writeDac'&&raw.dac?.enabled)return {key:'dac',on:true};
       if(method==='setChannel3SpecialMode')return registerEvent(0,0x27,args[0]?(raw._modeRegister|0x40):(raw._modeRegister&~0x40));
@@ -417,35 +440,48 @@ export function createPlaygroundRuntime(
       return null;
     }
     device.releaseOwner=owner=>{
+      if(device.chipName==='ym2203'){const group=mainGroups.get(owner);if(group!==undefined)raw._cancelMainOwner(group);return;}
       const otherSource=key=>owners.has(key)&&owners.get(key)!==owner;
       for(const [key,held]of owners)if(held===owner){
         owners.delete(key);
         if(key==='dac')raw.setDacEnabled(false);
         else if(key==='csm')raw._cancelCsm();
+        else if(key==='schedule')raw._cancelSchedule(raw._getScheduleToken());
         // Normal FM can share CH3/CH6 with another loop's implicit source.
         // Release its ordinary key while retaining that other source gate.
         else if(key===2&&otherSource('csm')||key===5&&otherSource('dac'))raw.keyOff(key);
         else if(raw._forceKeyOff)raw._forceKeyOff(key);else raw.keyOff(key);
       }
     };
-    return new Proxy(Object.create(null),{get(_target,key){
-      const value=Reflect.get(raw,key,raw);if(typeof value!=='function')return value;
-      if(key==='dispose'||typeof key==='string'&&key.startsWith('_'))return value.bind(raw);
-      return (...args)=>{
-        const loop=currentLoopContext,change=event(key,args);if(loop?.stopped)return;
-        if(change&&!change.allOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
-        const result=value.apply(raw,args);
-        if(change?.allOff)owners.clear();else if(change){
-          if(change.on)owners.set(change.key,voiceOwner(loop));else owners.delete(change.key);
-          // Keep the two control gates shared by raw and high-level calls in
-          // the authoring shadow, including later edits from the Operators UI.
-          if(change.dacEnabled!==undefined&&raw.dac)raw.dac.enabled=change.dacEnabled;
-          if(change.modeRegister!==undefined)raw._modeRegister=change.modeRegister;
-        }
-        return result;
-      };
-    },set:(_target,key,value)=>Reflect.set(raw,key,value,raw),has:(_target,key)=>key in raw,
-      ownKeys:()=>Reflect.ownKeys(raw),getOwnPropertyDescriptor:(_target,key)=>{const descriptor=Reflect.getOwnPropertyDescriptor(raw,key);return descriptor?{...descriptor,configurable:true}:undefined;}});
+    function wrap(object,path=[]){
+      if(cache.has(object))return cache.get(object);
+      const proxy=new Proxy(Object.create(null),{get(_target,key){
+        const value=Reflect.get(object,key,object);if(typeof value!=='function')return key==='ssg'&&value?wrap(value,[...path,key]):value;
+        if(key==='dispose'||typeof key==='string'&&key.startsWith('_'))return value.bind(object);
+        return (...args)=>{
+          const loop=currentLoopContext,change=event(key,args,path);if(loop?.stopped)return;
+          if(device.chipName!=='ym2203'&&change&&!change.allOff&&!change.ssgOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
+          const result=device.chipName==='ym2203'?raw._withMainOwner(groupFor(voiceOwner(loop)),()=>value.apply(object,args)):value.apply(object,args);
+          if(device.chipName==='ym2203'){
+            if(change?.modeRegister!==undefined)raw._modeRegister=change.modeRegister;
+            if(result?.then)return result.then(value=>resumeNativeExtraCaller(loop,()=>value),error=>resumeNativeExtraCaller(loop,()=>{throw error;}));
+            return result;
+          }
+          if(change?.allOff)owners.clear();
+          else if(change?.ssgOff){for(let ch=3;ch<6;ch++)owners.delete(ch);}
+          else if(change){
+            if(change.on)owners.set(change.key,voiceOwner(loop));else owners.delete(change.key);
+            // Raw and high-level gate edits share one authoring shadow.
+            if(change.dacEnabled!==undefined&&raw.dac)raw.dac.enabled=change.dacEnabled;
+            if(change.modeRegister!==undefined)raw._modeRegister=change.modeRegister;
+          }
+          return result;
+        };
+      },set:(_target,key,value)=>Reflect.set(object,key,value,object),has:(_target,key)=>key in object,
+        ownKeys:()=>Reflect.ownKeys(object),getOwnPropertyDescriptor:(_target,key)=>{const descriptor=Reflect.getOwnPropertyDescriptor(object,key);return descriptor?{...descriptor,configurable:true}:undefined;}});
+      cache.set(object,proxy);return proxy;
+    }
+    return wrap(raw);
   }
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
@@ -638,7 +674,7 @@ export function createPlaygroundRuntime(
       if(name==='nes' && capabilities.chip==='nes')throw new Error(options.clock!==undefined&&options.clock!==CHIP_CLOCKS.nes
         ? 'This NES file uses a different base clock or region. Select Web Audio to preserve its APU timing.'
         : 'NES + FDS is built into this mode. Use await useSoundChip("nes") to access it. Additional chip instances require Web Audio.');
-      throw new Error('Only additional Sega PSG and YM2612 chips are supported by the experimental Native backend. Select Web Audio for other chip types.');
+      throw new Error('Only additional Sega PSG, YM2612 and YM2203 chips are supported by the experimental Native backend. Select Web Audio for other chip types.');
     }
     if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
     if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
@@ -658,7 +694,7 @@ export function createPlaygroundRuntime(
     pendingPcmIds.add(mixerId);
     let device;
     try {device = nativeExtra
-      ? await (name==='ym2612'?megaDrive.createExtraYm2612({id:mixerId,bridge:nativeWorkerBridge}):megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge}))
+      ? await (name==='ym2203'?megaDrive.createExtraYm2203({id:mixerId,bridge:nativeWorkerBridge}):name==='ym2612'?megaDrive.createExtraYm2612({id:mixerId,bridge:nativeWorkerBridge}):megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge}))
       : await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
     catch (error) {pendingPcmIds.delete(mixerId); reservation?.release(); throw error;}
     if(token !== currentRunToken){pendingPcmIds.delete(mixerId);reservation?.release();device.dispose();throw new Error('Run stopped');}
@@ -2177,6 +2213,7 @@ export function createPlaygroundRuntime(
         evaluationState.musicalBinding=keyboardBinding(name,handlers);
       }},
       useSoundChip: async (name, options) => {
+        const ownsMainScope=capabilities.backend==='native-genesis'&&name==='ym2203'&&capabilities.chip!=='ym2203',callerLoop=currentLoopContext;
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
         if (capabilities.backend === 'native-genesis' && capabilities.chip === 'ym2610b' && name === 'ym2610b') name = 'ym2610';
@@ -2189,13 +2226,22 @@ export function createPlaygroundRuntime(
           if (chipName === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') return fm;
           if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && capabilities.chip === chipName) return fm;
           if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
+          if(ownsMainScope){
+            // The cached source belongs to the Run, while each caller keeps
+            // its own note owner after the shared creation promise resolves.
+            const previous=currentLoopContext;currentLoopContext=null;
+            try{return pg.createSoundChip(chipName,{id:`${chipName}:shared`});}finally{currentLoopContext=previous;}
+          }
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
         }, {evictOnDispose: !(name === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') && !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && capabilities.chip === name)});
         check();
+        if(ownsMainScope)await resumeNativeExtraCaller(callerLoop,()=>{});
         return chip;
       },
       createSoundChip: async (name, options = {}) => {
+        const ownsMainScope=capabilities.backend==='native-genesis'&&name==='ym2203',callerLoop=currentLoopContext;
         const device=await openPcm(name,runToken,options);
+        if(ownsMainScope){if(callerLoop?.stopped){device.dispose();throw new Error('Run stopped');}currentLoopContext=callerLoop;}
         const client=device.client ?? (name === 'spc' ? createSpcClient(device.port, device, {
           getOwner:()=>spcOwner(currentLoopContext,currentRunToken), captureContext:()=>currentLoopContext,
           restoreContext:loop=>{currentLoopContext=loop;},
@@ -2208,7 +2254,9 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        return keyboardApi(device.native?ownedNativeExtraApi(device,client):client);
+        const api=keyboardApi(device.native?ownedNativeExtraApi(device,client):client);
+        if(ownsMainScope)return resumeNativeExtraCaller(callerLoop,()=>api).catch(error=>{device.dispose();throw error;});
+        return api;
       },
       midi,
       ...nativeApis,
