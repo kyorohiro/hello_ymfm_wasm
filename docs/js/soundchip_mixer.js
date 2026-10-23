@@ -101,8 +101,8 @@ function parseState(value) {
 const policyOrder = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
 // Observers must never interrupt output registration or cleanup.
-function dispatchMixerListener(listener, value) {
-  try {listener(value);}
+function dispatchMixerListener(listener, value, change = undefined) {
+  try {listener(value, change);}
   catch (error) {
     if (typeof globalThis.reportError === 'function') globalThis.reportError(error);
     else console.error('SoundChipMixer observer failed:', error);
@@ -161,9 +161,12 @@ export class SoundChipMixer {
     parseState(state);
     return state;
   }
-  /** Replace project policy without replacing connected entry objects or routes. */
-  restoreState(value) {
+  /** Replace project policy without replacing connected entry objects or routes.
+   * Optional kind defaults are validated with the project before one output update. */
+  restoreState(value, defaults = undefined) {
     const next = parseState(value);
+    const common = defaults === undefined ? undefined : parseDefaults(defaults);
+    if (common !== undefined) this.kindDefaults = common;
     this.deferredState.clear();
     for (const [id, entry] of this.entries) {
       if (!entry.apply) {this.entries.delete(id); continue;}
@@ -228,13 +231,15 @@ export class SoundChipMixer {
       effectiveMuted: entry.settings.muted || (hasSolo && !entry.settings.solo)});
   }
   /** Observe source lifetimes and settings. No audio processing is enabled.
-   * @param {(entries: ReturnType<SoundChipMixer['list']>) => void} listener */
+   * Source registration and release identify lifecycle-only notifications so
+   * persistence observers can distinguish them from authored settings changes.
+   * @param {(entries: ReturnType<SoundChipMixer['list']>, change?: {sourceLifecycle: boolean}) => void} listener */
   subscribe(listener) {
     if (typeof listener !== 'function') throw new TypeError('Mixer listener must be a function');
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-  notify() { for (const listener of this.listeners) dispatchMixerListener(listener, this.list()); }
+  notify(change = undefined) { for (const listener of this.listeners) dispatchMixerListener(listener, this.list(), change); }
   /** Opt into post-trim, pre-FX/master stereo peaks. The last unsubscribe stops measurement.
    * @param {(entries: ChipMixMeter[]) => void} listener */
   subscribeMeters(listener) {
@@ -284,7 +289,7 @@ export class SoundChipMixer {
     this.entries.set(id, entry);
     try { this.applyAll(); meter?.setMetering(this.meterListeners.size > 0); }
     catch (error) {this.entries.delete(id); if (previousEntry) this.entries.set(id, previousEntry); this.applyAll(); throw error;}
-    this.retained.delete(id); this.notify();
+    this.retained.delete(id); this.notify({sourceLifecycle:true});
     let released = false;
     return () => {
       if (released || this.entries.get(id) !== entry) return; released = true;
@@ -294,7 +299,7 @@ export class SoundChipMixer {
           overrides:{...entry.overrides}, apply:null};
         saved.settings = this.settingsFor(saved); this.retained.set(id, saved);
       }
-      this.applyAll(); this.notify();
+      this.applyAll(); this.notify({sourceLifecycle:true});
     };
   }
   /** Connect one stereo AudioNode before FX/master. Release disconnects this route only.

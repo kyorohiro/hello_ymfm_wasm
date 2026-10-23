@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=mixer-state-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=mixer-presets-3';
 /** Browser setup shared by Playground and MegaSynth. PCM generation stays in the Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context

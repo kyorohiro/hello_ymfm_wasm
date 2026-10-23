@@ -588,6 +588,7 @@ perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' \
 perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\.\./synth/#./synth/#g; s#\.\./generated/#./generated/#g' \
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
+  "${STAGE_DIR}/playground_mixer_state.js" \
   "${STAGE_DIR}/playground_audio_input.js" \
   "${STAGE_DIR}/playground_audio_diagnostics.js" \
   "${STAGE_DIR}/playground_sample_editor_worker.js" \

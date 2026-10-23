@@ -1,5 +1,5 @@
 import {decodeAudioBuffer,normalizeLocalMediaUrl} from './audio_decode.js';
-import {SoundChipMixer} from './soundchip_mixer.js?v=mixer-state-1';
+import {SoundChipMixer} from './soundchip_mixer.js?v=mixer-presets-3';
 /**
  * @file tetorica_audio_runtime.js
  * 実行環境: Browser（音声処理時）

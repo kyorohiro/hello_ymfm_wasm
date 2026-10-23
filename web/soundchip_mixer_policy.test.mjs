@@ -4,6 +4,77 @@ import {SoundChipMixer} from './soundchip_mixer.js';
 const defaults = kinds => ({version:1,kinds});
 const state = entries => ({version:1,entries});
 
+test('source lifecycle notifications distinguish kind enrichment from authored settings and preserve existing subscriptions',()=>{
+  const mixer=new SoundChipMixer();
+  mixer.restoreState(state([{id:'lead',settings:{volume:.4}}]));
+  const notifications=[],legacyLists=[];
+  const stopChanges=mixer.subscribe((entries,change)=>notifications.push({entries,change}));
+  const stopLegacy=mixer.subscribe(entries=>legacyLists.push(entries));
+  const release=mixer.register('lead','ym2612',()=>{});
+  assert.equal(mixer.exportState().entries[0].name,'ym2612','connecting can enrich persisted kind metadata without an edit');
+  assert.deepEqual(notifications.at(-1).change,{sourceLifecycle:true});
+  assert.equal(notifications.at(-1).entries[0].connected,true);
+  mixer.set('lead',{pan:.3});
+  assert.equal(notifications.at(-1).change,undefined);
+  assert.equal(notifications.at(-1).entries[0].pan,.3);
+  mixer.configureDefaults(defaults([{name:'ym2612',volume:.6}]));
+  assert.equal(notifications.at(-1).change,undefined);
+  mixer.reset('lead');
+  assert.equal(notifications.at(-1).change,undefined);
+  mixer.restoreState(state([{id:'lead',name:'ym2612',settings:{muted:true}}]));
+  assert.equal(notifications.at(-1).change,undefined);
+  release();
+  assert.deepEqual(notifications.at(-1),{entries:[],change:{sourceLifecycle:true}});
+  assert.deepEqual(legacyLists,notifications.map(({entries})=>entries),'one-argument observers receive the same lists');
+  const count=notifications.length;
+  release();
+  assert.equal(notifications.length,count,'repeated release does not notify again');
+  stopChanges();stopLegacy();
+  const disconnect=mixer.register('lead','ym2612',()=>{});
+  mixer.set('lead',{pan:-.5});disconnect();
+  assert.equal(notifications.length,count);assert.equal(legacyLists.length,count);
+});
+
+test('preset restoration applies kind defaults and project entries together in one live output update',()=>{
+  const mixer=new SoundChipMixer(),applied=[];
+  mixer.configureDefaults(defaults([{name:'ym2612',volume:.2,pan:.1}]));
+  const release=mixer.register('lead','ym2612',settings=>applied.push(settings));
+  mixer.set('lead',{volume:.4,solo:true});
+  const original=mixer.entries.get('lead');
+  applied.length=0;let notifications=0;mixer.subscribe(()=>notifications++);
+  const common=defaults([{name:'ym2612',volume:.7,pan:.25}]);
+  const project=state([{id:'lead',name:'ym2612',settings:{pan:-.6,muted:true}}]);
+  mixer.restoreState(project,common);
+  assert.equal(mixer.entries.get('lead'),original);
+  assert.equal(applied.length,1);assert.equal(notifications,1);
+  assert.deepEqual(applied[0],{volume:.7,pan:-.6,muted:true,solo:false,effectiveMuted:true});
+  assert.deepEqual(mixer.exportDefaults(),common);assert.deepEqual(mixer.exportState(),project);
+  mixer.restoreState(state([{id:'lead',name:'ym2612',settings:{pan:.1}}]));
+  assert.deepEqual(mixer.get('lead'),{volume:.7,pan:.1,muted:false,solo:false},'one-argument restore keeps the current kind defaults');
+  release();assert.deepEqual(mixer.list(),[],'preset restore must retain the original output cleanup closure');
+});
+
+test('preset restoration validates both policies before changing either policy or notifying live outputs',()=>{
+  const mixer=new SoundChipMixer(),applied=[];
+  mixer.register('lead','ym2612',settings=>applied.push(settings));
+  mixer.restoreState(state([{id:'lead',name:'ym2612',settings:{pan:-.6,muted:true}}]),
+    defaults([{name:'ym2612',volume:.7,pan:.25}]));
+  const original=mixer.entries.get('lead'),beforeState=mixer.exportState(),beforeDefaults=mixer.exportDefaults(),beforeMix=mixer.get('lead');
+  const invalidProject=state([{id:'lead',name:'ym2612',settings:{volume:3}}]);
+  const invalidDefaults=defaults([{name:'ym2612',pan:2}]);
+  applied.length=0;let notifications=0;mixer.subscribe(()=>notifications++);
+  for(const [project,common]of [
+    [invalidProject,defaults([{name:'ym2612',volume:.3}])],
+    [state([]),invalidDefaults],
+    [invalidProject,invalidDefaults],
+  ]){
+    assert.throws(()=>mixer.restoreState(project,common));
+    assert.equal(mixer.entries.get('lead'),original);
+    assert.deepEqual(mixer.exportState(),beforeState);assert.deepEqual(mixer.exportDefaults(),beforeDefaults);
+    assert.deepEqual(mixer.get('lead'),beforeMix);assert.equal(applied.length,0);assert.equal(notifications,0);
+  }
+});
+
 test('common kind policy recomputes outputs beneath explicit project overrides without baking fallbacks', () => {
   const mixer = new SoundChipMixer(), applied = {};
   mixer.configureDefaults(defaults([{name:'gameboy',volume:.4,pan:.1}]));

@@ -2343,7 +2343,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       assert.equal(native.count('native_genesis_start'),0,'Mixer restoration must not start the Native backend');
       await runMixerState({page,native,artifacts,name,ready,nativeRun,source,assertNoLiveAudio});
       assert.deepEqual(errors,[]);await context.close();
-      console.log(name+': PASS Mixer common defaults, project controls, IndexedDB reload, New Cassette, actual ZIP export/import, malformed JSON preservation and recovery; zero AudioContexts/Worklets, Native IPC mocked');return;
+      console.log(name+': PASS immediate Mixer preset selection, Set default, named Save dialog, current autosave, default inheritance, IndexedDB reload, New Cassette, actual ZIP export/import, malformed JSON preservation and recovery; zero AudioContexts/Worklets, Native IPC mocked');return;
     }
     await page.goto(url); await ready(page);
     const allModeIds=await modeIds(page);

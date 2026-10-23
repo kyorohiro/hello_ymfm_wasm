@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=mixer-state-1";
+} from "../js/megasynth.js?v=mixer-presets-3";
 
 const SCALE_NAMES = [
   "major",

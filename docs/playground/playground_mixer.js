@@ -24,16 +24,38 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
   master.append(masterName, masterLabel, masterMeter.host, scriptGain);
   const hint = make('p', 'subtext playground-mixer-hint', 'Chip levels are before shared effects and Master. Solo keeps manual Mute settings.');
   const persistence = make('div', 'playground-mixer-persistence');
-  const persistenceHint = make('p', 'subtext', 'Project settings travel with your Cassette. Set a common Volume/Pan default to reuse it in new projects. Extra chips need a fixed id to keep their individual settings.');
-  const resetDefaults = make('button', 'playground-mixer-toggle', 'Reset common defaults');resetDefaults.type='button';
-  resetDefaults.addEventListener('click',()=>preference(()=>getPersistence().resetDefaults(),'Common defaults reset.'));
-  persistence.append(persistenceHint,resetDefaults);persistence.hidden=!getPersistence();
+  const persistenceHint = make('p', 'subtext', 'Selecting a preset applies it immediately. Adjustments auto-save to mixer/current.json. Set default keeps the current mix for new projects; Save creates a named preset. Extra chips need a fixed id to keep their individual settings.');
+  const presetControls = make('div', 'playground-mixer-presets');
+  const presetLabel = make('label', 'playground-mixer-preset-label');
+  const presetSelect = make('select'); presetSelect.setAttribute('aria-label', 'Mixer preset');
+  presetLabel.append(make('span', '', 'Preset'), presetSelect);
+  const setDefault = make('button', 'playground-mixer-toggle', 'Set default'); setDefault.type = 'button';
+  const savePreset = make('button', 'playground-mixer-toggle', 'Save'); savePreset.type = 'button';
+  presetControls.append(presetLabel, setDefault, savePreset);
+  persistence.append(persistenceHint, presetControls); persistence.hidden = !getPersistence();
+  const saveDialog = make('dialog', 'playground-mixer-save-dialog');
+  saveDialog.setAttribute('aria-label', 'Save mixer preset');
+  const saveForm = make('form');
+  const saveHeading = make('h2', '', 'Save mixer preset');
+  const nameLabel = make('label', 'playground-mixer-save-name');
+  const nameInput = make('input'); nameInput.type = 'text'; nameInput.required = true;
+  nameInput.autocomplete = 'off'; nameInput.setAttribute('aria-label', 'Preset name');
+  const nameField = make('span', 'playground-mixer-save-path');
+  nameField.append(make('span', 'playground-mixer-save-prefix', 'mixer/'), nameInput);
+  nameLabel.append(make('span', '', 'Preset name'), nameField);
+  const saveError = make('p', 'playground-mixer-status'); saveError.setAttribute('role', 'status');
+  const saveActions = make('div', 'playground-mixer-save-actions');
+  const cancelSave = make('button', 'playground-mixer-toggle', 'Cancel'); cancelSave.type = 'button';
+  const confirmSave = make('button', 'playground-mixer-toggle', 'Save'); confirmSave.type = 'submit';
+  saveActions.append(cancelSave, confirmSave);
+  saveForm.append(saveHeading, nameLabel, saveError, saveActions); saveDialog.append(saveForm); doc.body.append(saveDialog);
   const empty = make('p', 'subtext playground-mixer-empty', 'Run a script or play the keyboard to connect sound chips.');
   const strips = make('div', 'playground-mixer-strips');
   const status = make('p', 'subtext playground-mixer-status'); status.setAttribute('role', 'status');
   root.append(master, hint, persistence, empty, strips, status);
   const rows = new Map();
-  let visible = false, disposed = false, mixer = null, releaseChanges = null, releaseMeters = null;
+  let visible = false, disposed = false, mixer = null, releaseChanges = null, releaseMeters = null, releasePresets = null;
+  let persistenceController = null, presetSignature = null, lastSelectedPreset = '';
   let frame = 0, lastDraw = -Infinity, meterAudio = null, meterOutput = null, meterContext = null, meterRelease = null, splitter = null, analysers = [];
   const masterSamples = [new Float32Array(1024), new Float32Array(1024)];
   const peaks = new Map();
@@ -63,12 +85,99 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
   }
 
   function change(id, patch) {
-    try {mixer.set(id, patch); status.textContent = '';delete status.dataset.state;}
+    try {
+      const previous = mixer.get(id);
+      if (Object.entries(patch).every(([key, value]) => previous[key] === value)) return;
+      mixer.set(id, patch);
+      if (persistenceController) {
+        // Show the edited mix immediately, before its debounced first save.
+        // The source preset can then be selected again to discard the edits.
+        if (!presetSelect.querySelector('option[value="/mixer/current.json"]')) {
+          const option = make('option', '', 'mixer/current.json'); option.value = '/mixer/current.json'; presetSelect.append(option);
+        }
+        presetSelect.value = '/mixer/current.json'; lastSelectedPreset = presetSelect.value;
+      }
+      status.textContent = ''; delete status.dataset.state;
+    }
     catch (error) {status.textContent = error.message; onError(error); refresh();}
   }
-  function preference(action,message) {
-    try {action();status.textContent=message;status.dataset.state='saved';}
-    catch(error){status.textContent=error.message;delete status.dataset.state;onError(error);}
+  function presetApplied(path, message) {
+    refreshPresets(); presetSelect.value = path; lastSelectedPreset = path;
+    status.textContent = message; status.dataset.state = 'saved';
+  }
+  presetSelect.addEventListener('change', () => {
+    const previous = lastSelectedPreset, selected = presetSelect.value;
+    lastSelectedPreset = selected;
+    try {
+      persistenceController.selectPreset(selected);
+      presetApplied(selected, 'Mixer preset applied.');
+    } catch (error) {
+      presetSelect.value = previous; lastSelectedPreset = previous;
+      status.textContent = error.message; delete status.dataset.state; onError(error);
+    }
+  });
+  setDefault.addEventListener('click', () => {
+    try {
+      persistenceController.saveDefault();
+      presetApplied('/mixer/default.json', 'Default mixer preset saved.');
+    } catch (error) {status.textContent = error.message; delete status.dataset.state; onError(error);}
+  });
+  savePreset.addEventListener('click', () => {
+    const paths = new Set(persistenceController.listPresets().map(preset => preset.path));
+    let suffix = 1, filename = 'mix.json';
+    while (paths.has('/mixer/' + filename)) filename = `mix-${++suffix}.json`;
+    nameInput.value = filename; saveError.textContent = '';
+    if (!saveDialog.open) saveDialog.showModal();
+    nameInput.focus(); nameInput.setSelectionRange(0, filename.length - '.json'.length);
+  });
+  // Names and dialog navigation must not trigger the audition keyboard. Keep
+  // keyup bubbling so a note held before opening the dialog can still release.
+  saveDialog.addEventListener('keydown', event => event.stopPropagation());
+  saveDialog.addEventListener('close', () => {if (!disposed) savePreset.focus();});
+  cancelSave.addEventListener('click', () => saveDialog.close());
+  saveForm.addEventListener('submit', event => {
+    event.preventDefault();
+    try {
+      const path = persistenceController.savePreset(nameInput.value);
+      presetApplied(path, 'Mixer preset saved.'); saveDialog.close();
+    } catch (error) {saveError.textContent = error.message; onError(error);}
+  });
+  function refreshPresets(change) {
+    if (disposed || !persistenceController) return;
+    try {
+      const presets = persistenceController.listPresets();
+      // A live edit can precede the first debounced current.json write.
+      if ((change?.source || lastSelectedPreset) === '/mixer/current.json' &&
+          !presets.some(preset => preset.path === '/mixer/current.json')) {
+        presets.push({path:'/mixer/current.json',label:'mixer/current.json'});
+      }
+      const signature = JSON.stringify(presets);
+      if (signature === presetSignature) {
+        if (change?.source && presets.some(preset => preset.path === change.source)) {
+          presetSelect.value = change.source; lastSelectedPreset = change.source;
+        }
+        return;
+      }
+      const selected = change?.source || presetSelect.value || lastSelectedPreset;
+      presetSelect.replaceChildren(...presets.map(preset => {
+        const option = make('option', '', preset.label); option.value = preset.path; return option;
+      }));
+      presetSelect.value = presets.some(preset => preset.path === selected) ? selected
+        : ['/mixer/current.json', '/mixer/default.json', '/sys/mixer/default.json'].find(path => presets.some(preset => preset.path === path)) ?? presets[0]?.path ?? '';
+      lastSelectedPreset = presetSelect.value;
+      presetSelect.disabled = presets.length === 0;
+      presetSignature = signature;
+    } catch (error) {status.textContent = error.message; delete status.dataset.state; onError(error);}
+  }
+  function syncPersistence() {
+    const next = getPersistence();
+    if (persistenceController === next) return;
+    releasePresets?.(); releasePresets = null;
+    persistenceController = next; presetSignature = null; lastSelectedPreset = ''; persistence.hidden = !next;
+    if (next) {
+      refreshPresets();
+      releasePresets = next.subscribePresets(refreshPresets);
+    }
   }
   function createRow(entry) {
     const host = make('section', 'playground-mixer-strip'); host.dataset.chipId = entry.id;
@@ -97,13 +206,6 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
     const pan = control('pan', 'Pan', -100, 100, value => value === 0 ? 'Center' : `${value < 0 ? 'L' : 'R'} ${Math.abs(value)}`);
     const meter = createMeter(entry.id), connection = make('span', 'subtext');
     host.append(heading, volume.row, pan.row, meter.host, connection);
-    const defaults = make('button','playground-mixer-toggle','Set common default');defaults.type='button';
-    defaults.title='Use this Volume and Pan for this chip type in new projects.';
-    const reset = make('button','playground-mixer-toggle','Use defaults');reset.type='button';
-    reset.title="Remove this project's settings for this ID.";
-    defaults.addEventListener('click',()=>preference(()=>getPersistence().saveDefault(entry.id),'Common Volume/Pan default saved.'));
-    reset.addEventListener('click',()=>preference(()=>getPersistence().resetProject(entry.id),'Project settings cleared for '+entry.id+'.'));
-    const actions=make('div','playground-mixer-actions');actions.append(defaults,reset);actions.hidden=!getPersistence();host.append(actions);
     return {host, meter, update(next) {
       current = next;
       const name = names[next.name] ?? next.name;
@@ -113,8 +215,6 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
       host.classList.toggle('is-output-muted', Boolean(next.effectiveMuted ?? next.muted));
       volume.update(next.volume, next.id); pan.update(next.pan, next.id);
       connection.textContent = !next.connected ? 'Not connected' : next.effectiveMuted && !next.muted ? 'Suppressed by Solo' : '';
-      defaults.disabled=!next.connected;
-      defaults.setAttribute('aria-label',`${next.id} set common default`);reset.setAttribute('aria-label',`${next.id} use defaults`);
     }};
   }
 
@@ -182,6 +282,7 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
   }
   function refresh() {
     if (disposed) return;
+    syncPersistence();
     const nextMixer = getMixer();
     if (mixer !== nextMixer) {
       releaseChanges?.(); releaseChanges = null; stopObservation(); mixer = nextMixer;
@@ -200,7 +301,7 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
   }
   function visibilityChanged() {if (doc.hidden) stopObservation(); else if (visible) {refresh(); startObservation();}}
   doc.addEventListener('visibilitychange', visibilityChanged);
-  syncOutputVolume();
+  syncOutputVolume(); syncPersistence();
   return {
     refresh, syncOutputVolume,
     setVisible(value) {
@@ -208,7 +309,8 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
       if (visible) refresh(); else stopObservation();
     },
     dispose() {
-      disposed = true; visible = false; stopObservation(); releaseChanges?.();
+      disposed = true; visible = false; stopObservation(); releaseChanges?.(); releasePresets?.();
+      saveDialog.remove();
       doc.removeEventListener('visibilitychange', visibilityChanged);
     },
   };

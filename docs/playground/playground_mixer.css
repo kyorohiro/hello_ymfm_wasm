@@ -20,7 +20,16 @@
 .playground-mixer-strip.is-output-muted .playground-mixer-meter { opacity: .45; }
 .playground-mixer-status { color: #9e3b22; }
 .playground-mixer-status[data-state="saved"] { color: var(--ink); }
-.playground-mixer-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .playground-mixer-persistence { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .playground-mixer-persistence > p { flex: 1 1 280px; margin: 4px 0; }
-.playground-mixer-persistence[hidden], .playground-mixer-actions[hidden] { display: none; }
+.playground-mixer-presets { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 100%; }
+.playground-mixer-preset-label { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: .75rem; }
+.playground-mixer-preset-label select { min-width: 0; max-width: min(360px, 55vw); font-size: .75rem; }
+.playground-mixer-persistence[hidden] { display: none; }
+.playground-mixer-save-dialog { width: min(360px, calc(100vw - 40px)); }
+.playground-mixer-save-dialog h2 { margin-top: 0; font-size: 1.1rem; }
+.playground-mixer-save-name { display: grid; gap: 7px; }
+.playground-mixer-save-name input { box-sizing: border-box; min-width: 0; width: 100%; }
+.playground-mixer-save-path { display: flex; align-items: center; gap: 4px; }
+.playground-mixer-save-prefix { white-space: nowrap; }
+.playground-mixer-save-actions { display: flex; justify-content: flex-end; gap: 8px; }
