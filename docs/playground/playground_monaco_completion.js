@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=native-extra-huc6280-1";
+} from "../js/megasynth.js?v=native-extra-dx7-1";
 
 const SCALE_NAMES = [
   "major",

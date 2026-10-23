@@ -21,7 +21,7 @@ function copySysex(input) {
  * @param {MessagePort} port
  * @param {{sampleRate?:number,internalSampleRate?:number,voices?:Array<{index:number,name:string}>,selectedVoice?:number,stateRevision?:number}} [initial]
  */
-export function createDx7Client(port, initial = {}) {
+export function createDx7Client(port, initial = {}, lifecycle = {}) {
   let voices = (initial.voices ?? []).map(voice => ({...voice}));
   let selectedVoice = initial.selectedVoice ?? -1;
   let selectionRevision = 0;
@@ -37,6 +37,7 @@ export function createDx7Client(port, initial = {}) {
   function assertUsable() {
     if (disposed) throw new Error('DX7 instance is disposed.');
     if (failed) throw failed;
+    if(initial.native&&lifecycle.isStopped?.(lifecycle.captureContext?.()))throw new Error('DX7 disposed or Run stopped');
   }
   function finish(error) {
     for (const request of pending.values()) {
@@ -204,5 +205,15 @@ export function createDx7Client(port, initial = {}) {
       }
     },
   };
+  if(initial.native){
+    const check=context=>{if(disposed||lifecycle.isStopped?.(context))throw new Error('DX7 disposed or Run stopped');};
+    const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
+    // Native RPC preparation resolves independently of the Worker musical
+    // continuation. Resume its original loop before the next note is authored.
+    for(const method of ['getState','loadSysex','setPreset','setOperator','setOperators','setFeedback','getPreset']){
+      const original=client[method].bind(client);
+      client[method]=(...args)=>{const context=lifecycle.captureContext?.();check(context);return original(...args).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
+    }
+  }
   return client;
 }

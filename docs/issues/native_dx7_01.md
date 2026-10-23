@@ -1,5 +1,7 @@
 # DX7のNative音声対応
 
+2026-10-24追記：独立した追加生成は[Native追加DX7](native_dynamic_dx7_01.md)で対応。以下は2026-10-21時点の主音源対応の記録。
+
 2026-10-21。TauriのNative音声経路にMSFA DX7を加える。
 Web Audioを既定のままにし、DX7 modeでMenu → Audio engine… → Native (experimental)を選ぶ。
 Native中に選べるmodeはGenesis／Mega CD／DX7。他のmodeではWeb Audioを使う。

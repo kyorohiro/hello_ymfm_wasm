@@ -1,5 +1,5 @@
 import {attachChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {Oki6258Synth, OKIM6258_CLOCK,oki6258Rate,encodeOki6258,summarizeOki6258} from './okim6258synth.js?v=native-extra-huc6280-1';
+import {Oki6258Synth, OKIM6258_CLOCK,oki6258Rate,encodeOki6258,summarizeOki6258} from './okim6258synth.js?v=native-extra-dx7-1';
 import {readSamplePCM} from './adpcm_b_sample.js';
 
 /** Main/Worker API; samples and playback commands share one ordered port. */

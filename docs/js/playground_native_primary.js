@@ -1,15 +1,15 @@
-import {createAy8910Client} from './playground_ay8910.js?v=native-extra-huc6280-1';
+import {createAy8910Client} from './playground_ay8910.js?v=native-extra-dx7-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
-import {createNesClient} from './playground_nes.js?v=native-extra-huc6280-1';
+import {createNesClient} from './playground_nes.js?v=native-extra-dx7-1';
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
-import {createYm2151Client} from './playground_ym2151.js?v=native-extra-huc6280-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=native-extra-huc6280-1';
+import {createYm2151Client} from './playground_ym2151.js?v=native-extra-dx7-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=native-extra-dx7-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
-import {createOki6258Client} from './playground_okim6258.js?v=native-extra-huc6280-1';
-import {createYm2413Client} from './playground_ym2413.js?v=native-extra-huc6280-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=native-extra-huc6280-1';
-import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
-import {createGameboyClient} from './playground_gameboy.js?v=native-extra-huc6280-1';
+import {createOki6258Client} from './playground_okim6258.js?v=native-extra-dx7-1';
+import {createYm2413Client} from './playground_ym2413.js?v=native-extra-dx7-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=native-extra-dx7-1';
+import {createDx7Client} from './playground_dx7.js?v=native-extra-dx7-1';
+import {createGameboyClient} from './playground_gameboy.js?v=native-extra-dx7-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {
@@ -64,7 +64,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
     : name === 'segapsg' ? createSegaPsgClient(port, options)
     : name === 'huc6280' ? createHuc6280Client(port, options,lifecycle)
     : name === 'okim6258' ? createOki6258Client(port, options,lifecycle)
-    : name === 'dx7' ? createDx7Client(port, {...options,...options.state})
+    : name === 'dx7' ? createDx7Client(port, {...options,...options.state},lifecycle)
     : null;
   if(name==='pwm'){client._stopVoices=()=>client.stopVoices();if(options.clock!==undefined)client._adoptClock(options.clock);}
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
