@@ -113,7 +113,7 @@ export const PWM_METHODS = new Set(['write', 'writeRegister', 'read', 'reset', '
 
 /** Main or logic Worker client; PCM and scheduling stay in the AudioWorklet. */
 /** @param {MessagePort} port @param {{native?:boolean}} [options] @returns {AsyncPWMAPI & {dispose(): void,stopVoices?:()=>Promise<void>}} */
-export function createPWM32XClient(port,options={}) {
+export function createPWM32XClient(port,options={},lifecycle={}) {
   let id = 0, disposed = false;
   const pending = new Map();
   port.onmessage = ({data}) => {
@@ -138,5 +138,16 @@ export function createPWM32XClient(port,options={}) {
     for (const request of pending.values()) request.reject(new Error('PWM client disposed'));
     pending.clear();
   };
-  return attachChipClock(client, port, CHIP_CLOCKS.pwm);
+  attachChipClock(client, port, CHIP_CLOCKS.pwm);
+  if(options.native){
+    const check=context=>{if(disposed||lifecycle.isStopped?.(context))throw new Error('PWM disposed or Run stopped');};
+    const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
+    // A Native admission reply can arrive while another Worker loop is active.
+    // Restore its author before that loop schedules its next FIFO reservation.
+    for(const method of [...PWM_METHODS,'stopVoices']){
+      const original=client[method].bind(client);
+      client[method]=(...args)=>{const context=lifecycle.captureContext?.();check(context);return original(...args).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
+    }
+  }
+  return client;
 }

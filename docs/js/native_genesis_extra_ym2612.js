@@ -1,9 +1,9 @@
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=native-extra-dx7-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=native-extra-pwm-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-extra-dx7-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-dx7-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-extra-pwm-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-pwm-1';
 
 export const EXTRA_YM2612_CLOCK_HELD_ERROR='Release the manually held additional YM2612 voices before changing the clock';
 const CLOCK=CHIP_CLOCKS.ym2612;

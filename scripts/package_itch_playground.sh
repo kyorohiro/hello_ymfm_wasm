@@ -307,6 +307,7 @@ native_genesis_extra_gameboy.js
 native_genesis_extra_nes.js
 native_genesis_extra_huc6280.js
 native_genesis_extra_dx7.js
+native_genesis_extra_pwm.js
 opn_ssg_retained.js
 native_genesis_extra_chip.js
 native_genesis_game_gear.js

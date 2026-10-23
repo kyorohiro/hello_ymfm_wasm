@@ -5,7 +5,7 @@
  * RuntimeSynth 系の実再生は OPNRuntimeSynth 経由で AudioContext / AudioWorkletNode / fetch を使う。
  */
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js?v=audio-stability-2";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=native-extra-dx7-1";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=native-extra-pwm-1";
 
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
 import { YM2610B_CLOCK } from "./ym2610b.js?v=audio-stability-2";
@@ -213,7 +213,7 @@ export class YM2610BRuntimeSynth extends OPNRuntimeSynth {
   constructor(options = {}) {
     super(options, {
       chip: "ym2610b", chipName: "YM2610B", fmChannels: 6, portCount: 2,
-      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js?v=native-extra-dx7-1",
+      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js?v=native-extra-pwm-1",
       wasmUrl: "../generated/ym2610b_wasm.wasm", FMSynth: YM2610BSynth,
     });
   }

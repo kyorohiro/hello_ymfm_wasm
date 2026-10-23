@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-dx7-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-pwm-1';
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
