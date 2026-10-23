@@ -5,7 +5,7 @@
 /** @param {string} kind
  * @param {{fds?:boolean,fdsEnabled?:boolean,model?:string,registers?:ArrayLike<number>,rhythmEnabled?:boolean}} [options]
  * @returns {PlaygroundKeyboardChannel[]} */
-export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,rhythmEnabled}={}) {
+export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,rhythmEnabled,rhythmVoices=false}={}) {
   const numbered=(prefix,count,label)=>Array.from({length:count},(_,index)=>({id:`${prefix}${index}`,label:`${label} ${index+1}`}));
   const native=labels=>labels.map((label,index)=>({id:String(index),label}));
   if(kind==='ym2612')return numbered('fm:',6,'FM');
@@ -25,8 +25,8 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
   if(kind==='ym2151')return numbered('',8,'FM');
   if(kind==='ym2413'){const rhythm=rhythmEnabled??!!((registers?.[0x0e]??0)&32);return [...numbered('',rhythm?6:9,'FM'),...(rhythm?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[])];}
   if(['ym3526','ym3812','y8950','ymf262'].includes(kind)){
-    const pairs=[0,1,2,9,10,11],mask=registers?.[0x104]??0,rhythm=!!((registers?.[0xbd]??0)&32);
-    return numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);});
+    const pairs=[0,1,2,9,10,11],mask=registers?.[0x104]??0,rhythm=rhythmEnabled??!!((registers?.[0xbd]??0)&32);
+    return [...numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);}),...(rhythm&&rhythmVoices?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[])];
   }
   if(kind==='huc6280')return numbered('',6,'Wave');
   if(kind==='rf5c164')return numbered('',8,'PCM');
@@ -42,7 +42,7 @@ export function keyboardChannelHint(kind,channel='0') {
   if(kind==='ay8910')return 'Uses this channel’s tone/noise mixer and volume or shared envelope. Noise and envelope settings are shared by all three channels.';
   if(kind==='pwm')return 'PWM plays a timed sample stream and has no independent pitched Keyboard channel.';
   if(!keyboardChannels(kind).length)return 'This chip has no Keyboard voice adapter. Use keyboard.bind() to connect a custom instrument.';
-  if(kind==='ym2413'&&channel.startsWith('rhythm:'))return 'Triggers the configured hardware drum; MIDI pitch does not retune its shared physical channel.';
+  if(['ym2413','ym3526','ym3812','y8950','ymf262'].includes(kind)&&channel.startsWith('rhythm:'))return 'Triggers the configured hardware drum; MIDI pitch does not retune its shared physical channel.';
   if(kind==='rf5c164')return 'Uses this channel’s loaded PCM and volume/pan. C4 plays its configured sample speed; other keys transpose the playback rate.';
   if(kind==='okim6258'||/^rhythm:|^adpcm-a:|^adpcm-b:/.test(channel)||kind==='nes'&&channel==='4')return 'Triggers the configured sample at its current playback rate; MIDI pitch does not retune this sample voice.';
   if(kind==='segapsg'&&channel==='3'||kind==='gameboy'&&channel==='3'||kind==='nes'&&channel==='3')return 'Triggers the current noise settings; MIDI pitch does not retune the noise generator.';

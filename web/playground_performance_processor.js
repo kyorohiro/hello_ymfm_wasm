@@ -36,6 +36,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     if(reg===0x0e)return {events:Array.from({length:5},(_,index)=>({key:`rhythm:${index}`,on:!!(v&32)&&!!(v&(16>>index)),previous:!!(opllRhythm&32)&&!!(opllRhythm&(16>>index))})).filter(event=>event.on!==event.previous).map(({key,on})=>({key,on}))};
   }
   if(['ym3526','ym3812','y8950','ymf262'].includes(chip)){
+    if(['forceRhythmOff','auditionRhythmOn'].includes(method))return [6,7,8,8,7][args[0]];
     if(method==='forceKeyOff')return {key:args[0],on:false};
     if(method==='forceRhythmOff')return {key:`rhythm:${args[0]}`,on:false};
     const reg=type==='write'?register:method==='writeRegister'?args[0]:null,v=type==='write'?value:args[1],bank=type==='write'?registerPort:args[2]??0;
@@ -122,6 +123,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
     }
   }
   if(['ym3526','ym3812','y8950','ymf262'].includes(chip)){
+    if(['forceRhythmOff','auditionRhythmOn'].includes(method))return [6,7,8,8,7][args[0]];
     if(['forceKeyOff','auditionKeyOn'].includes(method))return args[0];
     if(['allNotesOff','clock'].includes(method)||type==='chip-clock')return 'all';
     if(method==='writeRegister'){

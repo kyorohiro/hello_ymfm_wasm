@@ -7,7 +7,7 @@
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
 import { YM2203_CLOCK } from "./ym2203.js?v=audio-stability-2";
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js?v=audio-stability-2";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=native-extra-opll-ay-1";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=native-extra-opl-1";
 
 /** Direct transport for YM2203 FM and SSG registers. */
 /** @extends {OPNDirectTransport<import('./ym2203.js?v=audio-stability-2').Ym2203>} */
@@ -62,7 +62,7 @@ export class YM2203RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 3,
       portCount: 1,
       processorName: "ym2203-processor",
-      workletUrl: "./ym2203-worklet.js?v=audio-numeric-bindings-1",
+      workletUrl: "./ym2203-worklet.js?v=native-extra-opl-1",
       wasmUrl: "../generated/ym2203_wasm.wasm",
       FMSynth: YM2203Synth,
     });

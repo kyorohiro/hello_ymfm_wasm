@@ -34,8 +34,8 @@ export class SegaPSG {
    * Initialize SegaPSG and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {import('./soundchip.js?v=native-extra-opll-ay-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
-   * @param {import('./soundchip.js?v=native-extra-opll-ay-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js?v=native-extra-opl-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js?v=native-extra-opl-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {number} [options.clock] Input chip clock in Hz.
    * @param {number} [options.sampleRate=44100] Generated PCM frames per second.
    * @returns {Promise<SegaPSG>} Ready-to-use chip; the caller must dispose it.

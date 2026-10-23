@@ -5,7 +5,7 @@
 /** @param {string} kind
  * @param {{fds?:boolean,fdsEnabled?:boolean,model?:string,registers?:ArrayLike<number>,rhythmEnabled?:boolean}} [options]
  * @returns {PlaygroundKeyboardChannel[]} */
-export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,rhythmEnabled}={}) {
+export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,rhythmEnabled,rhythmVoices=false}={}) {
   const numbered=(prefix,count,label)=>Array.from({length:count},(_,index)=>({id:`${prefix}${index}`,label:`${label} ${index+1}`}));
   const native=labels=>labels.map((label,index)=>({id:String(index),label}));
   if(kind==='ym2612')return numbered('fm:',6,'FM');
@@ -25,8 +25,8 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
   if(kind==='ym2151')return numbered('',8,'FM');
   if(kind==='ym2413'){const rhythm=rhythmEnabled??!!((registers?.[0x0e]??0)&32);return [...numbered('',rhythm?6:9,'FM'),...(rhythm?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[])];}
   if(['ym3526','ym3812','y8950','ymf262'].includes(kind)){
-    const pairs=[0,1,2,9,10,11],mask=registers?.[0x104]??0,rhythm=!!((registers?.[0xbd]??0)&32);
-    return numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);});
+    const pairs=[0,1,2,9,10,11],mask=registers?.[0x104]??0,rhythm=rhythmEnabled??!!((registers?.[0xbd]??0)&32);
+    return [...numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);}),...(rhythm&&rhythmVoices?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[])];
   }
   if(kind==='huc6280')return numbered('',6,'Wave');
   if(kind==='rf5c164')return numbered('',8,'PCM');

@@ -1,4 +1,4 @@
-import {SoundChipMixer} from '../js/soundchip_mixer.js?v=native-extra-opll-ay-1';
+import {SoundChipMixer} from '../js/soundchip_mixer.js?v=native-extra-opl-1';
 
 export const MIXER_STATE_PATH = '/mixer/current.json';
 export const MIXER_DEFAULT_PRESET_PATH = '/mixer/default.json';

@@ -360,7 +360,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     currentLoop: null,
     audioHandles: new Set(),
   };
-  const performanceTransport = createPerformanceSender({leaseUntimed:capabilities.backend==='native-genesis',getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => postMessage({type:'performance-cancel-owner',...metadata})});
+  const performanceTransport = createPerformanceSender({leaseUntimed:capabilities.backend==='native-genesis',getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => {if(capabilities.backend==='native-genesis')for(const client of pcmClients)client._cancelPerformanceOwner?.(metadata.owner);postMessage({type:'performance-cancel-owner',...metadata});}});
   run.performance = performanceTransport;
   const keyboardApi = createKeyboardApiGuard(() => run.currentLoop,value => {run.currentLoop=value;});
   const musicalKeyboard = createMusicalKeyboard({getContext:()=>run.currentLoop,setContext:value=>{run.currentLoop=value;},
@@ -744,7 +744,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return result;
     },
     async useSoundChip(name, options) {
-      const token = run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910'].includes(name)&&!(name==='ym2610'?['ym2610','ym2610b'].includes(capabilities.chip):nativeConnections.some(endpoint=>endpoint.name===name)),caller=run.currentLoop;
+      const token = run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950'].includes(name)&&!(name==='ym2610'?['ym2610','ym2610b'].includes(capabilities.chip):nativeConnections.some(endpoint=>endpoint.name===name)),caller=run.currentLoop;
       const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
       check();
       if (capabilities.backend === 'native-genesis' && capabilities.chip === 'ym2610b' && name === 'ym2610b') name = 'ym2610';
@@ -766,7 +766,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
     async createSoundChip(name, options = {}){
       if(run.stopped)throw new Error('Run stopped');
-      const token=run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910'].includes(name),caller=run.currentLoop;
+      const token=run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950'].includes(name),caller=run.currentLoop;
       if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
       if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
       const response=await request('pcm.create',[name, options],run.currentLoop);

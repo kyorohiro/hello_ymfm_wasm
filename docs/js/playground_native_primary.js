@@ -1,13 +1,13 @@
-import {createAy8910Client} from './playground_ay8910.js?v=native-extra-opll-ay-1';
+import {createAy8910Client} from './playground_ay8910.js?v=native-extra-opl-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
-import {createYm2151Client} from './playground_ym2151.js?v=native-extra-opll-ay-1';
+import {createYm2151Client} from './playground_ym2151.js?v=native-extra-opl-1';
 import {createHuc6280Client} from './playground_huc6280.js?v=audio-numeric-bindings-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
 import {createOki6258Client} from './playground_okim6258.js?v=audio-numeric-bindings-1';
-import {createYm2413Client} from './playground_ym2413.js?v=native-extra-opll-ay-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
+import {createYm2413Client} from './playground_ym2413.js?v=native-extra-opl-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=native-extra-opl-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
 
@@ -56,7 +56,7 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
 }
 
 export function createNativePrimaryClient(name, port, options = {}, lifecycle = {}) {
-  const client = name==='pwm'?createPWM32XClient(port,{native:true}):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name})
+  const client = name==='pwm'?createPWM32XClient(port,{native:true}):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name},lifecycle)
     : name === 'nes' ? createNesClient(port, options)
     : name === 'gameboy' ? createGameboyClient(port)
     : name === 'snes' ? createSnesClient(port, options)

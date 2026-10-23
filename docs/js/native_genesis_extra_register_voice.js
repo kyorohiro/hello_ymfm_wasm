@@ -2,13 +2,13 @@ import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} f
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
-/** Shared lifecycle for OPLL/AY register-authoring clients. The audio thread
+/** Shared lifecycle for OPL/OPLL/AY register-authoring clients. The audio thread
  * owns hardware state; applied readback never rewrites an author's cache. */
-export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialClock,registerCount,voiceCount,createClient,createInspector,logical=Number,physical=Number,voiceKey=Number,validate,adoptInspector,track,cancelAuthor,editChannel}){
+export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialClock,registerCount,voiceCount,createClient,createInspector,logical=Number,physical=Number,voiceKey=Number,validate,adoptInspector,track,cancelAuthor,editChannel,melodicChannels=kind==='ym2413'?9:3,rhythmBase=kind==='ym2413'?9:undefined,layoutRegister=kind==='ym2413'?14:undefined}){
   const context=createNativeVoiceContext(synth,{backend:`extra-${kind}`,statusCommand:`native_genesis_extra_${kind}_status`,label:`additional ${label}`});
   const {capture,current}=context;let clock=initialClock,appliedClock=clock,initialized=false,mainGroup,collection=null,serial=Promise.resolve(),clockSerial=Promise.resolve();
   const leases=new Map(),authoredOwners=new Map(),sentRegisters=new Uint8Array(registerCount),clockRequests=new Set();let layout=false,layoutRevision=0,layoutGeneration=0,layoutPending=false,layoutObserver;
-  function applyLayout(data){if(kind!=='ym2413')return;if(!Number.isSafeInteger(data.layoutRevision)||data.layoutRevision<0||typeof data.layoutPending!=='boolean')throw new Error('Native additional YM2413 returned invalid layout progress');if(data.layoutRevision<layoutRevision)return;layoutRevision=data.layoutRevision;const next=!!(data.registers[14]&32);if(layout!==next){layout=next;synth.notifyLayout?.({rhythmEnabled:layout});}}
+  function applyLayout(data){if(layoutRegister===undefined)return;if(!Number.isSafeInteger(data.layoutRevision)||data.layoutRevision<0||typeof data.layoutPending!=='boolean')throw new Error(`Native additional ${label} returned invalid layout progress`);if(data.layoutRevision<layoutRevision)return;layoutRevision=data.layoutRevision;const next=!!(data.registers[layoutRegister]&32);if(layout!==next){layout=next;synth.notifyLayout?.({rhythmEnabled:layout});}}
   // A single completion fence observes queued mode transitions. The authoring
   // shadow may be ahead of the renderer, so it never controls Keyboard layout.
   function observeLayout(){
@@ -19,20 +19,21 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
     const value={...(mainGroup===undefined?{}:{group:mainGroup}),...message};
     if(value.method==='write'){
       track?.(sentRegisters,authoredOwners,value);sentRegisters[value.register]=value.value;
-      if(kind==='ym2413'&&value.register===14){value.id??=context.identity();layoutGeneration++;if(timing.time!==undefined||layoutPending||layout!==!!(value.value&32))layoutPending=true;}
+      if(layoutRegister!==undefined&&value.register===layoutRegister){value.id??=context.identity();layoutGeneration++;if(timing.time!==undefined||layoutPending||layout!==!!(value.value&32))layoutPending=true;}
     }else if(value.method==='reset'){
-      sentRegisters.fill(0);authoredOwners.clear();if(kind==='ym2413'){value.id??=context.identity();layoutGeneration++;if(timing.time!==undefined||layout||layoutPending)layoutPending=true;}
+      sentRegisters.fill(0);authoredOwners.clear();if(layoutRegister!==undefined){value.id??=context.identity();layoutGeneration++;if(timing.time!==undefined||layout||layoutPending)layoutPending=true;}
     }return value;
   }
   const send=(message,timing)=>{context.send(kind,tagged(message,timing),timing);observeLayout();},timed=(message,timing)=>context.timed(kind,tagged(message,timing),timing),identified=message=>({...message,id:context.identity()});
   function translate(message){
     const method=message.method??message.type,args=message.args??[];if(!Array.isArray(args))throw new TypeError(`${label} arguments must be an array`);
-    if(method==='writeRegister')return {method:'write',register:integer(args[0],registerCount-1,'Register'),value:integer(args[1],255,'Value'),...(kind==='ym2413'&&message.intentMask!==undefined?{intentMask:integer(message.intentMask,31,'Rhythm intent mask')}:{})};
+    if(method==='writeRegister'&&['ym3526','ym3812','y8950'].includes(kind))integer(args[2]??0,0,'Bank');
+    if(method==='writeRegister')return {method:'write',register:integer(args[0],registerCount-1,'Register'),value:integer(args[1],255,'Value'),...(rhythmBase!==undefined&&message.intentMask!==undefined?{intentMask:integer(message.intentMask,31,'Rhythm intent mask')}:{})};
     if(method==='setRetainedLevel'&&kind==='ay8910')return {method:'set-retained-level',channel:integer(args[0],2,'Channel'),level:integer(args[1],31,'Retained level')};
-    if(method==='forceKeyOff')return {method:'key-off',channel:integer(args[0],kind==='ym2413'?8:2,'Channel')};
-    if(method==='forceRhythmOff'&&kind==='ym2413')return {method:'key-off',channel:9+integer(args[0],4,'Drum')};
-    if(method==='auditionKeyOn'&&kind==='ym2413')return {method:'audition-key-on',channel:integer(args[0],8,'Channel')};
-    if(method==='auditionRhythmOn'&&kind==='ym2413')return {method:'audition-key-on',channel:9+integer(args[0],4,'Drum')};
+    if(method==='forceKeyOff')return {method:'key-off',channel:integer(args[0],melodicChannels-1,'Channel')};
+    if(method==='forceRhythmOff'&&rhythmBase!==undefined)return {method:'key-off',channel:rhythmBase+integer(args[0],4,'Drum')};
+    if(method==='auditionKeyOn'&&rhythmBase!==undefined)return {method:'audition-key-on',channel:integer(args[0],melodicChannels-1,'Channel')};
+    if(method==='auditionRhythmOn'&&rhythmBase!==undefined)return {method:'audition-key-on',channel:rhythmBase+integer(args[0],4,'Drum')};
     if(method==='reset')return {method:'reset'};
     if(method==='allNotesOff')return {method:'all-notes-off'};
     if(method==='stopVoices')return {method:'stop-voices'};

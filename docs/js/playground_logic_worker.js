@@ -4,23 +4,23 @@ import {createPerformanceSender} from './playground_performance_sender.js?v=audi
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=native-extra-opll-ay-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=native-extra-opl-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pwm-wasm-1';
-import {OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
+import {OPL_CHIPS} from './playground_opl.js?v=native-extra-opl-1';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=audio-numeric-bindings-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {createYm2151Client} from './playground_ym2151.js?v=native-extra-opll-ay-1';
+import {createYm2151Client} from './playground_ym2151.js?v=native-extra-opl-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=audio-stability-2';
-import {createOpnClient} from './playground_opn.js?v=native-extra-opll-ay-1';
+import {createOpnClient} from './playground_opn.js?v=native-extra-opl-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
-import {createYm2608Client} from './playground_ym2608.js?v=native-extra-opll-ay-1';
+import {createYm2608Client} from './playground_ym2608.js?v=native-extra-opl-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=audio-numeric-bindings-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
@@ -34,7 +34,7 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=native-extra-opll-ay-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=native-extra-opl-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -360,7 +360,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     currentLoop: null,
     audioHandles: new Set(),
   };
-  const performanceTransport = createPerformanceSender({leaseUntimed:capabilities.backend==='native-genesis',getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => postMessage({type:'performance-cancel-owner',...metadata})});
+  const performanceTransport = createPerformanceSender({leaseUntimed:capabilities.backend==='native-genesis',getLoop: () => run.currentLoop, restoreLoop: loop => { run.currentLoop = loop; }, onCancelOwner: metadata => {if(capabilities.backend==='native-genesis')for(const client of pcmClients)client._cancelPerformanceOwner?.(metadata.owner);postMessage({type:'performance-cancel-owner',...metadata});}});
   run.performance = performanceTransport;
   const keyboardApi = createKeyboardApiGuard(() => run.currentLoop,value => {run.currentLoop=value;});
   const musicalKeyboard = createMusicalKeyboard({getContext:()=>run.currentLoop,setContext:value=>{run.currentLoop=value;},
@@ -744,7 +744,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return result;
     },
     async useSoundChip(name, options) {
-      const token = run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910'].includes(name)&&!(name==='ym2610'?['ym2610','ym2610b'].includes(capabilities.chip):nativeConnections.some(endpoint=>endpoint.name===name)),caller=run.currentLoop;
+      const token = run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950'].includes(name)&&!(name==='ym2610'?['ym2610','ym2610b'].includes(capabilities.chip):nativeConnections.some(endpoint=>endpoint.name===name)),caller=run.currentLoop;
       const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
       check();
       if (capabilities.backend === 'native-genesis' && capabilities.chip === 'ym2610b' && name === 'ym2610b') name = 'ym2610';
@@ -766,7 +766,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
     async createSoundChip(name, options = {}){
       if(run.stopped)throw new Error('Run stopped');
-      const token=run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910'].includes(name),caller=run.currentLoop;
+      const token=run.token,scoped=capabilities.backend==='native-genesis'&&['ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950'].includes(name),caller=run.currentLoop;
       if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
       if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
       const response=await request('pcm.create',[name, options],run.currentLoop);

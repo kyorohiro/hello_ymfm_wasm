@@ -1,4 +1,4 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=audio-numeric-bindings-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=native-extra-opl-1';
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';

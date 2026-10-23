@@ -90,13 +90,13 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.engine === 'msx') return {
     chip:mode.chip,clock:mode.clock,segaPsgWasmUrl:null,megaCD:false,mega32X:false,
-    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=audio-numeric-bindings-1',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
-    opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=audio-numeric-bindings-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
-    ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=audio-numeric-bindings-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
+    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=native-extra-opl-1',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
+    opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=native-extra-opl-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
+    ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=native-extra-opl-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
   };
   if (mode.engine === 'opl') return {
     chip:mode.chip, clock:mode.clock,
-    workletUrl:new URL('./playground_opl_worklet.js?v=audio-numeric-bindings-1', base).href,
+    workletUrl:new URL('./playground_opl_worklet.js?v=native-extra-opl-1', base).href,
     wasmUrl:new URL(`${mode.chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
@@ -107,7 +107,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
     chip:mode.chip, clock:mode.clock, stereoEnabled:mode.stereoEnabled,
     ym2413:mode.ym2413 === true,
     ...(mode.ym2413 ? {opllOptions:{
-      workletUrl:new URL('./playground_ym2413_worklet.js?v=audio-numeric-bindings-1',base).href,
+      workletUrl:new URL('./playground_ym2413_worklet.js?v=native-extra-opl-1',base).href,
       wasmUrl:new URL('ym2413_wasm.wasm',generated).href,
     }} : {}),
     workletUrl:new URL('./playground_segapsg_worklet.js?v=audio-numeric-bindings-1', base).href,
@@ -136,10 +136,10 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const nuked = mode.engine === 'nuked';
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;
-  const worklets = {ym2612:'./ym2612-worklet.js?v=audio-numeric-bindings-1',ym2203:'./ym2203-worklet.js?v=audio-numeric-bindings-1',ym2608:'./ym2608-worklet.js?v=audio-numeric-bindings-1',ym2610b:'./ym2610b-worklet.js?v=audio-numeric-bindings-1'};
+  const worklets = {ym2612:'./ym2612-worklet.js?v=native-extra-opl-1',ym2203:'./ym2203-worklet.js?v=native-extra-opl-1',ym2608:'./ym2608-worklet.js?v=native-extra-opl-1',ym2610b:'./ym2610b-worklet.js?v=native-extra-opl-1'};
   return {
     chip:mode.chip,
-    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=audio-numeric-bindings-1' : worklets[chip], base).href,
+    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=native-extra-opl-1' : worklets[chip], base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm?v=audio-numeric-bindings-1', generated).href : null,

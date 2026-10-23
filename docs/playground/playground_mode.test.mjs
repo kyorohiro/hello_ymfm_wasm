@@ -4,6 +4,15 @@ import {PLAYGROUND_MODES, getPlaygroundMode, resolvePlaygroundMode,
   createModeSynthOptions, createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js';
 import {MODE_STARTERS} from './playground_mode_examples.js';
 
+function assertWorkletUrl(actual, name) {
+  const url = new URL(actual);
+  assert.equal(url.origin, 'https://example.com');
+  assert.equal(url.pathname, `/app/js/playground_${name}_worklet.js`);
+  // Deployment revisions follow the generated dependency graph, not the mode.
+  assert.match(url.searchParams.get('v') ?? '', /^[\w.-]+$/);
+  assert.equal(url.hash, '');
+}
+
 test('modes select native chips, clocks and console expansions', () => {
   const expected = [
     ['genesis','ym2612',7670454,false], ['mega-cd','ym2612',7670454,false],
@@ -35,7 +44,7 @@ test('modes select native chips, clocks and console expansions', () => {
       else assert.equal(options.oplOptions,undefined,'MSX does not load a Y8950 processor');
       for (const [key,chip,worklet] of endpoints) {
         assert.equal(options[key].wasmUrl,`https://example.com/app/generated/${chip}_wasm.wasm`);
-        assert.equal(options[key].workletUrl,`https://example.com/app/js/playground_${worklet}_worklet.js?v=audio-numeric-bindings-1`);
+        assertWorkletUrl(options[key].workletUrl, worklet);
       }
       assert.equal(options.ym2612WasmUrl,undefined); continue;
     }
@@ -43,7 +52,7 @@ test('modes select native chips, clocks and console expansions', () => {
       assert.equal(mode.fmChannels,0,'OPL uses its native instrument instead of the OPN play shortcut');
       assert.deepEqual(mode.chipTabs,[mode.chip]);
       assert.equal(options.clock,mode.clock);
-      assert.equal(options.workletUrl,'https://example.com/app/js/playground_opl_worklet.js?v=audio-numeric-bindings-1');
+      assertWorkletUrl(options.workletUrl, 'opl');
       assert.equal(options.wasmUrl,`https://example.com/app/generated/${mode.chip}_wasm.wasm`);
       assert.equal(options.ym2612WasmUrl,undefined);
       continue;
