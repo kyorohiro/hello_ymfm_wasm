@@ -180,6 +180,8 @@ async function runBrowser(name, type, url, fixture) {
         if (dx7 !== again) throw Error('useSoundChip did not reuse DX7');
         await dx7.loadSysex(${single});
         dx7.selectVoice(0); dx7.noteOn(60, 100);
+        // Gain/FX ratios use unity independently of calibrated defaults.
+        await mixer.set(dx7.id, {volume:1});
         context.dx7 = dx7; context.initialId = dx7.id;
         const result = {id:dx7.id, voices:dx7.voices, state:await dx7.getState()};
       `, execution);

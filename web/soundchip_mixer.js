@@ -98,6 +98,22 @@ function parseState(value) {
   }
   return parsed;
 }
+function parseFactoryEntries(value) {
+  policyObject(value, ['version', 'entries'], 'mixer factory entries');
+  if (value.version !== MIXER_POLICY_VERSION || !Array.isArray(value.entries) || value.entries.length > MAX_MIXER_ENTRIES) {
+    throw new TypeError(`Mixer factory entries require version 1 and at most ${MAX_MIXER_ENTRIES} entries`);
+  }
+  const parsed = new Map(), ids = new Set();
+  for (const record of value.entries) {
+    policyObject(record, ['id', 'name', 'settings'], 'mixer factory entry');
+    const id = policyIdentifier(record.id, 'Mixer id'), name = policyIdentifier(record.name, 'Mixer kind');
+    if (ids.has(id)) throw new TypeError(`Duplicate mixer factory id: ${id}`);
+    ids.add(id);
+    const settings = policySettings(record.settings, COMMON_FIELDS, 'mixer factory settings');
+    if (Object.keys(settings).length) parsed.set(id, {name, settings});
+  }
+  return parsed;
+}
 const policyOrder = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
 // Observers must never interrupt output registration or cleanup.
@@ -111,15 +127,25 @@ function dispatchMixerListener(listener, value, change = undefined) {
 
 /** Settings can be prepared before start(). Importing this module opens no audio device. */
 export class SoundChipMixer {
-  constructor() {
+  /** Application factory policy is optional and never part of authored exports.
+   * @param {{factoryDefaults?:{version:number,kinds:Array<{name:string,volume?:number,pan?:number}>},
+   * factoryEntries?:{version:number,entries:Array<{id:string,name:string,settings:{volume?:number,pan?:number}}>}}} [options] */
+  constructor({factoryDefaults, factoryEntries} = {}) {
+    const factoryKinds = factoryDefaults === undefined ? new Map() : parseDefaults(factoryDefaults);
+    const factoryIds = factoryEntries === undefined ? new Map() : parseFactoryEntries(factoryEntries);
     this.entries = new Map(); this.retained = new Map(); this.reservedIds = new Set(); this.transientIds = new Set();
     this.kindDefaults = new Map(); this.deferredState = new Map();
+    this.factoryDefaults = factoryKinds; this.factoryEntries = factoryIds;
     this.listeners = new Set(); this.meterListeners = new Set();
   }
-  defaults(name) { return {...stripDefaults(name), ...this.kindDefaults.get(name)}; }
+  defaults(name, id = undefined) {
+    const factory = this.factoryEntries.get(id);
+    return {...stripDefaults(name), ...this.factoryDefaults.get(name),
+      ...(factory?.name === name ? factory.settings : {}), ...this.kindDefaults.get(name)};
+  }
   settingsFor(entry) {
     const overrides = entry.overrideName === undefined || entry.overrideName === entry.name ? entry.overrides : {};
-    return {...this.defaults(entry.name), ...overrides};
+    return {...this.defaults(entry.name, entry.id), ...overrides};
   }
   /** Effective common volume/pan, including factory fallbacks. */
   getKindDefault(name) {
@@ -179,7 +205,7 @@ export class SoundChipMixer {
     }
     this.retained.clear();
     for (const [id, saved] of next) {
-      const entry = {name:saved.name ?? id, kindKnown:saved.name !== undefined, overrideName:saved.name,
+      const entry = {id, name:saved.name ?? id, kindKnown:saved.name !== undefined, overrideName:saved.name,
         overrides:{...saved.settings}, apply:null};
       entry.settings = this.settingsFor(entry);
       (this.transientIds.has(id) ? this.deferredState : this.retained).set(id, entry);
@@ -191,17 +217,17 @@ export class SoundChipMixer {
   set(id, settings) {
     this.checkId(id);
     if (!settings || typeof settings !== 'object' || Array.isArray(settings) || Object.keys(settings).some(k => !MIX_FIELDS.includes(k))) throw new TypeError('Unknown mixer setting');
-    const entry = this.entries.get(id) ?? this.retained.get(id) ?? {name:id, kindKnown:false, overrides:{}, apply:null};
+    const entry = this.entries.get(id) ?? this.retained.get(id) ?? {id, name:id, kindKnown:false, overrides:{}, apply:null};
     const overrides = entry.overrideName !== undefined && entry.overrideName !== entry.name ? {} : entry.overrides;
     const authored = {...overrides, ...settings};
-    const next = {...this.defaults(entry.name), ...authored}; validateChipMix(next);
+    const next = {...this.defaults(entry.name, id), ...authored}; validateChipMix(next);
     entry.settings = next; entry.overrides = authored;
     entry.overrideName = entry.kindKnown ? entry.name : undefined;
     this.retained.delete(id); this.entries.set(id, entry); this.applyAll(); this.notify();
     return {...next};
   }
   /** @param {string} id @returns {ChipMixSettings} */
-  get(id) { return {...((this.entries.get(id) ?? this.retained.get(id))?.settings ?? this.defaults(id))}; }
+  get(id) { return {...((this.entries.get(id) ?? this.retained.get(id))?.settings ?? this.defaults(id, id))}; }
   /** @returns {Array<ChipMixSettings & {id: string, name: string, connected: boolean, effectiveMuted: boolean}>} */
   list() {
     const hasSolo = this.hasSolo();
@@ -283,7 +309,7 @@ export class SoundChipMixer {
     this.checkId(id);
     if (this.entries.get(id)?.apply) throw new Error(`Mixer id is already connected: ${id}`);
     const previousEntry = this.entries.get(id), previous = previousEntry ?? (this.transientIds.has(id) ? undefined : this.retained.get(id));
-    const entry = {name, kindKnown:true, overrides:{...previous?.overrides},
+    const entry = {id, name, kindKnown:true, overrides:{...previous?.overrides},
       overrideName:previous?.overrideName ?? (previous?.kindKnown ? previous.name : name), apply, meter};
     entry.settings = this.settingsFor(entry);
     this.entries.set(id, entry);
@@ -295,7 +321,7 @@ export class SoundChipMixer {
       if (released || this.entries.get(id) !== entry) return; released = true;
       meter?.setMetering(false); this.entries.delete(id);
       if (!this.releaseTransientId(id)) {
-        const saved = {name:entry.overrideName ?? name, kindKnown:true, overrideName:entry.overrideName,
+        const saved = {id, name:entry.overrideName ?? name, kindKnown:true, overrideName:entry.overrideName,
           overrides:{...entry.overrides}, apply:null};
         saved.settings = this.settingsFor(saved); this.retained.set(id, saved);
       }

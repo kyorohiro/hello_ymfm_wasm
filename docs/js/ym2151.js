@@ -39,8 +39,8 @@ export class Ym2151 {
    * Initialize Ym2151 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {import('./soundchip.js?v=native-extra-stability-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
-   * @param {import('./soundchip.js?v=native-extra-stability-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js?v=native-extra-levels-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js?v=native-extra-levels-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {'ym2151'|'ym2164'} [options.variant='ym2151'] Native OPM/OPP variant.
    * @returns {Promise<Ym2151>} Ready-to-use chip; the caller must dispose it.
    */

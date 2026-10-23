@@ -521,6 +521,51 @@ test('registering and disconnecting sources alone does not create current.json',
   assert.equal(f.files.has(MIXER_STATE_PATH), false); assert.equal(f.writes.length, 0);
 });
 
+test('System uses application factory balance without persisting it or replacing authored preset numbers', t => {
+  const mixer = new SoundChipMixer({factoryDefaults:{version:1,kinds:[{name:'segapsg',volume:.25}]},
+    factoryEntries:{version:1,entries:[record('segapsg',{volume:.65})]}});
+  const currentText = '  '+JSON.stringify(preset([record('segapsg',{volume:.8,pan:-.2})],
+    [{name:'segapsg',volume:.6}]))+'\n\n';
+  const defaultText = JSON.stringify(preset([record('segapsg',{volume:.9})]));
+  const namedText = JSON.stringify(preset([record('segapsg',{pan:.3})],[{name:'segapsg',volume:.4}]));
+  const files = createVirtualFileSystem([file(MIXER_STATE_PATH,currentText),
+    file(MIXER_DEFAULT_PRESET_PATH,defaultText),file('/mixer/authored.json',namedText)]);
+  const f = fixture({mixer,files}); t.after(()=>f.state.dispose());
+  mixer.register('segapsg','segapsg',()=>{}); mixer.register('extra','segapsg',()=>{});
+  assert.deepEqual(mixer.get('segapsg'),mix(.8,-.2)); assert.deepEqual(mixer.get('extra'),mix(.6));
+  f.state.selectPreset(MIXER_SYSTEM_PRESET_PATH);
+  assert.deepEqual(mixer.get('segapsg'),mix(.65)); assert.deepEqual(mixer.get('extra'),mix(.25));
+  assert.deepEqual(mixer.exportState(),preset()); assert.deepEqual(mixer.exportDefaults(),{version:1,kinds:[]});
+  f.state.selectPreset(MIXER_DEFAULT_PRESET_PATH); assert.deepEqual(mixer.get('segapsg'),mix(.9));
+  f.state.selectPreset('/mixer/authored.json'); assert.deepEqual(mixer.get('segapsg'),mix(.4,.3));
+  f.state.selectPreset(MIXER_STATE_PATH); assert.deepEqual(mixer.get('segapsg'),mix(.8,-.2));
+  f.runTimers();
+  assert.equal(files.get(MIXER_STATE_PATH).data,currentText);
+  assert.equal(files.get(MIXER_DEFAULT_PRESET_PATH).data,defaultText);
+  assert.equal(files.get('/mixer/authored.json').data,namedText);
+  assert.equal(f.timers.size,0); assert.deepEqual(f.writes,[]);
+});
+
+test('editing calibrated System writes only actual edits and new projects keep factory policy beneath defaults', t => {
+  const mixer = new SoundChipMixer({factoryDefaults:{version:1,kinds:[{name:'segapsg',volume:.25}]},
+    factoryEntries:{version:1,entries:[record('segapsg',{volume:.65})]}});
+  const f = fixture({mixer}); t.after(()=>f.state.dispose());
+  mixer.register('segapsg','segapsg',()=>{}); mixer.register('extra','segapsg',()=>{});
+  assert.equal(f.files.has(MIXER_STATE_PATH),false);
+  mixer.set('segapsg',{pan:.2}); f.runTimers();
+  assert.deepEqual(current(f),preset([record('segapsg',{pan:.2})]));
+  assert.deepEqual(mixer.get('segapsg'),mix(.65,.2));
+  f.state.saveDefault();
+  const defaults = f.files.get(MIXER_DEFAULT_PRESET_PATH).data;
+  assert.deepEqual(JSON.parse(defaults),preset([record('segapsg',{pan:.2})]));
+  f.state.replaceProject(()=>f.files.replace([file(MIXER_DEFAULT_PRESET_PATH,defaults)]));
+  assert.deepEqual(mixer.get('segapsg'),mix(.65,.2)); assert.deepEqual(mixer.get('extra'),mix(.25));
+  assert.equal(f.files.has(MIXER_STATE_PATH),false,'loading the inherited default never creates current.json');
+  f.state.selectPreset(MIXER_SYSTEM_PRESET_PATH);
+  assert.deepEqual(mixer.get('segapsg'),mix(.65));
+  assert.equal(f.files.get(MIXER_DEFAULT_PRESET_PATH).data,defaults);
+});
+
 test('dispose flushes once, cancels timers, and releases all subscriptions', () => {
   const f = fixture(); f.mixer.register('lead', 'segapsg', () => {});
   let changes = 0; f.state.subscribePresets(change => {if (!change?.source) changes++;});

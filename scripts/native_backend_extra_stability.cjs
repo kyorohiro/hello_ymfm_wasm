@@ -8,20 +8,20 @@ const ids=['scene-fm','scene-pcm','scene-dx7'];
 
 // Diagnostic-only processor. It observes the mix bus and outputs silence, so
 // connecting the observer cannot double the listening level or change the DSP.
-async function captureWebMix(page,seconds=1){
-  return page.evaluate(async seconds=>{
+async function captureWebMix(page,seconds=1,warmupSeconds=.02){
+  return page.evaluate(async ({seconds,warmupSeconds})=>{
     const audio=window.__nativeBackendTest.runtime.megaDrive.audio,context=audio.audioContext;
     const name='mixed-scene-audit-'+(window.__mixedSceneAuditSequence=(window.__mixedSceneAuditSequence??0)+1);
-    const frames=Math.round(context.sampleRate*seconds),skip=Math.round(context.sampleRate*.02);
+    const frames=Math.round(context.sampleRate*seconds),skip=Math.round(context.sampleRate*warmupSeconds);
     const code=`class Audit extends AudioWorkletProcessor {
-      constructor(){super();this.frames=0;this.skip=${skip};this.peak=[0,0];this.sum=[0,0];this.square=[0,0];this.nonzero=[0,0];this.nonfinite=0;this.overrange=0;this.done=false;}
+      constructor(){super();this.frames=0;this.skip=${skip};this.peak=[0,0];this.minimum=[Infinity,Infinity];this.maximum=[-Infinity,-Infinity];this.sum=[0,0];this.square=[0,0];this.nonzero=[0,0];this.nonfinite=0;this.overrange=0;this.done=false;}
       process(inputs){if(this.done)return true;const input=inputs[0];if(!input?.[0])return true;
         for(let i=0;i<input[0].length&&this.frames<${frames};i++){
           if(this.skip){this.skip--;continue;}this.frames++;
           for(let ch=0;ch<2;ch++){const v=(input[ch]??input[0])[i];if(!Number.isFinite(v)){this.nonfinite++;continue;}
-            this.peak[ch]=Math.max(this.peak[ch],Math.abs(v));this.sum[ch]+=v;this.square[ch]+=v*v;if(v!==0)this.nonzero[ch]++;if(Math.abs(v)>1)this.overrange++;}
+            this.peak[ch]=Math.max(this.peak[ch],Math.abs(v));this.minimum[ch]=Math.min(this.minimum[ch],v);this.maximum[ch]=Math.max(this.maximum[ch],v);this.sum[ch]+=v;this.square[ch]+=v*v;if(v!==0)this.nonzero[ch]++;if(Math.abs(v)>1)this.overrange++;}
         }
-        if(this.frames===${frames}){this.done=true;this.port.postMessage({frames:this.frames,sampleRate,peak:this.peak,rms:this.square.map(v=>Math.sqrt(v/this.frames)),dc:this.sum.map(v=>v/this.frames),acRms:this.square.map((v,ch)=>Math.sqrt(Math.max(0,v/this.frames-(this.sum[ch]/this.frames)**2))),nonzero:this.nonzero,nonfinite:this.nonfinite,overrange:this.overrange});}return true;
+        if(this.frames===${frames}){this.done=true;this.port.postMessage({frames:this.frames,sampleRate,peak:this.peak,minimum:this.minimum,maximum:this.maximum,rms:this.square.map(v=>Math.sqrt(v/this.frames)),dc:this.sum.map(v=>v/this.frames),acRms:this.square.map((v,ch)=>Math.sqrt(Math.max(0,v/this.frames-(this.sum[ch]/this.frames)**2))),nonzero:this.nonzero,nonfinite:this.nonfinite,overrange:this.overrange});}return true;
       }
     }registerProcessor(${JSON.stringify(name)},Audit);`;
     const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));
@@ -33,7 +33,7 @@ async function captureWebMix(page,seconds=1){
       audio.masterInputNode.connect(node);node.connect(context.destination);
       return await result;
     }finally{clearTimeout(timer);node.port.onmessage=null;node.port.close();audio.masterInputNode.disconnect(node);node.disconnect();}
-  },seconds);
+  },{seconds,warmupSeconds});
 }
 
 async function runExtraStability({page,native,tracker,name,artifacts,ready,assertNoLiveAudio,until}){
@@ -108,4 +108,4 @@ async function runExtraStability({page,native,tracker,name,artifacts,ready,asser
   report.transport=tracker.stats;
   await fs.writeFile(path.join(artifacts,name+'-extra-stability.json'),JSON.stringify(report,null,2));
 }
-module.exports={runExtraStability};
+module.exports={runExtraStability,captureWebMix};

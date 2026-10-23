@@ -53,6 +53,9 @@ async function runMixerState({page,native,artifacts,name,ready,nativeRun,source,
   };
 
   await observe('native-before-run');
+  // Calibration owns the factory numbers; this UI regression checks that
+  // selecting System restores the untouched application policy exactly.
+  const systemSettings=await settings();
   await page.evaluate(source=>{
     window.__nativeBackendTest.editor.setValue(source);document.getElementById('workerExecution').checked=false;
   },source);
@@ -141,7 +144,7 @@ async function runMixerState({page,native,artifacts,name,ready,nativeRun,source,
   await assertCurrentUnchanged(editedCurrent,'Save with no control edit');
 
   await preset().selectOption(SYSTEM_PATH);
-  assert.deepEqual(await settings(),{volume:1,pan:0,muted:false,solo:false},'System preset must restore factory levels and clear Mute/Solo');
+  assert.deepEqual(await settings(),systemSettings,'System preset must restore factory levels and clear Mute/Solo');
   assert.deepEqual(await project(),empty);
   const factory=await observe('system-preset-selected-immediately');
   assert.equal(factory.file,editedCurrent);
@@ -153,7 +156,7 @@ async function runMixerState({page,native,artifacts,name,ready,nativeRun,source,
   await slider('volume',55);
   assert.equal(await preset().inputValue(),STATE_PATH,'Actual control edits must keep current.json selected');
   await preset().selectOption(SYSTEM_PATH);
-  assert.deepEqual(await settings(),{volume:1,pan:0,muted:false,solo:false},'System must be selectable again after a control edit');
+  assert.deepEqual(await settings(),systemSettings,'System must be selectable again after a control edit');
   assert.deepEqual(await project(),empty);
   const pendingEditedCurrent=await currentText();
   assert.deepEqual(JSON.parse(pendingEditedCurrent),expected(.55,.2),

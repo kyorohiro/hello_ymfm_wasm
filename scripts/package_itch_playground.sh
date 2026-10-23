@@ -32,6 +32,7 @@ playground_audio_engine.js
 playground_monitor_scale.js
 playground_mixer.js
 playground_mixer_state.js
+playground_mixer_defaults.js
 playground_mixer.css
 playground_chip_tabs.js
 playground_chip_tabs.css
@@ -615,6 +616,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/index.html" \
   "${STAGE_DIR}/playground.js" \
   "${STAGE_DIR}/playground_mixer_state.js" \
+  "${STAGE_DIR}/playground_mixer_defaults.js" \
   "${STAGE_DIR}/playground_audio_input.js" \
   "${STAGE_DIR}/playground_audio_diagnostics.js" \
   "${STAGE_DIR}/playground_sample_editor_worker.js" \

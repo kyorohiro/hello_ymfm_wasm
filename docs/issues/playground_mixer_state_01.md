@@ -8,7 +8,7 @@ Reset、Set common default／Use defaults／Reset common defaultsは廃止する
 
 Mixer上部のPreset選択肢は次のとおり。
 
-- System（read-only）：組込み初期値。Game BoyはVolume 28%、他は100%、Pan中央、Mute／Soloなし。
+- System（read-only）：[基準音で校正した組込み初期値](playground_chip_levels_01.md)。Pan中央、Mute／Soloなし。
   `/sys/mixer/default.json`を論理的な識別子とし、Cassetteに組込みファイルを混ぜない。
 - `mixer/default.json`：編集可能な既定プリセット。New Cassetteでこのファイルだけを
   コピーし、次のプロジェクトのMixer初期値にする。通常の調整では書き変えない。

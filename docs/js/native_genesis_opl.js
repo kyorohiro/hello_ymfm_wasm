@@ -1,9 +1,9 @@
 /** DOS PC register authoring stays in JS; the selected OPL renders in Native. */
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=native-extra-stability-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=native-extra-levels-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {createNativeVoiceContext, createNativeVoiceEndpoint, nativeInteger as integer,
-  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-extra-stability-1';
+  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-extra-levels-1';
 
 const CHIPS = Object.freeze(['ym3526', 'ym3812', 'ymf262']);
 const PAIRS = [0, 1, 2, 9, 10, 11];
