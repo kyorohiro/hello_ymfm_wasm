@@ -39,7 +39,7 @@ function setup({entries=[],primary=false,inspect=inspector(entries)}={}){
   const editors=[],ssgEditors=[],sampleEditors=[],statuses=[],targets=[],availability=[],primaryVisibility=[];
   const primaryEditor=primary?{setVisible:value=>primaryVisibility.push(value)}:null;
   const source=readFileSync(new URL('./playground_extra_fm_editor.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export function','function');
-  const context=vm.createContext({DOMException,createPlaygroundOpnaSampleEditor(options){const s={options,target:'rhythm:0',updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedTarget(){return this.target;},dispose(){this.disposed++;}};sampleEditors.push(s);return s;},createPlaygroundOpnSsgEditor(options){const s={options,channel:0,updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedChannel(){return this.channel;},dispose(){this.disposed++;}};ssgEditors.push(s);return s;},createPlaygroundOperatorTab(options){
+  const context=vm.createContext({DOMException,createPlaygroundOpnbSampleEditor(options){const s={options,target:'adpcm-a:0',updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedTarget(){return this.target;},dispose(){this.disposed++;}};sampleEditors.push(s);return s;},createPlaygroundOpnaSampleEditor(options){const s={options,target:'rhythm:0',updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedTarget(){return this.target;},dispose(){this.disposed++;}};sampleEditors.push(s);return s;},createPlaygroundOpnSsgEditor(options){const s={options,channel:0,updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedChannel(){return this.channel;},dispose(){this.disposed++;}};ssgEditors.push(s);return s;},createPlaygroundOperatorTab(options){
     const edits={options,channel:0,presets:[],globals:[],registered:[],removed:[],visibility:[],disposed:0,
       attachSynth(synth){this.synth=synth;},syncPreset(...args){this.presets.push(args);},syncLfo(...args){this.globals.push(['lfo',...args]);},syncDacEnabled(value){this.globals.push(['dac',value]);},
       syncChannel3SpecialMode(value){this.globals.push(['special',value]);},syncChannel3SpecialFrequency(...args){this.globals.push(['frequency',...args]);},
@@ -57,11 +57,21 @@ function setup({entries=[],primary=false,inspect=inspector(entries)}={}){
 const chip=(id,extra=true,kind='ym2612')=>({id,kind,connected:true,...(extra?{additional:true}:{})});
 
 test('only supported explicitly additional OPN instances appear, including a valid ym2612 ID outside Genesis',async()=>{
-  const f=setup({entries:[chip('ym2612'),chip('lead'),chip('borrowed',false),chip('other',true,'ym2610'),{...chip('gone'),connected:false}]});
+  const f=setup({entries:[chip('ym2612'),chip('lead'),chip('borrowed',false),chip('other',true,'ym2151'),{...chip('gone'),connected:false}]});
   assert.deepEqual(f.select.children.map(option=>option.value),['ym2612','lead']);
   assert.equal(f.select.value,'ym2612');assert.equal(f.editors.length,1);assert.equal(f.inspect.reads.length,0,'hidden tabs perform no state reads');
   assert.equal(f.toolbar.hidden,false);assert.equal(f.primaryRoot.hidden,true);assert.equal(f.availability.at(-1),true);
   f.controller.setVisible(true);await settle();assert.deepEqual(f.inspect.reads,['ym2612']);assert.equal(f.targets.at(-1).id,'ym2612');f.controller.dispose();
+});
+
+test('YM2610 maps four logical FM voices, physical CH3 special and independent A/B editors',async()=>{
+  const inspect=inspector([chip('opnb',true,'ym2610'),chip('other')]);inspect.readResult=id=>{const data=snapshot();if(id==='opnb')data.fmState.channels=[1,2,4,5].map(ch=>data.fmState.channels[ch]);return data;};
+  const f=setup({inspect});f.controller.setVisible(true);await settle();const editor=f.editors[0],samples=f.sampleEditors[0];
+  assert.equal(editor.options.channelCount,4);assert.equal(editor.options.supportsDac,false);assert.equal(f.controller.getChannelCount(),4);assert.equal(f.ssgEditors.length,1);assert.equal(samples.updates.length,1);assert.deepEqual(inspect.writes,[]);
+  assert.deepEqual(plain(editor.globals),[['lfo',true,3],['special',true],['frequency',0,1,100],['frequency',1,2,101],['frequency',2,3,102],['frequency',3,4,103]]);
+  editor.channel=3;f.extraRoot.dispatch('change');assert.equal(f.targets.at(-1).channel,'fm:3');editor.synth.setOperator(3,2,{tl:41});await settle();assert.deepEqual(plain(inspect.writes.at(-1)),{id:'opnb',method:'setOperator',args:[3,2,{tl:41}]});
+  samples.target='adpcm-a:5';samples.options.onTargetChange();assert.equal(f.targets.at(-1).channel,'adpcm-a:5');samples.options.onEdit('adpcmA.setSample',[5,{start:256,end:512}]);await settle();assert.equal(inspect.writes.at(-1).method,'adpcmA.setSample');
+  samples.target='adpcm-b:0';samples.options.onTargetChange();assert.equal(f.targets.at(-1).channel,'adpcm-b:0');f.choose('other');await settle();const count=inspect.writes.length;assert.equal(samples.disposed,1);samples.options.onEdit('adpcmB.setDeltaN',[12345]);await settle();assert.equal(inspect.writes.length,count);f.controller.dispose();
 });
 
 test('YM2608 combines six FM voices with SSG and independently routed rhythm/ADPCM controls',async()=>{

@@ -15,8 +15,16 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
+const extra=process.argv.includes('--extra'),fixtureProfile=extra?['--extra']:[],planes=extra?9:2;
 const wasmBinary=await fs.readFile(path.join(root,'docs/generated/ym2610b_wasm.wasm'));
 const module=await factory({wasmBinary});
+let Processor,resolveReady,rejectReady;
+if(extra){
+  globalThis.sampleRate=48000;globalThis.currentFrame=0;
+  globalThis.AudioWorkletProcessor=class{constructor(){this.port={postMessage(data){if(data.ready)resolveReady();if(data.error)rejectReady(Error(data.error));},close(){}};}};
+  globalThis.registerProcessor=(name,processor)=>{if(name==='tetorica-opn')Processor=processor;};
+  await import('../docs/js/playground_opn_worklet.js');
+}
 const rates=[44100,48000,96000],scenarios=[];
 const preset={algorithm:7,feedback:0,pan:{left:true,right:true},operators:Array.from({length:4},(_,i)=>({multi:i+1,tl:36+i*4,ar:31,d1r:0,d2r:0,sl:0,rr:15}))};
 const encoded=encodeAdpcmB({channels:[Float32Array.from({length:2048},(_,i)=>Math.sin(i*Math.PI*2/41)*.6)],sampleRate:16000},16000,0x1000000).bytes;
@@ -93,21 +101,57 @@ scenario('Stop retains preloaded independent ROM banks for later retrigger',({sy
   at(101);synth.adpcmA.setVolume(52);synth.adpcmA.keyOn([0,1]);
   synth.adpcmB.setSample({start:0,end:encoded.length});synth.adpcmB.setPlaybackRate(16000);synth.adpcmB.setVolume(180);synth.adpcmB.setPan(true,true);synth.adpcmB.keyOn({repeat:true});
 });
-const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed YM2610/YM2610B WASM plus Ym2610BAudioEngine',
-  wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,variants:['YM2610','YM2610B'],cases:[],maximumDifference:0,totalStereoFrames:0,
+if(extra){
+  for(const ch of[1,2,4,5])for(let algorithm=0;algorithm<8;algorithm++)scenario(`additional physical FM ${ch}, algorithm ${algorithm}, operator masks`,({synth,at})=>{
+    synth.setPreset(ch,{...preset,algorithm,feedback:algorithm});synth.noteOn(ch,48+ch*5);
+    at(701);synth.setOperator(ch,0,{multi:7,tl:35});at(1703);synth.setOperator(ch,3,{ssg:8+algorithm});
+    at(2801);synth.noteOn(ch,79);at(3901);synth.keyOff(ch);at(5101);synth.noteOn(ch,60);
+  });
+  for(let shape=0;shape<16;shape++)scenario(`additional SSG envelope ${shape} shared noise and retrigger`,({synth,at})=>{
+    for(let ch=0;ch<3;ch++)synth.ssg.tone(ch,{frequency:233+ch*157,volume:15,envelope:true});
+    synth.ssg.setEnvelope({period:23,shape});synth.ssg.noise(1,{period:7,volume:15,envelope:true});
+    at(1703);synth.ssg.setEnvelope({period:53,shape});at(3301);synth.ssg.setEnvelope({period:0,shape:shape^4});at(5101);synth.ssg.setEnvelope({period:11,shape});
+  });
+  for(const mode of[5,10,15,0x45,0x85,0xcf])scenario(`additional timer/status/IRQ and CH3 mode ${mode}`,({synth,at})=>{
+    fm(synth,2,60);synth.write(0,0x24,255);synth.write(0,0x25,3);synth.write(0,0x26,253);synth.write(0,0x27,mode);
+    at(701);synth.write(0,0x27,0x30);at(1703);synth.write(0,0x27,mode);at(2801);synth.write(0,0x1c,0x80);at(3901);synth.write(0,0x24,249);at(5101);synth.write(0,0x27,0);
+  });
+  scenario('additional sparse ROM cross-page transfers and two banks at high addresses',({synth,at,add})=>{
+    a(synth,0xff00);b(synth,0x1ff00);at(701);add('rom',0,0x10000,encodedA);synth.adpcmA.keyOn([0,1,2]);
+    at(1703);add('rom',1,0x20000,encoded.map(v=>v^0x88));at(2801);a(synth,0xfefe00);b(synth,0xfeff00);
+    at(3901);synth.adpcmB.setPan(false,true);at(5101);synth.adpcmA.keyOn([4,5]);
+  });
+  scenario('additional reset clears held stereo and fractional phase at slow clock while retaining sparse banks',({synth,at,add})=>{
+    fm(synth);synth.ssg.tone(1,{frequency:330,volume:13});a(synth);b(synth);add('clock',100000);
+    at(701);add('reset');at(702);synth.ssg.tone(2,{frequency:440,volume:15});at(1703);add('reset');at(2801);fm(synth,5,72);
+    at(3901);add('reset');at(5101);add('clock',8000000);a(synth);b(synth);
+  });
+}
+const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:extra?'Actual deployed additional playground_opn_worklet.js YM2610 four-FM variant with WASM, status/IRQ/four read ports':'Actual deployed YM2610/YM2610B WASM plus Ym2610BAudioEngine',
+  wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,variants:extra?['YM2610']:['YM2610','YM2610B'],cases:[],maximumDifference:0,totalStereoFrames:0,
   limits:'Offline core/output-rate comparison. Native scheduling, ownership, cancellation and UI IPC are validated separately. Stop gate/control retention, status/IRQ/end flags and zero callback allocations are asserted in the C++ fixture self-test. Chip reset preserves ROM like Synth.reset(), whereas the VGM AudioEngine.reset() explicitly clears ROM.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2610b-'));fixture=path.join(temporary,'fixture');
     execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),
       path.join(project,'src/native_genesis_ym2610b.cpp'),path.join(project,'src/native_genesis_ym2610b_fixture.cpp'),
       ...['ymfm_opn.cpp','ymfm_ssg.cpp','ymfm_adpcm.cpp'].map(n=>path.join(project,'native-genesis',n)),'-o',fixture],{stdio:'pipe'});}
-  report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
-  for(const variant of [false,true])for(const rate of rates)for(const scenario of scenarios){
+  report.selfTest=execFileSync(fixture,[...fixtureProfile,'--self-test'],{encoding:'utf8'}).trim();
+  for(const variant of extra?[false]:[false,true])for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
     const input=events.map(({frame,op,args})=>`${frame} ${op}${args.length?' '+(op==='rom'?args[0]+' '+args[1]+' '+Buffer.from(args[2]).toString('hex'):args.join(' ')):''}`).join('\n')+'\n';
-    const bytes=execFileSync(fixture,[String(rate),String(scenario.frames),String(Number(variant))],{input,maxBuffer:scenario.frames*8+1048576,timeout:30000});
-    assert.equal(bytes.length,scenario.frames*8);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
-    const engine=await Ym2610BAudioEngine.create({moduleFactory:async()=>module,outputSampleRate:rate,variant});
+    const bytes=execFileSync(fixture,[...fixtureProfile,String(rate),String(scenario.frames),String(Number(variant))],{input,maxBuffer:scenario.frames*planes*4+1048576,timeout:30000});
+    assert.equal(bytes.length,scenario.frames*planes*4);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
+    let reference,engine;
+    if(extra){
+      globalThis.sampleRate=rate;const ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
+      reference=new Processor({processorOptions:{name:'ym2610',wasmBinary}});await ready;
+      engine={chip:reference.chip,
+        writeYm2610B:(...args)=>reference.apply({method:'write',args},reference.port),
+        loadAdpcmRom:(type,bytes,offset,size)=>bytes.length?reference.apply({method:'memory',args:[type,bytes,offset]},reference.port):reference.chip.loadAdpcmRom(type,bytes,offset,size),
+        process:(left,right)=>reference.process([],[[left,right]]),
+        set chipSampleRate(value){reference.rate=value;},set remainder(value){reference.remainder=value;},set lastLeft(value){reference.left=value;},set lastRight(value){reference.right=value;},
+        dispose:()=>reference.dispose()};
+    }else engine=await Ym2610BAudioEngine.create({moduleFactory:async()=>module,outputSampleRate:rate,variant});
     let next=0,maximumDifference=0,peak=0,first;
     const left=new Float32Array(1),right=new Float32Array(1);
     const off=voice=>{if(voice<6)engine.writeYm2610B(0,0x28,voice<3?voice:voice+1);else if(voice<9)engine.writeYm2610B(0,8+voice-6,0);else if(voice<15)engine.writeYm2610B(1,0,0x80|(1<<(voice-9)));else engine.writeYm2610B(0,0x10,1);};
@@ -121,9 +165,12 @@ try{
         else if(op==='reset'||op==='stop'){engine.chip.reset();engine.remainder=0;engine.lastLeft=engine.lastRight=0;}
         else if(op==='off')off(args[0]);else throw Error(op);
       }
+      if(extra)globalThis.currentFrame=frame;
       engine.process(left,right,1);
-      for(let ch=0;ch<2;ch++){const expected=ch?right[0]:left[0],value=actual[frame*2+ch];assert(Number.isFinite(value));const difference=Math.abs(value-expected);
-        if(difference&&!first)first={frame,ch,native:value,wasm:expected};maximumDifference=Math.max(maximumDifference,difference);peak=Math.max(peak,Math.abs(value));}
+      const expectedValues=[left[0],right[0]];
+      if(extra){expectedValues.push(engine.chip.readStatus(),engine.chip.readStatusHi(),Number(engine.chip.getIrq()));for(let port=0;port<4;port++)expectedValues.push(engine.chip.read(port));}
+      for(let ch=0;ch<planes;ch++){const expected=expectedValues[ch],value=actual[frame*planes+ch];assert(Number.isFinite(value));const difference=Math.abs(value-expected);
+        if(difference&&!first)first={frame,ch,native:value,wasm:expected};maximumDifference=Math.max(maximumDifference,difference);if(ch<2)peak=Math.max(peak,Math.abs(value));}
     }
     assert(maximumDifference<=1e-7,`${scenario.name} (${variant?'YM2610B':'YM2610'}) at ${rate}: difference ${maximumDifference}, ${JSON.stringify(first)}`);
     if(scenario.silentWithoutB&&!variant)assert.equal(peak,0);else assert(peak>1e-4,scenario.name+' must sound');
@@ -132,6 +179,6 @@ try{
     }finally{engine.dispose();}
   }
   report.status='passed';if(out)await fs.writeFile(out,JSON.stringify(report,null,2)+'\n');
-  console.log(`Native YM2610/YM2610B: ${report.cases.length} cases, ${report.totalStereoFrames} stereo frames, maximum difference ${report.maximumDifference}`);
+  console.log(`Native ${extra?'additional YM2610':'YM2610/YM2610B'}: ${report.cases.length} cases, ${report.totalStereoFrames} stereo frames, maximum difference ${report.maximumDifference}`);
   console.log(report.selfTest);
 }finally{if(temporary)await fs.rm(temporary,{recursive:true,force:true});}

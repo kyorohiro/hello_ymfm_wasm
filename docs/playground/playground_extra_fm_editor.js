@@ -1,6 +1,7 @@
-import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=native-extra-ym2608-1';
-import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=native-extra-ym2608-1';
-import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=native-extra-ym2608-1';
+import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=native-extra-ym2610-1';
+import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=native-extra-ym2610-1';
+import {createPlaygroundOpnbSampleEditor} from './playground_opnb_sample_editor.js?v=native-extra-ym2610-1';
+import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=native-extra-ym2610-1';
 
 /** Reuse the OPN editor for connected additional FM instances. Reads happen on
  * selection, visible state notifications and explicit Refresh; no polling. */
@@ -14,7 +15,7 @@ export function createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,pr
   toolbar.append(label,refreshButton,status);root.prepend(toolbar);
   const extraRoot=doc.createElement('div');extraRoot.dataset.extraFmEditor='';extraRoot.hidden=true;root.append(extraRoot);
   let disposed=false,visible=false,selected='',kind='ym2612',editor=null,ssgEditor=null,sampleEditor=null,section='fm',source=null,connection=null,version=0,reading=null,signature='',editState={count:0,revision:0};
-  const channelCount=()=>kind==='ym2203'?3:6;
+  const channelCount=()=>kind==='ym2203'?3:kind==='ym2610'?4:6;
   const presetOptions=new Map();
   function current(id=selected,s=source,c=connection,v=version){
     try{return !disposed&&selected===id&&source===s&&version===v&&getInspector()===s&&s?.getConnectionToken(id)===c;}
@@ -35,7 +36,7 @@ export function createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,pr
     if(kind!=='ym2203')editor.syncLfo(fm.lfo.enabled,fm.lfo.frequency);
     if(kind==='ym2612')editor.syncDacEnabled(Boolean(snapshot.registers[0][0x2b]&128));
     editor.syncChannel3SpecialMode(Boolean(snapshot.registers[0][0x27]&64));
-    for(const [op,pitch]of (fm.channels[2].specialFrequencies??[]).entries())editor.syncChannel3SpecialFrequency(op,pitch.block,pitch.fnum);
+    for(const [op,pitch]of (fm.channels[kind==='ym2610'?1:2].specialFrequencies??[]).entries())editor.syncChannel3SpecialFrequency(op,pitch.block,pitch.fnum);
     ssgEditor?.update(snapshot);
     sampleEditor?.update(snapshot);
   }
@@ -58,6 +59,7 @@ export function createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,pr
     try{connection=id?source.getConnectionToken(id):null;kind=source.list().find(entry=>entry.id===id)?.kind??'ym2612';}
     catch{selected=id='';connection=null;}
     if(id){
+      if(kind==='ym2610'){const note=doc.createElement('p');note.className='subtext';note.textContent='FM 1–4 map to hardware channels 2, 3, 5, 6. CH3SP controls FM 2.';extraRoot.append(note);}
       const fmRoot=doc.createElement('div');extraRoot.append(fmRoot);
       editor=createPlaygroundOperatorTab({root:fmRoot,presets,presetOrder,channelCount:channelCount(),supportsDac:kind==='ym2612',idPrefix:'extraFm-',onStatus});
       for(const [key,label]of presetOptions)editor.registerPresetOption(key,label);
@@ -66,20 +68,20 @@ export function createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,pr
         'setChannel3SpecialFrequency','setFrequency'].map(method=>[method,(...args)=>{void edit(method,args,target);} ]));
       if(kind==='ym2203'){facade.supportsPan=false;facade.supportsLfo=false;}
       editor.attachSynth(facade);
-      if(kind==='ym2203'||kind==='ym2608'){
+      if(['ym2203','ym2608','ym2610'].includes(kind)){
         const ssgRoot=doc.createElement('div');extraRoot.append(ssgRoot);
         ssgEditor=createPlaygroundOpnSsgEditor({root:ssgRoot,onEdit:(method,args)=>{void edit(method,args,target);},onTargetChange:()=>{if(current(target.id,target.s,target.c,target.v)){section='ssg';publishTarget();}}});
       }
-      if(kind==='ym2608'){
+      if(kind==='ym2608'||kind==='ym2610'){
         const sampleRoot=doc.createElement('div');extraRoot.append(sampleRoot);
-        sampleEditor=createPlaygroundOpnaSampleEditor({root:sampleRoot,onEdit:(method,args)=>{void edit(method,args,target);},onTargetChange:()=>{if(current(target.id,target.s,target.c,target.v)){section='sample';publishTarget();}}});
+        sampleEditor=(kind==='ym2610'?createPlaygroundOpnbSampleEditor:createPlaygroundOpnaSampleEditor)({root:sampleRoot,onEdit:(method,args)=>{void edit(method,args,target);},onTargetChange:()=>{if(current(target.id,target.s,target.c,target.v)){section='sample';publishTarget();}}});
       }
     }
     select.value=id;visibility();void refresh();
   }
   function update(){
     if(disposed)return;
-    const s=getInspector(),entries=(s?.list()??[]).filter(entry=>['ym2612','ym2203','ym2608'].includes(entry.kind)&&entry.additional===true&&entry.connected!==false)
+    const s=getInspector(),entries=(s?.list()??[]).filter(entry=>['ym2612','ym2203','ym2608','ym2610'].includes(entry.kind)&&entry.additional===true&&entry.connected!==false)
       .flatMap(entry=>{try{return [{...entry,connection:s.getConnectionToken(entry.id)}];}catch{return [];}});
     const next=JSON.stringify(entries.map(entry=>[entry.id,entry.kind,entry.connection]));
     onAvailability(Boolean(entries.length));
@@ -95,7 +97,7 @@ export function createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,pr
     if(visible&&!editState.count)void refresh();
   }
   select.addEventListener('change',()=>choose(select.value));refreshButton.addEventListener('click',()=>{void refresh();});
-  function selectSection(event){section=event.target?.closest?.('[data-extra-ssg-editor]')?'ssg':event.target?.closest?.('[data-extra-opna-editor]')?'sample':'fm';publishTarget();}
+  function selectSection(event){section=event.target?.closest?.('[data-extra-ssg-editor]')?'ssg':event.target?.closest?.('[data-extra-opna-editor], [data-extra-opnb-editor]')?'sample':'fm';publishTarget();}
   extraRoot.addEventListener('change',selectSection);extraRoot.addEventListener('click',selectSection);
   const unsubscribe=getInspector()?.subscribe(update);update();
   return {

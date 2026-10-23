@@ -282,7 +282,7 @@ test('more than 32 Main Stop and Run cycles reuse noise slots and old handles ca
 
 
 test('aggregate additional-chip budget rejection preserves the engine across all kinds and mixed primary batches',async()=>{
-  const kinds=['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608'];
+  const kinds=['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610'];
   for(const types of [...kinds.map(kind=>[kind]),[...kinds,'write']]){
     for(const asString of [false,true]){
       let reject=false;

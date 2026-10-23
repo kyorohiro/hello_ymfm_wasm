@@ -1,10 +1,10 @@
-import {YM2203Synth} from './ym2203synth.js?v=native-extra-ym2608-1';
+import {YM2203Synth} from './ym2203synth.js?v=native-extra-ym2610-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=audio-numeric-bindings-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-msx-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-ym2608-1';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=native-extra-ym2608-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-extra-ym2610-1';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=native-extra-ym2610-1';
 
 export const EXTRA_YM2203_CLOCK_HELD_ERROR='Release the manually held additional YM2203 voices before changing the clock';
 export const EXTRA_YM2203_SCHEDULE_BUSY_ERROR='Native YM2203 schedule already playing or pending';

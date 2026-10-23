@@ -12,6 +12,7 @@ const {installExtraPsgMock,runExtraPsg}=require('./native_backend_extra_psg.cjs'
 const {installExtraYm2612Mock,runExtraYm2612}=require('./native_backend_extra_ym2612.cjs');
 const {installExtraYm2203Mock,runExtraYm2203}=require('./native_backend_extra_ym2203.cjs');
 const {installExtraYm2608Mock,runExtraYm2608}=require('./native_backend_extra_ym2608.cjs');
+const {installExtraYm2610Mock,runExtraYm2610}=require('./native_backend_extra_ym2610.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -273,7 +274,7 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
-      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608'].includes(entry.type));
+      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
       if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
@@ -2321,7 +2322,8 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const extraYm2612Only=process.argv.includes('--extra-ym2612-only');
     const extraYm2203Only=process.argv.includes('--extra-ym2203-only');
     const extraYm2608Only=process.argv.includes('--extra-ym2608-only');
-    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only;
+    const extraYm2610Only=process.argv.includes('--extra-ym2610-only');
+    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only;
     if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
     if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
@@ -2336,10 +2338,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
-    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only)installExtraPsgMock(native);
-    if(extraYm2612Only||extraYm2203Only||extraYm2608Only)installExtraYm2612Mock(native);
-    if(extraYm2203Only||extraYm2608Only)installExtraYm2203Mock(native);
-    if(extraYm2608Only)installExtraYm2608Mock(native);
+    if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only)installExtraPsgMock(native);
+    if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only)installExtraYm2612Mock(native);
+    if(extraYm2203Only||extraYm2608Only||extraYm2610Only)installExtraYm2203Mock(native);
+    if(extraYm2608Only||extraYm2610Only)installExtraYm2608Mock(native);
+    if(extraYm2610Only)installExtraYm2610Mock(native);
     const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
@@ -2355,6 +2358,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
       await page.goto(nativeUrl.href);await ready(page);
       assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(extraYm2610Only){
+        await runExtraYm2610({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS independent Native YM2610/2608/2203/2612/PSG Main/Worker, sparse A/B ROM, FM4/SSG/ADPCM editors/Keyboard/Mixer, Stop/Run and replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+      }
       if(extraYm2608Only){
         await runExtraYm2608({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
         assert.deepEqual(errors,[]);await context.close();

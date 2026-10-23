@@ -44,7 +44,7 @@ function installExtraYm2612Mock(native){
       assert(Number.isSafeInteger(args.instance)&&args.instance>0);
       if(command==='native_genesis_extra_ym2612_create'){
         assert(!native.extraYm2612.has(args.instance)&&!native.extraPsg.has(args.instance)&&!native.extraYm2203?.has(args.instance)&&!native.extraYm2608?.has(args.instance));
-        assert(native.extraYm2612.size+native.extraPsg.size+(native.extraYm2203?.size??0)+(native.extraYm2608?.size??0)<16);const s=fresh();
+        assert(native.extraYm2612.size+native.extraPsg.size+(native.extraYm2203?.size??0)+(native.extraYm2608?.size??0)+(native.extraYm2610?.size??0)<16);const s=fresh();
         native.extraYm2612.set(args.instance,s);return snapshot(s);
       }
       if(command==='native_genesis_extra_ym2612_dispose'){native.extraYm2612.delete(args.instance);return null;}
