@@ -16,7 +16,7 @@ import { SegaPSG } from './segapsg.js?v=audio-numeric-bindings-1';
 export class Ym2413AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym2413ModuleFactory: import('./soundchip.js?v=native-extra-ym2610-1').WasmModuleFactory, ym2413ModuleOptions?: import('./soundchip.js?v=native-extra-ym2610-1').WasmModuleOptions, ym2413Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=native-extra-ym2610-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym2413ModuleFactory: import('./soundchip.js?v=native-extra-ym2151-1').WasmModuleFactory, ym2413ModuleOptions?: import('./soundchip.js?v=native-extra-ym2151-1').WasmModuleOptions, ym2413Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=native-extra-ym2151-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym2413AudioEngine>} Initialized engine owned by the caller.

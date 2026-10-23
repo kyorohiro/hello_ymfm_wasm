@@ -41,10 +41,23 @@ for (const kind of OPL_KINDS) nativePanels[kind] = options => createPlaygroundOp
 const finiteText = (value, digits = 0) => Number.isFinite(value) ? Number(value.toFixed(digits)).toString() : '—';
 const hex = value => Number.isInteger(value) ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : '—';
 
+/** Reveal extra chip tabs from connection metadata; never read or create audio. */
+export function createPlaygroundAdditionalChipTabAvailability({getInspector,kinds,primaryKinds=[],onAvailability}) {
+  let disposed=false,source=null,unsubscribe=null;const previous=new Map(),primary=new Set(primaryKinds);
+  function refresh(){
+    if(disposed)return;const next=getInspector?.();
+    if(next!==source){unsubscribe?.();source=next;unsubscribe=source?.subscribe?.(refresh);}
+    const entries=source?.list?.()??[];
+    for(const kind of kinds){const available=primary.has(kind)||entries.some(entry=>entry.kind===kind&&entry.additional===true&&entry.connected!==false);
+      if(previous.get(kind)!==available){previous.set(kind,available);onAvailability(kind,available);}}
+  }
+  refresh();return {refresh,dispose(){disposed=true;unsubscribe?.();unsubscribe=null;source=null;}};
+}
+
 export function createPlaygroundChipTabs({roots, getInspector, listFiles = () => [], readFile,
-  ensureAudioReady, onKeyboardTargetChange = () => {}, onAuditionTargetChange = () => {}, onError = () => {}, pollMs = 300}) {
+  ensureAudioReady, onKeyboardTargetChange = () => {}, onAuditionTargetChange = () => {}, onError = () => {}, pollMs = 300, eventDrivenAdditionalKinds = []}) {
   let visible = null, generation = 0, disposed = false, timer = null, inspector = null, unsubscribe = null;
-  const editors = new Map();
+  const editors = new Map(), eventDriven = new Set(eventDrivenAdditionalKinds);
   let keyboardEditor = null;
   let auditionSelection = '';
   const doc = Object.values(roots).find(Boolean)?.ownerDocument ?? globalThis.document;
@@ -59,6 +72,9 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     node.addEventListener('click', handler); return node;
   };
   const option = (value, text) => { const node = make('option', '', text); node.value = String(value); return node; };
+
+  const connectionFor=(source,id)=>id?source?.getConnectionToken?.(id)??null:null;
+  function currentConnection(source,id,connection){try{return getInspector?.()===source&&connectionFor(source,id)===connection;}catch{return false;}}
 
   function publishAuditionTarget() {
     const editor = editors.get(visible);
@@ -130,7 +146,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   function buildBase(kind, root) {
     root.classList.add('chip-editor');
     const toolbar = make('div', 'chip-editor-toolbar'); root.appendChild(toolbar);
-    const editor = {kind, root, id: '', snapshot: null, channel: 0, selectionVersion: 0};
+    const editor = {kind, root, id: '', connection: null, additional: false, snapshot: null, channel: 0, selectionVersion: 0};
     editor.instances = select(toolbar, 'Sound chip', 'instance', [], value => {
       detachNative(editor);
       editor.id = value; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; generation += 1; publishAuditionTarget(); refresh();
@@ -163,22 +179,23 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   }
   function buildNative(editor) {
     editor.update = snapshot => {
-      const source = getInspector?.(), id = editor.id;
-      if (editor.voiceSource !== source || editor.voiceId !== id) detachNative(editor);
+      const source = getInspector?.(), id = editor.id, connection=editor.connection, version=editor.selectionVersion;
+      if (editor.voiceSource !== source || editor.voiceId !== id || editor.voiceConnection !== connection) detachNative(editor);
       if (!editor.voicePanel) {
-        editor.voiceSource = source; editor.voiceId = id;
+        editor.voiceSource = source; editor.voiceId = id; editor.voiceConnection = connection;
+        const live=()=>!disposed&&editor.voiceSource===source&&editor.voiceId===id&&editor.selectionVersion===version&&currentConnection(source,id,connection);
         const invoke = async (method,args = []) => {
-          if (disposed || editor.voiceSource !== source || editor.voiceId !== id || getInspector?.() !== source) throw new DOMException('Sound chip changed','AbortError');
+          if (!live()) throw new DOMException('Sound chip changed','AbortError');
           const value = await source.invoke(id,method,args);
-          if (!disposed && editor.voiceSource === source && editor.voiceId === id) {editor.status.textContent = ''; delete editor.status.dataset.error;}
-          if (!disposed && editor.voiceSource === source && editor.voiceId === id && visible === editor.kind) void refresh();
+          if (live()) {editor.status.textContent = ''; delete editor.status.dataset.error;}
+          if (live() && visible === editor.kind) void refresh();
           return value;
         };
         const loadSample = async (input, options = {}) => {
-          if (disposed || editor.voiceSource !== source || editor.voiceId !== id || getInspector?.() !== source) throw new DOMException('Sound chip changed','AbortError');
+          if (!live()) throw new DOMException('Sound chip changed','AbortError');
           options.signal?.throwIfAborted();
           const result = await source.loadSample(id,input,options);
-          if (!disposed && editor.voiceSource === source && editor.voiceId === id && visible === editor.kind) void refresh();
+          if (live() && visible === editor.kind) void refresh();
           return result;
         };
         const factory = nativePanels[editor.kind];
@@ -448,6 +465,8 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   function cancelTimer() { if (timer !== null) clearTimeout(timer); timer = null; }
   function schedule() {
     cancelTimer();
+    const editor=editors.get(visible);
+    if(editor?.additional&&eventDriven.has(visible))return;
     if (!disposed && visible && !doc.hidden) timer = setTimeout(() => { timer = null; refresh(); }, pollMs);
   }
   async function refresh() {
@@ -458,6 +477,9 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
     const list = source?.list?.() ?? [];
     const matches = list.filter(entry => entry.kind === visible && entry.connected !== false);
     if (!matches.some(entry => entry.id === editor.id)) { detachNative(editor); editor.id = matches[0]?.id ?? ''; editor.snapshot = null; editor.selectionVersion += 1; delete editor.status.dataset.error; editor.status.textContent = ''; }
+    let resolvedConnection;try{resolvedConnection=connectionFor(source,editor.id);}catch{resolvedConnection=undefined;}
+    if(editor.connection!==resolvedConnection){detachNative(editor);editor.connection=resolvedConnection;editor.snapshot=null;editor.selectionVersion+=1;}
+    editor.additional=matches.find(entry=>entry.id===editor.id)?.additional===true;
     publishAuditionTarget();
     syncOptions(editor.instances, matches.length ? matches.map(entry => [entry.id, entry.label || entry.id]) : [['', 'No connected instance']], editor.id);
     editor.instances.disabled = !matches.length; editor.body.disabled = !editor.id || !editor.snapshot;
@@ -465,16 +487,16 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
       editor.status.textContent = nativePanels[editor.kind] ? 'Prepare audio to inspect and play this mode’s sound chip, or Run your code.' : 'No connected instance. Run code that uses this sound chip first.';
       schedule(); return;
     }
-    const id = editor.id;
+    const id = editor.id, connection=editor.connection;
     try {
       const snapshot = await source.read(id);
-      if (disposed || doc.hidden || token !== generation || visible !== editor.kind || editor.id !== id || getInspector?.() !== source) return;
+      if (disposed || doc.hidden || token !== generation || visible !== editor.kind || editor.id !== id || !currentConnection(source,id,connection)) return;
       editor.snapshot = snapshot; editor.body.disabled = false;
       if (!editor.status.dataset.error && /^(No connected|Prepare audio)/.test(editor.status.textContent)) editor.status.textContent = '';
       editor.update(snapshot);
       publishAuditionTarget();
     } catch (e) {
-      if (!disposed && !doc.hidden && token === generation && visible === editor.kind && editor.id === id) { editor.body.disabled = true; editor.voicePanel?.setConnected(false); error(editor, e); }
+      if (!disposed && !doc.hidden && token === generation && visible === editor.kind && editor.id === id && currentConnection(source,id,connection)) { editor.body.disabled = true; editor.voicePanel?.setConnected(false); error(editor, e); }
     } finally { if (!disposed && token === generation && visible === editor.kind) schedule(); }
   }
   function visibilityChanged() {

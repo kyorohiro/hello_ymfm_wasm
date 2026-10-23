@@ -2,7 +2,7 @@ import {noteToHz, opmPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 /** Independent OPM client. Operator indices follow register order M1, C1, M2, C2. */
 /** @param {MessagePort} port */
-export function createYm2151Client(port) {
+export function createYm2151RegisterClient(transportSend,{clock=CHIP_CLOCKS.ym2151,close=()=>{}}={}) {
   let disposed = false;
   const registers = new Uint8Array(256);
   const integer = (value, max, label) => {
@@ -12,7 +12,7 @@ export function createYm2151Client(port) {
   const channel = ch => integer(ch, 7, 'YM2151 channel');
   const send = (method, args = []) => {
     if (disposed) throw new Error('YM2151 disposed');
-    port.postMessage({method, args});
+    transportSend(method,args);
   };
   const writeRegister = (register, value) => {
     integer(register, 255, 'Register'); integer(value, 255, 'Value');
@@ -63,7 +63,22 @@ export function createYm2151Client(port) {
     _stopVoices() {return client._requestControl('stopVoices').then(()=>{});},
     allNotesOff() {send('allNotesOff');},
     setNoise(enabled, frequency = 0) { integer(frequency, 31, 'Noise frequency'); writeRegister(15, (enabled ? 128 : 0) | frequency); },
-    dispose() { if (disposed) return; send('dispose'); disposed = true; port.close(); },
+    dispose() { if (disposed) return; send('dispose'); disposed = true; close(); },
   };
-  return attachChipClock(client, port, CHIP_CLOCKS.ym2151);
+  Object.defineProperty(client,'clock',{value:clock,writable:true,configurable:true,enumerable:true});
+  return client;
+}
+
+/** The public port facade and Native endpoint share the same register authoring. */
+export function createYm2151Client(port,options={},lifecycle={}) {
+  const client=createYm2151RegisterClient((method,args)=>port.postMessage({method,args}),{close:()=>port.close()});
+  const result=attachChipClock(client,port,options.clock??CHIP_CLOCKS.ym2151);
+  if(options.native){
+    result._adoptState(options.state);
+    const setClock=result.setClock.bind(result);let disposed=false;
+    const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{if(disposed||lifecycle.isStopped?.(context))throw new Error('Run stopped');lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
+    result.setClock=hz=>{const context=lifecycle.captureContext?.();return setClock(hz).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
+    const dispose=result.dispose.bind(result);result.dispose=()=>{disposed=true;dispose();};
+  }
+  return result;
 }

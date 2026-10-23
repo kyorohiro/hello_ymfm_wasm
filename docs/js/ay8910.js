@@ -27,9 +27,9 @@ export class Ay8910 {
   /**
    * Initialize Ay8910 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
-   * @param {import("./soundchip.js?v=native-extra-ym2610-1").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.
-   * @param {import('./soundchip.js?v=native-extra-ym2610-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
-   * @param {import('./soundchip.js?v=native-extra-ym2610-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import("./soundchip.js?v=native-extra-ym2151-1").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.
+   * @param {import('./soundchip.js?v=native-extra-ym2151-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js?v=native-extra-ym2151-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {number} [options.clock] Input chip clock in Hz.
    * @param {number} [options.sampleRate=44100] Generated PCM frames per second.
    * @returns {Promise<Ay8910>} Ready-to-use chip; the caller must dispose it.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {createPlaygroundChipTabs, frequencyNote, rfSamplePosition, pwmRoutingControl} from './playground_chip_tabs.js';
+import {createPlaygroundChipTabs, createPlaygroundAdditionalChipTabAvailability, frequencyNote, rfSamplePosition, pwmRoutingControl} from './playground_chip_tabs.js';
 
 // Small DOM substitute for lifecycle tests. Rendering and input focus also receive browser coverage.
 class Element {
@@ -272,4 +272,25 @@ test('MSX AY editor prepares the shared environment and routes audition to its p
   await walk(roots.ay8910).find(node => node.dataset.chipChannel === '2').fire('click'); await walk(roots.ay8910).find(node => node.dataset.chipAction === 'ay-keyboard').fire('click');
   tabs.setVisible(null); const target = targets.at(-1); target.noteOn({id:'key',midi:69}); await flush(); assert.deepEqual(calls.at(-1).slice(0,2),['ay8910','auditionOn']); assert.equal(calls.at(-1)[2][0],2);
   target.noteOff({id:'key'}); await flush(); assert.equal(calls.at(-1)[1],'auditionOff'); tabs.dispose();
+});
+
+
+test('additional chip tab availability observes metadata only, preserves mode tabs and releases subscriptions',async()=>{
+  const listeners=new Set(),calls=[];let entries=[],reads=0,unsubscribed=0;
+  const inspector={list:()=>entries,read(){reads++;},subscribe(fn){listeners.add(fn);return()=>{listeners.delete(fn);unsubscribed++;};}};
+  const watcher=createPlaygroundAdditionalChipTabAvailability({getInspector:()=>inspector,kinds:['ym2151','okim6258'],primaryKinds:['okim6258'],onAvailability:(...args)=>calls.push(args)});
+  assert.deepEqual(calls,[['ym2151',false],['okim6258',true]]);entries=[{id:'opm',kind:'ym2151',additional:true,connected:true}];for(const fn of listeners)fn();assert.deepEqual(calls.at(-1),['ym2151',true]);
+  for(const fn of listeners)fn();assert.equal(calls.length,3);entries=[{id:'retired',kind:'ym2151',additional:true,connected:false}];for(const fn of listeners)fn();assert.deepEqual(calls.at(-1),['ym2151',false]);assert.equal(reads,0);
+  watcher.dispose();assert.equal(unsubscribed,1);entries=[];watcher.refresh();assert.equal(calls.length,4);
+});
+
+test('additional YM2151 panels fence same-ID replacements and refresh from events without polling',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const listeners=new Set(),calls=[];let token=1,reads=0,pending;
+  const state=level=>({kind:'ym2151',clock:3579545,registers:Array(256).fill(0),channels:Array.from({length:8},(_,channel)=>({channel,frequency:440,algorithm:7,operators:Array.from({length:4},()=>({tl:level}))})),lfo:{},noise:{}});
+  const inspector={list:()=>[{id:'same',kind:'ym2151',additional:true}],getConnectionToken:()=>token,read:()=>{reads++;return pending?new Promise(resolve=>{pending=resolve;}):Promise.resolve(state(11));},invoke:async(...args)=>calls.push(args),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
+  const {tabs,roots}=fixture(inspector,{pollMs:10,eventDrivenAdditionalKinds:['ym2151']});tabs.setVisible('ym2151');await flush();const old=control(roots.ym2151,'ym2151-op-0-tl');assert.equal(old.value,'11');assert.equal(reads,1);
+  t.mock.timers.tick(1000);await flush();assert.equal(reads,1,'additional Native OPM adds no periodic status reads');
+  token=2;for(const fn of listeners)fn();await flush();const next=control(roots.ym2151,'ym2151-op-0-tl');assert.notEqual(next,old);old.value='7';await old.fire('change');assert.deepEqual(calls,[]);next.value='23';await next.fire('change');assert.equal(calls.at(-1)[0],'same');assert.equal(calls.at(-1)[1],'setOperator');
+  pending=true;const reading=tabs.refresh();await flush();const finish=pending;token=3;pending=null;for(const fn of listeners)fn();await flush();finish(state(99));await reading;assert.equal(control(roots.ym2151,'ym2151-op-0-tl').value,'11','late old snapshot cannot replace new-instance values');tabs.dispose();
 });
