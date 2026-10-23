@@ -3,7 +3,7 @@ import {createSpcEventDecoder} from './spc_events.js?v=spc-events-1';
 const abortError = () => new DOMException('SPC player disposed or operation cancelled', 'AbortError');
 const TIMEOUT_MS = 15000;
 export function createSpcClient(port, initial = {}, {
-  getOwner = () => null, captureContext = () => null, restoreContext = () => {}, invokeEvent = (fn,event) => fn(event),
+  getOwner = () => null, captureContext = () => null, restoreContext = () => {}, invokeEvent = (fn,event) => fn(event),isStopped=()=>false,
 } = {}) {
   let disposed = false, sequence = 0, loadToken = 0, seekToken = 0;
   let seekResume;
@@ -15,6 +15,7 @@ export function createSpcClient(port, initial = {}, {
     for (const event of events) for (const listener of [...listeners]) {
       if (eventEpoch !== epoch) return;
       if (disposed || !listeners.has(listener)) continue;
+      if(initial.native&&isStopped(listener.context)){listeners.delete(listener);continue;}
       if (event.type !== 'overflow' && ((event.channel !== undefined && listener.voices && !listener.voices.has(event.channel)) || (listener.types && !listener.types.has(event.type)))) continue;
       const previousContext = captureContext();
       try {restoreContext(listener.context); Promise.resolve(invokeEvent(listener.callback,event)).catch(error => console.error('[SPC onEvent]', error));}
@@ -31,18 +32,24 @@ export function createSpcClient(port, initial = {}, {
       if (!disposed && listeners.size && error.name !== 'AbortError') dispatch([{type:'overflow',clock:0,droppedWrites:0,message:`SPC observation unavailable: ${error.message}`}]);
     });
   }
-  const assertOpen = () => {if (disposed) throw abortError();};
+  function pruneStoppedListeners(){if(!initial.native)return;let changed=false;for(const listener of listeners)if(isStopped(listener.context)){listeners.delete(listener);changed=true;}if(changed)configureObservation();}
+  function cancelContext(matches){
+    if(!initial.native)return;let changed=false;for(const listener of listeners)if(matches(listener.context)){listeners.delete(listener);changed=true;}
+    for(const [id,task]of pending)if(matches(task.context)){clearTimeout(task.timer);pending.delete(id);task.reject(abortError());}
+    if(changed)configureObservation();
+  }
+  const assertOpen = () => {if (disposed||initial.native&&isStopped(captureContext())) throw abortError();};
   function request(method, args = [], transfer = []) {
-    assertOpen();
+    const observing=initial.native&&method==='observe';if(observing){if(disposed)throw abortError();}else assertOpen();
     const id = ++sequence;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(id); reject(new Error('SPC AudioWorklet did not respond')); client.dispose();
       }, TIMEOUT_MS);
-      timer.unref?.(); pending.set(id, {resolve, reject, timer, context:captureContext()});
+      timer.unref?.(); pending.set(id, {resolve, reject, timer, context:observing?null:captureContext()});
       try {
-        const owner = getOwner();
-        port.postMessage({method, args, id, spcEventEpoch:eventEpoch, ...(owner ? {spcPerformance:owner} : {})}, transfer);
+        const owner = observing?null:getOwner();
+        port.postMessage({method, args, id, spcEventEpoch:eventEpoch, ...(owner ? {spcPerformance:owner} : {}),...(observing?{nativeSpcObservation:true}:{})}, transfer);
       }
       catch (error) {clearTimeout(timer); pending.delete(id); reject(error);}
     });
@@ -50,6 +57,10 @@ export function createSpcClient(port, initial = {}, {
   port.onmessage = ({data}) => {
     if (disposed) return;
     if (data.fatal) {client.dispose(); return;}
+    if(data.type?.startsWith('spc-events'))pruneStoppedListeners();
+    if(data.type==='spc-events-unavailable'){
+      if(data.epoch===eventEpoch&&listeners.size){decoder=null;dispatch([{type:'overflow',clock:0,droppedWrites:0,message:`SPC observation unavailable: ${data.error}`}]);}return;
+    }
     if (data.type === 'spc-events-reset') {
       if (data.epoch === eventEpoch && listeners.size) decoder = createSpcEventDecoder({dsp:data.dsp,startClock:data.clock});
       return;
@@ -71,12 +82,13 @@ export function createSpcClient(port, initial = {}, {
     }
     const task = pending.get(data.id); if (!task) return;
     clearTimeout(task.timer); pending.delete(data.id);
-    restoreContext(task.context);
-    if (data.error) {const error = new Error(data.error); if (data.name) error.name = data.name; task.reject(error);}
-    else task.resolve(data.value);
+    const finish=()=>{if(disposed||initial.native&&isStopped(task.context)){task.reject(abortError());return;}restoreContext(task.context);if(data.error){const error=new Error(data.error);if(data.name)error.name=data.name;task.reject(error);}else task.resolve(data.value);};
+    if(initial.native)setTimeout(finish,0);else finish();
   };
   port.onmessageerror = () => client.dispose(); port.start?.();
   const client = {
+    _cancelContext:context=>cancelContext(value=>value===context),
+    _cancelPerformanceOwner:owner=>cancelContext(value=>value?.performanceOwner===owner),
     sampleRate: initial.sampleRate ?? 48000,
     nativeSampleRate: 32000,
     async loadSPC(input) {
@@ -138,7 +150,7 @@ export function createSpcClient(port, initial = {}, {
     dispose() {
       if (disposed) return; disposed = true; ++loadToken; ++seekToken; seekResume = undefined;
       fenceEvents(); listeners.clear();
-      try {port.postMessage({method: 'dispose', args: []});} catch {}
+      try {port.postMessage({method: 'dispose', args: [],...(initial.native?{nativeSpcCleanup:true}:{})});} catch {}
       for (const task of pending.values()) {clearTimeout(task.timer); task.reject(abortError());}
       pending.clear(); port.onmessage = null; port.onmessageerror = null; port.close();
     },

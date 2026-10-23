@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-snes-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-extra-spc-1';
 /** Browser setup shared by Playground and MegaSynth. PCM generation stays in the Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
@@ -22,7 +22,7 @@ export async function createRf5c164Audio(context, destination, options = {}) {
         if (!response.ok) throw new Error(`RF5C164 HTTP ${response.status}`);
         return response.arrayBuffer();
       }),
-    context.audioWorklet.addModule(options.workletUrl ?? new URL('./rf5c164-worklet.js?v=native-extra-snes-1', import.meta.url)),
+    context.audioWorklet.addModule(options.workletUrl ?? new URL('./rf5c164-worklet.js?v=native-extra-spc-1', import.meta.url)),
   ]));
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-rf5c164', {

@@ -56,7 +56,15 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
     };
     // Return observation storage even after an owner is cancelled. This carries
     // no audio command; the SPC Worklet checks its epoch/sequence separately.
-    if (kind === 'spc' && data?.method === 'eventAck') {port.postMessage(data,transfer); return;}
+    if (kind === 'spc' && (data?.method === 'eventAck'||data?.method==='dispose'&&data.nativeSpcCleanup===true||data?.method==='observe'&&data.nativeSpcObservation===true)) {port.postMessage(data,transfer); return;}
+    // SPC has its own song clock, including calls from a musical Keyboard
+    // callback. Preserve the owner without adding a nativePerformance wrapper.
+    if(kind==='spc'){
+      if(Array.isArray(data))throw new TypeError('SPC controls must be individual commands');
+      const loop=getLoop(),owner=loop?.keyboard?'keyboard':loop?.performanceOwner??'script';
+      if(stopped||loop?.stopped||canceled.has(owner)){if(data.id!==undefined)throw new DOMException('Run stopped','AbortError');return;}
+      port.postMessage(configuration?{...data,spcPerformance:{session:configuration.session,owner}}:data,transfer);return;
+    }
     const interactive = getLoop();
     if (interactive?.keyboard) {
       if (interactive.stopped) throw new DOMException('Run stopped','AbortError');
@@ -71,13 +79,6 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
       // Worklet owner cancellation releases only that owner's audible voices.
       // A late finally must not release a newer performance's replacement note.
       if (commands.some(command => command.id !== undefined)) throw new DOMException('Run stopped', 'AbortError');
-      return;
-    }
-    // An SPC runs its own song driver. Keep its transport immediate while still
-    // carrying the lease used by Stop and live-loop owner cancellation.
-    if (kind === 'spc') {
-      if (Array.isArray(data)) throw new TypeError('SPC controls must be individual commands');
-      port.postMessage({...data, spcPerformance: {session:configuration.session, owner}}, transfer);
       return;
     }
     const {time} = timestamp();

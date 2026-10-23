@@ -1824,13 +1824,14 @@ declare function createSoundChip(name: 'dx7', options?: PlaygroundCreateSoundChi
 /** Independent CPU-free S-DSP with separate RAM and eight physical voices.
  * Native also supports BRR instruments and captured timelines within the shared 16-instance / 64 MiB budget. */
 declare function createSoundChip(name:'snes', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSnes & {readonly id:string}>;
-/** Independent SPC file player; use 'snes' for BRR instrument programming. */
+/** Independent SPC file player; use 'snes' for BRR instrument programming.
+ * Native supports SPC700 playback, seek, snapshots and DSP events within the shared 16-instance / 64 MiB budget. */
 declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSpc & {readonly id:string}>;
 
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends OPNFmChannel, Stereo extends boolean = true> = Omit<PlaygroundOPNFm<C, Stereo>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
-/** Native supports independent ymfm FM6/DAC-register chips; SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
+/** Native supports independent ymfm FM6/DAC-register chips; SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
 declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2, false> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 /** Native: independent FM3/SSG3 mono OPN, including completion-based 44100 Hz register schedules. Shares the 16-instance rack limit. */
@@ -1866,7 +1867,7 @@ type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
 type PlaygroundPrimaryGameGearPsg = Omit<PlaygroundSegaPsg, 'dispose'> & PlaygroundChipClock & {readonly id: string};
 /** The Master System PSG has a mono output and no Game Gear stereo register. */
 type PlaygroundPrimaryMasterSystemPsg = Omit<PlaygroundPrimaryGameGearPsg, 'setStereo'>;
-/** Native SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
+/** Native SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
 declare function createSoundChip(name: 'segapsg', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundSegaPsg & PlaygroundChipClock & {readonly id: string}>;
 
 /** AY has three channels mixing tone and shared noise, plus one shared envelope. */

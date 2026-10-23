@@ -156,7 +156,7 @@ test('native inspector audition identities fence stale FM and PSG key releases',
   await f.synth.close();
 });
 
-test('real Playground Main APIs run on the explicit native clock, borrow primary PSG, and reject unsupported additional PWM',async t=>{
+test('real Playground Main APIs run on the explicit native clock, borrow primary PSG, and reject unknown sound chip names',async t=>{
   const previous=globalThis.window;globalThis.window={setTimeout,addEventListener(){},removeEventListener(){}};
   const f=fixture(),runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false});
   t.after(async()=>{await runtime.finalize();globalThis.window=previous;delete globalThis.nativeRuntimeResult;});
@@ -169,7 +169,7 @@ test('real Playground Main APIs run on the explicit native clock, borrow primary
   assert.deepEqual(globalThis.nativeRuntimeResult,{clock:7670454,psg:true});
   assert.ok(f.commands().some(c=>c.type==='write'&&c.register===0x28&&c.value===0xf0));
   assert.ok(f.commands().some(c=>c.type==='psg-write'));
-  await assert.rejects(runtime.playSource('await useSoundChip("spc");'),/Only additional Sega PSG/);
+  await assert.rejects(runtime.playSource('await useSoundChip("unsupported-chip");'),/Unsupported useSoundChip name/);
   await runtime.playSource('fx.setChain([fx.gain({gain:0.5})]);');
   assert.ok(f.calls.some(call=>call.command==='native_genesis_fx'&&call.args.message.op==='chain'));
   assert.equal(f.synth.capabilities.worker,true);assert.equal(f.synth.capabilities.dynamicSoundChips,false);assert.equal(f.synth.capabilities.noise,true);

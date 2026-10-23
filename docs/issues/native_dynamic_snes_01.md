@@ -2,7 +2,7 @@
 
 2026-10-24。[追加音源計画](todo_createSoundChip01.md)の`createSoundChip('snes')`対応。
 CPUを動かさない8声のS-DSP楽器と、取得済みDSP／RAM timelineを対象にする。
-SPC700を含む`createSoundChip('spc')`は別の作業。
+SPC700を含む`createSoundChip('spc')`は[別のファイル再生経路として対応](native_dynamic_spc_01.md)。
 
 ```js
 const voice = await createSoundChip('snes', {id:'brr-instrument'});
