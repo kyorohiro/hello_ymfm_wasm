@@ -15,12 +15,12 @@ import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindi
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=audio-stability-2';
-import {createOpnClient} from './playground_opn.js?v=native-extra-ym2203-1';
+import {createOpnClient} from './playground_opn.js?v=native-extra-ym2608-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
 import {createGameboyClient} from './playground_gameboy.js?v=audio-numeric-bindings-1';
-import {createYm2608Client} from './playground_ym2608.js?v=native-extra-ym2203-1';
+import {createYm2608Client} from './playground_ym2608.js?v=native-extra-ym2608-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=audio-numeric-bindings-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
@@ -34,7 +34,7 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=native-extra-ym2203-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=native-extra-ym2608-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -773,7 +773,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const pcm=name === 'spc' ? createSpcClient(port, response, {
         captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},
         invokeEvent:(callback,event)=>executeWithWorkerGuards(()=>callback(event)),
-      }) : ['huc6280','okim6258','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port,response) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port,response) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
+      }) : ['huc6280','okim6258','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port,response) : name === 'ym2151' ? createYm2151Client(port) : name === 'segapsg' ? createSegaPsgClient(port,response) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : createRf5c164Client(port,source=>request('pcm.decode',[source]));
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       if(Number.isSafeInteger(response.instance)&&response.instance>0)pcmInstances.set(pcm,response.instance);

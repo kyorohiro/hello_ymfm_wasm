@@ -86,6 +86,7 @@ native_genesis_segapsg.js
 native_genesis_extra_segapsg.js
 native_genesis_extra_ym2612.js
 native_genesis_extra_ym2203.js
+native_genesis_extra_ym2608.js
 opn_ssg_retained.js
 native_genesis_extra_chip.js
 native_genesis_game_gear.js

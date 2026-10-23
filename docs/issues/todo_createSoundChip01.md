@@ -1,7 +1,7 @@
 # Native版 createSoundChip() 対応計画
 
 2026-10-23。追加音源の対象と必要な作業を整理する。
-Sega PSG・YM2612・YM2203の追加生成まで実装済み。残りは今後の計画。
+Sega PSG・YM2612・YM2203・YM2608の追加生成まで実装済み。残りは今後の計画。
 
 ## 目的と範囲
 
@@ -33,10 +33,12 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加ラックをYM2612へ拡張し、同種2台＋PSG＋Mode主音源を併用する。
 - [x] 追加YM2612のMain／Worker、Mixer、Keyboard、OPN音色編集、個別破棄、Stop／再Runに対応する。
 - [x] 追加YM2203のFM 3CH＋SSG 3CH、共有noise／envelope、mono・prescaler、予約書込み、音色編集・Keyboardに対応する。
+- [x] 追加YM2608のFM 6CH＋SSG 3CH＋rhythm 6音色＋ADPCM-B、独立ROM／RAM、再利用可能timeline、編集・Keyboardに対応する。
+- [x] 対応済み4種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
 
-現在の上限は**PSG＋YM2612＋YM2203の合計16台**で、準備中・破棄待ちも含む。
-他のチップを追加する際の台数・メモリー予算は未決定。
-ROM・サンプルRAMを持つ音源は、台数と合計メモリー量の両方を制限する必要がある。
+現在の上限は**PSG＋YM2612＋YM2203＋YM2608の合計16台・64 MiB**。
+YM2608は1台ごとにRAM 2 MiB＋ROM 8 KiBを持つ。固定queue・管理余裕と転送・timelineも数える。
+IPCのJSON／DTO一時data・JS・decode・主音源・FXは別枠。全対象への予算展開と、実機の負荷上限の評価は継続する。
 
 ## 対象一覧
 
@@ -48,7 +50,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 | `segapsg` | 対応済み | 今後の共通化でも、独立したtone／noise・stereo・clockと回収を維持 |
 | `ym2612` | 対応済み | ymfmのFM 6CH＋DAC register、OPN API、CH3特殊／CSM、timer、clock、音色編集・試奏 |
 | `ym2203` | 対応済み | FM 3CH＋SSG 3CH、noise／envelope、mono、prescaler、`scheduleRegisters()`、音色編集・試奏 |
-| `ym2608` | 未対応・既存コアあり | FM 6CH＋SSG＋rhythm＋ADPCM-B。rhythm ROM・ADPCM RAM・転送・発音をインスタンスごとに分離 |
+| `ym2608` | 対応済み | FM 6CH＋SSG＋rhythm＋ADPCM-B、独立ROM／RAM、再利用timeline、編集・試奏、合計メモリー予算 |
 | `ym2610` | 未対応・既存コアあり | FM 4CH＋SSG＋ADPCM-A／B。A/B ROM、範囲・repeat・状態・clockを分離 |
 | `ym2151` | 未対応・複合から分離 | X68000用からOPM 8CHだけを生成。operator、LFO／noise、pan、clockを接続 |
 | `ym2413` | 未対応・共通コアあり | OPLL単独のwrapper。9CH、共有user patch、rhythm、mono出力を保持 |
@@ -85,22 +87,24 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
    異なるチップの併用・Main／Worker・Mixer・Keyboard・Inspector・回収を確認済み。
 2. **YM2203（完了）**：OPNの再利用、FMとSSGの複合出力、mono、prescaler、scheduleを確認した。
    Mainの通常writeと予約writeをNativeの所有者groupで追跡し、Workerの長時間予約取消しもイベントで完了待ちを解放する。
-3. **他の既存コア**：OPNのYM2608／YM2610、OPM／OPLL／AY／OPL、
+3. **YM2608（完了）**：FM／SSG／rhythm／ADPCM-B、ROM／RAM、再利用timelineを接続した。
+   4種類合計64 MiBの予算を用意し、準備・置換・取消し・退役の参照が残る間も予約を保持する。
+4. **他の既存コア**：OPNのYM2610、OPM／OPLL／AY／OPL、
    Game Boy／NES／PC Engine／DX7／PWMへ、利用頻度と単独化の容易さに応じて広げる。
-   ROM・サンプルを持つ音源へ進む前に、下記の合計メモリー予算を実装する。
-4. **サンプル・timelineを含む仕上げ**：RF5C164／OKIM6258／SNESを含め、
-   転送・置換・停止・失敗・timeline完了の扱いを揃える。手順3の音源も同じ条件で確認する。
-5. **SPCプレーヤー**：楽器用ラックの対応とは分けて、CPU実行とファイル再生の制御を設計する。
+   YM2608で実装した合計メモリー予算へ、新しい種類の固定確保と所有payloadを追加する。
+5. **サンプル・timelineを含む仕上げ**：RF5C164／OKIM6258／SNESを含め、
+   転送・置換・停止・失敗・timeline完了の扱いを揃える。手順4の音源も同じ条件で確認する。
+6. **SPCプレーヤー**：楽器用ラックの対応とは分けて、CPU実行とファイル再生の制御を設計する。
 
-手順3以降の細かな順番は暫定。1種類ごとに公開APIと検証を完結させる。
+手順4以降の細かな順番は暫定。1種類ごとに公開APIと検証を完結させる。
 
 ## 共通で必要な作業
 
-以下は全対象への完了条件。PSG／YM2612／YM2203では適用済みでも、他の種類への展開が残るものは未完了とする。
+以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608では適用済みでも、他の種類への展開が残るものは未完了とする。
 
 ### ラック・生成・寿命管理
 
-- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203も追加できる入口を作る。
+- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608も追加できる入口を作る。
   各チップの命令検証・DSP状態・voice管理は、そのチップの実装へ委譲する。
 - [ ] 単独チップを生成するC ABIとRust wrapperを用意し、不要な同居音源の生成を避ける。
   例：YM2151だけの追加で、X68000複合のOKI用メモリーまで確保しない。
@@ -174,7 +178,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 ## 未決定・別途扱う項目
 
-- [ ] 重い音源を含むラック全体の台数・メモリー上限。
+- [ ] 16台・64 MiBの予算を残りの音源へ展開し、重い組合せの実機負荷を評価する。
 - [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
 - [ ] 追加YM2612でのNuked選択と、選択方法。
 - [ ] Y8950 ADPCMなど、現在のPlayground公開APIにない機能の追加。
@@ -187,5 +191,6 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [Native主音源API](native_primary_api_01.md)、[実装済みの追加Sega PSG](native_dynamic_psg_01.md)
 - [実装済みの追加YM2612と検証結果](native_dynamic_ym2612_01.md)
 - [実装済みの追加YM2203と検証結果](native_dynamic_ym2203_01.md)
+- [実装済みの追加YM2608・メモリー予算と検証結果](native_dynamic_ym2608_01.md)
 - [Mixerの保存規則](playground_mixer_state_01.md)、[Native安定化・継続検証](native_stability_01.md)
 - [Neo Geoの4CH／6CH](native_neogeo_01.md)、[Native SNESなどの対応範囲](native_consoles_01.md)、[MSX Audioの対応範囲](native_msx_audio_01.md)

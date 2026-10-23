@@ -1442,6 +1442,7 @@ type PlaygroundYm2608 = {setClock(clock: number): Promise<void>; resetRegisters(
     reset(): void;
   };
 };
+/** Native: independent FM6/SSG3/rhythm6/ADPCM-B, 2 MiB sample RAM, reusable 44100 Hz timelines. Additional chips share 16 instances and a 64 MiB memory budget. */
 declare function createSoundChip(name: 'ym2608', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundYm2608 & PlaygroundChipClock & {readonly id: string}>;
 
 
@@ -1825,7 +1826,7 @@ declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipO
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends OPNFmChannel, Stereo extends boolean = true> = Omit<PlaygroundOPNFm<C, Stereo>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
-/** Native supports independent ymfm FM6/DAC-register chips; YM2203, YM2612 and Sega PSG share a 16-instance limit. */
+/** Native supports independent ymfm FM6/DAC-register chips; YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
 declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2, false> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 /** Native: independent FM3/SSG3 mono OPN, including completion-based 44100 Hz register schedules. Shares the 16-instance rack limit. */
@@ -1860,7 +1861,7 @@ type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
 type PlaygroundPrimaryGameGearPsg = Omit<PlaygroundSegaPsg, 'dispose'> & PlaygroundChipClock & {readonly id: string};
 /** The Master System PSG has a mono output and no Game Gear stereo register. */
 type PlaygroundPrimaryMasterSystemPsg = Omit<PlaygroundPrimaryGameGearPsg, 'setStereo'>;
-/** Native YM2203, YM2612 and Sega PSG share a limit of 16 additional instances; each has its own mixer id. */
+/** Native YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
 declare function createSoundChip(name: 'segapsg', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundSegaPsg & PlaygroundChipClock & {readonly id: string}>;
 
 /** AY has three channels mixing tone and shared noise, plus one shared envelope. */

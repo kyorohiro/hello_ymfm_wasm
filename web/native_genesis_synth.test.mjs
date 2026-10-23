@@ -279,3 +279,33 @@ test('more than 32 Main Stop and Run cycles reuse noise slots and old handles ca
   const creates=f.commands().filter(command=>command.type==='noise'&&command.message.action==='create');
   assert.equal(creates.length,35);assert.ok(creates.every(command=>command.message.slot===0));assert.equal(f.errors.length,0);
 });
+
+
+test('aggregate additional-chip budget rejection preserves the engine across all kinds and mixed primary batches',async()=>{
+  const kinds=['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608'];
+  for(const types of [...kinds.map(kind=>[kind]),[...kinds,'write']]){
+    for(const asString of [false,true]){
+      let reject=false;
+      const text='Additional Native sound-chip memory budget exceeded (67108864 bytes)';
+      const f=fixture({invoke:command=>command==='native_genesis_commands'&&reject?Promise.reject(asString?text:new Error(text)):undefined});
+      await f.synth.start();f.calls.length=0;reject=true;
+      f.synth.enqueueMany(types.map((type,index)=>type==='write'?{type,frame:0,port:0,register:0x22,value:0}:{type,frame:0,instance:index+1,message:{method:'barrier'}}));
+      await assert.rejects(f.synth.flush(),{code:'EXTRA_CHIP_MEMORY_LIMIT',message:text});await ticks();
+      assert.equal(f.synth.state,'ready');assert.equal(f.errors.length,0);assert.equal(f.synth.acceptedCommands,0);
+      assert(!f.calls.some(c=>c.command==='native_genesis_stop'));
+      reject=false;f.synth.fm.noteOn(0,4,1000);await f.synth.flush();
+      assert.equal(f.commands().at(-1).register,0x28);await f.synth.close();
+    }
+  }
+});
+
+
+test('automatic register flushing reports additional-chip memory rejection once without shutting down',async()=>{
+  let reject=false;
+  const f=fixture({invoke:command=>command==='native_genesis_commands'&&reject?Promise.reject('Additional Native sound-chip memory budget exceeded (67108864 bytes)'):undefined});
+  await f.synth.start();f.calls.length=0;reject=true;
+  f.synth.enqueue({type:'extra-ym2203',frame:0,instance:1,message:{method:'write',port:0,register:8,value:7}});
+  await ticks();assert.equal(f.synth.state,'ready');assert.equal(f.errors.length,1);assert.equal(f.errors[0].code,'EXTRA_CHIP_MEMORY_LIMIT');
+  assert(!f.calls.some(c=>c.command==='native_genesis_stop'));
+  reject=false;f.synth.psg.off(0);await f.synth.flush();await f.synth.close();
+});

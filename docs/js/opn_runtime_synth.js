@@ -4,10 +4,10 @@
  * 依存: 音声初期化・再生時に AudioContext / AudioWorkletNode と WASM アセットが必要。
  * import だけでは音声デバイスを開かない。アセット読み込みには fetch を使用する。
  */
-import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=native-extra-ym2203-1";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=native-extra-ym2608-1";
 import { OPNWorkletTransport } from "./opn_fm_synth.js?v=audio-stability-2";
 
-/** @typedef {Pick<import('./megasynth.js?v=native-extra-ym2203-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
+/** @typedef {Pick<import('./megasynth.js?v=native-extra-ym2608-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
 
 const MAX_MASTER_VOLUME = 3.8;
 
@@ -63,7 +63,7 @@ export class OPNRuntimeSynth {
     this.noise = this.audio.createNoiseApi();
   }
 
-  /** @returns {import('./soundchip_mixer.js?v=native-extra-ym2203-1').SoundChipMixer} */
+  /** @returns {import('./soundchip_mixer.js?v=native-extra-ym2608-1').SoundChipMixer} */
   get mixer() { return this.audio.mixer; }
   get audioContext() { return this.audio.audioContext; }
   set audioContext(value) { this.audio.audioContext = value; }

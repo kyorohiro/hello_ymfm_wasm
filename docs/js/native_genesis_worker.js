@@ -129,7 +129,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         (m.method==='memory'?bytesOf(m.args?.[synth.nativeOpnb?1:0]):0) +
         (m.method==='rom'?bytesOf(m.args?.[0]):0) +
         (m.method==='loadBRR'?bytesOf(m.args?.[0]):0) +
-        (m.method==='prepareTimeline'?bytesOf(m.args?.[0]?.events)+bytesOf(m.args?.[0]?.initialState?.ram)+bytesOf(m.args?.[0]?.initialState?.dsp):0) +
+        (m.method==='prepareTimeline'?Array.isArray(m.args?.[0])?m.args[0].length*32+(m.args?.[1]?.reduce((total,b)=>total+bytesOf(b),0)??0):bytesOf(m.args?.[0]?.events)+bytesOf(m.args?.[0]?.initialState?.ram)+bytesOf(m.args?.[0]?.initialState?.dsp):0) +
         (m.method==='loadSysex'?bytesOf(m.args?.[0]):0) +
         (m.pcm?.channels?.reduce((total,channel) => total + bytesOf(channel),0) ?? 0),0);
       enqueue(async () => {

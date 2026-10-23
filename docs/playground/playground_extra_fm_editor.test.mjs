@@ -36,10 +36,10 @@ function inspector(entries=[]){
 }
 function setup({entries=[],primary=false,inspect=inspector(entries)}={}){
   const root=new Element(document),primaryRoot=new Element(document),button=new Element(document,'button');root.append(primaryRoot);
-  const editors=[],ssgEditors=[],statuses=[],targets=[],availability=[],primaryVisibility=[];
+  const editors=[],ssgEditors=[],sampleEditors=[],statuses=[],targets=[],availability=[],primaryVisibility=[];
   const primaryEditor=primary?{setVisible:value=>primaryVisibility.push(value)}:null;
   const source=readFileSync(new URL('./playground_extra_fm_editor.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace('export function','function');
-  const context=vm.createContext({DOMException,createPlaygroundOpnSsgEditor(options){const s={options,channel:0,updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedChannel(){return this.channel;},dispose(){this.disposed++;}};ssgEditors.push(s);return s;},createPlaygroundOperatorTab(options){
+  const context=vm.createContext({DOMException,createPlaygroundOpnaSampleEditor(options){const s={options,target:'rhythm:0',updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedTarget(){return this.target;},dispose(){this.disposed++;}};sampleEditors.push(s);return s;},createPlaygroundOpnSsgEditor(options){const s={options,channel:0,updates:[],disposed:0,update(value){this.updates.push(value);},getSelectedChannel(){return this.channel;},dispose(){this.disposed++;}};ssgEditors.push(s);return s;},createPlaygroundOperatorTab(options){
     const edits={options,channel:0,presets:[],globals:[],registered:[],removed:[],visibility:[],disposed:0,
       attachSynth(synth){this.synth=synth;},syncPreset(...args){this.presets.push(args);},syncLfo(...args){this.globals.push(['lfo',...args]);},syncDacEnabled(value){this.globals.push(['dac',value]);},
       syncChannel3SpecialMode(value){this.globals.push(['special',value]);},syncChannel3SpecialFrequency(...args){this.globals.push(['frequency',...args]);},
@@ -51,17 +51,28 @@ function setup({entries=[],primary=false,inspect=inspector(entries)}={}){
   const controller=context.createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,primaryKind:'ym2612',button,getInspector:()=>activeInspector,
     presets:{},presetOrder:[],onAvailability:value=>availability.push(value),onTargetChange:value=>targets.push(value),onStatus:value=>statuses.push(value)});
   const toolbar=root.children[0],select=toolbar.children[0].children[0],refresh=toolbar.children[1],status=toolbar.children[2],extraRoot=root.children.at(-1);
-  return {root,primaryRoot,button,primaryEditor,inspect,controller,toolbar,select,refresh,status,extraRoot,editors,ssgEditors,statuses,targets,availability,primaryVisibility,
+  return {root,primaryRoot,button,primaryEditor,inspect,controller,toolbar,select,refresh,status,extraRoot,editors,ssgEditors,sampleEditors,statuses,targets,availability,primaryVisibility,
     setInspector:value=>{activeInspector=value;},choose:id=>{select.value=id;select.dispatch('change');}};
 }
 const chip=(id,extra=true,kind='ym2612')=>({id,kind,connected:true,...(extra?{additional:true}:{})});
 
 test('only supported explicitly additional OPN instances appear, including a valid ym2612 ID outside Genesis',async()=>{
-  const f=setup({entries:[chip('ym2612'),chip('lead'),chip('borrowed',false),chip('other',true,'ym2608'),{...chip('gone'),connected:false}]});
+  const f=setup({entries:[chip('ym2612'),chip('lead'),chip('borrowed',false),chip('other',true,'ym2610'),{...chip('gone'),connected:false}]});
   assert.deepEqual(f.select.children.map(option=>option.value),['ym2612','lead']);
   assert.equal(f.select.value,'ym2612');assert.equal(f.editors.length,1);assert.equal(f.inspect.reads.length,0,'hidden tabs perform no state reads');
   assert.equal(f.toolbar.hidden,false);assert.equal(f.primaryRoot.hidden,true);assert.equal(f.availability.at(-1),true);
   f.controller.setVisible(true);await settle();assert.deepEqual(f.inspect.reads,['ym2612']);assert.equal(f.targets.at(-1).id,'ym2612');f.controller.dispose();
+});
+
+test('YM2608 combines six FM voices with SSG and independently routed rhythm/ADPCM controls',async()=>{
+  const f=setup({entries:[chip('opna',true,'ym2608'),chip('other')]});f.controller.setVisible(true);await settle();
+  const editor=f.editors[0],samples=f.sampleEditors[0];assert.equal(editor.options.channelCount,6);assert.equal(editor.options.supportsDac,false);assert.equal(editor.synth.supportsPan,undefined);
+  assert.equal(f.ssgEditors.length,1);assert.equal(samples.updates.length,1);assert.equal(f.button.textContent,'YM2608');assert.deepEqual(f.inspect.writes,[]);
+  samples.target='rhythm:5';samples.options.onTargetChange();assert.deepEqual(plain(f.targets.at(-1)),{kind:'ym2608',id:'opna',channel:'rhythm:5'});
+  samples.options.onEdit('rhythm.setVoice',[5,{volume:17}]);await settle();assert.deepEqual(plain(f.inspect.writes.at(-1)),{id:'opna',method:'rhythm.setVoice',args:[5,{volume:17}]});
+  samples.target='adpcm-b:0';samples.options.onTargetChange();assert.equal(f.targets.at(-1).channel,'adpcm-b:0');
+  f.choose('other');await settle();const target=plain(f.targets.at(-1)),count=f.inspect.writes.length;assert.equal(samples.disposed,1);
+  samples.options.onTargetChange();samples.options.onEdit('adpcm.setVolume',[255]);await settle();assert.deepEqual(plain(f.targets.at(-1)),target);assert.equal(f.inspect.writes.length,count);f.controller.dispose();
 });
 
 test('YM2203 uses three mono FM channels and SSG controls bound to its own instance',async()=>{

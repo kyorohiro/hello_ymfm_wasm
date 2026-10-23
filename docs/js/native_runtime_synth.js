@@ -1,29 +1,29 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=native-extra-ym2203-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=native-extra-ym2608-1';
 import {createAy8910Client} from './playground_ay8910.js?v=audio-numeric-bindings-1';
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-extra-ym2203-1';
-import {createNesAudio} from './playground_nes_audio.js?v=native-extra-ym2203-1';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-extra-ym2608-1';
+import {createNesAudio} from './playground_nes_audio.js?v=native-extra-ym2608-1';
 import {createNesClient} from './playground_nes.js?v=nes-wasm-1';
 import {createSnesAudio} from './playground_snes_audio.js?v=audio-numeric-bindings-1';
 import {createSnesClient} from './playground_snes.js?v=audio-numeric-bindings-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-extra-ym2203-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=native-extra-ym2608-1';
 import {createYm2151Client} from './playground_ym2151.js?v=audio-numeric-bindings-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-extra-ym2203-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=native-extra-ym2608-1';
 import {createOki6258Client} from './playground_okim6258.js?v=audio-numeric-bindings-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-extra-ym2203-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=native-extra-ym2608-1';
 import {createHuc6280Client} from './playground_huc6280.js?v=audio-numeric-bindings-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-extra-ym2203-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=native-extra-ym2608-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=native-extra-ym2203-1';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=native-extra-ym2608-1';
 import {createYm2413Client} from './playground_ym2413.js?v=audio-numeric-bindings-1';
-import {createOplAudio} from './playground_opl_audio.js?v=native-extra-ym2203-1';
+import {createOplAudio} from './playground_opl_audio.js?v=native-extra-ym2608-1';
 import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=audio-numeric-bindings-1';
 import {createDx7Audio} from './playground_dx7_audio.js?v=audio-numeric-bindings-1';
 import {createDx7Client} from './playground_dx7.js?v=audio-numeric-bindings-1';
 
 const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'msx', 'msx-audio']);
 
-/** @typedef {Pick<import('./megasynth.js?v=native-extra-ym2203-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+/** @typedef {Pick<import('./megasynth.js?v=native-extra-ym2608-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * ayOptions?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL},
