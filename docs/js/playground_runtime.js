@@ -282,6 +282,16 @@ export function createPlaygroundRuntime(
   }
   let currentRunToken = 0;
   let currentLoopContext = null;
+  // A shared Promise can release several Main callers in one microtask turn.
+  // Resume this Native endpoint's caller on its own host task so another
+  // coalesced lookup cannot replace its owner before user code continues.
+  const resumeNativeExtraCaller=(loop,operation)=>{
+    const token=currentRunToken;
+    return new Promise((resolve,reject)=>setTimeout(()=>{
+      if(token!==currentRunToken||loop?.stopped){reject(new Error('Run stopped'));return;}
+      currentLoopContext=loop;try{resolve(operation());}catch(error){reject(error);}
+    },0));
+  };
   const keyboardApi = createKeyboardApiGuard(() => currentLoopContext, value => {currentLoopContext=value;});
   const musicalKeyboard = createMusicalKeyboard({getContext:() => currentLoopContext,setContext:value => {currentLoopContext=value;},
     invoke:callback => executeUserCallback(callback),onChange:target => options.onKeyboardTargetChange?.(target),
@@ -396,7 +406,12 @@ export function createPlaygroundRuntime(
   let sharedSectionSynth;
   const nativeOwners = new Map(), nativeApiCache = new WeakMap();
   function ownedNativeExtraApi(device,raw) {
-    const owners=new Map(),cache=new WeakMap();
+    const owners=new Map(),cache=new WeakMap(),mainGroups=new WeakMap();let keyboardGroupOwner,keyboardGroup;
+    function groupFor(owner){
+      if(owner&&typeof owner==='object'){if(!mainGroups.has(owner))mainGroups.set(owner,raw._allocateMainOwner());return mainGroups.get(owner);}
+      if(owner===undefined||owner===null)return undefined;
+      if(keyboardGroupOwner!==owner){keyboardGroupOwner=owner;keyboardGroup=raw._allocateMainOwner();}return keyboardGroup;
+    }
     function registerEvent(port,register,value){
       if(port!==0)return null;
       if(register===0x28){const code=value&7;if((code&3)!==3)return {key:(code&3)+(code&4?3:0),on:!!(value&240)};}
@@ -425,6 +440,7 @@ export function createPlaygroundRuntime(
       return null;
     }
     device.releaseOwner=owner=>{
+      if(device.chipName==='ym2203'){const group=mainGroups.get(owner);if(group!==undefined)raw._cancelMainOwner(group);return;}
       const otherSource=key=>owners.has(key)&&owners.get(key)!==owner;
       for(const [key,held]of owners)if(held===owner){
         owners.delete(key);
@@ -444,8 +460,13 @@ export function createPlaygroundRuntime(
         if(key==='dispose'||typeof key==='string'&&key.startsWith('_'))return value.bind(object);
         return (...args)=>{
           const loop=currentLoopContext,change=event(key,args,path);if(loop?.stopped)return;
-          if(change&&!change.allOff&&!change.ssgOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
-          const result=value.apply(object,args);
+          if(device.chipName!=='ym2203'&&change&&!change.allOff&&!change.ssgOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
+          const result=device.chipName==='ym2203'?raw._withMainOwner(groupFor(voiceOwner(loop)),()=>value.apply(object,args)):value.apply(object,args);
+          if(device.chipName==='ym2203'){
+            if(change?.modeRegister!==undefined)raw._modeRegister=change.modeRegister;
+            if(result?.then)return result.then(value=>resumeNativeExtraCaller(loop,()=>value),error=>resumeNativeExtraCaller(loop,()=>{throw error;}));
+            return result;
+          }
           if(change?.allOff)owners.clear();
           else if(change?.ssgOff){for(let ch=3;ch<6;ch++)owners.delete(ch);}
           else if(change){
@@ -2192,6 +2213,7 @@ export function createPlaygroundRuntime(
         evaluationState.musicalBinding=keyboardBinding(name,handlers);
       }},
       useSoundChip: async (name, options) => {
+        const ownsMainScope=capabilities.backend==='native-genesis'&&name==='ym2203'&&capabilities.chip!=='ym2203',callerLoop=currentLoopContext;
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
         if (capabilities.backend === 'native-genesis' && capabilities.chip === 'ym2610b' && name === 'ym2610b') name = 'ym2610';
@@ -2204,13 +2226,22 @@ export function createPlaygroundRuntime(
           if (chipName === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') return fm;
           if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && capabilities.chip === chipName) return fm;
           if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
+          if(ownsMainScope){
+            // The cached source belongs to the Run, while each caller keeps
+            // its own note owner after the shared creation promise resolves.
+            const previous=currentLoopContext;currentLoopContext=null;
+            try{return pg.createSoundChip(chipName,{id:`${chipName}:shared`});}finally{currentLoopContext=previous;}
+          }
           return pg.createSoundChip(chipName, {id:`${chipName}:shared`});
         }, {evictOnDispose: !(name === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') && !(name === 'rf5c164' && megaDrive.pcm) && !(name === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') && !megaDrive.primaryEndpoints?.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && capabilities.chip === name)});
         check();
+        if(ownsMainScope)await resumeNativeExtraCaller(callerLoop,()=>{});
         return chip;
       },
       createSoundChip: async (name, options = {}) => {
+        const ownsMainScope=capabilities.backend==='native-genesis'&&name==='ym2203',callerLoop=currentLoopContext;
         const device=await openPcm(name,runToken,options);
+        if(ownsMainScope){if(callerLoop?.stopped){device.dispose();throw new Error('Run stopped');}currentLoopContext=callerLoop;}
         const client=device.client ?? (name === 'spc' ? createSpcClient(device.port, device, {
           getOwner:()=>spcOwner(currentLoopContext,currentRunToken), captureContext:()=>currentLoopContext,
           restoreContext:loop=>{currentLoopContext=loop;},
@@ -2223,7 +2254,9 @@ export function createPlaygroundRuntime(
         // Keep the current method visible: useSoundChip wraps it to evict the
         // cached endpoint, including when a device fails asynchronously.
         device.dispose=()=>client.dispose();
-        return keyboardApi(device.native?ownedNativeExtraApi(device,client):client);
+        const api=keyboardApi(device.native?ownedNativeExtraApi(device,client):client);
+        if(ownsMainScope)return resumeNativeExtraCaller(callerLoop,()=>api).catch(error=>{device.dispose();throw error;});
+        return api;
       },
       midi,
       ...nativeApis,

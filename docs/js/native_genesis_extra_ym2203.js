@@ -38,8 +38,16 @@ function appliedFm(registers,base){
 /** One independently owned YM2203: three FM voices and three mono SSG voices. */
 export function createNativeGenesisYm2203Endpoint(synth){
   const context=createNativeVoiceContext(synth,{backend:'extra-ym2203',statusCommand:'native_genesis_extra_ym2203_status',label:'additional YM2203'});
-  const {capture,current}=context;let clock=CLOCK,appliedClock=CLOCK,initialized=false,collecting=null,uiSerial=Promise.resolve(),clockSerial=Promise.resolve(),activeSchedule=null,lastScheduleFence=0;
-  const timed=(message,timing)=>context.timed('ym2203',message,timing),send=(message,timing)=>context.send('ym2203',message,timing);
+  const {capture,current}=context;let clock=CLOCK,appliedClock=CLOCK,initialized=false,collecting=null,uiSerial=Promise.resolve(),clockSerial=Promise.resolve(),activeSchedule=null,lastScheduleFence=0,mainGroup,mainCsmGroup;
+  const mainSsgGroups=Array(3).fill(undefined);
+  const tagged=message=>{
+    const value={...(mainGroup===undefined?{}:{group:mainGroup}),...message};
+    if(value.method==='write'&&value.port===0){
+      if(value.register===0x27)mainCsmGroup=(value.value&0x81)===0x81?value.group:undefined;
+      if(value.register>=8&&value.register<=10)mainSsgGroups[value.register-8]=value.value&31?value.group:undefined;
+    }return value;
+  };
+  const timed=(message,timing)=>context.timed('ym2203',tagged(message),timing),send=(message,timing)=>context.send('ym2203',tagged(message),timing);
   const rawWrite=({port=0,register,value})=>({method:'write',port:integer(port,0,'YM2203 port'),register:integer(register,255,'Register'),value:integer(value,255,'Value')});
   function cancelCompletion(reason=abort()){const pending=activeSchedule;if(!pending)return;activeSchedule=null;clearTimeout(pending.timer);pending.reject(reason);}
   const client=new YM2203Synth({clock,transport:{write:(port,register,value)=>send(rawWrite({port,register,value})),
@@ -94,7 +102,7 @@ export function createNativeGenesisYm2203Endpoint(synth){
       const positions=entries.map(entry=>Math.ceil(entry[0]*synth.clock.sampleRate/44100));let begin=0;
       for(let i=0;i<positions.length;i++){while(positions[i]-positions[begin]>=128)begin++;if(i-begin+1>256)throw new RangeError('Native YM2203 schedule exceeds 256 writes in 128 output frames');}
       const frames=Math.ceil(durationSamples*synth.clock.sampleRate/44100),start=synth.frameAt(timing.time??synth.clock.currentTime);if(!Number.isSafeInteger(frames)||!Number.isSafeInteger(start+frames))throw new RangeError('YM2203 schedule exceeds Native frame limits');
-      schedule={token:context.identity(),id:context.identity(),fence:lastScheduleFence,timer:null,reject:null};
+      schedule={token:context.identity(),id:context.identity(),fence:lastScheduleFence,group:mainGroup,performance:timing.performance,owner:timing.owner,timer:null,reject:null};
     }catch(error){return Promise.reject(error);}
     const result=new Promise((resolve,reject)=>{
       schedule.reject=reject;activeSchedule=schedule;
@@ -107,7 +115,7 @@ export function createNativeGenesisYm2203Endpoint(synth){
       }catch(error){if(activeSchedule===schedule)activeSchedule=null;reject(error);}};
       Promise.resolve().then(async()=>{
         valid();if(schedule.fence){await synth.flush();valid();await snapshot({after:schedule.fence});valid();}
-        send({method:'schedule',entries,durationSamples,token:schedule.token,id:schedule.id},timing);await synth.flush();valid();
+        send({method:'schedule',entries,durationSamples,token:schedule.token,id:schedule.id,...(schedule.group===undefined?{}:{group:schedule.group})},timing);await synth.flush();valid();
         const delay=Math.max(0,(timing.time??synth.clock.currentTime)-synth.clock.currentTime)+durationSamples/44100;
         schedule.timer=setTimeout(finish,Math.max(1,Math.min(2147483647,delay*1000)));
       }).catch(error=>{if(activeSchedule===schedule)activeSchedule=null;reject(error);});
@@ -115,7 +123,15 @@ export function createNativeGenesisYm2203Endpoint(synth){
   }
   client.scheduleRegisters=(entries,duration)=>scheduleRegisters(entries,duration);
   client._getScheduleToken=()=>activeSchedule?.token;
-  client._cancelSchedule=token=>{if(activeSchedule?.token!==token)return;const command=identified({method:'cancel-schedule',token});lastScheduleFence=command.id;send(command);cancelCompletion(new Error('Run stopped'));};
+  client._cancelSchedule=token=>{if(!Number.isSafeInteger(token)||token<1)return;const command=identified({method:'cancel-schedule',token});lastScheduleFence=command.id;send(command);if(activeSchedule?.token===token)cancelCompletion(new Error('Run stopped'));};
+  client._allocateMainOwner=()=>context.identity();
+  client._withMainOwner=(group,fn)=>{const previous=mainGroup;mainGroup=group;try{return fn();}finally{mainGroup=previous;}};
+  client._cancelMainOwner=group=>{
+    const command=identified({method:'cancel-main-owner',targetGroup:group});lastScheduleFence=command.id;send(command);
+    if(mainCsmGroup===group){client._modeRegister&=~0x81;mainCsmGroup=undefined;}
+    const state=client.ssg._getState();for(let ch=0;ch<3;ch++)if(mainSsgGroups[ch]===group){state.registers[8+ch]=0;mainSsgGroups[ch]=undefined;}client.ssg._adoptState(state);
+    if(activeSchedule?.group===group)cancelCompletion(new Error('Run stopped'));
+  };
   async function dispatch(message,timing={}){
     const token=capture();timing.checkCurrent?.();
     if(Array.isArray(message)){const commands=message.map(translate);synth.enqueueMany(commands.map(command=>timed(command,timing)));await synth.flush();current(token);timing.checkCurrent?.();return;}
@@ -159,9 +175,11 @@ export function createNativeGenesisYm2203Endpoint(synth){
     });uiSerial=result.catch(()=>{});return result;
   }
   return {client,dispatch,read,invoke,
+    cancelOwner(performance,owner){if(activeSchedule?.performance===performance&&activeSchedule?.owner===owner)cancelCompletion(new Error('Run stopped'));},
+    cancelPerformance(performance){if(activeSchedule&&activeSchedule.performance!==undefined&&(performance===null||activeSchedule.performance===performance))cancelCompletion(new Error('Run stopped'));},
     async initialize(){const token=capture();context.enable('ym2203');if(initialized)return;client.reset();await synth.flush();current(token);initialized=true;},
     async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2203 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
-    reset(){cancelCompletion(new Error('Run stopped'));context.invalidate();context.disable('ym2203');initialized=false;lastScheduleFence=0;stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK,ssg:{registers:Array(16).fill(0),levels:[0,0,0]}});},
+    reset(){cancelCompletion(new Error('Run stopped'));context.invalidate();context.disable('ym2203');initialized=false;lastScheduleFence=0;mainGroup=mainCsmGroup=undefined;mainSsgGroups.fill(undefined);stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK,ssg:{registers:Array(16).fill(0),levels:[0,0,0]}});},
   };
 }
 export function createNativeGenesisExtraYm2203(synth,options={}){

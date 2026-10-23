@@ -127,12 +127,15 @@ async function runExtraYm2203({page,native,artifacts,name,until,assertNoLiveAudi
     await until(()=>[...native.extraYm2203.values()].some(s=>s.registers[0][10]===9),'Schedule completion releases awaiting Main/Worker');await stop();
     await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`const opn=await createSoundChip('ym2203',{id:'scheduled'});const playing=opn.scheduleRegisters([[4410,8,12]],8820).then(()=>false,()=>true);opn.reset();if(!await playing)throw Error('Reset did not cancel');opn.ssg.setVolume(1,6);`,{execution}),execution);
     await until(()=>[...native.extraYm2203.values()].some(s=>s.registers[0][9]===6),'Reset interrupts deferred schedule without blocking reset RPC');assert.equal([...native.extraYm2203.values()][0].registers[0][8],0);await stop();
+    const longStart=all().length;
     await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
       const opn=await createSoundChip('ym2203',{id:'scheduled'});
       liveLoop('long-schedule',async()=>{try{await opn.scheduleRegisters([[0,8,9]],44100*3600);}catch{}});
-      await beat(.08);stopLoop('long-schedule');
-      await opn.scheduleRegisters([[0,8,3],[441,8,0]],441);opn.ssg.setVolume(2,7);
+      keyboard.bind('replace-long-schedule',{async noteOn(){stopLoop('long-schedule');await opn.scheduleRegisters([[0,8,3],[441,8,0]],441);opn.ssg.setVolume(2,7);},noteOff(){},allNotesOff(){}});
     `,{execution}),execution);
+    await until(()=>all().slice(longStart).some(c=>c.type==='extra-ym2203'&&c.message.method==='schedule'&&c.message.durationSamples===44100*3600),'Hour-long schedule is accepted before cancellation');
+    await page.waitForFunction(()=>Boolean(window.__nativeBackendTest.runtime.getKeyboardTarget()));
+    await page.evaluate(()=>window.__nativeBackendTest.runtime.getKeyboardTarget().noteOn({id:'replace',midi:60}));
     await until(()=>[...native.extraYm2203.values()].some(s=>s.registers[0][10]===7),'Owner cancellation permits immediate replacement of an hour-long schedule');await stop();
   }
   await changeMode(page,native,'ym3812','keep');

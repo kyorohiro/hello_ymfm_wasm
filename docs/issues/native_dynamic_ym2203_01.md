@@ -80,10 +80,18 @@ viewは適用済みsnapshotを読み、選択・通知・編集完了・Refresh�
   C++のcallback内allocation／freeも0。44.1／48／96 kHzで確認した。
 - `scripts/check_native_ym2203.mjs`：既存PC-98用の186ケース・1,142,784 framesも差分0。
   既存のresetが保持する出力remainder／PCMは維持し、追加用profileだけをWorkletに合わせてclearする。
-- ソース段階のChromium／WebKitで、YM2203 2台＋YM2612＋PSG、実Main／logic Worker、
+- ソース段階と最終distのChromium／WebKitで、YM2203 2台＋YM2612＋PSG、実Main／logic Worker、
   独立clock・prescaler、Mixer、FM／SSG編集、Keyboard、3CH分のTFI／VGI ZIP、
   同ID再生成、非FM Mode、予約完了待ち・reset取消しを確認した。
   IPCをmockし、AudioContext／AudioWorklet・物理音声デバイスは生成していない。
+- 最終distでは1時間の予約をloop途中で取り消し、同じ音源ですぐ再予約できることも確認した。
+  既存の追加YM2612／PSGのMain／Worker・音色編集・Keyboard・Stop／再Runも両ブラウザーで通った。
+- Node全体は4,239成功・1 skip。新しいYM2203を含む関連69テストも成功。
+  Rust全体は353成功・4 ignored（うち追加YM2203 20件、既存PC-98 17件）。
+  同時lookup、生成中のloop取消し、通常writeと予約writeの置換、完了後の残音、
+  手動試奏、CSMのcached gate、同batchの取消し、過密schedule拒否を含めて確認した。
+- 検証したNativeビルドはmacOS ARM64。MSVC／GCC・他CPUは既存CIで確認する。
+  物理音声デバイスでの試聴・長時間のドロップアウト確認は、この検証には含まない。
 
 ### オフラインDSP測定
 
@@ -109,4 +117,14 @@ ARM64のRust layoutでは、追加Instanceは9,600 B（YM2203 Shared 4,992 Bを�
 予約entriesは最大2 MiBで、インスタンスの保留データ上限4 MiBに含める。
 これらは上のC++コアの確保量と区別する。
 
-全体テスト・最終配布物の検証結果は完了時に追記する。
+## 配布・同梱
+
+- `web`から`docs/js`へ同期し、cache revisionを`native-extra-ym2203-1`へ更新した。
+- `release/hello_ymfm_wasm_native-extra-ym2203_itch_playground.zip`を作成した。
+  SHA256: `3176f0c1fcb22b520594034b6d5072013c7576b1e28540b4c22b77cf9fe944f2`。
+- Tauriへ854ファイルを取り込み、release lockと一致した。
+  856件のlocal module／asset参照と、Mode starter・WASM・ライセンスの存在を検証した。
+- Native source ZIPは1,322ファイル。SHA256:
+  `40fe26b7c02aa9f86293405e2adeaaa60321beb651b2467626b6eb6137c56029`。
+  21種類の原典snapshot、および現在のソースと同梱ZIPの一致を確認した。
+- npm・itch.ioへの公開は行っていない。

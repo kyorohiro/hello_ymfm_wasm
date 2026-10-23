@@ -36,7 +36,9 @@ export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,c
   try{
     await synth.nativeRequest(`native_genesis_extra_${nativeKind}_create`,{instance});created=true;if(!current())throw abort();
     await endpoint.initialize();if(!current())throw abort();
-    if(bridge){connection=bridge.attachEndpoint((message,timing)=>endpoint.dispatch(message,timing));device.port=connection.port;device.node={port:connection.controlPort};}
+    if(bridge){connection=bridge.attachEndpoint((message,timing)=>endpoint.dispatch(message,timing),{
+      cancelOwner:(performance,owner)=>endpoint.cancelOwner?.(performance,owner),stop:performance=>endpoint.cancelPerformance?.(performance),
+    });device.port=connection.port;device.node={port:connection.controlPort};}
     synth.chipInspector?.notify();return device;
   }catch(error){device.dispose();throw error;}
 }
