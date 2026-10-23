@@ -1,5 +1,5 @@
-import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=native-extra-nes-1';
-import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=native-extra-nes-1';
+import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=native-extra-huc6280-1';
+import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=native-extra-huc6280-1';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js?v=audio-stability-2';
 

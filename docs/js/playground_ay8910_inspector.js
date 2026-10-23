@@ -1,5 +1,5 @@
 import {AY8910Synth} from './ay8910synth.js?v=audio-numeric-bindings-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-nes-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=native-extra-huc6280-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};
 const channel=value=>{if(typeof value==='string'&&/^[0-2]$/.test(value))value=Number(value);if(!Number.isInteger(value)||value<0||value>2)throw new RangeError('AY8910 channel must be 0..2');return value;};

@@ -62,7 +62,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
     : name === 'snes' ? createSnesClient(port, options)
     : name === 'ym2151' ? createYm2151Client(port)
     : name === 'segapsg' ? createSegaPsgClient(port, options)
-    : name === 'huc6280' ? createHuc6280Client(port, options)
+    : name === 'huc6280' ? createHuc6280Client(port, options,lifecycle)
     : name === 'okim6258' ? createOki6258Client(port, options,lifecycle)
     : name === 'dx7' ? createDx7Client(port, {...options,...options.state})
     : null;

@@ -97,6 +97,7 @@ native_genesis_extra_rf5c164.js
 native_genesis_extra_okim6258.js
 native_genesis_extra_gameboy.js
 native_genesis_extra_nes.js
+native_genesis_extra_huc6280.js
 opn_ssg_retained.js
 native_genesis_extra_chip.js
 native_genesis_game_gear.js

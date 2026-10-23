@@ -1,4 +1,4 @@
-import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-extra-nes-1';
+import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=native-extra-huc6280-1';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();
@@ -43,7 +43,7 @@ function addModule(context, url) {
  * close() disposes this player; construct a new instance to open another context.
  */
 export class SpcRuntimeSynth {
-  /** @param {{audioContext?:AudioContext,outputNode?:AudioNode,mixer?:import('./soundchip_mixer.js?v=native-extra-nes-1').SoundChipMixer,
+  /** @param {{audioContext?:AudioContext,outputNode?:AudioNode,mixer?:import('./soundchip_mixer.js?v=native-extra-huc6280-1').SoundChipMixer,
    * masterVolume?:number,workletUrl?:string|URL,wasmUrl?:string|URL,wasmBinary?:Uint8Array|ArrayBuffer,
    * fetch?:typeof globalThis.fetch,onError?:(error:Error)=>void}} [options] */
   constructor(options = {}) {

@@ -8,7 +8,9 @@ export function createNativeVoiceContext(synth,{backend,statusCommand,label}){
   const abort=()=>new DOMException(`Native ${label} operation was cancelled`,'AbortError');
   const check=()=>{if(!synth.isReady())throw new Error(`Native ${label} audio is not ready`);if(synth.stopping||synth.closing)throw abort();};
   const capture=()=>{check();return {session:synth.session,generation:synth.generation,version};};
-  const current=token=>{check();if(token.session!==synth.session||token.generation!==synth.generation||token.version!==version)throw abort();};
+  // Disposal invalidates the token before its facade stops reporting ready.
+  // An accepted write finishing afterward is cancellation, not an audio fault.
+  const current=token=>{if(token.session!==synth.session||token.generation!==synth.generation||token.version!==version)throw abort();check();};
   const identity=()=>{if(nextIdentity>=Number.MAX_SAFE_INTEGER)throw new RangeError(`Native ${label} command identity limit reached`);return ++nextIdentity;};
   const timed=(chip,message,timing={})=>({type:backend,message:{chip,...message},frame:timing.time===undefined?0:synth.frameAt(timing.time),...(timing.performance===undefined?{}:{performance:timing.performance}),...(timing.owner===undefined?{}:{owner:timing.owner})});
   const send=(chip,message,timing={})=>{check();timing.checkCurrent?.();if(enabled.has(chip))synth.enqueue(timed(chip,message,timing));};
