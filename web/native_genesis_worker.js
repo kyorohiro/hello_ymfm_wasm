@@ -15,6 +15,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   const nes=synth.nes?new MessageChannelClass():null;
   const consoles = new Map(['gameboy','snes','huc6280','ym2151','okim6258','segapsg','ym2413','ay8910','ym3526','ym3812','ymf262','y8950'].filter(name => synth[name]).map(name => [name,new MessageChannelClass()]));
   const ports = [admin.port1, chip.port1, fx.port1,...(pwm?[pwm.port1]:[]),...(pcm?[pcm.port1]:[]),...(dx7?[dx7.port1]:[]),...(nes?[nes.port1]:[]),...Array.from(consoles.values(),channel=>channel.port1)];
+  const extraEndpoints = new Set();
   let serial = Promise.resolve(), active = null, epoch = 0, pending = 0, pendingMessages = 0, pendingBytes = 0, disposed = false;
   const owners = new Map(), cancelled = new Set();
   const abort = () => new DOMException('Native Worker performance was stopped', 'AbortError');
@@ -45,10 +46,21 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
     const result = serial.then(task);
     serial = result.catch(error => { fail(error); }).finally(() => { pending -= count; pendingMessages--; pendingBytes -= bytes; });
   }
-  function control(port, message) {
+  function control(port, message, joinedEndpoint = false) {
     if (!validSession(message.session)) throw new TypeError('Invalid Native Worker performance');
     const performance = message.session;
     if (message.type === 'performance-start') {
+      if (joinedEndpoint && active !== performance) throw abort();
+      // Independently created chips join the already running performance. They
+      // must share its owner registry and must not reset the native timeline.
+      if (active === performance) {
+        const version = epoch;
+        enqueue(() => {
+          if (disposed || version !== epoch || active !== performance) throw abort();
+          port.postMessage({type:'performance-result',id:message.id});
+        }, 1, error => port.postMessage({type:'performance-result',id:message.id,error:String(error.message ?? error)}));
+        return;
+      }
       const version = ++epoch; active = performance; owners.clear(); cancelled.clear();
       enqueue(async () => {
         if (disposed || version !== epoch) throw abort();
@@ -57,6 +69,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         port.postMessage({type:'performance-result',id:message.id});
       }, 1, error => port.postMessage({type:'performance-result',id:message.id,error:String(error.message ?? error)}));
     } else if (message.type === 'performance-stop') {
+      if (joinedEndpoint) return;
       if (active !== performance) return;
       active = null; ++epoch;
       enqueue(() => synth.setNativePerformance({op:'stop',performance}), 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
@@ -69,7 +82,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   function receive(port, kind, message) {
     if (disposed || !message) return;
     try {
-      if (message.type?.startsWith('performance-')) { control(port,message); return; }
+      if (message.type?.startsWith('performance-')) { control(port,message,typeof kind === 'function'); return; }
       const cleanup = message.nativeNoiseCleanup;
       if ([message.performance,message.nativePerformance,cleanup].filter(Boolean).length > 1) throw new TypeError('Native Worker command has two performance leases');
       const envelope = message.performance ?? message.nativePerformance ?? cleanup;
@@ -126,7 +139,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
           await synth.dispatchNativeCommand(messages,timing);
         } else for (const command of messages) {
           if (disposed || version !== epoch || (envelope && !cleanup && cancelled.has(envelope.owner))) throw abort();
-          const result = kind === 'fx' ? await synth.dispatchNativeFxCommand(command,
+          const result = typeof kind === 'function' ? await kind(command,timing) : kind === 'fx' ? await synth.dispatchNativeFxCommand(command,
             command.op === 'noise' ? {...timing,noiseNamespace} : timing) : kind==='pwm'?await synth.dispatchNativePwmCommand(command,timing):kind==='pcm'?await synth.dispatchNativePcmCommand(command,timing):kind==='dx7'?await synth.dispatchNativeDx7Command(command,timing):kind==='nes'?await synth.dispatchNativeNesCommand(command,timing):kind==='snes'?await synth.dispatchNativeSnesCommand(command,timing):consoles.has(kind)?await synth.dispatchNativeConsoleCommand(kind,command,timing):await synth.dispatchNativeCommand(command,timing);
           // Timeline playback acknowledges its audible end asynchronously.
           // Keep this FIFO free so stopTimeline and cancellation can arrive.
@@ -149,9 +162,33 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
   return {
     port:admin.port2, chipPort:chip.port2, fxPort:fx.port2,pwmPort:pwm?.port2??null,pcmPort:pcm?.port2??null,dx7Port:dx7?.port2??null,nesPort:nes?.port2??null,
     gameboyPort:consoles.get('gameboy')?.port2??null,snesPort:consoles.get('snes')?.port2??null,huc6280Port:consoles.get('huc6280')?.port2??null,ym2151Port:consoles.get('ym2151')?.port2??null,okim6258Port:consoles.get('okim6258')?.port2??null,segapsgPort:consoles.get('segapsg')?.port2??null,ym2413Port:consoles.get('ym2413')?.port2??null,ay8910Port:consoles.get('ay8910')?.port2??null,y8950Port:consoles.get('y8950')?.port2??null,ym3526Port:consoles.get('ym3526')?.port2??null,ym3812Port:consoles.get('ym3812')?.port2??null,ymf262Port:consoles.get('ymf262')?.port2??null,
+    attachEndpoint(dispatch) {
+      if (disposed) throw abort();
+      if (typeof dispatch !== 'function') throw new TypeError('Native endpoint dispatch must be a function');
+      const controlChannel = new MessageChannelClass(), commandChannel = new MessageChannelClass();
+      let closed = false;
+      const endpoint = {port:commandChannel.port2, controlPort:controlChannel.port2,
+        dispose() {
+          if (closed) return; closed = true; extraEndpoints.delete(endpoint);
+          for (const port of [controlChannel.port1,controlChannel.port2,commandChannel.port1,commandChannel.port2]) {
+            port.onmessage = null; port.close();
+          }
+        },
+      };
+      const dispatchCurrent = (message,timing) => {
+        if (closed) throw abort();
+        return dispatch(message,timing);
+      };
+      for (const port of [controlChannel.port1,commandChannel.port1]) {
+        port.onmessage = ({data}) => { if (!closed) receive(port,dispatchCurrent,data); };
+        port.start?.();
+      }
+      extraEndpoints.add(endpoint); return endpoint;
+    },
     dispose() {
       if (disposed) return serial;
       disposed = true; const performance = active; active = null; ++epoch;
+      for (const endpoint of [...extraEndpoints]) endpoint.dispose();
       for (const port of [...ports,admin.port2,chip.port2,fx.port2,...(pwm?[pwm.port2]:[]),...(pcm?[pcm.port2]:[]),...(dx7?[dx7.port2]:[]),...(nes?[nes.port2]:[]),...Array.from(consoles.values(),channel=>channel.port2)]) port.close();
       const result = serial.then(() => performance === null ? undefined : synth.setNativePerformance({op:'stop',performance}));
       serial = result.catch(() => {});

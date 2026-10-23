@@ -7,7 +7,7 @@
 import { SSGSynth } from "./ssgsynth.js?v=opna-primary-1";
 import { YM2203_CLOCK } from "./ym2203.js?v=audio-stability-2";
 import { OPNDirectTransport, OPNFMSynth } from "./opn_fm_synth.js?v=audio-stability-2";
-import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=mixer-presets-3";
+import { OPNRuntimeSynth } from "./opn_runtime_synth.js?v=native-extra-psg-1";
 
 /** Direct transport for YM2203 FM and SSG registers. */
 /** @extends {OPNDirectTransport<import('./ym2203.js?v=audio-stability-2').Ym2203>} */

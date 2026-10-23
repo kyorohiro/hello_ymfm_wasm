@@ -1,5 +1,5 @@
 /** PC-98 authoring stays in the shared YM2608 helpers; Native owns synthesis. */
-import {YM2608Synth, YM2608AdpcmSynth} from './ym2608synth.js?v=mixer-presets-3';
+import {YM2608Synth, YM2608AdpcmSynth} from './ym2608synth.js?v=native-extra-psg-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=audio-numeric-bindings-1';
 import {CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';

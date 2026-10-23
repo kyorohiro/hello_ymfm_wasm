@@ -1,5 +1,5 @@
 /** Neo Geo authoring stays in the shared YM2610/B helpers; Native owns synthesis. */
-import {YM2610BSynth, YM2610BAdpcmBSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=mixer-presets-3';
+import {YM2610BSynth, YM2610BAdpcmBSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=native-extra-psg-1';
 import {encodeAdpcmB} from './adpcm_b_sample.js';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=audio-numeric-bindings-1';

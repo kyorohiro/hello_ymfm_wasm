@@ -8,6 +8,7 @@ const path = require('node:path');
 const {chromium, webkit} = require('playwright');
 const {observeNativeLifecycle,trackNativeLifecycle,runNativeLifecycle}=require('./native_backend_lifecycle.cjs');
 const {runMixerState}=require('./native_backend_mixer_state.cjs');
+const {installExtraPsgMock,runExtraPsg}=require('./native_backend_extra_psg.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -409,7 +410,7 @@ class FakeNative {
         else if(ch===3)s.mode=b&7;
         else if(b&128)s.periods[ch]=(s.periods[ch]&1008)|(b&15);else s.periods[ch]=(s.periods[ch]&15)|((b&63)<<4);
       }
-    }else if(m.method==='stereo'){assert.equal(this.current.mode,'game-gear');s.stereo=m.mask;}
+    }else if(m.method==='stereo'){assert.equal(s.stereoEnabled,true);s.stereo=m.mask;}
     else if(m.method==='clock')s.clock=m.hz;
     else if(m.method==='key-off'){
       if(m.chip==='segapsg')s.attenuations[m.channel]=15;
@@ -2312,8 +2313,10 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
   const browser = await type.launch({headless:true,...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   try {
     const mixerStateOnly=process.argv.includes('--mixer-state-only');
-    if(fftFixture&&!mixerStateOnly)await compareNativeFft(browser,name,fftFixture);
-    if(!mixerStateOnly) {
+    const extraPsgOnly=process.argv.includes('--extra-psg-only');
+    const nativeOnly=mixerStateOnly||extraPsgOnly;
+    if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
+    if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
     const normal = await plain.newPage();
     // Exercise the real textarea fallback; external Monaco CDN availability is
@@ -2326,6 +2329,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
+    if(extraPsgOnly)installExtraPsgMock(native);
     const lifecycle=process.argv.includes('--lifecycle-only')?trackNativeLifecycle(native,page):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
@@ -2337,10 +2341,15 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await page.route('**/vs/loader*.js', route => route.abort());
     page.on('pageerror', error => errors.push(error.message));
     page.setDefaultTimeout(20000);
-    if(mixerStateOnly) {
+    if(nativeOnly) {
       const nativeUrl=new URL(url);nativeUrl.searchParams.set('audioEngine','native');
       await page.goto(nativeUrl.href);await ready(page);
-      assert.equal(native.count('native_genesis_start'),0,'Mixer restoration must not start the Native backend');
+      assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(extraPsgOnly){
+        await runExtraPsg({page,native,artifacts,name,assertNoLiveAudio,until});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS independent Native extra PSG Main/Worker, primary borrowing, stereo/clock/Mixer/Inspector/Keyboard, Stop/Run, disposal and fixed-id replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+      }
       await runMixerState({page,native,artifacts,name,ready,nativeRun,source,assertNoLiveAudio});
       assert.deepEqual(errors,[]);await context.close();
       console.log(name+': PASS immediate Mixer preset selection, Set default, named Save dialog, current autosave, default inheritance, IndexedDB reload, New Cassette, actual ZIP export/import, malformed JSON preservation and recovery; zero AudioContexts/Worklets, Native IPC mocked');return;

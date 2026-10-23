@@ -248,8 +248,8 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>ym2203NativeFiles.has(match[1]))){ym2203NativeFiles.add(name);propagated=true;}
 }}while(propagated);
-const nativeDesktopVersion='mixer-presets-3';
-const nativeDesktopFiles=new Set(['native_genesis_synth.js','playground_runtime.js','playground_logic_worker.js','playground_worker_chip.js','soundchip_mixer.js','playground_audio_endpoint.js','playground_mixer.js','playground_mixer.css','playground_mixer_state.js','playground_audio_engine.js','playground_audio_diagnostics.js','playground.js']);
+const nativeDesktopVersion='native-extra-psg-1';
+const nativeDesktopFiles=new Set(['native_genesis_synth.js','native_genesis_extra_segapsg.js','native_genesis_worker.js','playground_runtime.js','playground_logic_worker.js','playground_worker_chip.js','soundchip_mixer.js','playground_audio_endpoint.js','playground_mixer.js','playground_mixer.css','playground_mixer_state.js','playground_audio_engine.js','playground_audio_diagnostics.js','playground.js']);
 do {propagated=false;for(const {name,source}of sources){
   if(nativeDesktopFiles.has(name))continue;
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
