@@ -18,7 +18,7 @@ npx tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 ```
 
 To test a local build, install its distribution tarball with
-`npm install ./tetorica-vgm-0.2.12.tgz`, then use `npx tetorica-vgm --help`.
+`npm install ./tetorica-vgm-0.2.13.tgz`, then use `npx tetorica-vgm --help`.
 
 Try playback, Note-ish and sheet music in the
 [browser VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html).
@@ -487,6 +487,18 @@ API and CLI, with MIDI / MusicXML / LilyPond exports and manual BRR references.
 The shared MIDI writer retains bends and timing; score algorithms and
 limitations match the browser Analyzer. Existing VGM APIs remain unchanged.
 SPC engine sources, license notices and rebuild instructions are bundled.
+
+## Version 0.2.13
+
+WAV rendering now uses the Analyzer's measured chip output levels, with
+Sega PSG, AY-3-8910 and NES APU defaults based on single-voice AC RMS.
+Existing OPN FM/SSG/rhythm/ADPCM ratios are preserved. This is a fixed output
+balance, not track loudness normalization; waveform, instrument and channel
+count still affect the result.
+
+YM2608's borrowed PCM path now passes through the shared playback Mixer, so
+its gain, pan and mute settings also reach rendered audio. Analysis, export
+formats and low-level chip PCM units are unchanged.
 
 ## MDX export
 
