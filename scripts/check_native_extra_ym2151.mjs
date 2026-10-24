@@ -75,7 +75,7 @@ const report={schemaVersion:1,deviceOpened:false,reference:'Actual deployed play
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2151-'));fixture=path.join(temporary,'fixture');
     execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-x68000/snapshot/src'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_ym2151.cpp','src/native_genesis_ym2151_fixture.cpp','native-x68000/snapshot/src/ymfm_opm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+      ...['src/native_genesis_ym2151.cpp','src/native_genesis_ym2151_fixture.cpp','src/native_genesis_ymfm_opm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,args})=>`${frame} ${op} ${args.join(' ')}`).join('\n')+'\n';

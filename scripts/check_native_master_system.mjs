@@ -101,7 +101,7 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-master-system-'));fixture=path.join(temporary,'fixture');
     execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-master-system/snapshot/src'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_master_system.cpp','src/native_genesis_master_system_fixture.cpp','native-master-system/snapshot/src/ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp','native-genesis/segapsg.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+      ...['src/native_genesis_master_system.cpp','src/native_genesis_master_system_fixture.cpp','src/native_genesis_ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp','native-genesis/segapsg.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

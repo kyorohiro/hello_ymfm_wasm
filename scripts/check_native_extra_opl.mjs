@@ -120,7 +120,7 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-opl-'));fixture=path.join(temporary,'fixture');
     execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-master-system/snapshot/src'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_extra_opl.cpp','src/native_genesis_extra_opl_fixture.cpp','native-master-system/snapshot/src/ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+      ...['src/native_genesis_extra_opl.cpp','src/native_genesis_extra_opl_fixture.cpp','src/native_genesis_ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const planes=(scenario.chip==='ymf262'?512:256)+7;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

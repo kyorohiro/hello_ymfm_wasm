@@ -86,7 +86,7 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-x68000-'));fixture=path.join(temporary,'fixture');
     execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-x68000/snapshot/src','native-x68000/snapshot/third_party/mame-okim6258'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_x68000.cpp','src/native_genesis_x68000_fixture.cpp','native-x68000/snapshot/src/ymfm_opm.cpp','native-x68000/okim6258.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+      ...['src/native_genesis_x68000.cpp','src/native_genesis_x68000_fixture.cpp','src/native_genesis_ymfm_opm.cpp','native-x68000/okim6258.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

@@ -103,7 +103,7 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline independent ymfm YM2612 only. Ownership/IPC/Mixer/UI are tested separately. Cancellation/Stop/preview policy is modeled using real WASM key/TL/pan controls; every output frame compares PCM, status, IRQ and four reads. External mute keeps the real WASM channels advancing with pan bits cleared; its authored pan/TL remain retained. Reset matches the additional Worklet remainder/held clearing and ymfm retained DAC latch. C++ fixture separately checks independent instances, observational snapshots, FFI layout and zero callback allocations/frees. No physical audio device or cross-platform compiler was used.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2612-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),...['src/native_genesis_ym2612.cpp','src/native_genesis_ym2612_fixture.cpp','native-genesis/ymfm_opn.cpp','native-genesis/ymfm_ssg.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),...['src/native_genesis_ym2612.cpp','src/native_genesis_ym2612_fixture.cpp','src/native_genesis_ymfm_opn.cpp','native-genesis/ymfm_ssg.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

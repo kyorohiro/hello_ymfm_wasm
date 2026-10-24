@@ -136,7 +136,8 @@ try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2608-'));fixture=path.join(temporary,'fixture');
     execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),
       path.join(project,'src/native_genesis_ym2608.cpp'),path.join(project,'src/native_genesis_ym2608_fixture.cpp'),
-      ...['ymfm_opn.cpp','ymfm_ssg.cpp','ymfm_adpcm.cpp'].map(name=>path.join(project,'native-genesis',name)),'-o',fixture],{stdio:'pipe'});}
+      path.join(project,'src/native_genesis_ymfm_opn.cpp'),
+      ...['ymfm_ssg.cpp','ymfm_adpcm.cpp'].map(name=>path.join(project,'native-genesis',name)),'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,[...fixtureProfile,'--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
