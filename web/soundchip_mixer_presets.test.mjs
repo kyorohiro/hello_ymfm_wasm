@@ -12,6 +12,8 @@ import moduleFactory from '../docs/generated/ym2612_wasm.js';
 
 const report = JSON.parse(await readFile(new URL('../docs/issues/playground_chip_levels_01.json', import.meta.url), 'utf8'));
 const measured = buildPlaygroundMixerDefaults(report);
+const psgReport = JSON.parse(await readFile(new URL('../docs/issues/soundchip_psg_levels_01.json', import.meta.url), 'utf8'));
+const reducedPsg = {segapsg: 0.455420, ay8910: 1.100331, nes: 1.514209};
 const preset = SOUNDCHIP_MIXER_PRESETS.calibrated;
 const kinds = records => ({version: 1, kinds: records});
 const state = entries => ({version: 1, entries});
@@ -19,11 +21,35 @@ const state = entries => ({version: 1, entries});
 test('calibrated export contains exactly the measured additional kinds and engine, without machine-specific gains', () => {
   assert.equal(rootPresets, SOUNDCHIP_MIXER_PRESETS);
   assert.deepEqual(Object.keys(SOUNDCHIP_MIXER_PRESETS), ['calibrated']);
-  assert.deepEqual(preset, {factoryDefaults: measured.factoryDefaults, factoryEngines: measured.factoryEngines});
+  const factoryDefaults = {version: 1, kinds: measured.factoryDefaults.kinds.map(record =>
+    ({...record, ...(Object.hasOwn(reducedPsg, record.name) ? {volume: reducedPsg[record.name]} : {})}))};
+  assert.deepEqual(preset, {factoryDefaults, factoryEngines: measured.factoryEngines});
   assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set(PLAYGROUND_CALIBRATION_KINDS));
   assert.equal(preset.factoryDefaults.kinds.length, 22);
   assert.deepEqual(preset.factoryEngines.engines, [{name: 'ym2612', engine: 'nuked', volume: 0.493869}]);
   assert.equal(Object.hasOwn(preset, 'factoryEntries'), false);
+  const changed = preset.factoryDefaults.kinds.filter(record => record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
+  assert.deepEqual(new Set(changed.map(record => record.name)), new Set(['segapsg', 'ay8910', 'nes']));
+  for (const record of changed) assert.ok(record.volume < measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
+});
+
+test('only the standalone PSG-family fallbacks use the steady OPNA-FM AC-RMS reference', () => {
+  assert.equal(psgReport.passed, true);
+  assert.deepEqual(psgReport.defaults, reducedPsg);
+  assert.equal(psgReport.reference.gain, 1.03357);
+  assert.equal(psgReport.reference.targetAcRms, 0.09108396077488734);
+  for (const [name, volume] of Object.entries(reducedPsg)) {
+    const row = psgReport.rows.find(record => record.kind === name && record.frequencyHz === 440 && record.sampleRate === 44100 && record.canonical);
+    assert.equal(Number((psgReport.reference.targetAcRms / row.rawAcRms).toFixed(6)), volume);
+    assert.ok(Math.abs(row.rawAcRms * volume - psgReport.reference.targetAcRms) < 1e-7, name + ' steady AC RMS');
+  }
+  assert.notEqual(reducedPsg.nes, 1.512236, 'The npm WASM NES reference is independent of Analyzer JSNES');
+  for (const name of ['ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2610b']) {
+    assert.equal(preset.factoryDefaults.kinds.find(record => record.name === name).volume,
+      measured.factoryDefaults.kinds.find(record => record.name === name).volume, name + ' internal section balance remains unchanged');
+  }
+  for (const name of ['gameboy', 'huc6280']) assert.equal(preset.factoryDefaults.kinds.find(record => record.name === name).volume,
+    measured.factoryDefaults.kinds.find(record => record.name === name).volume, name + ' wavetable reference is unchanged');
 });
 
 test('importing the optional preset leaves generic Mixer defaults unchanged', () => {
@@ -96,6 +122,23 @@ test('RF5C164 calibration is applied once for every instance and authored values
   mixer.restoreState(state([]), kinds([]));
   assert.deepEqual(applied.rf5c164, [0.280286, 0.280286]);
   assert.deepEqual(applied['rf5c164:33'], [0.280286, 0.280286]);
+});
+
+test('explicit common and per-ID levels replace the reduced PSG-family fallbacks without accumulating trim', () => {
+  for (const [name, volume] of Object.entries(reducedPsg)) {
+    const mixer = new SoundChipMixer(preset), applied = [];
+    mixer.register('lead', name, settings => applied.push(chipMixGains(settings)));
+    assert.deepEqual(applied.at(-1), [volume, volume]);
+    mixer.setKindDefault(name, {volume: 0.7});
+    mixer.set('lead', {volume: 0.9});
+    const saved = mixer.exportState(), defaults = mixer.exportDefaults();
+    for (let index = 0; index < 3; index++) mixer.restoreState(saved, defaults);
+    assert.deepEqual(applied.at(-1), [0.9, 0.9]);
+    assert.deepEqual(saved, state([{id: 'lead', name, settings: {volume: 0.9}}]));
+    mixer.reset('lead'); assert.deepEqual(applied.at(-1), [0.7, 0.7]);
+    mixer.restoreState(state([]), kinds([])); assert.deepEqual(applied.at(-1), [volume, volume]);
+    assert.equal(soundChipMixDefaults(name).volume, 1, name + ' generic legacy default remains unity');
+  }
 });
 
 test('unmeasured chip names and engines retain existing fallbacks rather than borrowing another calibration', () => {

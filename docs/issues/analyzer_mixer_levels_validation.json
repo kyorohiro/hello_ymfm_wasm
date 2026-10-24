@@ -12,7 +12,7 @@
     "docs/vgm_analyzer/mixer_defaults.js": "243652c7a63249aa834a21a856128d2ba17bdeca6f99dc49491d575e714b83bb",
     "docs/vgm_analyzer/mixer_calibration_data.js": "826ba70fee44fc21e6e5ed0211be7eebb389d6c33d3ed69727b79c70fb5a74ee",
     "docs/js/soundchip_mixer.js": "40f805329f044edc44d2449379365211e4ddc83a8087a07e04eab39e0f601e59",
-    "docs/js/soundchip_mixer_presets.js": "5db9f7e46cab70f4dccd385c20abb57464c64e6af734c70c5d2e37cc2b0e0ec6",
+    "docs/js/soundchip_mixer_presets.js": "3ee1fe37aaae78639f48965525e1f160b85d487271ddf411f4dd4524e6f5b4b4",
     "docs/js/genesisaudioengine.js": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439",
     "docs/js/y8950audioengine.js": "efa03c590f62170acf716f9847285d13ea2fc5953f6e0d8bc0806264761e356f",
     "docs/js/ym2608audioengine.js": "6163cf3c952c976a0e3bd92163a33a646352114314b702fefdd3c9cf0ac26e24",

@@ -337,6 +337,13 @@ without a preset, or omitting `mixer` from `createSoundChip()`, keeps the legacy
 defaults described above. Importing or selecting the preset opens no audio
 device. It does not change direct `generateStereo()` output.
 
+Since 0.2.27, the standalone Sega PSG, AY-3-8910 and NES pulse references use
+AC RMS relative to the retained FM reference, reducing the earlier square-wave
+boost. Their fallback volumes are `0.455420`, `1.100331` and `1.514209`.
+The NES value is measured on this package's WASM core; the Analyzer's JavaScript
+NES renderer has a separate measured value. OPN chips retain their existing
+internal FM/SSG/rhythm/ADPCM balance, and the other preset levels are unchanged.
+
 Calibration supplies fallback `volume` values, including an engine-specific
 YM2612/Nuked value when a connected endpoint reports that engine. Explicit
 common defaults and per-ID settings replace those fallback values; they do
@@ -931,10 +938,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.26.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.27.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.26.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.27.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -951,6 +958,13 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.27` refines the **opt-in calibrated Mixer preset** with measured AC-RMS
+defaults for Sega PSG, AY-3-8910 and the WASM NES core. The existing OPN internal
+balance, other chip factors, explicit saved settings and legacy no-preset
+defaults are preserved. Shared synchronous `PCMChipMixer` handling also respects
+the generated frame count of borrowed PCM views, leaving unused capacity and
+gain-ramp timing intact.
 
 `0.2.26` adds **opt-in calibrated Mixer presets** through
 `SOUNDCHIP_MIXER_PRESETS.calibrated`. Fixed output-level defaults for 22 measured

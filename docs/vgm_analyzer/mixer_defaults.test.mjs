@@ -88,9 +88,10 @@ test('only standalone Sega PSG, AY and NES defaults use the measured OPNA-FM AC-
   assert.ok(Math.abs(row.rawAcRms*gain/psgLevels.reference.targetAcRms-1)<1e-6,id+' AC-RMS target');
  }
  assert.equal(mixerDefaults('psg',{kind:'ym2612'}).gain,1.3012,'Existing Genesis .35 trim is compensated once');
- for(const [name,volume] of [['segapsg',.644089],['ay8910',1.545813],['nes',2],['gameboy',.515271],['huc6280',.798619]]){
-  assert.equal(baseline.find(record=>record.name===name).volume,volume,name+' shared npm/Playground preset is unchanged');
+ for(const [name,volume] of [['segapsg',.455420],['ay8910',1.100331],['nes',1.514209],['gameboy',.515271],['huc6280',.798619]]){
+  assert.equal(baseline.find(record=>record.name===name).volume,volume,name+' library policy is measured independently');
  }
+ assert.notEqual(mixerDefaults('nesApu').gain,baseline.find(record=>record.name==='nes').volume,'Analyzer JSNES retains its own AC-RMS calibration rather than borrowing the WASM NES gain');
  assert.equal(mixerDefaults('gameBoyDmg').gain,.515271);
  assert.equal(mixerDefaults('huc6280').gain,.798619);
  const ayAlternate=psgLevels.rows.find(row=>row.id==='ay8910'&&row.frequencyHz===440&&row.ayFlags===0);

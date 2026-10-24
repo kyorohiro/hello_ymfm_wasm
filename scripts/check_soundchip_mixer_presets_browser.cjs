@@ -99,12 +99,19 @@ async function checkBrowser(name, browserType, origin) {
           } = await import('/soundchip.js');
           const presetEntry = await import('/soundchip_mixer_presets.js');
           if (presetEntry.SOUNDCHIP_MIXER_PRESETS !== SOUNDCHIP_MIXER_PRESETS) throw new Error('Root and subpath exports differ');
+          const expectedPsgGains = {segapsg:.455420,ay8910:1.100331,nes:1.514209};
+          for (const [kind,expected] of Object.entries(expectedPsgGains)) {
+            const actual = SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(item => item.name === kind)?.volume;
+            if (actual !== expected) throw new Error(`${kind}: stale public calibrated gain ${actual}, expected ${expected}`);
+          }
           const {YM2612Synth, YM2612DirectTransport, YM2612WorkletTransport} = await import('/ym2612synth.js');
           const {FM_PRESETS} = await import('/megasynth-fm-presets.js');
           const {SegaPSGSynth} = await import('/segapsgsynth.js');
+          const {AY8910Synth} = await import('/ay8910synth.js');
+          const {NesApuSynth,NesApuWorkletTransport} = await import('/nesapusynth.js');
           const {GameboySynth} = await import('/gameboysynth.js');
           const {OPLSynth, OPL_PRESETS} = await import('/opl_synth.js');
-          const {SegaPSGWorkletTransport, GameboyWorkletTransport, OPLWorkletTransport} = await import('/chip_worklet_transport.js');
+          const {SegaPSGWorkletTransport, AY8910WorkletTransport, GameboyWorkletTransport, OPLWorkletTransport} = await import('/chip_worklet_transport.js');
           const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
           const require = (condition, message) => {if (!condition) throw new Error(message);};
           const closeEnough = (actual, expected, message, relative = .006) => {
@@ -143,6 +150,13 @@ async function checkBrowser(name, browserType, origin) {
               transport = new GameboyWorkletTransport(chip);
               const gb = new GameboySynth({transport}); gb.initialize();
               gb.pulse.setVoice(0,{duty:.5,volume:15,envelope:{direction:'down',period:0}}); gb.pulse.noteOn(0,'A4');
+            } else if (name === 'ay8910') {
+              transport = new AY8910WorkletTransport(chip);
+              const ay = new AY8910Synth({transport}); ay.initialize(); ay.tone(0,{frequency:440,volume:15,envelope:false});
+            } else if (name === 'nes') {
+              transport = new NesApuWorkletTransport(chip);
+              const nes = new NesApuSynth({transport});
+              nes.pulse.setVoice(0,{duty:.5,volume:15,sweep:{enabled:false,period:0,shift:0}}); nes.pulse.noteOn(0,'A4');
             } else {
               transport = new OPLWorkletTransport(chip);
               const opl = new OPLSynth({chip:name,transport}); opl.initialize(); opl.setPreset(0,OPL_PRESETS.sine); opl.noteOn(0,'A4');
@@ -160,7 +174,7 @@ async function checkBrowser(name, browserType, origin) {
           const rawBefore = await renderRaw();
           const results = [];
           try {
-            for (const name of ['ym2612','segapsg','gameboy','ym3812']) {
+            for (const name of ['ym2612','segapsg','ay8910','nes','gameboy','ym3812']) {
               const mixer = new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
               const factor = SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(kind => kind.name === name).volume;
               const sentinel = 'unrelated';
@@ -179,6 +193,10 @@ async function checkBrowser(name, browserType, origin) {
                 for (let channel=0;channel<2;channel++) {
                   closeEnough(calibrated.channels[channel].amplitude/unity.channels[channel].amplitude,factor,`${name}: calibrated ratio`);
                   closeEnough(overridden.channels[channel].amplitude/unity.channels[channel].amplitude,.5,`${name}: absolute override ratio`);
+                  if (['segapsg','ay8910','nes'].includes(name)) {
+                    closeEnough(calibrated.channels[channel].acRms/unity.channels[channel].acRms,factor,`${name}: calibrated AC RMS ratio`,.02);
+                    closeEnough(overridden.channels[channel].acRms/unity.channels[channel].acRms,.5,`${name}: absolute override AC RMS ratio`,.02);
+                  }
                 }
                 item = {name,factor,unity,calibrated,overridden};
               } finally {
@@ -224,7 +242,7 @@ async function checkBrowser(name, browserType, origin) {
     await page.click('#start');
     const result = await page.evaluate(() => window.__presetCheck);
     assert.deepEqual(errors, [], `${name}: browser errors`);
-    assert.equal(result.results.length, 4);
+    assert.equal(result.results.length, 6);
     assert.equal(result.raw.maximumDifference, 0);
     console.log(JSON.stringify({browser:name,passed:true,...result}));
   } finally {

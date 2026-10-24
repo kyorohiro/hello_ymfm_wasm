@@ -85,6 +85,13 @@ assert.equal(Object.hasOwn(calibratedPreset, 'factoryEntries'), false, 'npm cali
 assert.throws(() => {calibratedPreset.factoryDefaults.kinds[0].volume = 2;}, TypeError);
 assert.deepEqual(soundChipMixDefaults('gameboy'), {volume:0.28, pan:0, muted:false});
 assert.deepEqual(soundChipMixDefaults('rf5c164'), {volume:1, pan:0, muted:false});
+const publicPsgGains = {segapsg:0.455420, ay8910:1.100331, nes:1.514209};
+for (const [name, volume] of Object.entries(publicPsgGains)) {
+  assert.equal(calibratedPreset.factoryDefaults.kinds.find(kind => kind.name === name)?.volume, volume, name + ': public WASM calibration');
+  assert.deepEqual(new SoundChipMixer(calibratedPreset).getKindDefault(name), {volume, pan:0});
+  assert.deepEqual(new SoundChipMixer().getKindDefault(name), {volume:1, pan:0}, name + ': legacy Mixer remains unity');
+  assert.deepEqual(soundChipMixDefaults(name), {volume:1, pan:0, muted:false}, name + ': generic defaults remain unchanged');
+}
 const legacyMixer = new SoundChipMixer(), calibratedMixer = new SoundChipMixer(calibratedPreset), applied = {};
 legacyMixer.register('rf5c164:33', 'rf5c164', () => {});
 calibratedMixer.register('rf5c164:33', 'rf5c164', value => {applied.pcm = value.volume;});
