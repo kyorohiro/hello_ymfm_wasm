@@ -1,9 +1,10 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=extra-ym2612-nuked-1';
 /** Independent OPN client. All writes and memory uploads use one ordered port. */
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {YM2203Synth} from './ym2203synth.js?v=extra-ym2610b-1';
-import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=extra-ym2610b-1';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2610b-1';
+import {YM2203Synth} from './ym2203synth.js?v=extra-ym2612-nuked-1';
+import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=extra-ym2612-nuked-1';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2612-nuked-1';
 
 /**
  * Create a high-level OPN synth backed by ordered Worklet port commands.
@@ -14,6 +15,8 @@ import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2610b-1';
  * @throws {Error} For an unsupported chip name.
  */
 export function createOpnClient(name, port, options = {}, lifecycle = {}) {
+  const engine = name === 'ym2612' ? validateYm2612Engine(options.engine) : undefined;
+  if (engine && options.state?.engine !== undefined && options.state.engine !== engine) throw new Error('Additional YM2612 engine does not match its physical instance');
   let disposed = false, sequence = 0, constructing = true;
   const scoped=options.native&&['ym2610','ym2610b'].includes(name);
   const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{if(disposed||lifecycle.isStopped?.(context))throw new Error('Run stopped');lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
@@ -58,6 +61,7 @@ export function createOpnClient(name, port, options = {}, lifecycle = {}) {
   } else if (name === 'ym2610b') synth = new YM2610BSynth({transport});
   else throw new Error(`Unsupported OPN chip: ${name}`);
   constructing=false;
+  if (engine) Object.defineProperty(synth, 'engine', {value:engine, enumerable:true});
   if(options.native&&name==='ym2203')trackSsgRetainedLevels(synth,(channel,level)=>send('setRetainedLevel',[channel,level]));
   if(scoped)trackSsgRetainedLevels(synth.fm ?? synth,(channel,level)=>send('setRetainedLevel',[channel,level]));
   if (name === 'ym2203') {
@@ -86,9 +90,11 @@ export function createOpnClient(name, port, options = {}, lifecycle = {}) {
   }
   if(options.native&&['ym2612','ym2203'].includes(name)){
     Object.defineProperties(client,{
-      _getState:{value:()=>({...client.getState(),clock:client.clock,...(client.ssg?{ssg:client.ssg._getState()}:{})})},
+      _getState:{value:()=>({...client.getState(),clock:client.clock,...(engine?{engine}:{}),...(client.ssg?{ssg:client.ssg._getState()}:{})})},
       _adoptState:{value:state=>{
-        if(!state)return;if(state.clock!==undefined)client._adoptClock(state.clock);
+        if(!state)return;
+        if(engine&&state.engine!==undefined&&state.engine!==engine)throw new Error('Additional YM2612 engine does not match its physical instance');
+        if(state.clock!==undefined)client._adoptClock(state.clock);
         if(state.channels)client.channels=structuredClone(state.channels);
         if(state.modeRegister!==undefined)client._modeRegister=state.modeRegister;
         if(state.lfo)client.lfo=structuredClone(state.lfo);

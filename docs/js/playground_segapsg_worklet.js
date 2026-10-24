@@ -2,7 +2,7 @@ import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audi
 import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 import {SegaPSG} from './segapsg.js?v=audio-numeric-bindings-1';
 import factory from '../generated/segapsg_wasm.js?v=audio-numeric-bindings-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2610b-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false;

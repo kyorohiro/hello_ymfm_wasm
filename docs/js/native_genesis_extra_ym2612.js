@@ -1,9 +1,10 @@
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2610b-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2612-nuked-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2610b-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2610b-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2612-nuked-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2612-nuked-1';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=extra-ym2612-nuked-1';
 
 export const EXTRA_YM2612_CLOCK_HELD_ERROR='Release the manually held additional YM2612 voices before changing the clock';
 const CLOCK=CHIP_CLOCKS.ym2612;
@@ -30,8 +31,9 @@ function appliedState(registers,base){
   return state;
 }
 
-/** Independent FM-only ymfm endpoint. No Genesis composite/PSG is allocated. */
-export function createNativeGenesisYm2612Endpoint(synth){
+/** Independent FM-only endpoint. No Genesis composite/PSG is allocated. */
+export function createNativeGenesisYm2612Endpoint(synth,{engine:requestedEngine}={}){
+  const engine=validateYm2612Engine(requestedEngine);
   const context=createNativeVoiceContext(synth,{backend:'extra-ym2612',statusCommand:'native_genesis_extra_ym2612_status',label:'additional YM2612'});
   const {capture,current}=context;let clock=CLOCK,appliedClock=CLOCK,initialized=false,collecting=null,uiSerial=Promise.resolve(),clockSerial=Promise.resolve();
   const timed=(message,timing)=>context.timed('ym2612',message,timing);
@@ -47,9 +49,10 @@ export function createNativeGenesisYm2612Endpoint(synth){
   }});
   const base=client.getState();
   Object.defineProperties(client,{clock:{configurable:true,enumerable:true,get:()=>clock},
-    _getState:{value:()=>({...client.getState(),clock})},
+    engine:{value:engine,enumerable:true},
+    _getState:{value:()=>({...client.getState(),clock,engine})},
     _adoptClock:{value:hz=>{clock=validateChipClock(hz);}},
-    _adoptState:{value:state=>{if(state?.clock!==undefined)client._adoptClock(state.clock);if(state)adoptClient(client,state);}},
+    _adoptState:{value:state=>{if(state?.engine!==undefined&&state.engine!==engine)throw new Error('Native additional YM2612 returned an incompatible sound engine');if(state?.clock!==undefined)client._adoptClock(state.clock);if(state)adoptClient(client,state);}},
   });
   let inspector;
   const chip={writeRegister(register,value,port=0){if(!collecting)throw new Error('YM2612 inspector command outside an edit');collecting.push(rawWrite({port,register,value}));inspector?.observe(register,value,port);},reset(){}};
@@ -57,13 +60,14 @@ export function createNativeGenesisYm2612Endpoint(synth){
   inspector=new OpnKeyboardInspector(chip,{kind:'ym2612',guard,clock:()=>appliedClock,sampleRate:synth.clock.sampleRate||48000});
   const notify=()=>synth.emit?.({type:'native-state',name:'fm',state:client._getState()});
   function adopt(data){
+    if(data.engine!==engine&&(data.engine!==undefined||engine==='nuked'))throw new Error('Native additional YM2612 returned an incompatible sound engine');
     if(!Array.isArray(data.registers)||data.registers.length!==2)throw new Error('Native additional YM2612 returned invalid registers');
     for(const row of data.registers)nativeSnapshotArray(row,256,255,'YM2612 registers');
     nativeSnapshotArray(data.keyMasks,6,15,'YM2612 key masks');context.validateHeld(data,5);
     integer(data.status,255,'Status');if(typeof data.irq!=='boolean')throw new Error('Native additional YM2612 returned invalid IRQ');
     appliedClock=validateChipClock(data.clock);inspector.sampleRate=data.sampleRate??synth.clock.sampleRate;
     data.registers.forEach((r,p)=>inspector.registers[p].set(r));
-    return {...data,...inspector.read(),registers:data.registers.map(row=>row.slice()),fmState:appliedState(data.registers,base),held:(data.held??[...inspector.held.keys()].map(channel)).map(ch=>`fm:${ch}`)};
+    return {...data,...inspector.read(),engine,registers:data.registers.map(row=>row.slice()),fmState:appliedState(data.registers,base),held:(data.held??[...inspector.held.keys()].map(channel)).map(ch=>`fm:${ch}`)};
   }
   const snapshot=async(args={})=>{const data=await context.snapshot('ym2612',args);adopt(data);return data;};
   const read=async(args={})=>adopt(await snapshot(args));
@@ -134,12 +138,15 @@ export function createNativeGenesisYm2612Endpoint(synth){
     });uiSerial=result.catch(()=>{});return result;
   }
   return {client,dispatch,read,invoke,
-    async initialize(){const token=capture();context.enable('ym2612');if(initialized)return;client.reset();await synth.flush();current(token);initialized=true;},
+    // Older Native hosts ignore unknown create arguments. Confirm Nuked before
+    // publishing its client rather than silently playing their ymfm default.
+    async initialize(){const token=capture();context.enable('ym2612');if(initialized)return;client.reset();await synth.flush();current(token);if(engine==='nuked'){await snapshot();current(token);}initialized=true;},
     async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2612 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
     reset(){context.invalidate();context.disable('ym2612');initialized=false;stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK});},
   };
 }
 
 export function createNativeGenesisExtraYm2612(synth,options={}){
-  return createNativeGenesisExtraChip(synth,{...options,kind:'ym2612',label:'YM2612',clock:CLOCK,createEndpoint:createNativeGenesisYm2612Endpoint});
+  const engine=validateYm2612Engine(options.engine);
+  return createNativeGenesisExtraChip(synth,{...options,kind:'ym2612',label:engine==='nuked'?'YM2612 (Nuked)':'YM2612',engine,clock:CLOCK,createArgs:{engine},createEndpoint:facade=>createNativeGenesisYm2612Endpoint(facade,{engine})});
 }

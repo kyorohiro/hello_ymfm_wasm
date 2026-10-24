@@ -1,12 +1,12 @@
-import {YM2608Synth, YM2608AdpcmSynth} from './ym2608synth.js?v=extra-ym2610b-1';
+import {YM2608Synth, YM2608AdpcmSynth} from './ym2608synth.js?v=extra-ym2612-nuked-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2610b-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2612-nuked-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2610b-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2610b-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2612-nuked-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2612-nuked-1';
 import {createOfflineAudioDecoder} from './audio_decode.js';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2610b-1';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2612-nuked-1';
 
 // Host ROM loading must stay outside Run's user-code network guard.
 const hostFetch=globalThis.fetch?.bind(globalThis);

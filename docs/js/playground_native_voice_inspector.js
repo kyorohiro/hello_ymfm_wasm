@@ -1,6 +1,6 @@
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
 import {NesApuSynth} from './nesapusynth.js?v=nes-wasm-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2610b-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
 
 const DUTY=[.125,.25,.5,.75],LEVEL=[0,1,.5,.25];
 const integer=(v,min,max,name)=>{if(!Number.isInteger(v)||v<min||v>max)throw new RangeError(`${name} must be ${min}..${max}`);return v;};

@@ -114,6 +114,23 @@ function parseFactoryEntries(value) {
   }
   return parsed;
 }
+function parseFactoryEngines(value) {
+  policyObject(value, ['version', 'engines'], 'mixer factory engines');
+  if (value.version !== MIXER_POLICY_VERSION || !Array.isArray(value.engines) || value.engines.length > MAX_MIXER_KINDS) {
+    throw new TypeError('Mixer factory engines require version 1 and a bounded engine list');
+  }
+  const parsed = new Map();
+  for (const record of value.engines) {
+    policyObject(record, ['name', 'engine', ...COMMON_FIELDS], 'mixer factory engine');
+    const name = policyIdentifier(record.name, 'Mixer kind'), engine = policyIdentifier(record.engine, 'Mixer engine');
+    const engines = parsed.get(name) ?? new Map();
+    if (engines.has(engine)) throw new TypeError(`Duplicate mixer factory engine: ${name}/${engine}`);
+    const {name: ignoredName, engine: ignoredEngine, ...settings} = record;
+    engines.set(engine, policySettings(settings, COMMON_FIELDS, 'mixer factory engine settings'));
+    parsed.set(name, engines);
+  }
+  return parsed;
+}
 const policyOrder = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
 // Observers must never interrupt output registration or cleanup.
@@ -129,28 +146,32 @@ function dispatchMixerListener(listener, value, change = undefined) {
 export class SoundChipMixer {
   /** Application factory policy is optional and never part of authored exports.
    * @param {{factoryDefaults?:{version:number,kinds:Array<{name:string,volume?:number,pan?:number}>},
-   * factoryEntries?:{version:number,entries:Array<{id:string,name:string,settings:{volume?:number,pan?:number}}>}}} [options] */
-  constructor({factoryDefaults, factoryEntries} = {}) {
+   * factoryEntries?:{version:number,entries:Array<{id:string,name:string,settings:{volume?:number,pan?:number}}>},
+   * factoryEngines?:{version:number,engines:Array<{name:string,engine:string,volume?:number,pan?:number}>}}} [options] */
+  constructor({factoryDefaults, factoryEntries, factoryEngines} = {}) {
     const factoryKinds = factoryDefaults === undefined ? new Map() : parseDefaults(factoryDefaults);
     const factoryIds = factoryEntries === undefined ? new Map() : parseFactoryEntries(factoryEntries);
+    const engineDefaults = factoryEngines === undefined ? new Map() : parseFactoryEngines(factoryEngines);
     this.entries = new Map(); this.retained = new Map(); this.reservedIds = new Set(); this.transientIds = new Set();
     this.kindDefaults = new Map(); this.deferredState = new Map();
     this.factoryDefaults = factoryKinds; this.factoryEntries = factoryIds;
+    this.factoryEngines = engineDefaults;
     this.listeners = new Set(); this.meterListeners = new Set();
   }
-  defaults(name, id = undefined) {
+  defaults(name, id = undefined, engine = undefined) {
     const factory = this.factoryEntries.get(id);
-    return {...stripDefaults(name), ...this.factoryDefaults.get(name),
+    return {...stripDefaults(name), ...this.factoryDefaults.get(name), ...this.factoryEngines.get(name)?.get(engine),
       ...(factory?.name === name ? factory.settings : {}), ...this.kindDefaults.get(name)};
   }
   settingsFor(entry) {
     const overrides = entry.overrideName === undefined || entry.overrideName === entry.name ? entry.overrides : {};
-    return {...this.defaults(entry.name, entry.id), ...overrides};
+    return {...this.defaults(entry.name, entry.id, entry.engine), ...overrides};
   }
   /** Effective common volume/pan, including factory fallbacks. */
-  getKindDefault(name) {
+  getKindDefault(name, engine = undefined) {
     policyIdentifier(name, 'Mixer kind');
-    const {volume, pan} = this.defaults(name);
+    if (engine !== undefined) policyIdentifier(engine, 'Mixer engine');
+    const {volume, pan} = this.defaults(name, undefined, engine);
     return {volume, pan};
   }
   /** Explicit common policy only; mute and solo belong to a project/session. */
@@ -220,7 +241,7 @@ export class SoundChipMixer {
     const entry = this.entries.get(id) ?? this.retained.get(id) ?? {id, name:id, kindKnown:false, overrides:{}, apply:null};
     const overrides = entry.overrideName !== undefined && entry.overrideName !== entry.name ? {} : entry.overrides;
     const authored = {...overrides, ...settings};
-    const next = {...this.defaults(entry.name, id), ...authored}; validateChipMix(next);
+    const next = {...this.defaults(entry.name, id, entry.engine), ...authored}; validateChipMix(next);
     entry.settings = next; entry.overrides = authored;
     entry.overrideName = entry.kindKnown ? entry.name : undefined;
     this.retained.delete(id); this.entries.set(id, entry); this.applyAll(); this.notify();
@@ -231,7 +252,7 @@ export class SoundChipMixer {
   /** @returns {Array<ChipMixSettings & {id: string, name: string, connected: boolean, effectiveMuted: boolean}>} */
   list() {
     const hasSolo = this.hasSolo();
-    return [...this.entries].map(([id, entry]) => ({id, name:entry.name, connected:Boolean(entry.apply), ...entry.settings,
+    return [...this.entries].map(([id, entry]) => ({id, name:entry.name, ...(entry.engine === undefined ? {} : {engine:entry.engine}), connected:Boolean(entry.apply), ...entry.settings,
       effectiveMuted:entry.settings.muted || (hasSolo && !entry.settings.solo)}));
   }
   /** Clear authored overrides back to current common/factory defaults. */
@@ -304,12 +325,14 @@ export class SoundChipMixer {
   checkId(id) { if (typeof id !== 'string' || !id.trim()) throw new TypeError('Mixer id must be a nonempty string'); }
   /** Register an output. Release disconnects the endpoint and retains settings only.
    * @param {string} id @param {string} name @param {(settings: ChipMixSettings) => void} apply
-   * @param {{setMetering: (enabled: boolean) => void}} [meter] */
-  register(id, name, apply, meter = undefined) {
+   * @param {{setMetering: (enabled: boolean) => void}} [meter]
+   * @param {{engine?:string}} [identity] Engine selects factory fallbacks, not an extra multiplier or a saved setting. */
+  register(id, name, apply, meter = undefined, {engine} = {}) {
     this.checkId(id);
+    if (engine !== undefined) policyIdentifier(engine, 'Mixer engine');
     if (this.entries.get(id)?.apply) throw new Error(`Mixer id is already connected: ${id}`);
     const previousEntry = this.entries.get(id), previous = previousEntry ?? (this.transientIds.has(id) ? undefined : this.retained.get(id));
-    const entry = {id, name, kindKnown:true, overrides:{...previous?.overrides},
+    const entry = {id, name, engine, kindKnown:true, overrides:{...previous?.overrides},
       overrideName:previous?.overrideName ?? (previous?.kindKnown ? previous.name : name), apply, meter};
     entry.settings = this.settingsFor(entry);
     this.entries.set(id, entry);
@@ -321,7 +344,7 @@ export class SoundChipMixer {
       if (released || this.entries.get(id) !== entry) return; released = true;
       meter?.setMetering(false); this.entries.delete(id);
       if (!this.releaseTransientId(id)) {
-        const saved = {id, name:entry.overrideName ?? name, kindKnown:true, overrideName:entry.overrideName,
+        const saved = {id, name:entry.overrideName ?? name, engine, kindKnown:true, overrideName:entry.overrideName,
           overrides:{...entry.overrides}, apply:null};
         saved.settings = this.settingsFor(saved); this.retained.set(id, saved);
       }
@@ -329,8 +352,9 @@ export class SoundChipMixer {
     };
   }
   /** Connect one stereo AudioNode before FX/master. Release disconnects this route only.
-   * @param {string} id @param {string} name @param {AudioNode} node @param {AudioNode} destination @param {BaseAudioContext} [context] */
-  connect(id, name, node, destination, context = node.context) {
+   * @param {string} id @param {string} name @param {AudioNode} node @param {AudioNode} destination @param {BaseAudioContext} [context]
+   * @param {{engine?:string}} [identity] */
+  connect(id, name, node, destination, context = node.context, identity = {}) {
     const left = context.createGain(), right = context.createGain();
     const splitter = context.createChannelSplitter(2), merger = context.createChannelMerger(2);
     node.connect(splitter); splitter.connect(left, 0); splitter.connect(right, 1);
@@ -380,7 +404,7 @@ export class SoundChipMixer {
       meterTimer.unref?.();
     };
     let unregister;
-    try { unregister = this.register(id, name, update, {setMetering}); }
+    try { unregister = this.register(id, name, update, {setMetering}, identity); }
     catch (error) {disconnect(); throw error;}
     let released = false;
     return () => {if (released) return; released = true; unregister(); disconnect();};

@@ -15,7 +15,7 @@ Use the common Playground type definitions together with the type definition for
 ## Type definitions
 
 - [Common Playground API](./playground/tetorica-playground-globals.d.ts): Globals, live coding, samples, noise, effects, files, FM, and PSG APIs
-- [YM2612 selection](./playground/tetorica-playground-ym2612.d.ts): Mega Drive / Genesis configuration
+- [YM2612 selection](./playground/tetorica-playground-ym2612.d.ts): Mega Drive / Genesis configuration. createSoundChip('ym2612', {engine:'nuked'}) selects an independent Nuked core in Browser and Native; omit engine for ymfm. engine is immutable; useSoundChip does not accept engine options.
 - [Mega CD selection](./playground/tetorica-playground-mega-cd.d.ts): YM2612 FM, Sega PSG and the primary RF5C164, without 32X PWM. Also used by 32X and 32X Nuked modes for shared PCM ownership. Await useSoundChip('rf5c164') for the built-in eight-voice PCM; createSoundChip adds a separate disposable device.
 - [YM2608 selection](./playground/tetorica-playground-ym2608.d.ts): PC-98 configuration
 - [YM2203 selection](./playground/tetorica-playground-ym2203.d.ts): Three-channel PC-98 configuration

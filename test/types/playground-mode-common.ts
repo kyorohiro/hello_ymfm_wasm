@@ -29,6 +29,19 @@ async function checkCommonModeTypes() {
   await pg.play('C4', {channel: 6});
 
   // Independent chips keep their own capabilities regardless of the selected mode.
+  const accurate = await createSoundChip('ym2612', {id:'accurate',engine:'nuked'});
+  const engine: PlaygroundYm2612Engine = accurate.engine;
+  accurate.setPreset(5, FM_PRESETS.sine);
+  accurate.noteOn(5, 'C4');
+  // @ts-expect-error engine is selected at creation and cannot be changed
+  accurate.engine = 'ymfm';
+  // @ts-expect-error only the two supported engines are accepted
+  await createSoundChip('ym2612', {engine:'other'});
+  // @ts-expect-error engine selection belongs only to YM2612
+  await createSoundChip('ym2610b', {engine:'nuked'});
+  // @ts-expect-error shared borrowing does not accept engine options
+  await useSoundChip('ym2612', {engine:'nuked'});
+  accurate.dispose();
   const opn = await createSoundChip('ym2203');
   opn.ssg.noteOn(0, 'C4');
   opn.setPreset(2, {algorithm: 7, operators: [{multi: 1}]});

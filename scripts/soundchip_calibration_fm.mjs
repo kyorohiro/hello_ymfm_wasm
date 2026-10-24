@@ -5,7 +5,7 @@ export const FM_CALIBRATION_KINDS = Object.freeze([
   'ym2612','ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
 ]);
 
-const sourcePrefix = kind => `const source = await createSoundChip(${JSON.stringify(kind)}, {id: 'calibration-source'});
+const sourcePrefix = (kind,engine) => `const source = await createSoundChip(${JSON.stringify(kind)}, {id: 'calibration-source'${engine ? ', engine: '+JSON.stringify(engine) : ''}});
 context.calibrationSource = source;
 `;
 
@@ -126,11 +126,12 @@ await source.noteOn(${midi}, 127);
   };
 }
 
-export function buildFmCalibrationReference(kind,frequencyHz=440){
+export function buildFmCalibrationReference(kind,frequencyHz=440,{engine}={}){
   if(!FM_CALIBRATION_KINDS.includes(kind))throw new RangeError(`Unsupported FM calibration kind: ${kind}`);
   if(!Number.isFinite(frequencyHz)||frequencyHz<=0)throw new RangeError('Calibration frequency must be positive finite Hz');
-  const reference=kind==='dx7'?dx7(frequencyHz):kind==='ym2151'?opm(frequencyHz):kind==='ym2413'?opll(frequencyHz):['ym3526','ym3812','y8950','ymf262'].includes(kind)?opl(kind,frequencyHz):opn(kind,frequencyHz);
-  return {kind,waveform:'sine',frequencyHz,...reference};
+  if(engine!==undefined&&(kind!=='ym2612'||!['ymfm','nuked'].includes(engine)))throw new RangeError('Only YM2612 supports the ymfm/nuked calibration engine');
+  const reference=kind==='dx7'?dx7(frequencyHz):kind==='ym2151'?opm(frequencyHz):kind==='ym2413'?opll(frequencyHz):['ym3526','ym3812','y8950','ymf262'].includes(kind)?opl(kind,frequencyHz):opn(kind,frequencyHz,sourcePrefix(kind,engine));
+  return {kind,...(engine==='nuked'?{chipEngine:engine}:{}),waveform:'sine',frequencyHz,...reference};
 }
 
 export const createFmCalibrationPrograms = (frequencyHz=440) => FM_CALIBRATION_KINDS.map(kind=>buildFmCalibrationReference(kind,frequencyHz));

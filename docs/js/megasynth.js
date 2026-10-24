@@ -1,6 +1,6 @@
-import {chipMixGains} from './soundchip_mixer.js?v=extra-ym2610b-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=extra-ym2610b-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=extra-ym2610b-1';
+import {chipMixGains} from './soundchip_mixer.js?v=extra-ym2612-nuked-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=extra-ym2612-nuked-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=extra-ym2612-nuked-1';
 /**
  * @file megasynth.js
  * 実行環境: Browser（メインスレッド）
@@ -16,10 +16,10 @@ import {
 } from "./ym2612synth.js?v=audio-stability-2";
 import { YM2612_CLOCK } from "./ym2612.js?v=audio-numeric-bindings-1";
 import { createSegaPsgApi } from "./segapsg_api.js?v=audio-numeric-bindings-1";
-import { createRf5c164Audio } from "./playground_rf5c164_audio.js?v=extra-ym2610b-1";
-import { createRf5c164Client } from "./playground_rf5c164.js?v=extra-ym2610b-1";
+import { createRf5c164Audio } from "./playground_rf5c164_audio.js?v=extra-ym2612-nuked-1";
+import { createRf5c164Client } from "./playground_rf5c164.js?v=extra-ym2612-nuked-1";
 import { samplePCM } from "./native_sample.js?v=audio-stability-2";
-import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=extra-ym2610b-1";
+import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=extra-ym2612-nuked-1";
 export {
   createFXBranch,
   createBitcrusherFX,
@@ -158,7 +158,7 @@ const YM2612_NATIVE_SAMPLE_RATE =
  *   rf5c164Fetch?: typeof fetch,
  *   outputSampleRate?: number,
  *   chipSampleRate?: number,
- *   mixer?: import('./soundchip_mixer.js?v=extra-ym2610b-1').SoundChipMixer,
+ *   mixer?: import('./soundchip_mixer.js?v=extra-ym2612-nuked-1').SoundChipMixer,
  *   masterVolume?: number,
  *   sampleOutputNode?: AudioNode | null,
  * }} MegaSynthOptions
@@ -305,7 +305,7 @@ export class MegaSynth {
 
     this.mixerReleases = [];
     this.workletUrl =
-      options.workletUrl ?? "./ym2612-worklet.js?v=extra-ym2610b-1";
+      options.workletUrl ?? "./ym2612-worklet.js?v=extra-ym2612-nuked-1";
     this.stereoWidthWorkletUrl =
       options.stereoWidthWorkletUrl ??
       resolveSiblingWorkletUrl(
@@ -344,7 +344,7 @@ export class MegaSynth {
     this.megaCD = options.megaCD === true;
     this.mega32X = options.mega32X === true;
     this.pwmOptions = options.pwmOptions ?? {};
-    /** @type {(import("./pwm32x_playback.js?v=extra-ym2610b-1").AsyncPWMAPI & {dispose(): void, readonly id: string}) | null} */
+    /** @type {(import("./pwm32x_playback.js?v=extra-ym2612-nuked-1").AsyncPWMAPI & {dispose(): void, readonly id: string}) | null} */
     this.pwm = null; this.pwmDevice = null;
     this.segaPsgWasmUrl = options.segaPsgWasmUrl !== undefined
       ? options.segaPsgWasmUrl
@@ -352,7 +352,7 @@ export class MegaSynth {
     this.rf5c164WasmUrl = options.rf5c164WasmUrl ??
       resolveSiblingWorkletUrl(this.ym2612WasmUrl, 'rf5c164_wasm.wasm');
     this.rf5c164WorkletUrl = options.rf5c164WorkletUrl ??
-      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=extra-ym2610b-1');
+      resolveSiblingWorkletUrl(this.workletUrl, 'rf5c164-worklet.js?v=extra-ym2612-nuked-1');
     this.rf5c164Fetch = options.rf5c164Fetch;
     /** RF5C164 API after start() when megaCD is enabled; its methods return promises.
      * @type {(ReturnType<typeof createRf5c164Client> & {readonly id: string}) | null} */
@@ -968,7 +968,7 @@ export class MegaSynth {
     this.#installRecordingHooks();
   }
 
-  /** @returns {import('./soundchip_mixer.js?v=extra-ym2610b-1').SoundChipMixer} */
+  /** @returns {import('./soundchip_mixer.js?v=extra-ym2612-nuked-1').SoundChipMixer} */
   get mixer() { return this.audio.mixer; }
 
   releaseMixerSources() {

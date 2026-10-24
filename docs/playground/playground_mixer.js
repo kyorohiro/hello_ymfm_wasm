@@ -208,7 +208,7 @@ export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume
     host.append(heading, volume.row, pan.row, meter.host, connection);
     return {host, meter, update(next) {
       current = next;
-      const name = names[next.name] ?? next.name;
+      const name = (names[next.name] ?? next.name) + (next.engine === 'nuked' ? ' (Nuked)' : '');
       title.textContent = name; idLabel.textContent = next.id;
       mute.setAttribute('aria-label', `${next.id} mute`); mute.setAttribute('aria-pressed', String(next.muted));
       solo.setAttribute('aria-label', `${next.id} solo`); solo.setAttribute('aria-pressed', String(Boolean(next.solo)));

@@ -109,3 +109,47 @@ test('factory policies are validated completely, copied, and reject out-of-range
   assert.doesNotThrow(()=>new SoundChipMixer({factoryDefaults:kinds([{name:'x',volume:2}]),factoryEntries:state([entry('x','x',{volume:0})])}));
   assert.deepEqual(mixer.exportDefaults(),kinds([])); assert.deepEqual(mixer.exportState(),state([]));
 });
+
+test('engine factory levels replace kind fallbacks once and authored presets remain absolute',()=>{
+  const mixer = new SoundChipMixer({...factory(),factoryEngines:{version:1,engines:[{name:'ym2612',engine:'nuked',volume:.2}]}}), applied = {};
+  mixer.register('normal','ym2612',s=>{applied.normal=chipMixGains(s);},undefined,{engine:'ymfm'});
+  mixer.register('accurate','ym2612',s=>{applied.nuked=chipMixGains(s);},undefined,{engine:'nuked'});
+  assert.deepEqual(applied.normal,[.24,.3]);assert.deepEqual(applied.nuked,[.16000000000000003,.2]);
+  assert.deepEqual(mixer.getKindDefault('ym2612','nuked'),{volume:.2,pan:.2});
+  assert.equal(mixer.list().find(e=>e.id==='accurate').engine,'nuked');
+  assert.deepEqual(mixer.exportState(),state([]));assert.deepEqual(mixer.exportDefaults(),kinds([]));
+  mixer.configureDefaults(kinds([{name:'ym2612',volume:.5}]));
+  assert.equal(mixer.get('normal').volume,.5);assert.equal(mixer.get('accurate').volume,.5);
+  mixer.set('accurate',{volume:.7});assert.equal(mixer.get('accurate').volume,.7);
+  const saved=mixer.exportState();assert.deepEqual(saved,state([entry('accurate','ym2612',{volume:.7})]));
+  for(let i=0;i<3;i++)mixer.restoreState(saved,mixer.exportDefaults());
+  assert.equal(mixer.get('accurate').volume,.7);assert.equal(mixer.get('normal').volume,.5);
+  mixer.restoreState(state([]),kinds([]));
+  assert.equal(mixer.get('accurate').volume,.2);assert.equal(mixer.get('normal').volume,.3);
+});
+
+test('same-ID recreation picks the new engine without persisting or inheriting old engine identity',()=>{
+  const mixer=new SoundChipMixer({...factory(),factoryEngines:{version:1,engines:[{name:'ym2612',engine:'nuked',volume:.2}]}});
+  const release=mixer.register('lead','ym2612',()=>{},undefined,{engine:'nuked'});
+  release();assert.equal(mixer.get('lead').volume,.2);
+  const second=mixer.register('lead','ym2612',()=>{},undefined,{engine:'ymfm'});
+  assert.equal(mixer.get('lead').volume,.3);
+  mixer.set('lead',{volume:.6});second();
+  mixer.register('lead','ym2612',()=>{},undefined,{engine:'nuked'});
+  assert.equal(mixer.get('lead').volume,.6,'saved absolute volume takes precedence across engine changes');
+  assert.deepEqual(mixer.exportState(),state([entry('lead','ym2612',{volume:.6})]));
+});
+
+test('factory engine policies are copied and fully validated before use',()=>{
+  const options={factoryEngines:{version:1,engines:[{name:'ym2612',engine:'nuked',volume:.2}]}}, mixer=new SoundChipMixer(options);
+  options.factoryEngines.engines[0].volume=1;
+  assert.equal(mixer.getKindDefault('ym2612','nuked').volume,.2);
+  assert.equal(mixer.getKindDefault('other','nuked').volume,1);
+  for(const engines of [[{name:'ym2612',engine:'nuked',volume:2.01}], [{name:'ym2612',engine:'',volume:.2}],
+    [{name:'ym2612',engine:'nuked',volume:.2},{name:'ym2612',engine:'nuked',volume:.3}],
+    [{name:'ym2612',engine:'nuked',muted:true}], [{name:'ym2612',engine:'nuked',volume:NaN}]]) {
+    assert.throws(()=>new SoundChipMixer({factoryEngines:{version:1,engines}}));
+  }
+  assert.throws(()=>mixer.register('bad','ym2612',()=>{},undefined,{engine:''}));
+  assert.equal(mixer.list().length,0);
+});

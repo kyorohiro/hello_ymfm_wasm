@@ -24,7 +24,8 @@ pulse.tone(0, {note: 'G4', attenuation: 10});
 - operator／preset、pan／LFO、CH3特殊モード／CSM、timer、raw write、clockを扱う。
 - DACは`setDacEnabled()`と`writeDac()`で操作できる。
   追加音源用の既存Browser APIにはないPCM sample／bank再生を、主音源のDACへ転送しない。
-- 追加用は通常のymfm。主音源で選択するNukedの挙動は維持する。
+- 初回実装は通常のymfm。2026-10-24に[追加Nukedのengine選択](native_dynamic_nuked_01.md)も加えた。
+  主音源のengineと独立して指定でき、省略時はymfmを維持する。
 
 ## 共通ラック
 

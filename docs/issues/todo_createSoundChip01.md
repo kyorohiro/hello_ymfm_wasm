@@ -1,6 +1,6 @@
 # Native版 createSoundChip() 対応計画
 
-2026-10-23。追加音源の対象と必要な作業を整理する。2026-10-24、追加YM2610Bの6CH対応を反映。
+2026-10-23。追加音源の対象と必要な作業を整理する。2026-10-24、追加YM2610Bの6CH対応と追加YM2612のNuked選択を反映。
 Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2610B・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262・RF5C164・OKIM6258・Game Boy・NES＋任意FDS・PC Engine・DX7・32X PWM・SNES S-DSP・SPC700ファイルプレーヤーの追加生成まで実装済み。公開22種類をNativeへ接続した。
 
 ## 目的と範囲
@@ -33,6 +33,8 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 生成とC++コアの最終回収を音声callback外で行う。
 - [x] 追加ラックをYM2612へ拡張し、同種2台＋PSG＋Mode主音源を併用する。
 - [x] 追加YM2612のMain／Worker、Mixer、Keyboard、OPN音色編集、個別破棄、Stop／再Runに対応する。
+- [x] 追加YM2612の生成時に`engine: 'ymfm' | 'nuked'`を選べるようにする。省略時は従来のymfm。
+  [engineの固定・識別とMixer初期値](native_dynamic_nuked_01.md)をBrowser／Native・Main／Workerで接続した。
 - [x] 追加YM2203のFM 3CH＋SSG 3CH、共有noise／envelope、mono・prescaler、予約書込み、音色編集・Keyboardに対応する。
 - [x] 追加YM2608のFM 6CH＋SSG 3CH＋rhythm 6音色＋ADPCM-B、独立ROM／RAM、再利用可能timeline、編集・Keyboardに対応する。
 - [x] 追加YM2610のFM 4CH＋SSG 3CH＋ADPCM-A 6voice／B、疎なROM、編集・Keyboardに対応する。
@@ -100,8 +102,8 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
   `spc`はSPC700も動かすファイルプレーヤー。[別の再生経路](native_dynamic_spc_01.md)としてNativeへ追加した。
 - **Y8950 ADPCM**：低レベルコアの機能と現在のPlayground公開APIを区別する。
   ADPCM memory APIの新規公開を、追加生成対応の完了条件へ暗黙に加えない。
-- **Nuked**：まず追加YM2612は通常のymfmを対象とする。
-  Nukedを追加生成時にも選べるようにするか、公開オプションとともに別途検討する。
+- **Nuked**：[追加YM2612のengine選択へ対応した](native_dynamic_nuked_01.md)。
+  `createSoundChip('ym2612', {engine:'nuked'})`で独立生成し、省略時は従来のymfmを使う。公開名は22種類のまま。
 
 ## 実装順の目安
 
@@ -214,7 +216,9 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
   [代表7種類の混在自動試験と共通Example](native_dynamic_stability_01.md)は追加済み。物理デバイスの試聴・dropout評価は別途行う。
 - [x] [追加生成用`ym2610b`の公開名・6CH型・Browser／Native対応](native_dynamic_ym2610b_01.md)。
   `ym2610`の4CHを維持し、主音源の借用は公開名の完全一致に統一した。
-- [ ] 追加YM2612でのNuked選択と、選択方法。
+- [x] [追加YM2612のNuked選択](native_dynamic_nuked_01.md)。
+  `createSoundChip('ym2612', {engine: 'nuked'})`を追加し、既定のymfmと`useSoundChip()`の取得規則を維持した。
+  公開種類は22のまま。実コア比較・最終配布物の検証結果はリンク先へ記録する。
 - [ ] Y8950 ADPCMなど、現在のPlayground公開APIにない機能の追加。
 - [x] [SPCプレーヤーのNative化と観測イベントの配送](native_dynamic_spc_01.md)。
 - [ ] `tetorica-soundchip-native`／JS adapterのパッケージ分離、低レベルAPI全体への展開。
@@ -224,6 +228,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [公開名と追加生成の入口](../../web/playground_runtime.js)、[共有音源のcache](../../web/playground_soundchips.js)
 - [Native主音源API](native_primary_api_01.md)、[実装済みの追加Sega PSG](native_dynamic_psg_01.md)
 - [実装済みの追加YM2612と検証結果](native_dynamic_ym2612_01.md)
+- [追加YM2612のNuked選択・engine識別とMixer初期値](native_dynamic_nuked_01.md)
 - [実装済みの追加YM2203と検証結果](native_dynamic_ym2203_01.md)
 - [実装済みの追加YM2608・メモリー予算と検証結果](native_dynamic_ym2608_01.md)
 - [実装済みの追加YM2610・疎なROMと検証結果](native_dynamic_ym2610_01.md)

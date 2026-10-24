@@ -1,3 +1,5 @@
+import nukedFactory from '../docs/generated/nuked_opn2_wasm.js';
+import {validateYm2612Engine} from './playground_soundchip_options.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
 import {createOpnAuditionGuard} from './playground_audition_guard.js';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js';
@@ -14,19 +16,19 @@ import ym2610Factory from '../docs/generated/ym2610b_wasm.js';
 import {validateChipClock} from './playground_chip_clock.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 
-async function setup(name,rate) {
+async function setup(name,rate,engine='ymfm') {
   let Processor, resolveReady, calls = 0;
   const ready = new Promise(resolve => {resolveReady = resolve;});
   const messages = [];
-  const scope = {OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,sampleRate:rate,currentFrame:0,Ym2612,Ym2203,Ym2610B,ym2612Factory,ym2203Factory,ym2610Factory,validateChipClock,
+  const scope = {validateYm2612Engine,OpnKeyboardInspector,receiveChipInspector,createOpnAuditionGuard,sampleRate:rate,currentFrame:0,Ym2612,Ym2203,Ym2610B,ym2612Factory,nukedFactory,ym2203Factory,ym2610Factory,validateChipClock,
     createProcessorPerformance:options => createProcessorPerformance({...options,rate,nowFrame:() => scope.currentFrame}),
     AudioWorkletProcessor:class {constructor() {this.port = {postMessage:message => {messages.push(message); resolveReady(message);}};}},
     registerProcessor(_name,Type) {Processor = Type;},
   };
   const source = await readFile(new URL('./playground_opn_worklet.js',import.meta.url),'utf8');
   vm.runInNewContext(source.replace(/^import .*;\n/gm,''),scope);
-  const wasmBinary = await readFile(new URL(`../docs/generated/${name === 'ym2610' ? 'ym2610b' : name}_wasm.wasm`,import.meta.url));
-  const p = new Processor({processorOptions:{name,wasmBinary}});
+  const wasmBinary = await readFile(new URL(`../docs/generated/${engine==='nuked'?'nuked_opn2':name === 'ym2610' ? 'ym2610b' : name}_wasm.wasm`,import.meta.url));
+  const p = new Processor({processorOptions:{name,wasmBinary,engine}});
   assert.equal((await ready).ready,true);
   const view = p.chip.generateStereoView.bind(p.chip);
   p.chip.generateStereoView = frames => {calls++; return view(frames);};
@@ -82,9 +84,9 @@ function program(fixture,name) {
   ],882]});
 }
 
-for (const name of ['ym2612','ym2203','ym2610','ym2610b']) for (const rate of [44100,48000,96000]) {
-  test(`independent ${name}: batched borrowed PCM preserves timed writes and VGM scheduling at ${rate} Hz`,async t => {
-    const actual = await setup(name,rate), reference = await setup(name,rate);
+for (const [name,engine] of [['ym2612','ymfm'],['ym2612','nuked'],['ym2203','ymfm'],['ym2610','ymfm'],['ym2610b','ymfm']]) for (const rate of [44100,48000,96000]) {
+  test(`independent ${name} ${engine}: batched borrowed PCM preserves timed writes and VGM scheduling at ${rate} Hz`,async t => {
+    const actual = await setup(name,rate,engine), reference = await setup(name,rate,engine);
     t.after(() => {actual.p.dispose(); reference.p.dispose();});
     reference.p.testRate = rate;
     reference.p.renderSegment = referenceSegment.bind(reference.p);

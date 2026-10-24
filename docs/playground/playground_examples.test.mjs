@@ -86,7 +86,7 @@ test('mode catalogs stay compact while Genesis retains its library and shares th
     for (const file of files) assert.ok(EXAMPLE_FILES.includes(file), `${id} uses a bundled source`);
     if (definition.examples) {
       if (id === 'master-system') assert.equal(files.length,5,'Master System retains two PSG examples alongside three OPLL examples');
-      else if (['mega-cd','genesis-full','genesis-full-nuked'].includes(id)) assert.equal(files.length,5,'Genesis expansion modes include the shared mixed-chip and level comparison scenes');
+      else if (['mega-cd','genesis-full','genesis-full-nuked'].includes(id)) assert.equal(files.length,6,'Genesis expansion modes include the shared mixed-chip, level and YM2612 engine comparison scenes');
       else assert.ok(files.length >= 2 && files.length <= 3, `${id} has two or three examples`);
       assert.deepEqual(files.map(file => file.path), definition.examples);
     }
@@ -97,6 +97,7 @@ test('mode catalogs stay compact while Genesis retains its library and shares th
   assert.deepEqual(MODE_EXAMPLE_FILES['genesis-nuked'], genesis);
   for (const id of ['genesis','mega-cd','genesis-full','genesis-full-nuked','genesis-nuked']) {
     assert(MODE_EXAMPLE_FILES[id].some(file => file.path === '/examples/genesis/chip-level-comparison.js'), `${id} includes the shared listening comparison`);
+    assert(MODE_EXAMPLE_FILES[id].some(file => file.path === '/examples/genesis/ym2612-engine-comparison.js'), `${id} includes the YM2612 engine comparison`);
   }
   for (const path of [
     '/examples/basic/fm/fm-api-beep.js',

@@ -17,6 +17,7 @@ import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=cycle-parity-1';
 import {createOpnClient} from './playground_opn.js';
 import {createSoundChipRegistry} from './playground_soundchips.js';
+import {validateSoundChipOptions} from './playground_soundchip_options.js';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js';
 import {createGameboyClient} from './playground_gameboy.js';
@@ -767,8 +768,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     async createSoundChip(name, options = {}){
       if(run.stopped)throw new Error('Run stopped');
       const token=run.token,scoped=supportsNativeExtra(name),caller=run.currentLoop;
-      if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(k => !['id', ...(name === 'nes' ? ['fds', 'clock'] : [])].includes(k))) throw new TypeError('createSoundChip supports {id}, and {fds, clock} for NES');
-      if (name === 'nes' && options.fds !== undefined && typeof options.fds !== 'boolean') throw new TypeError('fds must be boolean');
+      validateSoundChipOptions(name, options);
+      options = {...options};
       const response=await request('pcm.create',[name, options],run.currentLoop,scoped?performanceTransport.timestamp():undefined,scoped);
       // Older test/host shims may return a bare port; production returns its allocated ID.
       const mixerId=response.id ?? options.id ?? `${name}:${++pcmSequence}`;

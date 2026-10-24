@@ -4,7 +4,7 @@ import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1
 import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
 
 export class PsgInspectorState {
-  /** @param {any} chip @param {import('./playground_native_voice_inspector.js?v=extra-ym2610b-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {any} chip @param {import('./playground_native_voice_inspector.js?v=extra-ym2612-nuked-1').NativeVoiceInspectorOptions} [options] */
   constructor(chip, {clock = () => CHIP_CLOCKS.segapsg, sampleRate = 44100,dispatch,beginAudition=()=>{},endAudition=()=>{}} = {}) {
     this.clock = typeof clock==='function'?clock:()=>clock; this.sampleRate = sampleRate;
     this.dispatch=dispatch??(command=>chip[command.method](...(command.args??[])));this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();
@@ -63,7 +63,7 @@ export function rfSampleMetadata(bytes, {name = 'Sample', frames, step, endGuard
 }
 
 export class RfInspectorState {
-  /** @param {any} chip @param {import('./playground_native_voice_inspector.js?v=extra-ym2610b-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {any} chip @param {import('./playground_native_voice_inspector.js?v=extra-ym2612-nuked-1').NativeVoiceInspectorOptions} [options] */
   constructor(chip, {clock=()=>CHIP_CLOCKS.rf5c164,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}} = {}) {
     this.clock=typeof clock==='function'?clock:()=>clock;this.sampleRate=sampleRate;this.samples=[];this.memoryRanges=[];this.memoryRevision=0;
     const control=dispatch?null:new RF5C164Synth({transport:{write:(...args)=>chip.writeRegister(...args),loadMemory:(...args)=>chip.loadMemory(...args),reset:()=>chip.reset()}});

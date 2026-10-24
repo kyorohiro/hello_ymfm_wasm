@@ -1,11 +1,11 @@
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=extra-ym2610b-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2610b-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=extra-ym2612-nuked-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
 const SLOTS=[0,1,2,8,9,10,16,17,18], PAIRS=[0,1,2,9,10,11];
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};
 /** Applied OPL registers. Reads never write audio or advance chip time. */
 export class OplVoiceInspector {
-  /** @param {import('./playground_native_voice_inspector.js?v=extra-ym2610b-1').NativeVoiceInspectorOptions & {chip?:import('./opl_synth.js?v=audio-numeric-bindings-1').OPLChip}} [options] */
+  /** @param {import('./playground_native_voice_inspector.js?v=extra-ym2612-nuked-1').NativeVoiceInspectorOptions & {chip?:import('./opl_synth.js?v=audio-numeric-bindings-1').OPLChip}} [options] */
   constructor({chip='ym3812',clock=()=>chip==='ymf262'?14318180:3579545,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}) {
     this.kind=chip;this.clock=typeof clock==='function'?clock:()=>clock;this.sampleRate=sampleRate;
     this.dispatch=dispatch;this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();

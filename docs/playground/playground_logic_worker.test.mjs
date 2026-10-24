@@ -1,3 +1,4 @@
+import {validateSoundChipOptions} from '../../web/playground_soundchip_options.js';
 import {YM2413Synth,YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from '../../web/ym2413synth.js';
 import {AY8910Synth} from '../../web/ay8910synth.js';
 import {OPLSynth,OPL_PRESETS} from '../../web/opl_synth.js';
@@ -44,7 +45,7 @@ const workerSource = readFileSync(
 function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
-    createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
+    validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
     midiToOpnPitch, opnPitchFromHz, CHIP_CLOCKS, resolvePlaySeconds, resolvePlayDuration, createBeatClock, runTween, createNativeSampleController, createNativeNoiseController, controlNativeNoise, createWorkerDac, atob, createMidiApi, createMidiRack, createWorkerChip, createNativeFXController, createLiveFxLifecycle, DOMException, structuredClone,
@@ -1834,5 +1835,39 @@ for(const selected of ['ym2610','ym2610b'])for(const backend of [undefined,'nati
   assert.equal(requests[0].args[0],other);
   await worker.send({type:'response',id:requests[0].id,value:{start(){},close(){},postMessage(){}}});
   await waitFor(()=>worker.messages.some(message=>message.type==='complete'));
+ }finally{await worker.send({type:'stop'});}
+});
+
+for(const engine of ['ymfm','nuked'])test(`Worker additional YM2612 ${engine} forwards a snapshot of engine selection, preserves readonly metadata, and disposes once`,async()=>{
+ const worker=createWorkerHarness(),sent=[];let closes=0;
+ try {
+  await worker.send({type:'run',capabilities:{chip:'ym2203'},sourceCode:`
+   const options={id:'extra-selected',engine:'${engine}'};
+   const pending=createSoundChip('ym2612',options);options.engine='other';options.id='other';
+   const chip=await pending;
+   if(chip.engine!=='${engine}'||chip.id!=='extra-selected')throw Error('Lost engine metadata');
+   let readonly=false;try{chip.engine='other';}catch{readonly=true;}if(chip.engine!=='${engine}'||!readonly)throw Error('Mutable engine');
+   chip.setAlgo(5,7,0);chip.setFrequency(5,440);chip.keyOn(5);
+  `});
+  const request=worker.messages.find(message=>message.command==='pcm.create');assert(request);
+  assert.deepEqual(structuredClone(request.args),['ym2612',{id:'extra-selected',engine}]);
+  await worker.send({type:'response',id:request.id,value:{id:'extra-selected',engine,port:{start(){},close(){closes++;},postMessage:message=>sent.push(message)}}});
+  await waitFor(()=>worker.messages.some(message=>message.type==='complete'||message.type==='execution-error'));
+  assert.equal(worker.messages.find(message=>message.type==='execution-error'),undefined);
+  assert(sent.some(message=>message.method==='write'&&message.args[1]===0x28&&message.args[2]===0xf6));
+ }finally{await worker.send({type:'stop'});}
+ assert.equal(sent.filter(message=>message.method==='dispose').length,1);assert.equal(closes,1);
+});
+
+test('Worker rejects invalid engine selections before posting create RPC',async()=>{
+ const worker=createWorkerHarness();
+ try {
+  for(const sourceCode of [
+   `await createSoundChip('ym2612',{engine:'bad'});`,
+   `await createSoundChip('ym2612',{engine:null});`,
+   `await createSoundChip('ym2610b',{engine:'nuked'});`,
+   `await createSoundChip('rf5c164',{engine:'nuked'});`,
+  ]){const before=worker.messages.length;await worker.send({type:'run',sourceCode});await waitFor(()=>worker.messages.slice(before).some(message=>message.type==='execution-error'));}
+  assert(!worker.messages.some(message=>message.command==='pcm.create'));
  }finally{await worker.send({type:'stop'});}
 });

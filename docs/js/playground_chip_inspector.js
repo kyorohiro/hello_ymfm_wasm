@@ -1,5 +1,5 @@
 import {encodeRf5c164} from './rf5c164_pcm.js';
-import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=extra-ym2610b-1';
+import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=extra-ym2612-nuked-1';
 
 /** UI-only admin port access. Audio creation and Worker-owned ports are deliberately untouched. */
 export function createChipInspector({endpoints, decode}) {
@@ -7,7 +7,7 @@ export function createChipInspector({endpoints, decode}) {
   // Layout is applied audio-thread metadata, independent of the authoring
   // shadows used by Main/Worker lookahead. Observing ports sends no requests.
   const layouts=new WeakMap();
-  const list=()=>{if(disposed)return [];synchronize();return endpoints().map(({id,kind,label,fdsEnabled,port,rhythmEnabled})=>({id,kind,name:kind,label,connected:true,...(fdsEnabled===undefined?{}:{fdsEnabled}),...(kind==='ym2413'?{rhythmEnabled:layouts.get(port)??rhythmEnabled??false}:{})}));};
+  const list=()=>{if(disposed)return [];synchronize();return endpoints().map(({id,kind,label,engine,fdsEnabled,port,rhythmEnabled})=>({id,kind,name:kind,label,connected:true,...(engine===undefined?{}:{engine}),...(fdsEnabled===undefined?{}:{fdsEnabled}),...(kind==='ym2413'?{rhythmEnabled:layouts.get(port)??rhythmEnabled??false}:{})}));};
   const connections=new WeakMap();let connectionSequence=0;
   function getConnectionToken(id){const {port}=endpointFor(id);if(!connections.has(port))connections.set(port,++connectionSequence);return connections.get(port);}
   const synchronize=()=>{

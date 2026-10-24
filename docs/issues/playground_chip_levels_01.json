@@ -8913,6 +8913,183 @@
       },
       "measuredAmplitude": 0.124603271484375,
       "amplitude": 0.124603271484375
+    },
+    {
+      "kind": "ym2612",
+      "chipEngine": "nuked",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "nuked",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.18608406903408448,
+          0.18608406903408448
+        ],
+        "dc": [
+          0.02025843858718872,
+          0.02025843858718872
+        ],
+        "acRms": [
+          0.18497804305995624,
+          0.18497804305995624
+        ],
+        "nonzero": [
+          19163,
+          19163
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "ym2612",
+      "chipEngine": "nuked",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "nuked",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.186062860487859,
+          0.186062860487859
+        ],
+        "dc": [
+          0.020246794223785402,
+          0.020246794223785402
+        ],
+        "acRms": [
+          0.18495798273279304,
+          0.18495798273279304
+        ],
+        "nonzero": [
+          19170,
+          19170
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
+    },
+    {
+      "kind": "ym2612",
+      "chipEngine": "nuked",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "engine": "nuked",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "minimum": [
+          -0.240692138671875,
+          -0.240692138671875
+        ],
+        "maximum": [
+          0.280975341796875,
+          0.280975341796875
+        ],
+        "rms": [
+          0.1860520959240038,
+          0.1860520959240038
+        ],
+        "dc": [
+          0.02011744737625122,
+          0.02011744737625122
+        ],
+        "acRms": [
+          0.18496126813140765,
+          0.18496126813140765
+        ],
+        "nonzero": [
+          19166,
+          19166
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.260833740234375,
+      "amplitude": 0.260833740234375
     }
   ],
   "limits": [
@@ -9325,6 +9502,15 @@
         "name": "calibration-source",
         "amplitude": 0.1246337890625,
         "volume": 1.03357
+      },
+      {
+        "kind": "ym2612",
+        "chipEngine": "nuked",
+        "role": "extra",
+        "mode": "genesis",
+        "name": "calibration-source",
+        "amplitude": 0.260833740234375,
+        "volume": 0.493869
       }
     ]
   }

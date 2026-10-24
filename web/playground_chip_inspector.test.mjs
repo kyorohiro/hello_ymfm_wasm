@@ -245,3 +245,17 @@ test('OPLL applied layout overrides endpoint hints and a disposed inspector cann
     await assert.rejects(inspector.invoke('ym2413','setRhythm',[{enabled:true}]),{name:'AbortError'});
   }finally{inspector.dispose();port1.close();port2.close();}
 });
+
+test('Inspector lists the physical YM2612 core without sending audio commands or leaking it onto unrelated chips',()=>{
+ let sent=0;const port={postMessage(){sent++;}};
+ const inspector=createChipInspector({endpoints:()=>[
+  {id:'main-extra',kind:'ym2612',engine:'ymfm',label:'YM2612 · main-extra',port},
+  {id:'nuked-extra',kind:'ym2612',engine:'nuked',label:'YM2612 (Nuked) · nuked-extra',port},
+  {id:'psg-extra',kind:'segapsg',label:'PSG',port},
+ ],decode:async()=>{}});
+ try{
+  const entries=inspector.list();assert.deepEqual(entries.map(entry=>entry.engine),['ymfm','nuked',undefined]);
+  assert.equal(entries[1].label,'YM2612 (Nuked) · nuked-extra');assert.equal(entries[1].kind,'ym2612');assert(!Object.hasOwn(entries[2],'engine'));
+  entries[1].engine='ymfm';assert.equal(inspector.list()[1].engine,'nuked','caller metadata edits cannot replace the physical core');assert.equal(sent,0);
+ }finally{inspector.dispose();}
+});

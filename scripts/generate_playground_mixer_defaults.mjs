@@ -7,6 +7,9 @@ export const PLAYGROUND_CALIBRATION_KINDS = Object.freeze([
   'ym2612','ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
   'segapsg','ay8910','rf5c164','okim6258','gameboy','nes','huc6280','pwm','snes','spc',
 ]);
+export const PLAYGROUND_CALIBRATION_ENGINES = Object.freeze([
+  Object.freeze({kind:'ym2612',chipEngine:'nuked'}),
+]);
 export const PLAYGROUND_CALIBRATION_PRIMARIES = Object.freeze([
   ['genesis','ym2612'],['genesis','segapsg'],['mega-cd','rf5c164'],['genesis-full','pwm'],
   ['genesis-full-nuked','ym2612'],['genesis-full-nuked','segapsg'],
@@ -19,7 +22,7 @@ export const PLAYGROUND_CALIBRATION_PRIMARIES = Object.freeze([
 ].map(route=>Object.freeze(route)));
 const FREQUENCIES = Object.freeze([220,440,880]);
 const REFERENCE_FREQUENCY = 440;
-const key = ({kind,role,mode}) => `${role}/${mode}/${kind}`;
+const key = ({kind,role,mode,chipEngine}) => `${role}/${mode}/${kind}${chipEngine ? '/'+chipEngine : ''}`;
 const fail = message => {throw new Error(`Invalid Playground Mixer calibration: ${message}`);};
 const close = (a,b,tolerance=1e-12) => Math.abs(a-b)<=tolerance*Math.max(1,Math.abs(a),Math.abs(b));
 const positive = value => Number.isFinite(value)&&value>1e-6;
@@ -28,6 +31,7 @@ const ordered = records => records.sort((a,b)=>a<b?-1:a>b?1:0);
 function expectedRoutes() {
   return new Map([
     ...PLAYGROUND_CALIBRATION_KINDS.map(kind=>({kind,role:'extra',mode:'genesis',name:'calibration-source'})),
+    ...PLAYGROUND_CALIBRATION_ENGINES.map(route=>({...route,role:'extra',mode:'genesis',name:'calibration-source'})),
     ...PLAYGROUND_CALIBRATION_PRIMARIES.map(([mode,kind,name=kind])=>({kind,role:'primary',mode,name})),
   ].map(route=>[key(route),route]));
 }
@@ -39,13 +43,14 @@ export function buildPlaygroundMixerDefaults(report) {
   if(!Array.isArray(report.frequencies)||report.frequencies.length!==FREQUENCIES.length||
     FREQUENCIES.some(frequency=>report.frequencies.filter(value=>value===frequency).length!==1))fail('all 220, 440 and 880 Hz captures are required');
   const expected = expectedRoutes(), captures = new Map();
-  if(!Array.isArray(report.rows)||report.rows.length!==expected.size*FREQUENCIES.length)fail('all 22 extra and 28 primary routes at three frequencies are required');
+  if(!Array.isArray(report.rows)||report.rows.length!==expected.size*FREQUENCIES.length)fail('all 22 extra kinds, the Nuked extra engine, and 28 primary routes at three frequencies are required');
   for(const row of report.rows) {
     const identity = row&&expected.get(key(row));
     if(!identity||!FREQUENCIES.includes(row.frequencyHz))fail('unknown capture route or frequency');
     const captureKey = `${key(row)}/${row.frequencyHz}`;
     if(captures.has(captureKey))fail(`duplicate capture ${captureKey}`);
     if(row.defaultCalibration!==true||row.mixer?.id!==identity.name||!positive(row.amplitude))fail(`invalid measured capture ${captureKey}`);
+    if(identity.chipEngine && row.mixer.engine!==identity.chipEngine)fail(`measured engine does not match ${captureKey}`);
     const settings = row.mixer.settings;
     if(settings?.volume!==1||settings.pan!==0||settings.muted!==false||settings.solo!==true) {
       fail(`baseline capture must use unity, centered, unmuted, solo Mixer settings: ${captureKey}`);
@@ -76,6 +81,8 @@ export function buildPlaygroundMixerDefaults(report) {
   const reference = captures.get('primary/genesis/ym2612/440');
   if(!close(calibration.referenceAmplitude,reference.amplitude))fail('reference amplitude must match the measured Genesis YM2612 route');
   const kinds = ordered([...PLAYGROUND_CALIBRATION_KINDS]).map(name=>({name,volume:routes.get(`extra/genesis/${name}`).volume}));
+  const engines = PLAYGROUND_CALIBRATION_ENGINES.map(route=>({name:route.kind,engine:route.chipEngine,
+    volume:routes.get(key({...route,role:'extra',mode:'genesis'})).volume}));
   const modes = new Map();
   for(const [mode,kind,name=kind] of PLAYGROUND_CALIBRATION_PRIMARIES) {
     const entries = modes.get(mode)??new Map();
@@ -100,8 +107,10 @@ export function buildPlaygroundMixerDefaults(report) {
     calibration:{version:1,referenceFrequencyHz:REFERENCE_FREQUENCY,frequencies:[...FREQUENCIES],
       targetAmplitude:calibration.targetAmplitude,referenceAmplitude:calibration.referenceAmplitude,
       maxGain:calibration.maxGain,targetReduced:target<calibration.referenceAmplitude,
-      measuredExtraRoutes:PLAYGROUND_CALIBRATION_KINDS.length,measuredPrimaryRoutes:PLAYGROUND_CALIBRATION_PRIMARIES.length},
+      measuredExtraRoutes:PLAYGROUND_CALIBRATION_KINDS.length,measuredEngineRoutes:PLAYGROUND_CALIBRATION_ENGINES.length,
+      measuredPrimaryRoutes:PLAYGROUND_CALIBRATION_PRIMARIES.length},
     factoryDefaults:{version:1,kinds},
+    factoryEngines:{version:1,engines},
     factoryModes:Object.fromEntries(ordered([...modes.keys()]).map(mode=>[mode,{version:1,
       entries:[...modes.get(mode).values()].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)}])),
   };
@@ -119,11 +128,12 @@ const freeze = value => {
 };
 export const PLAYGROUND_MIXER_CALIBRATION = freeze(${JSON.stringify(profile.calibration,null,2)});
 const factoryDefaults = freeze(${JSON.stringify(profile.factoryDefaults,null,2)});
+const factoryEngines = freeze(${JSON.stringify(profile.factoryEngines,null,2)});
 const factoryModes = freeze(${JSON.stringify(profile.factoryModes,null,2)});
 
 export function createPlaygroundSoundChipMixer(modeId = 'genesis') {
   if(!Object.hasOwn(factoryModes,modeId))throw new RangeError('No Playground Mixer calibration for mode: '+String(modeId));
-  return new SoundChipMixer({factoryDefaults,factoryEntries:factoryModes[modeId]});
+  return new SoundChipMixer({factoryDefaults,factoryEngines,factoryEntries:factoryModes[modeId]});
 }
 `;
 }

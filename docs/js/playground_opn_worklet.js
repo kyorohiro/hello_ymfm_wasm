@@ -1,4 +1,4 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2610b-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2612-nuked-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -6,9 +6,11 @@ import {Ym2612} from './ym2612.js?v=audio-numeric-bindings-1';
 import {Ym2203} from './ym2203.js?v=audio-stability-2';
 import {Ym2610B} from './ym2610b.js?v=audio-stability-2';
 import ym2612Factory from '../generated/ym2612_wasm.js';
+import nukedFactory from '../generated/nuked_opn2_wasm.js';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=extra-ym2612-nuked-1';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2610b-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {
@@ -32,8 +34,9 @@ class Processor extends AudioWorkletProcessor {
         this.remote.start();
       } else this.receive(data, this.port);
     };
-    const {name, wasmBinary} = options.processorOptions; this.name = name;
-    const [Chip, moduleFactory] = {ym2612: [Ym2612, ym2612Factory], ym2203: [Ym2203, ym2203Factory], ym2610: [Ym2610B, ym2610Factory], ym2610b: [Ym2610B, ym2610Factory]}[name];
+    const {name, wasmBinary, engine} = options.processorOptions; this.name = name;
+    this.engine = name === 'ym2612' ? validateYm2612Engine(engine) : undefined;
+    const [Chip, moduleFactory] = {ym2612: [Ym2612, this.engine === 'nuked' ? nukedFactory : ym2612Factory], ym2203: [Ym2203, ym2203Factory], ym2610: [Ym2610B, ym2610Factory], ym2610b: [Ym2610B, ym2610Factory]}[name];
     Chip.create({moduleFactory, moduleOptions: {wasmBinary}, variant: name === 'ym2610b'}).then(chip => {
       if (this.dead) { chip.dispose(); return; }
       this.chip = chip; this.rate = chip.sampleRate();

@@ -226,3 +226,11 @@ for(const dockedPanels of [true,false])test(`initially hidden dynamic FM tab gai
   ui.setChipTabAvailable('operator',false);assert.equal(options.operatorPanel.hidden,true);assert.equal(options.operatorTabButton.hidden,true);assert.equal(options.codePanel.hidden,false);
   assert.equal(options.codeTab.attributes['aria-selected'],'true');assert.equal(options.keyboardPanel.hidden,true);
 });
+
+
+test('YM2612 engine labels distinguish Nuked without reading or changing audio while hidden',()=>{
+  const f=setup({entries:[{...chip('normal'),engine:'ymfm'},{...chip('accurate'),engine:'nuked'}]});
+  assert.deepEqual(f.select.children.map(option=>option.textContent),['YM2612 · normal','YM2612 (Nuked) · accurate']);
+  assert.equal(f.inspect.reads.length,0);assert.equal(f.inspect.writes.length,0);
+  f.controller.dispose();
+});

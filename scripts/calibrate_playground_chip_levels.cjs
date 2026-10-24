@@ -37,11 +37,11 @@ async function main(){
   const {probeAmplitude,deriveCalibrationGains}=await import('./soundchip_calibration_metrics.mjs');
   const all=[...FM_CALIBRATION_KINDS,...PCM_CALIBRATION_KINDS];
   if(kinds?.some(k=>!all.includes(k)))throw Error('Unknown requested calibration kind');
-  const builder=(kind,hz)=>FM_CALIBRATION_KINDS.includes(kind)?buildFmCalibrationReference(kind,hz):buildPcmCalibrationReference(kind,hz);
+  const builder=(kind,hz,chipEngine)=>FM_CALIBRATION_KINDS.includes(kind)?buildFmCalibrationReference(kind,hz,{engine:chipEngine}):buildPcmCalibrationReference(kind,hz);
   const selected=all.filter(k=>!kinds||kinds.includes(k));
   const baseline=baselinePath?JSON.parse(await fs.readFile(path.resolve(baselinePath),'utf8')):null;
   if(verify&&(!baseline?.passed||baseline.verify||!baseline.calibration?.targetAmplitude))throw Error('--verify requires a successful uncalibrated --baseline report');
-  const routes=[...selected.map(kind=>({kind,role:'extra',mode:'genesis'})),...(!onlyExtra?primary.filter(([,kind])=>selected.includes(kind)).map(([mode,kind,accessKind])=>({kind,role:'primary',mode,accessKind:accessKind??kind})):[])];
+  const routes=[...selected.map(kind=>({kind,role:'extra',mode:'genesis'})),...(selected.includes('ym2612')?[{kind:'ym2612',chipEngine:'nuked',role:'extra',mode:'genesis'}]:[]),...(!onlyExtra?primary.filter(([,kind])=>selected.includes(kind)).map(([mode,kind,accessKind])=>({kind,role:'primary',mode,accessKind:accessKind??kind})):[])];
   const report={schemaVersion:1,passed:false,engine,verify,method:'half peak-to-peak; RMS/DC/AC-RMS recorded separately',
     frequencies,rows:[],limits:['Known single-voice waveforms; not perceived loudness or polyphony normalization.',
       'SPC uses an original synthetic single-voice file to measure output units; authored file contents are not normalized.',
@@ -59,7 +59,7 @@ async function main(){
   await context.addInitScript(()=>{const Type=window.AudioContext;window.AudioContext=new Proxy(Type,{construct(Type,args){return new Type({...args[0],sampleRate:48000});}});});
   try{
     for(const route of routes){
-      if(frequencies.every(hz=>report.rows.some(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.frequencyHz===hz)))continue;
+      if(frequencies.every(hz=>report.rows.some(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.chipEngine===route.chipEngine&&r.frequencyHz===hz)))continue;
       const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(String(e)));page.setDefaultTimeout(20000);
       await page.route('**/vs/loader*.js',r=>r.abort());
       try{
@@ -68,8 +68,8 @@ async function main(){
         await page.waitForFunction(()=>Boolean(window.__nativeBackendTest));await page.locator('#startupNotice').waitFor({state:'hidden'});
         await page.evaluate(()=>window.__nativeBackendTest.runtime.megaDrive.audio.setListeningVolume(0));
         for(const frequencyHz of frequencies){
-          if(report.rows.some(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.frequencyHz===frequencyHz))continue;
-          const reference=route.accessKind==='ym2610b'?buildYm2610bPrimaryCalibrationReference(frequencyHz):builder(route.kind,frequencyHz);
+          if(report.rows.some(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.chipEngine===route.chipEngine&&r.frequencyHz===frequencyHz))continue;
+          const reference=route.accessKind==='ym2610b'?buildYm2610bPrimaryCalibrationReference(frequencyHz):builder(route.kind,frequencyHz,route.chipEngine);
           let setup=reference.setup;
           if(route.role==='primary'&&route.accessKind!=='ym2610b'){
             const pattern=/createSoundChip\(\s*(['"])[^'"]+\1\s*,\s*\{[^}]*\bid\s*:\s*(['"])calibration-source\2[^}]*\}\s*\)/;
@@ -83,17 +83,18 @@ async function main(){
           const authored=verify?'':',volume:1';
           const code=`${setup}\ncontext.calibrationSourceId=context.calibrationSource.id??${JSON.stringify(sourceId)};\nawait mixer.set(context.calibrationSourceId,{pan:0,muted:false,solo:true${authored}});\nlog('Calibration ready');`;
           await page.evaluate(code=>window.__nativeBackendTest.runtime.playSource(code,{execution:'main'}),code);
-          const mix=await page.evaluate(()=>{const s=window.__nativeBackendTest.runtime;return {id:s.context.calibrationSourceId,settings:s.megaDrive.mixer.get(s.context.calibrationSourceId)};});
+          const mix=await page.evaluate(()=>{const s=window.__nativeBackendTest.runtime,id=s.context.calibrationSourceId,entry=s.megaDrive.mixer.list().find(e=>e.id===id);return {id,...(entry?.engine?{engine:entry.engine}:{}),settings:s.megaDrive.mixer.get(id)};});
           if(mix.id!==sourceId)throw Error(`Reference used ${mix.id} instead of ${sourceId}`);
+          if(route.chipEngine&&mix.engine!==route.chipEngine)throw Error('Calibration source used the wrong engine');
           const pcm=await captureWebMix(page,.4,.2),measuredAmplitude=probeAmplitude(pcm);
           const referencePeak=reference.decodedReference?.codecHeadroom??1,amplitude=measuredAmplitude/referencePeak;
           report.rows.push({...route,frequencyHz,waveform:reference.waveform,defaultCalibration:reference.defaultCalibration!==false,
             noteInfo:reference.noteInfo,limitations:reference.limitations,referencePeak,decodedReference:reference.decodedReference??null,
             mixer:mix,pcm,measuredAmplitude,amplitude});
           if(verify){
-            const original=baseline.rows.find(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.frequencyHz===frequencyHz);
+            const original=baseline.rows.find(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.chipEngine===route.chipEngine&&r.frequencyHz===frequencyHz);
             if(!original)throw Error('Missing baseline route');
-            const gain=baseline.calibration.routes.find(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode)?.volume;
+            const gain=baseline.calibration.routes.find(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.chipEngine===route.chipEngine)?.volume;
             const expected=original.amplitude*gain,relativeError=Math.abs(amplitude/expected-1);
             const row=report.rows.at(-1);Object.assign(row,{expectedAmplitude:expected,relativeError});
             if(!Number.isFinite(relativeError)||relativeError>.025)throw Error(`Default gain mismatch ${route.role}/${route.mode}/${route.kind}/${frequencyHz}: ${amplitude} vs ${expected}`);
@@ -103,14 +104,14 @@ async function main(){
           const text=await page.locator('#consoleOutput').innerText();if(/\b(?:Error|TypeError|RangeError|ReferenceError):/.test(text))throw Error(text);
           await save();
         }
-        console.log(`${engine}: ${route.role}/${route.mode}/${route.kind} measured`);
+        console.log(`${engine}: ${route.role}/${route.mode}/${route.kind}${route.chipEngine?'/'+route.chipEngine:''} measured`);
       }finally{await page.evaluate(()=>window.__nativeBackendTest?.runtime.finalize()).catch(()=>{});await page.close();}
     }
     const levelRows=report.rows.filter(r=>r.frequencyHz===440&&r.defaultCalibration);
     if(levelRows.length&&!verify){
       const reference=levelRows.find(r=>r.kind==='ym2612'&&r.role==='primary'&&r.mode==='genesis')??levelRows.find(r=>r.kind==='ym2612');
       if(!reference)throw Error('YM2612 reference is required to derive defaults');
-      report.calibration=deriveCalibrationGains(levelRows.map(r=>({kind:r.kind,role:r.role,mode:r.mode,name:r.mixer.id,amplitude:r.amplitude})),{referenceAmplitude:reference.amplitude});
+      report.calibration=deriveCalibrationGains(levelRows.map(r=>({kind:r.kind,...(r.chipEngine?{chipEngine:r.chipEngine}:{}),role:r.role,mode:r.mode,name:r.mixer.id,amplitude:r.amplitude})),{referenceAmplitude:reference.amplitude});
     }
     report.passed=true;await save();console.log(`PASS: ${report.rows.length} real ${engine} captures; ${out}`);
   }catch(error){report.error=String(error.stack??error);await save();throw error;}

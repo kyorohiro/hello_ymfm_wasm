@@ -1682,3 +1682,36 @@ for(const selected of ['ym2610','ym2610b'])for(const backend of [undefined,'nati
  `);
  assert.equal(f.devices.length,1);
 });
+
+test('Main additional YM2612 snapshots its engine before ID reuse waits and passes physical engine to client and Mixer',async t=>{
+ const fixture=independentOpnFixture(),requested=[],mixes=[];
+ const factory=async(context,destination,name,options)=>{
+  requested.push({name,...options});const device=await fixture.factory();Object.defineProperty(device,'engine',{value:options.engine??'ymfm',enumerable:true});return device;
+ };
+ const createRuntime=await runtimeWithOpnAudio(factory),{runtime,megaDrive}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+ megaDrive.mixer={list:()=>[],connect(id,name,node,destination,context,options){mixes.push({id,name,...options});return()=>{};}};
+ globalThis.playgroundReview={};
+ await runtime.playSource(`
+  const options={id:'engine-captured',engine:'nuked'};
+  const pending=createSoundChip('ym2612',options);options.engine='ymfm';options.id='mutated';
+  const chip=await pending;globalThis.playgroundReview.chip=chip;
+  if(chip.engine!=='nuked'||chip.id!=='engine-captured')throw Error('Creation options changed');
+  let readonly=false;try{chip.engine='ymfm';}catch{readonly=true;}if(chip.engine!=='nuked'||!readonly)throw Error('Mutable engine');
+ `);
+ assert.equal(requested.length,1);assert.equal(requested[0].engine,'nuked');assert.equal(requested[0].id,'engine-captured');
+ assert.deepEqual(mixes,[{id:'engine-captured',name:'ym2612',engine:'nuked'}]);
+ const listed=runtime.chipInspector.list().find(entry=>entry.id==='engine-captured');assert.equal(listed.engine,'nuked');assert.equal(listed.kind,'ym2612');assert.equal(listed.label,'YM2612 (Nuked) · engine-captured');
+ runtime.stop();await runtime.finalize();assert(fixture.devices.every(device=>device.disposed));
+});
+
+test('Main rejects invalid engine selectors and selectors for another chip before allocating any audio endpoint',async t=>{
+ let created=0;const createRuntime=await runtimeWithOpnAudio(async()=>{created++;throw Error('allocation');});
+ const {runtime,megaDrive}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+ for(const code of [
+  `await createSoundChip('ym2612',{engine:'other'});`,
+  `await createSoundChip('ym2612',{engine:null});`,
+  `await createSoundChip('ym2610b',{engine:'nuked'});`,
+  `await createSoundChip('rf5c164',{engine:'nuked'});`,
+ ])await assert.rejects(runtime.playSource(code),/engine|supports/);
+ assert.equal(created,0);
+});

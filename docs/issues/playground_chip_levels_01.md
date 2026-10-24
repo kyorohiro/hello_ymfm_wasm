@@ -12,7 +12,7 @@
   波形固有のRMS、DC、量子化、周波数特性、内部の音源間バランスは維持する。
 - 48 kHzの実Web Worklet／WASMを使い、FX・masterより前の出力を観測する。
   220／440／880 Hzで各経路を測り、440 Hzから倍率を計算する。
-  追加22種類と内蔵28経路、合計150窓。各窓はwarmup 0.2秒後の0.4秒。
+  追加22種類＋YM2612の追加Nuked経路と内蔵28経路、合計153窓。各窓はwarmup 0.2秒後の0.4秒。
 - SNES／SPCの基準BRRはrange12／filter0、対称な±7 nibbleを使う。
   デコード振幅7/8を明示的に補正する。-32768が連続するBRRは実DSPのGaussian補間で
   wrapするため、基準音から除外した。この対策は測定用データだけに適用する。
@@ -133,3 +133,15 @@ node scripts/calibrate_playground_chip_levels.cjs --verify --baseline=docs/issue
 共通targetと既存49経路の倍率が変わらないことを照合した。RF5C164を含む既存設定へ補正を重ねない。
 最終Tauri配布物のWebKitでも3周波数を再測定し、期待値との差は最大約0.0000052%。
 保存値の優先規則・current／defaultの扱いは維持する。
+
+## 追加YM2612のNuked（2026-10-24）
+
+`createSoundChip('ym2612', {engine:'nuked'})`は別の公開名を増やさず、engineを生成時に固定する。
+追加Nukedを220／440／880 Hzで実測し、440 Hzの単位振幅`0.260833740234375`からSystem初期値`0.493869`を得た。
+ymfmの`0.775938`、内蔵Nukedの`0.548744`、RF5C164など他の50経路の倍率と共通targetは変更しない。
+測定reportは`chipEngine`を持ち、実Mixerのengineが`nuked`と一致することを検証する。
+
+`SoundChipMixer`の任意の`factoryEngines`をPlaygroundだけに注入し、接続時のengine metadataで初期値を選ぶ。
+種類別・内蔵ID別factory値と同様に、保存したkinds／ID別の明示値がこれを上書きする。
+別の倍率を重ねる処理ではなく、同じ音量値のfallbackである。current／defaultのJSON schemaは変えず、engineやfactory値も保存しない。
+最終配布物のWebKitで両engineの3周波数を再測定した。結果は[追加Nukedの記録](native_dynamic_nuked_01.md)を参照。

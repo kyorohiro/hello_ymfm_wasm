@@ -1,6 +1,6 @@
 /** Lifetime and identity for independently owned Native chips. Audio stays on
  * the Native renderer; these ports carry ordered commands and explicit reads. */
-export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,clock,stereoEnabled,createEndpoint,signal,layout={},createArgs={}}) {
+export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,clock,stereoEnabled,engine,createEndpoint,signal,layout={},createArgs={}}) {
   signal?.throwIfAborted();
   if(!synth.isReady()||synth.stopping||synth.closing)throw new DOMException('Native audio is stopping','AbortError');
   if(typeof id!=='string'||!id.trim()||id.length>256)throw new TypeError('Mixer id must contain 1..256 characters');
@@ -35,7 +35,7 @@ export async function createNativeGenesisExtraChip(synth,{id,bridge,kind,label,c
   Object.defineProperty(client,'id',{value:id,enumerable:true});
   function releaseNative(){if(released||!created||!activeSession())return;released=true;synth.nativeRequest(`native_genesis_extra_${nativeKind}_dispose`,{instance}).catch(error=>{if(activeSession()&&error?.name!=='AbortError')synth.reportAsyncError(error);});}
   function releaseConnection(){const previous=connection;connection=undefined;previous?.dispose();}
-  device={native:true,ready:false,nativeInstance:instance,kind,label,client,endpoint,clock,stereoEnabled,layout,
+  device={native:true,ready:false,nativeInstance:instance,kind,label,client,endpoint,clock,stereoEnabled,...(engine?{engine}:{}),layout,
     dispose(){
       if(disposed)return;
       disposed=true;device.ready=false;signal?.removeEventListener('abort',cancelCreation);

@@ -774,7 +774,7 @@ export class NativeGenesisSynth {
       ...(this.pcm?[{id:'rf5c164',kind:'rf5c164',name:'rf5c164',label:'RF5C164 (Native)',connected:true}]:[]),
     ];
     const extra = id => [...this.extraDevices.values()].find(device=>device.client.id===id);
-    const list = () => disposed || !this.isReady() ? [] : [...primaryList(),...[...this.extraDevices.values()].filter(device=>device.ready&&device.kind!=='spc').map(device=>({id:device.client.id,kind:device.kind,name:device.kind,label:`${device.label} · ${device.client.id} (Native)`,connected:true,additional:true,...device.layout}))];
+    const list = () => disposed || !this.isReady() ? [] : [...primaryList(),...[...this.extraDevices.values()].filter(device=>device.ready&&device.kind!=='spc').map(device=>({id:device.client.id,kind:device.kind,name:device.kind,label:`${device.label} · ${device.client.id} (Native)`,connected:true,additional:true,...(device.engine?{engine:device.engine}:{}),...device.layout}))];
     const endpoint = id => {
       if (!list().some(entry=>entry.id === id)) throw new Error('Sound chip is not connected');
     };

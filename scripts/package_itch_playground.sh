@@ -328,6 +328,7 @@ playground_keyboard.js
 playground_sample_edit.js
 playground_sample_instrument.js
 playground_soundchips.js
+playground_soundchip_options.js
 playground_async_tasks.js
 playground_opn.js
 playground_opn_audio.js

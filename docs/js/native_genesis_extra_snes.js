@@ -2,10 +2,10 @@
  * controls; BRR, DSP execution and captured timelines remain on Native. */
 import {prepareSnesBRR} from './snessynth.js?v=spc-song-js-1';
 import {prepareSpcTimeline} from './spc.js?v=spc-events-1';
-import {SnesVoiceInspector} from './playground_snes_inspector.js?v=extra-ym2610b-1';
-import {createNativeSnesShadow,nativeSnesOperations,nativeSnesControls} from './native_genesis_snes.js?v=extra-ym2610b-1';
-import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2610b-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2610b-1';
+import {SnesVoiceInspector} from './playground_snes_inspector.js?v=extra-ym2612-nuked-1';
+import {createNativeSnesShadow,nativeSnesOperations,nativeSnesControls} from './native_genesis_snes.js?v=extra-ym2612-nuked-1';
+import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2612-nuked-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2612-nuked-1';
 
 export const EXTRA_SNES_MEMORY_HELD_ERROR='Release the manually held additional SNES voices before replacing sample memory';
 export const EXTRA_SNES_STATE_HELD_ERROR='Release the manually held additional SNES voices before replacing the DSP state';

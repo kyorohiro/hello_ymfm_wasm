@@ -1,7 +1,7 @@
-import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=extra-ym2610b-1';
-import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=extra-ym2610b-1';
-import {createPlaygroundOpnbSampleEditor} from './playground_opnb_sample_editor.js?v=extra-ym2610b-1';
-import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=extra-ym2610b-1';
+import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=extra-ym2612-nuked-1';
+import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=extra-ym2612-nuked-1';
+import {createPlaygroundOpnbSampleEditor} from './playground_opnb_sample_editor.js?v=extra-ym2612-nuked-1';
+import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=extra-ym2612-nuked-1';
 
 /** Reuse the OPN editor for connected additional FM instances. Reads happen on
  * selection, visible state notifications and explicit Refresh; no polling. */
@@ -83,11 +83,11 @@ export function createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,pr
     if(disposed)return;
     const s=getInspector(),entries=(s?.list()??[]).filter(entry=>['ym2612','ym2203','ym2608','ym2610','ym2610b'].includes(entry.kind)&&entry.additional===true&&entry.connected!==false)
       .flatMap(entry=>{try{return [{...entry,connection:s.getConnectionToken(entry.id)}];}catch{return [];}});
-    const next=JSON.stringify(entries.map(entry=>[entry.id,entry.kind,entry.connection]));
+    const next=JSON.stringify(entries.map(entry=>[entry.id,entry.kind,entry.engine,entry.connection]));
     onAvailability(Boolean(entries.length));
     toolbar.hidden=entries.length===0;
     if(signature!==next||s!==source){
-      signature=next;const choices=[...(primaryEditor?[['',`${primaryKind.toUpperCase()} · Primary`]]:[]),...entries.map(entry=>[entry.id,`${entry.kind.toUpperCase()} · ${entry.id}`])];
+      signature=next;const choices=[...(primaryEditor?[['',`${primaryKind.toUpperCase()} · Primary`]]:[]),...entries.map(entry=>[entry.id,`${entry.kind.toUpperCase()}${entry.engine==='nuked'?' (Nuked)':''} · ${entry.id}`])];
       if(!choices.length)choices.push(['','No additional OPN connected']);
       select.replaceChildren(...choices.map(([id,text])=>{const op=doc.createElement('option');op.value=id;op.textContent=text;return op;}));
       const id=choices.some(([id])=>id===selected)?selected:primaryEditor?'':entries[0]?.id??'';

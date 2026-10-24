@@ -6,13 +6,14 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {
-  PLAYGROUND_CALIBRATION_KINDS,PLAYGROUND_CALIBRATION_PRIMARIES,
+  PLAYGROUND_CALIBRATION_KINDS,PLAYGROUND_CALIBRATION_PRIMARIES,PLAYGROUND_CALIBRATION_ENGINES,
   buildPlaygroundMixerDefaults,renderPlaygroundMixerDefaults,generatePlaygroundMixerDefaults,
 } from './generate_playground_mixer_defaults.mjs';
 
 function fixture() {
   const routes = [
     ...PLAYGROUND_CALIBRATION_KINDS.map(kind=>({kind,role:'extra',mode:'genesis',name:'calibration-source'})),
+    ...PLAYGROUND_CALIBRATION_ENGINES.map(route=>({...route,role:'extra',mode:'genesis',name:'calibration-source'})),
     ...PLAYGROUND_CALIBRATION_PRIMARIES.map(([mode,kind,name=kind])=>({kind,role:'primary',mode,name})),
   ].map((route,index)=>({...route,amplitude:route.kind==='spc'?.02:.1+index*.002}));
   const referenceAmplitude = routes.find(route=>route.role==='primary'&&route.mode==='genesis'&&route.kind==='ym2612').amplitude;
@@ -22,7 +23,7 @@ function fixture() {
       amplitude:route.amplitude*(frequencyHz===440?1:frequencyHz===220?1.01:.98),defaultCalibration:true,
       measuredAmplitude:route.amplitude*(route.kind==='spc'||route.kind==='snes'?.875:1),
       referencePeak:route.kind==='spc'||route.kind==='snes'?.875:1,
-      mixer:{id:name,settings:{volume:1,pan:0,muted:false,solo:true}}}))),
+      mixer:{id:name,...(route.chipEngine?{engine:route.chipEngine}:{}),settings:{volume:1,pan:0,muted:false,solo:true}}}))),
     calibration:{referenceAmplitude,targetAmplitude,maxGain:2,targetReduced:targetAmplitude<referenceAmplitude,
       routes:routes.map(route=>({...route,volume:Number((targetAmplitude/route.amplitude).toFixed(6))}))},
   };
@@ -30,14 +31,17 @@ function fixture() {
 const row = (report,role,mode,kind) => report.calibration.routes.find(route=>route.role===role&&route.mode===mode&&route.kind===kind);
 const entry = (profile,mode,id) => profile.factoryModes[mode].entries.find(entry=>entry.id===id);
 
-test('a complete 150-capture baseline produces deterministic 440 Hz defaults including SPC',()=>{
+test('a complete 153-capture baseline produces deterministic 440 Hz defaults including SPC',()=>{
   const report = fixture(), before = structuredClone(report), profile = buildPlaygroundMixerDefaults(report);
-  assert.equal(report.rows.length,150); assert.equal(report.calibration.routes.length,50);
+  assert.equal(report.rows.length,153); assert.equal(report.calibration.routes.length,51);
   assert.equal(profile.factoryDefaults.kinds.length,22);
   assert.equal(profile.factoryDefaults.kinds.find(kind=>kind.name==='spc').volume,2,'known SPC DSP reference contributes to System');
   assert.equal(profile.calibration.referenceFrequencyHz,440);
   assert.equal(profile.calibration.targetAmplitude,.04);
   assert.equal(profile.calibration.measuredExtraRoutes,22); assert.equal(profile.calibration.measuredPrimaryRoutes,28);
+  assert.equal(profile.calibration.measuredEngineRoutes,1);
+  assert.deepEqual(profile.factoryEngines,{version:1,engines:[{name:'ym2612',engine:'nuked',
+    volume:report.calibration.routes.find(route=>route.chipEngine==='nuked').volume}]});
   for(const kind of profile.factoryDefaults.kinds)assert.equal(kind.volume,row(report,'extra','genesis',kind.name).volume);
   const reordered = structuredClone(report);
   reordered.rows.reverse(); reordered.calibration.routes.reverse(); reordered.frequencies.reverse();

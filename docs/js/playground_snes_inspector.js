@@ -8,7 +8,7 @@ function identity(value){if(typeof value!=='string'||!value.length||value.length
  */
 export class SnesVoiceInspector {
   /** @param {import('./snessynth.js?v=spc-song-js-1').SnesSynth} synth
-   * @param {import('./playground_native_voice_inspector.js?v=extra-ym2610b-1').NativeVoiceInspectorOptions} [options] */
+   * @param {import('./playground_native_voice_inspector.js?v=extra-ym2612-nuked-1').NativeVoiceInspectorOptions} [options] */
   constructor(synth,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.synth=synth;this.sampleRate=sampleRate;this.dispatch=dispatch??(command=>synth[command.method](...(command.args??[])));
     this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.gates=0;this.assignedSamples=new Map();

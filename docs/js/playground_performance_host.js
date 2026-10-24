@@ -1,4 +1,4 @@
-import {validateWorkerLookahead} from './playground_performance_sender.js?v=extra-ym2610b-1';
+import {validateWorkerLookahead} from './playground_performance_sender.js?v=extra-ym2612-nuked-1';
 
 // One module-wide sequence also fences a retired Runtime sharing the same node.
 let nextSession = Date.now() * 1000;

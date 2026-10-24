@@ -2,11 +2,16 @@ type PlaygroundChipMix = {volume: number; pan: number; muted: boolean; solo: boo
 interface PlaygroundMixer {
   set(id: string, settings: {volume?: number; pan?: number; muted?: boolean; solo?: boolean}): PlaygroundChipMix | Promise<PlaygroundChipMix>;
   get(id: string): PlaygroundChipMix | Promise<PlaygroundChipMix>;
-  list(): Array<PlaygroundChipMix & {id: string; name: string; connected: boolean; effectiveMuted: boolean}> | Promise<Array<PlaygroundChipMix & {id: string; name: string; connected: boolean; effectiveMuted: boolean}>>;
+  list(): Array<PlaygroundChipMix & {id: string; name: string; engine?: string; connected: boolean; effectiveMuted: boolean}> | Promise<Array<PlaygroundChipMix & {id: string; name: string; engine?: string; connected: boolean; effectiveMuted: boolean}>>;
   reset(id?: string): void | Promise<void>;
 }
 declare const mixer: PlaygroundMixer;
 interface PlaygroundCreateSoundChipOptions {id?: string;}
+type PlaygroundYm2612Engine = 'ymfm' | 'nuked';
+interface PlaygroundCreateYm2612Options extends PlaygroundCreateSoundChipOptions {
+  /** Fixed for this instance; defaults to ymfm, independently of the mode's engine. */
+  engine?: PlaygroundYm2612Engine;
+}
 /**
  * One logical YM2612 operator parameter block used by `fm.setOperator()`.
  *
@@ -1840,10 +1845,10 @@ declare function createSoundChip(name:'snes', options?:PlaygroundCreateSoundChip
 declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSpc & {readonly id:string}>;
 
 /** Independent chips. Global play/write still target the default Playground chip. */
-type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
+type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {readonly engine: PlaygroundYm2612Engine; dispose(): void};
 type PlaygroundCreatedOPN<C extends OPNFmChannel, Stereo extends boolean = true> = Omit<PlaygroundOPNFm<C, Stereo>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
-/** Native supports independent ymfm FM6/DAC-register chips; SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610/YM2610B, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
-declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
+/** Native supports independent ymfm/Nuked FM6/DAC-register chips; SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610/YM2610B, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
+declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateYm2612Options): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2, false> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 /** Native: independent FM3/SSG3 mono OPN, including completion-based 44100 Hz register schedules. Shares the 16-instance rack limit. */
 declare function createSoundChip(name: 'ym2203', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2203 & PlaygroundChipClock & {readonly id: string}>;

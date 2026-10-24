@@ -1,11 +1,13 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=extra-ym2610b-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=extra-ym2612-nuked-1';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=extra-ym2612-nuked-1';
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
  * @param {AudioNode} destination
  * @param {'ym2612'|'ym2203'|'ym2610'|'ym2610b'} name */
-export async function createOpnAudio(context, destination, name) {
+export async function createOpnAudio(context, destination, name, options = {}) {
   if (!['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name)) throw new Error(`Unsupported OPN chip: ${name}`);
+  const engine = name === 'ym2612' ? validateYm2612Engine(options.engine) : undefined;
   const backend = name === 'ym2610' ? 'ym2610b' : name;
   const bytes = async path => {
     const response = await nativeFetch(new URL(path, import.meta.url));
@@ -13,11 +15,11 @@ export async function createOpnAudio(context, destination, name) {
     return response.arrayBuffer();
   };
   const [wasmBinary] = await Promise.all([
-    bytes({ym2612:'../generated/ym2612_wasm.wasm',ym2203:'../generated/ym2203_wasm.wasm',ym2610b:'../generated/ym2610b_wasm.wasm'}[backend]),
-    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=extra-ym2610b-1', import.meta.url)),
+    bytes(engine === 'nuked' ? '../generated/nuked_opn2_wasm.wasm' : {ym2612:'../generated/ym2612_wasm.wasm',ym2203:'../generated/ym2203_wasm.wasm',ym2610b:'../generated/ym2610b_wasm.wasm'}[backend]),
+    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=extra-ym2612-nuked-1', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-opn', {
-    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, name},
+    numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, name, ...(engine ? {engine} : {})},
   });
   try {
     await new Promise((resolve, reject) => {
@@ -29,11 +31,13 @@ export async function createOpnAudio(context, destination, name) {
   const channel = new MessageChannel();
   node.port.postMessage({port: channel.port1}, [channel.port1]);
   let disposed = false;
-  return watchAudioEndpoint({node, port:channel.port2, dispose() {
+  const endpoint = {node, port:channel.port2, dispose() {
     if (disposed) return;
     disposed=true;node.port.onmessage=null;node.onprocessorerror=null;
     try {node.port.postMessage({method:'dispose'});} catch {}
     try {node.disconnect();} catch {}
     node.port.close();channel.port1.close();channel.port2.close();
-  }}, {context,label:'OPN'});
+  }};
+  if (engine) Object.defineProperty(endpoint, 'engine', {value:engine, enumerable:true});
+  return watchAudioEndpoint(endpoint, {context,label:'OPN'});
 }

@@ -1,5 +1,5 @@
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2610b-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2610b-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2612-nuked-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
 /** Shared lifecycle for OPL/OPLL/AY register-authoring clients. The audio thread

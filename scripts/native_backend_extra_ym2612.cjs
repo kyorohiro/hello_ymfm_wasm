@@ -6,7 +6,7 @@ const path=require('node:path');
 
 function installExtraYm2612Mock(native){
   const invoke=native.invoke.bind(native);native.extraYm2612=new Map();
-  const fresh=()=>({clock:7670454,registers:[Array(256).fill(0),Array(256).fill(0)],keyMasks:Array(6).fill(0),
+  const fresh=(engine='ymfm')=>({engine,clock:7670454,registers:[Array(256).fill(0),Array(256).fill(0)],keyMasks:Array(6).fill(0),
     frequencyLatch:[0,0],status:0,irq:false,sourceMuteMask:0,held:new Map(),mix:{volume:1,pan:0}});
   const snapshot=state=>({sampleRate:48000,frame:native.status().frame,revision:native.calls.length,
     ym2612:{...state,registers:state.registers.map(r=>r.slice()),keyMasks:state.keyMasks.slice(),held:[...state.held.keys()],pendingCommands:[]}});
@@ -34,7 +34,7 @@ function installExtraYm2612Mock(native){
     }else if(m.method==='key-off')s.keyMasks[m.channel]=0;
     else if(m.method==='cancel-csm')s.registers[0][0x27]&=~0x81;
     else if(m.method==='stop-voices'){s.keyMasks.fill(0);s.held.clear();s.registers[0][0x27]&=0xc0;s.registers[0][0x2b]&=127;s.registers[0][0x2a]=128;}
-    else if(m.method==='reset'){if(!s.held.size){const clock=s.clock;Object.assign(s,fresh(),{clock});}}
+    else if(m.method==='reset'){if(!s.held.size){const clock=s.clock;Object.assign(s,fresh(s.engine),{clock});}}
     else if(m.method==='mix')s.mix={volume:m.volume,pan:m.pan};
     else if(m.method==='source-mute')s.sourceMuteMask=m.mask;
     else assert.equal(m.method,'barrier','Unknown extra YM2612 operation '+m.method);
@@ -45,7 +45,7 @@ function installExtraYm2612Mock(native){
       assert(Number.isSafeInteger(args.instance)&&args.instance>0);
       if(command==='native_genesis_extra_ym2612_create'){
         assert(!native.extraYm2612.has(args.instance)&&!native.extraPsg.has(args.instance)&&!native.extraYm2203?.has(args.instance)&&!native.extraYm2608?.has(args.instance));
-        assert(extraChipCount(native)<16);const s=fresh();
+        assert(extraChipCount(native)<16);assert(['ymfm','nuked'].includes(args.engine??'ymfm'));const s=fresh(args.engine);
         native.extraYm2612.set(args.instance,s);return snapshot(s);
       }
       if(command==='native_genesis_extra_ym2612_dispose'){native.extraYm2612.delete(args.instance);return null;}
@@ -65,7 +65,8 @@ const program=`
   if(await useSoundChip('ym2612')!==fm||await useSoundChip('segapsg')!==psg)throw Error('Primary identity changed');
   if(fm.dispose!==undefined||psg.dispose!==undefined)throw Error('Primary ownership changed');
   const a=await createSoundChip('ym2612',{id:'extra-fm-a'});
-  const b=await createSoundChip('ym2612',{id:'extra-fm-b'});
+  const b=await createSoundChip('ym2612',{id:'extra-fm-b',engine:'nuked'});
+  if(a.engine!=='ymfm'||b.engine!=='nuked')throw Error('Additional FM engine selection lost');
   const p=await createSoundChip('segapsg',{id:'extra-tone'});
   a.setPreset(0,FM_PRESETS['one-op-basic']);a.setAlgo(0,7,2);a.setPan(0,true,false);a.noteOn(0,'C4');await a.setClock(8000000);
   b.setPreset(5,FM_PRESETS['one-op-basic']);b.setAlgo(5,4,1);b.setPan(5,false,true);b.noteOn(5,'E3');
@@ -78,9 +79,15 @@ const program=`
 
 async function runExtraYm2612({page,native,artifacts,name,assertNoLiveAudio,until,changeMode}){
   const all=()=>native.calls.flatMap(c=>c.command==='native_genesis_commands'?c.args.commands:[]),phases=[];
-  const [{unzipSync},{parseTfi},{parseVgi}]=await Promise.all([
-    import('../docs/playground/vendor/fflate.js'),import('../web/tfi.js'),import('../web/vgi.js'),
+  const [{unzipSync},{parseTfi},{parseVgi},{createPlaygroundSoundChipMixer}]=await Promise.all([
+    import('../docs/playground/vendor/fflate.js'),import('../web/tfi.js'),import('../web/vgi.js'),import('../docs/playground/playground_mixer_defaults.js'),
   ]);
+  const reference=createPlaygroundSoundChipMixer('genesis');for(const engine of ['ymfm','nuked'])reference.register(engine,'ym2612',()=>{},undefined,{engine});
+  const applySystem=async()=>{await page.click('#mixerTab');await page.getByRole('combobox',{name:'Mixer preset',exact:true}).selectOption('/sys/mixer/default.json');};
+  function assertInitialMix(calls,first,expected){
+    const creates=calls.filter(c=>c.command==='native_genesis_extra_ym2612_create');assert.deepEqual(creates.map(c=>c.args.engine),expected);
+    for(const create of creates){const mix=all().slice(first).find(c=>c.type==='extra-ym2612'&&c.instance===create.args.instance&&c.message.method==='mix');assert(mix,'Additional FM gets its initial Mixer strip');assert.equal(mix.message.volume,reference.get(create.args.engine).volume,'System applies the engine factory gain once');}
+  }
   const primaryState=()=>page.evaluate(()=>window.__nativeBackendTest.runtime.megaDrive.fm.getState());
   async function exportSelectedFm(format,expectedTl,execution){
     await page.evaluate(()=>{document.getElementById('mainMenu').open=true;document.getElementById('menuExport').open=true;});
@@ -104,13 +111,15 @@ async function runExtraYm2612({page,native,artifacts,name,assertNoLiveAudio,unti
   };
   let session;
   for(const execution of ['main','worker']){
-    const first=all().length;
+    await applySystem();const first=all().length,callStart=native.calls.length;
     await page.evaluate(({program,execution})=>window.__nativeBackendTest.runtime.playSource(program,{execution}),{program,execution});
     await until(()=>native.extraYm2612.size===2&&native.extraPsg.size===1&&all().slice(first).some(c=>c.type==='extra-ym2612'&&c.message.method==='write'&&c.message.register===0x2a&&c.message.value===173),execution+' FM/DAC writes');
     const s=await inspect();session??=s.session;assert.equal(s.session,session);
     assert.deepEqual(s.audio,{contexts:0,offline:0,worklets:[]});
     assert.deepEqual(s.mixer.map(x=>x.id).sort(),['extra-fm-a','extra-fm-b','extra-tone','segapsg','ym2612']);
-    assert.equal(s.a.kind,'ym2612');assert.equal(s.b.kind,'ym2612');assert.equal(s.a.clock,8000000);assert.equal(s.b.clock,7670454);
+    assert.equal(s.a.kind,'ym2612');assert.equal(s.b.kind,'ym2612');assert.equal(s.a.engine,'ymfm');assert.equal(s.b.engine,'nuked');assert.equal(s.a.clock,8000000);assert.equal(s.b.clock,7670454);
+    assert.equal(s.list.find(entry=>entry.id==='extra-fm-a').engine,'ymfm');assert.equal(s.list.find(entry=>entry.id==='extra-fm-b').engine,'nuked');
+    assertInitialMix(native.calls.slice(callStart),first,['ymfm','nuked']);assert.equal(s.mixer.find(entry=>entry.id==='extra-fm-a').engine,'ymfm');assert.equal(s.mixer.find(entry=>entry.id==='extra-fm-b').engine,'nuked');
     assert.equal(s.a.registers[0][0xb0],23);assert.equal(s.b.registers[1][0xb2],12);
     assert.equal(s.b.registers[0][0x2b],128);assert.equal(s.b.registers[0][0x2a],173);assert.equal(s.p.channels[0].period,251);
     if(execution==='worker')await until(()=>all().slice(first).some(c=>c.type==='extra-ym2612'&&c.frame>0&&c.performance&&c.owner),'Worker timing/owners');
@@ -133,14 +142,21 @@ async function runExtraYm2612({page,native,artifacts,name,assertNoLiveAudio,unti
     await until(()=>all().slice(before).some(c=>c.type==='extra-ym2612'&&c.message.action==='on'),'Additional FM Keyboard note on');
     await page.keyboard.up('z');await until(()=>all().slice(before).some(c=>c.type==='extra-ym2612'&&c.message.action==='off'),'Additional FM Keyboard note off');
     assert.equal((await inspect()).b.registers[0][0x2a],173,'Manual audition must not change sibling DAC');
+    await page.selectOption('#playgroundKeyboardChip','chip:extra-fm-b');await page.selectOption('#playgroundKeyboardTargetChannel','fm:4');
+    await page.locator('#keyboardTab').focus();const nukedBefore=all().length,nukedInstance=native.calls.slice(callStart).find(c=>c.command==='native_genesis_extra_ym2612_create'&&c.args.engine==='nuked').args.instance;await page.keyboard.down('z');
+    await until(()=>all().slice(nukedBefore).some(c=>c.type==='extra-ym2612'&&c.instance===nukedInstance&&c.message.action==='on'),'Nuked FM Keyboard note on');
+    await page.keyboard.up('z');await until(()=>all().slice(nukedBefore).some(c=>c.type==='extra-ym2612'&&c.instance===nukedInstance&&c.message.action==='off'),'Nuked FM Keyboard note off');
+    await page.click('#operatorTabButton');await page.selectOption('[data-opn-instance]','extra-fm-b');await page.locator('#operatorTabButton').focus();const nukedEditorBefore=all().length;await page.keyboard.down('z');
+    await until(()=>all().slice(nukedEditorBefore).some(c=>c.type==='extra-ym2612'&&c.instance===nukedInstance&&c.message.action==='on'),'Nuked FM operator keyboard note on');
+    await page.keyboard.up('z');await until(()=>all().slice(nukedEditorBefore).some(c=>c.type==='extra-ym2612'&&c.instance===nukedInstance&&c.message.action==='off'),'Nuked FM operator keyboard note off');
     phases.push({execution,...s});await page.click('#mixerTab');
     await page.screenshot({path:path.join(artifacts,name+'-extra-ym2612-'+execution+'.png')});await stop();
   }
   for(const execution of ['main','worker']){
-    const first=native.calls.length;
+    await applySystem();const first=native.calls.length,commandStart=all().length;
     await page.evaluate(execution=>window.__nativeBackendTest.runtime.playSource(`
       const old=await createSoundChip('ym2612',{id:'extra-fm-a'});old.noteOn(0,'C3');old.dispose();
-      const a=await createSoundChip('ym2612',{id:'extra-fm-a'});a.setAlgo(0,6,3);a.noteOn(0,'D4');await a.setClock(7000000);
+      const a=await createSoundChip('ym2612',{id:'extra-fm-a',engine:'nuked'});a.setAlgo(0,6,3);a.noteOn(0,'D4');await a.setClock(7000000);
       const b=await createSoundChip('ym2612',{id:'extra-fm-b'});b.setDacEnabled(true);b.writeDac(181);
       const p=await createSoundChip('segapsg',{id:'extra-tone'});p.tone(1,{period:333,attenuation:5});
     `,{execution}),execution);
@@ -148,7 +164,8 @@ async function runExtraYm2612({page,native,artifacts,name,assertNoLiveAudio,unti
     const created=native.calls.slice(first).filter(c=>c.command==='native_genesis_extra_ym2612_create').map(c=>c.args.instance);
     assert.equal(created.length,3);assert.equal(new Set(created).size,3);
     assert(native.calls.slice(first).some(c=>c.command==='native_genesis_extra_ym2612_dispose'&&c.args.instance===created[0]));
-    const s=await inspect();assert.equal(s.a.clock,7000000);assert.equal(s.a.registers[0][0xb0],30);assert.equal(s.b.registers[0][0x2a],181);
+    assertInitialMix(native.calls.slice(first),commandStart,['ymfm','nuked','ymfm']);
+    const s=await inspect();assert.equal(s.a.engine,'nuked');assert.equal(s.b.engine,'ymfm');assert.equal(s.a.clock,7000000);assert.equal(s.a.registers[0][0xb0],30);assert.equal(s.b.registers[0][0x2a],181);
     assert.equal(s.p.channels[1].period,333);phases.push({execution,replacement:true,...s});await stop();
   }
   await changeMode(page,native,'ym3812','keep');

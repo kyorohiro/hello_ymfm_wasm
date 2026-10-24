@@ -1,3 +1,4 @@
+import {validateYm2612Engine} from './playground_soundchip_options.js';
 import {createOpnAuditionGuard} from './playground_audition_guard.js';
 import {OpnKeyboardInspector} from './playground_opn_inspector.js';
 import {PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector} from './playground_chip_inspector_state.js';
@@ -27,7 +28,7 @@ async function setup(file) {
     process(left,right){left.fill(chip.value);right.fill(chip.value);}};
   class SyncChip {constructor(){return chip;}static async create(){return chip;}}
   class Playback {constructor(){return Object.assign(chip,{write(_reg,value){this.value=value;},renderInto(left,right){left.fill(this.value);right.fill(this.value);}});}static async create(){return new Playback();}}
-  const scope={OpnKeyboardInspector,createOpnAuditionGuard,Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
+  const scope={validateYm2612Engine,OpnKeyboardInspector,createOpnAuditionGuard,Ym2151VoiceInspector,GameboyVoiceInspector,NesVoiceInspector,PsgInspectorState,RfInspectorState,receiveChipInspector,rfSampleMetadata,readPwmInspector,currentFrame:0,sampleRate:rate,ChipClockResampler,CHIP_CLOCKS,validateChipClock,Ym2608Timeline,RF5C164Synth,PWM_METHODS,
     NesApuWasm:SyncChip,GameboyApu:SyncChip,SegaPSG:SyncChip,Ym2151:SyncChip,Ym2612:SyncChip,Ym2203:SyncChip,Ym2610B:SyncChip,Ym2608:SyncChip,Rf5c164:SyncChip,Ay8910:SyncChip,Ym2413:SyncChip,Ym3526:SyncChip,Ym3812:SyncChip,Y8950:SyncChip,Ymf262:SyncChip,
     Ym2608AudioEngine:{create:async()=>engine},PWM32XPlayback:Playback,factory:{},pwmFactory:{},nesFactory:{},ym2612Factory:{},ym2203Factory:{},ym2610Factory:{},ym2608Factory:{},ym2151Factory:{},ay8910Factory:{},ym2413Factory:{},ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},gameboyFactory:{},psgFactory:{},
     createRf5c164Control:()=>({reset:()=>chip.reset(),writeRegister:(reg,value)=>chip.writeRegister(reg,value),dispose:()=>chip.dispose()}),

@@ -273,6 +273,11 @@ export const EXAMPLE_FILES = [
     "data": "// Independent Sega PSG: works with any selected Playground chip.\nconst chip = await useSoundChip('segapsg');\ntry {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    chip.tone(0, {note, attenuation: 4});\n    await sleep(0.2);\n  }\n  chip.off(0);\n  chip.noise({type: 'white', rate: 'medium', attenuation: 8});\n  await sleep(0.2);\n  chip.noiseOff();\n} finally { chip.dispose(); }\n"
   },
   {
+    "path": "/examples/genesis/ym2612-engine-comparison.js",
+    "name": "ym2612-engine-comparison",
+    "data": "// Compare independent YM2612 cores: ymfm first, then Nuked, with the same six-note melody.\n// Mixer → Preset: System を選んで Run。各音は FM1–6 を順番に使います。\n// Select Mixer → Preset: System before Run to compare calibrated defaults.\n// Saved Mixer settings remain authoritative; this example never changes its strips.\n// Web Audio / Native and Main / Worker use the same code. The mode's primary chip stays idle.\n// Stop cancels the current wait; finally disposes its chip without starting the next one.\nconst timing = await getTiming();\nconst GAP_SECONDS = Math.max(0.35, timing.workerLookaheadSeconds + 0.1);\nconst NOTE_SECONDS = 0.3;\nconst RELEASE_SECONDS = 0.08;\nconst melody = ['C4', 'E4', 'G4', 'B4', 'C5', 'G4'];\nconst engines = ['ymfm', 'nuked'];\n\nawait fx.setChain([]);\nfor (const [index, engine] of engines.entries()) {\n  // Automatic IDs keep a previously saved ID-specific strip out of this comparison.\n  const chip = await createSoundChip('ym2612', {engine});\n  try {\n    await chip.reset();\n    for (let channel = 0; channel < 6; channel++) {\n      await chip.setPreset(channel, FM_PRESETS['one-op-basic']);\n      await chip.setPan(channel, true, true);\n    }\n    log(`YM2612 engine comparison ${index + 1}/2: ${engine} · FM1–6`);\n    for (const [channel, note] of melody.entries()) {\n      await chip.noteOn(channel, note);\n      await sleep(NOTE_SECONDS);\n      await chip.keyOff(channel);\n      await sleep(RELEASE_SECONDS);\n    }\n  } finally {\n    await chip.dispose();\n  }\n  // Worker disposal follows its audio lookahead. Include the last chip in this wait.\n  await sleep(GAP_SECONDS);\n}\nlog('YM2612 engine comparison complete: 2/2');\n"
+  },
+  {
     "path": "/examples/mega-cd/megacd-fm-pcm.js",
     "name": "megacd-fm-pcm",
     "data": "// Mega CD mode: Genesis FM + PSG, with the CD expansion's PCM bass.\nconst pcm = await useSoundChip('rf5c164');\nconst length = 128;\nconst wave = new Uint8Array(length + 1);\nfor (let i = 0; i < length; i++) {\n  const phase = 2 * Math.PI * i / length;\n  const value = (Math.sin(phase) + 0.2 * Math.sin(phase * 2)) / 1.2;\n  wave[i] = Math.round(Math.abs(value) * 100) | (value >= 0 ? 0x80 : 0);\n}\nwave[length] = 0xff;\nawait pcm.loadMemory(wave);\nawait pcm.setChannel(0, {start: 0, loopStart: 0, volume: 130, pan: {left: 15, right: 15}});\nconst stepFor = midi => Math.round(440 * 2 ** ((midi - 69) / 12) * length * 384 * 2048 / pcm.clock);\nfm.setPreset(CH1, FM_PRESETS['one-op-basic']);\nsetBpm(120);\n\nliveLoop('fm-psg-pcm', async () => {\n  for (const [note, bass] of [['C4', 36], ['E4', 40], ['G4', 43], ['D4', 38]]) {\n    await pcm.setPitch(0, stepFor(bass));\n    await pcm.keyOn(0);\n    psg.tone(PSG1, {note, attenuation: 12});\n    await play(note, {channel: CH1, beats: 0.75});\n    psg.off(PSG1);\n    await pcm.keyOff(0);\n    await beat(0.25);\n  }\n});\n"
@@ -620,6 +625,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/genesis/mixer-chip-balance.js",
     "/examples/genesis/rf5c164-sine.js",
     "/examples/genesis/segapsg-tone-noise.js",
+    "/examples/genesis/ym2612-engine-comparison.js",
     "/examples/gameboy/gameboy-saw-noise.js",
     "/examples/gameboy/gameboy-saw-pulse.js",
     "/examples/gameboy/gameboy-saw-wave.js",
@@ -643,21 +649,24 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/mega-cd/megacd-fm-pcm.js",
     "/examples/mega-cd/megacd-sampler.js",
     "/examples/genesis/mixed-chip-stability.js",
-    "/examples/genesis/chip-level-comparison.js"
+    "/examples/genesis/chip-level-comparison.js",
+    "/examples/genesis/ym2612-engine-comparison.js"
   ],
   "genesis-full": [
     "/examples/genesis/genesis-mode-duet.js",
     "/examples/genesis/rf5c164-sine.js",
     "/examples/genesis/32x-pwm-sine.js",
     "/examples/genesis/mixed-chip-stability.js",
-    "/examples/genesis/chip-level-comparison.js"
+    "/examples/genesis/chip-level-comparison.js",
+    "/examples/genesis/ym2612-engine-comparison.js"
   ],
   "genesis-full-nuked": [
     "/examples/genesis/genesis-mode-duet.js",
     "/examples/genesis/rf5c164-sine.js",
     "/examples/genesis/32x-pwm-sine.js",
     "/examples/genesis/mixed-chip-stability.js",
-    "/examples/genesis/chip-level-comparison.js"
+    "/examples/genesis/chip-level-comparison.js",
+    "/examples/genesis/ym2612-engine-comparison.js"
   ],
   "pc98-26": [
     "/examples/pc98/pc98-opn-melody.js",
@@ -787,6 +796,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/genesis/mixer-chip-balance.js",
     "/examples/genesis/rf5c164-sine.js",
     "/examples/genesis/segapsg-tone-noise.js",
+    "/examples/genesis/ym2612-engine-comparison.js",
     "/examples/gameboy/gameboy-saw-noise.js",
     "/examples/gameboy/gameboy-saw-pulse.js",
     "/examples/gameboy/gameboy-saw-wave.js",
