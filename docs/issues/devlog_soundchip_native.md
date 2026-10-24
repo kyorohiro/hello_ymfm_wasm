@@ -17,6 +17,7 @@ The source collection covers:
 - **Synthesizer:** MSFA-based DX7, with six operators and 32 algorithms.
 - **Alternative YM2612 engine:** Nuked-OPN2.
 - **Additional WASM recipes:** YM3438, YMF276, YMF288, YMF278B (OPL4), Sega PCM, and K051649 (SCC/SCC+).
+- **JavaScript references:** MSM5205 and OKIM6295 ADPCM, imported from the Analyzer with their original notices. These two engines have not yet been ported to C++ or WASM.
 
 ## Systems and instruments
 
@@ -33,6 +34,7 @@ These sources cover sound configurations associated with the following consoles,
 | NES / Famicom + Famicom Disk System | NES APU + FDS audio |
 | SNES / Super Famicom | S-DSP audio; a separate SPC700 + S-DSP player handles SPC files |
 | PC Engine | HuC6280 PSG |
+| PC Engine CD sound configuration | HuC6280 PSG + MSM5205 ADPCM; the ADPCM engine is currently a JavaScript reference |
 | NEC PC-98 sound configurations | YM2203 OPN or YM2608 OPNA |
 | Neo Geo | YM2610; the collection also includes the six-FM-channel YM2610B variant |
 | Sharp X68000 | YM2151 OPM + OKIM6258 ADPCM |
@@ -40,6 +42,7 @@ These sources cover sound configurations associated with the following consoles,
 | MSX with MSX-AUDIO and MSX-MUSIC | AY-3-8910 + YM2413 + Y8950 |
 | DOS PC sound-card configurations | YM3526 OPL, YM3812 OPL2, or YMF262 OPL3 |
 | Yamaha DX7 | MSFA-based six-operator FM engine |
+| Arcade ADPCM configurations | OKIM6295 four-voice ADPCM as a JavaScript reference; the Analyzer can combine it with YM2151 / YM2164 or YM3812 |
 
 The additional recipes also include SCC/SCC+ audio through K051649 and arcade Sega PCM. These are separate sound sources, not additional Playground modes.
 
