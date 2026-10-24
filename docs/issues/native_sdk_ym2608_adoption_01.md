@@ -8,6 +8,9 @@ YM2612、YM2203に続き、PC-98のYM2608と`createSoundChip('ym2608')`の
 基準となるTauriコミットは`16610b0eb1acd99f8c002111b8cda1db777936e8`（YM2203移行）。
 今回の変更はこのコミット後の未コミット差分で、commit／push／公開／Actions実行は行っていない。
 
+後続作業時の追記: ユーザーがTauri側を`53ab3d2719b22ff01acc97ff3477e97dfd16ba39`としてコミット済み。
+本体側のchecker・作業記録も別リポジトリの`26f6e6e5c918f6db4a3e4d196bc8c5b76edbfdea`へ保存済み。
+
 ## 変更した範囲
 
 - Tauriの`src-tauri/build.rs`で、YM2608接続を

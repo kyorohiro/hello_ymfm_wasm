@@ -13,6 +13,7 @@ import {encodeAdpcmB} from '../web/adpcm_b_sample.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const extra=process.argv.includes('--extra'),fixtureProfile=extra?['--extra']:[],planes=extra?9:2;
@@ -132,10 +133,15 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline core/output-rate comparison. Native scheduling, ownership, cancellation and UI IPC are validated separately. Stop gate/control retention, status/IRQ/end flags and zero callback allocations are asserted in the C++ fixture self-test. Chip reset preserves ROM like Synth.reset(), whereas the VGM AudioEngine.reset() explicitly clears ROM.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2610b-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),
-      path.join(project,'src/native_genesis_ym2610b.cpp'),path.join(project,'src/native_genesis_ym2610b_fixture.cpp'),
-      path.join(project,'src/native_genesis_ymfm_opn.cpp'),
-      ...['ymfm_ssg.cpp','ymfm_adpcm.cpp'].map(n=>path.join(project,'native-genesis',n)),'-o',fixture],{stdio:'pipe'});}
+    // Match Tauri's selected and additional YM2610/YM2610B build: use the pinned
+    // SDK wrapper and once-compiled OPN/SSG/ADPCM provider, retaining the app fixture.
+    const files=[path.join(sdk,'native/reference/tauri/native_genesis_ym2610b.cpp'),
+      path.join(project,'src/native_genesis_ym2610b_fixture.cpp'),path.join(sdk,'native/src/ymfm_opn_provider.cpp'),
+      path.join(sdk,'vendor/ymfm/ymfm_ssg.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+      ...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,[...fixtureProfile,'--self-test'],{encoding:'utf8'}).trim();
   for(const variant of [false,true])for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

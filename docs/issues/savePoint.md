@@ -13,25 +13,27 @@ Last updated: 2026-10-25
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
 ユーザーがcommit／pushした`v0.90.2+test`で、5構成すべての試験とインストーラービルドが成功済み。
 その後、PC-98と追加生成のYM2203も切り替え、ローカル検証後にユーザーが`16610b0e...`としてコミット済み。
-最新の作業はPC-98と追加生成のYM2608のSDK参照切替で、PCM／状態一致、Rust全試験、再生・混合試験まで成功。
-現在のTauriにはこのYM2608移行の未コミット差分がある。SDK本体と取り込み記録の変更はない。
+YM2608移行もローカル検証後、Tauriでは`53ab3d27...`、本体では`26f6e6e5...`にコミット済み。
+最新の作業はNeo Geoと追加生成のYM2610／YM2610BのSDK参照切替で、PCM／状態一致、Rust全試験、再生・混合試験まで成功。
+現在のTauriにはこのYM2610／YM2610B移行の未コミット差分がある。SDK本体と取り込み記録の変更はない。
 本体側にもcheckerと作業記録の変更があるため、両リポジトリの差分を確認する。
-今回のYM2608作業ではcommit・push・一般公開・Actions実行は行っていない。
+今回のYM2610／YM2610B作業ではcommit・push・一般公開・Actions実行は行っていない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
 `w/`以下はそれぞれ独立したGitリポジトリなので、本体だけのcommitで保存できたと判断しない。
 
 | リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `408ac673e57559a607b0fd02af895db3199197be` (`update docs`) |
+| 本体 | `hello_ymfm/` | `26f6e6e5c918f6db4a3e4d196bc8c5b76edbfdea` (`native sdk support --`) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `16610b0eb1acd99f8c002111b8cda1db777936e8` (YM2203のSDK移行) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `53ab3d2719b22ff01acc97ff3477e97dfd16ba39` (YM2608のSDK移行) |
 
-本体には次のメモがある。CI結果・YM2203／YM2608作業による更新は上記HEAD後の未コミット差分。
+本体には次のメモがある。YM2610／YM2610B作業による更新は上記HEAD後の未コミット差分。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
-- [native_sdk_ym2608_adoption_01.md](native_sdk_ym2608_adoption_01.md)：最新のYM2608移行とローカル検証。
+- [native_sdk_ym2608_adoption_01.md](native_sdk_ym2608_adoption_01.md)：YM2608移行とローカル検証。
+- [native_sdk_ym2610_adoption_01.md](native_sdk_ym2610_adoption_01.md)：最新のYM2610／YM2610B移行とローカル検証。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -79,10 +81,11 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - 追加生成YM2612の `native/reference/tauri/native_genesis_ym2612.cpp`。
 - PC-98／追加生成YM2203の `native/reference/tauri/native_genesis_ym2203.cpp`。
 - PC-98／追加生成YM2608の `native/reference/tauri/native_genesis_ym2608.cpp`。
+- Neo Geo／追加生成YM2610・YM2610Bの `native/reference/tauri/native_genesis_ym2610b.cpp`。
 - 共有 `native/src/ymfm_opn_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`。
 
 共有providerは従来のarchive位置で一度だけコンパイルする。
-SDK側のYM2203／YM2608に加え、ローカルのYM2610等も共有OPNを使い、OPM／OPL側も共通ADPCMを参照する。
+上記のOPN接続は共通providerを使い、未移行のOPM／OPL側も共通ADPCMを参照する。
 他音源の接続全体までSDKへ移したわけではない。重複providerを追加したり、旧スナップショットをまとめて削除したりしない。
 
 Genesisのgain／DC除去／PSG混合、Rustの予約・owner・回収・予算、CPAL、Mixer、FX／liveFx、録音、WebView／JS APIはアプリ側。
@@ -155,6 +158,27 @@ Rhythm ROMの素材は引き続きRustが従来のスナップショットから
 状態比較はNative同士、RAM比較は1観測あたり96バイトの3範囲で、全RAMの毎フレーム比較ではない。
 今回の結果はmacOS ARM64で、音声デバイスを開かない検証。YM2608差分を含む各OSのCIは未実行。
 
+### YM2610／YM2610B移行のローカル検証 — 2026-10-25
+
+Neo Geoの選択中音源と追加音源の両変種を、同じ固定SDKからビルドする。
+詳細は[native_sdk_ym2610_adoption_01.md](native_sdk_ym2610_adoption_01.md)。
+
+| 対象 | 結果 |
+| --- | --- |
+| ソース差分 | ヘッダー／interface 8組がbyte一致。SDK cppとの差は説明コメント1行のみ |
+| 選択中音源の移行前後と実WASM | 72ケース、442,368フレーム。PCMがbyte一致、WASMとの差分0 |
+| 追加音源の移行前後と実WASM | 504ケース、3,096,576フレーム。PCM／status／statusHi／IRQ／4 readが一致、WASMとの差分0 |
+| Native状態・ROM比較 | 12ケース、98,304フレーム。524／536バイトの状態とPCM／read、256バイトのROM観測が一致 |
+| Cargo | 723成功、4件ignored |
+| 再生／混合 | 22 mode・88 Run／Stop、3混合構成・7単独音源、受入れ／台数制限が成功 |
+| 配布ソース | SDK374ファイルを含む22件の固定記録と、最終ZIP1,796ファイルの照合成功 |
+
+固有PCM比較は576件、3,538,944フレームで、両変種を含む。既定ビルドの再確認は二重加算しない。
+Native状態の比較とWASM内部状態の比較は区別し、ROM全域の毎フレーム比較は行っていない。
+選択中音源の連続ROMと追加音源の不変ページ方式、callback中のallocation／freeゼロも既存fixtureで検証した。
+SDK cpp／headerの監視へ切り替え、素材の実消費元がない旧`native-ym2610b`ディレクトリの監視は外した。
+今回の結果はmacOS ARM64で、音声デバイスを開かない検証。今回の差分を含む各OSのCIは未実行。
+
 ### YM2612移行のGitHub Actions — 2026-10-25
 
 - 対象: `v0.90.2+test`、Tauriコミット`9ef583e8e7fa9e75546b24dd89e119dab7d412c6`。
@@ -226,16 +250,16 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. YM2608の変更を含むコミットで5構成のActionsを確認する。上記のタグ成功を今回の変更へ流用しない。
-2. PC-98（YM2608）の再生・Stop・再Runと、追加YM2608を実機でも聴いて確認する。先行する音源の実機確認も自動試験とは別。
-3. 次のSDK取り込み候補はYM2610B。共有providerの重複と既存音への影響を確認する。
+1. YM2610／YM2610Bの変更を含むコミットで5構成のActionsを確認する。上記のタグ成功を今回の変更へ流用しない。
+2. Neo Geo両変種の再生・Stop・再Runと、追加音源を実機でも聴いて確認する。先行する音源の実機確認も自動試験とは別。
+3. 次に取り込む別系統の接続は別途選ぶ。共有providerの重複と既存音への影響を確認する。
 4. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
 
 - Tauriの `native-validation/`、`native-source-bundle/`、`src-tauri/target/` はignoredな生成物。
 - 対応ソースZIP: `w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip`。
-  YM2608移行後の最終SHA-256: `30219d51d724f886e9643499772f7adf46336e2c0421faaedcd7d2f7df5a212e`。
+  YM2610／YM2610B移行後の最終SHA-256: `d8930453ce6121b6ba63276c38a5b955c05360abe8a4a1b9eb140db3f4a1b502`。
   再生成後に値が変わる場合は、その時点の作業ツリーとマニフェストを確認する。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
@@ -248,10 +272,13 @@ SDK自体をリモートから自動取得する設計には戻さない。
   YM2608の最新検証は`/private/tmp/tetorica-sdk-ym2608-adoption/summary.json`、
   `/private/tmp/tetorica-sdk-ym2608-cargo-test.log`、`/private/tmp/tetorica-sdk-ym2608-stability.json`、
   `/private/tmp/tetorica-sdk-ym2608-extra-stability.json`、`/private/tmp/tetorica-sdk-ym2608-sources.json`。
+  YM2610／YM2610Bの最新検証は`/private/tmp/tetorica-sdk-ym2610-adoption/summary.json`、
+  `/private/tmp/tetorica-sdk-ym2610-cargo-test.log`、`/private/tmp/tetorica-sdk-ym2610-stability.json`、
+  `/private/tmp/tetorica-sdk-ym2610-extra-stability.json`、`/private/tmp/tetorica-sdk-ym2610-sources.json`。
   `/private/tmp`は消える可能性があるため、再開の必須データとして扱わない。
 
 ソースと由来の正本は各Gitコミット、Tauriの同梱SDK／取り込み記録、上記の手順書。
-過去の作業メモにある「未コミット」は当時の状態。TauriのYM2612移行は`9ef583e...`、YM2203移行は`16610b0e...`にコミット済みで、最新のYM2608移行は未コミット。
+過去の作業メモにある「未コミット」は当時の状態。TauriのYM2612移行は`9ef583e...`、YM2203移行は`16610b0e...`、YM2608移行は`53ab3d27...`にコミット済みで、最新のYM2610／YM2610B移行は未コミット。
 
 ## 旧記録 — 2026-08-24以降の作業メモ
 
