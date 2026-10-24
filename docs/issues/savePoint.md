@@ -1,6 +1,175 @@
 # Save Point
 
-Last updated: 2026-08-24
+Last updated: 2026-10-25
+
+## 最新の再開ポイント — 2026-10-25
+
+この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
+再開時はこの節と実際の各リポジトリの状態を先に確認する。
+
+### 現在地
+
+`tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
+最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えたところ。
+今回の保存時点では、Tauriの移行もSDK側の作業もコミット済みで、両リポジトリの作業ツリーはclean。
+この記録の作成では、新しい実装・commit・push・公開・Actions実行を行っていない。
+
+作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
+`w/`以下はそれぞれ独立したGitリポジトリなので、本体だけのcommitで保存できたと判断しない。
+
+| リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
+| --- | --- | --- |
+| 本体 | `hello_ymfm/` | `df8cdd44fd0de269544506e02c880b83110f129f` (`v0.90.1+3`) |
+| Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `9ef583e8e7fa9e75546b24dd89e119dab7d412c6` (YM2612のSDK移行) |
+
+本体には、保存作業前から次の未追跡ファイルがある。内容を保持する。
+
+- [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：今回の移行の詳細記録。
+- [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
+
+### SDK側の完了範囲
+
+- 全22音源IDを18個のstatic libraryで提供。公開alias／headerは汎用OPLを含め23種類。
+- 21 fixture実行ファイルから22件のCTestを実行。SNESだけ同じfixtureに2つの試験モードがある。
+- 外部ROMやゲーム素材を必要としない17種類のWAV Exampleを用意。
+- SDK版は `0.1.0`、stageはまだ `bootstrap`。全WASMレシピの実行や全低レベルAPIの統一を完了したという意味ではない。
+- 代替エンジンのNuked YM2612は、SDKの単体Nativeターゲットとしてはreference-only。Tauriには既存のNuked実装がある。
+- Analyzer専用のMSM5205／OKIM6295等の追加資料・JS参照は、上記22種類とは別枠。
+- 直近のDX7追加では、SDKのNative overrideだけPanic後のフィードバック履歴初期化を修正済み。原本／修正版ハッシュを保持している。
+
+詳細はSDKの[Nativeガイド](../../w/tetorica-soundchip-native/native/README.md)、
+[検証記録](../../w/tetorica-soundchip-native/docs/verification.md)、
+[音源ごとの差分](../../w/tetorica-soundchip-native/docs/chip-differences.md)を参照。
+
+### Tauriで固定しているSDK
+
+同梱先は `src-tauri/vendor/tetorica-soundchip-native/`。配布ソース全374ファイルを保持している。
+取り込み記録の正本は [src-tauri/soundchip-sdk.json](../../w/tetorica-fm2612-playground-tauri/src-tauri/soundchip-sdk.json)。
+
+| 項目 | 固定値 |
+| --- | --- |
+| SDK版 | `0.1.0` |
+| 元コミット | `affd1059599f3c7598191c14f5a864b44963d4aa` |
+| 元ZIP | `tetorica-soundchip-native-0.1.0-sources.zip` |
+| 元ZIP SHA-256 | `26db7518a55465b1e4dc58c19eb425fc6ea1ab282bd85920b0249556f5d1f6ce` |
+| SDKマニフェスト SHA-256 | `d82f98a36cc934591e23d0ffb86b180e6bcead72e1fc25145246d9c59028ff88` |
+
+元コミットは由来の記録で、署名検証の意味ではない。取り込み時のZIPハッシュと、
+同梱マニフェスト／全ファイルのサイズ・ハッシュを照合する。
+通常のTauriビルドに別のSDK checkout、submodule、GitHubからの音源ソース取得、CMake呼び出しは不要。
+コンパイラーやCargo／npm依存まで同梱しているわけではない。
+
+SDK同梱先を直接編集せず、更新時だけTauriの `scripts/import_soundchip_sdk.py` で検証済みローカルZIPを取り込む。
+インポーターは既存の同梱内容に変更があると上書きを拒否する。
+アプリ側で開発・検証した変更をSDK配布へ反映し、利用側が固定版を明示更新する運用を維持する。
+ソース、ライセンス、NOTICE、原典記録も一緒に保持する。
+
+### 今回切り替えたビルド境界
+
+Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri/build.rs) は次をSDKからコンパイルする。
+
+- Genesis主音源の `wasm/ym2612_wasm.cpp`。ファイル名にwasmを含むが、ここではNative C++として使う。
+- 追加生成YM2612の `native/reference/tauri/native_genesis_ym2612.cpp`。
+- 共有 `native/src/ymfm_opn_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`。
+
+共有providerは従来のarchive位置で一度だけコンパイルする。
+ローカルのYM2203／YM2608／YM2610等も共有OPNを使い、OPM／OPL側も共通ADPCMを参照する。
+他音源の接続全体までSDKへ移したわけではない。重複providerを追加したり、旧スナップショットをまとめて削除したりしない。
+
+Genesisのgain／DC除去／PSG混合、Rustの予約・owner・回収・予算、CPAL、Mixer、FX／liveFx、録音、WebView／JS APIはアプリ側。
+Browser／npmのWASM配布とTauriの `dist/` は今回の取り込みで変更していない。
+Cargoは取り込み記録、SDKのymfmディレクトリ、wasmディレクトリ等を監視し、明示更新時に再ビルドする。
+
+最初に読むファイルはTauriの [SDK取り込みガイド](../../w/tetorica-fm2612-playground-tauri/docs/native-sdk-ym2612.md)。
+配布ソースの再ビルドは [NATIVE-SOURCES.md](../../w/tetorica-fm2612-playground-tauri/NATIVE-SOURCES.md) を参照する。
+
+### 検証済みの結果
+
+2026-10-25、macOSで実施。デバイスを開かない自動試験と実機で聴く確認は区別する。
+
+| 対象 | 結果 |
+| --- | --- |
+| 旧ソース／SDKの入力 | 14組が同一。OPN providerの差分はinclude相対パス |
+| 主YM2612の移行前後比較 | 24ケース、240,000フレームでPCM／status／IRQ／read等がbit一致 |
+| 追加YM2612と実WASM | 198比較、1,216,512フレームでPCM／status／IRQ／4 readの差分0 |
+| 主GenesisとWorklet | 6項目、49,152フレーム。最大差 `3.725290298e-9`、移行前と同じ |
+| TauriのPython／Node | 22テスト／31テスト成功 |
+| Cargo | 723成功、明示実行用4件ignored。`cargo check --locked --offline`も成功 |
+| 再生ライフサイクル | 22 mode、604,032フレーム、88 Run／Stop遷移が成功 |
+| 追加音源混在 | 3混合構成、代表7音源、受入れ・台数制限の試験が成功 |
+| 同梱ソース | SDK374ファイル、22件の固定記録、アプリの対応ソースZIP1,796ファイルを照合 |
+| 独立展開 | 対応ソースZIPからSDK照合、YM2612 fixtureのC++14ビルド／自己試験に成功 |
+
+Sandbox内のCargo試験では既存HTTP bind試験2件が権限制限で失敗したが、承認済みの制限外実行では全体が成功。
+この制限を回避するための製品変更は入れていない。
+最終対応ソースZIPは文書のみ再更新した後にも照合済みで、独立ビルド時からコンパイル入力は変わっていない。
+
+Windows／Linuxの今回の変更に対するビルド・実機音声は、このセッションでは未確認。
+ユーザーがその後にpush／Actions実行／公開したかも未照合なので、再開時に実際の結果を確認する。
+Tauriの `Build Desktop` は `workflow_dispatch` または `v*` tagのpushで起動する設定で、通常のmain pushだけでは起動しない。
+
+### 再開手順
+
+まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
+
+```sh
+cd /Users/kyorohiro/development8/wfm/hello_ymfm
+git status --short
+git -C w/tetorica-soundchip-native status --short
+git -C w/tetorica-soundchip-native log -1 --oneline
+git -C w/tetorica-fm2612-playground-tauri status --short
+git -C w/tetorica-fm2612-playground-tauri log -1 --oneline
+```
+
+Tauriで同梱SDKと配布ソースを確認する。
+
+```sh
+cd /Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-fm2612-playground-tauri
+python3 scripts/import_soundchip_sdk.py --check
+python3 scripts/prepare_native_sources.py
+python3 scripts/check_native_sources.py --bundle --out=native-validation/sources.json
+```
+
+コードを変更した場合の通常の検証手順は次のとおり。変更していなければ、完了済みの重い試験をやり直す必要はない。
+
+```sh
+npm test
+cargo test --locked --offline --manifest-path src-tauri/Cargo.toml
+node scripts/check_native_stability.mjs --out=native-validation/stability.json
+node scripts/check_native_extra_stability.mjs --out=native-validation/extra-stability.json
+```
+
+`--offline`は依存キャッシュがある環境向け。別PC／fresh checkoutでは、
+先にNATIVE-SOURCES.mdに従ってNode／Rust／C++環境とロック済み依存、音声sidecarを準備する。
+SDK自体をリモートから自動取得する設計には戻さない。
+
+### 次の作業候補と未着手範囲
+
+1. TauriのWindows／Linux／各Mac向けActions結果を確認し、失敗があれば最初の実エラーから修正する。
+2. Native Genesisの再生・Stop・再Runと、追加YM2612を実機でも聴いて確認する。
+3. 他音源のSDK取り込みは、ユーザーが次の対象を選んでから1種類ずつ進める。共有providerの重複と既存音への影響を確認する。
+4. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
+
+### 一時成果物と記録の置き場所
+
+- Tauriの `native-validation/`、`native-source-bundle/`、`src-tauri/target/` はignoredな生成物。
+- 対応ソースZIP: `w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip`。
+  保存時点SHA-256: `afedc8d73b08bc3f3ac64d1b1ea35dfe0e9da289e89f2f77d82fa59621cf4215`。
+  再生成後に値が変わる場合は、その時点の作業ツリーとマニフェストを確認する。
+- SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
+  元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
+- 検証ログ: `/private/tmp/tetorica-sdk-adoption-parity/`、`/private/tmp/tetorica-sdk-adoption-isolated.json`、
+  `/private/tmp/tetorica-sdk-adoption-cargo-test-unrestricted.log`、`/private/tmp/tetorica-sdk-adoption-stability.json`、
+  `/private/tmp/tetorica-sdk-adoption-extra-stability.json`。
+  `/private/tmp`は消える可能性があるため、再開の必須データとして扱わない。
+
+ソースと由来の正本は各Gitコミット、Tauriの同梱SDK／取り込み記録、上記の手順書。
+過去の作業メモにある「未コミット」は当時の状態であり、保存時点ではTauriは `9ef583e...` にコミット済み。
+
+## 旧記録 — 2026-08-24以降の作業メモ
+
+以下は履歴として保持する。この節以降の「Current」「Latest」「Next」は記録当時の意味で、現在の再開指示ではない。
 
 ## Latest Playground architecture direction
 
