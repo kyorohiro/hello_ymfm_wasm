@@ -90,14 +90,14 @@ export async function run(chip){
     limits:'Offline standalone additional chip. Every output frame compares stereo PCM and authored register/clock/retained-level or status/IRQ/read-port snapshot. Native forced-release helpers additionally remove only cancelled voice contributions from held PCM; raw write/reset/profile parity is unchanged. Source-scoped cancellation, aliased rhythm cache isolation, and callback allocation/free are checked in C++. No machine-level sibling chips, audio devices or realtime deadline guarantee.'};
   try{
     if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-msx-'));fixture=path.join(temporary,'fixture');
-      const files=[path.join(sdk,'native/reference/tauri/native_genesis_ym2413.cpp'),path.join(project,'src/native_genesis_ay8910.cpp'),
+      const files=[path.join(sdk,'native/reference/tauri/native_genesis_ym2413.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_ay8910.cpp'),
         path.join(project,'src/native_genesis_extra_msx_fixture.cpp'),path.join(sdk,'native/src/ymfm_opl_provider.cpp'),
         path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp'),
-        path.join(project,'native-msx/snapshot/third_party/mame-ay8910/ay8910.cpp')];
+        path.join(sdk,'vendor/mame-ay8910/ay8910.cpp')];
       report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
         sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
       execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
-        ...['native-genesis','native-msx/snapshot/third_party/mame-ay8910'].map(p=>'-I'+path.join(project,p)),
+        '-I'+path.join(sdk,'vendor/mame-ay8910'),'-I'+path.join(project,'native-genesis'),
         ...files,'-o',fixture],{stdio:'pipe'});}
     report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
     for(const rate of rates)for(const scenario of scenarios){
