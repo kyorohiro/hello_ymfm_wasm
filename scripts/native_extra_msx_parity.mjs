@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {createYm2413RegisterClient} from '../web/playground_ym2413.js';
 import {createAy8910RegisterClient} from '../web/playground_ay8910.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 export async function run(chip){
   const ay=chip==='ay8910',planes=ay?22:71,clock=ay?1789773:3579545;
   const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
@@ -89,8 +90,15 @@ export async function run(chip){
     limits:'Offline standalone additional chip. Every output frame compares stereo PCM and authored register/clock/retained-level or status/IRQ/read-port snapshot. Native forced-release helpers additionally remove only cancelled voice contributions from held PCM; raw write/reset/profile parity is unchanged. Source-scoped cancellation, aliased rhythm cache isolation, and callback allocation/free are checked in C++. No machine-level sibling chips, audio devices or realtime deadline guarantee.'};
   try{
     if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-msx-'));fixture=path.join(temporary,'fixture');
-      execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-master-system/snapshot/src','native-msx/snapshot/third_party/mame-ay8910'].map(p=>'-I'+path.join(project,p)),
-        ...['src/native_genesis_ym2413.cpp','src/native_genesis_ay8910.cpp','src/native_genesis_extra_msx_fixture.cpp','src/native_genesis_ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp','native-msx/snapshot/third_party/mame-ay8910/ay8910.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+      const files=[path.join(sdk,'native/reference/tauri/native_genesis_ym2413.cpp'),path.join(project,'src/native_genesis_ay8910.cpp'),
+        path.join(project,'src/native_genesis_extra_msx_fixture.cpp'),path.join(sdk,'native/src/ymfm_opl_provider.cpp'),
+        path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp'),
+        path.join(project,'native-msx/snapshot/third_party/mame-ay8910/ay8910.cpp')];
+      report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+        sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+      execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+        ...['native-genesis','native-msx/snapshot/third_party/mame-ay8910'].map(p=>'-I'+path.join(project,p)),
+        ...files,'-o',fixture],{stdio:'pipe'});}
     report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
     for(const rate of rates)for(const scenario of scenarios){
       const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,args})=>`${frame} ${op} ${args.join(' ')}`).join('\n')+'\n';

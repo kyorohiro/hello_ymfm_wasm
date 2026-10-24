@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {YM2413Synth,YM2413_USER_PRESETS} from '../web/ym2413synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const binaries=Object.fromEntries(await Promise.all(['segapsg','ym2413'].map(async name=>[name,await fs.readFile(path.join(root,`docs/generated/${name}_wasm.wasm`))])));
@@ -100,8 +101,13 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline comparison of independent mono PSG and OPLL output planes. Native ownership/scheduling/IPC/UI verified separately. External channel mute calls the real WASM mute API and merges the Worklet force-mute mask. Native Stop explicitly clears held PSG PCM for immediate silence. The fixture asserts state/level retention, shared rhythm gates, deferred retriggers, cancellation and zero callback allocations/frees. No real audio device or cross-platform compiler was used.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-master-system-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-master-system/snapshot/src'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_master_system.cpp','src/native_genesis_master_system_fixture.cpp','src/native_genesis_ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp','native-genesis/segapsg.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+    const files=[path.join(project,'src/native_genesis_master_system.cpp'),path.join(project,'src/native_genesis_master_system_fixture.cpp'),
+      path.join(sdk,'native/src/ymfm_opl_provider.cpp'),path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),
+      path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp'),path.join(project,'native-genesis/segapsg.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+      '-I'+path.join(project,'native-genesis'),...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

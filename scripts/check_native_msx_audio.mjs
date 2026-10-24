@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {OPLSynth,OPL_PRESETS} from '../web/opl_synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const binary=await fs.readFile(path.join(root,'docs/generated/y8950_wasm.wasm'));
@@ -98,8 +99,12 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline Y8950 selected core only; existing MSX AY/OPLL PCM was validated separately and Native combination/ownership/IPC/UI is verified independently. Empty ADPCM RAM/I/O default compatibility is preserved without adding a new public RAM/upload API. Per-frame readStatus/getIrq and raw ports0..3 follow the same order in both native and WASM. The 524-byte state ABI, retained settings, deferred preview cancellation and zero callback allocations/frees are also fixture-tested. No real audio device or cross-platform compiler was used.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-msx-audio-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-master-system/snapshot/src'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_opl.cpp','src/native_genesis_opl_fixture.cpp','src/native_genesis_ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+    const files=[path.join(project,'src/native_genesis_opl.cpp'),path.join(project,'src/native_genesis_opl_fixture.cpp'),
+      path.join(sdk,'native/src/ymfm_opl_provider.cpp'),path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+      '-I'+path.join(project,'native-genesis'),...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
