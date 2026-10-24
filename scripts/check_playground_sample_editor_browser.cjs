@@ -10,14 +10,19 @@ const fixture = `<!doctype html><link rel="stylesheet" href="/playground/playgro
 <script type="module">
 import {createPlaygroundAudioInput} from '/playground/playground_audio_input.js';
 import {decodeSampleWav} from '/js/playground_sample_edit.js';
-let context, provider, abort, heldPitch, delayPitch = false;
+let context, provider, abort, heldPitch, heldRender, delayPitch = false, delayRender = false;
 const assets = new Map();
 window.test = {
   assets, result:null, error:null, captures:0, stopped:0,
   async context() {if(!context){context=new AudioContext();const create=context.createBufferSource.bind(context);context.createBufferSource=()=>{const node=create();test.previewNode=node;return node;};} await context.resume(); return context;},
-  initialize(target='rf5c164') {
+  initialize(target='rf5c164',native=false) {
+    test.nativePreviews=0;test.nativeStops=0;test.nativeContextCalls=0;test.nativeDecode=0;
     provider = createPlaygroundAudioInput({defaultTarget:target,
-      getAudioContext:()=>test.context(),
+      getAudioContext:()=>{if(native){test.nativeContextCalls++;throw Error('Native must not request live AudioContext');}return test.context();},
+      ...(native?{decodeAudio:async bytes=>{test.nativeDecode++;return decodeSampleWav(bytes);},playPreview:async(rendered,{signal})=>{
+        test.nativePreviews++;test.nativePreviewSignal=signal;const result={stop(){test.nativeStops++;}};
+        if(test.deferPreview)return new Promise(resolve=>test.releasePreview=()=>resolve(result));return result;
+      }}:{}),
       loadAsset:async path=>assets.get(path)??null,
       saveAsset:async asset=>{assets.set(asset.path,asset);return {path:asset.path};},
       mediaDevices:{getUserMedia:async()=>{
@@ -31,7 +36,7 @@ window.test = {
       workerFactory:()=>{
         const real=new Worker('/playground/playground_sample_editor_worker.js',{type:'module'}), commands=new Map();
         const proxy={postMessage(data){commands.set(data.id,data.command);real.postMessage(data);},terminate(){real.terminate();},onmessage:null,onerror:null};
-        real.onmessage=event=>{if(delayPitch&&commands.get(event.data.id)==='pitch')heldPitch=()=>proxy.onmessage?.(event);else proxy.onmessage?.(event);};
+        real.onmessage=event=>{if(delayPitch&&commands.get(event.data.id)==='pitch')heldPitch=()=>proxy.onmessage?.(event);else if(delayRender&&commands.get(event.data.id)==='render')heldRender=()=>proxy.onmessage?.(event);else proxy.onmessage?.(event);};
         real.onerror=event=>proxy.onerror?.(event);return proxy;
       }
     });
@@ -41,6 +46,8 @@ window.test = {
   holdPitch(){delayPitch=true;},
   releasePitch(){delayPitch=false;heldPitch?.();heldPitch=null;},
   hasPitch(){return !!heldPitch;},
+  stopPreview(){provider._stopPreview();},
+  holdRender(){delayRender=true;},releaseRender(){delayRender=false;heldRender?.();heldRender=null;},hasRender(){return !!heldRender;},
   async saved(){const a=assets.get('/samples/sampler.sample.json');const original=await decodeSampleWav(a.wav);return {settings:a.settings,frames:original.channels[0].length,rate:original.sampleRate,name:a.name};}
 };
 test.initialize();document.querySelector('#launch').onclick=()=>test.begin();
@@ -124,11 +131,18 @@ async function check(name,type,base){
     await field('target').selectOption('gameboy-wave');assert(await field('rate').isDisabled(),'Game Boy has a fixed 32-point wave');
     await audio('use').click();await dialog.waitFor({state:'detached'});
     await page.evaluate(()=>test.begin({asset:'/samples/sampler.sample.json',edit:false}));await page.waitForFunction(()=>test.result!==null);assert.equal(await page.evaluate(()=>test.result.target),'gameboy-wave','manual target survives rerun within the mode family');
+    await begin({asset:'/samples/sampler.sample.json',target:'adpcm-b'});assert.equal(await field('target').inputValue(),'adpcm-b','chip editor can select ADPCM even when the saved asset or mode defaults to another converter');
+    await audio('cancel').click();await dialog.waitFor({state:'detached'});
     await page.evaluate(()=>{test.initialize('adpcm-b');test.begin({asset:'/samples/sampler.sample.json',edit:false});});await page.waitForFunction(()=>test.result!==null);assert.equal(await page.evaluate(()=>test.result.target),'adpcm-b','a different mode uses its own target for the same source');
     await begin();await dialog.locator('[data-audio-file]').setInputFiles({name:'stereo.wav',mimeType:'audio/wav',buffer:waveFile(1,true)});await page.waitForFunction(()=>!document.querySelector('[data-audio-action="use"]').disabled);
     await action('preview-original').click();await page.waitForFunction(()=>document.querySelector('[data-audio-input-status]').textContent.includes('Preview · peak'));
     assert.equal(await page.evaluate(()=>test.previewNode.buffer.numberOfChannels),2,'original preview preserves stereo');await action('silence').click();await audio('cancel').click();
-    assert.deepEqual(errors,[]);console.log(JSON.stringify({browser:name,file:true,range:true,undo:true,pitch:true,staleAnalysis:true,preview:true,originalRoundtrip:true,capacity:true,draw:true,gameboy32:true,recording:true,latePermission:true,abort:true,narrow:true}));
+    await page.evaluate(()=>test.initialize('adpcm-b',true));await begin();await dialog.locator('[data-audio-file]').setInputFiles({name:'native.wav',mimeType:'audio/wav',buffer:waveFile(1)});await page.waitForFunction(()=>!document.querySelector('[data-audio-action="use"]').disabled);
+    assert.equal(await page.evaluate(()=>test.nativeDecode),1);assert.equal(await page.evaluate(()=>test.nativeContextCalls),0);
+    await page.evaluate(()=>test.holdRender());await action('preview').click();await page.waitForFunction(()=>test.hasRender());await page.evaluate(()=>{test.stopPreview();test.releaseRender();});await page.waitForTimeout(30);assert.equal(await page.evaluate(()=>test.nativePreviews),0,'Stop while Worker prepares a preview prevents later Native upload');
+    await page.evaluate(()=>test.deferPreview=true);await action('preview').click();await page.waitForFunction(()=>test.releasePreview);await page.evaluate(()=>{test.stopPreview();test.releasePreview();test.deferPreview=false;});await page.waitForFunction(()=>test.nativeStops===1);assert.equal(await page.evaluate(()=>test.nativePreviewSignal.aborted),true,'Stop aborts an accepted adapter request');
+    await action('preview').click();await page.waitForFunction(()=>test.nativePreviews===2&&document.querySelector('[data-audio-input-status]').textContent.includes('Preview · peak'));await action('silence').click();await page.waitForFunction(()=>test.nativeStops===2);await audio('cancel').click();assert.equal(await page.evaluate(()=>test.nativeContextCalls),0);
+    assert.deepEqual(errors,[]);console.log(JSON.stringify({browser:name,file:true,range:true,undo:true,pitch:true,staleAnalysis:true,preview:true,originalRoundtrip:true,capacity:true,draw:true,gameboy32:true,recording:true,latePermission:true,abort:true,narrow:true,nativeInjection:true,nativePreparedStop:true,nativePendingStop:true}));
   }catch(error){console.error({browser:name,errors,status:await dialog.textContent().catch(()=>null)});await page.screenshot({path:`/private/tmp/sample-editor-${name}-failure.png`}).catch(()=>{});throw error;}
   finally{await browser.close();}
 }

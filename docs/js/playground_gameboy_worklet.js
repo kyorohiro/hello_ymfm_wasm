@@ -1,8 +1,8 @@
 import {ChipClockResampler, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
 import factory from '../generated/gameboy_apu_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-1';
-import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=y8950-adpcm-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-ui-1';
+import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=y8950-adpcm-ui-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

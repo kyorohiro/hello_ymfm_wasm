@@ -2,9 +2,9 @@
  * this endpoint; its sixteen allocated voices render on the Native callback. */
 import {createInitVoice,parseSysex,packVoice} from './msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
-import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=y8950-adpcm-1';
-import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-1';
+import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=y8950-adpcm-ui-1';
+import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-ui-1';
 
 export const EXTRA_DX7_VOICE_HELD_ERROR='Release the manually held additional DX7 voices before changing the voice';
 const patchMethods=new Set(['loadSysex','selectVoice','setPreset','setOperator','setOperators','setFeedback']);

@@ -121,7 +121,7 @@ class FakeNative {
       this.gameGear={segapsg:{clock:3579545,periods:[0,0,0],attenuations:[15,15,15,15],lastVolumes:[0,0,0,0],latched:0,mode:0,stereo:255,stereoEnabled:true,sourceMuteMask:0,held:new Map()}};
       this.masterSystem={segapsg:{clock:3579545,periods:[0,0,0],attenuations:[15,15,15,15],lastVolumes:[0,0,0,0],latched:0,mode:0,sourceMuteMask:0,held:new Map()},ym2413:{clock:3579545,registers:Array(64).fill(0),sourceMuteMask:0,status:0,irq:false,held:new Map()}};
       this.msx={ym2413:{clock:3579545,registers:Array(64).fill(0),sourceMuteMask:0,status:0,irq:false,held:new Map()},ay8910:{clock:1789773,registers:Array(16).fill(0),levels:[9,9,9],gates:[false,false,false],sourceMuteMask:0,held:new Map()}};
-      const oplChip=args.mode==='msx-audio'?'y8950':['ym3526','ym3812','ymf262'].includes(args.mode)?args.mode:'ym3812';this.opl={chip:oplChip,clock:oplChip==='ymf262'?14318180:3579545,registers:Array(oplChip==='ymf262'?512:256).fill(0),sourceMuteMask:oplChip==='ymf262'?262143:511,status:0,irq:false,held:new Map()};
+      const oplChip=args.mode==='msx-audio'?'y8950':['ym3526','ym3812','ymf262'].includes(args.mode)?args.mode:'ym3812';this.opl={chip:oplChip,clock:oplChip==='ymf262'?14318180:3579545,registers:Array(oplChip==='ymf262'?512:256).fill(0),...(oplChip==='y8950'?{adpcmMemorySize:0,adpcmMemoryRevision:0,adpcmMemoryUploadRevision:0}:{}),sourceMuteMask:oplChip==='ymf262'?262143:511,status:0,irq:false,held:new Map()};
       return this.status();
     }
     if (!command.startsWith('native_genesis_')) return null;
@@ -291,7 +291,8 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
-      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2610b','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm','extra-snes','extra-spc'].includes(entry.type));
+      // The sample bus is shared by every mode, independently of its chip set.
+      const primaryCommands=args.commands.filter(entry=>!['sample-play','sample-stop','extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2610b','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm','extra-snes','extra-spc'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
       if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
@@ -479,18 +480,21 @@ class FakeNative {
       m.commands.forEach(op=>this.applyOpl({...op,chip:m.chip}));if(m.action==='off')s.held.delete(m.channel);
     }else if(m.method==='write'){
       const reg=m.register+(m.bank??0)*256;r[reg]=m.value;
+      if(s.chip==='y8950'&&reg===15)s.adpcmMemoryRevision++;
       if((reg&255)>=0xb0&&(reg&255)<=0xb8&&(m.value&32))for(const ch of physical((reg>=256?9:0)+(reg&255)-0xb0))s.sourceMuteMask&=~(1<<ch);
       if(reg===0xbd&&(m.value&31))s.sourceMuteMask&=~(7<<6);
     }else if(m.method==='adpcm-memory'){
       assert.equal(s.chip,'y8950');assert(Array.isArray(m.bytes)&&m.bytes.every(value=>Number.isInteger(value)&&value>=0&&value<=255));
       assert(Number.isInteger(m.address)&&m.address>=0&&m.address+m.bytes.length<=0x200000);
-      s.adpcmMemorySize=Math.max(s.adpcmMemorySize??0,m.address+m.bytes.length);r[7]=1;
-    }else if(m.method==='adpcm-clear'){assert.equal(s.chip,'y8950');s.adpcmMemorySize=0;r[7]=1;
+      s.adpcmMemorySize=Math.max(s.adpcmMemorySize??0,m.address+m.bytes.length);s.adpcmMemoryUploadRevision=++s.adpcmMemoryRevision;r[7]=1;
+    }else if(m.method==='adpcm-clear'){assert.equal(s.chip,'y8950');s.adpcmMemorySize=0;s.adpcmMemoryUploadRevision=++s.adpcmMemoryRevision;r[7]=1;
     }else if(m.method==='key-off'){
+      if(s.chip==='y8950'&&m.channel===23){r[7]=(r[7]&16)|1;return;}
       if(m.channel>=18){r[0xbd]&=~(16>>(m.channel-18));return;}
       for(const ch of physical(m.channel)){r[(ch>=9?256:0)+0xb0+ch%9]&=~32;s.sourceMuteMask|=1<<ch;}
     }else if(m.method==='rhythm-off')r[0xbd]&=~(16>>m.index);
     else if(m.method==='audition-key-on'){
+      if(s.chip==='y8950'&&m.channel===23){r[7]=0xa0|(r[7]&16);return;}
       r[(m.channel>=9?256:0)+0xb0+m.channel%9]|=32;for(const ch of physical(m.channel))s.sourceMuteMask&=~(1<<ch);
     }else if(m.method==='clock')s.clock=m.hz;
     else if(m.method==='stop-voices')this.stopOplVoices();

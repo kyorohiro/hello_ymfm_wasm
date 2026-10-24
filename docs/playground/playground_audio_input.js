@@ -6,17 +6,19 @@ const copy = value => JSON.parse(JSON.stringify(value));
 
 /** Shared non-destructive editor. Conversion and analysis run in a separate Worker. */
 export function createPlaygroundAudioInput({document:doc = globalThis.document, getAudioContext, getPreviewDestination,
+  decodeAudio,playPreview,
   mediaDevices = globalThis.navigator?.mediaDevices, Recorder = globalThis.MediaRecorder,
   recordingSeconds = 60, defaultTarget = 'rf5c164', loadAsset, saveAsset,
   workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=audio-numeric-bindings-1', import.meta.url), {type:'module'})} = {}) {
-  let active = false;
-  return function inputAudio(options = {}, {signal} = {}) {
+  let active = false,stopCurrentPreview=()=>{};
+  const inputAudio=function(options = {}, {signal} = {}) {
     signal?.throwIfAborted();
     if (!options || typeof options !== 'object' || Array.isArray(options) ||
         options.title !== undefined && typeof options.title !== 'string' ||
         options.asset !== undefined && typeof options.asset !== 'string' ||
         options.edit !== undefined && typeof options.edit !== 'boolean' ||
-        options.saveOnly !== undefined && typeof options.saveOnly !== 'boolean') return Promise.reject(new TypeError('Expected {title?, asset?, edit?, saveOnly?}.'));
+        options.saveOnly !== undefined && typeof options.saveOnly !== 'boolean' ||
+        options.target !== undefined && !['rf5c164','adpcm-b','gameboy-wave'].includes(options.target)) return Promise.reject(new TypeError('Expected {title?, asset?, edit?, saveOnly?, target?}.'));
     if (active) return Promise.reject(new Error('A Sample Editor is already open.'));
     active = true;
     return new Promise((resolve,reject) => {
@@ -61,10 +63,11 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       if (options.saveOnly) use.textContent = 'Save sample';
       const canvas = dialog.querySelector('canvas'), status = dialog.querySelector('[role="status"]');
       for (let midi = 0; midi < 128; midi++) {const option = doc.createElement('option'); option.value = midi; option.textContent = `${noteName(midi)} (${midi})`; field('rootMidi').append(option);}
-      field('target').value = defaultTarget; field('asset').value = options.asset || '/samples/sampler.sample.json';
+      const targetMode = options.target ?? defaultTarget;
+      field('target').value = targetMode; field('asset').value = options.asset || '/samples/sampler.sample.json';
       field('save').checked = Boolean(saveAsset); field('save').disabled = !saveAsset;
       let done = false, busy = false, generation = 0, audio = null, edit = null, sourceKind = 'file', sourceName = '', detected = null, conversionTargets = {};
-      let stream = null, recorder = null, timer = null, recording = false, preview = null, previewSequence = 0, worker = null, sequence = 0;
+      let stream = null, recorder = null, timer = null, recording = false, preview = null, previewController = null, previewSequence = 0, worker = null, sequence = 0;
       let viewport = [0,1], peaks = null, scheduledDraw = null, drag = null, undo = [], redo = [];
       const pending = new Map();
       const say = (text,error = false) => {status.textContent = text; status.dataset.error = String(error);};
@@ -79,8 +82,11 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       };
       const stopPreview = () => {
         previewSequence++;
+        previewController?.abort();previewController=null;
         if (!preview) return;
-        const current = preview; preview = null; const now = current.context.currentTime;
+        const current = preview; preview = null;
+        if(typeof current.stop==='function'){void Promise.resolve(current.stop()).catch(()=>{});return;}
+        const now = current.context.currentTime;
         try {
           const gain = current.gain.gain;
           if (gain.cancelAndHoldAtTime) gain.cancelAndHoldAtTime(now);
@@ -88,6 +94,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           gain.linearRampToValueAtTime(0,now+.005); current.node.stop(now+.006);
         } catch {current.node.disconnect(); current.gain.disconnect();}
       };
+      stopCurrentPreview=stopPreview;
       const stopTracks = () => {stream?.getTracks().forEach(track => track.stop()); stream = null;};
       const releaseCapture = () => {
         clearTimeout(timer); timer = null; const current = recorder; recorder = null;
@@ -95,7 +102,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         stopTracks(); recording = false;
       };
       const finish = (value,error) => {
-        if (done) return; done = true; generation++; stopPreview(); releaseCapture();
+        if (done) return; done = true; generation++; stopPreview(); stopCurrentPreview=()=>{}; releaseCapture();
         signal?.removeEventListener('abort',abort); doc.defaultView?.removeEventListener('pagehide',abort); doc.removeEventListener('visibilitychange',visibility);
         if (scheduledDraw !== null) doc.defaultView.cancelAnimationFrame(scheduledDraw);
         worker?.terminate(); for (const request of pending.values()) request.reject(abortError()); pending.clear();
@@ -162,7 +169,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         audio = next; sourceName = name; sourceKind = kind; detected = null; undo = []; redo = [];
         const targets = ['rf5c164','adpcm-b','gameboy-wave'];
         conversionTargets = Object.fromEntries(Object.entries(settings?.conversionTargets ?? {}).filter(([mode,target]) => targets.includes(mode) && targets.includes(target)));
-        field('target').value = conversionTargets[defaultTarget] ?? defaultTarget;
+        field('target').value = options.target ?? conversionTargets[targetMode] ?? targetMode;
         if (settings?.outputSampleRate && Array.from(field('rate').options).some(option => Number(option.value) === settings.outputSampleRate)) field('rate').value = settings.outputSampleRate;
         edit = createSampleEdit(audio,{settings:settings ?? {endFrame:Math.min(audio.channels[0].length,Math.round(audio.sampleRate*3)),fadeInSeconds:.005,fadeOutSeconds:.005}});
         viewport = [0,audio.channels[0].length]; peaks = null;
@@ -171,7 +178,9 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         say(`${sourceName} · ${(audio.channels[0].length/audio.sampleRate).toFixed(2)} seconds. Choose a region, then Use audio.`);
       }
       async function decode(blob,name,kind,token) {
-        const bytes = await blob.arrayBuffer(); if (done || token !== generation) return; const context = await getAudioContext(); if (done || token !== generation) return;
+        const bytes = await blob.arrayBuffer(); if (done || token !== generation) return;
+        if(decodeAudio){const pcm=await decodeAudio(bytes);if(done||token!==generation)return;await installAudio(pcm,name,kind,undefined,token);return;}
+        const context = await getAudioContext(); if (done || token !== generation) return;
         const buffer = await context.decodeAudioData(bytes); if (done || token !== generation) return;
         await installAudio({sampleRate:buffer.sampleRate,channels:Array.from({length:buffer.numberOfChannels},(_,ch) => new Float32Array(buffer.getChannelData(ch)))},name,kind,undefined,token);
       }
@@ -203,7 +212,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         const token = generation; lock(); stopPreview(); say(options.saveOnly ? 'Saving sample…' : 'Preparing instrument…');
         try {
           const rendered = await prepared(options.saveOnly ? 'original' : field('target').value); if (done || token !== generation) return; let assetPath = options.asset;
-          if (persist && field('save').checked && saveAsset) {const wav = await job('encode'); if (done || token !== generation) return; const saved = await saveAsset({path:field('asset').value,wav,settings:{...copy(edit),outputSampleRate:Number(field('rate').value),conversionTargets:{...conversionTargets,[defaultTarget]:field('target').value}},name:sourceName,source:sourceKind},{signal}); if (done || token !== generation) return; assetPath = saved?.assetPath ?? saved?.path ?? field('asset').value;}
+          if (persist && field('save').checked && saveAsset) {const wav = await job('encode'); if (done || token !== generation) return; const saved = await saveAsset({path:field('asset').value,wav,settings:{...copy(edit),outputSampleRate:Number(field('rate').value),conversionTargets:{...conversionTargets,[targetMode]:field('target').value}},name:sourceName,source:sourceKind},{signal}); if (done || token !== generation) return; assetPath = saved?.assetPath ?? saved?.path ?? field('asset').value;}
           finish({...rendered,name:sourceName,source:sourceKind,assetPath});
         } catch(error) {if (!done && token === generation) {idle(); if (!dialog.open) dialog.showModal(); say(error.message,true);}}
       }
@@ -241,8 +250,10 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         try {await installAudio({channels:[samples],sampleRate},'Drawn cycle','file',{rootMidi,loopEnabled:true},token); if (!done && token === generation) {field('tool').value = 'draw'; say('Draw a cycle in the waveform, then Use audio to play it with Guitar.');}} catch(error) {if (!done) failed(error);}
       });
       for (const [name,original] of [['preview-original',true],['preview',false]]) action(name).addEventListener('click',async () => {
-        if (!edit) return; const token = generation; stopPreview(); const previewToken = previewSequence; say('Preparing preview…');
+        if (!edit) return; const token = generation; stopPreview(); const previewToken = previewSequence,controller=previewController=new AbortController(); say('Preparing preview…');
         try {const rendered = await prepared('original',original ? {...edit,gainDb:0,fadeInSeconds:0,fadeOutSeconds:0,drawPoints:[],drawStrokes:[]} : edit,!original); if (done || token !== generation || previewToken !== previewSequence) return;
+          if(playPreview){const current=await playPreview(rendered,{signal:controller.signal});if(done||token!==generation||previewToken!==previewSequence){await current.stop();return;}preview=current;}
+          else {
           const context = await getAudioContext(); if (done || token !== generation || previewToken !== previewSequence) return;
           const buffer = context.createBuffer(rendered.channels.length,rendered.channels[0].length,rendered.sampleRate); rendered.channels.forEach((values,ch) => buffer.copyToChannel(values,ch));
           const node = context.createBufferSource(), gain = context.createGain(), current = preview = {node,gain,context}; node.buffer = buffer;
@@ -251,8 +262,9 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           gain.gain.setValueAtTime(0,context.currentTime); gain.gain.linearRampToValueAtTime(1,context.currentTime+.005);
           if (!node.loop && buffer.duration > .01) {gain.gain.setValueAtTime(1,context.currentTime+buffer.duration-.005);gain.gain.linearRampToValueAtTime(0,context.currentTime+buffer.duration);}
           node.onended = () => {node.disconnect(); gain.disconnect(); if (preview === current) preview = null;}; node.start();
+          }
           say(`Preview · peak ${rendered.peakBeforeClip.toFixed(3)} · ${rendered.clippedSamples} clipped samples. ${options.saveOnly ? 'Run a sampler example to play it with Keyboard.' : 'Use audio, then play the selected chip from Keyboard.'}`);
-        } catch(error) {if (!done) say(error.message,true);}
+        } catch(error) {if (!done&&token===generation&&previewToken===previewSequence) say(error.message,true);}
       });
       action('silence').addEventListener('click',stopPreview);
       const position = event => {const rect = canvas.getBoundingClientRect(); return {frame:Math.max(0,Math.min(audio.channels[0].length,Math.round(viewport[0]+(event.clientX-rect.left)/rect.width*(viewport[1]-viewport[0])))),value:Math.max(-1,Math.min(1,(.5-(event.clientY-rect.top)/rect.height)*2))};};
@@ -285,4 +297,6 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       void open();
     });
   };
+  inputAudio._stopPreview=()=>stopCurrentPreview();
+  return inputAudio;
 }

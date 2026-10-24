@@ -30,6 +30,9 @@ scenario('last two 32-byte blocks in the 2 MiB RAM, gaps and small no-shrink pat
 scenario('variable master clocks, low-clock holds, fast averaging and FM coexistence',({fm,load,start,at,add})=>{fm();load();start();for(const[f,hz]of[[701,100000],[1703,100000000],[2801,4000000],[3901,3579545],[6101,8000000]]){at(f);add('clock',hz);} });
 scenario('CPU external RAM recording and a later partial upload preserve neighboring writes',({load,start,write,at})=>{load();for(const[r,v]of[[8,2],[9,0],[10,0],[11,255],[12,0],[7,0x60]])write(r,v);for(let i=0;i<64;i++)write(15,(i*53)&255);at(701);load(31,new Uint8Array([0x77,0xff]));at(1703);start();at(3901);write(7,0);at(6101);write(7,1);});
 scenario('Stop silences FM and ADPCM, preserves RAM and allows later independent retrigger',({fm,load,start,at,add})=>{fm();load();start();at(701);add('stop');at(1703);start();at(2801);add('stop');at(3901);fm();start();at(6101);add('stop');});
+scenario('Keyboard ADPCM/FM coexistence, repeat-preserving release, retrigger and Stop',({fm,load,start,at,add})=>{fm();load();start();at(701);add('off-adpcm');at(1703);add('audition-adpcm');at(2801);add('off-adpcm');at(3901);add('audition-adpcm');at(6101);add('stop');});
+scenario('Keyboard low-clock DAC sample hold while FM continues',({fm,load,start,at,add})=>{add('clock',1000000);fm();load();start();for(const f of[701,702,703,1703,1704,1705,2801,3901]){at(f);add(f%2?'off-adpcm':'audition-adpcm');}at(4001);add('audition-adpcm');at(6101);add('off-adpcm');});
+scenario('ADPCM-only keyboard wakes idle core and preserves non-repeating choice',({load,start,at,add})=>{load();start({repeat:false});at(1);add('off-adpcm');at(701);add('audition-adpcm');at(1703);add('off-adpcm');at(2801);add('audition-adpcm');at(3901);add('stop');at(6101);add('audition-adpcm');});
 const report={schemaVersion:1,deviceOpened:false,rates,cases:[],maximumDifference:0,totalStereoFrames:0,sanitizer:sanitize?'ASan+UBSan':'none',limits:'Real C++ primary/additional synthesis versus deployed Worklet/WASM. C++ fixture owns preallocated RAM to exercise page-pointer ABI and detects callback C++ new/delete. Production Rust page COW, writable boundary preservation, aggregate pending/applied/retiring budget, callback Rust allocations/frees and owner/lifecycle fences are separately tested by cargo tests. No physical device was opened.'};
 try{
  execFileSync('clang++',['-std=c++14',...flags,...['native-genesis','native-master-system/snapshot/src'].map(p=>'-I'+path.join(native,p)),...['src/native_genesis_opl.cpp','src/native_genesis_extra_opl.cpp','src/native_genesis_y8950_memory_fixture.cpp','native-master-system/snapshot/src/ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(native,p)),'-o',fixture],{stdio:'pipe'});
@@ -44,6 +47,8 @@ try{
     else if(op==='clock')processor.apply({method:'clock',args},processor.port);
     else if(op==='reset')processor.apply({method:'reset'},processor.port);
     else if(op==='stop')processor.apply({method:'allNotesOff'},processor.port);
+    else if(op==='off-adpcm')processor.apply({method:'forceAdpcmOff'},processor.port);
+    else if(op==='audition-adpcm'){const repeat=Boolean(processor.registers[7]&16);processor.apply({method:'forceAdpcmOff'},processor.port);processor.apply({method:'auditionAdpcmOn',args:[repeat]},processor.port);}
     else if(op==='load'){const data=new Uint8Array(Buffer.from(args[1],'hex'));processor.apply({method:'loadAdpcmMemory',args:[data,args[0]]},processor.port);size=Math.max(size,args[0]+data.length);}
     else if(op==='clear'){processor.apply({method:'clearAdpcmMemory',args:[]},processor.port);size=0;}else throw Error(op);
    }

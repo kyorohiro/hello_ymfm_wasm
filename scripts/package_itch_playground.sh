@@ -44,6 +44,7 @@ playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
 playground_dx7_voice_panel.js
 playground_opl_voice_panel.js
+playground_y8950_adpcm_panel.js
 playground_ym2413_voice_panel.js
 playground_ay8910_voice_panel.js
 playground_mode_keyboard.js
@@ -320,6 +321,8 @@ native_genesis_voice_endpoint.js
 native_genesis_msx.js
 native_genesis_msx_audio.js
 native_genesis_opl.js
+native_genesis_y8950_inspector.js
+playground_native_sample_editor.js
 native_genesis_livefx.js
 native_livefx_context.js
 native_genesis_worker.js
@@ -353,6 +356,7 @@ ym2608audioengine.js
 ym2608synth.js
 adpcm_b_sample.js
 y8950_adpcm.js
+y8950_adpcm_preview.js
 ym2608-worklet.js
 ym2610b.js
 ym2610bsynth.js

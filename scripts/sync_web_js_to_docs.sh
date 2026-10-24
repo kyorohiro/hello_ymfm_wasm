@@ -40,6 +40,7 @@ playground_ym2151_inspector.js
 playground_huc6280_inspector.js
 playground_okim6258_inspector.js
 playground_sample_edit.js
+playground_native_sample_editor.js
 playground_sample_instrument.js
 playground_chip_inspector_state.js
 nesapu.js
@@ -110,6 +111,7 @@ native_genesis_voice_endpoint.js
 native_genesis_msx.js
 native_genesis_msx_audio.js
 native_genesis_opl.js
+native_genesis_y8950_inspector.js
 native_genesis_livefx.js
 native_livefx_context.js
 native_genesis_worker.js
@@ -274,6 +276,7 @@ ym2608audioengine.js
 ym2608synth.js
 adpcm_b_sample.js
 y8950_adpcm.js
+y8950_adpcm_preview.js
 ym2608-worklet.js
 ym2610b.js
 ym2610baudioengine.js

@@ -1,5 +1,5 @@
 /** Ordered Native controls shared by console voice editors. No audio runs here. */
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=y8950-adpcm-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=y8950-adpcm-ui-1';
 
 export const nativeInteger=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`${label} must be 0..${max}`);return value;};
 export function nativeSnapshotArray(values,length,max,label){if(!Array.isArray(values)||values.length!==length||values.some(v=>!Number.isInteger(v)||v<0||v>max))throw new Error(`Native ${label} returned an invalid snapshot`);}
@@ -27,8 +27,8 @@ export function createNativeVoiceEndpoint(context,{chip,globalName,client,inspec
   const read=async(args={})=>adopt(await context.snapshot(chip,args),false,leases);
   const stopped=()=>{inspector.auditions.clear();leases.clear();};
   async function dispatch(message,timing={}){const token=capture();timing.checkCurrent?.();let value;if((message.method??message.type)==='dispose')value=true;else{const command=translate(message);send(chip,command,timing);await synth.flush();current(token);timing.checkCurrent?.();if(command.method==='clock'){client._adoptClock(command.hz);notify();}}return message.id===undefined?undefined:{id:message.id,...(value===undefined?{}:{value})};}
-  function invoke(method,args=[]){const token=capture(),copy=structuredClone(args),result=serial.then(async()=>{
-    current(token);await read();current(token);
+  function invoke(method,args=[],options={}){const token=capture(),copy=structuredClone(args),check=()=>{current(token);options.checkCurrent?.();},result=serial.then(async()=>{
+    check();const initial=await read();check();options.checkState?.(initial);
     if(resetInspector){const handled=await resetInspector(method,{identity,send:message=>send(chip,message),read,token,current,stopped,notify});current(token);if(handled)return;}
     const previous=new Map(inspector.auditions),previousLeases=new Map(leases);let collected,value;collection=[];
     try{value=inspector.invoke(method,copy);collected=collection;}finally{collection=null;}
@@ -36,13 +36,13 @@ export function createNativeVoiceEndpoint(context,{chip,globalName,client,inspec
     for(const [key,id]of previous){const voice=previousLeases.get(key);if(voice)ownerVoices.set(ownerKey(key,id),voice);}
     for(const [key,id]of inspector.auditions){const voice=previous.get(key)===id?previousLeases.get(key):identity();nextLeases.set(key,voice);ownerVoices.set(ownerKey(key,id),voice);}
     const groups=[];for(const item of collected){const isEdit=item.preserveOwner===true||!item.owner;let key,action,voice;
-      if(isEdit){action='edit';const target=nativeVoiceChannel(chip,item.command);key=Number.isInteger(target)?target:0;}
-      else{const target=nativeVoiceChannel(chip,item.command),matches=([key,id])=>owner(id)===item.owner&&(!Number.isInteger(target)||physical(key)===target),match=[...inspector.auditions].find(matches)??[...previous].find(matches);if(!match)throw new Error(`Invalid ${context.label} audition owner`);key=match[0];action=inspector.auditions.get(key)===match[1]?'on':'off';voice=ownerVoices.get(ownerKey(key,match[1]));}
+      if(isEdit){action='edit';const target=nativeVoiceChannel(chip,item.command);key=chip==='y8950'&&(target==='adpcm'||method.startsWith('adpcm.'))?'adpcm':Number.isInteger(target)?target:0;}
+      else{const rawTarget=nativeVoiceChannel(chip,item.command),target=chip==='y8950'&&rawTarget==='adpcm'?23:rawTarget,matches=([key,id])=>owner(id)===item.owner&&(!Number.isInteger(target)||physical(key)===target),match=[...inspector.auditions].find(matches)??[...previous].find(matches);if(!match)throw new Error(`Invalid ${context.label} audition owner`);key=match[0];action=inspector.auditions.get(key)===match[1]?'on':'off';voice=ownerVoices.get(ownerKey(key,match[1]));}
       if(action==='off'&&!voice)continue;
       let group=groups.at(-1);if(!group||group.action!==action||group.channel!==logical(key)||group.voice!==voice){group={method:'batch',channel:logical(key),...(voice?{voice}:{}),audition:true,action,commands:[]};groups.push(group);}group.commands.push(translate(item.command));
     }
-    let last;for(const group of groups){last=identity();send(chip,{...group,id:last});}
-    await synth.flush();current(token);if(last){await read({after:last});current(token);leases.clear();for(const [key,voice]of nextLeases)leases.set(key,voice);patch(groups);notify();}return value;
+    check();let last;for(const group of groups){last=identity();send(chip,{...group,id:last});}
+    await synth.flush();check();if(last){const applied=await read({after:last});check();leases.clear();for(const [key,voice]of nextLeases)leases.set(key,voice);patch(groups);notify();options.checkState?.(applied);}return value;
   });serial=result.catch(()=>{});return result;}
   client.setClock=hz=>dispatch({method:'clock',args:[hz]});client._stopVoices=()=>dispatch({method:'stopVoices'});
   return {client,

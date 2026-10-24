@@ -1,11 +1,12 @@
 /** DOS PC register authoring stays in JS; the selected OPL renders in Native. */
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=y8950-adpcm-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=y8950-adpcm-ui-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-1';
-import {createNativeY8950AdpcmTransport} from './native_genesis_extra_register_voice.js?v=y8950-adpcm-1';
+import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-ui-1';
+import {createNativeY8950AdpcmTransport} from './native_genesis_extra_register_voice.js?v=y8950-adpcm-ui-1';
+import {createNativeY8950AdpcmInspection,createNativeY8950SampleLoader} from './native_genesis_y8950_inspector.js?v=y8950-adpcm-ui-1';
 import {createNativeVoiceContext, createNativeVoiceEndpoint, nativeInteger as integer,
-  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-1';
+  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-ui-1';
 
 const CHIPS = Object.freeze(['ym3526', 'ym3812', 'ymf262']);
 const PAIRS = [0, 1, 2, 9, 10, 11];
@@ -20,6 +21,7 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
   });
   let clock = baseClock, appliedClock = baseClock, initialized = false,adpcmAuthorVersion=0;
   let layout = [0, 0, 0], notification = null;
+  const adpcmInspection=chip==='y8950'?createNativeY8950AdpcmInspection():null;
   const notifyLayout = () => {
     if (notification) return;
     let token;
@@ -72,6 +74,7 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
     send:(message,timing)=>context.send(chip,message,timing),
     getAuthorVersion:()=>adpcmAuthorVersion,
     clearAuthor:version=>{if(version!==adpcmAuthorVersion)return;const registers=client.getRegisterSnapshot();registers[7]=1;client.adoptRegisterSnapshot(registers);},
+    onMemoryApplied:(state,preview)=>adpcmInspection.applied(state,preview),
   }):null;
   if(adpcm)attachY8950Adpcm(client,adpcm);
   const initialize = client.initialize.bind(client);
@@ -95,12 +98,13 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
   const inspector = new OplVoiceInspector({chip, clock: () => appliedClock, sampleRate: synth.clock.sampleRate});
   function adopt(data, adoptClient, leases) {
     nativeSnapshotArray(data.registers, registerCount, 255, chip.toUpperCase());
-    context.validateHeld(data, 22);
+    context.validateHeld(data, chip === 'y8950' ? 23 : 22);
     appliedClock = validateChipClock(data.clock);
     inspector.registers.set(data.registers);
     inspector.sampleRate = data.sampleRate ?? synth.clock.sampleRate;
+    adpcmInspection?.adopt(inspector,data);
     if (adoptClient) client._adoptState(data);
-    return {...data, ...inspector.read(), held: data.held ?? [...leases.keys()]};
+    return {...data, ...inspector.read(), held: (data.held ?? [...leases.keys()]).map(channel => chip === 'y8950' && channel === 23 ? 'adpcm' : channel)};
   }
   function translate(message) {
     const args = message.args ?? [], method = message.method ?? message.type;
@@ -115,6 +119,8 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
     if (method === 'forceKeyOff') return {method: 'key-off', channel: integer(args[0], channels - 1, 'Channel')};
     if (method === 'forceRhythmOff') return {method: 'key-off', channel: 18 + integer(args[0], 4, 'Drum')};
     if (method === 'auditionKeyOn') return {method: 'audition-key-on', channel: integer(args[0], channels - 1, 'Channel')};
+    if (chip === 'y8950' && method === 'forceAdpcmOff') return {method: 'key-off', channel: 23};
+    if (chip === 'y8950' && method === 'auditionAdpcmOn') return {method: 'audition-key-on', channel: 23};
     if (method === 'clock') return {method: 'clock', hz: validateChipClock(args[0])};
     if (method === 'reset' || method === 'resetAll') return {method: 'reset'};
     if (method === 'stopVoices' || method === 'allNotesOff') return {method: 'stop-voices'};
@@ -129,22 +135,30 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
     for (const group of groups) for (const command of group.commands) {
       if (command.method === 'write') state.registers[command.register] = command.value;
       if (command.method === 'key-off') {
-        if (command.channel >= 18) state.registers[0xbd] &= ~(16 >> (command.channel - 18));
+        if (chip === 'y8950' && command.channel === 23) state.registers[7] = (state.registers[7] & 16) | 1;
+        else if (command.channel >= 18) state.registers[0xbd] &= ~(16 >> (command.channel - 18));
         else for (const ch of pair(command.channel)) state.registers[(ch >= 9 ? 256 : 0) + 0xb0 + ch % 9] &= 223;
       }
-      if (command.method === 'audition-key-on') state.registers[(command.channel >= 9 ? 256 : 0) + 0xb0 + command.channel % 9] |= 32;
+      if (command.method === 'audition-key-on') {
+        if (chip === 'y8950' && command.channel === 23) state.registers[7] = 0xa0 | (state.registers[7] & 16);
+        else state.registers[(command.channel >= 9 ? 256 : 0) + 0xb0 + command.channel % 9] |= 32;
+      }
       if (command.method === 'reset') state.registers.fill(0);
     }
     client._adoptState(state);
   }
   const endpoint = createNativeVoiceEndpoint(context, {
     chip, globalName: 'opl', client, inspector, translate, adopt, patch,
+    logical: channel => channel === 'adpcm' ? 23 : Number(channel),
+    physical: channel => channel === 'adpcm' ? 23 : Number(channel),
     reset() {
+      adpcmInspection?.reset();
       initialized = false;
       appliedClock = baseClock;
       client._adoptState({chip, clock: baseClock, initialized: false, registers: Array(registerCount).fill(0)});
     },
   });
+  if(adpcm)endpoint.loadSample=createNativeY8950SampleLoader({context,transport:adpcm,read:endpoint.read,invoke:endpoint.invoke});
   // A clock acknowledgement means that its scheduled frame has applied, just
   // as it does in the Web Worklet. Native IPC admission alone is insufficient:
   // a manual audition can take the chip between submission and that frame.

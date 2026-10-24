@@ -1,4 +1,4 @@
-import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=y8950-adpcm-1';
+import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=y8950-adpcm-ui-1';
 
 /** The mode's primary instrument is playable before a script binds Keyboard.
  * Resolve its admin endpoint after audio preparation; never create a second chip.
@@ -26,7 +26,7 @@ let sequence = 0;
 export function playgroundPrimaryKeyboardChips(mode,capabilities = {}) {
   const chip = mode.chip;
   if (chip === 'msx' || chip === 'msx-audio') return [
-    ...(chip === 'msx-audio' ? [{id:'y8950',kind:'y8950',label:'Y8950 FM (primary)'}] : []),
+    ...(chip === 'msx-audio' ? [{id:'y8950',kind:'y8950',label:'Y8950 FM / ADPCM (primary)'}] : []),
     {id:'ym2413',kind:'ym2413',label:'YM2413 OPLL (primary)'},
     {id:'ay8910',kind:'ay8910',label:'AY-3-8910 (primary)'},
   ];

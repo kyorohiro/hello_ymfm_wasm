@@ -11,14 +11,41 @@ import {receiveChipInspector} from './playground_chip_inspector_state.js';
 import {validateChipClock} from './playground_chip_clock.js';
 import {createProcessorPerformance,identifyPerformanceNote,performanceNoteRelease,nativeVoiceChannel} from './playground_performance_processor.js';
 import {attachY8950Adpcm,copyY8950AdpcmMemory} from './y8950_adpcm.js';
+import {validateY8950AdpcmPreview,prepareY8950AdpcmSample} from './y8950_adpcm_preview.js';
 const binary=await readFile(new URL('../docs/generated/y8950_wasm.wasm',import.meta.url));
 const source=(await readFile(new URL('./playground_opl_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
 const peak=pcm=>pcm.reduce((value,item)=>Math.max(value,Math.abs(item)),0);
 const energy=pcm=>Math.max(...pcm)-Math.min(...pcm);
 const tone=()=>({sampleRate:16000,channels:[Float32Array.from({length:4096},(_,i)=>.5*Math.sin(2*Math.PI*440*i/16000))]});
+test('Y8950 Inspector edits and auditions ADPCM independently from FM; previews are observation-only and truthful',async t=>{
+ const f=await setup();t.after(()=>f.close());const inspector=f.processor.inspector;
+ assert.throws(()=>inspector.invoke('auditionOn',['adpcm',60,'unloaded']),/memory/);assert.equal(inspector.auditions.size,0);
+ await f.client.adpcm.loadSample(tone(),{address:64});inspector.invoke('adpcm.setVolume',[200]);inspector.invoke('adpcm.setRepeat',[true]);
+ f.client.setPreset(0,OPL_PRESETS.sine);inspector.invoke('auditionOn',[0,69,'fm']);f.render(128);
+ const before=inspector.read(),snapshot=f.processor.chip.sampleMemory.slice();assert.equal(before.adpcm.waveformKnown,true);assert(before.adpcm.waveform.length<=512);assert.equal(before.adpcm.start,64);
+ let writes=0;const write=f.processor.chip.write.bind(f.processor.chip);f.processor.chip.write=(...args)=>{writes++;return write(...args);};
+ assert.deepEqual(inspector.read(),before);assert.equal(writes,0,'snapshot reads never touch the sound core');
+ inspector.invoke('auditionOn',['adpcm',24,'old']);const delta=inspector.read().adpcm.deltaN;assert(energy(f.render(2048)[0])>.01);assert(inspector.auditions.has(0));assert(inspector.auditions.has('adpcm'));
+ f.receive({method:'writeRegister',args:[7,1,0]});f.receive({method:'writeRegister',args:[8,0,0]});assert.equal(inspector.read().adpcm.playing,true);assert.equal(inspector.read().registers[8]&3,2,'script cannot change held ADPCM memory mode');
+ inspector.invoke('adpcm.setVolume',[170]);assert.equal(inspector.read().adpcm.volume,170);assert.equal(inspector.read().channels[0].active,true);
+ inspector.invoke('auditionOn',['adpcm',96,'new']);assert.equal(inspector.read().adpcm.deltaN,delta,'Keyboard triggers the configured rate');assert.equal(inspector.invoke('auditionOff',['adpcm','old']),false);
+ inspector.invoke('auditionOff',['adpcm','new']);assert.equal(inspector.read().adpcm.playing,false);assert.equal(inspector.read().adpcm.repeat,true);assert.equal(inspector.read().channels[0].active,true);assert.deepEqual(f.processor.chip.sampleMemory,snapshot);
+ inspector.invoke('adpcm.setSample',[{start:96,end:before.adpcm.end}]);assert.equal(inspector.read().adpcm.waveformKnown,false);inspector.invoke('adpcm.setSample',[{start:64,end:before.adpcm.end}]);assert.equal(inspector.read().adpcm.waveformKnown,true);
+ f.client.writeRegister(15,0);assert.equal(inspector.read().adpcm.waveformKnown,false,'raw CPU writes invalidate compact source metadata');
+});
+test('Y8950 admin prepared upload validates before mutation and Stop invalidates pending uploads without resetting RAM',async t=>{
+ const f=await setup();t.after(()=>f.close());const inspector=f.processor.inspector;
+ const prepared=await prepareY8950AdpcmSample(tone(),{address:32,name:'Editor'},f.processor.clock),metadata={...prepared.metadata,sampleEpoch:inspector.sampleEpoch};
+ const empty=f.processor.chip.sampleMemory.slice();assert.throws(()=>f.processor.loadInspectorSample(prepared.bytes,{...metadata,deltaN:0}),/prepared/);assert.deepEqual(f.processor.chip.sampleMemory,empty);
+ f.processor.loadInspectorSample(prepared.bytes,metadata);assert.equal(inspector.read().adpcm.sampleName,'Editor');assert.equal(inspector.read().adpcm.playing,false);
+ const memory=f.processor.chip.sampleMemory.slice(),epoch=inspector.sampleEpoch;await f.client._stopVoices();assert(inspector.sampleEpoch>epoch);
+ assert.throws(()=>f.processor.loadInspectorSample(prepared.bytes,metadata),/cancelled/);assert.deepEqual(f.processor.chip.sampleMemory,memory);
+ f.processor.loadInspectorSample(prepared.bytes,{...metadata,sampleEpoch:inspector.sampleEpoch});assert.equal(inspector.read().adpcm.waveformKnown,true);
+ f.client.reset();inspector.invoke('adpcm.setSample',[{start:metadata.start,end:metadata.end}]);assert.equal(inspector.read().adpcm.waveformKnown,true,'chip reset retains sample RAM and source metadata');
+});
 async function setup(rate=48000,lifecycle={}){
  let Type,frame=0,resolve;const ready=new Promise(done=>resolve=done),messages=[],port={postMessage:message=>{messages.push(message);if(message.ready||message.error)resolve(message);}};
- vm.runInNewContext(source,{Y8950,y8950Factory,Ym3526:{},Ym3812:{},Ymf262:{},ym3526Factory:{},ym3812Factory:{},ymf262Factory:{},copyY8950AdpcmMemory,OplVoiceInspector,receiveChipInspector,validateChipClock,sampleRate:rate,
+ vm.runInNewContext(source,{Y8950,y8950Factory,Ym3526:{},Ym3812:{},Ymf262:{},ym3526Factory:{},ym3812Factory:{},ymf262Factory:{},copyY8950AdpcmMemory,validateY8950AdpcmPreview,Uint8Array,OplVoiceInspector,receiveChipInspector,validateChipClock,sampleRate:rate,
   createProcessorPerformance:options=>createProcessorPerformance({...options,rate,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Value)=>Type=Value});
  const processor=new Type({processorOptions:{chip:'y8950',wasmBinary:binary}});assert.equal((await ready).ready,true);
  const clientPort={start(){},close(){},postMessage:command=>processor.receive(command,{postMessage:reply=>clientPort.onmessage?.({data:reply})})};
@@ -64,7 +91,8 @@ test('performance ownership cancels ADPCM separately and a stale owner cannot st
  assert.deepEqual(identifyPerformanceNote('y8950',{method:'writeRegister',args:[7,0xa0,0]}),{key:'adpcm',on:true});assert.deepEqual(performanceNoteRelease('y8950','adpcm'),{method:'writeRegister',args:[7,1,0]});assert.equal(nativeVoiceChannel('y8950',{method:'writeRegister',args:[9,0,0]}),'adpcm');
 });
 test('ADPCM mode/range changes preserve a held FM audition and its shared register 08 high bits',async t=>{
- const f=await setup();t.after(()=>f.close());f.client.writeRegister(8,0x40);f.client.setPreset(0,OPL_PRESETS.sine);f.processor.inspector.invoke('auditionOn',[0,69,'manual']);f.render(128);
+ const f=await setup();t.after(()=>f.close());f.client.setPreset(0,OPL_PRESETS.sine);f.processor.inspector.invoke('auditionOn',[0,69,'manual']);f.render(128);
+ f.processor.writeRegister(8,0x40);assert.equal(f.client.getRegisterSnapshot()[8],0,'applied editor state may be newer than a script shadow');
  await f.client.adpcm.loadSample(tone());f.client.adpcm.setVolume(200);f.client.adpcm.keyOn({repeat:true});assert.equal(f.processor.registers[8],0x42);assert(f.processor.inspector.auditions.has(0));assert(energy(f.render(4096)[0])>.01);
 });
 test('disposal during decoding prevents a later transfer and register replay through the closed client',async t=>{

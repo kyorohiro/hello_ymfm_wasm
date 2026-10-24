@@ -1,45 +1,45 @@
-import {createNativeGenesisExtraSpc,isExtraSpcRejection} from './native_genesis_extra_spc.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraSnes,EXTRA_SNES_ADMISSION_ERRORS} from './native_genesis_extra_snes.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraPwm,EXTRA_PWM_ADMISSION_ERRORS} from './native_genesis_extra_pwm.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraDx7,EXTRA_DX7_VOICE_HELD_ERROR} from './native_genesis_extra_dx7.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraHuc6280,EXTRA_HUC6280_CLOCK_HELD_ERROR} from './native_genesis_extra_huc6280.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraNes,EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR,EXTRA_NES_ADMISSION_ERRORS} from './native_genesis_extra_nes.js?v=y8950-adpcm-1';
+import {createNativeGenesisExtraSpc,isExtraSpcRejection} from './native_genesis_extra_spc.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraSnes,EXTRA_SNES_ADMISSION_ERRORS} from './native_genesis_extra_snes.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraPwm,EXTRA_PWM_ADMISSION_ERRORS} from './native_genesis_extra_pwm.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraDx7,EXTRA_DX7_VOICE_HELD_ERROR} from './native_genesis_extra_dx7.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraHuc6280,EXTRA_HUC6280_CLOCK_HELD_ERROR} from './native_genesis_extra_huc6280.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraNes,EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR,EXTRA_NES_ADMISSION_ERRORS} from './native_genesis_extra_nes.js?v=y8950-adpcm-ui-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
-import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=y8950-adpcm-1';
+import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=y8950-adpcm-ui-1';
 import {midiToOpnPitch} from './soundchip_pitch.js';
 import {createNativeGenesisMedia} from './native_genesis_media.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeGenesisMonitor} from './native_genesis_monitor.js';
 import {createNativeGenesisNoise,nativeGenesisNoiseMessage} from './native_genesis_noise.js';
 import {nativeGenesisLiveFxMessage,createNativeGenesisLiveFxStatus} from './native_genesis_livefx.js';
-import {createNativeGenesisExtraGameboy,EXTRA_GAMEBOY_CLOCK_HELD_ERROR} from './native_genesis_extra_gameboy.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraOkim6258,EXTRA_OKIM6258_CLOCK_HELD_ERROR,EXTRA_OKIM6258_MEMORY_HELD_ERROR} from './native_genesis_extra_okim6258.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraRf5c164,EXTRA_RF5C164_CLOCK_HELD_ERROR} from './native_genesis_extra_rf5c164.js?v=y8950-adpcm-1';
+import {createNativeGenesisExtraGameboy,EXTRA_GAMEBOY_CLOCK_HELD_ERROR} from './native_genesis_extra_gameboy.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraOkim6258,EXTRA_OKIM6258_CLOCK_HELD_ERROR,EXTRA_OKIM6258_MEMORY_HELD_ERROR} from './native_genesis_extra_okim6258.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraRf5c164,EXTRA_RF5C164_CLOCK_HELD_ERROR} from './native_genesis_extra_rf5c164.js?v=y8950-adpcm-ui-1';
 import {createNativeGenesisRf5c164} from './native_genesis_rf5c164.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisDx7} from './native_genesis_dx7.js?v=y8950-adpcm-1';
-import {createNativeGenesisNes} from './native_genesis_nes.js?v=y8950-adpcm-1';
-import {createNativeGenesisConsole} from './native_genesis_console.js?v=y8950-adpcm-1';
-import {createNativeGenesisSnes} from './native_genesis_snes.js?v=y8950-adpcm-1';
+import {createNativeGenesisDx7} from './native_genesis_dx7.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisNes} from './native_genesis_nes.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisConsole} from './native_genesis_console.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisSnes} from './native_genesis_snes.js?v=y8950-adpcm-ui-1';
 import {createNativeGenesisPwm} from './native_genesis_pwm.js?v=pwm-wasm-1';
-import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=y8950-adpcm-1';
-import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=y8950-adpcm-1';
-import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=y8950-adpcm-1';
-import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=y8950-adpcm-1';
-import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=y8950-adpcm-1';
-import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=y8950-adpcm-1';
-import {createNativeGenesisMsx} from './native_genesis_msx.js?v=y8950-adpcm-1';
-import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=y8950-adpcm-1';
-import {createNativeGenesisOpl} from './native_genesis_opl.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraYm2610,createNativeGenesisExtraYm2610B,EXTRA_YM2610_CLOCK_HELD_ERROR,EXTRA_YM2610B_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=y8950-adpcm-1';
-import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=y8950-adpcm-1';
+import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisMsx} from './native_genesis_msx.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisOpl} from './native_genesis_opl.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraYm2610,createNativeGenesisExtraYm2610B,EXTRA_YM2610_CLOCK_HELD_ERROR,EXTRA_YM2610B_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=y8950-adpcm-ui-1';
+import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=y8950-adpcm-ui-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -841,7 +841,7 @@ export class NativeGenesisSynth {
         }
         await this.flush();return true;
       },
-      loadSample: async (id,source,options) => {endpoint(id);if(extra(id)?.endpoint.loadSample)return extra(id).endpoint.loadSample(source,options);if(id==='okim6258'&&this.nativeX68000)return this.nativeX68000.okim6258.loadSample(source,options);if(id==='rf5c164')return this.nativePcm.loadSample(source,options);if(this.nativeOpn&&id===this.chip&&typeof this.nativeOpn.loadSample==='function')return this.nativeOpn.loadSample(source,options);unsupported('Native sample loading');},
+      loadSample: async (id,source,options) => {endpoint(id);if(extra(id)?.endpoint.loadSample)return extra(id).endpoint.loadSample(source,options);if(this.nativeVoiceChips?.[id]?.loadSample)return this.nativeVoiceChips[id].loadSample(source,options);if(id==='okim6258'&&this.nativeX68000)return this.nativeX68000.okim6258.loadSample(source,options);if(id==='rf5c164')return this.nativePcm.loadSample(source,options);if(this.nativeOpn&&id===this.chip&&typeof this.nativeOpn.loadSample==='function')return this.nativeOpn.loadSample(source,options);unsupported('Native sample loading');},
       dispose() {disposed = true;listeners.clear();},
     };
   }

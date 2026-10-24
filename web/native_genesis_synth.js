@@ -841,7 +841,7 @@ export class NativeGenesisSynth {
         }
         await this.flush();return true;
       },
-      loadSample: async (id,source,options) => {endpoint(id);if(extra(id)?.endpoint.loadSample)return extra(id).endpoint.loadSample(source,options);if(id==='okim6258'&&this.nativeX68000)return this.nativeX68000.okim6258.loadSample(source,options);if(id==='rf5c164')return this.nativePcm.loadSample(source,options);if(this.nativeOpn&&id===this.chip&&typeof this.nativeOpn.loadSample==='function')return this.nativeOpn.loadSample(source,options);unsupported('Native sample loading');},
+      loadSample: async (id,source,options) => {endpoint(id);if(extra(id)?.endpoint.loadSample)return extra(id).endpoint.loadSample(source,options);if(this.nativeVoiceChips?.[id]?.loadSample)return this.nativeVoiceChips[id].loadSample(source,options);if(id==='okim6258'&&this.nativeX68000)return this.nativeX68000.okim6258.loadSample(source,options);if(id==='rf5c164')return this.nativePcm.loadSample(source,options);if(this.nativeOpn&&id===this.chip&&typeof this.nativeOpn.loadSample==='function')return this.nativeOpn.loadSample(source,options);unsupported('Native sample loading');},
       dispose() {disposed = true;listeners.clear();},
     };
   }

@@ -26,7 +26,7 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
   if(kind==='ym2413'){const rhythm=rhythmEnabled??!!((registers?.[0x0e]??0)&32);return [...numbered('',rhythm?6:9,'FM'),...(rhythm?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[])];}
   if(['ym3526','ym3812','y8950','ymf262'].includes(kind)){
     const pairs=[0,1,2,9,10,11],mask=effectiveFourOpMask??registers?.[0x104]??0,rhythm=rhythmEnabled??!!((registers?.[0xbd]??0)&32);
-    return [...numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&newMode===false&&ch>=9)&&!(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);}),...(rhythm&&rhythmVoices?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[])];
+    return [...numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&newMode===false&&ch>=9)&&!(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);}),...(rhythm&&rhythmVoices?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[]),...(kind==='y8950'?[{id:'adpcm',label:'ADPCM sample'}]:[])];
   }
   if(kind==='huc6280')return numbered('',6,'Wave');
   if(kind==='rf5c164')return numbered('',8,'PCM');
@@ -44,7 +44,7 @@ export function keyboardChannelHint(kind,channel='0') {
   if(!keyboardChannels(kind).length)return 'This chip has no Keyboard voice adapter. Use keyboard.bind() to connect a custom instrument.';
   if(['ym2413','ym3526','ym3812','y8950','ymf262'].includes(kind)&&channel.startsWith('rhythm:'))return 'Triggers the configured hardware drum; MIDI pitch does not retune its shared physical channel.';
   if(kind==='rf5c164')return 'Uses this channel’s loaded PCM and volume/pan. C4 plays its configured sample speed; other keys transpose the playback rate.';
-  if(kind==='okim6258'||/^rhythm:|^adpcm-a:|^adpcm-b:/.test(channel)||kind==='nes'&&channel==='4')return 'Triggers the configured sample at its current playback rate; MIDI pitch does not retune this sample voice.';
+  if(kind==='okim6258'||kind==='y8950'&&channel==='adpcm'||/^rhythm:|^adpcm-a:|^adpcm-b:/.test(channel)||kind==='nes'&&channel==='4')return 'Triggers the configured sample at its current playback rate; MIDI pitch does not retune this sample voice.';
   if(kind==='segapsg'&&channel==='3'||kind==='gameboy'&&channel==='3'||kind==='nes'&&channel==='3')return 'Triggers the current noise settings; MIDI pitch does not retune the noise generator.';
   if(kind==='dx7')return 'Plays the selected six-operator voice with up to 16 allocated notes.';
   if(kind==='huc6280'&&(channel==='4'||channel==='5'))return 'Uses the channel’s current waveform or noise settings. Noise playback keeps its configured rate.';

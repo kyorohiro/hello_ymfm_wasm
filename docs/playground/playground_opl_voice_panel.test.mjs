@@ -91,3 +91,25 @@ test('one-second preview is cancelled by hiding and disposal removes all listene
   panel.setVisible(false); t.mock.timers.tick(1000); await flush(); assert.deepEqual(calls.map(([method]) => method),['auditionOn','auditionOff']); panel.dispose(); panel.dispose();
   for (const node of [...walk(root),doc,win]) assert.equal([...node.listeners.values()].reduce((total,set) => total + set.size,0),0);
 });
+
+test('Y8950 FM and ADPCM share one Keyboard selection and retire each other’s old targets',async()=>{
+  const f=fixture('y8950'),state={...snapshot('y8950'),adpcm:{start:0,end:32,deltaN:12000,volume:180,repeat:false,memorySize:32,validRange:true}};
+  f.panel.update(state);const adpcmAction=name=>walk(f.root).find(node=>node.dataset.chipAction===`y8950-adpcm-${name}`);
+  await action(f.root,'keyboard').fire('click');const fm=f.targets.at(-1);fm.noteOn({id:'fm',midi:69});await flush();
+  await adpcmAction('keyboard').fire('click');const pcm=f.targets.at(-1);assert.equal(f.panel.getSelectedChannel(),'adpcm');assert.equal(f.calls.at(-1)[0],'auditionOff');pcm.noteOn({id:'pcm',midi:45});await flush();assert.equal(f.calls.at(-1)[1][0],'adpcm');
+  const before=f.calls.length;fm.noteOn({id:'stale',midi:72});fm.allNotesOff();assert.equal(f.calls.length,before);
+  await action(f.root,'keyboard').fire('click');assert.equal(f.panel.getSelectedChannel(),0);assert.equal(f.calls.at(-1)[0],'auditionOff');const count=f.calls.length;pcm.noteOn({id:'old',midi:60});assert.equal(f.calls.length,count);
+  await adpcmAction('keyboard').fire('click');await action(f.root,'hold').fire('pointerdown',{button:0,pointerId:10});assert.equal(f.panel.getSelectedChannel(),0);assert.equal(f.calls.at(-1)[1][0],0);f.panel.dispose();
+});
+
+test('Y8950 ADPCM is absent from the other three OPL panels',()=>{
+  for(const kind of ['ym3526','ym3812','ymf262']){const f=fixture(kind);assert(!walk(f.root).some(node=>Object.hasOwn(node.dataset,'y8950Adpcm')));f.panel.dispose();}
+});
+
+test('Y8950 FM rhythm reservation changes do not release the independent ADPCM lease',async()=>{
+  const f=fixture('y8950'),data={...snapshot('y8950'),adpcm:{start:0,end:32,deltaN:12000,volume:180,memorySize:32,validRange:true}};f.panel.update(data);
+  await channel(f.root,6).fire('click');const pcm=walk(f.root).find(node=>node.dataset.chipAction==='y8950-adpcm-hold');await pcm.fire('pointerdown',{button:0,pointerId:7});assert.equal(f.calls.at(-1)[1][0],'adpcm');const before=f.calls.length;
+  const reserved=structuredClone(data);reserved.channels[6].available=false;f.panel.update(reserved);assert.equal(f.calls.length,before,'readback of FM reservation must not alter ADPCM');
+  control(f.root,'rhythm').checked=true;await control(f.root,'rhythm').fire('change');assert.equal(f.calls.at(-1)[0],'setRhythm');assert(!f.calls.slice(before).some(([method])=>method==='auditionOff'));
+  f.panel.dispose();assert.equal(f.calls.at(-1)[0],'auditionOff');
+});

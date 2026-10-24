@@ -36,6 +36,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     if(reg===0x0e)return {events:Array.from({length:5},(_,index)=>({key:`rhythm:${index}`,on:!!(v&32)&&!!(v&(16>>index)),previous:!!(opllRhythm&32)&&!!(opllRhythm&(16>>index))})).filter(event=>event.on!==event.previous).map(({key,on})=>({key,on}))};
   }
   if(['ym3526','ym3812','y8950','ymf262'].includes(chip)){
+    if(chip==='y8950'&&['forceAdpcmOff','auditionAdpcmOn','loadAdpcmMemory','clearAdpcmMemory'].includes(method))return 'adpcm';
     if(['forceRhythmOff','auditionRhythmOn'].includes(method))return [6,7,8,8,7][args[0]];
     if(method==='forceKeyOff')return {key:args[0],on:false};
     if(method==='forceRhythmOff')return {key:`rhythm:${args[0]}`,on:false};
@@ -213,6 +214,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
     command=protectRfMask(command,metadata);
     command=protectOpllRhythm(command,metadata);
     command=protectAyMixer(command,metadata);
+    command=protectY8950Control(command,metadata);
     // Editor parameter patches retain a script's note owner even when a banked
     // control register repeats its existing gate bit. Triggers/releases do not.
     if(!metadata?.preserveOwner&&!note(command,port,metadata))return false;
@@ -228,7 +230,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
       if(register===4&&auditions.get(3)!==metadata?.owner)return true;
     }
     if(chipName()==='ay8910'&&command.method==='writeRegister'&&command.args[0]===7)return false;
-    if(chipName()==='y8950'&&command.method==='writeRegister'&&command.args[0]===8&&getOplRegisters&&!((command.args[1]^getOplRegisters()[8])&0xc0))return false;
+    if(chipName()==='y8950'&&command.method==='writeRegister'&&command.args[0]===8&&getOplRegisters)return false;
     if(chipName()==='ym2413'&&command.method==='writeRegister'&&command.args[0]===0x0e&&!((command.args[1]^(getOpllRhythm?.()??0))&32))return false;
     const channel=nativeVoiceChannel(chipName(),command,{hucChannel:getHucChannel?.()??0,psgLatch:getPsgLatch?.()??psgLatch,rfChannel:getRfChannel?.()??0});
     if(channel==='all'){
@@ -262,6 +264,11 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
     if(!auditions.size||chipName()!=='ay8910'||command.method!=='writeRegister'||command.args[0]!==7)return command;
     let mask=0;for(const [channel,owner]of auditions)if(owner!==metadata?.owner)mask|=(1<<channel)|(8<<channel);
     return {...command,args:[7,(command.args[1]&~mask)|((getAyRegisters?.()?.[7]??0x38)&mask)]};
+  }
+  function protectY8950Control(command,metadata){
+    if(chipName()!=='y8950'||command.method!=='writeRegister'||command.args[0]!==8||!getOplRegisters)return command;
+    let mask=0;for(const [channel,owner]of auditions)if(owner!==metadata?.owner)mask|=channel==='adpcm'?0x3f:0xc0;
+    if(!mask)return command;return {...command,args:[8,(command.args[1]&~mask)|(getOplRegisters()[8]&mask),...(command.args.length>2?[command.args[2]]:[])]};
   }
   function manualNoteOwner(key,metadata){
     const physical=chipName()==='ym2413'&&typeof key==='string'&&key.startsWith('rhythm:')?[6,7,8,8,7][Number(key.slice(7))]:key;
@@ -342,6 +349,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
       if(!data?.performance&&auditions.size&&chipName()==='snes'&&data?.method==='writeDsp'&&[0x4c,0x5c].includes(data.args[0])){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
       if(!data?.performance&&auditions.size&&chipName()==='rf5c164'&&data?.method==='writeRegister'&&data.args[0]===8){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
       if(!data?.performance&&auditions.size&&chipName()==='ay8910'&&data?.method==='writeRegister'&&data.args[0]===7){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
+      if(!data?.performance&&auditions.size&&chipName()==='y8950'&&data?.method==='writeRegister'&&data.args[0]===8){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
       if(!data?.performance&&auditions.size&&chipName()==='ym2413'&&data?.method==='writeRegister'&&data.args[0]===0x0e){applyTracked(data,port,nowFrame());if(data.id!==undefined)port.postMessage({id:data.id,value:true});return true;}
       let reply=replies.get(port);
       if (!reply) {reply=message=>port.postMessage(message);replies.set(port,reply);ports.set(reply,port);}

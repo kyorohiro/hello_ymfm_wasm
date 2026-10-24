@@ -1,12 +1,12 @@
 import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=audio-numeric-bindings-1';
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
 import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=audio-numeric-bindings-1';
-import {createPlaygroundSnesVoicePanel} from './playground_snes_voice_panel.js?v=y8950-adpcm-1';
+import {createPlaygroundSnesVoicePanel} from './playground_snes_voice_panel.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundNesVoicePanel} from './playground_nes_voice_panel.js?v=operator-tab-keyboard-1';
 import {createPlaygroundHuc6280VoicePanel} from './playground_huc6280_voice_panel.js?v=audio-numeric-bindings-1';
 import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_panel.js?v=audio-numeric-bindings-1';
 import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=audio-numeric-bindings-1';
-import {createPlaygroundOplVoicePanel} from './playground_opl_voice_panel.js?v=audio-numeric-bindings-1';
+import {createPlaygroundOplVoicePanel} from './playground_opl_voice_panel.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundYm2413VoicePanel} from './playground_ym2413_voice_panel.js?v=audio-numeric-bindings-1';
 import {createPlaygroundAy8910VoicePanel} from './playground_ay8910_voice_panel.js?v=audio-numeric-bindings-1';
 
@@ -55,7 +55,7 @@ export function createPlaygroundAdditionalChipTabAvailability({getInspector,kind
   refresh();return {refresh,dispose(){disposed=true;unsubscribe?.();unsubscribe=null;source=null;}};
 }
 
-export function createPlaygroundChipTabs({roots, getInspector, listFiles = () => [], readFile,
+export function createPlaygroundChipTabs({roots, getInspector, listFiles = () => [], readFile, openSampleEditor,
   ensureAudioReady, onKeyboardTargetChange = () => {}, onAuditionTargetChange = () => {}, onError = () => {}, pollMs = 300, eventDrivenAdditionalKinds = []}) {
   let visible = null, generation = 0, disposed = false, timer = null, inspector = null, unsubscribe = null;
   const editors = new Map(), eventDriven = new Set(eventDrivenAdditionalKinds);
@@ -200,7 +200,15 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
           return result;
         };
         const factory = nativePanels[editor.kind];
-        editor.voicePanel = factory({root:editor.body,invoke,listFiles,readFile,loadSample,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
+        const editSample = openSampleEditor && (async (options = {}, context = {}) => {
+          if (!live()) throw new DOMException('Sound chip changed','AbortError');
+          context.signal?.throwIfAborted();
+          const value = await openSampleEditor(options,context);
+          context.signal?.throwIfAborted();
+          if (!live()) throw new DOMException('Sound chip changed','AbortError');
+          return value;
+        });
+        editor.voicePanel = factory({root:editor.body,invoke,listFiles,readFile,loadSample,openSampleEditor:editSample,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
           if (target) {
             if (keyboardEditor && keyboardEditor !== editor) keyboardEditor.voicePanel?.setKeyboardActive?.(false);
             keyboardEditor = editor; onKeyboardTargetChange(target);

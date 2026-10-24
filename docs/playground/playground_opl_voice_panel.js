@@ -1,4 +1,5 @@
 import {OPL_PRESETS} from '../js/opl_synth.js?v=audio-numeric-bindings-1';
+import {createPlaygroundY8950AdpcmPanel} from './playground_y8950_adpcm_panel.js?v=y8950-adpcm-ui-1';
 
 // Rendering applied state is deliberately read-only. Edits and note gestures
 // use the same inspector commands as scripts; there is no view-to-audio loop.
@@ -28,11 +29,12 @@ export function oplVoiceCode(state, channel = 0) {
 }
 
 export function createPlaygroundOplVoicePanel({root, kind = 'ym3812', invoke,
+  loadSample,openSampleEditor,
   onKeyboardTargetChange = () => {}, onError = () => {}}) {
   const doc = root.ownerDocument ?? globalThis.document, win = doc.defaultView ?? globalThis;
   const stereo = kind === 'ymf262', waveformMax = stereo ? 7 : kind === 'ym3812' ? 3 : 0;
   const label = kind.toUpperCase(), panelId = ++sequence, listeners = [], held = new Map();
-  let state = null, channel = 0, connected = false, disposed = false, visible = true;
+  let state = null, channel = 0, connected = false, disposed = false, visible = true,selectedSection='fm',adpcmPanel=null;
   let keyboardActive = false, bindingEpoch = 0, connectionEpoch = 0, pressSequence = 0, target, holdPress = null, timer = null;
   const make = (tag, className, text) => {const node = doc.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node;};
   function listen(node, type, handler) {node.addEventListener(type,handler); listeners.push(() => node.removeEventListener(type,handler));}
@@ -77,17 +79,17 @@ export function createPlaygroundOplVoicePanel({root, kind = 'ym3812', invoke,
   const left = checkbox(common,'Left','pan-left',n => command('setPan',[channel,n,right.checked]));
   const right = checkbox(common,'Right','pan-right',n => command('setPan',[channel,left.checked,n]));
   left.parentNode.hidden = right.parentNode.hidden = !stereo;
-  const fourOp = checkbox(common,'Four-operator pair','four-op',n => {releaseAll(); void command('setFourOp',[channel,n]);}); fourOp.parentNode.hidden = !stereo;
+  const fourOp = checkbox(common,'Four-operator pair','four-op',n => {releaseFm(); void command('setFourOp',[channel,n]);}); fourOp.parentNode.hidden = !stereo;
   const routing = make('p','subtext'); routing.dataset.chipOutput = 'opl-routing'; selected.appendChild(routing);
   const presetFields = fields(selected);
   const presets = select(presetFields,'Original preset','preset',Object.entries(OPL_PRESETS).filter(([,preset]) => stereo || !preset.fourOp).map(([key,preset]) => [key,preset.label ?? preset.name ?? key]),() => {});
-  button(presetFields,'Load preset',() => {releaseAll(); void command('setPreset',[channel,OPL_PRESETS[presets.value]]);},'preset');
+  button(presetFields,'Load preset',() => {releaseFm(); void command('setPreset',[channel,OPL_PRESETS[presets.value]]);},'preset');
   const audition = fields(selected), midi = number(audition,'Audition MIDI note','audition-midi',127); midi.value = '69';
   const actions = make('div','chip-actions'); audition.appendChild(actions);
   const hold = button(actions,'Hold to play',null,'hold');
   const preview = button(actions,'Play 1 second',() => {if (!visible) return; releaseSource('preview'); const id = startNote(Number(midi.value),'preview'); if (id) timer = win.setTimeout(() => {timer = null; endNote(id);},1000);},'play');
   button(actions,'Release',releaseAll,'release');
-  const keyboard = button(actions,'Use Keyboard',() => {if (!connected || !available()) return; keyboardActive = true; updateTarget(); status.textContent = `${label} CH${channel + 1} is connected to the Guitar Keyboard.`;},'keyboard');
+  const keyboard = button(actions,'Use Keyboard',() => {if (!connected || !available()) return; adpcmPanel?.setKeyboardActive(false);selectedSection='fm';keyboardActive = true; updateTarget(); status.textContent = `${label} CH${channel + 1} is connected to the Guitar Keyboard.`;},'keyboard');
   selected.appendChild(make('p','subtext','Audition and Keyboard use the current operator settings. Loading a preset is explicit. Channels use zero-based numbers in JavaScript; MIDI note 69 is A4 (440 Hz).'));
 
   const operatorsCard = section('Operators'), scroll = make('div','chip-opm-table-scroll'), table = make('table','chip-opm-table'); scroll.appendChild(table); operatorsCard.appendChild(scroll);
@@ -107,24 +109,33 @@ export function createPlaygroundOplVoicePanel({root, kind = 'ym3812', invoke,
   const global = section('Global LFO and rhythm'), globals = fields(global);
   const amDepth = checkbox(globals,'Deep amplitude modulation','am-depth',n => command('setLFO',[{amDepth:n}]));
   const pmDepth = checkbox(globals,'Deep vibrato','pm-depth',n => command('setLFO',[{pmDepth:n}]));
-  const rhythm = checkbox(globals,'Rhythm mode (reserves CH7–CH9)','rhythm',n => {releaseAll(); void command('setRhythm',[{enabled:n}]);});
+  const rhythm = checkbox(globals,'Rhythm mode (reserves CH7–CH9)','rhythm',n => {releaseFm(); void command('setRhythm',[{enabled:n}]);});
   const drums = fields(global);
   const drumControls = ['bassDrum','snare','tom','cymbal','hiHat'].map(name => checkbox(drums,name,`rhythm-${name}`,n => command('setRhythm',[{[name]:n}])));
   global.appendChild(make('p','subtext','Rhythm shares the operators and pitches of physical channels 6–8. Configure those operators before enabling rhythm. Switching rhythm mode releases this panel’s held notes.'));
+  if(kind==='y8950'){
+    const adpcmRoot=make('div');body.appendChild(adpcmRoot);
+    adpcmPanel=createPlaygroundY8950AdpcmPanel({root:adpcmRoot,invoke,loadSample,openSampleEditor,onError,
+      onSelect(){selectedSection='adpcm';releaseFm();},
+      onKeyboardTargetChange(next){if(next){keyboardActive=false;releaseSource('keyboard');bindingEpoch++;keyboard.setAttribute('aria-pressed','false');}onKeyboardTargetChange(next);},
+    });
+  }
   const advanced = make('details','chip-advanced'); advanced.appendChild(make('summary','','Voice JavaScript and applied registers')); body.appendChild(advanced);
   const code = make('textarea','chip-voice-code'); code.readOnly = true; code.rows = 10; code.dataset.chipControl = 'opl-code'; code.setAttribute('aria-label',`${label} voice JavaScript`); advanced.appendChild(code);
   button(advanced,'Copy voice JavaScript',async () => {try {await win.navigator.clipboard.writeText(code.value);} catch {code.focus?.(); code.select?.();}},'copy');
   const registers = make('pre','chip-memory-ranges'); registers.dataset.chipOutput = 'opl-registers'; advanced.appendChild(registers);
   const status = make('p','chip-editor-status'); status.setAttribute('role','status'); status.setAttribute('aria-live','polite'); root.appendChild(status);
-  root.appendChild(make('p','subtext',`${label} applied settings. Gate indicators show key writes, not measured envelope amplitude.${kind === 'y8950' ? ' This mode provides FM and rhythm; ADPCM sample editing is separate.' : ''}`));
+  root.appendChild(make('p','subtext',`${label} applied settings. Gate indicators show key writes, not measured envelope amplitude.`));
 
   function startNote(note,source,externalId,epoch) {
     if (!connected || disposed || !available() || !Number.isInteger(note) || note < 0 || note > 127) return null;
+    selectedSection='fm';adpcmPanel?.setKeyboardActive(false);
     const id = `opl-panel:${panelId}:${++pressSequence}`; held.set(id,{channel,source,externalId,epoch}); void command('auditionOn',[channel,note,id]); return id;
   }
   function endNote(id) {const entry = held.get(id); if (!entry) return; held.delete(id); void command('auditionOff',[entry.channel,id]);}
   function releaseSource(source) {for (const [id,entry] of held) if (entry.source === source) endNote(id); if (source === 'preview' && timer !== null) {win.clearTimeout(timer); timer = null;} if (source === 'hold') {holdPress = null; hold.setAttribute('aria-pressed','false');}}
-  function releaseAll() {for (const id of [...held.keys()]) endNote(id); if (timer !== null) {win.clearTimeout(timer); timer = null;} holdPress = null; hold.setAttribute('aria-pressed','false');}
+  function releaseFm() {for (const id of [...held.keys()]) endNote(id); if (timer !== null) {win.clearTimeout(timer); timer = null;} holdPress = null; hold.setAttribute('aria-pressed','false');}
+  function releaseAll() {releaseFm();adpcmPanel?.releaseAll();}
   function updateTarget() {
     const selectedChannel = channel, epoch = ++bindingEpoch;
     target = {owner:'opl-voice-panel',name:`${label} · CH${channel + 1}`,
@@ -133,7 +144,7 @@ export function createPlaygroundOplVoicePanel({root, kind = 'ym3812', invoke,
       allNotesOff() {for (const [id,entry] of held) if (entry.source === 'keyboard' && entry.epoch === epoch) endNote(id);},
     }; keyboard.setAttribute('aria-pressed',String(keyboardActive)); if (keyboardActive) onKeyboardTargetChange(available() ? target : null);
   }
-  function selectChannel(next) {if (channel === next) return; releaseAll(); channel = next; updateTarget(); if (state) update(state);}
+  function selectChannel(next) {if (channel === next&&selectedSection==='fm') return; releaseAll();adpcmPanel?.setKeyboardActive(false);selectedSection='fm';channel = next; updateTarget(); if (state) update(state);}
   function holdStart(event) {
     if (!visible || !connected || event.type === 'pointerdown' && event.button !== undefined && event.button !== 0 || event.type === 'keydown' && (event.repeat || ![' ','Enter'].includes(event.key))) return;
     event.preventDefault(); releaseSource('hold'); const id = startNote(Number(midi.value),'hold'); if (!id) return; holdPress = {id,pointerId:event.pointerId,key:event.key}; hold.setAttribute('aria-pressed','true'); if (event.pointerId !== undefined) try {hold.setPointerCapture(event.pointerId);} catch {}
@@ -141,14 +152,14 @@ export function createPlaygroundOplVoicePanel({root, kind = 'ym3812', invoke,
   function holdEnd(event) {if (!holdPress || event.pointerId !== undefined && event.pointerId !== holdPress.pointerId || event.type === 'keyup' && event.key !== holdPress.key) return; releaseSource('hold');}
   listen(hold,'pointerdown',holdStart); listen(hold,'keydown',holdStart);
   for (const event of ['pointerup','pointercancel','lostpointercapture','keyup']) listen(hold,event,holdEnd);
-  listen(hold,'blur',() => releaseSource('hold')); listen(win,'blur',releaseAll); listen(doc,'visibilitychange',() => {if (doc.hidden) releaseAll();});
+  listen(hold,'blur',() => releaseSource('hold')); listen(win,'blur',()=>{releaseFm();adpcmPanel?.releasePlayback();}); listen(doc,'visibilitychange',() => {if (doc.hidden) releaseAll();});
 
   function update(snapshot) {
     if (disposed || !snapshot) return;
     const wasAvailable = available(); state = snapshot;
     const selectedVoice = current();
     if (selectedVoice.pairedWith != null && !selectedVoice.fourOp && selectedVoice.available === false) {selectChannel(selectedVoice.pairedWith); return;}
-    if (wasAvailable && !available()) {releaseAll(); if (keyboardActive) updateTarget();}
+    if (wasAvailable && !available()) {releaseFm(); if (keyboardActive) updateTarget();}
     channelButtons.forEach((node,index) => {const voice = snapshot.channels?.[index] ?? {}; node.setAttribute('aria-pressed',String(channel === index)); node.disabled = voice.available === false && voice.pairedWith != null && !voice.fourOp; node.textContent = `CH${index + 1}${voice.fourOp ? ' · 4op' : ''}${voice.active ? ' ▸' : ''}`; node.title = voice.available === false ? voice.pairedWith != null ? `Paired with CH${voice.pairedWith + 1}` : 'Reserved for rhythm' : frequencyNote(voice.frequency);});
     const voice = current(); gate.textContent = `${voice.active ? 'Triggered' : 'Released'}${available() ? '' : ' · Reserved for rhythm'}`;
     value(frequency,Number.isFinite(voice.frequency) ? Number(voice.frequency.toFixed(5)) : null); value(note,frequencyNote(voice.frequency)); value(algorithm,voice.algorithm); value(feedback,voice.feedback);
@@ -163,16 +174,17 @@ export function createPlaygroundOplVoicePanel({root, kind = 'ym3812', invoke,
     hold.disabled = preview.disabled = keyboard.disabled = !available();
     value(code,oplVoiceCode(snapshot,channel));
     registers.textContent = Array.from(snapshot.registers ?? [],(n,index) => `${index.toString(16).padStart(3,'0')}: ${Number(n).toString(16).padStart(2,'0')}`).join('  ');
+    adpcmPanel?.update(snapshot);
   }
   function setConnected(next) {
     if (disposed) return; next = Boolean(next);
     if (!next) {releaseAll(); if (keyboardActive) {keyboardActive = false; onKeyboardTargetChange(null);} bindingEpoch++; keyboard.setAttribute('aria-pressed','false');}
-    if (next !== connected) connectionEpoch++; connected = next; body.disabled = !next;
+    if (next !== connected) connectionEpoch++; connected = next; body.disabled = !next;adpcmPanel?.setConnected(next);
   }
   updateTarget();
-  return {update,setConnected,releaseAll,getSelectedChannel:() => channel,getNoteTarget:() => target,
-    setVisible(next) {visible = Boolean(next); if (!visible) {releaseSource('hold'); releaseSource('preview');}},
-    setKeyboardActive(next) {if (!next && keyboardActive) {keyboardActive = false; releaseSource('keyboard'); bindingEpoch++; keyboard.setAttribute('aria-pressed','false');}},
-    dispose() {if (disposed) return; setConnected(false); disposed = true; for (const remove of listeners) remove();},
+  return {update,setConnected,releaseAll,getSelectedChannel:() => selectedSection==='adpcm'?'adpcm':channel,getNoteTarget:() => selectedSection==='adpcm'?adpcmPanel?.getNoteTarget():target,
+    setVisible(next) {visible = Boolean(next); if (!visible) {releaseSource('hold'); releaseSource('preview');}adpcmPanel?.setVisible(next);},
+    setKeyboardActive(next) {if (!next && keyboardActive) {keyboardActive = false; releaseSource('keyboard'); bindingEpoch++; keyboard.setAttribute('aria-pressed','false');}adpcmPanel?.setKeyboardActive(next);},
+    dispose() {if (disposed) return; setConnected(false);adpcmPanel?.dispose();disposed = true; for (const remove of listeners) remove();},
   };
 }

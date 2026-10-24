@@ -1,4 +1,5 @@
-import {copyY8950AdpcmMemory} from './y8950_adpcm.js?v=y8950-adpcm-1';
+import {copyY8950AdpcmMemory} from './y8950_adpcm.js?v=y8950-adpcm-ui-1';
+import {validateY8950AdpcmPreview} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {Ym3526} from './ym3526.js?v=audio-stability-2';
 import {Ym3812} from './ym3812.js?v=audio-stability-2';
@@ -8,14 +9,14 @@ import ym3526Factory from '../generated/ym3526_wasm.js';
 import ym3812Factory from '../generated/ym3812_wasm.js';
 import y8950Factory from '../generated/y8950_wasm.js';
 import ymf262Factory from '../generated/ymf262_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=y8950-adpcm-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-ui-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=y8950-adpcm-ui-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 const PROFILES={ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory]};
 const SLOTS=[0,1,2,8,9,10,16,17,18], PAIRS=[0,1,2,9,10,11];
 class Processor extends AudioWorkletProcessor {
   constructor({processorOptions:{chip='ym3812',clock=chip==='ymf262'?14318180:3579545,wasmBinary}}) {
-    super();this.kind=chip;this.clock=clock;this.chip=null;this.dead=false;this.remainder=0;this.left=this.right=0;this.counts=new Uint32Array(128);
+    super();this.kind=chip;this.clock=clock;this.chip=null;this.dead=false;this.remainder=0;this.left=this.right=0;this.counts=new Uint32Array(128);this.adpcmMemoryRevision=0;
     this.channels=chip==='ymf262'?18:9;this.registers=new Uint8Array(chip==='ymf262'?512:256);this.mutedChannels=new Set(Array.from({length:this.channels},(_,index)=>index));this.auditionStarts=new Map();this.silent=true;
     this.performance=createProcessorPerformance({chip,getOplRegisters:()=>this.registers,immediate:['stopVoices','loadAdpcmMemory','clearAdpcmMemory'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
     this.renderSegment=this.renderSegment.bind(this);
@@ -32,6 +33,7 @@ class Processor extends AudioWorkletProcessor {
       this.inspector=new OplVoiceInspector({chip,clock:()=>this.clock,sampleRate,
         dispatch:(command,owner,metadata)=>this.performance.applyImmediate(command,this.port,{owner,...metadata}),
         beginAudition:(channel,owner)=>this.performance.beginAudition(channel,owner),endAudition:(channel,owner)=>this.performance.endAudition(channel,owner)});
+      if(chip==='y8950')this.inspector.setAdpcmMemoryInfo({memoryBytes:core.sampleMemory.length,revision:this.adpcmMemoryRevision});
       this.port.postMessage({ready:true});
     }).catch(error=>{this.dispose();this.port.postMessage({error:error.message});});
   }
@@ -40,7 +42,7 @@ class Processor extends AudioWorkletProcessor {
   receive(data,port=this.port){
     if(Array.isArray(data)){for(const command of data)this.receive(command,port);return;}
     if(data?.type==='chip-inspector'){
-      receiveChipInspector(data,port,this.inspector?(action,method,args)=>{const value=action==='read'?this.inspector.read():this.inspector.invoke(method,args);if(action!=='read')this.publishState();return value;}:null);return;
+      receiveChipInspector(data,port,this.inspector?(action,method,args)=>{const value=action==='read'?this.inspector.read():action==='loadSample'?this.loadInspectorSample(...args):this.inspector.invoke(method,args);if(action!=='read')this.publishState();return value;}:null);return;
     }
     const stopping=data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession;
     if(stopping||data?.method==='stopVoices')this.inspector?.invoke('auditionAllOff');
@@ -65,6 +67,7 @@ class Processor extends AudioWorkletProcessor {
   writeRegister(register,value,bank=0){
     if(register>255){bank=register>>8;register&=255;}
     const index=(bank<<8)+register;this.registers[index]=value;this.inspector?.observeWrite(register,value,bank);
+    if(this.kind==='y8950'&&bank===0&&register===15)this.inspector?.setAdpcmMemoryInfo({memoryBytes:this.chip.sampleMemory.length,revision:++this.adpcmMemoryRevision});
     if(this.kind==='y8950'&&bank===0&&register===7&&(value&0xc1)===0x80)this.silent=false;
     if(register>=0xb0&&register<=0xb8&&(value&32)){this.restore(bank*9+register-0xb0);this.silent=false;}
     if(register===0xbd&&(value&31)){
@@ -72,6 +75,24 @@ class Processor extends AudioWorkletProcessor {
     }
     const channel=register>=0x40&&register<=0x55?this.operatorChannel(register,bank):-1;
     this.writeRaw(register,channel>=0&&this.mutedChannels.has(channel)?(value&192)|63:value,bank);
+  }
+  loadAdpcmMemory(bytes,address=0,preview){
+    if(this.kind!=='y8950')throw new Error('ADPCM memory requires Y8950');
+    if(this.inspector?.auditions.has('adpcm'))throw new Error('Release the ADPCM Keyboard key before loading sample memory');
+    const copy=copyY8950AdpcmMemory(bytes,address),compact=validateY8950AdpcmPreview(preview,address,copy.length);
+    this.writeRegister(7,1);this.chip.loadSampleMemory(copy,address,Math.max(this.chip.sampleMemory.length,address+copy.length));
+    this.inspector?.setAdpcmMemoryInfo({memoryBytes:this.chip.sampleMemory.length,revision:++this.adpcmMemoryRevision,preview:compact});
+  }
+  loadInspectorSample(bytes,metadata){
+    if(this.kind!=='y8950')throw new Error('Sample loading requires Y8950');
+    if(metadata?.sampleEpoch!==this.inspector.sampleEpoch)throw new Error('Sample loading cancelled by Stop or reset');
+    if(metadata.clock!==this.clock)throw new Error('Y8950 clock changed while preparing the sample');
+    if(!(bytes instanceof Uint8Array)||!bytes.length||metadata.end!==metadata.start+bytes.length||!Number.isSafeInteger(metadata.start)||metadata.start%32||metadata.end%32||!Number.isInteger(metadata.deltaN)||metadata.deltaN<1||metadata.deltaN>65535)throw new TypeError('Invalid Y8950 prepared sample');
+    // Validate controls and compact preview before changing any applied state.
+    validateY8950AdpcmPreview(metadata.preview,metadata.start,bytes.length);
+    this.loadAdpcmMemory(bytes,metadata.start,metadata.preview);
+    this.inspector.invoke('adpcm.setSample',[{start:metadata.start,end:metadata.end}]);this.inspector.invoke('adpcm.setDeltaN',[metadata.deltaN]);
+    return {...this.inspector.read().adpcm};
   }
   apply(data,port,frame,metadata){
     try{
@@ -83,18 +104,18 @@ class Processor extends AudioWorkletProcessor {
       }else if(data.method==='stopVoices'){this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();}
       else if(data.method==='reset'){this.chip.reset();this.auditionStarts.clear();this.inspector?.reset();this.registers.fill(0);this.mutedChannels=new Set(Array.from({length:this.channels},(_,index)=>index));this.updateMuteMask();this.silent=true;this.remainder=0;this.left=this.right=0;}
       else if(data.method==='loadAdpcmMemory'){
-        if(this.kind!=='y8950')throw new Error('ADPCM memory requires Y8950');
-        const [bytes,address=0]=data.args??[],copy=copyY8950AdpcmMemory(bytes,address);
-        this.writeRegister(7,1);
-        this.chip.loadSampleMemory(copy,address,Math.max(this.chip.sampleMemory.length,address+copy.length));
+        this.loadAdpcmMemory(...data.args);
         this.publishState();
       }else if(data.method==='clearAdpcmMemory'){
         if(this.kind!=='y8950')throw new Error('ADPCM memory requires Y8950');
-        this.writeRegister(7,1);this.chip.clearSampleMemory();this.publishState();
+        if(this.inspector?.auditions.has('adpcm'))throw new Error('Release the ADPCM Keyboard key before clearing sample memory');
+        this.writeRegister(7,1);this.chip.clearSampleMemory();this.inspector?.setAdpcmMemoryInfo({memoryBytes:0,revision:++this.adpcmMemoryRevision,preview:null});this.publishState();
       }
       else if(data.method==='writeRegister')this.writeRegister(...data.args);
       else if(data.method==='forceRhythmOff')this.writeRegister(0xbd,this.registers[0xbd]&~(16>>data.args[0]),0);
       else if(data.method==='forceKeyOff')this.forceKeyOff(data.args[0]);
+      else if(data.method==='forceAdpcmOff')this.writeRegister(7,(this.registers[7]&16)|1);
+      else if(data.method==='auditionAdpcmOn')this.writeRegister(7,data.args[0]?0xb0:0xa0);
       else if(data.method==='auditionKeyOn')this.auditionStarts.set(data.args[0],metadata?.owner);
       else if(data.method==='allNotesOff')this.stopVoices();
       else if(data.type==='clear-scheduled-writes')this.performance.clear();

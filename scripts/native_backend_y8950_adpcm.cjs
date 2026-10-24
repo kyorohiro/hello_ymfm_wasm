@@ -6,6 +6,7 @@ const path=require('node:path');
 const {captureWebMix}=require('./native_backend_extra_stability.cjs');
 const {extraChipCount}=require('./native_backend_extra_limits.cjs');
 const {assertChipComparisonResources}=require('./native_backend_chip_comparison.cjs');
+const {runY8950AdpcmPanel}=require('./native_backend_y8950_adpcm_panel.cjs');
 const example='examples/msx/msx-audio-adpcm.js';
 
 async function runY8950Adpcm({page,native,tracker,artifacts,name,ready,assertNoLiveAudio,until}){
@@ -94,6 +95,11 @@ async function runY8950Adpcm({page,native,tracker,artifacts,name,ready,assertNoL
           if(backend==='webaudio'){audit.stopped=await captureWebMix(page,.1);assert.equal(Math.max(...audit.stopped.peak),0,'Stop silences ADPCM-only output');}
           row.adpcmOnly.push(audit);
         }
+        row.ui=[];
+        for(const additional of [false,true]){
+          row.ui.push(await runY8950AdpcmPanel({page,native,tracker,backend,execution,additional,name,artifacts}));
+          const stopped=await stop(backend+'/'+execution+' ADPCM panel');assert.equal(stopped.current,stored.current);assert.equal(stopped.defaults,stored.defaults);
+        }
         assert.doesNotMatch(await page.locator('#consoleOutput').innerText(),/\b(?:Error|TypeError|RangeError|ReferenceError):/,backend+'/'+execution+' no playback errors');
         report.rows.push(row);
       }
@@ -104,7 +110,7 @@ async function runY8950Adpcm({page,native,tracker,artifacts,name,ready,assertNoL
     }
     await fs.writeFile(path.join(artifacts,name+'-y8950-adpcm.json'),JSON.stringify(report,null,2));
   }catch(error){
-    report.failure={message:error.message,console:await page.locator('#consoleOutput').innerText(),commands:commands().slice(-50)};
+    report.failure={message:error.message,console:await page.locator('#consoleOutput').innerText(),editor:await page.evaluate(()=>({dialog:document.querySelector('dialog[data-audio-input]')?.outerHTML})),commands:commands().slice(-50)};
     await fs.writeFile(path.join(artifacts,name+'-y8950-adpcm-failure.json'),JSON.stringify(report,null,2));throw error;
   }
 }

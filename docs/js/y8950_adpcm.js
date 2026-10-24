@@ -1,4 +1,5 @@
 import {readSamplePCM,encodeAdpcmB} from './adpcm_b_sample.js';
+import {createY8950AdpcmPreview} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';
 
 export const Y8950_ADPCM_MEMORY_BYTES=0x200000;
 const integer=(value,max,label)=>{if(!Number.isSafeInteger(value)||value<0||value>max)throw new RangeError(`Y8950 ADPCM ${label} must be 0..${max}`);return value;};
@@ -54,7 +55,8 @@ export function attachY8950Adpcm(client,{loadMemory,clearMemory,captureContext=(
   const api={
     async loadMemory(bytes,address=0){
       const copy=copyY8950AdpcmMemory(bytes,address),operation=captureOperation();operation.check();
-      await operation.run(()=>loadMemory(copy,address,operation.scope));operation.check();
+      const preview=createY8950AdpcmPreview(copy,{start:address,source:'memory'});
+      await operation.run(()=>loadMemory(copy,address,operation.scope,preview));operation.check();
     },
     async clearMemory(){
       const operation=captureOperation();operation.check();
@@ -73,7 +75,8 @@ export function attachY8950Adpcm(client,{loadMemory,clearMemory,captureContext=(
       const encodedClock=clock(),requested=sampleRate??Math.min(pcm.sampleRate,encodedClock*65535/(72*65536));
       const deltaN=deltaFor(requested,encodedClock),actualRate=deltaN*encodedClock/(72*65536),encoded=encodeAdpcmB(pcm,actualRate,Y8950_ADPCM_MEMORY_BYTES-address);
       operation.check();signal?.throwIfAborted();
-      await operation.run(()=>{api.keyOff();return loadMemory(encoded.bytes,address,operation.scope);});operation.check();signal?.throwIfAborted();
+      const preview=createY8950AdpcmPreview(encoded.bytes,{start:address,source:'sample'});
+      await operation.run(()=>{api.keyOff();return loadMemory(encoded.bytes,address,operation.scope,preview);});operation.check();signal?.throwIfAborted();
       if(clock()!==encodedClock)throw new Error('Y8950 clock changed while loading an ADPCM sample; load it again at the new clock');
       operation.run(()=>{operation.check();signal?.throwIfAborted();api.setSample({start:address,end:address+encoded.bytes.length});api.setDeltaN(deltaN);});
       return {start:address,end:address+encoded.bytes.length,frames:encoded.frames,paddedFrames:encoded.paddedFrames,

@@ -7,6 +7,31 @@ import {RF5C164Synth} from './rf5c164synth.js';
 import {encodeRf5c164} from './rf5c164_pcm.js';
 import {PWM32XPlayback} from './pwm32x_playback.js';
 
+test('Y8950 admin loading captures source/options before read, carries Stop epoch and never starts playback',async()=>{
+ const {port1,port2}=new MessageChannel();let finish,started;const decoded=new Promise(resolve=>started=resolve),requests=[];
+ port1.on('message',data=>{requests.push(data);port1.postMessage({type:'chip-inspector-result',id:data.id,value:data.action==='read'?{clock:3579545,adpcm:{sampleEpoch:7}}:data.args[1]});});
+ const pcm={sampleRate:16000,channels:[Float32Array.from({length:256},(_,i)=>.5*Math.sin(i/8))]},original=pcm.channels[0].slice();
+ const inspector=createChipInspector({endpoints:()=>[{id:'y',kind:'y8950',port:port2}],decode:source=>{assert.deepEqual(source.channels[0],original);started();return new Promise(resolve=>finish=()=>resolve(source));}});
+ try{
+  const options={name:'Voice',address:64,sampleRate:12000},pending=inspector.loadSample('y',pcm,options);options.name='Changed';options.address=128;pcm.channels[0].fill(0);await decoded;finish();
+  const metadata=await pending;assert.equal(metadata.start,64);assert.equal(metadata.name,'Voice');assert.equal(metadata.sampleEpoch,7);assert.equal(metadata.clock,3579545);assert(metadata.preview.waveform.length<=512);assert(metadata.preview.waveform.some(value=>Math.abs(value)>.1));
+  assert.deepEqual(requests.map(request=>request.action),['read','loadSample']);assert.equal(requests[1].args[0].length%32,0);
+ }finally{inspector.dispose();port1.close();port2.close();}
+});
+
+test('Y8950 deferred decode rejects abort/disconnect and old same-port Stop epochs without a replacement upload',async()=>{
+ const {port1,port2}=new MessageChannel(),replacement=new MessageChannel();let port=port2,finish,decodeReady,epoch=1;const requests=[];
+ const pcm={sampleRate:16000,channels:[new Float32Array(64)]};
+ port1.on('message',data=>{requests.push(data);const stale=data.action==='loadSample'&&data.args[1].sampleEpoch!==epoch;port1.postMessage({type:'chip-inspector-result',id:data.id,...(stale?{error:'Sample loading cancelled by Stop'}:{value:data.action==='read'?{clock:3579545,adpcm:{sampleEpoch:epoch}}:true})});});
+ const inspector=createChipInspector({endpoints:()=>[{id:'y',kind:'y8950',port}],decode:()=>{decodeReady();return new Promise(resolve=>finish=()=>resolve(pcm));}});
+ const pending=options=>{const ready=new Promise(resolve=>decodeReady=resolve),result=inspector.loadSample('y',pcm,options);return {ready,result};};
+ try{
+  const abort=new AbortController(),first=pending({signal:abort.signal});await first.ready;abort.abort();finish();await assert.rejects(first.result,{name:'AbortError'});assert.equal(requests.filter(request=>request.action==='loadSample').length,0);
+  const stopped=pending();await stopped.ready;epoch++;finish();await assert.rejects(stopped.result,/cancelled by Stop/);
+  const retired=pending();await retired.ready;port=replacement.port2;finish();await assert.rejects(retired.result,/changed while decoding/);assert.equal(requests.filter(request=>request.action==='loadSample').length,1,'only the same-port epoch is sent to the audio-side fence');
+ }finally{inspector.dispose();port1.close();port2.close();replacement.port1.close();replacement.port2.close();}
+});
+
 test('shared OPN/PSG admin ports keep their kind and replaced instances receive a fresh connection token',async()=>{
   const first=new MessageChannel(),second=new MessageChannel();let active=first.port2;const kinds=[];
   first.port1.on('message',data=>{kinds.push(data.inspectorKind);first.port1.postMessage({type:'chip-inspector-result',id:data.id,value:data.inspectorKind});});

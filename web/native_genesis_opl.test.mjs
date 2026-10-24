@@ -133,7 +133,7 @@ for (const chip of CHIPS) {
     f.client.setRhythm({enabled: true, bassDrum: true, snare: true, tom: true, cymbal: true, hiHat: true});
     assert.equal(f.state.registers[0xbd] & 63, 63);
     for (let drum = 0; drum < 5; drum++) { await f.endpoint.dispatch({method: 'forceRhythmOff', args: [drum]}); assert.equal(f.state.registers[0xbd] & (16 >> drum), 0); }
-    assert.equal((await f.endpoint.read()).keyboardChannels.length, f.client.channels - 3);
+    assert.equal((await f.endpoint.read()).keyboardChannels.length, f.client.channels - 3 + Number(chip === 'y8950'));
     const before = f.commands.length;
     await assert.rejects(f.endpoint.invoke('auditionOn', [6, 69, 'drum']), /Rhythm mode/);
     assert.equal(f.commands.length, before); assert.equal(f.held.size, 0);

@@ -1,5 +1,6 @@
 import {encodeRf5c164} from './rf5c164_pcm.js';
-import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=y8950-adpcm-1';
+import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=y8950-adpcm-ui-1';
+import {prepareY8950AdpcmSample,snapshotY8950AdpcmSource} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';
 
 /** UI-only admin port access. Audio creation and Worker-owned ports are deliberately untouched. */
 export function createChipInspector({endpoints, decode}) {
@@ -75,6 +76,15 @@ export function createChipInspector({endpoints, decode}) {
     async loadSample(id,source,options={}){
       if(!options||typeof options!=='object'||Array.isArray(options))throw new TypeError('Sample options must be an object');
       const endpoint=endpointFor(id);
+      if(endpoint.kind==='y8950'){
+        const selected={...options},captured=snapshotY8950AdpcmSource(source),signal=selected.signal;
+        if(signal!==undefined&&typeof signal?.throwIfAborted!=='function')throw new TypeError('Expected an AbortSignal');
+        signal?.throwIfAborted();const state=await request(endpoint,'read');signal?.throwIfAborted();
+        if(endpointFor(id).port!==endpoint.port)throw new Error('Sound chip changed while decoding');
+        const prepared=await prepareY8950AdpcmSample(captured,selected,state.clock,decode);signal?.throwIfAborted();
+        if(endpointFor(id).port!==endpoint.port)throw new Error('Sound chip changed while decoding');
+        return request(endpoint,'loadSample',undefined,[prepared.bytes,{...prepared.metadata,sampleEpoch:state.adpcm.sampleEpoch}]);
+      }
       if(endpoint.kind==='okim6258'){
         const {name='Sample',sampleRate,signal}=options;
         if(typeof name!=='string'||!name.length||name.length>256)throw new TypeError('Sample name must contain 1..256 characters');
@@ -99,7 +109,7 @@ export function createChipInspector({endpoints, decode}) {
       const selected={name:options.name??'Sample',address:options.address,loopStart:options.loopStart};
       if(selected.address!==undefined&&(!Number.isInteger(selected.address)||selected.address<0||selected.address>65535||selected.address%256))throw new RangeError('Start must be a 256-byte aligned RAM address');
       if(selected.loopStart!==undefined&&(!Number.isInteger(selected.loopStart)||selected.loopStart<0||selected.loopStart>65535))throw new RangeError('Invalid sample loop position');
-      if(endpoint.kind!=='rf5c164')throw new Error('Sample loading requires RF5C164 or OKIM6258');
+      if(endpoint.kind!=='rf5c164')throw new Error('Sample loading requires RF5C164, OKIM6258 or Y8950');
       const {bytes,frames,step}=encodeRf5c164(await decode(source));
       // A selection/Stop can dispose the original node while decoding. Never load into its replacement.
       if(endpointFor(id).port!==endpoint.port)throw new Error('Sound chip changed while decoding');

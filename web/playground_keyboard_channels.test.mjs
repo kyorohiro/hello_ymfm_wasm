@@ -16,11 +16,13 @@ test('Keyboard channel catalog distinguishes OPN sections and physical voice cou
 });
 
 test('native Keyboard adapters include noise/sample voices and one polyphonic DX7 target',()=>{
-  const counts={ay8910:3,segapsg:4,gameboy:4,nes:6,snes:8,ym2151:8,huc6280:6,rf5c164:8,okim6258:1,dx7:1,ym3526:9,ym3812:9,y8950:9,ymf262:18,ym2413:9};
+  const counts={ay8910:3,segapsg:4,gameboy:4,nes:6,snes:8,ym2151:8,huc6280:6,rf5c164:8,okim6258:1,dx7:1,ym3526:9,ym3812:9,ymf262:18,ym2413:9};
   for(const [kind,count]of Object.entries(counts)){
     const channels=keyboardChannels(kind);assert.equal(channels.length,count,kind);assert.equal(new Set(channels.map(channel=>channel.id)).size,count);assert(channels.every((channel,index)=>channel.id===String(index)&&channel.label.length>0));
   }
   assert.equal(keyboardChannels('nes',{fds:false}).length,5);
+  assert.deepEqual(keyboardChannels('y8950').map(row=>row.id),['0','1','2','3','4','5','6','7','8','adpcm']);
+  assert.deepEqual(keyboardChannels('y8950',{rhythmEnabled:true,rhythmVoices:true}).map(row=>row.id),['0','1','2','3','4','5','rhythm:0','rhythm:1','rhythm:2','rhythm:3','rhythm:4','adpcm']);
   assert.equal(keyboardChannels('nes',{fdsEnabled:false}).length,5);
   assert.match(keyboardChannels('dx7')[0].label,/16 voices/);
   for(const kind of ['pwm','unknown'])assert.deepEqual(keyboardChannels(kind),[]);
@@ -28,7 +30,7 @@ test('native Keyboard adapters include noise/sample voices and one polyphonic DX
 
 test('Keyboard hints describe actual sample/noise/stream pitch limitations',()=>{
   for(const [kind,ch]of [['segapsg','3'],['gameboy','3'],['nes','3']])assert.match(keyboardChannelHint(kind,ch),/noise/);
-  for(const [kind,ch]of [['nes','4'],['okim6258','0'],['ym2608','rhythm:2'],['ym2610b','adpcm-b:0']])assert.match(keyboardChannelHint(kind,ch),/current playback rate/);
+  for(const [kind,ch]of [['nes','4'],['okim6258','0'],['ym2608','rhythm:2'],['ym2610b','adpcm-b:0'],['y8950','adpcm']])assert.match(keyboardChannelHint(kind,ch),/current playback rate/);
   assert.match(keyboardChannelHint('rf5c164'),/C4/);
   assert.match(keyboardChannelHint('pwm'),/timed sample stream/);
   assert.match(keyboardChannelHint('unknown'),/keyboard.bind/);

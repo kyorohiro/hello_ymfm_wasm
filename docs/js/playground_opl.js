@@ -1,5 +1,5 @@
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-1';
+import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-ui-1';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
 export const OPL_CHIPS = Object.freeze(['ym3526','ym3812','y8950','ymf262']);
@@ -54,7 +54,7 @@ export function createOplRegisterClient(send, {chip = 'ym3812', clock = CHIP_CLO
       return request?request('stopVoices',[]):synth._requestControl('stopVoices');
     }},
   });
-  if(chip==='y8950'&&request)attachY8950Adpcm(synth,{...adpcmContext,loadMemory:(bytes,address,scope)=>request('loadAdpcmMemory',[bytes,address],scope),clearMemory:scope=>request('clearAdpcmMemory',[],scope)});
+  if(chip==='y8950'&&request)attachY8950Adpcm(synth,{...adpcmContext,loadMemory:(bytes,address,scope,preview)=>request('loadAdpcmMemory',[bytes,address,preview],scope),clearMemory:scope=>request('clearAdpcmMemory',[],scope)});
   return synth;
 }
 

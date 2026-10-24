@@ -1,6 +1,6 @@
 import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=y8950-adpcm-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-1';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=y8950-adpcm-ui-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-ui-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import pwmFactory from '../generated/pwm32x_wasm.js?v=pwm-wasm-1';
 

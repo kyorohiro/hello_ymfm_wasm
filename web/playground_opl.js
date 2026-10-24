@@ -54,7 +54,7 @@ export function createOplRegisterClient(send, {chip = 'ym3812', clock = CHIP_CLO
       return request?request('stopVoices',[]):synth._requestControl('stopVoices');
     }},
   });
-  if(chip==='y8950'&&request)attachY8950Adpcm(synth,{...adpcmContext,loadMemory:(bytes,address,scope)=>request('loadAdpcmMemory',[bytes,address],scope),clearMemory:scope=>request('clearAdpcmMemory',[],scope)});
+  if(chip==='y8950'&&request)attachY8950Adpcm(synth,{...adpcmContext,loadMemory:(bytes,address,scope,preview)=>request('loadAdpcmMemory',[bytes,address,preview],scope),clearMemory:scope=>request('clearAdpcmMemory',[],scope)});
   return synth;
 }
 

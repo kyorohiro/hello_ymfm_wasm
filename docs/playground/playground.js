@@ -2,14 +2,14 @@ import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
 import {installPlaygroundWorkbench} from './playground_workbench.js?v=operator-tab-keyboard-1';
-import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-1';
-import {createPlaygroundSoundChipMixer} from './playground_mixer_defaults.js?v=y8950-adpcm-1';
-import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-1';
-import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=y8950-adpcm-1';
+import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
+import {createPlaygroundSoundChipMixer} from './playground_mixer_defaults.js?v=y8950-adpcm-ui-1';
+import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
+import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=y8950-adpcm-ui-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=y8950-adpcm-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=y8950-adpcm-ui-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
   createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=audio-numeric-bindings-1';
@@ -34,7 +34,8 @@ const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-2';
 import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-frequency-order-2';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=audio-numeric-bindings-1';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=y8950-adpcm-ui-1';
+import {createNativeSampleEditorAudio} from '../js/playground_native_sample_editor.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=audio-numeric-bindings-1';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
 import {createAudioMonitor} from './playground_audio_monitor.js?v=vertical-range-1';
@@ -43,10 +44,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=y8950-adpcm-1";
+} from "../js/megasynth.js?v=y8950-adpcm-ui-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=y8950-adpcm-1";
+} from "../js/tetorica_synth.js?v=y8950-adpcm-ui-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -56,11 +57,11 @@ import {
 import { createVgiFromPreset, parseVgi } from "../js/vgi.js?v=audio-stability-2";
 import {
   createPlaygroundOperatorTab,
-} from "./playground_operator_tab.js?v=y8950-adpcm-1";
-import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-1';
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=y8950-adpcm-1";
+} from "./playground_operator_tab.js?v=y8950-adpcm-ui-1";
+import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=y8950-adpcm-ui-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-numeric-bindings-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=y8950-adpcm-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=y8950-adpcm-ui-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=audio-numeric-bindings-1";
 import {
   decodeBase64Bytes,
@@ -92,12 +93,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=y8950-adpcm-1";
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=y8950-adpcm-1';
+} from "../js/playground_runtime.js?v=y8950-adpcm-ui-1";
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=y8950-adpcm-ui-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=y8950-adpcm-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=y8950-adpcm-ui-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";
@@ -285,7 +286,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const soundChipMixer = createPlaygroundSoundChipMixer(selectedMode.id);
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=y8950-adpcm-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=y8950-adpcm-ui-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     mixer:soundChipMixer,
@@ -1846,6 +1847,7 @@ const sampleAssets = createPlaygroundSampleAssets({
     desktopAutosave?.changed();
   },
 });
+const nativeSampleEditorAudio=useNativeGenesis?createNativeSampleEditorAudio(megaDrive):null;
 const sampleInputProvider = createPlaygroundAudioInput({
   recordingSeconds: 60,
   defaultTarget: selectedChip === 'gameboy' ? 'gameboy-wave'
@@ -1855,6 +1857,7 @@ const sampleInputProvider = createPlaygroundAudioInput({
     return megaDrive.audioContext;
   },
   getPreviewDestination: () => megaDrive.masterInputNode ?? megaDrive.audio?.masterInputNode ?? megaDrive.audioContext.destination,
+  ...(nativeSampleEditorAudio?{decodeAudio:bytes=>nativeSampleEditorAudio.decodeAudio(bytes),playPreview:(rendered,context)=>nativeSampleEditorAudio.playPreview(rendered,context)}:{}),
   loadAsset: (path, context) => sampleAssets.loadAsset(path,sampleAssetContext(context)),
   saveAsset: (asset, context) => sampleAssets.saveAsset(asset,sampleAssetContext(context)),
 });
@@ -1945,7 +1948,7 @@ if (useNativeGenesis) {
 async function showAudioDiagnostics() {
   if (audioDiagnostics && audioDiagnostics.getState().phase !== 'disposed') return;
   if (!audioDiagnosticsLoading) {
-    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=y8950-adpcm-1').then(({createAudioDiagnostics}) => {
+    audioDiagnosticsLoading = import('./playground_audio_diagnostics.js?v=y8950-adpcm-ui-1').then(({createAudioDiagnostics}) => {
       audioDiagnostics = createAudioDiagnostics({
         host: document.body,
         getSynth: () => runtime.megaDrive,
@@ -2004,6 +2007,11 @@ chipTabs = createPlaygroundChipTabs({
   listFiles: () => virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)),
   readFile: path => virtualFiles.get(path),
   ensureAudioReady: () => runtime.prepareAudition(),
+  openSampleEditor: async (options, context) => {
+    await runtime.prepareAudition();
+    context?.signal?.throwIfAborted();
+    return inputAudio(options, context);
+  },
   onAuditionTargetChange: selection => {if (!operatorPanelShown) syncEditorKeyboard(selection);},
   onKeyboardTargetChange: target => {
     keyboardRouting.setCustomTarget('panel',target);
@@ -2138,6 +2146,8 @@ async function runCode({propagateError = false} = {}) {
 }
 
 async function stopRun() {
+  sampleInputProvider._stopPreview();
+  void nativeSampleEditorAudio?.stop();
   runButton.disabled = true;
   stopButton.disabled = true;
   try { await runtime.stopWithFade(); }

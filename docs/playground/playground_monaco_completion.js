@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=y8950-adpcm-1";
+} from "../js/megasynth.js?v=y8950-adpcm-ui-1";
 
 const SCALE_NAMES = [
   "major",
