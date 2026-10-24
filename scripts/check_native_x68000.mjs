@@ -14,6 +14,7 @@ import {YM2151Synth} from '../web/ym2151synth.js';
 import {Oki6258Stream,encodeOki6258} from '../web/okim6258synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const fmBinary=await fs.readFile(path.join(root,'docs/generated/ym2151_wasm.wasm'));
@@ -85,8 +86,15 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline synthesis/output-rate/stream comparison with independent FM and OKI outputs. Native ownership, scheduling, IPC and UI are verified separately. Browser Worklet immediate force-key-off and authored total-level restoration are reproduced over the real WASM. C++ fixture asserts retained samples, atomic 16 MiB uploads, observational IRQ/status and zero callback allocations.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-x68000-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-x68000/snapshot/src','native-x68000/snapshot/third_party/mame-okim6258'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_x68000.cpp','src/native_genesis_x68000_fixture.cpp','src/native_genesis_ymfm_opm.cpp','native-x68000/okim6258.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+    // Match Tauri: keep the application's X68000 mix/OKI adapter and use the
+    // pinned SDK OPM provider and headers for its FM source.
+    const files=[path.join(project,'src/native_genesis_x68000.cpp'),path.join(project,'src/native_genesis_x68000_fixture.cpp'),
+      path.join(sdk,'native/src/ymfm_opm_provider.cpp'),path.join(project,'native-x68000/okim6258.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+      ...['native-genesis','native-x68000/snapshot/third_party/mame-okim6258'].map(p=>'-I'+path.join(project,p)),
+      ...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

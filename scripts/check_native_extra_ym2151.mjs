@@ -8,6 +8,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {YM2151Synth} from '../web/ym2151synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const binary=await fs.readFile(path.join(root,'docs/generated/ym2151_wasm.wasm'));
@@ -74,8 +75,14 @@ const report={schemaVersion:1,deviceOpened:false,reference:'Actual deployed play
   limits:'Offline standalone OPM only; no OKI/PCM banks. PCM plus status/IRQ/read ports,8normal keymasks,independent AMD/PMD compare. Control-captured power-on state is restored without callback allocation. Strong cancellation/cache isolation and independent globalCSM helpers are validated in the C++ self-test. Native Stop additionally closes timers/globalCSM to prevent owned-source resurrection; Browser Stop only forces TL and host silence. Public allNotesOff retains timers/globalCSM and normal-key resume exactly like Browser. Raw Browser write/reset/CSM silent-gate behavior remains unchanged. No audio device or deadline guarantee.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2151-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2',...['native-genesis','native-x68000/snapshot/src'].map(p=>'-I'+path.join(project,p)),
-      ...['src/native_genesis_ym2151.cpp','src/native_genesis_ym2151_fixture.cpp','src/native_genesis_ymfm_opm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+    // Match Tauri's independent YM2151: use the pinned SDK wrapper/provider,
+    // retaining the application fixture and explicit --fixture injection.
+    const files=[path.join(sdk,'native/reference/tauri/native_genesis_ym2151.cpp'),
+      path.join(project,'src/native_genesis_ym2151_fixture.cpp'),path.join(sdk,'native/src/ymfm_opm_provider.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+      ...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,args})=>`${frame} ${op} ${args.join(' ')}`).join('\n')+'\n';
