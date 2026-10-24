@@ -232,8 +232,9 @@ Available in `tetorica-fm2612@0.2.23` and later.
 The MSX Playground mode combines `ay` (AY-3-8910 PSG) and `opll` (YM2413
 MSX-MUSIC). MSX Audio adds `opl` (Y8950 MSX-AUDIO FM). Each instrument has
 its own mixer strip, chip tab and Keyboard channel selector in the same audio
-context. These are authoring sound sets. The Y8950 uses the existing OPL FM API; its ADPCM sample player has
-no high-level adapter in this mode.
+context. These are authoring sound sets. The Y8950 uses the existing OPL FM API.
+Since 0.2.26, the MSX Audio Playground client also exposes `opl.adpcm` for
+ADPCM-B sample preparation, playback controls and voice audition.
 
 ```js
 // Playground script in MSX Audio mode. AY volume: 0 silent .. 15 loudest.
@@ -930,10 +931,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.25.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.26.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.25.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.26.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -950,6 +951,16 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.26` adds **opt-in calibrated Mixer presets** through
+`SOUNDCHIP_MIXER_PRESETS.calibrated`. Fixed output-level defaults for 22 measured
+chip kinds can be selected when constructing a `SoundChipMixer`; existing
+no-mixer and unconfigured-Mixer defaults, explicit volume settings and raw PCM
+are preserved. The shared Playground runtime also updates independently owned
+additional Native chips, Main/Worker routing, Mixer settings and lifecycle
+cleanup, and Y8950 ADPCM sample preparation and audition. Native playback
+requires a compatible Tauri host; it is not a standalone Native backend for npm.
+The package includes the MSM5205 reference renderer's libvgm notices.
 
 `0.2.25` moves **32X PWM asynchronous playback to a shared C++/WASM core**.
 Direct creation, browser AudioWorklets, MegaSynth/MegaSynthNode and asynchronous

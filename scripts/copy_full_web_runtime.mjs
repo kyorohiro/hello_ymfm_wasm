@@ -56,7 +56,7 @@ const dx7Version = JSON.parse(readFileSync(join(root,'web/msfa_dx7/package.json'
 for (const name of ['jsnes','fixnes-fds']) cpSync(join(root,'third_party',name),join(stage,'licenses',name),{recursive:true});
 copyFileSync(join(root,'web/native_audio_effect.wasm'),join(jsDir,'native_audio_effect.wasm'));
 copyFileSync(join(root,'web/soundchip.md'),join(jsDir,'soundchip.md'));
-const notices = ['nuked-opn2', 'mame-ay8910','mame-gameboy','mame-huc6280','mame-k051649','mame-okim6258','mame-okim6295','mame-rf5c164','mame-segapcm','mame-32x-pwm'];
+const notices = ['nuked-opn2', 'mame-ay8910','mame-gameboy','mame-huc6280','mame-k051649','mame-okim6258','mame-okim6295','libvgm-msm5205','mame-rf5c164','mame-segapcm','mame-32x-pwm'];
 for (const name of notices) {
   const dir=join(stage,'licenses',name); mkdirSync(dir,{recursive:true});
   for (const file of ['LICENSE','README.md']) copyFileSync(join(root,'third_party',name,file),join(dir,file));

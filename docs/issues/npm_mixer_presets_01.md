@@ -121,3 +121,19 @@ node scripts/check_soundchip_mixer_presets_browser.cjs --webkit
   別sourceを維持したまま自分のrouteだけを破棄し、raw YM2612 PCMの最大差は0だった。
   capture Worklet後段は無音出力で、物理デバイスでの聴感比較ではない。
   最初のsandbox実行はローカルlistenのEPERMで停止し、許可された環境で成功した。
+
+## npm公開（2026-10-24）
+
+- `tetorica-fm2612@0.2.26`を`latest`で公開した。npmはHTTP 202で受理し、
+  反映待ちの後にversionと`latest: 0.2.26`を確認した。
+- 公開前に再buildし、328型宣言、942ローカル参照、26 WASM engine、
+  tarballの隔離install後のPCM／API／consumer型試験がすべて成功した。
+- MSM5205参照実装の`libvgm-msm5205` README／LICENSEの同梱漏れを修正し、
+  配布物検査の必須項目へ追加した。READMEのY8950 ADPCMの古い説明も更新した。
+- 最終tarballの803ファイルは検証したstageとバイト単位で一致。
+  npmから再取得したtarballも、検証済みローカルtarballの全1,578,797 bytesと一致した。
+- 公開URL: https://www.npmjs.com/package/tetorica-fm2612/v/0.2.26
+- SHA-256: `e82377b557d6613e04a8c6ea0d606bc9fc6c5fd3e62e5990bbb5a5663f0840ae`
+- SRI: `sha512-t/xDXvTh+2raXGd4m6Zsi4+rUtwB1Y/nfFtDBS/kmquG2dsGLY/koPUVPwyYXUjImogx7HLrWg1xWDXtd2xSLA==`
+
+調整済みプリセットは任意適用のまま。従来のMixer省略時の音量とraw PCMは変更していない。
