@@ -143,11 +143,12 @@ function dispatchMixerListener(listener, value, change = undefined) {
 }
 
 /** Settings can be prepared before start(). Importing this module opens no audio device. */
+/** @typedef {{factoryDefaults?:{version:number,kinds:Array<{name:string,volume?:number,pan?:number}>},
+ * factoryEntries?:{version:number,entries:Array<{id:string,name:string,settings:{volume?:number,pan?:number}}>},
+ * factoryEngines?:{version:number,engines:Array<{name:string,engine:string,volume?:number,pan?:number}>}}} SoundChipMixerOptions */
 export class SoundChipMixer {
   /** Application factory policy is optional and never part of authored exports.
-   * @param {{factoryDefaults?:{version:number,kinds:Array<{name:string,volume?:number,pan?:number}>},
-   * factoryEntries?:{version:number,entries:Array<{id:string,name:string,settings:{volume?:number,pan?:number}}>},
-   * factoryEngines?:{version:number,engines:Array<{name:string,engine:string,volume?:number,pan?:number}>}}} [options] */
+   * @param {SoundChipMixerOptions} [options] */
   constructor({factoryDefaults, factoryEntries, factoryEngines} = {}) {
     const factoryKinds = factoryDefaults === undefined ? new Map() : parseDefaults(factoryDefaults);
     const factoryIds = factoryEntries === undefined ? new Map() : parseFactoryEntries(factoryEntries);
@@ -158,6 +159,7 @@ export class SoundChipMixer {
     this.factoryEngines = engineDefaults;
     this.listeners = new Set(); this.meterListeners = new Set();
   }
+  /** @param {string} [name] @param {string} [id] @param {string} [engine] */
   defaults(name, id = undefined, engine = undefined) {
     const factory = this.factoryEntries.get(id);
     return {...stripDefaults(name), ...this.factoryDefaults.get(name), ...this.factoryEngines.get(name)?.get(engine),
@@ -167,7 +169,8 @@ export class SoundChipMixer {
     const overrides = entry.overrideName === undefined || entry.overrideName === entry.name ? entry.overrides : {};
     return {...this.defaults(entry.name, entry.id, entry.engine), ...overrides};
   }
-  /** Effective common volume/pan, including factory fallbacks. */
+  /** Effective common volume/pan, including factory fallbacks.
+   * @param {string} name @param {string} [engine] */
   getKindDefault(name, engine = undefined) {
     policyIdentifier(name, 'Mixer kind');
     if (engine !== undefined) policyIdentifier(engine, 'Mixer engine');

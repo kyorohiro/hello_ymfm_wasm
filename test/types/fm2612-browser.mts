@@ -1,4 +1,5 @@
-import {createSoundChip, encodeWav, SoundChipMixer} from 'tetorica-fm2612';
+import {createSoundChip, encodeWav, SoundChipMixer, SOUNDCHIP_MIXER_PRESETS} from 'tetorica-fm2612';
+import {SOUNDCHIP_MIXER_PRESETS as browserMixerPresets} from 'tetorica-fm2612/soundchip_mixer_presets.js';
 import {YM2612Synth, YM2612WorkletTransport} from 'tetorica-fm2612/ym2612synth';
 import {MegaSynth} from 'tetorica-fm2612/megasynth';
 import {Playground} from 'tetorica-fm2612/playground_runtime';
@@ -25,6 +26,11 @@ const bytes: Uint8Array = encodeWav({sampleRate: 48000, left: new Float32Array(1
 void bytes;
 
 const mixer = new SoundChipMixer();
+const balancedMixer = new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
+new SoundChipMixer(browserMixerPresets.calibrated);
+balancedMixer.getKindDefault('rf5c164').volume.toFixed(6);
+// @ts-expect-error The preset namespace is readonly in browser declarations too.
+browserMixerPresets.calibrated = {};
 mixer.set('gb1', {volume:0.28, pan:0, muted:false, solo:true});
 const stopMixChanges = mixer.subscribe(entries => {entries[0]?.effectiveMuted.valueOf();});
 const stopMixMeters = mixer.subscribeMeters(entries => {entries[0]?.left.toFixed(2); entries[0]?.id.toUpperCase();});

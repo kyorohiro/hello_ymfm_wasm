@@ -1,5 +1,6 @@
 import {allocateSoundChipId} from './soundchip_mixer.js';
 export {SoundChipMixer, soundChipMixDefaults} from './soundchip_mixer.js';
+export {SOUNDCHIP_MIXER_PRESETS} from './soundchip_mixer_presets.js';
 /**
  * @file Browser / Node.js の便利なチップ生成入口。DOM・AudioContext は不要。
  * 選択した WASM だけを読み込む。最小配布には soundchip_factory.js を使うこと。

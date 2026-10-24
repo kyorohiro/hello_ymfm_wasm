@@ -74,6 +74,8 @@ factory値を保存JSONへ混ぜず、既存のdefault／current／名前付き�
 New Cassetteも、引き継いだdefaultの明示値を優先する。
 
 npm向けの汎用初期値、VGM Analyzer、低レベル`generateStereo()`のPCM、C++コアの音量は変更しない。
+今回の測定値をnpmで任意に使える`SOUNDCHIP_MIXER_PRESETS.calibrated`は、
+同じ測定reportの追加音源経路から生成する。[npm向けプリセット](npm_mixer_presets_01.md)を参照。
 
 実機での聴き比べには[全22音源の共通Example](playground_chip_comparison_01.md)を使う。
 

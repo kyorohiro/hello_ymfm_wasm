@@ -13,6 +13,9 @@ try {
     cwd: join(root, 'dist/fm2612'), encoding: 'utf8',
   }))[0];
   const packedPaths = new Set(packed.files.map(file => file.path));
+  for (const file of ['soundchip_mixer.js', 'soundchip_mixer.d.ts', 'soundchip_mixer_presets.js', 'soundchip_mixer_presets.d.ts']) {
+    assert.ok(packedPaths.has(file), `Optional Mixer calibration payload missing ${file}`);
+  }
   for(const file of ['nesapu_wasm.js','nesapu_wasm.d.ts','generated/nesapu_wasm.js','generated/nesapu_wasm.wasm',
     'licenses/tetorica-nes/LICENSE-JSNES','licenses/tetorica-nes/LICENSE-FDS','licenses/tetorica-nes/AUTHORS-JSNES.md','licenses/tetorica-nes/UPSTREAM-JSNES.md','licenses/tetorica-nes/UPSTREAM-FDS.md','licenses/tetorica-nes/README.md','licenses/jsnes/AUTHORS.md',
     'sources/third_party/tetorica-nes/nes_core.cpp','sources/third_party/tetorica-nes/nes_core.h','sources/wasm/nesapu_wasm.cpp','sources/scripts/build_nesapu_wasm.sh','sources/NES-FDS.md',
@@ -51,8 +54,10 @@ try {
   execFileSync(process.execPath, [join(root, 'scripts/check_web_runtime.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
   await writeFile(join(consumer, 'check.mjs'), `
 import assert from 'node:assert/strict';
-import {access} from 'node:fs/promises';
-import {createSoundChip} from 'tetorica-fm2612';
+import {access, readFile} from 'node:fs/promises';
+import {createSoundChip, SoundChipMixer, SOUNDCHIP_MIXER_PRESETS, soundChipMixDefaults} from 'tetorica-fm2612';
+import {SOUNDCHIP_MIXER_PRESETS as subpathPresets} from 'tetorica-fm2612/soundchip_mixer_presets.js';
+import {SOUNDCHIP_MIXER_PRESETS as extensionlessPresets} from 'tetorica-fm2612/soundchip_mixer_presets';
 import {YM2612Synth, YM2612DirectTransport} from 'tetorica-fm2612/ym2612synth';
 import {YM2151Synth, YM2151DirectTransport} from 'tetorica-fm2612/ym2151synth';
 import {NesApuSynth, NesApuDirectTransport} from 'tetorica-fm2612/nesapusynth';
@@ -62,18 +67,56 @@ import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_syn
 import {YM2413Synth,YM2413DirectTransport,YM2413_USER_PRESETS,YM2413_INSTRUMENTS} from 'tetorica-fm2612/ym2413synth';
 import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
+import ym2612ModuleFactory from 'tetorica-fm2612/generated/ym2612_wasm.js';
+assert.equal(SOUNDCHIP_MIXER_PRESETS, subpathPresets);
+assert.equal(SOUNDCHIP_MIXER_PRESETS, extensionlessPresets);
+const calibratedPreset = SOUNDCHIP_MIXER_PRESETS.calibrated;
+function assertDeeplyFrozen(value) {
+  if (!value || typeof value !== 'object') return;
+  assert.ok(Object.isFrozen(value));
+  for (const child of Object.values(value)) assertDeeplyFrozen(child);
+}
+assertDeeplyFrozen(SOUNDCHIP_MIXER_PRESETS);
+assert.equal(calibratedPreset.factoryDefaults.kinds.length, 22);
+assert.equal(Object.hasOwn(calibratedPreset, 'factoryEntries'), false, 'npm calibration uses measured kinds, not Playground primary IDs');
+assert.throws(() => {calibratedPreset.factoryDefaults.kinds[0].volume = 2;}, TypeError);
+assert.deepEqual(soundChipMixDefaults('gameboy'), {volume:0.28, pan:0, muted:false});
+assert.deepEqual(soundChipMixDefaults('rf5c164'), {volume:1, pan:0, muted:false});
+const legacyMixer = new SoundChipMixer(), calibratedMixer = new SoundChipMixer(calibratedPreset), applied = {};
+legacyMixer.register('rf5c164:33', 'rf5c164', () => {});
+calibratedMixer.register('rf5c164:33', 'rf5c164', value => {applied.pcm = value.volume;});
+calibratedMixer.register('fm', 'ym2612', value => {applied.fm = value.volume;}, undefined, {engine:'ymfm'});
+calibratedMixer.register('accurate', 'ym2612', value => {applied.nuked = value.volume;}, undefined, {engine:'nuked'});
+assert.equal(legacyMixer.get('rf5c164:33').volume, 1, 'Generic factory defaults are not calibrated implicitly');
+assert.deepEqual(applied, {pcm:0.280286, fm:0.775938, nuked:0.493869});
+calibratedMixer.setKindDefault('rf5c164', {volume:0.7});
+calibratedMixer.set('rf5c164:33', {volume:0.9});
+const savedMixer = calibratedMixer.exportState(), savedDefaults = calibratedMixer.exportDefaults();
+for (let index = 0; index < 3; index++) calibratedMixer.restoreState(savedMixer, savedDefaults);
+assert.equal(applied.pcm, 0.9, 'Authored volume replaces calibration without applying another RF5C164 trim');
+assert.deepEqual(calibratedMixer.getKindDefault('segapcm'), {volume:1, pan:0}, 'Unmeasured chips retain generic defaults');
+assert.equal(new SoundChipMixer(calibratedPreset).getKindDefault('rf5c164').volume, 0.280286, 'Consumer changes do not mutate the shared preset');
 const chip = await createSoundChip('ym2612');
+let rawChip;
 try {
   assert.ok(chip instanceof Ym2612);
+  assert.equal(chip.mixer, undefined, 'Legacy direct chips still return raw PCM without an output Mixer');
+  rawChip = await Ym2612.create({moduleFactory:ym2612ModuleFactory, moduleOptions:{
+    wasmBinary:await readFile(runtimeAssetUrl('generated/ym2612_wasm.wasm')),
+  }});
   const transport = new YM2612DirectTransport(chip);
   const synth = new YM2612Synth({transport});
   synth.setPreset(0, FM_PRESETS.sine);
   synth.noteOn(0, 4, 553);
+  const rawSynth = new YM2612Synth({transport:new YM2612DirectTransport(rawChip)});
+  rawSynth.setPreset(0, FM_PRESETS.sine);
+  rawSynth.noteOn(0, 4, 553);
   const {left, right} = transport.generateStereo(4096);
   assert.equal(left.length, 4096);
   assert.ok(left.every(Number.isFinite) && right.every(Number.isFinite));
   assert.ok(left.some(x => Math.abs(x) > 0.001), 'Synth must produce audible PCM');
-} finally { chip.dispose(); }
+  assert.deepEqual({left, right}, rawChip.generateStereo(4096), 'Importing calibration preserves exact low-level direct PCM');
+} finally { chip.dispose(); rawChip?.dispose(); }
 const opmChip = await createSoundChip('ym2151');
 try {
   const transport = new YM2151DirectTransport(opmChip);

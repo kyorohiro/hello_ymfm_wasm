@@ -1,4 +1,7 @@
-import {createSoundChip, encodeWav} from 'tetorica-fm2612';
+import {createSoundChip, encodeWav, SoundChipMixer, SOUNDCHIP_MIXER_PRESETS} from 'tetorica-fm2612';
+import {SOUNDCHIP_MIXER_PRESETS as mixerPresetsSubpath} from 'tetorica-fm2612/soundchip_mixer_presets.js';
+import {SOUNDCHIP_MIXER_PRESETS as mixerPresetsExtensionless} from 'tetorica-fm2612/soundchip_mixer_presets';
+import type {SoundChipMixerOptions} from 'tetorica-fm2612/soundchip_mixer.js';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 import {YM2612Synth, YM2612DirectTransport, YM2612WorkletTransport} from 'tetorica-fm2612/ym2612synth.js';
 import {YM2612Synth as ExtensionlessSynth} from 'tetorica-fm2612/ym2612synth';
@@ -17,6 +20,17 @@ import {YM3812Synth, YM3812DirectTransport} from 'tetorica-fm2612/ym3812synth.js
 import {OPLAudifyTransport} from 'tetorica-fm2612/node/transports';
 import {YM2413Synth,YM2413DirectTransport,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from 'tetorica-fm2612/ym2413synth.js';
 import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth.js';
+const calibratedOptions: SoundChipMixerOptions = mixerPresetsSubpath.calibrated;
+const calibratedMixer = new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
+new SoundChipMixer(calibratedOptions);
+new SoundChipMixer(mixerPresetsExtensionless.calibrated);
+calibratedOptions.factoryDefaults?.kinds[0]?.volume?.toFixed(6);
+calibratedOptions.factoryEngines?.engines[0]?.engine.toUpperCase();
+calibratedMixer.getKindDefault('ym2612', 'nuked').volume.toFixed(6);
+// @ts-expect-error Calibration is an explicitly named optional preset.
+SOUNDCHIP_MIXER_PRESETS.automatic;
+// @ts-expect-error The exported preset binding is readonly.
+SOUNDCHIP_MIXER_PRESETS.calibrated = {};
 const ayChip=await createSoundChip('ay8910');
 const ay=new AY8910Synth({transport:new AY8910DirectTransport(ayChip)});
 ay.initialize();ay.tone(0,{note:'A4',volume:9});ay.setMixer(0,{noise:true});

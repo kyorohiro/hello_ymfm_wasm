@@ -2,9 +2,15 @@ import {cp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {generateSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const stage = join(root, 'dist/fm2612');
+// Keep the opt-in npm policy in sync with the complete measured Playground baseline.
+await generateSoundChipMixerPresets({
+  reportPath:join(root, 'docs/issues/playground_chip_levels_01.json'),
+  outPath:join(root, 'web/soundchip_mixer_presets.js'),check:true,
+});
 // Only this generated package directory is replaced; the CLI distribution stays intact.
 await rm(stage, {recursive: true, force: true});
 await mkdir(stage, {recursive: true});

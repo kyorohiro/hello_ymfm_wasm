@@ -24,7 +24,7 @@ entry points, rather than every internal Worker or Worklet module.
 
 | Task | Import from | Main APIs |
 | --- | --- | --- |
-| Create a chip / mix browser outputs / encode WAV | `tetorica-fm2612` | `createSoundChip`, `SoundChipMixer`, `encodeWav` |
+| Create a chip / mix browser outputs / encode WAV | `tetorica-fm2612` | `createSoundChip`, `SoundChipMixer`, `SOUNDCHIP_MIXER_PRESETS`, `encodeWav` |
 | Convert Hz or MIDI to YM2612 BLOCK/FNUM | `tetorica-fm2612/pitch.js` | `hzToBlockFnum`, `createPitchFromMidi` |
 | FM preset sounds | `tetorica-fm2612/megasynth-fm-presets.js` | `FM_PRESETS`, `FM_PRESET_ORDER` |
 | YM2612 FM and DAC | `tetorica-fm2612/ym2612synth.js` | `YM2612Synth`, `YM2612DirectTransport`, `YM2612WorkletTransport` |
@@ -265,7 +265,8 @@ retriggers the shared envelope. AY uses a twelve-bit tone period and
 Browser outputs share `SoundChipMixer`: `volume` is a linear multiplier (0–2),
 `pan` is stereo balance (-1 left, 0 center, 1 right), and `muted` silences the
 output while the chip keeps running. Game Boy starts at 28%; other chips start
-at 100%. Multiple strips can be `solo: true`; other connected strips are
+at 100% unless an application explicitly selects a preset or supplies defaults.
+Multiple strips can be `solo: true`; other connected strips are
 suppressed without overwriting their manual `muted` settings. `list()` exposes
 `effectiveMuted` separately. `reset(id)` restores that chip's balance; `reset()` restores all strips.
 
@@ -288,6 +289,70 @@ without an explicit mixer. Each endpoint retains its existing `gain` trim (defau
 balance multiplies that trim. Direct chips continue to generate raw PCM and
 accept no output mixer. `PCMChipMixer` is available from `soundchip_mixer.js`
 for synchronous rendering, as used by the Analyzer.
+
+### Optional calibrated preset
+
+`SOUNDCHIP_MIXER_PRESETS.calibrated` provides fixed, measured output-level
+defaults for the 22 calibrated chip kinds. Select it when constructing the
+mixer, then pass that mixer to a browser Worklet endpoint:
+
+```js
+import {
+  createSoundChip, SoundChipMixer, SOUNDCHIP_MIXER_PRESETS,
+} from 'tetorica-fm2612';
+import {
+  YM2612Synth, YM2612WorkletTransport,
+} from 'tetorica-fm2612/ym2612synth.js';
+import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets.js';
+
+// Call from a button click or another browser user gesture.
+async function playCalibratedTone() {
+  const mixer = new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
+  const audioContext = new AudioContext();
+  let chip, transport;
+  try {
+    chip = await createSoundChip('ym2612', {
+      execution: 'worklet', audioContext, mixer,
+    });
+    transport = new YM2612WorkletTransport(chip);
+    const fm = new YM2612Synth({transport});
+    fm.setPreset(0, FM_PRESETS['one-op-basic']);
+    await chip.start();
+    fm.noteOn(0, 'A4');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    fm.noteOff(0);
+    await transport.flush();
+  } finally {
+    transport?.dispose();
+    await chip?.dispose(); // Also removes its mixer strip.
+    await audioContext.close(); // The caller owns this context.
+  }
+}
+```
+
+The preset is also exported from
+`tetorica-fm2612/soundchip_mixer_presets.js`. Creating `new SoundChipMixer()`
+without a preset, or omitting `mixer` from `createSoundChip()`, keeps the legacy
+defaults described above. Importing or selecting the preset opens no audio
+device. It does not change direct `generateStereo()` output.
+
+Calibration supplies fallback `volume` values, including an engine-specific
+YM2612/Nuked value when a connected endpoint reports that engine. Explicit
+common defaults and per-ID settings replace those fallback values; they do
+not multiply them. The Worklet endpoint's separate `gain` trim still applies.
+The preset does not alter saved settings or add storage.
+It adds no Worklet implementations or engine selection; the existing chip
+support and endpoint options still apply.
+
+These constants compare a fixed single voice at known levels. They do not
+analyze playing audio or perform automatic normalization, compression, or
+limiting. Timbre and polyphony still affect loudness and headroom. Chip kinds
+outside the 22 measured kinds keep their legacy defaults. The preset is
+intended initially for standalone chip / `createSoundChip` output routes;
+MegaSynth's built-in sources have different trims, so it does not reproduce
+the balance of a complete Playground machine mode.
+
+### Synth routing and settings
 
 For browser MegaSynth, use `synth.mixer.set('ym2612', {volume: 0.5})`.
 Built-in strip IDs are `ym2612`, `segapsg` when enabled, `rf5c164` in Mega CD
