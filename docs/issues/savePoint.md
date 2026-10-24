@@ -21,12 +21,15 @@ CI確認を開始する前は、本体・SDK・Tauriの3リポジトリともcle
 全5構成のNative検証とインストーラービルドが成功し、run全体も`completed`／`success`。
 このCI確認では音源・ビルドコードを修正せず、本体の記録とTauriのSDK取り込みガイドだけを更新している。
 そのCI結果をTauriの`6f4d4db0...`、本体の`ce4dc4de...`へユーザーがコミット済み。
-今回の着手前は両作業ツリーがcleanで、TauriのCI対象`5280f83a...`からの差分はガイド1ファイルのみだった。
-最新の作業はX68000のFMと追加生成YM2151のSDK参照切替。
+YM2151移行の着手前は両作業ツリーがcleanで、TauriのCI対象`5280f83a...`からの差分はガイド1ファイルのみだった。
+その後、X68000のFMと追加生成YM2151のSDK参照も切り替えた。
 同梱版を変えず、OPM providerと独立YM2151の接続をSDKからビルドする。
-X68000の機種用接続・OKIM6258・混合はアプリ側に保持する。
-今回のTauri実装と文書、本体の2つのcheckerと記録は未コミット。
-先行する全OPNの5構成CI成功と、今回のYM2151差分のローカル検証は区別する。
+このYM2151作業はTauriの`e4d68b27...`、本体の`f0e00dda...`へユーザーがコミット済み。
+最新の作業は、X68000と追加生成OKIM6258のデコーダー、および追加生成OKI接続のSDK参照切替。
+SDK原本は保持し、ビルド時の生成で従来と同じスレッド安全なテーブル初期化を適用する。
+X68000の機種用接続・サンプル管理・混合はアプリ側に保持する。
+今回のTauri実装と文書、本体の2つのchecker・生成helperと記録は未コミット。
+先行する全OPNの5構成CI成功と、後続のYM2151／OKIM6258差分のローカル検証は区別する。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
@@ -34,17 +37,18 @@ X68000の機種用接続・OKIM6258・混合はアプリ側に保持する。
 
 | リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `ce4dc4de1537944928feff0c9595b6a33d9cec2a` (全OPN CIの記録) |
+| 本体 | `hello_ymfm/` | `f0e00dda601941bb9df85096ab2c3462d6aca36a` (YM2151移行のcheckerと記録) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `6f4d4db0fcc05a0ce38d20b23e1d654b5836dc87` (CI結果のガイド更新。検証対象は`5280f83a...`) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `e4d68b27671ac39a64046a2b11c51709c41ff5be` (YM2151移行。全OPN CIの対象は`5280f83a...`) |
 
-本体には次のメモがある。今回のYM2151作業は、この保存時点のHEAD後の差分。
+本体には次のメモがある。今回のOKIM6258作業は、この保存時点のHEAD後の差分。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
 - [native_sdk_ym2608_adoption_01.md](native_sdk_ym2608_adoption_01.md)：YM2608移行とローカル検証。
 - [native_sdk_ym2610_adoption_01.md](native_sdk_ym2610_adoption_01.md)：YM2610／YM2610B移行と全OPNの5構成CI。
-- [native_sdk_ym2151_adoption_01.md](native_sdk_ym2151_adoption_01.md)：最新のYM2151／X68000移行とローカル検証。
+- [native_sdk_ym2151_adoption_01.md](native_sdk_ym2151_adoption_01.md)：YM2151／X68000移行とローカル検証。
+- [native_sdk_okim6258_adoption_01.md](native_sdk_okim6258_adoption_01.md)：最新のOKIM6258移行と初期化対策の保持。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -94,13 +98,20 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - PC-98／追加生成YM2608の `native/reference/tauri/native_genesis_ym2608.cpp`。
 - Neo Geo／追加生成YM2610・YM2610Bの `native/reference/tauri/native_genesis_ym2610b.cpp`。
 - 追加生成YM2151の `native/reference/tauri/native_genesis_ym2151.cpp`。
+- 追加生成OKIの `native/reference/tauri/native_genesis_extra_okim6258.cpp`。
+- `vendor/mame-okim6258/okim6258.cpp`原本へ既存の初期化対策を適用して`OUT_DIR/tetorica_sdk_okim6258.cpp`へ生成したデコーダー。
 - 共有 `native/src/ymfm_opn_provider.cpp`、`native/src/ymfm_opm_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`。
 
 共有providerは従来のarchive位置で一度だけコンパイルする。
 上記のOPN接続は共通providerを使い、未移行のOPL側も共通ADPCMを参照する。
 X68000の機種用接続はアプリ側の`src/native_genesis_x68000.cpp`を保持し、FMのincludeとOPM providerをSDKから解決する。
 OPM providerは従来の`tetorica_native_x68000` archive内で一度だけコンパイルする。
-同archive内のOKIM6258と追加生成OKI、サンプル所有・保持、FM／OKI混合は引き続きアプリ側。
+同archive内のOKIM6258デコーダーはSDK原本から生成し、選択中／追加生成で共用する。
+SDKのコンストラクターへC++の関数内staticを使う置換を1箇所だけ適用し、従来のTauri生成物と同じバイト列にする。
+置換元が1箇所でなければビルドを止める。SDKの374ファイルや固定記録を直接編集しない。
+サンプル所有・保持、FM／OKI混合は引き続きアプリ側。
+CargoはSDKのmame-okim6258ディレクトリと追加生成OKI接続を監視し、実消費元のなくなった旧native-x68000ディレクトリの監視は外した。
+機種用接続のcpp／headerの監視と旧スナップショットの由来・ハッシュ照合は保持する。
 他音源の接続全体までSDKへ移したわけではない。重複providerを追加したり、旧スナップショットをまとめて削除したりしない。
 
 Genesisのgain／DC除去／PSG混合、Rustの予約・owner・回収・予算、CPAL、Mixer、FX／liveFx、録音、WebView／JS APIはアプリ側。
@@ -216,6 +227,31 @@ X68000の機種用接続とOKIはアプリ側に保持する。
 今回の結果はmacOS ARM64／Clangで、音声デバイスを開かない検証。
 先行する全OPNの5構成CIは今回のYM2151差分を含まない。各OSのCIと実機確認は別途行う。
 
+### OKIM6258移行のローカル検証 — 2026-10-25
+
+固定SDKから追加生成OKI接続とデコーダー原本を使う。
+デコーダーにはビルド時に既存の初期化対策を適用し、SDK原本は編集しない。
+詳細は[native_sdk_okim6258_adoption_01.md](native_sdk_okim6258_adoption_01.md)。
+
+| 対象 | 結果 |
+| --- | --- |
+| ソース一致 | 接続・混合・ヘッダー6組がbyte一致。生成デコーダーも旧Nativeとbyte一致 |
+| X68000の移行前後と実WASM | 42入力、258,048フレーム。FM左右・OKI左右の4出力がbyte一致、WASMとの差分0 |
+| 追加生成OKIの移行前後 | 45入力、264,192フレーム。PCMとclock／divider／pan／再生状態等がbyte一致 |
+| 追加生成OKIと実WASM | 3ブロック分割の135比較、792,576フレーム。差分0 |
+| Native状態比較 | 6ケース、49,152フレーム。292／28バイトの状態全体とPCMが一致。借用バッファは破棄後も不変 |
+| 並行生成 | 旧／生成SDK版でそれぞれ16スレッド・513インスタンス。初期化は各1回のみ |
+| Cargo | 723成功、4件ignored |
+| 再生 | 22 mode・604,032フレーム・88 Run／Stopが成功 |
+| 混合 | 3混合構成・7単独音源、受入れ／16台制限が成功 |
+| 配布ソース | SDK374ファイルを含む22件の固定記録と、最終ZIP全1,796ファイルのオフライン照合成功 |
+
+固有Native入力は87件、522,240フレーム。実WASMは177比較、1,050,624フレームで、
+同じ追加生成入力を3種類のブロック分割で再生する比較を含む。177件をすべて固有入力と数えない。
+更新checkerの既定ビルドも成功し、SDK原本と実際の生成デコーダーのハッシュを記録した。
+Cargoが生成した`OUT_DIR/tetorica_sdk_okim6258.cpp`自体も旧デコーダーと一致した。
+今回もmacOS ARM64／Clangで音声デバイスを開かない検証。各OSのCIや実機確認とは区別する。
+
 ### YM2612移行のGitHub Actions — 2026-10-25
 
 - 対象: `v0.90.2+test`、Tauriコミット`9ef583e8e7fa9e75546b24dd89e119dab7d412c6`。
@@ -328,18 +364,19 @@ SDK自体をリモートから自動取得する設計には戻さない。
 ### 次の作業候補と未着手範囲
 
 1. 必要なOSのインストーラーを取得し、インストール後の起動を確認する。run `40130334227`の5構成と検証レポートは確認済み。
-2. 今回のYM2151差分をcommit／push後、必要に応じて5構成のCIを実行する。全OPN移行のCI成功とは区別する。
-3. X68000と追加生成YM2151の再生・Stop・再Run、OKIとの同時再生を実機でも聴いて確認する。先行する音源の実機確認も自動試験とは別。
-4. 次のSDK取り込みはOKIM6258やOPL等から選ぶ。共有providerの重複と既存音への影響を確認する。
+2. 今回のOKIM6258差分をcommit／push後、必要に応じてYM2151移行とともに5構成のCIを実行する。全OPN移行のCI成功とは区別する。
+3. X68000と追加生成YM2151／OKIM6258の再生・Stop・再Run、同時再生を実機でも聴いて確認する。先行する音源の実機確認も自動試験とは別。
+4. 次のSDK取り込みはOPLL／OPL等から選ぶ。共有providerの重複と既存音への影響を確認する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
 
 - Tauriの `native-validation/`、`native-source-bundle/`、`src-tauri/target/` はignoredな生成物。
 - 対応ソースZIP: `w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip`。
-  YM2151移行と最終文書の反映後のSHA-256: `b3c56199e1be251cbc6c1bdcf46627f3be3843cd960d2568894524a1548a3188`。
+  OKIM6258移行と最終文書の反映後のSHA-256: `7123fc45e6fde1333b6286885d0576f7a0cc9aa1137c32bbcf3bf28f882a71f3`。
   全1,796ファイルとSDK374ファイルを含む22件の固定記録を再照合済み。
-  結果は`/private/tmp/tetorica-sdk-ym2151-sources.json`。
+  結果は`/private/tmp/tetorica-sdk-okim6258-sources.json`。
+  先行するYM2151移行後の旧ZIPは`b3c56199...`で、今回のOKIM6258差分を含まない。
   先行する全OPN CI後の文書更新だけを含む旧ZIPは`af8e3129...`で、今回のYM2151差分を含まない。
   再生成後に値が変わる場合は、その時点の作業ツリーとマニフェストを確認する。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
@@ -359,10 +396,14 @@ SDK自体をリモートから自動取得する設計には戻さない。
   YM2151／X68000の最新検証は`/private/tmp/tetorica-sdk-ym2151-adoption/summary.json`、
   `/private/tmp/tetorica-sdk-ym2151-cargo-test.log`、`/private/tmp/tetorica-sdk-ym2151-stability.json`、
   `/private/tmp/tetorica-sdk-ym2151-extra-stability.json`、`/private/tmp/tetorica-sdk-ym2151-sources.json`。
+  OKIM6258の最新検証は`/private/tmp/tetorica-sdk-okim6258-adoption/summary.json`、
+  `/private/tmp/tetorica-sdk-okim6258-cargo-test.log`、`/private/tmp/tetorica-sdk-okim6258-stability.json`、
+  `/private/tmp/tetorica-sdk-okim6258-extra-stability.json`、`/private/tmp/tetorica-sdk-okim6258-sources.json`。
   `/private/tmp`は消える可能性があるため、再開の必須データとして扱わない。
 
 ソースと由来の正本は各Gitコミット、Tauriの同梱SDK／取り込み記録、上記の手順書。
 過去の作業メモにある「未コミット」は当時の状態。TauriのYM2612移行は`9ef583e...`、YM2203移行は`16610b0e...`、YM2608移行は`53ab3d27...`、YM2610／YM2610B移行は`5280f83a...`にコミット済み。
+YM2151移行もTauriの`e4d68b27...`、本体の`f0e00dda...`にコミット済み。現在の未コミット差分はOKIM6258移行。
 
 ## 旧記録 — 2026-08-24以降の作業メモ
 

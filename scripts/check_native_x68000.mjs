@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {prepareNativeOkim6258Source} from './native_okim6258_source.mjs';
 import fmFactory from '../docs/generated/ym2151_wasm.js';
 import okiFactory from '../docs/generated/okim6258_wasm.js';
 import {Ym2151AudioEngine} from '../web/ym2151audioengine.js';
@@ -86,14 +87,16 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline synthesis/output-rate/stream comparison with independent FM and OKI outputs. Native ownership, scheduling, IPC and UI are verified separately. Browser Worklet immediate force-key-off and authored total-level restoration are reproduced over the real WASM. C++ fixture asserts retained samples, atomic 16 MiB uploads, observational IRQ/status and zero callback allocations.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-x68000-'));fixture=path.join(temporary,'fixture');
-    // Match Tauri: keep the application's X68000 mix/OKI adapter and use the
-    // pinned SDK OPM provider and headers for its FM source.
+    // Match Tauri: keep the application's X68000 mix, use the SDK OPM provider,
+    // and generate the SDK-derived decoder with the existing Native init fix.
+    const decoder=await prepareNativeOkim6258Source({sdk,directory:temporary,root});
+    report.nativeDecoder=decoder.provenance;
     const files=[path.join(project,'src/native_genesis_x68000.cpp'),path.join(project,'src/native_genesis_x68000_fixture.cpp'),
-      path.join(sdk,'native/src/ymfm_opm_provider.cpp'),path.join(project,'native-x68000/okim6258.cpp')];
+      path.join(sdk,'native/src/ymfm_opm_provider.cpp'),decoder.file];
     report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
       sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
     execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
-      ...['native-genesis','native-x68000/snapshot/third_party/mame-okim6258'].map(p=>'-I'+path.join(project,p)),
+      '-I'+path.join(sdk,'vendor/mame-okim6258'),'-I'+path.join(project,'native-genesis'),
       ...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){

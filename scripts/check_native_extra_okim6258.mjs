@@ -6,8 +6,10 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {prepareNativeOkim6258Source} from './native_okim6258_source.mjs';
 import {encodeOki6258} from '../web/okim6258synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const index=process.argv.indexOf(name);return index<0?null:process.argv[index+1];};
 const out=option('--out'),rates=[44100,48000,96000],scenarios=[];
 let fixture=option('--fixture'),temporary,Processor;
@@ -29,7 +31,14 @@ for(const clock of[100000,100001,3579545,12500000,100000000])scenario(`independe
 scenario('per-frame raw data and tiny streamed sample replacements',({add,at,write})=>{add('memory',Uint8Array.of(0x7f));add('play',1);for(let frame=1;frame<1024;frame++){at(frame);if(!(frame%17)){add('memory',encoded.subarray(frame%50,frame%50+3));add('play',1);}if(!(frame%13))add('clock',100000+(frame*637127)%99900001);if(!(frame%11))write(12,frame%3);}},{frames:2048});
 const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed OKIM6258 WASM in shipped playground_okim6258_worklet.js renderSegment, flags12; one-frame/128-frame/irregular split rendering',wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,limits:'Offline PCM and applied clock/divider/pan/sample/position/feed/playback comparison. Standalone instance isolation, external sample lifetime, raw FIFO, sample retention, rate guards and callback allocation/free audit covered by C++ self-test. Native clocks must also be FIFO-safe at reset divider 512 (8 kHz clock maximum 57,344,000 Hz); the rejected next-Hz/raw-register boundary is covered by the C++ self-test. Rack/control/IPC/UI tested separately. No audio device, subjective listening or cross-platform compiler used.'};
 try{
- if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-oki-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),'-I'+path.join(project,'native-x68000/snapshot/src'),'-I'+path.join(project,'native-x68000/snapshot/third_party/mame-okim6258'),...['src/native_genesis_extra_okim6258.cpp','src/native_genesis_extra_okim6258_fixture.cpp','native-x68000/okim6258.cpp'].map(file=>path.join(project,file)),'-o',fixture],{stdio:'pipe'});}
+ if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-oki-'));fixture=path.join(temporary,'fixture');
+  const decoder=await prepareNativeOkim6258Source({sdk,directory:temporary,root});report.nativeDecoder=decoder.provenance;
+  const files=[path.join(sdk,'native/reference/tauri/native_genesis_extra_okim6258.cpp'),
+   path.join(project,'src/native_genesis_extra_okim6258_fixture.cpp'),decoder.file];
+  report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+   sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/mame-okim6258'),'-I'+path.join(sdk,'vendor/ymfm'),
+   ...files,'-o',fixture],{stdio:'pipe'});}
  report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
  for(const rate of rates)for(const scenario of scenarios){globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,args})=>`${frame} ${op} ${op==='memory'?Buffer.from(args[0]).toString('hex'):args.join(' ')}`).join('\n')+'\n';const bytes=execFileSync(fixture,[String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*12*4+1048576,timeout:30000});assert.equal(bytes.length,scenario.frames*12*4);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
   for(const split of[[1],[128],[3,127,1,64,17,256]]){const reference=new Processor({processorOptions:{wasmBinary}});await reference.testReady;let next=0,frame=0,block=0,maximumDifference=0,peak=0,first;
