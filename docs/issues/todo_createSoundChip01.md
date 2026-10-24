@@ -223,6 +223,9 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [x] [Y8950 ADPCMのメモリー・サンプル再生API](y8950_adpcm_01.md)をBrowser／Native・Main／Workerへ追加する。
 - [x] [SPCプレーヤーのNative化と観測イベントの配送](native_dynamic_spc_01.md)。
 - [ ] `tetorica-soundchip-native`／JS adapterのパッケージ分離、低レベルAPI全体への展開。
+  [独立リポジトリへの初期集約](soundchip_native_repository_01.md)を開始。
+  全22種類のソース、原文ライセンス・未記載箇所の記録、配布ZIP、代表YM2612の独立Native／WASMビルドを用意した。
+  既存アプリの参照先切り替えと、残りのNative target化・JS adapter分離は次段階。
 
 ## 関連する実装・記録
 
