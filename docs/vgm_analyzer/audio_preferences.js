@@ -11,8 +11,8 @@ function validEffect(value) {
   for (const [key, [min, max]] of Object.entries(effectRanges)) if (inRange(saved[key], min, max)) next[key] = Math.round(saved[key]);
   return next;
 }
-function validChip(id, value) {
-  const next = mixerDefaults(id), saved = object(value);
+function validChip(value) {
+  const next = {}, saved = object(value);
   if (inRange(saved.gain, 0, 2)) next.gain = saved.gain;
   if (inRange(saved.pan, -1, 1)) next.pan = saved.pan;
   if (typeof saved.muted === 'boolean') next.muted = saved.muted;
@@ -25,15 +25,15 @@ export function createAudioPreferences(storage = browserStorage()) {
   let saved = {};
   try {saved = object(JSON.parse(storage?.getItem(AUDIO_PREFERENCES_KEY) ?? '{}'));} catch {}
   const state = {effect: validEffect(saved.effect), master: inRange(saved.master, 0, 3.8) ? saved.master : 1, chips: Object.create(null)};
-  for (const [id, value] of Object.entries(object(saved.chips))) state.chips[id] = validChip(id, value);
+  for (const [id, value] of Object.entries(object(saved.chips))) state.chips[id] = validChip(value);
   const save = () => {try {storage?.setItem(AUDIO_PREFERENCES_KEY, JSON.stringify(state));} catch {}};
   return {
     getEffect: () => ({...state.effect}),
     setEffect(value) {state.effect = validEffect(value); save();},
     getMaster: () => state.master,
     setMaster(value) {if (inRange(value, 0, 3.8)) {state.master = value; save();}},
-    getChip: id => validChip(id, state.chips[id]),
-    setChip(id, value) {state.chips[id] = validChip(id, value); save();},
+    getChip: (id, configuration) => ({...mixerDefaults(id,configuration),...state.chips[id]}),
+    setChip(id, value) {state.chips[id] = {...state.chips[id],...validChip(value)}; save();},
     resetMixer() {state.chips = Object.create(null); state.master = 1; save();},
   };
 }

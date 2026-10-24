@@ -348,17 +348,17 @@ export async function createPlaybackEngine(vgm, {getFactory, masterVolume=1, rom
     const mixer = installPlaybackMixer(engine, attachMsm ? {...configuration,chips:configuration.chips.filter(c=>c.id!=='msm5205')} : configuration);
     if (attachMsm) {
       const msm=new Msm5205AudioEngine({clock:configuration.header.msm5205Clock,flags:configuration.header.msm5205Flags,outputSampleRate:engine.sampleRate()});
-      mixer.addSource('msm5205',msm,'processFrames',engine.sampleRate());
+      mixer.addSource('msm5205',msm,'processFrames',engine.sampleRate(),1);
       attachMsm5205(engine,msm);
     }
     if (configuration.kind!=='mixed' && configuration.header.okim6295Clock && !engine.writeOki6295) {
       const oki = new Oki6295AudioEngine({clock:configuration.header.okim6295Clock,outputSampleRate:engine.sampleRate()});
-      mixer.addSource('okim6295', oki, 'processFrames', engine.sampleRate());
+      mixer.addSource('okim6295', oki, 'processFrames', engine.sampleRate(),1);
       attachOki6295(engine, oki);
     }
     if (configuration.kind!=='mixed' && vgm.header.okim6258Clock && typeof engine.writeOki6258 !== 'function') {
       const oki = await Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,outputSampleRate:engine.sampleRate()});
-      mixer.addSource('okim6258', oki, 'processFrames', engine.sampleRate());
+      mixer.addSource('okim6258', oki, 'processFrames', engine.sampleRate(),1);
       attachOki6258(engine,oki);
     }
     if (configuration.header.ym2608Clock && allowMissingYm2608RhythmRom && !roms.ym2608AdpcmA) engine.setRhythmMuted(true);

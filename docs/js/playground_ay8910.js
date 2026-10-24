@@ -1,7 +1,8 @@
 import {AY8910Synth} from './ay8910synth.js?v=audio-numeric-bindings-1';
 import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 /** Register-authoring controls. Adopting a Main/Worker snapshot never writes audio.
- * @param {MessagePort} port @param {{clock?:number}} [options] */
+ * @param {(method:string,args:unknown[])=>unknown} send
+ * @param {{clock?:number,close?:()=>void,request?:(method:string,args:unknown[])=>unknown}} [options] */
 export function createAy8910RegisterClient(send,{clock=CHIP_CLOCKS.ay8910,close=()=>{},request}={}){
   let initialized=false,disposed=false;
   const api=new AY8910Synth({clock,transport:{

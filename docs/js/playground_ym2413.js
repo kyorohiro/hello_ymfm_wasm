@@ -1,7 +1,8 @@
 import {YM2413Synth} from './ym2413synth.js?v=audio-numeric-bindings-1';
 import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 /** Register-authoring controls shared by Main and Worker. Adoption never writes audio.
- * @param {MessagePort} port @param {{clock?:number}} [options] */
+ * @param {(method:string,args:unknown[],metadata?:{intentMask:number})=>unknown} send
+ * @param {{clock?:number,close?:()=>void,request?:(method:string,args:unknown[])=>unknown}} [options] */
 export function createYm2413RegisterClient(send,{clock=CHIP_CLOCKS.ym2413,close=()=>{},request}={}){
   let initialized=false,disposed=false,rhythmIntent;
   const api=new YM2413Synth({clock,transport:{

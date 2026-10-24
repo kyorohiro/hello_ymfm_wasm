@@ -1,6 +1,17 @@
 import {readSamplePCM,encodeAdpcmB} from './adpcm_b_sample.js';
 import {createY8950AdpcmPreview} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';
 
+/** @typedef {(bytes:ArrayBuffer)=>Promise<AudioBuffer|import('./wav.js').ChannelPCM>} Y8950AdpcmDecoder */
+/** @typedef {NonNullable<ReturnType<typeof createY8950AdpcmPreview>> & {revision?:number}} Y8950AdpcmPreview */
+/** @template [Scope=unknown]
+ * @typedef {{captureContext?:()=>Scope,checkCurrent?:(scope?:Scope)=>void,
+ * withContext?:(scope:Scope,callback:()=>unknown)=>unknown,decodeAudio?:Y8950AdpcmDecoder}} Y8950AdpcmLifecycle */
+/** @template [Scope=unknown]
+ * @typedef {Y8950AdpcmLifecycle<Scope> & {
+ * loadMemory?:(bytes:Uint8Array,address:number,scope?:Scope,preview?:Y8950AdpcmPreview|null)=>unknown,
+ * clearMemory?:(scope?:Scope)=>unknown}} Y8950AdpcmTransport */
+/** @typedef {{address?:number,sampleRate?:number,signal?:AbortSignal,decodeAudio?:Y8950AdpcmDecoder}} Y8950AdpcmSampleOptions */
+
 export const Y8950_ADPCM_MEMORY_BYTES=0x200000;
 const integer=(value,max,label)=>{if(!Number.isSafeInteger(value)||value<0||value>max)throw new RangeError(`Y8950 ADPCM ${label} must be 0..${max}`);return value;};
 
@@ -26,6 +37,9 @@ function snapshotSource(source) {
  * its original owner with captureContext/checkCurrent/withContext. RAM uploads
  * atomically stop only ADPCM on apply. They are acknowledged before loadSample
  * writes its new range; no playback starts. Raw Y8950 memory access is separate.
+ * @template [Scope=unknown]
+ * @param {import('./opl_synth.js?v=audio-numeric-bindings-1').OPLSynth} client
+ * @param {Y8950AdpcmTransport<Scope>} [transport]
  */
 export function attachY8950Adpcm(client,{loadMemory,clearMemory,captureContext=()=>undefined,
   checkCurrent=()=>{},withContext=(_scope,callback)=>callback(),decodeAudio}={}) {
@@ -62,6 +76,7 @@ export function attachY8950Adpcm(client,{loadMemory,clearMemory,captureContext=(
       const operation=captureOperation();operation.check();
       await operation.run(()=>{api.keyOff();return clearMemory(operation.scope);});operation.check();
     },
+    /** @param {unknown} source @param {Y8950AdpcmSampleOptions} [options] */
     async loadSample(source,options={}){
       if(!options||typeof options!=='object'||Array.isArray(options))throw new TypeError('Y8950 ADPCM sample options must be an object');
       const operation=captureOperation();

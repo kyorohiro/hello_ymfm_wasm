@@ -1,5 +1,9 @@
 /** Post-ready failures must retire the current owner, including runtime mixer
- * and client/cache wrappers added after an audio factory returns. No polling. */
+ * and client/cache wrappers added after an audio factory returns. No polling.
+ * @template {{node:AudioWorkletNode,dispose:()=>void}} Endpoint
+ * @param {Endpoint} endpoint
+ * @param {{context:BaseAudioContext,label:string,onError?:(error:Error)=>void}} [options]
+ * @returns {Endpoint} */
 export function watchAudioEndpoint(endpoint, {context, label, onError} = {}) {
   const {node}=endpoint, cleanup=endpoint.dispose;
   const previousMessage=node.port.onmessage;

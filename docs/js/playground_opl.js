@@ -5,8 +5,10 @@ import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-n
 export const OPL_CHIPS = Object.freeze(['ym3526','ym3812','y8950','ymf262']);
 /** A register-authoring client; Main and Worker use the same Synth and shadow.
  * Construction and adoption never replay registers into the audio processor.
- * @param {MessagePort} port
- * @param {{chip?:'ym3526'|'ym3812'|'y8950'|'ymf262',clock?:number}} [options] */
+ * @param {(method:string,args:unknown[],metadata?:{intentMask:number})=>unknown} send
+ * @param {{chip?:import('./opl_synth.js?v=audio-numeric-bindings-1').OPLChip,clock?:number,close?:()=>void,
+ * request?:(method:string,args:unknown[],scope?:unknown)=>unknown,owner?:()=>unknown,
+ * adpcmContext?:import('./y8950_adpcm.js?v=y8950-adpcm-ui-1').Y8950AdpcmLifecycle}} [options] */
 export function createOplRegisterClient(send, {chip = 'ym3812', clock = CHIP_CLOCKS[chip], close=()=>{}, request, owner=()=>undefined,adpcmContext={}} = {}) {
   let initialized = false, disposed = false, rhythmIntent;
   const owners=new Map();

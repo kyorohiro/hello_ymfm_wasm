@@ -1,0 +1,1176 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "engine": "Analyzer JavaScript NesApuAudioEngine / JSNES PAPU + optional FDS",
+  "method": "Stereo maximum half peak-to-peak, matching the canonical output-unit metric; RMS/DC/AC-RMS also recorded",
+  "targetAmplitude": 0.12881777435541153,
+  "maxGain": 2,
+  "referenceFrequencyHz": 440,
+  "referenceSampleRate": 44100,
+  "defaults": {
+    "nesApu": 1.981272
+  },
+  "sources": [
+    {
+      "path": "docs/issues/playground_chip_levels_01.json",
+      "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    },
+    {
+      "path": "docs/js/fds_audio.js",
+      "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+    },
+    {
+      "path": "docs/js/nes_apu_vendor/channel-dm.js",
+      "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+    },
+    {
+      "path": "docs/js/nes_apu_vendor/channel-noise.js",
+      "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+    },
+    {
+      "path": "docs/js/nes_apu_vendor/channel-square.js",
+      "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+    },
+    {
+      "path": "docs/js/nes_apu_vendor/channel-triangle.js",
+      "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+    },
+    {
+      "path": "docs/js/nes_apu_vendor/index.js",
+      "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+    },
+    {
+      "path": "docs/js/nes_apu_vendor/utils.js",
+      "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+    },
+    {
+      "path": "docs/js/nesapuaudioengine.js",
+      "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+    },
+    {
+      "path": "scripts/measure_analyzer_nes_levels.mjs",
+      "sha256": "f0b3307cc33f9643fd23fee356a1cf2812395695efbdd8564832b81605648813"
+    },
+    {
+      "path": "web/nesapusynth.js",
+      "sha256": "29e45e817b0d419ef875a537333802516bcf508103161d08a6f07d1ece01bde6"
+    }
+  ],
+  "rows": [
+    {
+      "id": "nesApu",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "fds": false,
+      "clock": 1789773,
+      "timer": 507,
+      "actualFrequencyHz": 220.1984498031496,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 251
+        },
+        {
+          "address": 16387,
+          "value": 9
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 9
+        }
+      ],
+      "pcm": {
+        "frames": 44100,
+        "nonfinite": 0,
+        "minimum": [
+          -0.058349609375,
+          -0.058349609375
+        ],
+        "maximum": [
+          0.071929931640625,
+          0.071929931640625
+        ],
+        "dc": [
+          0.006996366539779975,
+          0.006996366539779975
+        ],
+        "rms": [
+          0.06084027337226639,
+          0.06084027337226639
+        ],
+        "acRms": [
+          0.06043665873667367,
+          0.06043665873667367
+        ]
+      },
+      "amplitude": 0.0651397705078125,
+      "derivedGain": 1.9775595362277465
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "fds": false,
+      "clock": 1789773,
+      "timer": 253,
+      "actualFrequencyHz": 440.3968996062992,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 253
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 44100,
+        "nonfinite": 0,
+        "minimum": [
+          -0.05780029296875,
+          -0.05780029296875
+        ],
+        "maximum": [
+          0.072235107421875,
+          0.072235107421875
+        ],
+        "dc": [
+          0.0077410584188102325,
+          0.0077410584188102325
+        ],
+        "rms": [
+          0.060728724444898415,
+          0.060728724444898415
+        ],
+        "acRms": [
+          0.06023332953822966,
+          0.06023332953822966
+        ]
+      },
+      "amplitude": 0.0650177001953125,
+      "derivedGain": 1.9812723914940742
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "fds": false,
+      "clock": 1789773,
+      "timer": 126,
+      "actualFrequencyHz": 880.7937992125984,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 126
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 44100,
+        "nonfinite": 0,
+        "minimum": [
+          -0.056732177734375,
+          -0.056732177734375
+        ],
+        "maximum": [
+          0.0738525390625,
+          0.0738525390625
+        ],
+        "dc": [
+          0.009735340628764527,
+          0.009735340628764527
+        ],
+        "rms": [
+          0.060624802081316265,
+          0.060624802081316265
+        ],
+        "acRms": [
+          0.05983802946488709,
+          0.05983802946488709
+        ]
+      },
+      "amplitude": 0.0652923583984375,
+      "derivedGain": 1.9729379902211381
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "fds": true,
+      "clock": 1789773,
+      "timer": 507,
+      "actualFrequencyHz": 220.1984498031496,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 251
+        },
+        {
+          "address": 16387,
+          "value": 9
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 9
+        }
+      ],
+      "pcm": {
+        "frames": 44100,
+        "nonfinite": 0,
+        "minimum": [
+          -0.058349609375,
+          -0.058349609375
+        ],
+        "maximum": [
+          0.071929931640625,
+          0.071929931640625
+        ],
+        "dc": [
+          0.006996366539779975,
+          0.006996366539779975
+        ],
+        "rms": [
+          0.06084027337226639,
+          0.06084027337226639
+        ],
+        "acRms": [
+          0.06043665873667367,
+          0.06043665873667367
+        ]
+      },
+      "amplitude": 0.0651397705078125,
+      "derivedGain": 1.9775595362277465
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "fds": true,
+      "clock": 1789773,
+      "timer": 253,
+      "actualFrequencyHz": 440.3968996062992,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 253
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 44100,
+        "nonfinite": 0,
+        "minimum": [
+          -0.05780029296875,
+          -0.05780029296875
+        ],
+        "maximum": [
+          0.072235107421875,
+          0.072235107421875
+        ],
+        "dc": [
+          0.0077410584188102325,
+          0.0077410584188102325
+        ],
+        "rms": [
+          0.060728724444898415,
+          0.060728724444898415
+        ],
+        "acRms": [
+          0.06023332953822966,
+          0.06023332953822966
+        ]
+      },
+      "amplitude": 0.0650177001953125,
+      "derivedGain": 1.9812723914940742
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "fds": true,
+      "clock": 1789773,
+      "timer": 126,
+      "actualFrequencyHz": 880.7937992125984,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 126
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 44100,
+        "nonfinite": 0,
+        "minimum": [
+          -0.056732177734375,
+          -0.056732177734375
+        ],
+        "maximum": [
+          0.0738525390625,
+          0.0738525390625
+        ],
+        "dc": [
+          0.009735340628764527,
+          0.009735340628764527
+        ],
+        "rms": [
+          0.060624802081316265,
+          0.060624802081316265
+        ],
+        "acRms": [
+          0.05983802946488709,
+          0.05983802946488709
+        ]
+      },
+      "amplitude": 0.0652923583984375,
+      "derivedGain": 1.9729379902211381
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "fds": false,
+      "clock": 1789773,
+      "timer": 507,
+      "actualFrequencyHz": 220.1984498031496,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 251
+        },
+        {
+          "address": 16387,
+          "value": 9
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 9
+        }
+      ],
+      "pcm": {
+        "frames": 48000,
+        "nonfinite": 0,
+        "minimum": [
+          -0.058319091796875,
+          -0.058319091796875
+        ],
+        "maximum": [
+          0.072601318359375,
+          0.072601318359375
+        ],
+        "dc": [
+          0.007330329259236654,
+          0.007330329259236654
+        ],
+        "rms": [
+          0.06089381185379608,
+          0.06089381185379608
+        ],
+        "acRms": [
+          0.060450993333746754,
+          0.060450993333746754
+        ]
+      },
+      "amplitude": 0.065460205078125,
+      "derivedGain": 1.9678791748615967
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "fds": false,
+      "clock": 1789773,
+      "timer": 253,
+      "actualFrequencyHz": 440.3968996062992,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 253
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 48000,
+        "nonfinite": 0,
+        "minimum": [
+          -0.057708740234375,
+          -0.057708740234375
+        ],
+        "maximum": [
+          0.0726318359375,
+          0.0726318359375
+        ],
+        "dc": [
+          0.00802186393737793,
+          0.00802186393737793
+        ],
+        "rms": [
+          0.06080049069338418,
+          0.06080049069338418
+        ],
+        "acRms": [
+          0.06026897516572264,
+          0.06026897516572264
+        ]
+      },
+      "amplitude": 0.0651702880859375,
+      "derivedGain": 1.9766334957050458
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "fds": false,
+      "clock": 1789773,
+      "timer": 126,
+      "actualFrequencyHz": 880.7937992125984,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 126
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 48000,
+        "nonfinite": 0,
+        "minimum": [
+          -0.0565185546875,
+          -0.0565185546875
+        ],
+        "maximum": [
+          0.074127197265625,
+          0.074127197265625
+        ],
+        "dc": [
+          0.009967187881469726,
+          0.009967187881469726
+        ],
+        "rms": [
+          0.060730947751819614,
+          0.060730947751819614
+        ],
+        "acRms": [
+          0.05990745513347839,
+          0.05990745513347839
+        ]
+      },
+      "amplitude": 0.0653228759765625,
+      "derivedGain": 1.9720162719355874
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "fds": true,
+      "clock": 1789773,
+      "timer": 507,
+      "actualFrequencyHz": 220.1984498031496,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 251
+        },
+        {
+          "address": 16387,
+          "value": 9
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 9
+        }
+      ],
+      "pcm": {
+        "frames": 48000,
+        "nonfinite": 0,
+        "minimum": [
+          -0.058319091796875,
+          -0.058319091796875
+        ],
+        "maximum": [
+          0.072601318359375,
+          0.072601318359375
+        ],
+        "dc": [
+          0.007330329259236654,
+          0.007330329259236654
+        ],
+        "rms": [
+          0.06089381185379608,
+          0.06089381185379608
+        ],
+        "acRms": [
+          0.060450993333746754,
+          0.060450993333746754
+        ]
+      },
+      "amplitude": 0.065460205078125,
+      "derivedGain": 1.9678791748615967
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "fds": true,
+      "clock": 1789773,
+      "timer": 253,
+      "actualFrequencyHz": 440.3968996062992,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 253
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 48000,
+        "nonfinite": 0,
+        "minimum": [
+          -0.057708740234375,
+          -0.057708740234375
+        ],
+        "maximum": [
+          0.0726318359375,
+          0.0726318359375
+        ],
+        "dc": [
+          0.00802186393737793,
+          0.00802186393737793
+        ],
+        "rms": [
+          0.06080049069338418,
+          0.06080049069338418
+        ],
+        "acRms": [
+          0.06026897516572264,
+          0.06026897516572264
+        ]
+      },
+      "amplitude": 0.0651702880859375,
+      "derivedGain": 1.9766334957050458
+    },
+    {
+      "id": "nesApu",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "fds": true,
+      "clock": 1789773,
+      "timer": 126,
+      "actualFrequencyHz": 880.7937992125984,
+      "referencePeak": 1,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 1,
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 126
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16405,
+          "value": 1
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "pcm": {
+        "frames": 48000,
+        "nonfinite": 0,
+        "minimum": [
+          -0.0565185546875,
+          -0.0565185546875
+        ],
+        "maximum": [
+          0.074127197265625,
+          0.074127197265625
+        ],
+        "dc": [
+          0.009967187881469726,
+          0.009967187881469726
+        ],
+        "rms": [
+          0.060730947751819614,
+          0.060730947751819614
+        ],
+        "acRms": [
+          0.05990745513347839,
+          0.05990745513347839
+        ]
+      },
+      "amplitude": 0.0653228759765625,
+      "derivedGain": 1.9720162719355874
+    }
+  ],
+  "comparison": {
+    "wasmAmplitude": 0.06440888717770576,
+    "wasmGain": 2,
+    "javascriptToWasmAmplitude": 1.009452313869777
+  },
+  "limitations": [
+    "One synthetic pulse at fixed maximum volume; not perceived loudness, polyphony or content normalization.",
+    "The canonical Analyzer reference uses its actual default44,100Hz;48,000Hz captures are comparisons only. Runtime sample rates are unchanged.",
+    "Pulse frequency quantization, nonlinear APU mixing and analog filtering remain audible; no independent FDS/DMC gain is inferred.",
+    "No output Mixer, master-volume trim, FX or AudioContext is used. FDS-enabled rows leave expansion registers silent."
+  ]
+}

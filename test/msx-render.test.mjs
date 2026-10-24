@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readSource,renderSource} from '../cli/index.js';
 import {getNodePlaybackFactory} from '../cli/render.js';
 import {MsxAudioEngine} from '../docs/js/msxaudioengine.js';
-import {createPlaybackEngine,createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
+import {createPlaybackEngine,createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
+import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 const names=['ay','opll','audio','scc'];
@@ -23,6 +24,9 @@ test('All 15 MSX chip subsets render, match Browser engines and preserve every c
     });
     const engine=await createPlaybackEngine(new Ym2612VGM(source),{getFactory:getNodePlaybackFactory});
     try {
+      // The standalone Browser construction uses the same measured output
+      // policy as shared Analyzer/CLI creation; synthesis remains independent.
+      installPlaybackMixer(reference,selectPlaybackConfiguration(new Ym2612VGM(source)));
       const rp=createPlaybackPlayer(reference,source);
       for(let run=0;run<2;run++){rp.reset();rp.play();assert.deepEqual(result.bytes,(await renderVgmToWav(rp,{maxSeconds:.03})).bytes);}
       const p=createPlaybackPlayer(engine,source);p.play();
@@ -32,6 +36,14 @@ test('All 15 MSX chip subsets render, match Browser engines and preserve every c
         const expected=Float32Array.from(actual,(_,i)=>parts.reduce((sum,name)=>sum+solos[name][channel][i],0));
         assert.deepEqual(actual,expected,parts.join('+')+' '+channel);
       }
+      // Retain direct core/timing parity at explicit unity too, in addition to
+      // the calibrated sum and exact WAV comparisons above.
+      for(const candidate of [engine,reference])for(const id of candidate.playbackMixer.strips.keys())candidate.playbackMixer.set(id,{gain:1});
+      p.reset();rp.reset();p.play();rp.play();
+      const plainLeft=new Float32Array(1024),plainRight=new Float32Array(1024),referenceLeft=new Float32Array(1024),referenceRight=new Float32Array(1024);
+      p.process(plainLeft,plainRight,plainLeft.length);rp.process(referenceLeft,referenceRight,referenceLeft.length);
+      assert.deepEqual(plainLeft,referenceLeft,parts.join('+')+' unity left');
+      assert.deepEqual(plainRight,referenceRight,parts.join('+')+' unity right');
     }finally{reference.dispose();engine.dispose();}
   }
 });

@@ -4,11 +4,12 @@ const names = {psg: 'Sega PSG', gameBoyDmg: 'Game Boy', segaPcm: 'Sega PCM', nes
   rf5c164: 'RF5C164', pwm: 'PWM', k051649: 'SCC / SCC+', ay8910: 'AY8910'};
 export function createMixerUi({container, resetButton, onChange, preferences, onReset = () => {}}) {
   let mixer = null;
+  let configuration = null;
   const settings = new Map();
   const change = (id, values) => {
     settings.set(id, {...settings.get(id), ...values});
     if (mixer?.strips.has(id)) mixer.set(id, settings.get(id));
-    preferences?.setChip(id, settings.get(id));
+    preferences?.setChip(id, values);
     onChange();
   };
   function render() {
@@ -32,7 +33,7 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
         mute.setAttribute('aria-pressed', String(values.muted));
         mute.setAttribute('aria-label', `${name} mute`);
       };
-      mute.addEventListener('click', () => {values.muted = !values.muted; updateMute(); change(id, values);});
+      mute.addEventListener('click', () => {values.muted = !values.muted; updateMute(); change(id, {muted:values.muted});});
       updateMute(); title.append(heading, mute); strip.append(title);
       for (const [key, label, min, max, value, format] of [
         ['gain', 'Volume', 0, 200, Math.round(values.gain * 100), v => `${v}%`],
@@ -44,7 +45,7 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
         const output = document.createElement('output'); output.textContent = format(value);
         range.addEventListener('input', () => {
           const next = Number(range.value); values[key] = next / 100;
-          output.textContent = format(next); change(id, values);
+          output.textContent = format(next); change(id, {[key]:values[key]});
         });
         row.append(range, output); strip.append(row);
       }
@@ -53,15 +54,20 @@ export function createMixerUi({container, resetButton, onChange, preferences, on
   }
   resetButton.addEventListener('click', () => {
     preferences?.resetMixer();
-    for (const id of settings.keys()) change(id, mixerDefaults(id));
+    for (const id of settings.keys()) {
+      const values = mixerDefaults(id,configuration); settings.set(id,values);
+      if(mixer?.strips.has(id))mixer.set(id,values);
+    }
+    onChange();
     onReset();
     render();
   });
   render();
   return {
-    load(configuration) {
+    load(nextConfiguration) {
+      configuration = nextConfiguration;
       mixer = null; settings.clear();
-      for (const chip of configuration?.chips ?? []) settings.set(chip.id, preferences?.getChip(chip.id) ?? mixerDefaults(chip.id));
+      for (const chip of configuration?.chips ?? []) settings.set(chip.id, preferences?.getChip(chip.id,configuration) ?? mixerDefaults(chip.id,configuration));
       render();
     },
     attach(next) {

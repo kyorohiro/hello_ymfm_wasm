@@ -6,6 +6,7 @@ import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {VgmPlayer} from '../docs/js/vgmplayer.js';
 import {GenesisAudioEngine} from '../docs/js/genesisaudioengine.js';
 import {createPlaybackEngine,createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
+import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
 import {getNodePlaybackFactory,renderSource} from '../cli/render.js';
 import {readSource} from '../cli/index.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
@@ -51,7 +52,7 @@ async function browserPlayer(source) {
   await context.ensurePlaybackReady(new Ym2612VGM(source));
   return context;
 }
-test('shared PCM is sample-exact against previous Browser Genesis construction; CLI WAV agrees',async()=>{
+test('shared PCM is sample-exact against direct Browser Genesis construction with measured policy; CLI WAV agrees',async()=>{
   for(const name of ['psg-tone','genesis-pcm','opn-tone']) {
     let source=await readSource(fixture(name));
     if (name==='opn-tone') {
@@ -71,6 +72,7 @@ test('shared PCM is sample-exact against previous Browser Genesis construction; 
       psgClock:(h.psgClock & 0x3fffffff)||undefined,rf5c164Clock:h.rf5c164Clock,
     });
     try {
+      installPlaybackMixer(previous,selectPlaybackConfiguration(vgm));
       const a=browserContext.player,b=new VgmPlayer(previous);b.load(source);
       a.play();b.play();assert.equal(a.sampleRate(),b.sampleRate());
       for(let i=0;i<8;i++) {
@@ -83,6 +85,13 @@ test('shared PCM is sample-exact against previous Browser Genesis construction; 
       const cli=await renderSource(source,{maxSeconds:.1});
       assert.deepEqual(cli.bytes,browser.bytes);
       assert(cli.bytes.subarray(44).some(x=>x!==0),`${name} must produce audible data`);
+      // Explicit unity still reproduces the original uncalibrated construction;
+      // the new default policy does not alter register timing or synthesis.
+      for(const engine of [shared,previous])for(const id of engine.playbackMixer.strips.keys())engine.playbackMixer.set(id,{gain:1});
+      a.stop();b.stop();a.play();b.play();
+      const al=new Float32Array(4096),ar=new Float32Array(4096),bl=new Float32Array(4096),br=new Float32Array(4096);
+      a.process(al,ar,al.length);b.process(bl,br,bl.length);
+      assert.deepEqual(al,bl);assert.deepEqual(ar,br);
     } finally {shared.dispose();previous.dispose();}
   }
 });
@@ -140,6 +149,7 @@ test('YM2203 renders FM and SSG independently and matches the shared Browser eng
     rendered.push(result.bytes);
     const engine=await Ym2203AudioEngine.create({ym2203ModuleFactory:await getNodePlaybackFactory('ym2203'),ym2203Clock:4000000});
     try {
+      installPlaybackMixer(engine,selectPlaybackConfiguration(new Ym2612VGM(source)));
       const player=createPlaybackPlayer(engine,source);player.play();
       const browser=await renderVgmToWav(player,{maxSeconds:.1});
       assert.deepEqual(result.bytes,browser.bytes);

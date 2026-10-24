@@ -11,6 +11,8 @@ export function createNativeSampleEditorAudio(synth,{decodeAudio=createOfflineAu
   const current=token=>{if(token.session!==synth.session||token.generation!==synth.generation||!synth.isReady()||synth.stopping||synth.closing)throw aborted();};
   return {
     async decodeAudio(bytes){const token=capture();current(token);const pcm=await decodeNativeGenesisPCM(bytes,{decodeAudio});current(token);return pcm;},
+    /** @param {import('./wav.js').ChannelPCM & {loopEnabled?:boolean,loopStartFrame:number,loopEndFrame:number}} rendered
+     * @param {{signal?:AbortSignal}} [options] */
     async playPreview(rendered,{signal}={}){
       signal?.throwIfAborted();const token=capture();current(token);
       // Each attempt has a fresh bank; late cleanup cannot remove a replacement.

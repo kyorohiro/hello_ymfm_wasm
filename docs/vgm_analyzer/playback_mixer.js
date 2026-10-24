@@ -1,4 +1,6 @@
-import {PCMChipMixer, soundChipMixDefaults} from '../js/soundchip_mixer.js';
+import {PCMChipMixer, chipMixGains} from '../js/soundchip_mixer.js';
+import {mixerDefaults} from './mixer_defaults.js';
+export {mixerDefaults} from './mixer_defaults.js';
 // Chip output trims, before the existing engine balance, master gain and FX.
 // Register writes and synthesis keep advancing even when a strip is muted.
 const properties = {
@@ -9,20 +11,24 @@ const properties = {
   ymf262: 'ymf262', ymf278b: 'ymf278b', k051649: 'k051649',
   segaPcm: 'segapcm', gameBoyDmg: 'gameboy',
 };
-// Analyzer starting balance; callers without a chip ID retain unity gain.
-export const mixerDefaults = id => {
-  const {volume, ...settings} = soundChipMixDefaults(id);
-  return {gain: volume, ...settings};
-};
-
 // Preserve Analyzer's existing gain-facing API while sharing rendering and defaults.
 export class PlaybackMixer extends PCMChipMixer {
+  constructor(configuration) { super(); this.configuration = configuration; }
+  addSource(id, source, method = 'generateStereo', rate = 44100, downstreamTrim = undefined) {
+    super.addSource(id, source, method, rate);
+    this.set(id, mixerDefaults(id, this.configuration, downstreamTrim));
+    // A newly connected source starts at its measured level immediately.
+    // Do not reset another source's in-flight user gain/pan ramp.
+    const strip = this.strips.get(id);
+    [strip.left, strip.right] = chipMixGains(strip.settings);
+    strip.remaining = 0;
+  }
   set(id, {gain, ...settings}) { super.set(id, {...settings, ...(gain === undefined ? {} : {volume: gain})}); }
   get(id) { const {volume, ...settings} = super.get(id); return {gain: volume, ...settings}; }
 }
 
 export function installPlaybackMixer(engine, configuration) {
-  const mixer = new PlaybackMixer();
+  const mixer = new PlaybackMixer(configuration);
   const visit = (part, ids) => {
     if (part.mixerEngine) return visit(part.mixerEngine, ids);
     if (part.entries instanceof Map) {
@@ -35,16 +41,18 @@ export function installPlaybackMixer(engine, configuration) {
       return;
     }
     let found = false;
+    const genesis = Boolean(part.ym2612 && typeof part.writeYm2612 === 'function');
     for (const id of ids) {
       const source = part[properties[id]];
       if (!source) continue;
       const method = typeof source.generateStereoInto === 'function' ? 'generateStereoInto' : 'generateStereo';
       if (typeof source[method] !== 'function') continue;
-      mixer.addSource(id, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate());
+      const downstreamTrim = genesis ? id === 'ym2612' ? 0.9 : id === 'psg' ? 0.35 : 1 : 1;
+      mixer.addSource(id, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate(), downstreamTrim);
       found = true;
     }
     // NES, HuC6280 and OKI render directly rather than through a chip wrapper.
-    if (!found && ids.length === 1) mixer.addSource(ids[0], part, 'processFrames', part.sampleRate());
+    if (!found && ids.length === 1) mixer.addSource(ids[0], part, 'processFrames', part.sampleRate(), 1);
   };
   visit(engine, configuration.chips.map(c => c.id).filter(id =>
     !(id === 'okim6258' && !engine.writeOki6258) && !(id === 'okim6295' && !engine.writeOki6295)));

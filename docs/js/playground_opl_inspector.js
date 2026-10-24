@@ -14,6 +14,7 @@ export class OplVoiceInspector {
   }
   resetAuditions(){this.sampleEpoch=(this.sampleEpoch??0)+1;for(const [ch,id]of this.auditions){this.endAudition(ch,identity(id));const pair=this.paired(ch);if(pair!==null)this.endAudition(pair,identity(id));}this.auditions.clear();}
   reset(){this.resetAuditions();this.registers=new Uint8Array(this.kind==='ymf262'?512:256);}
+  /** @param {{memoryBytes:number,revision:number,preview?:import('./y8950_adpcm.js?v=y8950-adpcm-ui-1').Y8950AdpcmPreview|null}} [options] */
   setAdpcmMemoryInfo({memoryBytes,revision,preview}={}){
     if(this.kind!=='y8950')throw new Error('ADPCM memory requires Y8950');
     if(!Number.isSafeInteger(memoryBytes)||memoryBytes<0||memoryBytes>0x200000||!Number.isSafeInteger(revision)||revision<0)throw new RangeError('Invalid Y8950 ADPCM memory information');

@@ -6,7 +6,15 @@ import {validateY8950AdpcmPreview} from './y8950_adpcm_preview.js?v=y8950-adpcm-
 import {createNativeY8950AdpcmInspection,createNativeY8950SampleLoader} from './native_genesis_y8950_inspector.js?v=y8950-adpcm-ui-1';
 
 /** Preparation uploads apply immediately; musical writes keep their existing
- * performance clock. Every resolved upload has crossed an applied-state fence. */
+ * performance clock. Every resolved upload has crossed an applied-state fence.
+ * @template [Group=unknown]
+ * @template [AuthorVersion=unknown]
+ * @param {ReturnType<typeof createNativeVoiceContext>} context
+ * @param {{send?:(message:Record<string,unknown>,timing?:{time?:number,performance?:number,owner?:number|string,checkCurrent?:()=>void})=>unknown,
+ * getGroup?:()=>Group,withGroup?:(group:Group,callback:()=>unknown)=>unknown,
+ * clearAuthor?:(version:AuthorVersion)=>void,getAuthorVersion?:()=>AuthorVersion,
+ * decodeAudio?:import('./y8950_adpcm.js?v=y8950-adpcm-ui-1').Y8950AdpcmDecoder,
+ * onMemoryApplied?:(state:Record<string,unknown>,preview:import('./y8950_adpcm.js?v=y8950-adpcm-ui-1').Y8950AdpcmPreview|null)=>void}} [options] */
 export function createNativeY8950AdpcmTransport(context,{send,getGroup=()=>undefined,withGroup=(_group,callback)=>callback(),clearAuthor=()=>{},getAuthorVersion=()=>undefined,decodeAudio,onMemoryApplied=()=>{}}={}){
   const {synth,capture,current}=context,cancelledGroups=new Map(),cancelledOwners=new Map(),cancelledPerformances=new Map();let generation=0,memoryOperation=0;
   const abort=()=>new DOMException('Native Y8950 ADPCM operation was cancelled','AbortError');
