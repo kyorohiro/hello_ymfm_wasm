@@ -29,6 +29,7 @@ const {holdExtraCreation,observeExtraCreationResponses,runExtraCreation}=require
 const {runExtraStability}=require('./native_backend_extra_stability.cjs');
 const {runChipComparison,observeChipComparisonWorkletTransfers}=require('./native_backend_chip_comparison.cjs');
 const {runEngineComparison}=require('./native_backend_engine_comparison.cjs');
+const {runY8950Adpcm}=require('./native_backend_y8950_adpcm.cjs');
 const rootOption = process.argv.find(value => value.startsWith('--root='));
 const docs = rootOption ? path.resolve(rootOption.slice(7)) : path.resolve(__dirname, '../docs');
 const entryPath = rootOption ? '/index.html' : '/playground/index.html';
@@ -480,6 +481,11 @@ class FakeNative {
       const reg=m.register+(m.bank??0)*256;r[reg]=m.value;
       if((reg&255)>=0xb0&&(reg&255)<=0xb8&&(m.value&32))for(const ch of physical((reg>=256?9:0)+(reg&255)-0xb0))s.sourceMuteMask&=~(1<<ch);
       if(reg===0xbd&&(m.value&31))s.sourceMuteMask&=~(7<<6);
+    }else if(m.method==='adpcm-memory'){
+      assert.equal(s.chip,'y8950');assert(Array.isArray(m.bytes)&&m.bytes.every(value=>Number.isInteger(value)&&value>=0&&value<=255));
+      assert(Number.isInteger(m.address)&&m.address>=0&&m.address+m.bytes.length<=0x200000);
+      s.adpcmMemorySize=Math.max(s.adpcmMemorySize??0,m.address+m.bytes.length);r[7]=1;
+    }else if(m.method==='adpcm-clear'){assert.equal(s.chip,'y8950');s.adpcmMemorySize=0;r[7]=1;
     }else if(m.method==='key-off'){
       if(m.channel>=18){r[0xbd]&=~(16>>(m.channel-18));return;}
       for(const ch of physical(m.channel)){r[(ch>=9?256:0)+0xb0+ch%9]&=~32;s.sourceMuteMask|=1<<ch;}
@@ -492,7 +498,7 @@ class FakeNative {
     else if(m.method==='source-mute')s.sourceMuteMask=m.mask;
     else assert.equal(m.method,'mix','Unknown Native OPL operation '+m.method);
   }
-  stopOplVoices(){if(!this.opl)return;const s=this.opl,n=s.chip==='ymf262'?18:9;s.held.clear();for(let ch=0;ch<n;ch++)s.registers[(ch>=9?256:0)+0xb0+ch%9]&=~32;s.registers[0xbd]&=~31;s.sourceMuteMask=(1<<n)-1;}
+  stopOplVoices(){if(!this.opl)return;const s=this.opl,n=s.chip==='ymf262'?18:9;s.held.clear();for(let ch=0;ch<n;ch++)s.registers[(ch>=9?256:0)+0xb0+ch%9]&=~32;s.registers[0xbd]&=~31;if(s.chip==='y8950')s.registers[7]=1;s.sourceMuteMask=(1<<n)-1;}
   applyX68000(m) {
     assert(['ym2151','okim6258'].includes(m.chip));const x=this.x68000,s=x[m.chip];
     if(m.method==='batch'){
@@ -2348,8 +2354,9 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     const extraStabilityOnly=process.argv.includes('--extra-stability-only');
     const chipComparisonOnly=process.argv.includes('--chip-comparison-only');
     const engineComparisonOnly=process.argv.includes('--engine-comparison-only');
+    const y8950AdpcmOnly=process.argv.includes('--y8950-adpcm-only');
     const extraPwmOnly=process.argv.includes('--extra-pwm-only');
-    const nativeOnly=mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly||extraStabilityOnly||chipComparisonOnly||engineComparisonOnly;
+    const nativeOnly=y8950AdpcmOnly||mixerStateOnly||extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly||extraStabilityOnly||chipComparisonOnly||engineComparisonOnly;
     if(fftFixture&&!nativeOnly)await compareNativeFft(browser,name,fftFixture);
     if(!nativeOnly) {
     const plain = await browser.newContext({serviceWorkers:'block'});
@@ -2364,6 +2371,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     }
     const context = await browser.newContext({serviceWorkers:'block'}), page = await context.newPage();
     const native = new FakeNative(), errors = [];
+    if(y8950AdpcmOnly)installExtraOplMock(native);
     if(extraPsgOnly||extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly||extraStabilityOnly||chipComparisonOnly||engineComparisonOnly)installExtraPsgMock(native);
     if(extraYm2612Only||extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly||extraStabilityOnly||chipComparisonOnly||engineComparisonOnly)installExtraYm2612Mock(native);
     if(extraYm2203Only||extraYm2608Only||extraYm2610Only||extraYm2151Only||extraMsxOnly||extraOplOnly||extraRfOnly||extraOkiOnly||extraGbOnly||extraNesOnly||extraHucOnly||extraDx7Only||extraPwmOnly||extraSnesOnly||extraSpcOnly||extraCreationOnly||chipComparisonOnly)installExtraYm2203Mock(native);
@@ -2381,7 +2389,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     installExtraPwmMock(native);
     installExtraSnesMock(native);
     installExtraSpcMock(native);
-    const lifecycle=process.argv.includes('--lifecycle-only')||extraCreationOnly||extraStabilityOnly||chipComparisonOnly||engineComparisonOnly?trackNativeLifecycle(native,page):null;
+    const lifecycle=process.argv.includes('--lifecycle-only')||extraCreationOnly||extraStabilityOnly||chipComparisonOnly||engineComparisonOnly||y8950AdpcmOnly?trackNativeLifecycle(native,page):null;
     const creationGate=extraCreationOnly?holdExtraCreation(native):null;
     native.dx7WasmRequests=[];
     page.on('request',request=>{if(request.url().includes('/msfa_dx7/wasm/msfa.wasm'))native.dx7WasmRequests.push(request.url());});
@@ -2389,7 +2397,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
     await page.addInitScript(observeAudioCreation);
     await page.addInitScript(observeMonitorDrawing);
     if(lifecycle)await page.addInitScript(observeNativeLifecycle);
-    if(chipComparisonOnly||engineComparisonOnly)await page.addInitScript(observeChipComparisonWorkletTransfers);
+    if(chipComparisonOnly||engineComparisonOnly||y8950AdpcmOnly)await page.addInitScript(observeChipComparisonWorkletTransfers);
     if(extraCreationOnly)await page.addInitScript(observeExtraCreationResponses);
     await page.addInitScript(() => {window.__TAURI_INTERNALS__ = {invoke:(command,args) => window.__nativeInvoke(command,args)};});
     await page.route('**/vs/loader*.js', route => route.abort());
@@ -2400,6 +2408,11 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       if(extraCreationOnly)nativeUrl.searchParams.set('mode','ym3812');
       await page.goto(nativeUrl.href);await ready(page);
       assert.equal(native.count('native_genesis_start'),0,'Restoration must not start the Native backend');
+      if(y8950AdpcmOnly){
+        await runY8950Adpcm({page,native,tracker:lifecycle,artifacts,name,ready,assertNoLiveAudio,until});
+        assert.deepEqual(errors,[]);await context.close();
+        console.log(name+': PASS MSX Audio FM/ADPCM Example and primary/additional ADPCM-only Web PCM, Web/Native Main/Worker, RAM patch/reset, Stop and final cleanup; Native IPC mocked');return;
+      }
       if(engineComparisonOnly){
         await runEngineComparison({page,native,tracker:lifecycle,artifacts,name,ready,assertNoLiveAudio,until});
         assert.deepEqual(errors,[]);await context.close();

@@ -1784,6 +1784,37 @@ test('MSX Worker source borrows only AY and OPLL without injecting an OPL instru
   } finally {await worker.send({type:'stop'});}
 });
 
+test('Y8950 Worker stopAll cancels pending sample decode and its primary client loads again after Stop',async()=>{
+  const worker=createWorkerHarness({Uint8Array,Float32Array,ArrayBuffer}),sent=[];
+  const port={start(){},close(){},postMessage(message){sent.push(message);if(message.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:message.id,value:true}}));}};
+  await worker.send({type:'native-primary-ports',endpoints:[{name:'y8950',globalName:'opl',clock:3579545,port,state:{registers:Array(256).fill(0),clock:3579545,initialized:true}}]});
+  const capabilities={chip:'msx-audio',fmChannels:0,psg:false,dac:false};
+  async function execute(sourceCode){
+    const before=worker.messages.length;
+    await worker.send({type:'run',capabilities,sourceCode});
+    await waitFor(()=>worker.messages.slice(before).some(message=>message.type==='complete'||message.type==='execution-error'));
+    assert.equal(worker.messages.slice(before).find(message=>message.type==='execution-error'),undefined);
+  }
+  try{
+    await execute(`
+      let cancelled=false;
+      try{
+        await opl.adpcm.loadSample(new Uint8Array([1,2]),{decodeAudio:async()=>{
+          pg.stopAll();return {channels:[new Float32Array(128)],sampleRate:16000};
+        }});
+      }catch(error){cancelled=error.name==='AbortError';}
+      if(!cancelled)throw Error('stopAll allowed pending sample decode to resume');
+    `);
+    assert.equal(sent.filter(message=>message.method==='loadAdpcmMemory').length,0,'cancelled decode never uploads');
+    const load=`const sample=await opl.adpcm.loadSample({channels:[new Float32Array(128)],sampleRate:16000});opl.adpcm.setVolume(120);opl.adpcm.keyOn();`;
+    await execute(load);
+    await worker.send({type:'stop'});
+    await waitFor(()=>worker.messages.some(message=>message.type==='stopped'));
+    await execute(load);
+    assert.equal(sent.filter(message=>message.method==='loadAdpcmMemory').length,2,'the same primary port/client works on both Run generations');
+  }finally{await worker.send({type:'stop'});}
+});
+
 test('MSX Audio Worker source borrows all three physical chips and adopts AY retained levels without replay',async () => {
   const worker = createWorkerHarness(), sent = {ay:[],opll:[],opl:[]};
   const port = name => {const endpoint = {start() {},close() {},postMessage(message) {sent[name].push(message); if (message.id !== undefined) queueMicrotask(() => endpoint.onmessage?.({data:{id:message.id,value:true}}));}}; return endpoint;};

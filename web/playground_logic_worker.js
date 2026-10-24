@@ -383,7 +383,12 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
     || capabilities.chip === 'gameboy' && capabilities.backend === 'native-genesis';
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
-  const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}));
+  const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}),{
+    captureContext:()=>({...run.currentLoop,loop:run.currentLoop,token:run.token}),
+    restoreContext:scope=>{run.currentLoop=scope?.loop??null;},
+    isStopped:scope=>run.stopped||(scope?scope.token!==run.token||scope.loop?.stopped:run.currentLoop?.stopped),
+    decodeAudio:source=>request('pcm.decode',[source],run.currentLoop),
+  });
   const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};
   const primaryPcmClient = primaryPcmConnection ? createRf5c164Client(
     performanceTransport.port(primaryPcmConnection.port, 'independent'), source => request('pcm.decode',[source],run.currentLoop)) : null;
@@ -864,7 +869,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     stopAllLoops: () => { run.loops.clear(); clock.cancelLoop(); },
     onKeyboardPressKey: (name, fn) => registerKeyboard("keydown", name, fn),
     onKeyboardReleaseKey: (name, fn) => registerKeyboard("keyup", name, fn),
-    stopAll: () => postCommand("stopAll"),
+    stopAll: () => {native.cancelAdpcmLoads();for(const client of pcmClients)client._cancelAdpcmLoads?.();return postCommand("stopAll");},
     choose,
     cycle: createCycle(() => run.currentLoop),
     rand: Math.random,

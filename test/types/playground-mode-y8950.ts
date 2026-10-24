@@ -12,6 +12,22 @@ async function checkOplModeTypes() {
   await livePrepare('opl', ({opl}) => { opl.noteOff(0); });
   const primary = await useSoundChip('y8950');
   primary.noteOff(0);
+  const sample = await primary.adpcm.loadSample({channels:[new Float32Array(128)],sampleRate:16000});
+  const duration:number = sample.duration;
+  const actualRate:number = opl.adpcm.setPlaybackRate(16000);
+  await opl.adpcm.loadMemory(new Uint8Array(32),32);
+  opl.adpcm.setSample({start:32,end:64});
+  opl.adpcm.setDeltaN(16384);
+  opl.adpcm.setVolume(180);
+  opl.adpcm.keyOn({repeat:true});
+  opl.adpcm.keyOff();
+  opl.adpcm.reset();
+  await opl.adpcm.clearMemory();
+  void [duration,actualRate];
+  // @ts-expect-error one mono ADPCM stream has no channel argument
+  opl.adpcm.keyOn(0);
+  // @ts-expect-error Y8950 has no hardware stereo pan
+  opl.adpcm.setPan(true,false);
   // @ts-expect-error mode owns the borrowed primary
   primary.dispose();
   // @ts-expect-error physical channel limit
@@ -29,6 +45,8 @@ async function checkOplModeTypes() {
   const extra = await createSoundChip('ymf262');
   extra.setFourOp(0, true);
   extra.setOperator(0, 3, {waveform: 7});
+  // @ts-expect-error OPL3 has no ADPCM stream
+  extra.adpcm.keyOn();
   extra.dispose();
   // @ts-expect-error this chip has no four-operator mode
   opl.setFourOp(0, true);

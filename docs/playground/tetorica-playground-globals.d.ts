@@ -1991,7 +1991,7 @@ type PlaygroundPrimaryYm2413 = Omit<PlaygroundYm2413,'dispose'> & PlaygroundChip
 /** Native: independent 9-channel OPLL at 3,579,545 Hz; User patch and rhythm settings are shared within one chip. Shares the 16-instance / 64 MiB additional rack. */
 declare function createSoundChip(name:'ym2413',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundYm2413 & PlaygroundChipClock & {readonly id:string}>;
 
-/** OPL family. Y8950 exposes FM here; its ADPCM bus remains a raw-register API. */
+/** OPL family. Y8950 also exposes one mono ADPCM-B stream and sample RAM. */
 type PlaygroundOplChip = 'ym3526'|'ym3812'|'y8950'|'ymf262';
 type PlaygroundSelectedOplChip = TetoricaSelectedChip extends 'msx-audio' ? 'y8950' : TetoricaSelectedChip extends PlaygroundOplChip ? TetoricaSelectedChip : 'ym3812';
 type PlaygroundOplChannel<K extends PlaygroundOplChip> = K extends 'ymf262'
@@ -2028,6 +2028,27 @@ interface PlaygroundOplPreset<K extends PlaygroundOplChip = 'ymf262'> {
 type PlaygroundOplPresets<K extends PlaygroundOplChip> = Readonly<Record<'sine'|'bell'|'organ',PlaygroundOplPreset<K>>>
   & (K extends 'ymf262' ? Readonly<{'four-op-bell':PlaygroundOplPreset<K>}> : {});
 type PlaygroundOplPitch = {fnum:number;block:number};
+interface PlaygroundY8950Adpcm {
+  /** Stop ADPCM and upload encoded ADPCM-B, not WAV/PCM. Replaces only this region of the 2 MiB RAM; retains FM. Await application before playback. */
+  loadMemory(bytes:Uint8Array|ArrayBuffer,address?:number):Promise<void>;
+  /** Stop ADPCM and clear sample RAM, retaining FM. */
+  clearMemory():Promise<void>;
+  /** Mix PCM to mono, encode/upload ADPCM-B and select it without starting playback. */
+  loadSample(source:{channels:ArrayLike<number>[];sampleRate:number}|AudioBuffer|string|URL|Uint8Array|ArrayBuffer|Blob,
+    options?:{address?:number;sampleRate?:number;signal?:AbortSignal;decodeAudio?:(bytes:ArrayBuffer)=>Promise<AudioBuffer|{channels:ArrayLike<number>[];sampleRate:number}>}):
+    Promise<{start:number;end:number;frames:number;paddedFrames:number;sampleRate:number;deltaN:number;duration:number}>;
+  /** Byte range [start,end), both 32-byte aligned. Preserves FM's register-8 bits. */
+  setSample(range:{start:number;end:number}):void;
+  setDeltaN(value:number):void;
+  /** Decoded samples/second; returns the quantized rate. Changes both speed and pitch. */
+  setPlaybackRate(rate:number):number;
+  setVolume(volume:number):void;
+  /** Retrigger the entire selected range. Repeat has no separate loop point. */
+  keyOn(options?:{repeat?:boolean}):void;
+  keyOff():void;
+  /** Reset only ADPCM controls, retaining sample RAM and FM settings. */
+  reset():void;
+}
 interface PlaygroundOplBase<K extends PlaygroundOplChip> {
   readonly chip: K;
   readonly channels: K extends 'ymf262' ? 18 : 9;
@@ -2048,6 +2069,7 @@ interface PlaygroundOplBase<K extends PlaygroundOplChip> {
   keyOff(channel:PlaygroundOplChannel<K>):void;
   noteOn(channel:PlaygroundOplChannel<K>,note:string|number):void;
   noteOff(channel:PlaygroundOplChannel<K>):void;
+  /** Release FM/rhythm; Y8950 also stops ADPCM, retaining its sample RAM. */
   allNotesOff():void;
   setLFO(options:{amDepth?:boolean;pmDepth?:boolean}):void;
   setRhythm(options:{enabled?:boolean;bassDrum?:boolean;snare?:boolean;tom?:boolean;cymbal?:boolean;hiHat?:boolean}):void;
@@ -2055,9 +2077,10 @@ interface PlaygroundOplBase<K extends PlaygroundOplChip> {
 }
 /** In 4-op mode the paired secondary is owned by its primary (0..2 or 9..11). */
 type PlaygroundOpl<K extends PlaygroundOplChip = 'ym3812'> = PlaygroundOplBase<K>
-  & (K extends 'ymf262' ? {setFourOp(channel:0|1|2|9|10|11,enabled:boolean):void} : {});
+  & (K extends 'ymf262' ? {setFourOp(channel:0|1|2|9|10|11,enabled:boolean):void} : {})
+  & (K extends 'y8950' ? {readonly adpcm:PlaygroundY8950Adpcm} : {});
 type PlaygroundPrimaryOpl<K extends PlaygroundOplChip> = Omit<PlaygroundOpl<K>,'dispose'> & PlaygroundChipClock & {readonly id:string};
-/** Native: independent YM3526, YM3812 and Y8950 at 3,579,545 Hz; YMF262 at 14,318,180 Hz with 18 channels, six optional 4-operator pairs and stereo output. Rhythm replaces FM6..8 with five drums. Shares the 16-instance / 64 MiB additional rack. */
+/** Native: independent YM3526, YM3812 and Y8950 at 3,579,545 Hz; Y8950 includes one mono ADPCM stream with up to 2 MiB sample RAM. YMF262 at 14,318,180 Hz has 18 channels, six optional 4-operator pairs and stereo output. Rhythm replaces FM6..8 with five drums. Shares the 16-instance / 64 MiB additional rack. */
 declare function createSoundChip<K extends PlaygroundOplChip>(name:K,options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundOpl<K> & PlaygroundChipClock & {readonly id:string}>;
 
 /** OPM channels 0..7; operators in register order M1, C1, M2, C2 (0..3). */

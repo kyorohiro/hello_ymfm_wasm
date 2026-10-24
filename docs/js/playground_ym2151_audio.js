@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=extra-ym2612-nuked-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-1';
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
@@ -13,7 +13,7 @@ export async function createYm2151Audio(context, destination, options = {}) {
     return response.arrayBuffer();
   };
   const [wasmBinary] = await waitForInitialization(Promise.all([
-    bytes(), context.audioWorklet.addModule(options.workletUrl ?? new URL('./playground_ym2151_worklet.js?v=extra-ym2612-nuked-1', import.meta.url)),
+    bytes(), context.audioWorklet.addModule(options.workletUrl ?? new URL('./playground_ym2151_worklet.js?v=y8950-adpcm-1', import.meta.url)),
   ]), signal);
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-ym2151', {

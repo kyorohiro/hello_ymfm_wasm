@@ -1,4 +1,5 @@
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
+import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-1';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
 export const OPL_CHIPS = Object.freeze(['ym3526','ym3812','y8950','ymf262']);
@@ -6,7 +7,7 @@ export const OPL_CHIPS = Object.freeze(['ym3526','ym3812','y8950','ymf262']);
  * Construction and adoption never replay registers into the audio processor.
  * @param {MessagePort} port
  * @param {{chip?:'ym3526'|'ym3812'|'y8950'|'ymf262',clock?:number}} [options] */
-export function createOplRegisterClient(send, {chip = 'ym3812', clock = CHIP_CLOCKS[chip], close=()=>{}, request, owner=()=>undefined} = {}) {
+export function createOplRegisterClient(send, {chip = 'ym3812', clock = CHIP_CLOCKS[chip], close=()=>{}, request, owner=()=>undefined,adpcmContext={}} = {}) {
   let initialized = false, disposed = false, rhythmIntent;
   const owners=new Map();
   function track(register,value){
@@ -18,14 +19,14 @@ export function createOplRegisterClient(send, {chip = 'ym3812', clock = CHIP_CLO
     if(chip==='ymf262'&&register===0x1bd)for(let drum=0;drum<5;drum++){const key=`upper-drum:${drum}`,bit=16>>drum;if(value&bit){if(!(previous[register]&bit))owners.set(key,source);}else if(owners.get(key)===source)owners.delete(key);}
     if(chip==='y8950'&&register===7){if(value&128&&!(value&65))owners.set('adpcm',source);else if(value&1&&owners.get('adpcm')===source)owners.delete('adpcm');}
     if(register===4&&!(value&128))owners.set('timer-loads',{value:value&3});
-    if(chip!=='ymf262'&&(register===8||register===4&&!(value&128))){previous[register]=value;if((owners.get('timer-loads')?.value??0)&1&&previous[8]&128)owners.set('csm',source);else if(owners.get('csm')===source)owners.delete('csm');}
+    if(chip!=='ymf262'&&(register===8&&(chip!=='y8950'||((previous[8]^value)&0xc0))||register===4&&!(value&128))){previous[register]=value;if((owners.get('timer-loads')?.value??0)&1&&previous[8]&128)owners.set('csm',source);else if(owners.get('csm')===source)owners.delete('csm');}
   }
   const synth = new OPLSynth({chip, clock, transport:{
     writeRegister(register,value,bank=0) {if(disposed)throw new Error('OPL disposed');track(register|(bank<<8),value);send('writeRegister',[register,value,bank],register===0xbd&&rhythmIntent!==undefined?{intentMask:rhythmIntent}:undefined);},
-    reset() {if(disposed)throw new Error('OPL disposed');owners.clear();send('reset',[]);},
+    reset() {if(disposed)throw new Error('OPL disposed');synth._cancelAdpcmLoads?.();owners.clear();send('reset',[]);},
     dispose() {send('dispose',[]);close();},
   }});
-  synth.dispose = () => {if(disposed)return;synth.transport.dispose();disposed=true;};
+  synth.dispose = () => {if(disposed)return;synth._cancelAdpcmLoads?.('Chip disposed');synth.transport.dispose();disposed=true;};
   const setRhythm=synth.setRhythm.bind(synth),allNotesOff=synth.allNotesOff.bind(synth);
   synth.setRhythm=settings=>{const previous=rhythmIntent;rhythmIntent=['bassDrum','snare','tom','cymbal','hiHat'].reduce((mask,key,index)=>mask|(Object.hasOwn(settings??{},key)?16>>index:0),0);try{return setRhythm(settings);}finally{rhythmIntent=previous;}};
   synth.allNotesOff=()=>{const previous=rhythmIntent;rhythmIntent=31;try{return allNotesOff();}finally{rhythmIntent=previous;}};
@@ -46,12 +47,14 @@ export function createOplRegisterClient(send, {chip = 'ym3812', clock = CHIP_CLO
     _forceRhythmOff:{value:drum=>{const registers=synth.getRegisterSnapshot();registers[0xbd]&=~(16>>drum);synth.adoptRegisterSnapshot(registers);send('forceRhythmOff',[drum]);}},
     _cancelPerformanceOwner:{value:source=>{const registers=synth.getRegisterSnapshot();for(const [key,value]of owners)if(value===source){if(key==='csm'){const loads=owners.get('timer-loads')?.value??0;registers[8]&=127;registers[4]=(registers[4]&~131)|(loads&2);owners.set('timer-loads',{value:loads&2});}else if(key==='adpcm')registers[7]=1;else if(typeof key==='string'&&key.startsWith('upper-drum:'))registers[0x1bd]&=~(16>>Number(key.slice(11)));else if(key>=18)registers[0xbd]&=~(16>>(key-18));else registers[(key>=9?256:0)+0xb0+key%9]&=223;owners.delete(key);}synth.adoptRegisterSnapshot(registers);}},
     _stopVoices:{value:() => {
+      synth._cancelAdpcmLoads?.('Run stopped');
       const registers = synth.getRegisterSnapshot();
       for (let channel=0;channel<synth.channels;channel++) registers[(channel>=9?256:0)+0xb0+channel%9]&=223;
       registers[0xbd]&=224;synth.adoptRegisterSnapshot(registers);
       return request?request('stopVoices',[]):synth._requestControl('stopVoices');
     }},
   });
+  if(chip==='y8950'&&request)attachY8950Adpcm(synth,{...adpcmContext,loadMemory:(bytes,address,scope)=>request('loadAdpcmMemory',[bytes,address],scope),clearMemory:scope=>request('clearAdpcmMemory',[],scope)});
   return synth;
 }
 
@@ -67,13 +70,18 @@ export function stageOplAuthorEdit(state,method,args,effectiveFourOpMask=state.r
 
 export function createOplClient(port,options={},lifecycle={}){
   const chip=options.chip??'ym3812',clock=options.clock??CHIP_CLOCKS[chip];
-  const synth=createOplRegisterClient((method,args,metadata)=>port.postMessage({method,args,...(options.native?metadata:{})}),{chip,clock,close:()=>port.close(),owner:()=>{const context=lifecycle.captureContext?.();return context?.keyboard?'keyboard':context?.performanceOwner;}});
-  const controlled=attachChipClock(synth,port,clock);
+  let disposed=false,controlled;
+  const checkCurrent=context=>{if(disposed||lifecycle.isStopped?.(context))throw new DOMException('Run stopped','AbortError');};
+  const adpcmContext={captureContext:()=>lifecycle.captureContext?.(),checkCurrent,decodeAudio:lifecycle.decodeAudio,
+    withContext:(context,callback)=>{checkCurrent(context);const previous=lifecycle.captureContext?.();lifecycle.restoreContext?.(context);try{return callback();}finally{lifecycle.restoreContext?.(previous);}}};
+  const synth=createOplRegisterClient((method,args,metadata)=>port.postMessage({method,args,...(options.native?metadata:{})}),{chip,clock,close:()=>port.close(),owner:()=>{const context=lifecycle.captureContext?.();return context?.keyboard?'keyboard':context?.performanceOwner;},
+    request:(method,args)=>controlled._requestControl(method,args),adpcmContext});
+  controlled=attachChipClock(synth,port,clock);
+  const dispose=synth.dispose.bind(synth);synth.dispose=()=>{disposed=true;dispose();};
   if(options.native&&lifecycle.captureContext){
-    const setClock=synth.setClock.bind(synth),dispose=synth.dispose.bind(synth);let disposed=false;
+    const setClock=synth.setClock.bind(synth);
     const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{if(disposed||lifecycle.isStopped?.(context))throw new Error('Run stopped');lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
     synth.setClock=hz=>{const context=lifecycle.captureContext();return setClock(hz).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
-    synth.dispose=()=>{disposed=true;dispose();};
   }
   if(options.state)synth._adoptState(options.state);
   return controlled;

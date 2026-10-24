@@ -139,7 +139,7 @@ try{
         else if(op==='off'){reference.inspector.auditions.delete(args[0]);reference.apply({method:args[0]<18?'forceKeyOff':'forceRhythmOff',args:[args[0]<18?args[0]:args[0]-18]},reference.port);}
         else if(op==='audition'){
           assert(args[0]<18);reference.forceKeyOff(args[0]);reference.inspector.auditions.set(args[0],'fixture');reference.auditionStarts.set(args[0],'voice-editor:fixture');
-        }else if(op==='public-off'){for(let ch=0;ch<9;ch++)reference.apply({method:'writeRegister',args:[0xb0+ch,reference.registers[0xb0+ch]&~32]},reference.port);reference.apply({method:'writeRegister',args:[0xbd,reference.registers[0xbd]&224]},reference.port);}
+        }else if(op==='public-off'){if(scenario.chip==='y8950')reference.apply({method:'writeRegister',args:[7,1]},reference.port);for(let ch=0;ch<9;ch++)reference.apply({method:'writeRegister',args:[0xb0+ch,reference.registers[0xb0+ch]&~32]},reference.port);reference.apply({method:'writeRegister',args:[0xbd,reference.registers[0xbd]&224]},reference.port);}
         else if(op==='stop'||op==='all-off')reference.apply({method:'allNotesOff'},reference.port);
         else if(op==='reset')reference.apply({method:'reset'},reference.port);
         else if(op==='mute'){externalMute=args[0]&((1<<reference.channels)-1);reference.updateMuteMask();reference.left=reference.right=0;}

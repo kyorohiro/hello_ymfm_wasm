@@ -287,8 +287,7 @@ export function createPlaygroundRuntime(
   // A shared Promise can release several Main callers in one microtask turn.
   // Resume this Native endpoint's caller on its own host task so another
   // coalesced lookup cannot replace its owner before user code continues.
-  const resumeNativeExtraCaller=(loop,operation)=>{
-    const token=currentRunToken;
+  const resumeNativeExtraCaller=(loop,operation,token=currentRunToken)=>{
     return new Promise((resolve,reject)=>setTimeout(()=>{
       if(token!==currentRunToken||loop?.stopped){reject(new Error('Run stopped'));return;}
       currentLoopContext=loop;try{resolve(operation());}catch(error){reject(error);}
@@ -501,6 +500,10 @@ export function createPlaygroundRuntime(
   }
   function nativeVoice(name, path, args, raw) {
     const method = path.at(-1);
+    if(name==='opl'&&path[0]==='adpcm'){
+      if(['keyOn','keyOff','reset'].includes(method))return {key:'adpcm',on:method==='keyOn'};
+      return null;
+    }
     if (['allNotesOff','stopVoices','reset','resetAll','panic'].includes(method)) return {allOff:true};
     if(name==='pwm'&&['write','writeRegister','scheduleWrites'].includes(method))return {key:0,on:true};
     if (name === 'dx7' && ['noteOn','noteOff'].includes(method)) return {key:args[0],on:method==='noteOn'&&(args[1]??100)>0};
@@ -541,6 +544,7 @@ export function createPlaygroundRuntime(
     if (name === 'opl') {
       if(method==='writeRegister'){
         const [register,value,bank=0]=args,local=register&255,physicalBank=(register>>8)||bank;
+        if(raw?.chip==='y8950'&&physicalBank===0&&local===7&&(value&129))return {key:'adpcm',on:!!(value&128)&&!(value&65)};
         if(local>=0xb0&&local<=0xb8)return {key:physicalBank*9+local-0xb0,on:!!(value&32)};
         if(local===0xbd&&physicalBank===0)return {events:Array.from({length:5},(_,index)=>({key:`rhythm:${index}`,on:!!(value&32)&&!!(value&(16>>index))}))};
       }
@@ -556,12 +560,21 @@ export function createPlaygroundRuntime(
     const raw = name==='ssg'&&megaDrive.nativeYm2203 ? megaDrive.nativeYm2203.client.ssg : megaDrive.primaryEndpoints?.find(endpoint => endpoint.globalName === name)?.client;
     if (!raw) return;
     if(name==='pwm'){Promise.resolve(raw._stopVoices()).catch(error=>emitLog(`[pwm] ${formatLogArgs([error])}`));return;}
-    if((name==='opll'||name==='opl')&&typeof key==='string'&&key.startsWith('rhythm:'))raw._forceRhythmOff(Number(key.slice(7)));
+    // Release belongs to the retiring loop. Use its raw parent control so the
+    // public sample loader's stopped-caller guard cannot block this cleanup.
+    if(name==='opl'&&key==='adpcm')raw.writeRegister(7,1);
+    else if((name==='opll'||name==='opl')&&typeof key==='string'&&key.startsWith('rhythm:'))raw._forceRhythmOff(Number(key.slice(7)));
     else if (name === 'adpcm') raw.stop(); else if (name === 'dx7') raw.noteOff(key); else if (raw._forceKeyOff) raw._forceKeyOff(key); else raw.keyOff(key);
   }
   function nativePrimaryApis() {
     return Object.fromEntries((megaDrive.primaryEndpoints ?? []).map(endpoint => {
       const {globalName:name, client:raw} = endpoint;
+      raw._setAdpcmLifecycle?.({
+        captureContext:()=>({token:currentRunToken,loop:currentLoopContext}),
+        checkCurrent(scope){if(scope?scope.token!==currentRunToken||scope.loop?.stopped:currentLoopContext?.stopped)throw new DOMException('Run stopped','AbortError');},
+        withContext(scope,callback){const previous=currentLoopContext;currentLoopContext=scope?.loop??null;try{return callback();}finally{currentLoopContext=previous;}},
+        decodeAudio:decodePcm,
+      });
       if (!nativeApiCache.has(raw)) nativeApiCache.set(raw, borrowNativeApi(raw, endpoint.name, () => {}, (path,args) => {
         const event = nativeVoice(name,path,args,raw), loop = currentLoopContext;
         if (loop?.stopped) return false;
@@ -571,7 +584,10 @@ export function createPlaygroundRuntime(
         if(events.some(event=>!event.on&&loop&&nativeOwners.has(name+':'+event.key)&&nativeOwners.get(name+':'+event.key).owner!==voiceOwner(loop)))return false;
         for(const event of events){const key=name+':'+event.key;if(event.on)nativeOwners.set(key,{name,key:event.key,owner:voiceOwner(loop)});else nativeOwners.delete(key);}
         return true;
-      }));
+      },name==='opl'&&raw.chip==='y8950'?(result)=>{
+        const loop=currentLoopContext,token=currentRunToken;
+        return result.then(value=>resumeNativeExtraCaller(loop,()=>value,token),error=>resumeNativeExtraCaller(loop,()=>{throw error;},token));
+      }:undefined));
       return [name,nativeApiCache.get(raw)];
     }));
   }
@@ -1039,6 +1055,7 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    for(const endpoint of megaDrive.primaryEndpoints??[])endpoint.client._cancelAdpcmLoads?.();
     noiseOwnership?.clear();
     const fromCleanup=currentLoopContext?.keyboardCleanup===true||liveApi.hasPendingCleanups();
     const physicalStops=[];
@@ -2280,6 +2297,12 @@ export function createPlaygroundRuntime(
           restoreContext:loop=>{currentLoopContext=loop;},
           invokeEvent:(callback,event)=>executeUserCallback(()=>callback(event)),isStopped:loop=>runToken!==currentRunToken||loop?.stopped,
         }) : device.client ?? (['huc6280','okim6258','gameboy','nes','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,device.port,device) : name === 'snes' ? createSnesClient(device.port, device) : name === 'dx7' ? createDx7Client(device.port, device) : name === 'nes' ? createNesClient(device.port, device) : name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? createOpnClient(name, device.port, device) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port,device) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm));
+        if(!device.native)client._setAdpcmLifecycle?.({
+          captureContext:()=>({token:currentRunToken,loop:currentLoopContext}),
+          checkCurrent(scope){if(scope?scope.token!==currentRunToken||scope.loop?.stopped:currentLoopContext?.stopped)throw new DOMException('Run stopped','AbortError');},
+          withContext(scope,callback){const previous=currentLoopContext;currentLoopContext=scope?.loop??null;try{return callback();}finally{currentLoopContext=previous;}},
+          decodeAudio:decodePcm,
+        });
         device.client=client;
         if(name==='spc'&&device.native)device.releaseOwner=owner=>client._cancelContext(owner);
         if (client.id !== device.mixerId) Object.defineProperty(client, 'id', {value: device.mixerId, enumerable: true});

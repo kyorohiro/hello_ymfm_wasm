@@ -1,6 +1,6 @@
 # Native版 createSoundChip() 対応計画
 
-2026-10-23。追加音源の対象と必要な作業を整理する。2026-10-24、追加YM2610Bの6CH対応と追加YM2612のNuked選択を反映。
+2026-10-23。追加音源の対象と必要な作業を整理する。2026-10-24、追加YM2610Bの6CH対応・追加YM2612のNuked選択・Y8950 ADPCMを反映。
 Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2610B・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262・RF5C164・OKIM6258・Game Boy・NES＋任意FDS・PC Engine・DX7・32X PWM・SNES S-DSP・SPC700ファイルプレーヤーの追加生成まで実装済み。公開22種類をNativeへ接続した。
 
 ## 目的と範囲
@@ -80,7 +80,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 | `ay8910` | 対応済み | AY単独tone 3CH、共有noise／envelope、clock・音量0の保持、編集・試奏 |
 | `ym3526` | 対応済み | OPL単独9CH／2op・rhythm 5voice、timer／CSM、編集・試奏 |
 | `ym3812` | 対応済み | OPL2単独9CH／rhythm・waveform選択、clock、編集・試奏 |
-| `y8950` | 対応済み | 単独FM 9CH／rhythm・raw ADPCM制御、保持DCの所有権。memory API拡張は別項目 |
+| `y8950` | 対応済み | 単独FM 9CH／rhythm・ADPCM-B 1voice、最大2 MiB RAM・PCM/WAV転送・範囲／速度／音量、保持DCの所有権 |
 | `ymf262` | 対応済み | OPL3単独18CH、6組の4operator・rhythm・2bank・ステレオ、NEW折返しと適用済みregister plane、編集・試奏 |
 | `rf5c164` | 対応済み | 独立PCM 8CH・64 KiB RAM、bank／loop／step／pan、転送完了とguard、音色編集・Keyboard |
 | `okim6258` | 対応済み | 単独1ストリーム、動的sample保持・原子的ADPCM転送・divider／pan／repeat、波形・音声ファイル・Keyboard |
@@ -100,8 +100,9 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
   Neo Geoで6CH版を要求した場合も独立生成する。Browser／Native・Main／Workerで同じ規則にする。
 - **`snes`と`spc`**：`snes`はCPUを動かさないS-DSP楽器・取得済みtimelineの再生。
   `spc`はSPC700も動かすファイルプレーヤー。[別の再生経路](native_dynamic_spc_01.md)としてNativeへ追加した。
-- **Y8950 ADPCM**：低レベルコアの機能と現在のPlayground公開APIを区別する。
-  ADPCM memory APIの新規公開を、追加生成対応の完了条件へ暗黙に加えない。
+- **Y8950 ADPCM**：[サンプル再生APIを別作業として追加した](y8950_adpcm_01.md)。
+  MSX Audioの`opl.adpcm`と追加Y8950で、RAM転送・PCM/WAVエンコード・範囲・速度・音量・再生／停止を使う。
+  公開種類数は22のまま。
 - **Nuked**：[追加YM2612のengine選択へ対応した](native_dynamic_nuked_01.md)。
   `createSoundChip('ym2612', {engine:'nuked'})`で独立生成し、省略時は従来のymfmを使う。公開名は22種類のまま。
 
@@ -219,7 +220,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [x] [追加YM2612のNuked選択](native_dynamic_nuked_01.md)。
   `createSoundChip('ym2612', {engine: 'nuked'})`を追加し、既定のymfmと`useSoundChip()`の取得規則を維持した。
   公開種類は22のまま。実コア比較・最終配布物の検証結果はリンク先へ記録する。
-- [ ] Y8950 ADPCMなど、現在のPlayground公開APIにない機能の追加。
+- [x] [Y8950 ADPCMのメモリー・サンプル再生API](y8950_adpcm_01.md)をBrowser／Native・Main／Workerへ追加する。
 - [x] [SPCプレーヤーのNative化と観測イベントの配送](native_dynamic_spc_01.md)。
 - [ ] `tetorica-soundchip-native`／JS adapterのパッケージ分離、低レベルAPI全体への展開。
 

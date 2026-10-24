@@ -1,4 +1,4 @@
-import {SoundChipMixer} from '../js/soundchip_mixer.js?v=extra-ym2612-nuked-1';
+import {SoundChipMixer} from '../js/soundchip_mixer.js?v=y8950-adpcm-1';
 
 export const MIXER_STATE_PATH = '/mixer/current.json';
 export const MIXER_DEFAULT_PRESET_PATH = '/mixer/default.json';

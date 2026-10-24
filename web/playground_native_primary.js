@@ -12,7 +12,7 @@ import {createDx7Client} from './playground_dx7.js';
 import {createGameboyClient} from './playground_gameboy.js';
 
 /** Primary controls borrow devices owned by the runtime. */
-export function borrowNativeApi(raw, id, changed = () => {}, before = () => true) {
+export function borrowNativeApi(raw, id, changed = () => {}, before = () => true, settle = result => result) {
   const cache = new WeakMap();
   const wrap = (object, path = []) => {
     if (!object || typeof object !== 'object') return object;
@@ -25,13 +25,13 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
       if (key === 'id' && object === raw) return id;
       const value = Reflect.get(object, key, object);
       if (typeof value !== 'function') return value && typeof value === 'object' &&
-        ['pulse','triangle','noise','dmc','fds','wave'].includes(key) ? wrap(value, [...path, key]) : value;
+        ['pulse','triangle','noise','dmc','fds','wave','adpcm'].includes(key) ? wrap(value, [...path, key]) : value;
       return (...args) => {
         const method = [...path, key];
         if (before(method, args) === false) return;
         const result = value.apply(object, args);
         changed(method, args);
-        if (result?.then) return result.then(value => {changed(method, args); return value;});
+        if (result?.then) return settle(result.then(value => {changed(method, args); return value;}), method, args);
         return result;
       };
     },has:(_target,key)=>Reflect.has(object,key),ownKeys:()=>Reflect.ownKeys(object),
@@ -74,11 +74,11 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
 }
 
 /** Each endpoint keeps a direct Worker -> Worklet performance port. */
-export function createNativeWorkerApis(connections, performance, observe) {
+export function createNativeWorkerApis(connections, performance, observe, lifecycle = {}) {
   const raw = new Map(), apis = {};
   for (const connection of connections) {
     const port = performance.port(connection.port, 'independent');
-    const client = createNativePrimaryClient(connection.name, port, connection);
+    const client = createNativePrimaryClient(connection.name, port, connection, connection.name==='y8950'?lifecycle:{});
     raw.set(connection.globalName, client);
     let queued = false;
     const changed = () => {
@@ -90,6 +90,7 @@ export function createNativeWorkerApis(connections, performance, observe) {
     apis[connection.globalName] = borrowNativeApi(client, connection.name, changed);
   }
   return {apis, raw,
+    cancelAdpcmLoads(){for(const client of raw.values())client._cancelAdpcmLoads?.();},
     stop() {
       const pending=[];
       for (const [name,client] of raw) {

@@ -9,7 +9,7 @@ const channels=chip=>chip==='ymf262'?18:9;
 const address=ch=>(ch>=9?256:0)+0xb0+ch%9;
 function installExtraOplMock(native){
   const invoke=native.invoke.bind(native);for(const key of Object.values(maps))native[key]=new Map();
-  const fresh=chip=>({chip,channels:channels(chip),clock:clock(chip),registers:Array(chip==='ymf262'?512:256).fill(0),effectiveRegisters:Array(chip==='ymf262'?512:256).fill(0),status:0,irq:false,layoutRevision:0,layoutPending:false,effectiveFourOpMask:0,newMode:false,held:new Map(),groups:Array(23).fill(null),mix:{volume:1,pan:0}});
+  const fresh=chip=>({chip,channels:channels(chip),clock:clock(chip),registers:Array(chip==='ymf262'?512:256).fill(0),effectiveRegisters:Array(chip==='ymf262'?512:256).fill(0),...(chip==='y8950'?{adpcmMemorySize:0}:{}),status:0,irq:false,layoutRevision:0,layoutPending:false,effectiveFourOpMask:0,newMode:false,held:new Map(),groups:Array(23).fill(null),mix:{volume:1,pan:0}});
   const snapshot=(kind,s)=>({sampleRate:48000,frame:native.status().frame,revision:native.calls.length,[kind]:{...s,registers:s.registers.slice(),effectiveRegisters:s.effectiveRegisters.slice(),held:[...s.held.keys()],pendingCommands:[]}});
   function off(s,ch){const r=ch<18?address(ch):0xbd,mask=ch<18?32:16>>(ch-18);s.registers[r]&=~mask;s.effectiveRegisters[r]&=~mask;}
   function apply(s,m){
@@ -25,8 +25,10 @@ function installExtraOplMock(native){
       s.registers[r]=v;s.effectiveRegisters[actual]=v;
       if((r&255)>=0xb0&&(r&255)<=0xb8)s.groups[(r>=256?9:0)+(r&255)-0xb0]=v&32?m.group??null:null;
       if(r===0xbd)for(let i=0;i<5;i++)s.groups[18+i]=v&(16>>i)?m.group??null:null;if(r===8)s.csmGroup=m.group??null;
-    }else if(m.method==='clock'){if(s.held.size)throw Error(`Release the manually held additional ${s.chip.toUpperCase()} voices before changing the clock`);s.clock=m.hz;}
-    else if(m.method==='reset'){if(!s.held.size){const {chip,clock,layoutRevision}=s;Object.assign(s,fresh(chip),{clock,layoutRevision:layoutRevision+!!((s.registers[0xbd]&32)||s.effectiveFourOpMask||s.newMode)});}}
+    }else if(m.method==='adpcm-memory'){assert.equal(s.chip,'y8950');assert(Number.isSafeInteger(m.address)&&m.address>=0&&m.address<=0x200000);assert(Array.isArray(m.bytes)&&m.bytes.length<=0x200000-m.address&&m.bytes.every(v=>Number.isInteger(v)&&v>=0&&v<=255));s.adpcmMemorySize=Math.max(s.adpcmMemorySize,m.address+m.bytes.length);s.registers[7]=s.effectiveRegisters[7]=1;s.adpcmGroup=null;}
+    else if(m.method==='adpcm-clear'){assert.equal(s.chip,'y8950');s.adpcmMemorySize=0;s.registers[7]=s.effectiveRegisters[7]=1;s.adpcmGroup=null;}
+    else if(m.method==='clock'){if(s.held.size)throw Error(`Release the manually held additional ${s.chip.toUpperCase()} voices before changing the clock`);s.clock=m.hz;}
+    else if(m.method==='reset'){if(!s.held.size){const {chip,clock,layoutRevision,adpcmMemorySize}=s;Object.assign(s,fresh(chip),{clock,...(chip==='y8950'?{adpcmMemorySize}:{}),layoutRevision:layoutRevision+!!((s.registers[0xbd]&32)||s.effectiveFourOpMask||s.newMode)});}}
     else if(m.method==='stop-voices'||m.method==='all-notes-off'){for(let ch=0;ch<s.channels;ch++)off(s,ch);s.registers[0xbd]&=224;s.held.clear();s.groups.fill(null);if(m.method==='stop-voices')s.registers[8]&=127;}
     else if(m.method==='key-off')off(s,m.channel);
     else if(m.method==='audition-key-on'){const r=m.channel<18?address(m.channel):0xbd,mask=m.channel<18?32:16>>(m.channel-18);s.registers[r]|=mask;s.effectiveRegisters[r]|=mask;}

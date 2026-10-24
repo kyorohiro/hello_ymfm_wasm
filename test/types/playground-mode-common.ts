@@ -73,6 +73,19 @@ async function checkCommonModeTypes() {
   // @ts-expect-error YM2610B has no YM2612 DAC
   neoB.setDacEnabled(true);
   neoB.dispose();
+  const audio=await createSoundChip('y8950',{id:'sample-player'});
+  await audio.adpcm.loadMemory(new Uint8Array(32));
+  audio.adpcm.setSample({start:0,end:32});
+  const sampleRate:number=audio.adpcm.setPlaybackRate(16000);
+  audio.adpcm.setVolume(160);audio.adpcm.keyOn({repeat:false});audio.adpcm.keyOff();
+  const sharedAudio=await useSoundChip('y8950');
+  await sharedAudio.adpcm.clearMemory();
+  // @ts-expect-error Y8950 exposes one mono stream, without stereo pan
+  audio.adpcm.setPan(true,false);
+  const opl2=await createSoundChip('ym3812');
+  // @ts-expect-error FM-only OPL2 does not expose Y8950 sample RAM
+  opl2.adpcm;
+  void sampleRate;audio.dispose();opl2.dispose();
   const extraPsg = await useSoundChip('segapsg');
   extraPsg.noteOn(0, 'C4');
   const extraApu = await useSoundChip('gameboy');

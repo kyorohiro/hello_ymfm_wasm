@@ -3,6 +3,9 @@
 2026-10-23。[追加音源計画](todo_createSoundChip01.md)のOPL系3種類をまとめて実装し、音源別に検証する。
 各instanceは選択した1種類だけを生成する。主音源のDOS PC／MSX Audioは維持する。
 
+2026-10-24追記：[Y8950 ADPCMのメモリー・サンプル再生API](y8950_adpcm_01.md)を、
+主音源と追加音源の両方へ接続した。以下の「ADPCM memory APIは別項目」は、初回対応時の範囲を示す。
+
 ```js
 const extraOpl = await createSoundChip('ym3812', {id: 'opl-lead'});
 extraOpl.setOperator(0, 1, {tl: 12});

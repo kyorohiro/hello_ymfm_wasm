@@ -40,6 +40,7 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
     if(method==='forceKeyOff')return {key:args[0],on:false};
     if(method==='forceRhythmOff')return {key:`rhythm:${args[0]}`,on:false};
     const reg=type==='write'?register:method==='writeRegister'?args[0]:null,v=type==='write'?value:args[1],bank=type==='write'?registerPort:args[2]??0;
+    if(chip==='y8950'&&reg===7&&bank===0)return {key:'adpcm',on:(v&0xc1)===0x80};
     if(reg!==null&&(reg&255)>=0xb0&&(reg&255)<=0xb8)return {key:((reg>>8)||bank)*9+(reg&255)-0xb0,on:!!(v&32)};
     if(reg===0xbd)return {events:Array.from({length:5},(_,index)=>({key:`rhythm:${index}`,on:!!(v&32)&&!!(v&(16>>index))}))};
   }
@@ -78,6 +79,7 @@ export function performanceNoteRelease(chip,key) {
   if(chip==='ym2151')return {method:'forceKeyOff',args:[key]};
   if(chip==='ay8910')return {method:'forceKeyOff',args:[key]};
   if(chip==='ym2413')return typeof key==='string'?{method:'forceRhythmOff',args:[Number(key.split(':')[1])]}:{method:'forceKeyOff',args:[key]};
+  if(chip==='y8950'&&key==='adpcm')return {method:'writeRegister',args:[7,1,0]};
   if(['ym3526','ym3812','y8950','ymf262'].includes(chip))return typeof key==='string'?{method:'forceRhythmOff',args:[Number(key.split(':')[1])]}:{method:'forceKeyOff',args:[key]};
   if(chip==='huc6280')return {method:'keyOff',args:[key]};
   if(chip==='okim6258')return {method:'stop',args:[]};
@@ -139,6 +141,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
     if(['allNotesOff','clock'].includes(method)||type==='chip-clock')return 'all';
     if(method==='writeRegister'){
       const register=args[0]&255,bank=(args[0]>>8)||(args[2]??0);
+      if(chip==='y8950'&&bank===0&&[7,9,10,11,12,13,14,15,16,17,18,21,22,23].includes(register))return 'adpcm';
       if(register>=0xa0&&register<=0xc8&&(register&15)<9)return bank*9+(register&15);
       if(register>=0x20&&register<=0xf5){const slots=[0,1,2,8,9,10,16,17,18],offset=register&31;for(let ch=0;ch<9;ch++)if(offset===slots[ch]||offset===slots[ch]+3)return bank*9+ch;}
       return 'all';
@@ -170,7 +173,7 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
   }
   if(method==='reset')return 'all';return null;
 }
-export function createProcessorPerformance({apply,prepare,validate,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
+export function createProcessorPerformance({apply,prepare,validate,onDiscard,onBlocked,chip,releaseNote,getPsgLatch,getPsgMode,getHucChannel,getRfChannel,getRfMask,getOpllRhythm,getAyRegisters,getOplRegisters,trackImmediateNotes=true,immediate = [],nowFrame = () => currentFrame,rate = sampleRate}) {
   const replies = new WeakMap(),ports = new WeakMap(),pendingRPC = new WeakMap(),immediateMethods = new Set(immediate);
   const owners=new Map(),auditions=new Map();
   let psgLatch=0,nesEnabled=0;
@@ -225,6 +228,7 @@ export function createProcessorPerformance({apply,prepare,validate,onDiscard,onB
       if(register===4&&auditions.get(3)!==metadata?.owner)return true;
     }
     if(chipName()==='ay8910'&&command.method==='writeRegister'&&command.args[0]===7)return false;
+    if(chipName()==='y8950'&&command.method==='writeRegister'&&command.args[0]===8&&getOplRegisters&&!((command.args[1]^getOplRegisters()[8])&0xc0))return false;
     if(chipName()==='ym2413'&&command.method==='writeRegister'&&command.args[0]===0x0e&&!((command.args[1]^(getOpllRhythm?.()??0))&32))return false;
     const channel=nativeVoiceChannel(chipName(),command,{hucChannel:getHucChannel?.()??0,psgLatch:getPsgLatch?.()??psgLatch,rfChannel:getRfChannel?.()??0});
     if(channel==='all'){

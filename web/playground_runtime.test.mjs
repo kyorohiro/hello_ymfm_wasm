@@ -1668,6 +1668,76 @@ test('MSX Main source shares AY and OPLL while omitting the MSX Audio OPL global
   `);assert.equal(ay.getRegisterSnapshot()[10],6);assert(opll.getRegisterSnapshot()[0x28]&16);await runtime.stop();assert.equal(ay._getState().levels[2],6);assert.equal(opll.getRegisterSnapshot()[0x38],0x24);
 });
 
+test('MSX Audio Main cancels an ADPCM load after its loop stops without configuring or starting its sample',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'msx-audio',fmChannels:0,psg:false,dac:false}),writes=[],gate=deferred();
+  const port={start(){},close(){},postMessage(message){
+    writes.push(message);if(message.id===undefined)return;
+    const reply=()=>queueMicrotask(()=>port.onmessage?.({data:{id:message.id,value:true}}));
+    if(message.method==='loadAdpcmMemory')gate.promise.then(reply);else reply();
+  }};
+  const opl=createOplClient(port,{chip:'y8950'});opl.initialize();
+  megaDrive.fm=null;megaDrive.psg=null;megaDrive.opl=opl;
+  megaDrive.primaryEndpoints=[{name:'y8950',globalName:'opl',client:opl}];
+  megaDrive.stopAllNative=()=>opl._stopVoices();
+  await runtime.playSource(`
+    liveLoop('loading-sample',async()=>{
+      await opl.adpcm.loadSample({channels:[new Float32Array(128)],sampleRate:16000});
+      opl.adpcm.keyOn();await sleep(60);
+    });
+  `);
+  await until(()=>writes.some(message=>message.method==='loadAdpcmMemory'));
+  await runtime.playSource(`stopLoop('loading-sample');`);
+  const before=writes.length;gate.resolve();
+  await new Promise(resolve=>setTimeout(resolve,20));
+  assert(!writes.slice(before).some(message=>message.method==='writeRegister'&&[7,8,9,10,11,12,16,17].includes(message.args[0])),
+    'late upload acknowledgement cannot configure or key on a cancelled sample');
+  await runtime.stop();
+});
+
+test('MSX Audio Main tracks ADPCM separately from FM and preserves a replacement sample owner',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'msx-audio',fmChannels:0,psg:false,dac:false}),writes=[];
+  const port={start(){},close(){},postMessage(message){writes.push(message);if(message.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:message.id,value:true}}));}};
+  const opl=createOplClient(port,{chip:'y8950'});opl.initialize();
+  megaDrive.fm=null;megaDrive.psg=null;megaDrive.opl=opl;
+  megaDrive.primaryEndpoints=[{name:'y8950',globalName:'opl',client:opl}];megaDrive.stopAllNative=()=>opl._stopVoices();
+  await runtime.playSource(`
+    liveLoop('fm-owner',async()=>{opl.noteOn(2,'C4');await sleep(60);});
+    liveLoop('old-adpcm',async()=>{opl.adpcm.keyOn();await sleep(60);});
+  `);
+  const replaced=writes.length;
+  await runtime.playSource(`opl.adpcm.keyOn();stopLoop('old-adpcm');liveLoop('fm-owner',async()=>{await sleep(60);});`);
+  assert(!writes.slice(replaced).some(message=>message.method==='writeRegister'&&message.args[0]===7&&message.args[1]===1),
+    'a cancelled old owner cannot stop the replacement ADPCM');
+  await runtime.playSource(`opl.adpcm.reset();liveLoop('fm-owner',async()=>{await sleep(60);});`);
+  const reset=writes.length;
+  await runtime.playSource(`stopLoop('fm-owner');`);
+  assert(writes.slice(reset).some(message=>message.method==='forceKeyOff'&&message.args[0]===2),
+    'ADPCM reset retains the unrelated FM owner so its loop can still release');
+  await runtime.stop();
+});
+
+test('MSX Audio Main stopAll cancels a top-level ADPCM decode while retaining a reusable primary client',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'msx-audio',fmChannels:0,psg:false,dac:false}),writes=[];
+  const port={start(){},close(){},postMessage(message){writes.push(message);if(message.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:message.id,value:true}}));}};
+  const opl=createOplClient(port,{chip:'y8950'});opl.initialize();
+  megaDrive.fm=null;megaDrive.psg=null;megaDrive.opl=opl;
+  megaDrive.primaryEndpoints=[{name:'y8950',globalName:'opl',client:opl}];megaDrive.stopAllNative=()=>opl._stopVoices();
+  await runtime.playSource(`
+    let cancelled=false,stopping;
+    try{
+      await opl.adpcm.loadSample(new Uint8Array([1,2]),{decodeAudio:async()=>{
+        stopping=pg.stopAll();return {channels:[new Float32Array(128)],sampleRate:16000};
+      }});
+    }catch(error){cancelled=error.name==='AbortError';}
+    if(!cancelled)throw Error('stopAll allowed top-level sample decode to resume');
+    await stopping;
+    await opl.adpcm.loadSample({channels:[new Float32Array(128)],sampleRate:16000});
+    opl.adpcm.setVolume(120);opl.adpcm.keyOn();opl.adpcm.keyOff();
+  `);
+  assert.equal(writes.filter(message=>message.method==='loadAdpcmMemory').length,1,'only the new sample reaches RAM');
+  await runtime.stop();
+});
+
 for(const selected of ['ym2610','ym2610b'])for(const backend of [undefined,'native-genesis'])test(`Main ${selected} ${backend??'web'} borrows only the exact variant`,async t=>{
  const f=independentOpnFixture(),createRuntime=await runtimeWithOpnAudio(f.factory);
  const {runtime,megaDrive}=setup(t,{chip:selected,fmChannels:selected==='ym2610'?4:6,backend}, {},createRuntime);

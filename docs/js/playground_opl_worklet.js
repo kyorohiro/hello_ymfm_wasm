@@ -1,3 +1,4 @@
+import {copyY8950AdpcmMemory} from './y8950_adpcm.js?v=y8950-adpcm-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {Ym3526} from './ym3526.js?v=audio-stability-2';
 import {Ym3812} from './ym3812.js?v=audio-stability-2';
@@ -7,8 +8,8 @@ import ym3526Factory from '../generated/ym3526_wasm.js';
 import ym3812Factory from '../generated/ym3812_wasm.js';
 import y8950Factory from '../generated/y8950_wasm.js';
 import ymf262Factory from '../generated/ymf262_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=extra-ym2612-nuked-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=y8950-adpcm-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 const PROFILES={ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory]};
 const SLOTS=[0,1,2,8,9,10,16,17,18], PAIRS=[0,1,2,9,10,11];
@@ -16,7 +17,7 @@ class Processor extends AudioWorkletProcessor {
   constructor({processorOptions:{chip='ym3812',clock=chip==='ymf262'?14318180:3579545,wasmBinary}}) {
     super();this.kind=chip;this.clock=clock;this.chip=null;this.dead=false;this.remainder=0;this.left=this.right=0;this.counts=new Uint32Array(128);
     this.channels=chip==='ymf262'?18:9;this.registers=new Uint8Array(chip==='ymf262'?512:256);this.mutedChannels=new Set(Array.from({length:this.channels},(_,index)=>index));this.auditionStarts=new Map();this.silent=true;
-    this.performance=createProcessorPerformance({chip,immediate:['stopVoices'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
+    this.performance=createProcessorPerformance({chip,getOplRegisters:()=>this.registers,immediate:['stopVoices','loadAdpcmMemory','clearAdpcmMemory'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage=({data})=>{
       if(data.primaryWorker){this.workerRemote?.close();this.workerRemote=null;if(data.port){if(this.dead){data.port.close();return;}const remote=this.workerRemote=data.port;remote.onmessage=event=>{if(this.workerRemote===remote)this.receive(event.data,remote);};remote.start();}return;}
@@ -60,10 +61,11 @@ class Processor extends AudioWorkletProcessor {
       this.mutedChannels.add(ch);for(const slot of [SLOTS[ch%9],SLOTS[ch%9]+3])this.writeRaw(0x40+slot,(this.registers[(bank<<8)+0x40+slot]&192)|63,bank);
     }this.updateMuteMask();
   }
-  stopVoices(){if(!this.chip)return;for(let ch=0;ch<this.channels;ch++)this.forceKeyOff(ch);this.writeRegister(0xbd,this.registers[0xbd]&224,0);this.silent=true;}
+  stopVoices(){if(!this.chip)return;if(this.kind==='y8950')this.writeRegister(7,1);for(let ch=0;ch<this.channels;ch++)this.forceKeyOff(ch);this.writeRegister(0xbd,this.registers[0xbd]&224,0);this.silent=true;}
   writeRegister(register,value,bank=0){
     if(register>255){bank=register>>8;register&=255;}
     const index=(bank<<8)+register;this.registers[index]=value;this.inspector?.observeWrite(register,value,bank);
+    if(this.kind==='y8950'&&bank===0&&register===7&&(value&0xc1)===0x80)this.silent=false;
     if(register>=0xb0&&register<=0xb8&&(value&32)){this.restore(bank*9+register-0xb0);this.silent=false;}
     if(register===0xbd&&(value&31)){
       for(let ch=6;ch<=8;ch++)this.restore(ch);this.silent=false;
@@ -80,6 +82,16 @@ class Processor extends AudioWorkletProcessor {
         this.clock=validateChipClock(data.clock??data.args[0]);this.rate=this.chip.sampleRate(this.clock);
       }else if(data.method==='stopVoices'){this.inspector?.invoke('auditionAllOff');this.performance.clear();this.stopVoices();}
       else if(data.method==='reset'){this.chip.reset();this.auditionStarts.clear();this.inspector?.reset();this.registers.fill(0);this.mutedChannels=new Set(Array.from({length:this.channels},(_,index)=>index));this.updateMuteMask();this.silent=true;this.remainder=0;this.left=this.right=0;}
+      else if(data.method==='loadAdpcmMemory'){
+        if(this.kind!=='y8950')throw new Error('ADPCM memory requires Y8950');
+        const [bytes,address=0]=data.args??[],copy=copyY8950AdpcmMemory(bytes,address);
+        this.writeRegister(7,1);
+        this.chip.loadSampleMemory(copy,address,Math.max(this.chip.sampleMemory.length,address+copy.length));
+        this.publishState();
+      }else if(data.method==='clearAdpcmMemory'){
+        if(this.kind!=='y8950')throw new Error('ADPCM memory requires Y8950');
+        this.writeRegister(7,1);this.chip.clearSampleMemory();this.publishState();
+      }
       else if(data.method==='writeRegister')this.writeRegister(...data.args);
       else if(data.method==='forceRhythmOff')this.writeRegister(0xbd,this.registers[0xbd]&~(16>>data.args[0]),0);
       else if(data.method==='forceKeyOff')this.forceKeyOff(data.args[0]);

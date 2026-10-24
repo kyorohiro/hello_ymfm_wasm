@@ -1,5 +1,5 @@
 /** Ordered Native controls shared by console voice editors. No audio runs here. */
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=y8950-adpcm-1';
 
 export const nativeInteger=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`${label} must be 0..${max}`);return value;};
 export function nativeSnapshotArray(values,length,max,label){if(!Array.isArray(values)||values.length!==length||values.some(v=>!Number.isInteger(v)||v<0||v>max))throw new Error(`Native ${label} returned an invalid snapshot`);}

@@ -333,6 +333,11 @@ export const EXAMPLE_FILES = [
     "data": "// Master System: one global User patch shared by every instrument-0 channel.\nsetBpm(120);\nopll.setUserPatch(OPLL_USER_PRESETS.bell);\nopll.setVoice(0, {instrument: 0, attenuation: 5, sustain: false});\nopll.setVoice(1, {instrument: 0, attenuation: 7, sustain: false});\nopll.setVoice(2, {instrument: 4, attenuation: 7, sustain: false}); // ROM Flute is unaffected.\n\nliveLoop('sms-opll-user-chord', async () => {\n  for (const notes of [['C4', 'E4', 'G4'], ['A3', 'C4', 'E4'], ['F3', 'A3', 'C4'], ['G3', 'B3', 'D4']]) {\n    for (let channel = 0; channel < notes.length; channel++) opll.noteOn(channel, notes[channel]);\n    await tween({beats: 1}, progress => opll.setUserOperator(0, {\n      tl: Math.round(36 - 14 * progress), // Modulator level changes CH0 and CH1 together.\n    }));\n    for (const channel of [0, 1, 2]) opll.keyOff(channel);\n    await beat(0.5);\n  }\n});\n\n// Carrier level is set per channel with setAttenuation(channel, 0..15).\n// Editing the User patch does not alter ROM instrument 4 on CH2.\n"
   },
   {
+    "path": "/examples/msx/msx-audio-adpcm.js",
+    "name": "msx-audio-adpcm",
+    "data": "// Select Mode: MSX Audio. Y8950 plays nine FM channels plus one mono ADPCM stream.\n// Web Audio / Native and Main / Worker use the same code.\nsetBpm(120);\n\nawait livePrepare('msx-audio-original-drum', async () => {\n  const sampleRate = 16000;\n  const pcm = Float32Array.from({length: 4800}, (_, index) => {\n    const seconds = index / sampleRate;\n    const phase = 2 * Math.PI * (70 * seconds + 3 * (1 - Math.exp(-seconds * 40)));\n    return 0.65 * Math.sin(phase) * Math.exp(-seconds * 20);\n  });\n  // loadSample encodes PCM, uploads it and selects its range/rate without playing.\n  // To use your own WAV from FILES instead:\n  // const wav = await file('./samples/voice.wav', {type: 'arrayBuffer'});\n  // return opl.adpcm.loadSample(wav, {sampleRate});\n  return opl.adpcm.loadSample({channels: [pcm], sampleRate}, {sampleRate});\n});\nopl.adpcm.setVolume(160);\nopl.setPreset(0, OPL_PRESETS.sine);\nopl.setOperator(0, 1, {tl: 22});\n\nliveLoop('msx-audio-fm-and-adpcm', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4']) {\n    try {\n      opl.adpcm.keyOn();\n      opl.noteOn(0, note);\n      await beat(0.75);\n    } finally {\n      opl.keyOff(0);\n      opl.adpcm.keyOff();\n    }\n    await beat(0.25);\n  }\n});\n\n// loadMemory() takes encoded ADPCM-B bytes; setSample() uses byte range [start, end).\n// To add another independent Y8950 in any mode: await createSoundChip('y8950').\n"
+  },
+  {
     "path": "/examples/msx/msx-ay-envelope.js",
     "name": "msx-ay-envelope",
     "data": "// MSX AY-3-8910: both voices use the same hardware envelope.\nsetBpm(120);\nay.setVoice(0, {tone: true, noise: false, volume: 9, envelope: true});\nay.setVoice(1, {tone: true, noise: false, volume: 7, envelope: true});\n\nliveLoop('msx-ay-envelope', async () => {\n  for (const [shape, period, notes] of [[8, 1800, ['C4', 'E4']], [10, 1200, ['G3', 'D4']], [12, 2200, ['A3', 'C4']], [14, 1500, ['G3', 'B3']]]) {\n    // Period is a 16-bit hardware value. An explicit Shape write restarts it\n    // globally, once per chord; noteOn itself does not reset the shared envelope.\n    ay.setEnvelope({period, shape});\n    ay.noteOn(0, notes[0]);\n    ay.noteOn(1, notes[1]);\n    await beat(2);\n    ay.keyOff(0);\n    ay.keyOff(1);\n    await beat(0.5);\n  }\n});\n"
@@ -729,8 +734,8 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
   ],
   "msx-audio": [
     "/examples/msx/msx-fm-sections.js",
-    "/examples/msx/msx-ay-tone-noise.js",
-    "/examples/msx/msx-ay-envelope.js"
+    "/examples/msx/msx-audio-adpcm.js",
+    "/examples/msx/msx-ay-tone-noise.js"
   ],
   "dx7": [
     "/examples/dx7/dx7-object-preset.js",

@@ -59,7 +59,7 @@ export function createNativeGenesisExtraOplEndpoint(synth,{kind='ym3812'}={}){
       if(r===0xbd)for(let drum=0;drum<5;drum++){const bit=16>>drum;if(v&32&&v&bit){if(intentMask&bit||!(registers[r]&bit))owners.set(18+drum,group);}else owners.delete(18+drum);}
       if(opl3&&r===0x1bd)for(let drum=0;drum<5;drum++){const key=`upper-drum:${drum}`,bit=16>>drum;if(v&bit){if(!(registers[r]&bit))owners.set(key,group);}else owners.delete(key);}
       if(r===4&&!(v&128))owners.set('timer-loads',{value:v&3});
-      if(!opl3&&(r===8||r===4&&!(v&128))){const mode=r===8?v:registers[8];if(mode&128&&((owners.get('timer-loads')?.value??0)&1))owners.set('csm',group);else if(owners.get('csm')===group)owners.delete('csm');}
+      if(!opl3&&(r===8&&(kind!=='y8950'||((registers[8]^v)&0xc0)!==0)||r===4&&!(v&128))){const mode=r===8?v:registers[8];if(mode&128&&((owners.get('timer-loads')?.value??0)&1))owners.set('csm',group);else if(owners.get('csm')===group)owners.delete('csm');}
       if(kind==='y8950'&&r===7){if(v&128&&!(v&65))owners.set('adpcm',group);else if(v&1&&owners.get('adpcm')===group)owners.delete('adpcm');}
     },
     cancelAuthor(state,owners,group){for(const [channel,owner]of owners)if(owner===group){if(channel==='csm'){const loads=owners.get('timer-loads')?.value??0;state.registers[8]&=127;state.registers[4]=(state.registers[4]&~131)|(loads&2);owners.set('timer-loads',{value:loads&2});}else if(channel==='adpcm')state.registers[7]=1;else if(typeof channel==='string'&&channel.startsWith('upper-drum:'))state.registers[0x1bd]&=~(16>>Number(channel.slice(11)));else if(channel>=18)state.registers[0xbd]&=~(16>>(channel-18));else state.registers[(channel>=9?256:0)+0xb0+channel%9]&=223;owners.delete(channel);}},

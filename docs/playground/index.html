@@ -12,7 +12,7 @@
     <link rel="manifest" href="../playground.webmanifest">
     <link rel="icon" href="../playground-favicon.ico" sizes="any">
     <link rel="stylesheet" href="./playground_chip_tabs.css?v=audio-numeric-bindings-1">
-    <link rel="stylesheet" href="./playground_mixer.css?v=extra-ym2612-nuked-1">
+    <link rel="stylesheet" href="./playground_mixer.css?v=y8950-adpcm-1">
     <link rel="stylesheet" href="./playground_sample_editor.css">
     <script src="../sw-register.js"></script>
     <style>
@@ -2187,7 +2187,7 @@
             <p data-native-helper="msx" hidden><code>opll.setVoice(0, {instrument:3, attenuation:5})</code> selects a ROM instrument; instrument 0 uses the shared <code>OPLL_USER_PRESETS</code> patch. Use <code>opll.noteOn(0, "C4")</code> and <code>opll.keyOff(0)</code> to play it. Select MSX Audio for the additional Y8950 FM instrument.</p>
             <p data-native-helper="msx-audio" hidden>MSX Audio provides <code>ay</code> for PSG, <code>opll</code> for MSX-MUSIC and <code>opl</code> for MSX-AUDIO FM. The Keyboard selects each chip and its physical channel. Open its chip tab to edit and audition the current voice.</p>
             <p data-native-helper="msx-audio" hidden><code>ay.setVoice(0, {tone:true, noise:false, volume:9})</code> configures a PSG voice. Three channels share its noise generator and hardware envelope. <code>opll.setVoice(0, {instrument:3, attenuation:5})</code> selects a YM2413 ROM voice; instrument 0 uses the shared custom patch.</p>
-            <p data-native-helper="msx-audio" hidden><code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code> play Y8950 FM. Its tab edits operators and rhythm. Y8950 ADPCM sample playback is outside this mode.</p>
+            <p data-native-helper="msx-audio" hidden><code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code> play Y8950 FM. Its tab edits operators and rhythm. Use <code>await opl.adpcm.loadSample(pcm)</code> for a mono sample, then <code>opl.adpcm.setVolume(160)</code>, <code>opl.adpcm.keyOn()</code> and <code>opl.adpcm.keyOff()</code>. See <code>examples/msx/msx-audio-adpcm.js</code>.</p>
             <p data-native-helper="dx7" hidden><code>dx7</code> is the primary 16-voice MSFA instrument. Use <code>dx7.noteOn(60, 100)</code> and <code>dx7.noteOff(60)</code> with MIDI note numbers and no channel argument. <code>await useSoundChip("dx7")</code> borrows this same instrument; <code>await createSoundChip("dx7")</code> creates another one.</p>
             <p data-native-helper="dx7" hidden>Use object presets with <code>await dx7.setPreset(preset)</code>, or import a SysEx file and <code>await dx7.loadSysex(await file("/presets/my-bank.syx", {type:"arrayBuffer"}))</code>. Open the DX7 panel to inspect and edit all six operators, select a bank voice and audition it. The Keyboard tab plays this instrument directly; keyboard.bind() can supply another instrument. The engine runs internally at 44,100 Hz; there is no chip-clock setting.</p>
             <h2 data-opn-helper style="margin-top: 14px;">midi (YM2612 mode)</h2>
@@ -2480,7 +2480,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=extra-ym2612-nuked-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=y8950-adpcm-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

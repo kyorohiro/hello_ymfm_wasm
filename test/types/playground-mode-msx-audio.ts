@@ -13,6 +13,13 @@ async function checkMsxAudioModeTypes() {
   const primaryAy=await useSoundChip('ay8910');primaryAy.setVoice(0,{volume:9});
   const primaryOpll=await useSoundChip('ym2413');primaryOpll.setSustain(0,false);
   const primaryAudio=await useSoundChip('y8950');primaryAudio.setPreset(0,OPL_PRESETS.bell);
+  await pg.opl.adpcm.loadMemory(new Uint8Array(32));
+  const sample=await opl.adpcm.loadSample({channels:[new Float32Array(128)],sampleRate:16000});
+  const rate:number=primaryAudio.adpcm.setPlaybackRate(sample.sampleRate);
+  opl.adpcm.setSample({start:sample.start,end:sample.end});
+  opl.adpcm.setVolume(160);opl.adpcm.keyOn();opl.adpcm.keyOff();void rate;
+  // @ts-expect-error OPLL does not have the Y8950 ADPCM stream
+  opll.adpcm;
   // @ts-expect-error AY's lifetime belongs to the mode
   primaryAy.dispose();
   // @ts-expect-error OPLL's lifetime belongs to the mode
@@ -41,5 +48,5 @@ async function checkMsxAudioModeTypes() {
   pg.fm;
   const extra=await createSoundChip('ay8910');extra.dispose();
   const extraOpll=await createSoundChip('ym2413');extraOpll.dispose();
-  const extraAudio=await createSoundChip('y8950');extraAudio.dispose();
+  const extraAudio=await createSoundChip('y8950');await extraAudio.adpcm.clearMemory();extraAudio.dispose();
 }

@@ -1,28 +1,28 @@
-import {createSpcClient} from './playground_spc.js?v=extra-ym2612-nuked-1';
-import {createSnesClient} from './playground_snes.js?v=extra-ym2612-nuked-1';
-import {createPerformanceSender} from './playground_performance_sender.js?v=extra-ym2612-nuked-1';
+import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-1';
+import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-1';
+import {createPerformanceSender} from './playground_performance_sender.js?v=y8950-adpcm-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNesClient} from './playground_nes.js?v=extra-ym2612-nuked-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=extra-ym2612-nuked-1';
-import {createDx7Client} from './playground_dx7.js?v=extra-ym2612-nuked-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=extra-ym2612-nuked-1';
-import {OPL_CHIPS} from './playground_opl.js?v=extra-ym2612-nuked-1';
+import {createNesClient} from './playground_nes.js?v=y8950-adpcm-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=y8950-adpcm-1';
+import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=y8950-adpcm-1';
+import {OPL_CHIPS} from './playground_opl.js?v=y8950-adpcm-1';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=audio-numeric-bindings-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {createYm2151Client} from './playground_ym2151.js?v=extra-ym2612-nuked-1';
+import {createYm2151Client} from './playground_ym2151.js?v=y8950-adpcm-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=audio-stability-2';
-import {createOpnClient} from './playground_opn.js?v=extra-ym2612-nuked-1';
+import {createOpnClient} from './playground_opn.js?v=y8950-adpcm-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
-import {validateSoundChipOptions} from './playground_soundchip_options.js?v=extra-ym2612-nuked-1';
+import {validateSoundChipOptions} from './playground_soundchip_options.js?v=y8950-adpcm-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
-import {createGameboyClient} from './playground_gameboy.js?v=extra-ym2612-nuked-1';
-import {createYm2608Client} from './playground_ym2608.js?v=extra-ym2612-nuked-1';
-import {createRf5c164Client} from './playground_rf5c164.js?v=extra-ym2612-nuked-1';
+import {createGameboyClient} from './playground_gameboy.js?v=y8950-adpcm-1';
+import {createYm2608Client} from './playground_ym2608.js?v=y8950-adpcm-1';
+import {createRf5c164Client} from './playground_rf5c164.js?v=y8950-adpcm-1';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeNoiseOwnership} from './native_genesis_noise.js';
@@ -35,7 +35,7 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=extra-ym2612-nuked-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=y8950-adpcm-1';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -383,7 +383,12 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
     || capabilities.chip === 'gameboy' && capabilities.backend === 'native-genesis';
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
-  const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}));
+  const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}),{
+    captureContext:()=>({...run.currentLoop,loop:run.currentLoop,token:run.token}),
+    restoreContext:scope=>{run.currentLoop=scope?.loop??null;},
+    isStopped:scope=>run.stopped||(scope?scope.token!==run.token||scope.loop?.stopped:run.currentLoop?.stopped),
+    decodeAudio:source=>request('pcm.decode',[source],run.currentLoop),
+  });
   const native = {...nativeBase,apis:Object.fromEntries(Object.entries(nativeBase.apis).map(([name,api])=>[name,keyboardApi(api)]))};
   const primaryPcmClient = primaryPcmConnection ? createRf5c164Client(
     performanceTransport.port(primaryPcmConnection.port, 'independent'), source => request('pcm.decode',[source],run.currentLoop)) : null;
@@ -864,7 +869,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     stopAllLoops: () => { run.loops.clear(); clock.cancelLoop(); },
     onKeyboardPressKey: (name, fn) => registerKeyboard("keydown", name, fn),
     onKeyboardReleaseKey: (name, fn) => registerKeyboard("keyup", name, fn),
-    stopAll: () => postCommand("stopAll"),
+    stopAll: () => {native.cancelAdpcmLoads();for(const client of pcmClients)client._cancelAdpcmLoads?.();return postCommand("stopAll");},
     choose,
     cycle: createCycle(() => run.currentLoop),
     rand: Math.random,

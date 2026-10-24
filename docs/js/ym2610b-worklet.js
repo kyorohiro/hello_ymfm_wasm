@@ -1,4 +1,4 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2612-nuked-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=y8950-adpcm-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';

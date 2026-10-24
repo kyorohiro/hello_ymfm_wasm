@@ -1,13 +1,45 @@
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2612-nuked-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=y8950-adpcm-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {copyY8950AdpcmMemory,Y8950_ADPCM_MEMORY_BYTES} from './y8950_adpcm.js?v=y8950-adpcm-1';
+
+/** Preparation uploads apply immediately; musical writes keep their existing
+ * performance clock. Every resolved upload has crossed an applied-state fence. */
+export function createNativeY8950AdpcmTransport(context,{send,getGroup=()=>undefined,withGroup=(_group,callback)=>callback(),clearAuthor=()=>{},getAuthorVersion=()=>undefined,decodeAudio}={}){
+  const {synth,capture,current}=context,cancelledGroups=new Map(),cancelledOwners=new Map(),cancelledPerformances=new Map();let generation=0;
+  const abort=()=>new DOMException('Native Y8950 ADPCM operation was cancelled','AbortError');
+  function captureContext(){const group=getGroup();return {token:capture(),group,generation,version:cancelledGroups.get(group)??0};}
+  function checkCurrent(scope){if(!scope){capture();return;}current(scope.token);if(scope.generation!==generation||(cancelledGroups.get(scope.group)??0)!==scope.version||scope.performance!==undefined&&((cancelledOwners.get(`${scope.performance}:${scope.owner}`)??0)!==scope.ownerVersion||(cancelledPerformances.get(scope.performance)??0)!==scope.performanceVersion))throw abort();}
+  function withContext(scope,callback){checkCurrent(scope);return withGroup(scope.group,callback);}
+  async function control(method,input,address=0,timing={},scope=captureContext()){
+    const bytes=method==='adpcm-memory'?copyY8950AdpcmMemory(input,address):undefined;
+    if(timing.performance!==undefined){scope={...scope,performance:timing.performance,owner:timing.owner,ownerVersion:cancelledOwners.get(`${timing.performance}:${timing.owner}`)??0,performanceVersion:cancelledPerformances.get(timing.performance)??0};}
+    checkCurrent(scope);timing.checkCurrent?.();
+    const authorVersion=getAuthorVersion(),id=context.identity(),message={method,id,...(bytes?{address,bytes:Array.from(bytes)}:{}),...(scope.group===undefined?{}:{group:scope.group})};
+    withContext(scope,()=>send(message,{...timing,time:undefined}));
+    await synth.flush();checkCurrent(scope);timing.checkCurrent?.();
+    const state=await context.snapshot('y8950',{after:id});checkCurrent(scope);timing.checkCurrent?.();
+    if(state.adpcmMemorySize!==undefined&&(!Number.isSafeInteger(state.adpcmMemorySize)||state.adpcmMemorySize<0||state.adpcmMemorySize>Y8950_ADPCM_MEMORY_BYTES))throw new Error('Native Y8950 returned invalid ADPCM memory size');
+    withContext(scope,()=>clearAuthor(authorVersion));
+  }
+  return {captureContext,checkCurrent,withContext,
+    ...(decodeAudio?{decodeAudio}:{}),
+    loadMemory:(bytes,address,scope)=>control('adpcm-memory',bytes,address,{},scope),
+    clearMemory:scope=>control('adpcm-clear',undefined,0,{},scope),
+    request(method,args,timing={},scope){return method==='loadAdpcmMemory'?control('adpcm-memory',args[0],args[1]??0,timing,scope):control('adpcm-clear',undefined,0,timing,scope);},
+    cancelGroup:group=>cancelledGroups.set(group,(cancelledGroups.get(group)??0)+1),
+    cancelOwner(performance,owner){const key=`${performance}:${owner}`;cancelledOwners.set(key,(cancelledOwners.get(key)??0)+1);},
+    cancelPerformance(performance){cancelledPerformances.set(performance,(cancelledPerformances.get(performance)??0)+1);},
+    reset(){generation++;cancelledGroups.clear();cancelledOwners.clear();cancelledPerformances.clear();},
+  };
+}
 
 /** Shared lifecycle for OPL/OPLL/AY register-authoring clients. The audio thread
  * owns hardware state; applied readback never rewrites an author's cache. */
 export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialClock,registerCount,voiceCount,createClient,createInspector,logical=Number,physical=Number,voiceKey=Number,validate,adoptInspector,track,cancelAuthor,editChannel,melodicChannels=kind==='ym2413'?9:3,rhythmBase=kind==='ym2413'?9:undefined,layoutRegister=kind==='ym2413'?14:undefined,layoutRegisters=layoutRegister===undefined?[]:[layoutRegister],readLayout,physicalMatches,patchAuthor,readFields,describeAuthorEdit}){
   const context=createNativeVoiceContext(synth,{backend:`extra-${kind}`,statusCommand:`native_genesis_extra_${kind}_status`,label:`additional ${label}`});
   const {capture,current}=context;let clock=initialClock,appliedClock=clock,initialized=false,mainGroup,collection=null,serial=Promise.resolve(),clockSerial=Promise.resolve();
-  const leases=new Map(),authoredOwners=new Map(),sentRegisters=new Uint8Array(registerCount),clockRequests=new Set();let layout=false,layoutRevision=0,layoutGeneration=0,layoutPending=false,layoutObserver,layoutMetadata='{"rhythmEnabled":false}';
+  const leases=new Map(),authoredOwners=new Map(),sentRegisters=new Uint8Array(registerCount),clockRequests=new Set();let adpcmAuthorVersion=0,layout=false,layoutRevision=0,layoutGeneration=0,layoutPending=false,layoutObserver,layoutMetadata='{"rhythmEnabled":false}';
   function applyLayout(data){if(layoutRegister===undefined)return;if(!Number.isSafeInteger(data.layoutRevision)||data.layoutRevision<0||typeof data.layoutPending!=='boolean')throw new Error(`Native additional ${label} returned invalid layout progress`);if(data.layoutRevision<layoutRevision)return;layoutRevision=data.layoutRevision;const next=readLayout?readLayout(data):{rhythmEnabled:!!(data.registers[layoutRegister]&32)},metadata=JSON.stringify(next);layout=!!next.rhythmEnabled;if(layoutMetadata!==metadata){layoutMetadata=metadata;synth.notifyLayout?.(next);}}
   // A single completion fence observes queued mode transitions. The authoring
   // shadow may be ahead of the renderer, so it never controls Keyboard layout.
@@ -18,10 +50,11 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
   function tagged(message,timing={}){
     const value={...(mainGroup===undefined?{}:{group:mainGroup}),...message};
     if(value.method==='write'){
+      if(kind==='y8950'&&value.register===7)adpcmAuthorVersion++;
       track?.(sentRegisters,authoredOwners,value);sentRegisters[value.register]=value.value;
       if(layoutRegister!==undefined&&layoutRegisters.includes(value.register)){value.id??=context.identity();layoutGeneration++;if(timing.time!==undefined||layoutPending||value.register!==layoutRegister||layout!==!!(value.value&32))layoutPending=true;}
     }else if(value.method==='reset'){
-      sentRegisters.fill(0);authoredOwners.clear();if(layoutRegister!==undefined){value.id??=context.identity();layoutGeneration++;if(timing.time!==undefined||layout||layoutPending||layoutRegisters.length>1)layoutPending=true;}
+      adpcmAuthorVersion++;sentRegisters.fill(0);authoredOwners.clear();if(layoutRegister!==undefined){value.id??=context.identity();layoutGeneration++;if(timing.time!==undefined||layout||layoutPending||layoutRegisters.length>1)layoutPending=true;}
     }return value;
   }
   const send=(message,timing)=>{context.send(kind,tagged(message,timing),timing);observeLayout();},timed=(message,timing)=>context.timed(kind,tagged(message,timing),timing),identified=message=>({...message,id:context.identity()});
@@ -38,7 +71,8 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
     if(method==='stopVoices')return {method:'stop-voices'};
     throw new Error(`Unsupported Native additional ${label} operation: ${method}`);
   }
-  const client=createClient((method,args,metadata)=>send(translate({method,args,...metadata})),{clock,request:(method,args)=>dispatch({method,args})});
+  const adpcm=kind==='y8950'?createNativeY8950AdpcmTransport(context,{send,getGroup:()=>mainGroup,withGroup:(group,callback)=>{const previous=mainGroup;mainGroup=group;try{return callback();}finally{mainGroup=previous;}},getAuthorVersion:()=>adpcmAuthorVersion,clearAuthor:version=>{if(version!==adpcmAuthorVersion)return;const state=client._getState();state.registers[7]=1;client._adoptState(state);authoredOwners.delete('adpcm');sentRegisters[7]=1;}}):null;
+  const client=createClient((method,args,metadata)=>send(translate({method,args,...metadata})),{clock,adpcmContext:adpcm??undefined,request:(method,args,scope)=>dispatch({method,args}, {},scope)});
   Object.defineProperties(client,{clock:{configurable:true,enumerable:true,get:()=>clock},_adoptClock:{value:hz=>{clock=validateChipClock(hz);}}});
   const inspector=createInspector({clock:()=>appliedClock,sampleRate:synth.clock.sampleRate,dispatch(command,owner,options){if(!collection)throw new Error(`${label} inspector command outside an edit`);collection.push({command,owner,...options});}});
   const notify=(method,args)=>synth.emit?.({type:'native-state',name:kind,state:client._getState(),...(describeAuthorEdit&&method?{authorEdit:describeAuthorEdit(method,args)}:{})});
@@ -55,11 +89,12 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
   client.setClock=hz=>clockCommand(hz);
   client._allocateMainOwner=()=>context.identity();
   client._withMainOwner=(group,callback)=>{const previous=mainGroup;mainGroup=group;try{return callback();}finally{mainGroup=previous;}};
-  client._cancelMainOwner=group=>{for(const request of clockRequests)if(request.group===group)request.cancelled=true;send(identified({method:'cancel-main-owner',targetGroup:group}));const state=client._getState();cancelAuthor?.(state,authoredOwners,group);client._adoptState(state);};
-  async function dispatch(message,timing={}){
+  client._cancelMainOwner=group=>{adpcm?.cancelGroup(group);for(const request of clockRequests)if(request.group===group)request.cancelled=true;send(identified({method:'cancel-main-owner',targetGroup:group}));const state=client._getState();cancelAuthor?.(state,authoredOwners,group);client._adoptState(state);};
+  async function dispatch(message,timing={},scope){
     const token=capture();timing.checkCurrent?.();
     if(Array.isArray(message)){const commands=message.map(translate);synth.enqueueMany(commands.map(command=>timed(command,timing)));observeLayout();await synth.flush();current(token);timing.checkCurrent?.();return;}
     const method=message.method??message.type,args=message.args??[];if(!Array.isArray(args))throw new TypeError(`${label} arguments must be an array`);
+    if(adpcm&&['loadAdpcmMemory','clearAdpcmMemory'].includes(method)){await adpcm.request(method,args,timing,scope);return message.id===undefined?undefined:{id:message.id};}
     if(method==='clock')return clockCommand(args[0],timing,()=>message.id===undefined?undefined:{id:message.id});
     if(method!=='dispose'){send(translate(message),timing);await synth.flush();current(token);timing.checkCurrent?.();}
     return message.id===undefined?undefined:{id:message.id,...(method==='dispose'?{value:true}:{})};
@@ -85,8 +120,10 @@ export function createNativeExtraRegisterVoice(synth,{kind,label,clock:initialCl
     });serial=result.catch(()=>{});return result;
   }
   return {client,dispatch,read,invoke,
+    cancelOwner(performance,owner){adpcm?.cancelOwner(performance,owner);},
+    cancelPerformance(performance){adpcm?.cancelPerformance(performance);},
     async initialize(){const token=capture();context.enable(kind);if(initialized)return;client.initialize();await synth.flush();current(token);initialized=true;},
     async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError(`Invalid ${label} mix`);const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
-    reset(){context.invalidate();context.disable(kind);initialized=false;mainGroup=undefined;layoutPending=false;layout=false;layoutRevision=0;layoutMetadata='{"rhythmEnabled":false}';for(const request of clockRequests)request.cancelled=true;leases.clear();authoredOwners.clear();sentRegisters.fill(0);inspector.reset();appliedClock=initialClock;client._adoptState({clock:initialClock,initialized:false,registers:Array(registerCount).fill(0),...(kind==='ay8910'?{levels:[9,9,9]}:{})});},
+    reset(){adpcm?.reset();context.invalidate();context.disable(kind);initialized=false;mainGroup=undefined;layoutPending=false;layout=false;layoutRevision=0;layoutMetadata='{"rhythmEnabled":false}';for(const request of clockRequests)request.cancelled=true;leases.clear();authoredOwners.clear();sentRegisters.fill(0);inspector.reset();appliedClock=initialClock;client._adoptState({clock:initialClock,initialized:false,registers:Array(registerCount).fill(0),...(kind==='ay8910'?{levels:[9,9,9]}:{})});},
   };
 }

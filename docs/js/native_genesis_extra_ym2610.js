@@ -1,10 +1,10 @@
-import {YM2610BSynth,NeoGeoFMSynth} from './ym2610bsynth.js?v=extra-ym2612-nuked-1';
+import {YM2610BSynth,NeoGeoFMSynth} from './ym2610bsynth.js?v=y8950-adpcm-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2612-nuked-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=y8950-adpcm-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2612-nuked-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2612-nuked-1';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2612-nuked-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-1';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-1';
 
 export const EXTRA_YM2610_CLOCK_HELD_ERROR='Release the manually held additional YM2610 voices before changing the clock';
 export const EXTRA_YM2610B_CLOCK_HELD_ERROR='Release the manually held additional YM2610B voices before changing the clock';

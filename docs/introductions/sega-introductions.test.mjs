@@ -74,7 +74,7 @@ test('deployed PSG loader and worklet resolve existing WASM assets', async () =>
   const loaderUrl = new URL('../js/playground_segapsg_audio.js', import.meta.url);
   const workletUrl = new URL('../js/playground_segapsg_worklet.js', import.meta.url);
   const loader = await readFile(loaderUrl, 'utf8'), worklet = await readFile(workletUrl, 'utf8');
-  const wasmPath = /bytes\('([^']+segapsg_wasm\.wasm)'\)/.exec(loader)?.[1];
+  const wasmPath = /new URL\('([^']+segapsg_wasm\.wasm(?:\?[^']*)?)'/.exec(loader)?.[1];
   const factoryPath = /import factory from '([^']+)'/.exec(worklet)?.[1];
   assert.ok(wasmPath); assert.ok(factoryPath);
   await readFile(new URL(wasmPath, loaderUrl));

@@ -1,3 +1,4 @@
+import {copyY8950AdpcmMemory} from './y8950_adpcm.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -20,7 +21,7 @@ const RATE=48000,peak=values=>values.reduce((result,value)=>Math.max(result,Math
 async function setup(chip='ym3812'){
   let Processor,frame=0,ready;const messages=[],port={postMessage:message=>{messages.push(message);if(message.ready||message.error)ready(message);}},started=new Promise(resolve=>ready=resolve);
   const source=(await readFile(new URL('./playground_opl_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
-  vm.runInNewContext(source,{Ym3526,Ym3812,Y8950,Ymf262,ym3526Factory,ym3812Factory,y8950Factory,ymf262Factory,OplVoiceInspector,receiveChipInspector,validateChipClock,sampleRate:RATE,
+  vm.runInNewContext(source,{copyY8950AdpcmMemory,Ym3526,Ym3812,Y8950,Ymf262,ym3526Factory,ym3812Factory,y8950Factory,ymf262Factory,OplVoiceInspector,receiveChipInspector,validateChipClock,sampleRate:RATE,
     createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Type)=>Processor=Type});
   const processor=new Processor({processorOptions:{chip,wasmBinary:await readFile(new URL(`../docs/generated/${chip}_wasm.wasm`,import.meta.url))}});assert.equal((await started).ready,true,JSON.stringify(messages));
   const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createOplClient(clientPort,{chip});client.initialize();

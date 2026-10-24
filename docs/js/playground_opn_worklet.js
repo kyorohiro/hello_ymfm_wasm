@@ -1,4 +1,4 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2612-nuked-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=y8950-adpcm-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
@@ -7,10 +7,10 @@ import {Ym2203} from './ym2203.js?v=audio-stability-2';
 import {Ym2610B} from './ym2610b.js?v=audio-stability-2';
 import ym2612Factory from '../generated/ym2612_wasm.js';
 import nukedFactory from '../generated/nuked_opn2_wasm.js';
-import {validateYm2612Engine} from './playground_soundchip_options.js?v=extra-ym2612-nuked-1';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=y8950-adpcm-1';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2612-nuked-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-1';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {

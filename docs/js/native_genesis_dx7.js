@@ -1,7 +1,7 @@
 /** DX7 control endpoint for the Native renderer. PCM never crosses this bridge. */
 import {createInitVoice,parseSysex,packVoice} from './msfa_dx7/src/sysex.js';
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
-import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=extra-ym2612-nuked-1';
+import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=y8950-adpcm-1';
 
 const integer=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`${label} must be 0..${max}`);return value;};
 const abort=()=>new DOMException('Native DX7 operation was cancelled','AbortError');

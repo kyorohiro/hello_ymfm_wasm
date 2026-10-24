@@ -1,9 +1,11 @@
 /** DOS PC register authoring stays in JS; the selected OPL renders in Native. */
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=extra-ym2612-nuked-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=y8950-adpcm-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-1';
+import {createNativeY8950AdpcmTransport} from './native_genesis_extra_register_voice.js?v=y8950-adpcm-1';
 import {createNativeVoiceContext, createNativeVoiceEndpoint, nativeInteger as integer,
-  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2612-nuked-1';
+  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-1';
 
 const CHIPS = Object.freeze(['ym3526', 'ym3812', 'ymf262']);
 const PAIRS = [0, 1, 2, 9, 10, 11];
@@ -16,7 +18,7 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
   const context = createNativeVoiceContext(synth, {
     backend: 'opl', statusCommand: 'native_genesis_opl_status', label: chip === 'y8950' ? 'MSX Audio Y8950' : 'DOS PC OPL',
   });
-  let clock = baseClock, appliedClock = baseClock, initialized = false;
+  let clock = baseClock, appliedClock = baseClock, initialized = false,adpcmAuthorVersion=0;
   let layout = [0, 0, 0], notification = null;
   const notifyLayout = () => {
     if (notification) return;
@@ -41,10 +43,12 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
   const client = new OPLSynth({chip, clock, transport: {
     writeRegister(register, value, bank = 0) {
       const address = register | (bank << 8);
+      if(chip==='y8950'&&address===7)adpcmAuthorVersion++;
       context.send(chip, {method: 'write', register: address, value});
       observeLayout(address, value);
     },
     reset() {
+      adpcmAuthorVersion++;
       context.send(chip, {method: 'reset'});
       if (layout.some(Boolean)) { layout = [0, 0, 0]; notifyLayout(); }
     },
@@ -64,6 +68,12 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
     if (state?.clock !== undefined) client._adoptClock(state.clock);
     if (state?.initialized !== undefined) initialized = !!state.initialized;
   };
+  const adpcm=chip==='y8950'?createNativeY8950AdpcmTransport(context,{
+    send:(message,timing)=>context.send(chip,message,timing),
+    getAuthorVersion:()=>adpcmAuthorVersion,
+    clearAuthor:version=>{if(version!==adpcmAuthorVersion)return;const registers=client.getRegisterSnapshot();registers[7]=1;client.adoptRegisterSnapshot(registers);},
+  }):null;
+  if(adpcm)attachY8950Adpcm(client,adpcm);
   const initialize = client.initialize.bind(client);
   client.initialize = () => { const result = initialize(); initialized = true; return result; };
   client._forceKeyOff = channel => {
@@ -141,6 +151,11 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
   const dispatch = endpoint.dispatch;
   let clocks = Promise.resolve();
   endpoint.dispatch = (message, timing = {}) => {
+    const method=message.method??message.type;
+    if(adpcm&&['loadAdpcmMemory','clearAdpcmMemory'].includes(method)){
+      if(!Array.isArray(message.args??[]))return Promise.reject(new TypeError('Y8950 ADPCM arguments must be an array'));
+      return adpcm.request(method,message.args??[],timing).then(()=>message.id===undefined?undefined:{id:message.id});
+    }
     if ((message.method ?? message.type) !== 'clock') return dispatch(message, timing);
     let token, hz;
     try {
@@ -174,13 +189,16 @@ export function createNativeGenesisOpl(synth, {chip = 'ym3812', msxAudio = false
   };
   client.setClock = hz => endpoint.dispatch({method: 'clock', args: [hz]});
   client._stopVoices = () => {
+    client._cancelAdpcmLoads?.();
     const registers = client.getRegisterSnapshot();
     for (let channel = 0; channel < channels; channel++) registers[(channel >= 9 ? 256 : 0) + 0xb0 + channel % 9] &= 223;
     registers[0xbd] &= 224;
+    if(adpcm)registers[7]=1;
     client.adoptRegisterSnapshot(registers);
     return endpoint.dispatch({method: 'stopVoices'});
   };
   client.readStatus = async () => (await endpoint.read()).status;
   client.getIrq = async () => !!(await endpoint.read()).irq;
+  if(adpcm){const reset=endpoint.reset;endpoint.reset=()=>{adpcm.reset();reset();};}
   return endpoint;
 }

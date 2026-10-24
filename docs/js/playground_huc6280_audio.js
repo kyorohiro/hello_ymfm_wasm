@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=extra-ym2612-nuked-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-1';
 import {HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
@@ -11,7 +11,7 @@ export async function createHuc6280Audio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
   const clock = validateChipClock(options.clock ?? HUC6280_CLOCK);
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('HuC6280 requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_huc6280_worklet.js?v=extra-ym2612-nuked-1', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_huc6280_worklet.js?v=y8950-adpcm-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }

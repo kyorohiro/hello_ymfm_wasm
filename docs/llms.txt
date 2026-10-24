@@ -29,6 +29,7 @@ Use the common Playground type definitions together with the type definition for
 - [Game Gear mode](./playground/tetorica-playground-game-gear.d.ts): Primary psg Sega PSG with three tones and noise. psg.setStereo(mask) routes bits 0..3 to the right and bits 4..7 to the left; 0xff enables both sides. Use PSG1..3 for tone channels.
 - [Master System mode](./playground/tetorica-playground-master-system.d.ts): Primary psg Sega PSG with three tones and noise, mixed in mono. No setStereo on the primary instrument. This mode uses the base PSG and does not include the optional YM2413 FM expansion.
 - [DX7 mode](./playground/tetorica-playground-dx7.d.ts): Primary dx7 MSFA instrument with 16-voice polyphony. noteOn(midi, velocity) and noteOff(midi) have no channel argument. useSoundChip('dx7') borrows the primary; createSoundChip('dx7') adds an independent instrument. Object presets and SysEx are supported; internal rate is fixed at 44,100 Hz, output is 44,100/48,000 Hz, and there is no setClock API.
+- [MSX Audio mode](./playground/tetorica-playground-msx-audio.d.ts): Primary ay, opll and opl (Y8950). Await opl.adpcm.loadSample(PCM/WAV) or loadMemory(encoded ADPCM-B), then setVolume(0..255), keyOn({repeat?}) and keyOff(). Y8950 has one mono sample stream, 2 MiB RAM and 32-byte-aligned [start,end) ranges; setPlaybackRate changes both speed and pitch. FM and ADPCM share this chip, but ADPCM controls preserve FM settings. createSoundChip('y8950') exposes the same ADPCM API in other modes, in Web Audio and Native.
 
 Native modes expose the same instrument namespaces on pg and livePrepare. Game Boy, NES, SNES, X68000, PC Engine, Game Gear, Master System and DX7 have no global fm/play/write, OPN pitch helpers, FM channel/operator constants or MIDI-to-FM shortcuts. Use explicit instrument methods and beat/sleep/liveLoop. useSoundChip of a mode's primary instrument borrows it without dispose; createSoundChip creates an additional disposable instrument. In Game Gear and Master System modes, useSoundChip('segapsg') returns the primary psg; createSoundChip('segapsg') creates an independent PSG with stereo routing. OPN chips remain available explicitly from every mode. Non-Genesis modes each bundle 2–3 native examples and their own defaults/<mode>/index.js.
 
@@ -66,6 +67,7 @@ Open these source files from Playground FILES → examples to run them.
 - [Master System starter](./playground/defaults/master-system/index.js): Sega PSG melody and noise rhythm in mono
 - [DX7 starter](./playground/defaults/dx7/index.js): Primary dx7, an authored object preset and a MIDI-note live loop; no SysEx file required
 - [DX7 Init Sine](./playground/examples/dx7/dx7-init-sine.js): useSoundChip('dx7'), 16-voice MIDI-note playback and DX7 SysEx banks. Read SysEx with file(path, {type:'arrayBuffer'}); await loadSysex before noteOn. MSFA runs internally at 44,100 Hz and has no setClock API.
+- [MSX Audio FM and ADPCM](./playground/examples/msx/msx-audio-adpcm.js): Encode an original PCM drum and play it with Y8950 FM. The same code runs in Web Audio / Native and Main / Worker.
 
 ## Source
 
