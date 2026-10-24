@@ -3,7 +3,11 @@
 2026-10-25。Playground Tauriの共有AYコアと独立追加接続を、同梱済みの固定SDKからビルドするようにした。
 MSX／MSX Audioの機種用接続、選択中AYのレート変換とRust側の制御・混合は維持する。
 着手時は本体`4137e903...`、Tauri`4451195...`、SDK`affd1059...`ですべてcleanだった。
-今回の差分は未コミットで、OPL接続移行と今回のAY移行を含む5構成CIは未実行。
+その後ユーザーが本体を`ce2ad30833a96607721ce8ea3122aaf5e6fefa3d`、
+Tauriを`276e744ee5ed00513558b1d995e950a3ef91884c`としてcommit／pushした。
+両作業ツリーがcleanであることを確認後、OPL接続移行と今回のAY移行を含む5構成CIを開始した。
+CIは4ジョブ成功・macOS x86_64の1ジョブ失敗で終了した。
+試験だけのローカル修正後はRust全試験と対象試験50回反復が成功した。修正は未コミットで、修正版のCIは未実行。
 
 ## ビルド境界
 
@@ -78,9 +82,68 @@ Rustログは`/private/tmp/tetorica-sdk-ay8910-cargo-test.log`、
 一時ファイルが消えても、既定checkerと既存Rust試験でSDKの動作は再確認できる。
 
 先行する5構成CI run `40137093552`は共有OPL providerまでの移行に対するもので、
-後続のOPL接続／今回のAY移行を含まない。新しい各OSのCIと実機の音声出力は未確認。
+後続のOPL接続／今回のAY移行を含まない。今回のCI開始状況は下記に分けて記録する。
+実機の音声出力は未確認。
 
-最終文書を含む対応ソースZIPは全1,796ファイル、SHA-256は
+ローカルで生成したCI入力の対応ソースZIPは全1,796ファイル、SHA-256は
 `cf24143b1449028742ff4e8490d63e5b5d66dc272f29cf87509c90164b1fc54a`。
 ソース照合結果は`/private/tmp/tetorica-sdk-ay8910-sources.json`。
 ZIP内文書へ自身のハッシュを埋め込まず、本体側の本記録で保持する。
+
+## OPL接続／AY移行後のGitHub Actions — 4構成成功、macOS x86_64失敗
+
+- [Build Desktop — run 40142510765](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40142510765)を`main`へ`workflow_dispatch`で手動実行した。
+- 対象コミットは`276e744ee5ed00513558b1d995e950a3ef91884c`。`4451195...`のOPL接続移行と今回のAY移行を含む。
+- attempt 1は`completed`／`failure`。5ジョブ中4成功・1失敗で、再実行はしていない。
+- アプリ版は`0.90.1`のまま。タグを作らない手動実行で、新しいドラフトリリースや一般公開は行わない。
+
+| 構成 | ソース照合 | Rust試験・再生／混合report | インストーラービルド |
+| --- | --- | --- | --- |
+| macOS ARM64 | 成功 | 成功 | 成功（DMG） |
+| macOS x86_64 | 成功 | Rust試験1件失敗、再生／混合reportなし | 未完了 |
+| Windows x86_64 | 成功 | 成功 | 成功（NSIS） |
+| Linux ARM64 | 成功 | 成功 | 成功（DEB／AppImage） |
+| Linux x86_64 | 成功 | 成功 | 成功（DEB／AppImage） |
+
+検証アーティファクト5件を取得し、ZIPのdigestがGitHubの記録と一致することを確認した。
+全5構成の`sources.json`でSDK374ファイルを含む22件の固定記録とソースZIP1,796ファイルが成功。
+macOS x86_64以外の4構成では、22 mode・604,032フレーム・88 Run／Stopと、
+3混合構成・7単独音源・受入れ／16台制限が成功し、両runnerはexit code 0、`deviceOpened: false`。
+macOS x86_64には`sources.json`だけがあり、欠けた再生／混合reportを成功とは扱わない。
+GitHub APIで検証レポート5件とインストーラー4件の計9アーティファクトを確認し、すべて有効期限内・サイズ0より大きかった。
+全5ジョブのドラフトリリース作成stepはskipped。インストーラーのダウンロード・起動確認はしていない。
+
+macOS x86_64のRust試験は722成功・1失敗・4件ignoredでexit code 101。
+失敗は`native_genesis::extra_snes_tests::extra_snes_completion_wait_releases_control_and_history_expires`。
+CI対象の`src/native_genesis_extra_snes_tests.rs:656`の`unwrap()`が、
+`Native additional SNES state changed while reading; retry`を返す`Err`でpanicした。
+OPL／AYのPCM一致を否定する結果ではなく、移行との因果関係は未確定。
+
+確認用のレポート取得先は`/private/tmp/tetorica-opl-ay-ci-40142510765/`。
+集計は`inspection-summary.json`、失敗ログは`macos-intel-job.log`。
+最終状態は`run-final.json`、`jobs-final.json`、`artifacts-final.json`、`jobs-audit.json`に記録した。
+音声デバイスを開かない自動試験であり、OS間のPCM bit一致や各OSでのWASM比較、
+実機での音声・ノイズ・UI操作・インストール後の起動を確認したという意味ではない。
+
+```sh
+gh run view 40142510765 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
+```
+
+## CI失敗に対するローカル修正 — 未コミット、修正版CI未実行
+
+Tauriの`src-tauri/src/native_genesis_extra_snes_tests.rs`だけを修正した。
+既存の状態読取APIが返す上記のretryエラーに限り、5秒を上限に`yield_now()`を挟んで再読取する。
+ほかのエラーはそのまま検証へ渡し、完了通知の受信待ちも200 msから5秒へ延長した。
+完了前の待機、履歴失効、状態値等の意味上のassertは保持している。
+音源コア・製品のRust実装・ビルド・APIは変更していない。
+
+修正後のローカルRust全試験は723成功・0失敗・4件ignored。
+対象試験の50回反復も50／50成功。結果は同じCI記録ディレクトリの`snes-test-fix-validation.json`にある。
+この修正はCI対象`276e744...`には含まれず、修正版のCI再実行はまだ行っていない。
+この追記では本体の作業記録2ファイルとTauriの取り込みガイドだけを更新した。
+元のCI入力ZIPのハッシュは上記のまま保持する。
+試験修正とガイド更新後のローカルZIPを再生成・照合した。全1,796ファイル、SHA-256は
+`2cafb70e38ffd8eecfab984253fc5cd01e696f3221a493da44850a5396a62e06`。
+CI入力とのマニフェスト差分は`docs/native-sdk-ym2612.md`と
+`src-tauri/src/native_genesis_extra_snes_tests.rs`だけで、製品のソース入力は変わらない。
+結果は`local-final-sources.json`と`local-final-manifest-diff.json`に保存した。

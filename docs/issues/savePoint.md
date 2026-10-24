@@ -41,11 +41,16 @@ DOS PC／MSX Audioと追加生成のOPL系4音源の接続も固定SDKへ切り�
 共有providerは変更せず、選択中／追加生成cppとY8950メモリーhelperの参照先をSDKへ移した。
 Y8950の最大2 MiBの可変RAMページの所有・COW・予算・回収、RF5C164の接続とホスト処理はアプリ側に保持する。
 このOPL作業と前回CIの記録は、本体の`4137e903...`、Tauriの`4451195...`へユーザーがコミット済み。
-最新の作業はAY-3-8910の共有コアと追加生成用接続の固定SDKへの参照切り替え。
+最新の実装はAY-3-8910の共有コアと追加生成用接続の固定SDKへの参照切り替え。
 選択中MSX／MSX Audioの機種用接続とAYレート変換、Rustの予約・owner・混合は保持する。
-AY着手時は本体・Tauri・SDKともcleanだった。今回の実装・checker・文書は未コミット。
-OPL接続移行と今回のAY差分を含む5構成CIは未実行。
-先行する全OPNの5構成CI成功と、後続のYM2151／OKIM6258／YM2413差分のローカル検証は区別する。
+AY着手時は本体・Tauri・SDKともcleanだった。その後ユーザーが本体を`ce2ad308...`、Tauriを`276e744e...`としてcommit／pushした。
+両作業ツリーがcleanであることを確認し、ユーザーの指示でOPL接続移行と今回のAY差分を含む
+[Build Desktop — run 40142510765](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40142510765)を`main`へ手動実行した。
+CIは`completed`／`failure`で終了し、macOS ARM64・Windows・Linux 2構成の4ジョブ成功、macOS x86_64の1ジョブ失敗。
+試験だけのローカル修正後はRust全試験が723成功、対象試験の反復も50／50成功した。
+修正は未コミットで、修正版のCI再実行はまだ行っていない。
+先行するrun `40137093552`の成功と、後続のOPL接続／AY移行のローカル検証・今回のCI結果は区別する。
+本体の差分は作業記録2ファイル。Tauriの差分は試験1ファイルと取り込みガイドで、音源・製品のRust実装・ビルド・checkerは変更していない。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
@@ -53,11 +58,11 @@ OPL接続移行と今回のAY差分を含む5構成CIは未実行。
 
 | リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `4137e9033dfbeec83e888f647493094d548b635f` (OPL接続移行のcheckerと前回CI記録) |
+| 本体 | `hello_ymfm/` | `ce2ad30833a96607721ce8ea3122aaf5e6fefa3d` (AY移行のcheckerと記録。CI開始前はclean) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `4451195c5cfd2593f5d39a325330f77182f3aad7` (OPL接続移行。最新のCI対象は`634e56f4...`) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `276e744ee5ed00513558b1d995e950a3ef91884c` (AY移行・CI対象。開始前はclean、現在は試験とガイドの未コミット差分あり) |
 
-本体には次のメモがある。AY移行のcheckerと記録が、この保存時点のHEAD後の差分。
+本体には次のメモがある。この保存時点のHEAD後の差分は、CI結果を記録する本節とAY作業記録のみ。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -65,9 +70,9 @@ OPL接続移行と今回のAY差分を含む5構成CIは未実行。
 - [native_sdk_ym2610_adoption_01.md](native_sdk_ym2610_adoption_01.md)：YM2610／YM2610B移行と全OPNの5構成CI。
 - [native_sdk_ym2151_adoption_01.md](native_sdk_ym2151_adoption_01.md)：YM2151／X68000移行とローカル検証。
 - [native_sdk_okim6258_adoption_01.md](native_sdk_okim6258_adoption_01.md)：OKIM6258移行と初期化対策の保持。
-- [native_sdk_ym2413_adoption_01.md](native_sdk_ym2413_adoption_01.md)：YM2413／共有OPL provider移行と最新の5構成CI。
+- [native_sdk_ym2413_adoption_01.md](native_sdk_ym2413_adoption_01.md)：YM2413／共有OPL provider移行と先行する5構成CI。
 - [native_sdk_opl_adoption_01.md](native_sdk_opl_adoption_01.md)：OPL系4音源の接続移行とRAM付きY8950比較。
-- [native_sdk_ay8910_adoption_01.md](native_sdk_ay8910_adoption_01.md)：最新の共有AYコアと独立接続の移行。
+- [native_sdk_ay8910_adoption_01.md](native_sdk_ay8910_adoption_01.md)：最新の共有AYコアと独立接続の移行、OPL接続／AY移行後のCIと追加SNES試験のローカル修正。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -347,7 +352,8 @@ AYの移行比較は計207ケース、1,038,336フレーム。既定ビルドの
 全16 envelope形状、tone／noise、clock、明示的な音量0、Stop／reset／再試奏を含む。
 公開状態比較はコアの非公開全メモリーやWASM内部状態のdumpではない。
 fixture自己試験のcallback操作中のallocation／freeは0。macOS ARM64／Clangで音声デバイスを開かずに検証した。
-OPL接続と今回のAY差分を含む新しい5構成CIと実機の音声確認は未実行。
+このローカル検証終了時点では、OPL接続と今回のAY差分を含む5構成CIは未実行だった。
+下記run `40142510765`は4構成成功・macOS x86_64失敗で終了した。実機の音声確認は未実行。
 
 ### YM2612移行のGitHub Actions — 2026-10-25
 
@@ -443,6 +449,38 @@ gh run view 40130334227 --repo kyorohiro/tetorica-fm2612-playground-tauri --json
 gh run view 40137093552 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
 ```
 
+### OPL接続／AY移行後のGitHub Actions — 2026-10-25、4構成成功、macOS x86_64失敗
+
+- [Build Desktop — run 40142510765](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40142510765)を`main`へ`workflow_dispatch`で手動実行した。
+- 対象コミットは`276e744ee5ed00513558b1d995e950a3ef91884c`。`4451195...`のOPL接続移行と、今回のAY移行を含む。
+- attempt 1は`completed`／`failure`。5ジョブ中4成功・1失敗で、再実行はしていない。
+- 開始前に本体`ce2ad30833a96607721ce8ea3122aaf5e6fefa3d`とTauriの対象HEADがユーザーによりcommit／push済みで、両作業ツリーがcleanであることを確認した。
+- macOS ARM64・Windows x86_64・Linux ARM64／x86_64の4ジョブは検証・インストーラービルドとも成功。macOSはDMG、WindowsはNSIS、LinuxはDEB／AppImage。
+- macOS x86_64のRust試験は722成功・1失敗・4件ignoredでexit code 101。`native_genesis::extra_snes_tests::extra_snes_completion_wait_releases_control_and_history_expires`で、CI対象の`src/native_genesis_extra_snes_tests.rs:656`の`unwrap()`が`Native additional SNES state changed while reading; retry`を返す`Err`でpanicした。
+- 検証アーティファクト5件のZIP digestを照合し、全環境の`sources.json`を確認した。SDK374ファイルを含む22件の固定記録とソースZIP1,796ファイルが成功。macOS x86_64の再生／混合reportは欠けており、成功とは扱わない。
+- 残る4構成の完全なreportは、22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源・受入れ／16台制限が成功。両runnerはexit code 0、`deviceOpened: false`。OS間のPCM bit一致や各OSでのWASM比較は未確認。
+- アプリ版は`0.90.1`のまま。タグを作らない手動実行で、新しいドラフトリリースや一般公開は行わない。
+- 確認用レポートの取得先は`/private/tmp/tetorica-opl-ay-ci-40142510765/`。
+- 集計は`inspection-summary.json`、失敗ログは`macos-intel-job.log`。最終状態は`run-final.json`、`jobs-final.json`、`artifacts-final.json`、`jobs-audit.json`。
+- GitHub APIで検証レポート5件とインストーラー4件の計9アーティファクトを確認し、すべて有効期限内・サイズ0より大きかった。全5ジョブのドラフトリリース作成stepはskipped。実機の音声・UI操作・インストーラーのダウンロードや起動は別の確認。
+- このCI対象と、その後のローカル試験修正は区別する。OPL／AY移行との因果関係は未確定で、元のCI入力ZIPのハッシュ`cf24143b...`は保持している。
+
+```sh
+gh run view 40142510765 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
+```
+
+### 追加SNES試験のローカル修正 — 未コミット、修正版CI未実行
+
+Tauriの`src-tauri/src/native_genesis_extra_snes_tests.rs`だけを修正し、
+上記のretryエラーに限って5秒を上限に`yield_now()`を挟んで再読取する。
+ほかのエラーは検証へ渡し、通知受信の待機も200 msから5秒へ延長した。
+完了前の待機・履歴失効・状態値などの意味上のassertは保持する。音源・製品のRust実装・ビルド・APIは変更しない。
+修正後のRust全試験は723成功・0失敗・4件ignored。対象試験の反復も50／50成功し、
+同じCI記録ディレクトリの`snes-test-fix-validation.json`に記録した。
+この修正はCI対象`276e744...`に含まれず、修正版のCIは未実行。
+Tauriのガイドも今回の結果に合わせて更新し、試験修正とガイドを含む対応ソースZIPを再生成・照合した。
+CI入力とのマニフェスト差分はガイドとSNES試験の2ファイルだけ。製品のソース入力は変わらない。
+
 ### 再開手順
 
 まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
@@ -480,9 +518,9 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. 必要なOSのインストーラーを取得し、インストール後の起動を確認する。最新のrun `40137093552`は5構成の自動試験・ビルド・検証レポート照合まで成功済み。
+1. 追加SNES試験修正と今回の文書更新をcommit／push後、修正版を含むCIを実行する。ローカル全試験・50回反復・対応ソースZIPの照合は完了済み。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
-3. 今回のAY移行をcommit／push後、OPL接続移行とまとめて必要に応じて新しい5構成CIで確認する。前回の成功は共有providerまでの移行に対するもの。
+3. 元のCI結果と修正版の検証を区別して保存し、必要なOSのインストーラーで起動を確認する。OPL接続／AY移行はcommit／push済みだが、追加SNES試験修正と今回の文書更新は未コミット。
 4. 次のSDK取り込みはSega PSG、RF5C164等から選ぶ。共有コアの重複と既存音への影響を確認する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
@@ -490,8 +528,11 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 - Tauriの `native-validation/`、`native-source-bundle/`、`src-tauri/target/` はignoredな生成物。
 - 対応ソースZIP: `w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip`。
-  今回のAY移行と最終文書の反映後のSHA-256: `cf24143b1449028742ff4e8490d63e5b5d66dc272f29cf87509c90164b1fc54a`。
+  ローカルで生成したAY移行のCI入力ZIPのSHA-256: `cf24143b1449028742ff4e8490d63e5b5d66dc272f29cf87509c90164b1fc54a`。
   全1,796ファイルとSDK374ファイルを含む22件の固定記録の照合結果は`/private/tmp/tetorica-sdk-ay8910-sources.json`。
+  追加SNES試験修正とガイド更新後の最新ローカルZIPは全1,796ファイル、SHA-256は
+  `2cafb70e38ffd8eecfab984253fc5cd01e696f3221a493da44850a5396a62e06`。
+  `local-final-sources.json`で全照合成功、`local-final-manifest-diff.json`で差分がガイドと試験の2ファイルだけと確認した。
   OPL接続移行直後の旧ZIPは`c2d20e9b...`で、今回のAY移行を含まない。
   前回CIの結果をガイドへ反映した直後の旧ZIPは`85850ce5...`で、今回のOPL接続移行を含まない。
   前回CI対象ZIPは`2829e9f9...`（macOS／Linux）。そのCI後の文書更新だけを行った時点では差分はガイド1ファイルだったが、最新ZIPには今回の接続参照・ビルド・文書の変更も入る。
@@ -528,6 +569,7 @@ SDK自体をリモートから自動取得する設計には戻さない。
   AY移行の最新検証は`/private/tmp/tetorica-sdk-ay8910-adoption/summary.json`、
   `/private/tmp/tetorica-sdk-ay8910-cargo-test.log`、`/private/tmp/tetorica-sdk-ay8910-stability.json`、
   `/private/tmp/tetorica-sdk-ay8910-extra-stability.json`、`/private/tmp/tetorica-sdk-ay8910-sources.json`。
+  OPL接続／AY移行を含むCIの確認先は`/private/tmp/tetorica-opl-ay-ci-40142510765/`。
   前回のCI記録は`/private/tmp/tetorica-ym2413-ci-40137093552/`にあり、
   `inspection-summary.json`、`artifact-metadata.json`、`jobs-audit.json`、
   `local-final-sources.json`、`local-final-manifest-diff.json`を保存済み。
@@ -535,7 +577,7 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ソースと由来の正本は各Gitコミット、Tauriの同梱SDK／取り込み記録、上記の手順書。
 過去の作業メモにある「未コミット」は当時の状態。TauriのYM2612移行は`9ef583e...`、YM2203移行は`16610b0e...`、YM2608移行は`53ab3d27...`、YM2610／YM2610B移行は`5280f83a...`にコミット済み。
-YM2151移行もTauriの`e4d68b27...`、本体の`f0e00dda...`、OKIM6258移行はTauriの`250489fd...`、本体の`fed03f7a...`、YM2413移行はTauriの`634e56f4...`、本体の`6c0b5770...`にコミット済み。前回CI記録とOPL接続移行も、本体の`4137e903...`、Tauriの`4451195...`にコミット済み。Tauriの前回CIガイド更新は`a8edd891...`。今回のAY移行は未コミット。
+YM2151移行もTauriの`e4d68b27...`、本体の`f0e00dda...`、OKIM6258移行はTauriの`250489fd...`、本体の`fed03f7a...`、YM2413移行はTauriの`634e56f4...`、本体の`6c0b5770...`にコミット済み。前回CI記録とOPL接続移行も、本体の`4137e903...`、Tauriの`4451195...`にコミット済み。Tauriの前回CIガイド更新は`a8edd891...`。今回のAY移行は本体の`ce2ad308...`、Tauriの`276e744e...`にcommit／push済み。その後の追加SNES試験修正とCI結果の文書更新は未コミット。
 
 ## 旧記録 — 2026-08-24以降の作業メモ
 
