@@ -1,0 +1,440 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "referenceFrequencyHz": 440,
+  "sampleRate": 44100,
+  "masterGain": 1,
+  "warmupSeconds": 0.25,
+  "captureSeconds": 1,
+  "frequencies": [
+    220,
+    440,
+    880
+  ],
+  "method": "Actual Analyzer mixed engine at 44100 Hz; fresh WASM instances for unity and current defaults, one sustained full-level voice, hardware frequency quantization, rising DC-centered crossing estimate, half peak-to-peak and AC RMS.",
+  "reference": {
+    "ym2608MasterClock": 8000000,
+    "ym2608SsgClock": 2000000,
+    "segaPsgClock": 3579545,
+    "fm": "Algorithm7, OP4 only, TL0/MUL1/AR31, other operators silent; both stereo bits enabled.",
+    "ssg": "ChannelA only, fixed volume15, tone enabled; envelope and noise disabled.",
+    "segaPsg": "Tone0 only, attenuation0; remaining channels silent; Genesis downstream .35 retained and reported."
+  },
+  "limits": "Steady reference levels, not perceived loudness or music normalization. No envelope/gated-duty/polyphony weighting. Existing YM2608 FM/SSG ratio is retained by every Sega-only candidate. Current default gains are snapshots, not authoritative baseline inputs. No physical audio device or external ROM.",
+  "sources": {
+    "scripts/measure_analyzer_psg_balance.mjs": "248a59e55d14d98bfa0ca537191a94134fc63db4c41c5f47a167b299dca6e2e7",
+    "docs/js/ym2608audioengine.js": "6163cf3c952c976a0e3bd92163a33a646352114314b702fefdd3c9cf0ac26e24",
+    "docs/js/genesisaudioengine.js": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439",
+    "docs/js/multichipaudioengine.js": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b",
+    "docs/js/ym2608.js": "7c67713d47ed3fea34bc8fbc8f4d592b88a93b0486c7d9502763d4159b628989",
+    "docs/js/ym2612.js": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+    "docs/js/segapsg.js": "6f1e48d336399191ef1f013b0f4165e7a06fa351a2319dcf56d9d8286d078adf",
+    "docs/js/soundchip_pitch.js": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+    "docs/js/vgmplayer.js": "5932160e421e9c394f9fbf1265ee52037f6cfe462f81f86a225ffa9890ca9783",
+    "docs/js/soundchip_mixer.js": "40f805329f044edc44d2449379365211e4ddc83a8087a07e04eab39e0f601e59",
+    "docs/generated/ym2608_wasm.wasm": "fd5afee961c5f1999a5cea1128dd9dda46822fff4fe68c6830743b18d36fdcfe",
+    "docs/generated/ym2612_wasm.wasm": "5184f6440860c438fb424fae60255f666358657571810e51a0f8e147cc8b8b13",
+    "docs/generated/segapsg_wasm.wasm": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+  },
+  "rows": [
+    {
+      "section": "ym2608-fm",
+      "frequencyHz": 440,
+      "source": "ym2608",
+      "waveform": "sine",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 439.9617513020833,
+      "masterGain": 1,
+      "downstreamTrim": 1,
+      "defaultMixerGain": 1.03357,
+      "unity": {
+        "minimum": -0.1246337890625,
+        "maximum": 0.1246337890625,
+        "peak": 0.1246337890625,
+        "peakToPeak": 0.249267578125,
+        "amplitude": 0.1246337890625,
+        "dc": 4.769620010915633e-7,
+        "rms": 0.08812558474624475,
+        "acRms": 0.08812558474495402,
+        "measuredFrequencyHz": 439.9615655171329
+      },
+      "currentDefault": {
+        "minimum": -0.12881775200366974,
+        "maximum": 0.12881775200366974,
+        "peak": 0.12881775200366974,
+        "peakToPeak": 0.2576355040073395,
+        "amplitude": 0.12881775200366974,
+        "dc": 4.929666143578622e-7,
+        "rms": 0.09108396077622137,
+        "acRms": 0.09108396077488734,
+        "measuredFrequencyHz": 439.96156551714705
+      },
+      "maxScalingError": 1.7168745397588836e-8,
+      "referenceSha256": "63eab23b0ede4da7330cf23efed17dc455d17cc4edd64c98c005ee581f13518e"
+    },
+    {
+      "section": "ym2608-ssg",
+      "frequencyHz": 440,
+      "source": "ym2608",
+      "waveform": "square",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 440.14084507042253,
+      "masterGain": 1,
+      "downstreamTrim": 1,
+      "defaultMixerGain": 1.03357,
+      "unity": {
+        "minimum": 0,
+        "maximum": 0.333282470703125,
+        "peak": 0.333282470703125,
+        "peakToPeak": 0.333282470703125,
+        "amplitude": 0.1666412353515625,
+        "dc": 0.16658848268233342,
+        "rms": 0.23484560090606002,
+        "acRms": 0.16553166978716283,
+        "measuredFrequencyHz": 440.14073359915824
+      },
+      "currentDefault": {
+        "minimum": 0,
+        "maximum": 0.3444707691669464,
+        "peak": 0.3444707691669464,
+        "peakToPeak": 0.3444707691669464,
+        "amplitude": 0.1722353845834732,
+        "dc": 0.17218086106521066,
+        "rms": 0.24272937196219865,
+        "acRms": 0.17108857090994128,
+        "measuredFrequencyHz": 440.1407335994691
+      },
+      "maxScalingError": 2.4174451773717465e-8,
+      "referenceSha256": "9b0dbc2d79a7f307a0d6aec28752d127a4f5014c40d49a55be40e1c3204a4df7"
+    },
+    {
+      "section": "sega-psg",
+      "frequencyHz": 440,
+      "source": "psg",
+      "waveform": "square",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 440.39677657480314,
+      "masterGain": 1,
+      "downstreamTrim": 0.35,
+      "defaultMixerGain": 1.840254,
+      "unity": {
+        "minimum": -0.07000000029802322,
+        "maximum": 0.07000000029802322,
+        "peak": 0.07000000029802322,
+        "peakToPeak": 0.14000000059604645,
+        "amplitude": 0.07000000029802322,
+        "dc": -0.000050793651009903476,
+        "rms": 0.07000000029801152,
+        "acRms": 0.06999998186947358,
+        "measuredFrequencyHz": 440.3980891719745
+      },
+      "currentDefault": {
+        "minimum": -0.12881778180599213,
+        "maximum": 0.12881778180599213,
+        "peak": 0.12881778180599213,
+        "peakToPeak": 0.25763556361198425,
+        "amplitude": 0.12881778180599213,
+        "dc": -0.00009347322035808953,
+        "rms": 0.12881778180601097,
+        "acRms": 0.12881774789281997,
+        "measuredFrequencyHz": 440.3980891719745
+      },
+      "maxScalingError": 1.2575537000625303e-9,
+      "referenceSha256": "6e8c36efb0cdfc53f6f258d1f8155a4160f768ec11c81412885ccea13f7ea141"
+    },
+    {
+      "section": "ym2608-fm",
+      "frequencyHz": 220,
+      "source": "ym2608",
+      "waveform": "sine",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 219.98087565104166,
+      "masterGain": 1,
+      "downstreamTrim": 1,
+      "defaultMixerGain": 1.03357,
+      "unity": {
+        "minimum": -0.1246337890625,
+        "maximum": 0.1246337890625,
+        "peak": 0.1246337890625,
+        "peakToPeak": 0.249267578125,
+        "amplitude": 0.1246337890625,
+        "dc": -5.114177905137954e-7,
+        "rms": 0.08814312617554762,
+        "acRms": 0.08814312617406397,
+        "measuredFrequencyHz": 219.9811759813843
+      },
+      "currentDefault": {
+        "minimum": -0.12881775200366974,
+        "maximum": 0.12881775200366974,
+        "peak": 0.12881775200366974,
+        "peakToPeak": 0.2576355040073395,
+        "amplitude": 0.12881775200366974,
+        "dc": -5.285650033582816e-7,
+        "rms": 0.09110209103018213,
+        "acRms": 0.09110209102864879,
+        "measuredFrequencyHz": 219.9811759812805
+      },
+      "maxScalingError": 1.733087004462952e-8,
+      "referenceSha256": "345e5a4d0a35e05baddb945753212e9258d2d63b173574561c78aa6bb9189efa"
+    },
+    {
+      "section": "ym2608-ssg",
+      "frequencyHz": 220,
+      "source": "ym2608",
+      "waveform": "square",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 220.07042253521126,
+      "masterGain": 1,
+      "downstreamTrim": 1,
+      "defaultMixerGain": 1.03357,
+      "unity": {
+        "minimum": 0,
+        "maximum": 0.333282470703125,
+        "peak": 0.333282470703125,
+        "peakToPeak": 0.333282470703125,
+        "amplitude": 0.1666412353515625,
+        "dc": 0.16658658588142503,
+        "rms": 0.2352361786670148,
+        "acRms": 0.1660872335799182,
+        "measuredFrequencyHz": 220.07061869027572
+      },
+      "currentDefault": {
+        "minimum": 0,
+        "maximum": 0.3444707691669464,
+        "peak": 0.3444707691669464,
+        "peakToPeak": 0.3444707691669464,
+        "amplitude": 0.1722353845834732,
+        "dc": 0.17217890055839588,
+        "rms": 0.2431330613942998,
+        "acRms": 0.1716627849752717,
+        "measuredFrequencyHz": 220.07061869008427
+      },
+      "maxScalingError": 2.4174451773717465e-8,
+      "referenceSha256": "1a19a8fb8554ef857bfb498b5f0e7515ed044d8d4b530532bae65849bb9447dc"
+    },
+    {
+      "section": "sega-psg",
+      "frequencyHz": 220,
+      "source": "psg",
+      "waveform": "square",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 220.19838828740157,
+      "masterGain": 1,
+      "downstreamTrim": 0.35,
+      "defaultMixerGain": 1.840254,
+      "unity": {
+        "minimum": -0.07000000029802322,
+        "maximum": 0.07000000029802322,
+        "peak": 0.07000000029802322,
+        "peakToPeak": 0.14000000059604645,
+        "amplitude": 0.07000000029802322,
+        "dc": -0.00005396825419802244,
+        "rms": 0.07000000029801152,
+        "acRms": 0.06999997949391952,
+        "measuredFrequencyHz": 220.1933380451882
+      },
+      "currentDefault": {
+        "minimum": -0.12881778180599213,
+        "maximum": 0.12881778180599213,
+        "peak": 0.12881778180599213,
+        "peakToPeak": 0.25763556361198425,
+        "amplitude": 0.12881778180599213,
+        "dc": -0.00009931529663047013,
+        "rms": 0.12881778180601097,
+        "acRms": 0.12881774352119707,
+        "measuredFrequencyHz": 220.1933380451882
+      },
+      "maxScalingError": 1.2575537000625303e-9,
+      "referenceSha256": "e623ed5feb91d9c2394a3d1924edc3543d5554dafb943a07fe7e03d6887ab1bb"
+    },
+    {
+      "section": "ym2608-fm",
+      "frequencyHz": 880,
+      "source": "ym2608",
+      "waveform": "sine",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 879.9235026041666,
+      "masterGain": 1,
+      "downstreamTrim": 1,
+      "defaultMixerGain": 1.03357,
+      "unity": {
+        "minimum": -0.12457830458879471,
+        "maximum": 0.12457830458879471,
+        "peak": 0.12457830458879471,
+        "peakToPeak": 0.24915660917758942,
+        "amplitude": 0.12457830458879471,
+        "dc": 0.0000020826062011864266,
+        "rms": 0.08805525011332961,
+        "acRms": 0.08805525008870162,
+        "measuredFrequencyHz": 879.9229589931164
+      },
+      "currentDefault": {
+        "minimum": -0.12876039743423462,
+        "maximum": 0.12876039743423462,
+        "peak": 0.12876039743423462,
+        "peakToPeak": 0.25752079486846924,
+        "amplitude": 0.12876039743423462,
+        "dc": 0.000002152512293175985,
+        "rms": 0.09101126495395108,
+        "acRms": 0.09101126492849648,
+        "measuredFrequencyHz": 879.9229589932568
+      },
+      "maxScalingError": 1.7168745397588836e-8,
+      "referenceSha256": "a62a9930da22ca6d1f78d195125c65f6a648bec61974aa01a60070c7dcf36cf4"
+    },
+    {
+      "section": "ym2608-ssg",
+      "frequencyHz": 880,
+      "source": "ym2608",
+      "waveform": "square",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 880.2816901408451,
+      "masterGain": 1,
+      "downstreamTrim": 1,
+      "defaultMixerGain": 1.03357,
+      "unity": {
+        "minimum": 0,
+        "maximum": 0.333282470703125,
+        "peak": 0.333282470703125,
+        "peakToPeak": 0.333282470703125,
+        "amplitude": 0.1666412353515625,
+        "dc": 0.16658830340936898,
+        "rms": 0.23405923896680025,
+        "acRms": 0.164414307506694,
+        "measuredFrequencyHz": 880.2811063053875
+      },
+      "currentDefault": {
+        "minimum": 0,
+        "maximum": 0.3444707691669464,
+        "peak": 0.3444707691669464,
+        "peakToPeak": 0.3444707691669464,
+        "amplitude": 0.1722353845834732,
+        "dc": 0.17218067583368243,
+        "rms": 0.24191661190071248,
+        "acRms": 0.1699336987856626,
+        "measuredFrequencyHz": 880.2811063046962
+      },
+      "maxScalingError": 2.4174451773717465e-8,
+      "referenceSha256": "cc7fc564afdf348c7ceae1cf6ac4b9ed719ce908fcb0d4769f944bd952d59b71"
+    },
+    {
+      "section": "sega-psg",
+      "frequencyHz": 880,
+      "source": "psg",
+      "waveform": "square",
+      "sampleRate": 44100,
+      "frames": 44100,
+      "hardwareFrequencyHz": 880.7935531496063,
+      "masterGain": 1,
+      "downstreamTrim": 0.35,
+      "defaultMixerGain": 1.840254,
+      "unity": {
+        "minimum": -0.07000000029802322,
+        "maximum": 0.07000000029802322,
+        "peak": 0.07000000029802322,
+        "peakToPeak": 0.14000000059604645,
+        "amplitude": 0.07000000029802322,
+        "dc": 0.000015873015940594834,
+        "rms": 0.07000000029801152,
+        "acRms": 0.06999999849834983,
+        "measuredFrequencyHz": 880.7789201334514
+      },
+      "currentDefault": {
+        "minimum": -0.12881778180599213,
+        "maximum": 0.12881778180599213,
+        "peak": 0.12881778180599213,
+        "peakToPeak": 0.25763556361198425,
+        "amplitude": 0.12881778180599213,
+        "dc": 0.000029210381361902977,
+        "rms": 0.12881778180601097,
+        "acRms": 0.1288177784941763,
+        "measuredFrequencyHz": 880.7789201334514
+      },
+      "maxScalingError": 1.2575537000625303e-9,
+      "referenceSha256": "ad2714ebc2aa88167d7e35e65a3acac3019bc9eaf6a273b6c6c3c5b4acbd3daf"
+    }
+  ],
+  "comparisons": [
+    {
+      "frequencyHz": 220,
+      "ym2608GainAnchor": 1.03357,
+      "currentSsgToFmAcRms": 1.8842902839770064,
+      "currentSegaToSsgAcRms": 0.7504115906062777,
+      "matchYm2608SsgAcRms": {
+        "rawCoreGain": 0.8583141763143525,
+        "genesisMixerGain": 2.4523262180410073,
+        "relativeToCurrentSegaDefault": 1.3326020310462616,
+        "withinCurrentGenesisMixerLimit": false
+      },
+      "matchYm2608SsgPeakToPeak": {
+        "rawCoreGain": 0.8611769192509271,
+        "genesisMixerGain": 2.4605054835740776,
+        "relativeToCurrentSegaDefault": 1.3370466704998754,
+        "withinCurrentGenesisMixerLimit": false
+      },
+      "matchYm2608FmSineAcRms": {
+        "rawCoreGain": 0.4555105885823409,
+        "genesisMixerGain": 1.3014588245209742,
+        "relativeToCurrentSegaDefault": 0.7072169518560885,
+        "withinCurrentGenesisMixerLimit": true
+      }
+    },
+    {
+      "frequencyHz": 440,
+      "ym2608GainAnchor": 1.03357,
+      "currentSsgToFmAcRms": 1.878361123675596,
+      "currentSegaToSsgAcRms": 0.7529301765027185,
+      "matchYm2608SsgAcRms": {
+        "rawCoreGain": 0.8554430761158963,
+        "genesisMixerGain": 2.4441230746168467,
+        "relativeToCurrentSegaDefault": 1.3281444162690839,
+        "withinCurrentGenesisMixerLimit": false
+      },
+      "matchYm2608SsgPeakToPeak": {
+        "rawCoreGain": 0.8611769192509271,
+        "genesisMixerGain": 2.4605054835740776,
+        "relativeToCurrentSegaDefault": 1.3370466704998754,
+        "withinCurrentGenesisMixerLimit": false
+      },
+      "matchYm2608FmSineAcRms": {
+        "rawCoreGain": 0.45541992183162133,
+        "genesisMixerGain": 1.3011997766617753,
+        "relativeToCurrentSegaDefault": 0.7070761844081171,
+        "withinCurrentGenesisMixerLimit": true
+      }
+    },
+    {
+      "frequencyHz": 880,
+      "ym2608GainAnchor": 1.03357,
+      "currentSsgToFmAcRms": 1.8671721453291743,
+      "currentSegaToSsgAcRms": 0.7580472820558928,
+      "matchYm2608SsgAcRms": {
+        "rawCoreGain": 0.8496685121555254,
+        "genesisMixerGain": 2.4276243204443584,
+        "relativeToCurrentSegaDefault": 1.3191789396704794,
+        "withinCurrentGenesisMixerLimit": false
+      },
+      "matchYm2608SsgPeakToPeak": {
+        "rawCoreGain": 0.8611769192509271,
+        "genesisMixerGain": 2.4605054835740776,
+        "relativeToCurrentSegaDefault": 1.3370466704998754,
+        "withinCurrentGenesisMixerLimit": false
+      },
+      "matchYm2608FmSineAcRms": {
+        "rawCoreGain": 0.455056334404417,
+        "genesisMixerGain": 1.3001609554411915,
+        "relativeToCurrentSegaDefault": 0.7065116855831811,
+        "withinCurrentGenesisMixerLimit": true
+      }
+    }
+  ],
+  "candidateReferenceFrequencyHz": 440
+}

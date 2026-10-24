@@ -25,6 +25,28 @@ test('application factory policies leave shared library defaults and raw PCM at 
   assert.deepEqual(source.generateStereo(),{left:new Float32Array([.3]),right:new Float32Array([-.2])});
 });
 
+test('borrowed PCM views trim only generated frames and preserve ramps across capacity and block changes',()=>{
+  const render = sizes => {
+    const pcm = {left:new Float32Array(32).fill(9),right:new Float32Array(32).fill(9)};
+    const source = {generateStereoView(frames) {
+      pcm.left.fill(1,0,frames); pcm.right.fill(-1,0,frames); return pcm;
+    }};
+    const mixer = new PCMChipMixer(); mixer.addSource('view',source,'generateStereoView',1000);
+    mixer.set('view',{volume:0});
+    const left=[],right=[];
+    for(const frames of sizes) {
+      const result=source.generateStereoView(frames);
+      assert.equal(result,pcm,'Borrowed view ownership is preserved');
+      assert.equal(result.left[31],9,'Reserved tail must not receive the gain');
+      left.push(...result.left.subarray(0,frames)); right.push(...result.right.subarray(0,frames));
+    }
+    return {left,right,remaining:mixer.strips.get('view').remaining};
+  };
+  assert.deepEqual(render([8]),render([2,0,1,5]));
+  assert.equal(render([0]).remaining,5,'A zero-frame render must not advance the ramp');
+  assert.deepEqual(render([8]).left.slice(4),[0,0,0,0]);
+});
+
 test('factory kinds and matching IDs sit below authored kind and ID settings without entering exports',()=>{
   const mixer = new SoundChipMixer(factory()), applied = [];
   assert.deepEqual(mixer.get('ym2612'),mix(.5,-.1),'built-in ID can be inspected before start');

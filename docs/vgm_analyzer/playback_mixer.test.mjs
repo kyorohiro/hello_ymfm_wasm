@@ -81,13 +81,13 @@ test('installed source ownership applies Genesis trim compensation and never lea
  const genesis={ym2612:source(),psg:source(),writeYm2612(){},reset(){},sampleRate:()=>44100};
  const mixer=installPlaybackMixer(genesis,configuration);
  assert.equal(mixer.get('ym2612').gain,Number((.775938/.9).toFixed(6)));
- assert.equal(mixer.get('psg').gain,Number((.644089/.35).toFixed(6)));
+ assert.equal(mixer.get('psg').gain,1.3012);
  const unrelated={psg:source(),reset(){},sampleRate:()=>44100};
  const separate=installPlaybackMixer(unrelated,{kind:'ym2612',chips:[{id:'psg'}]});
- assert.equal(separate.get('psg').gain,.644089,'The actual source owner takes precedence over configuration inference');
+ assert.equal(separate.get('psg').gain,.45542,'The actual source owner takes precedence over configuration inference');
  const opl={ym3812:source(),psg:source(),reset(){},sampleRate:()=>44100};
  const oplMixer=installPlaybackMixer(opl,{kind:'ym3812',chips:[{id:'ym3812'},{id:'psg'}]});
- assert.equal(oplMixer.get('psg').gain,.644089);
+ assert.equal(oplMixer.get('psg').gain,.45542);
 });
 
 test('actual Analyzer NES defaults apply without UI setup and survive restart, snapshots, seek and WAV export',async()=>{
@@ -117,4 +117,59 @@ test('actual Analyzer NES defaults apply without UI setup and survive restart, s
   await seekPlayback(player,4096,{yieldTask:async()=>{}});
   assert.equal(engine.playbackMixer.get('nesApu').gain,.5);
  }finally{engine.dispose();unity.dispose();}
+});
+
+test('actual YM2608 FM and internal SSG apply each default/explicit gain, pan and mute once through borrowed PCM',async()=>{
+ const pull=(player,frames)=>{const left=new Float32Array(frames),right=new Float32Array(frames);player.process(left,right,frames);return {left,right};};
+ for(const section of ['fm','ssg']){
+  const bytes=await readFile(new URL(`../../test/fixtures/ym2608-${section}.vgm`,import.meta.url));
+  const render=async settings=>{
+   const engine=await createPlaybackEngine(new Ym2612VGM(bytes),{getFactory:getNodePlaybackFactory});
+   try{
+    assert.equal(engine.playbackMixer.get('ym2608').gain,1.03357,'OPNA whole-chip default stays unchanged');
+    if(settings)engine.playbackMixer.set('ym2608',settings);
+    const player=createPlaybackPlayer(engine,bytes);player.stop();player.play();
+    const first=pull(player,4096);
+    player.stop();player.play();const restarted=pull(player,4096);
+    player.stop();player.play();
+    const snapshot=player.saveState(),wavPcm=pull(player,882);player.loadState(snapshot);
+    const wav=await renderVgmToWav(player,{maxSeconds:.02,blockFrames:882});
+    assert.ok(Buffer.from(wav.bytes).equals(Buffer.from(encodeStereoWav(wavPcm.left,wavPcm.right,player.sampleRate()))),`${section}: WAV and live PCM share the same gain`);
+    return {first,restarted};
+   }finally{engine.dispose();}
+  };
+  const unity=await render({gain:1}),defaults=await render(),half=await render({gain:.5}),right=await render({gain:1,pan:1}),muted=await render({muted:true});
+  for(const cycle of ['first','restarted']){
+   assert.ok(unity[cycle].left.some(value=>Math.abs(value)>.001),`${section}/${cycle}: reference is audible`);
+   for(const side of ['left','right']){
+    // The output adapter averages native frames after Float32 trim; allow only
+    // that rounding difference, while independently checking every sample.
+    let maxError=0;
+    for(let index=0;index<unity[cycle][side].length;index++){
+     maxError=Math.max(maxError,Math.abs(defaults[cycle][side][index]-unity[cycle][side][index]*1.03357));
+     assert.equal(half[cycle][side][index],Math.fround(unity[cycle][side][index]*.5),`${section}/${cycle}/${side}/${index}: explicit volume is absolute`);
+    }
+    assert.ok(maxError<2e-7,`${section}/${cycle}/${side}: default must reach generateStereoView once (error${maxError})`);
+    assert.ok(muted[cycle][side].every(value=>value===0),`${section}/${cycle}/${side}: mute reaches borrowed samples`);
+   }
+   assert.ok(right[cycle].left.every(value=>value===0));
+   assert.ok(Buffer.from(right[cycle].right.buffer).equals(Buffer.from(unity[cycle].right.buffer)),`${section}/${cycle}: right pan keeps the original right PCM`);
+  }
+ }
+});
+
+test('borrowed View registration touches only requested frames and advances a ramp once per used sample',()=>{
+ const render=sizes=>{
+  const left=new Float32Array(16),right=new Float32Array(16);
+  const borrowed={generateStereoView(){left.fill(1);right.fill(.5);return {left,right};}};
+  const mixer=new PlaybackMixer();mixer.addSource('ym2608',borrowed,'generateStereoView',1000);
+  mixer.set('ym2608',{gain:0});
+  return sizes.flatMap(frames=>{
+   const pcm=borrowed.generateStereoView(frames);
+   assert.ok(pcm.left.subarray(frames).every(value=>value===1),'Reserved left capacity remains untouched');
+   assert.ok(pcm.right.subarray(frames).every(value=>value===.5),'Reserved right capacity remains untouched');
+   return [...pcm.left.subarray(0,frames)];
+  });
+ };
+ assert.deepEqual(render([4]),render([1,1,2]));
 });

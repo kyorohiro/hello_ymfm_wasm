@@ -45,7 +45,10 @@ export function installPlaybackMixer(engine, configuration) {
     for (const id of ids) {
       const source = part[properties[id]];
       if (!source) continue;
-      const method = typeof source.generateStereoInto === 'function' ? 'generateStereoInto' : 'generateStereo';
+      // OPNA's engine consumes borrowed PCM views; its copying renderer is not
+      // on the playback path. Other engines still consume Stereo/Into.
+      const method = id === 'ym2608' && typeof source.generateStereoView === 'function' ? 'generateStereoView'
+        : typeof source.generateStereoInto === 'function' ? 'generateStereoInto' : 'generateStereo';
       if (typeof source[method] !== 'function') continue;
       const downstreamTrim = genesis ? id === 'ym2612' ? 0.9 : id === 'psg' ? 0.35 : 1 : 1;
       mixer.addSource(id, source, method, part.chipRate ?? part.chipSampleRate ?? part._chipSampleRate ?? part.sampleRate(), downstreamTrim);

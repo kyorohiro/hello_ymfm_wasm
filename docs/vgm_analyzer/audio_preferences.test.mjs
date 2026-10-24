@@ -60,3 +60,16 @@ test('saved absolute gains including zero and legacy unity override calibration 
  assert.deepEqual(last.getChip('psg',{kind:'ym2612'}),mixerDefaults('psg',{kind:'ym2612'}));
  assert.deepEqual(last.getChip('nesApu'),mixerDefaults('nesApu'));
 });
+
+test('authored former PSG levels remain absolute until Reset selects the new balance',()=>{
+ const disk=storage(),old={psg:1.840254,ay8910:1.545813,nesApu:1.981272};
+ disk.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify({chips:Object.fromEntries(Object.entries(old).map(([id,gain])=>[id,{gain}]))}));
+ const prefs=createAudioPreferences(disk),configuration={kind:'ym2612'};
+ for(const [id,gain] of Object.entries(old))assert.equal(prefs.getChip(id,configuration).gain,gain);
+ prefs.setChip('psg',{pan:.3});
+ assert.equal(createAudioPreferences(disk).getChip('psg',configuration).gain,old.psg);
+ prefs.resetMixer();
+ const reset=createAudioPreferences(disk);
+ for(const id of Object.keys(old))assert.deepEqual(reset.getChip(id,configuration),mixerDefaults(id,configuration));
+ assert.deepEqual(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)).chips,{});
+});

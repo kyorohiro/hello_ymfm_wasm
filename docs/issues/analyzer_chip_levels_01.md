@@ -94,3 +94,11 @@ sh scripts/package_itch_vgm_analyzer.sh analyzer-measured-levels
 
 以前の音量を手動保存している環境では、MixerのResetを押すと新しい基準値を使える。
 今回の変更にはnpm公開・itch.ioへのアップロードを含まない。
+
+後続の[FM／SSG／PSG比較](analyzer_psg_balance_01.md)で、YM2608の借用PCM経路がMixerを
+迂回する不具合を修正した。実PCMの検証記録もFM／SSGを追加した6経路へ更新している。
+OPNA内のSSGは既存の内部比率を維持し、FMの共通targetへ個別に揃えたものではない。
+
+さらに[PSG系の再調整](analyzer_psg_levels_01.md)で、Sega PSG・AY・NESの最終初期値だけを
+FM基準のAC RMSで抑えた。上記の共通peak校正とNESの`1.981272`はその前段の測定記録であり、
+この3音源の現初期値は再調整文書を参照する。

@@ -11,7 +11,7 @@ function engineTrim(id, configuration) {
   return owner?.kind === 'ym2612' ? id === 'ym2612' ? .9 : id === 'psg' ? .35 : 1 : 1;
 }
 
-/** Fixed reference levels; no analysis or normalization of the user's music.
+/** Fixed reference levels and measured PSG balance; no analysis of the user's music.
  * A renderer may provide its actual downstream trim instead of the UI configuration.
  * Explicit saved gain remains an absolute strip setting, above these defaults.
  * @param {string} id @param {object} [configuration] @param {number} [downstreamTrim]

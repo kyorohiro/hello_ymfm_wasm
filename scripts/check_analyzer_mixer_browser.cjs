@@ -16,7 +16,7 @@ const preferencesKey='tetorica-vgm-analyzer.audio.v1';
 let analyzerPath;
 const hook=`
 // Test-only observation and output sink, appended by the local test server.
-let __mixerConfiguration=null,__mixerFrames=0,__mixerWorkletStarts=0;
+let __mixerConfiguration=null,__mixerFrames=0,__mixerWorkletStarts=0,__mixerViewCalls=0;
 const __mixerObserved=new WeakSet(),__mixerSilentOutputs=new WeakMap();
 const __mixerLoad=mixerUi.load;
 mixerUi.load=configuration=>{__mixerConfiguration=configuration;return __mixerLoad(configuration);};
@@ -25,6 +25,10 @@ mixerUi.attach=mixer=>{
   if(engine&&!__mixerObserved.has(engine)) {
     __mixerObserved.add(engine);const render=engine.processFrames.bind(engine);
     engine.processFrames=frames=>{const pcm=render(frames);__mixerFrames+=frames;return pcm;};
+    if(engine.ym2608?.generateStereoView){
+      const view=engine.ym2608.generateStereoView.bind(engine.ym2608);
+      engine.ym2608.generateStereoView=frames=>{__mixerViewCalls++;return view(frames);};
+    }
   }
   return __mixerAttach(mixer);
 };
@@ -40,10 +44,26 @@ rewireAudioGraph=()=>{
 const __mixerStartWorklet=startWorkletStream;
 startWorkletStream=async(...args)=>{const result=await __mixerStartWorklet(...args);if(result)__mixerWorkletStarts++;return result;};
 window.__analyzerMixerTest={mixerUi,audioPreferences,getEngine:()=>engine,getConfig:()=>__mixerConfiguration,
+  captureLoadedPcm:()=>{
+    if(!engine?.ym2608||!player)throw Error('Expected the loaded Analyzer OPNA player');
+    stopActiveStream();player.stop();player.reset();player.play();
+    // Both synthetic fixtures last .5 s. Keep the full measured window inside
+    // the held note, after .2 s attack settling, independently of UI timing.
+    const rate=engine.sampleRate(),warmup=Math.round(rate*.2),frames=Math.round(rate*.25);
+    const left=new Float32Array(warmup+frames),right=new Float32Array(warmup+frames);
+    player.process(left,right,left.length);player.stop();updatePlaybackButtons(player.stats());
+    const pcm={left:left.subarray(warmup),right:right.subarray(warmup)};
+    let peak=0,sum=0,square=0,count=0;
+    for(const samples of [pcm.left,pcm.right])for(const value of samples){
+      if(!Number.isFinite(value))throw Error('Non-finite OPNA playback PCM');
+      peak=Math.max(peak,Math.abs(value));sum+=value;square+=value*value;count++;
+    }
+    return {peak,acRms:Math.sqrt(Math.max(0,square/count-(sum/count)**2)),warmupFrames:warmup,frames:pcm.left.length,viewCalls:__mixerViewCalls};
+  },
   snapshot:()=>({file:lastLoadedFileName,configuration:__mixerConfiguration,
     preferences:Object.fromEntries((__mixerConfiguration?.chips??[]).map(({id})=>[id,audioPreferences.getChip(id,__mixerConfiguration)])),
     mixer:engine?.playbackMixer?Object.fromEntries([...engine.playbackMixer.strips.keys()].map(id=>[id,engine.playbackMixer.get(id)])):null,
-    master:masterVolume,effect:audioPreferences.getEffect(),renderedFrames:__mixerFrames,workletStarts:__mixerWorkletStarts,
+    master:masterVolume,effect:audioPreferences.getEffect(),renderedFrames:__mixerFrames,workletStarts:__mixerWorkletStarts,viewCalls:__mixerViewCalls,
     saved:localStorage.getItem('${preferencesKey}'),writes:window.__analyzerAudioWrites??[]})};
 `;
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm'};
@@ -61,10 +81,13 @@ const server=http.createServer(async(request,response)=>{
 });
 
 const expected={
-  'genesis-pcm.vgz':{ym2612:.862153,psg:1.840254,rf5c164:.280286},
+  'genesis-pcm.vgz':{ym2612:.862153,psg:1.3012,rf5c164:.280286},
   'gameboy-tone.vgm':{gameBoyDmg:.515271},
-  'nes-tone.vgm':{nesApu:1.981272},
-  'y8950-psg.vgz':{y8950:1.03357,psg:.644089},
+  'nes-tone.vgm':{nesApu:1.512236},
+  'y8950-psg.vgz':{y8950:1.03357,psg:.45542},
+  'ay-tone.vgm':{ay8910:1.100331},
+  'ym2608-fm.vgm':{ym2608:1.03357},
+  'ym2608-ssg.vgm':{ym2608:1.03357},
 };
 const snapshot=page=>page.evaluate(()=>window.__analyzerMixerTest.snapshot());
 const saved=state=>state.saved===null?null:JSON.parse(state.saved);
@@ -102,6 +125,31 @@ async function stop(page) {
   await page.locator('#inlineStopButton').evaluate(button=>{if(!button.disabled)button.click();});
 }
 
+async function checkOpnaPcm(page) {
+  const results=[];
+  for(const section of ['fm','ssg']) {
+    const filename=`ym2608-${section}.vgm`;
+    await load(page,filename);await page.locator('#mixerReset').click();await play(page);await stop(page);
+    checkValues((await snapshot(page)).mixer,expected[filename],`${section}: actual OPNA default`);
+    const capture=()=>page.evaluate(()=>window.__analyzerMixerTest.captureLoadedPcm());
+    const defaults=await capture();
+    assert(defaults.acRms>.001,`${section}: OPNA reference is silent`);
+    assert(defaults.viewCalls>0,`${section}: playback did not consume borrowed PCM views`);
+    await chipRange(page,'ym2608',0,100);const unity=await capture();
+    await chipRange(page,'ym2608',0,50);const half=await capture();
+    await page.locator('#mixerStrips [data-chip="ym2608"] button').click();const muted=await capture();
+    assert.equal((await snapshot(page)).mixer.ym2608.muted,true);
+    assert.equal(muted.peak,0,`${section}: Mixer mute bypassed borrowed PCM`);
+    // Core reset retains native resampler phase, so compare steady AC levels
+    // rather than requiring sample-for-sample oscillator phase alignment.
+    const defaultRatio=defaults.acRms/unity.acRms,halfRatio=half.acRms/unity.acRms;
+    assert(Math.abs(defaultRatio/1.03357-1)<.02,`${section}: default gain bypassed or applied twice: ${defaultRatio}`);
+    assert(Math.abs(halfRatio/.5-1)<.02,`${section}: absolute .5 gain bypassed borrowed PCM: ${halfRatio}`);
+    results.push({section,defaults,unity,half,muted,defaultRatio,halfRatio});
+  }
+  return results;
+}
+
 async function checkBrowser(name,type,origin) {
   const browser=await type.launch({headless:true,args:name==='chromium'?['--autoplay-policy=no-user-gesture-required']:[]});
   try {
@@ -116,13 +164,15 @@ async function checkBrowser(name,type,origin) {
     const open=async()=>{await page.goto(origin+analyzerPath+'/index.html');await page.waitForFunction(()=>window.__analyzerMixerTest);};
     await open();
     // Merely parsing files and showing calibrated defaults must not author them.
-    for(const filename of ['genesis-pcm.vgz','gameboy-tone.vgm','nes-tone.vgm']) {
+    for(const filename of ['genesis-pcm.vgz','gameboy-tone.vgm','nes-tone.vgm','ay-tone.vgm']) {
       await load(page,filename);const state=await snapshot(page);
       checkValues(state.preferences,expected[filename],filename);await checkSliders(page,expected[filename]);
       assert.equal(state.saved,null,`${filename}: loading wrote preferences`);
       assert.equal(state.writes.length,0,`${filename}: loading wrote audio storage`);
     }
-    // First playback must attach calibrated values before any slider is changed.
+    // Playback must attach calibrated values before any slider is changed.
+    await load(page,'ay-tone.vgm');await play(page);
+    checkValues((await snapshot(page)).mixer,expected['ay-tone.vgm'],'first AY Play');await stop(page);
     await load(page,'genesis-pcm.vgz');await play(page);
     let state=await snapshot(page);checkValues(state.mixer,expected['genesis-pcm.vgz'],'first Genesis Play');
     assert.deepEqual(saved(state)?.chips??{},{});await stop(page);
@@ -172,9 +222,10 @@ async function checkBrowser(name,type,origin) {
     await open();await load(page,'genesis-pcm.vgz');state=await snapshot(page);
     assert.equal(state.saved,resetSaved,'Loading after Reset wrote factory values');assert.equal(state.writes.length,0);
     checkValues(state.preferences,expected['genesis-pcm.vgz'],'reloaded Reset defaults');assert.deepEqual(state.effect,effects);
+    const opnaPcm=await checkOpnaPcm(page);
     assert.deepEqual(errors,[],`${name}: page errors`);
-    console.log(JSON.stringify({browser:name,passed:true,root:docs,defaultGains:expected,
-      checked:['load-without-storage-writes','first-Play-calibration','before-and-after-Play-explicit-gain','reload-persistence','pan-only-contextual-PSG','Reset-empty-overrides-master-and-mute','Reset-preserves-FX','real-WASM-AudioWorklet-muted-output']}));
+    console.log(JSON.stringify({browser:name,passed:true,root:docs,defaultGains:expected,opnaPcm,
+      checked:['load-without-storage-writes','first-Play-calibration-including-AY','before-and-after-Play-explicit-gain','reload-persistence','pan-only-contextual-PSG','Reset-empty-overrides-master-and-mute','Reset-preserves-FX','real-WASM-AudioWorklet-muted-output','OPNA-FM-and-SSG-actual-borrowed-PCM-gain-and-mute']}));
     await context.close();
   } catch(error) {
     throw new Error(`${name}: ${error.message}`,{cause:error});

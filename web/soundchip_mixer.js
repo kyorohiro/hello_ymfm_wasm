@@ -427,7 +427,11 @@ export class PCMChipMixer {
     source[method] = (...args) => {
       const result = render(...args);
       const pcm = method === 'generateStereoInto' ? {left: args[0], right: args[1]} : result;
-      this.apply(strip, pcm, method === 'generateStereoInto' ? (args[2] ?? args[0].length) : pcm.left.length);
+      // Borrowed views can expose reserved capacity beyond the generated frames.
+      // Only fresh samples advance the gain ramp or receive the output trim.
+      const frames = method === 'generateStereoInto' ? (args[2] ?? args[0].length)
+        : method === 'generateStereoView' ? args[0] : pcm.left.length;
+      this.apply(strip, pcm, frames);
       return result;
     };
   }
