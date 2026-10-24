@@ -1,4 +1,4 @@
-import {OKIM6258_DIVIDERS,oki6258Rate} from './okim6258synth.js?v=native-chip-comparison-1';
+import {OKIM6258_DIVIDERS,oki6258Rate} from './okim6258synth.js?v=extra-ym2610b-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 
 const bool=(value,label)=>{if(typeof value!=='boolean')throw new TypeError(`${label} must be boolean`);return value;};
@@ -9,8 +9,8 @@ const channel=value=>{if(value!==0)throw new RangeError('OKIM6258 has one channe
 /** Applied single-stream state. Reads never decode memory, write, or advance audio. */
 export class Oki6258VoiceInspector {
   /**
-   * @param {import('./okim6258synth.js?v=native-chip-comparison-1').Oki6258Stream} stream
-   * @param {Omit<import('./playground_native_voice_inspector.js?v=nes-wasm-1').NativeVoiceInspectorOptions, 'clock'>} [options]
+   * @param {import('./okim6258synth.js?v=extra-ym2610b-1').Oki6258Stream} stream
+   * @param {Omit<import('./playground_native_voice_inspector.js?v=extra-ym2610b-1').NativeVoiceInspectorOptions, 'clock'>} [options]
    */
   constructor(stream,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.stream=stream;this.sampleRate=sampleRate;this.dispatch=dispatch;

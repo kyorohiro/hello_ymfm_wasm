@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-chip-comparison-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=extra-ym2610b-1';
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
@@ -11,7 +11,7 @@ export async function createGameboyAudio(context, destination) {
   };
   const [wasmBinary] = await Promise.all([
     bytes('../generated/gameboy_apu_wasm.wasm'),
-    context.audioWorklet.addModule(new URL('./playground_gameboy_worklet.js?v=nes-wasm-1', import.meta.url)),
+    context.audioWorklet.addModule(new URL('./playground_gameboy_worklet.js?v=extra-ym2610b-1', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-gameboy', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary},

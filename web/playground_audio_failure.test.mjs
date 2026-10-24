@@ -20,7 +20,7 @@ globalThis.fetch = originalFetch;
 
 const chips = [
   'segapsg', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910',
-  'okim6258', 'huc6280', 'ym2612', 'ym2203', 'ym2610', 'ym2608',
+  'okim6258', 'huc6280', 'ym2612', 'ym2203', 'ym2610', 'ym2610b', 'ym2608',
   'rf5c164', 'gameboy', 'nes', 'ym2151', 'pwm', 'dx7', 'snes', 'spc',
 ];
 
@@ -320,7 +320,7 @@ function installRealWorkers(t) {
 
 // Different clients own synchronous writes, asynchronous RPCs and different
 // dispose methods. Run their common Worker registry path in the actual module.
-for (const chip of ['segapsg', 'ym2413', 'ym3812', 'ay8910', 'okim6258', 'ym2612', 'rf5c164', 'gameboy', 'pwm', 'dx7', 'snes', 'spc']) {
+for (const chip of ['segapsg', 'ym2413', 'ym3812', 'ay8910', 'okim6258', 'ym2612', 'ym2610b', 'rf5c164', 'gameboy', 'pwm', 'dx7', 'snes', 'spc']) {
   test(`${chip}: actual logic Worker evicts a failed instance and ignores its stale disposal notification`, {timeout:10000}, async t => {
     const workers = installRealWorkers(t);
     const f = fixture(t, {primary:chip === 'gameboy' ? 'ym2612' : 'gameboy'});

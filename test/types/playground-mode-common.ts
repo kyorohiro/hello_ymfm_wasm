@@ -46,6 +46,20 @@ async function checkCommonModeTypes() {
   neo.adpcmA.keyOn(0);
   // @ts-expect-error independent Neo Geo uses four logical channels
   neo.noteOn(4, 'C4');
+  const neoB = await createSoundChip('ym2610b', {id:'opnb-six'});
+  neoB.setPreset(5, FM_PRESETS.sine);
+  neoB.setPan(5, true, false);
+  neoB.noteOn(0, 'C4');
+  neoB.noteOn(5, 'G4');
+  neoB.ssg.tone(2, {frequency:440,volume:8});
+  await neoB.adpcmA.loadMemory(new Uint8Array(256));
+  await neoB.adpcmB.loadMemory(new Uint8Array(256));
+  neoB.adpcm.keyOn({repeat:true});
+  // @ts-expect-error YM2610B has six FM channels
+  neoB.setNote(6, 'C4');
+  // @ts-expect-error YM2610B has no YM2612 DAC
+  neoB.setDacEnabled(true);
+  neoB.dispose();
   const extraPsg = await useSoundChip('segapsg');
   extraPsg.noteOn(0, 'C4');
   const extraApu = await useSoundChip('gameboy');

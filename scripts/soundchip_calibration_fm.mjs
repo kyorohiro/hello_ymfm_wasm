@@ -2,7 +2,7 @@
  * These references do not change Mixer/master gains, infer musical loudness,
  * or compensate polyphony. Capture after attack settling and remove DC. */
 export const FM_CALIBRATION_KINDS = Object.freeze([
-  'ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
+  'ym2612','ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
 ]);
 
 const sourcePrefix = kind => `const source = await createSoundChip(${JSON.stringify(kind)}, {id: 'calibration-source'});
@@ -33,7 +33,7 @@ await source.setFrequency(0, ${frequencyHz});
 await source.write(0, 0x28, ${0x80|physical});
 `,
     stop:`await context.calibrationSource.write(0, 0x28, ${physical});`,
-    noteInfo:`Public FM channel 0${kind==='ym2610'?' maps to physical FM channel 1 on YM2610':kind==='ym2610b'?' is physical FM channel 0 on the six-channel YM2610B primary':''}; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.`,
+    noteInfo:`Public FM channel 0${kind==='ym2610'?' maps to physical FM channel 1 on YM2610':kind==='ym2610b'?' is physical FM channel 0 on the six-channel YM2610B':''}; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.`,
     limitations:kind==='ym2203'?'YM2203 FM is mono and is sent equally to both outputs.':'Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.',
   };
 }
@@ -135,8 +135,8 @@ export function buildFmCalibrationReference(kind,frequencyHz=440){
 
 export const createFmCalibrationPrograms = (frequencyHz=440) => FM_CALIBRATION_KINDS.map(kind=>buildFmCalibrationReference(kind,frequencyHz));
 
-/** Neo Geo B's six-channel mode exposes its existing chip as `fm`. It is not
- * an additional createSoundChip kind and must not use Neo Geo's 4-channel map. */
+/** Measure Neo Geo B's existing six-channel primary rather than allocating an
+ * additional instance. It must not use Neo Geo's four-channel map. */
 export function buildYm2610bPrimaryCalibrationReference(frequencyHz=440){
   if(!Number.isFinite(frequencyHz)||frequencyHz<=0)throw new RangeError('Calibration frequency must be positive finite Hz');
   return {

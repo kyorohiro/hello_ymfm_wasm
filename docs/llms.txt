@@ -19,7 +19,8 @@ Use the common Playground type definitions together with the type definition for
 - [Mega CD selection](./playground/tetorica-playground-mega-cd.d.ts): YM2612 FM, Sega PSG and the primary RF5C164, without 32X PWM. Also used by 32X and 32X Nuked modes for shared PCM ownership. Await useSoundChip('rf5c164') for the built-in eight-voice PCM; createSoundChip adds a separate disposable device.
 - [YM2608 selection](./playground/tetorica-playground-ym2608.d.ts): PC-98 configuration
 - [YM2203 selection](./playground/tetorica-playground-ym2203.d.ts): Three-channel PC-98 configuration
-- [YM2610 selection](./playground/tetorica-playground-ym2610.d.ts): Neo Geo configuration
+- [YM2610 selection](./playground/tetorica-playground-ym2610.d.ts): Neo Geo configuration, four logical FM channels.
+- [YM2610B selection](./playground/tetorica-playground-ym2610b.d.ts): Neo Geo B configuration, six FM channels. createSoundChip('ym2610b') adds an independent FM6/SSG3/ADPCM-A6/ADPCM-B instrument in Web Audio and Native. useSoundChip borrows the primary only when its exact name matches; other variants stay independent.
 - [Game Boy mode](./playground/tetorica-playground-gameboy.d.ts): Built-in gameboy.pulse, gameboy.wave and gameboy.noise; no global play/fm/OPN shortcuts. Use beat/sleep/liveLoop for timing.
 - [NES + FDS mode](./playground/tetorica-playground-nes.d.ts): Primary nes.pulse/triangle/noise/dmc/fds. FDS is enabled in this mode; use {fds:true} for independent createSoundChip('nes').
 - [SNES mode](./playground/tetorica-playground-snes.d.ts): Primary snes CPU-free S-DSP with eight BRR voices. Await loadBRR, assign with setPreset, then noteOn. Native PCM is 32,000 Hz; no setClock. SPC file playback uses useSoundChip('spc').

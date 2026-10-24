@@ -31,7 +31,7 @@ function setup(t, selectedChip='ym2612') {
  t.after(()=>{runtime.stop();Object.assign(globalThis,saved);});
  return {runtime,megaDrive,nodes,setDelay:value=>{delay=value;}};
 }
-for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','pwm','nes','dx7','snes','spc'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
+for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2610b','ym2612','segapsg','ym2151','pwm','nes','dx7','snes','spc'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
  const {runtime,nodes}=setup(t,chip==='ym2612'?'ym2203':'ym2612');
  const source=`const [a,b]=await Promise.all([useSoundChip('${chip}'),useSoundChip('${chip}')]);
  if(a!==b || (context.pcm && a!==context.pcm))throw Error('identity');context.pcm=a;
@@ -75,14 +75,14 @@ test('Main SPC loop removal cancels its own lease and suppresses its late finall
  assert.equal(nodes[0].rpcMessages.filter(message=>message.method==='play').length,2);
 });
 
-for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','dx7']) test(`Main creates independent ${name} nodes and Stop disposes both`, async t => {
+for (const name of ['ym2612','ym2203','ym2610','ym2610b','segapsg','ym2151','dx7']) test(`Main creates independent ${name} nodes and Stop disposes both`, async t => {
  const {runtime,nodes}=setup(t);
  await runtime.playSource(`const [a,b]=await Promise.all([createSoundChip('${name}'),createSoundChip('${name}')]);if(a===b||a===fm||a.id===b.id)throw Error('identity');if('${name}'==='segapsg'){a.tone(0,{note:'C4'});b.noiseOff();}else if('${name}'==='ym2151'){a.setNote(7,'A4');a.keyOn(7);b.keyOff(7);}else if('${name}'==='dx7'){a.noteOn(60,100);b.noteOff(60);}else{a.noteOn(0,4,600);b.noteOff(0);}context.a=a;`);
  assert.equal(nodes.length,2);
  runtime.stop();assert.ok(nodes.every(n=>n.disconnects===1));assert.equal(Object.keys(runtime.context).length,0);
 });
 
-for (const name of ['ym2612','ym2203','ym2610','segapsg','ym2151','nes','dx7','snes','spc']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
+for (const name of ['ym2612','ym2203','ym2610','ym2610b','segapsg','ym2151','nes','dx7','snes','spc']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
  const {runtime,nodes,setDelay}=setup(t);setDelay(true);
  const state=runtime.context;
  const running=runtime.playSource(`await createSoundChip('${name}');context.completed=true;`);

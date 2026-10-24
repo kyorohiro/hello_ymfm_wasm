@@ -1,8 +1,8 @@
 import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {NesApuWasm} from './nesapu_wasm.js?v=nes-wasm-1';
 import factory from '../generated/nesapu_wasm.js?v=nes-wasm-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
-import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=nes-wasm-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2610b-1';
+import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=extra-ym2610b-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {

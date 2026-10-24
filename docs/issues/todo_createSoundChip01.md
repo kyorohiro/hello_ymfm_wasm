@@ -1,7 +1,7 @@
 # Native版 createSoundChip() 対応計画
 
-2026-10-23。追加音源の対象と必要な作業を整理する。
-Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262・RF5C164・OKIM6258・Game Boy・NES＋任意FDS・PC Engine・DX7・32X PWM・SNES S-DSP・SPC700ファイルプレーヤーの追加生成まで実装済み。公開21種類をNativeへ接続した。
+2026-10-23。追加音源の対象と必要な作業を整理する。2026-10-24、追加YM2610Bの6CH対応を反映。
+Sega PSG・YM2612・YM2203・YM2608・YM2610・YM2610B・YM2151・YM2413・AY-3-8910・YM3526・YM3812・Y8950・YMF262・RF5C164・OKIM6258・Game Boy・NES＋任意FDS・PC Engine・DX7・32X PWM・SNES S-DSP・SPC700ファイルプレーヤーの追加生成まで実装済み。公開22種類をNativeへ接続した。
 
 ## 目的と範囲
 
@@ -17,8 +17,9 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 ```
 
 - `createSoundChip()`は毎回、独立した音源を作る。追加音源には個別の`dispose()`を持たせる。
-- `useSoundChip()`は、該当するModeの主音源があれば借用する。
+- `useSoundChip()`は、公開名が一致するModeの主音源があれば借用する。
   主音源がなければ追加音源を共有・キャッシュし、個別破棄後の再取得で作り直す。
+  `ym2610`（4FM）と`ym2610b`（6FM）は別の公開名として扱い、異なるvariantの主音源を借用しない。
 - Modeの固定構成と主音源の寿命を保ち、追加生成だけを段階的に広げる。
 - 対象は現在のPlayground公開API。チップごとの機能・戻り値・初期値をBrowser版と照合する。
 - Web Audioを既定のままにする。Nativeで未対応の種類・操作は理由を示して拒否する。
@@ -35,6 +36,7 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加YM2203のFM 3CH＋SSG 3CH、共有noise／envelope、mono・prescaler、予約書込み、音色編集・Keyboardに対応する。
 - [x] 追加YM2608のFM 6CH＋SSG 3CH＋rhythm 6音色＋ADPCM-B、独立ROM／RAM、再利用可能timeline、編集・Keyboardに対応する。
 - [x] 追加YM2610のFM 4CH＋SSG 3CH＋ADPCM-A 6voice／B、疎なROM、編集・Keyboardに対応する。
+- [x] 追加YM2610BのFM 6CH＋SSG 3CH＋ADPCM-A 6voice／B、固定variant・独立ROM、編集・Keyboardに対応する。
 - [x] 追加YM2151の独立FM 8CH、LFO／noise・全CH CSM、音色編集・Keyboardに対応する。
 - [x] 追加YM2413の単独9CH・User patch・rhythmと、AYの単独3CH・共有noise／envelope・音量0保持に対応する。
 - [x] 追加YM3526／YM3812／Y8950の独立FM 9CH・rhythm 5voice、CSM・音色編集・Keyboardに対応する。
@@ -48,19 +50,19 @@ lead.tone(0, {note: 'C4', attenuation: 7});
 - [x] 追加32X PWMの独立左右FIFO・clock・予約再生・owner別取消し、情報表示・Mixerに対応する。
 - [x] 追加SNESの独立8声・64 KiB RAM・BRR、原子的な転送／reset、timeline、音色編集・Keyboardに対応する。
 - [x] 追加SPCの独立SPC700／S-DSP・ファイル保持、play／pause／stop／seek、RAM／DSP snapshot、onEventに対応する。
-- [x] 全21種類でMain／Workerの生成待ち中のloop取消し、遅延応答の回収、Stop／再Run／同ID再生成、共有待機者の分離を確認する。
+- [x] 全22種類でMain／Workerの生成待ち中のloop取消し、遅延応答の回収、Stop／再Run／同ID再生成、共有待機者の分離を確認する。
 - [x] 代表7種類の混在ラックを実コアで継続生成し、予算・所有者取消し・Stop／再開・回収を検証する。共通の試聴Exampleを用意する。
-- [x] 対応済み21種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
+- [x] 対応済み22種類のNative所有メモリーに合計64 MiBの予算を設け、準備中・破棄待ちも数える。
 
-現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262＋RF5C164＋OKIM6258＋Game Boy＋NES＋HuC6280＋DX7＋PWM＋SNES＋SPCの合計16台・64 MiB**。
-YM2608は1台ごとにRAM 2 MiB＋ROM 8 KiBを持つ。YM2610はA／B各16 MiB空間の使用箇所を64 KiB単位で確保する。
+現在の上限は**PSG＋YM2612＋YM2203＋YM2608＋YM2610＋YM2610B＋YM2151＋YM2413＋AY-3-8910＋YM3526＋YM3812＋Y8950＋YMF262＋RF5C164＋OKIM6258＋Game Boy＋NES＋HuC6280＋DX7＋PWM＋SNES＋SPCの合計16台・64 MiB**。
+YM2608は1台ごとにRAM 2 MiB＋ROM 8 KiBを持つ。YM2610／YM2610Bは、それぞれ独立したA／B各16 MiB空間の使用箇所を64 KiB単位で確保する。
 RF5C164・NES・SNESは1台ごとに64 KiB RAMを持つ。NESの待機uploadは1 batch 64 KiB・ラック全体1 MiB以内とする。OKIM6258は最大16 MiBのsampleを転送時に確保する。固定queue・管理余裕、転送・timeline、ROMの旧版・新版の重複保持も数える。
 SPCは元file・SPC700／DSP core・seek準備・イベント・snapshot・退役待ちも数える。
 IPCのJSON／DTO一時data・JS・decode・主音源・FXは別枠。実機の負荷上限の評価は継続する。
 
 ## 対象一覧
 
-現在のBrowser版`createSoundChip()`が受け付ける21種類を基本対象とする。
+現在のBrowser版`createSoundChip()`が受け付ける22種類を基本対象とする。
 Nativeの「既存コア」はMode内蔵用の実装があるという意味で、追加生成への接続完了を意味しない。
 
 | 公開名 | Native追加生成 | 追加対応で必要な主な作業 |
@@ -70,6 +72,7 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 | `ym2203` | 対応済み | FM 3CH＋SSG 3CH、noise／envelope、mono、prescaler、`scheduleRegisters()`、音色編集・試奏 |
 | `ym2608` | 対応済み | FM 6CH＋SSG＋rhythm＋ADPCM-B、独立ROM／RAM、再利用timeline、編集・試奏、合計メモリー予算 |
 | `ym2610` | 対応済み | FM 4CHのphysical対応、SSG、ADPCM-A／B、疎なROMと制御側COW準備、編集・試奏 |
+| `ym2610b` | 対応済み | FM 6CHの直接対応、SSG 3CH、ADPCM-A 6voice／B、固定variant・独立した疎なROM、編集・試奏 |
 | `ym2151` | 対応済み | OPM 8CHの単独生成、operator、LFO／noise、CSM、pan、clock、編集・試奏 |
 | `ym2413` | 対応済み | OPLL単独9CH、共有User patch、rhythm 5voice、mono出力、編集・試奏 |
 | `ay8910` | 対応済み | AY単独tone 3CH、共有noise／envelope、clock・音量0の保持、編集・試奏 |
@@ -89,9 +92,10 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
 
 ### 公開名と機能の注意点
 
-- **`ym2610b`**：現在の汎用`createSoundChip()`にはない。
-  Neo Geo B modeの`useSoundChip('ym2610b')`は、内蔵6CH音源を借りるための別名。
-  追加生成にも6CH版を公開するなら、Browser／Nativeの名前・型・取得規則を別途決める。
+- **`ym2610`／`ym2610b`**：[追加生成に両方を公開した](native_dynamic_ym2610b_01.md)。
+  `ym2610`のlogical FM 0..3はphysical 1／2／4／5、`ym2610b`のlogical FM 0..5はphysical 0..5。
+  `useSoundChip('ym2610b')`はNeo Geo Bの6CH主音源だけを借り、Neo Geo Bでの`useSoundChip('ym2610')`は独立した4CHを共有生成する。
+  Neo Geoで6CH版を要求した場合も独立生成する。Browser／Native・Main／Workerで同じ規則にする。
 - **`snes`と`spc`**：`snes`はCPUを動かさないS-DSP楽器・取得済みtimelineの再生。
   `spc`はSPC700も動かすファイルプレーヤー。[別の再生経路](native_dynamic_spc_01.md)としてNativeへ追加した。
 - **Y8950 ADPCM**：低レベルコアの機能と現在のPlayground公開APIを区別する。
@@ -115,18 +119,20 @@ Nativeの「既存コア」はMode内蔵用の実装があるという意味で�
    SNESのtimeline・RAM snapshotも所有者と寿命を分離し、置換・停止・失敗・完了を確認した。
 7. **SPCプレーヤー（完了）**：SPC700を含む独立ファイル再生を追加した。
    読込み・stop用coreの再作成・seekは制御側で準備し、callbackへ渡す。既存Browser APIの停止・状態・イベントを維持する。
+8. **YM2610B（完了）**：6FMを別の公開名として追加し、4FMとの型・借用・variant identityを分離した。
+   両者で疎なA／B ROM、既存16台・64 MiB予算、Main／Worker・編集・試奏を共有する。
 
 手順5以降の細かな順番は暫定。共通部分の調査・実装は並行してよい。
 音源ごとの公開API・PCM比較・寿命・画面の検証を通してから配布物へ統合し、失敗時の切り分けを保つ。
 
 ## 共通で必要な作業
 
-以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2151／YM2413／AY／YM3526／YM3812／Y8950／YMF262／RF5C164／OKIM6258／Game Boy／NES／HuC6280／DX7／PWM／SNES／SPCでの検証結果は種類別の文書へ記録する。
+以下は全対象への完了条件。PSG／YM2612／YM2203／YM2608／YM2610／YM2610B／YM2151／YM2413／AY／YM3526／YM3812／Y8950／YMF262／RF5C164／OKIM6258／Game Boy／NES／HuC6280／DX7／PWM／SNES／SPCでの検証結果は種類別の文書へ記録する。
 以下の未チェック項目には、既存実装の横断整理・共通化と実機評価を含む。全種類の追加生成が未実装という意味ではない。
 
 ### ラック・生成・寿命管理
 
-- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2151・YM2413・AY・OPL1/2/Y8950・OPL3・RF5C164・OKIM6258・Game Boy・NES・HuC6280・DX7・PWM・SNES・SPCも追加できる入口を作る。
+- [x] PSG用の生成／命令／状態取得／破棄を整理し、YM2612・YM2203・YM2608・YM2610・YM2610B・YM2151・YM2413・AY・OPL1/2/Y8950・OPL3・RF5C164・OKIM6258・Game Boy・NES・HuC6280・DX7・PWM・SNES・SPCも追加できる入口を作る。
   各チップの命令検証・DSP状態・voice管理は、そのチップの実装へ委譲する。
 - [ ] 単独チップを生成するC ABIとRust wrapperを用意し、不要な同居音源の生成を避ける。
   例：YM2151だけの追加で、X68000複合のOKI用メモリーまで確保しない。
@@ -201,11 +207,13 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 ## 未決定・別途扱う項目
 
-- [x] 全21種類へ[生成待ち中のloop取消し・遅延応答後の回収](native_dynamic_lifetime_01.md)を展開した。
+- [x] 全22種類へ生成待ち中のloop取消し・遅延応答後の回収を展開した。
+  [従来21種類](native_dynamic_lifetime_01.md)に[YM2610Bの共通試験](native_dynamic_ym2610b_01.md)を加え、
   Main／Worker、Native応答前の取消し、Workerへの遅い配送、同ID再生成、共有cacheの別待機者を検証した。
-- [ ] 全21種類へ展開した16台・64 MiBの予算について、重い組合せの実機負荷を評価する。
+- [ ] 全22種類へ展開した16台・64 MiBの予算について、重い組合せの実機負荷を評価する。
   [代表7種類の混在自動試験と共通Example](native_dynamic_stability_01.md)は追加済み。物理デバイスの試聴・dropout評価は別途行う。
-- [ ] 追加生成用`ym2610b`の公開名・型・Browser対応。
+- [x] [追加生成用`ym2610b`の公開名・6CH型・Browser／Native対応](native_dynamic_ym2610b_01.md)。
+  `ym2610`の4CHを維持し、主音源の借用は公開名の完全一致に統一した。
 - [ ] 追加YM2612でのNuked選択と、選択方法。
 - [ ] Y8950 ADPCMなど、現在のPlayground公開APIにない機能の追加。
 - [x] [SPCプレーヤーのNative化と観測イベントの配送](native_dynamic_spc_01.md)。
@@ -219,6 +227,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 - [実装済みの追加YM2203と検証結果](native_dynamic_ym2203_01.md)
 - [実装済みの追加YM2608・メモリー予算と検証結果](native_dynamic_ym2608_01.md)
 - [実装済みの追加YM2610・疎なROMと検証結果](native_dynamic_ym2610_01.md)
+- [実装済みの追加YM2610B・6FMとvariant分離の検証結果](native_dynamic_ym2610b_01.md)
 - [実装済みの追加YM2151・単独OPMと検証結果](native_dynamic_ym2151_01.md)
 - [実装済みの追加YM2413・AYと検証結果](native_dynamic_opll_ay01.md)
 - [実装済みの追加OPL1/2・Y8950と検証結果](native_dynamic_opl01.md)
@@ -235,5 +244,7 @@ Nativeの描画はcallbackが担当し、UIの状態取得は非同期のsnapsho
 
 - [実装済みの追加SNES S-DSPと検証結果](native_dynamic_snes_01.md)
 - [実装済みの追加SPC700ファイルプレーヤーと検証結果](native_dynamic_spc_01.md)
-- [全21種類の生成取消し・寿命管理](native_dynamic_lifetime_01.md)
+- [従来21種類の生成取消し・寿命管理](native_dynamic_lifetime_01.md)。YM2610Bを含む22種類への試験拡張は[追加YM2610Bの記録](native_dynamic_ym2610b_01.md)を参照。
 - [代表的な混在ラックの継続再生と共通Example](native_dynamic_stability_01.md)
+
+- [固定の初期音量校正](playground_chip_levels_01.md)、[全種類を順に聴く比較Example](playground_chip_comparison_01.md)

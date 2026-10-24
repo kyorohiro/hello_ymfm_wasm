@@ -3,8 +3,8 @@ import {ChipClockResampler, CHIP_CLOCKS} from './playground_chip_clock.js?v=audi
 /** Browser AudioWorklet: RF5C164 PCM generation and direct control port. */
 import {Rf5c164} from './rf5c164.js?v=audio-stability-2';
 import factory from '../generated/rf5c164_wasm.js';
-import {createRf5c164Control} from './playground_rf5c164.js?v=native-chip-comparison-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
+import {createRf5c164Control} from './playground_rf5c164.js?v=extra-ym2610b-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=extra-ym2610b-1';
 import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 class Processor extends AudioWorkletProcessor {

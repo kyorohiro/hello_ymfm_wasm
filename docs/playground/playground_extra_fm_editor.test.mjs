@@ -74,6 +74,31 @@ test('YM2610 maps four logical FM voices, physical CH3 special and independent A
   samples.target='adpcm-b:0';samples.options.onTargetChange();assert.equal(f.targets.at(-1).channel,'adpcm-b:0');f.choose('other');await settle();const count=inspect.writes.length;assert.equal(samples.disposed,1);samples.options.onEdit('adpcmB.setDeltaN',[12345]);await settle();assert.equal(inspect.writes.length,count);f.controller.dispose();
 });
 
+test('YM2610B exposes six direct FM voices, physical CH3 special and A/B sample editors',async()=>{
+  const f=setup({entries:[chip('six',true,'ym2610b'),chip('other')]});
+  f.controller.setVisible(true);await settle();
+  const editor=f.editors[0],samples=f.sampleEditors[0];
+  assert.equal(editor.options.channelCount,6);assert.equal(f.controller.getChannelCount(),6);
+  assert.equal(editor.options.supportsDac,false);assert.equal(f.ssgEditors.length,1);
+  assert.equal(samples.updates.length,1);assert.equal(f.button.textContent,'YM2610B');
+  assert.deepEqual(plain(editor.globals),[['lfo',true,3],['special',true],['frequency',0,1,100],['frequency',1,2,101],['frequency',2,3,102],['frequency',3,4,103]]);
+  assert.deepEqual(f.inspect.writes,[],'selecting the editor only observes');
+  editor.channel=5;f.extraRoot.dispatch('change');
+  assert.deepEqual(plain(f.targets.at(-1)),{kind:'ym2610b',id:'six',channel:'fm:5'});
+  editor.synth.setOperator(5,2,{tl:41});await settle();
+  assert.deepEqual(plain(f.inspect.writes.at(-1)),{id:'six',method:'setOperator',args:[5,2,{tl:41}]});
+  samples.target='adpcm-a:5';samples.options.onTargetChange();
+  assert.equal(f.targets.at(-1).channel,'adpcm-a:5');
+  samples.options.onEdit('adpcmA.setSample',[5,{start:256,end:512}]);await settle();
+  assert.equal(f.inspect.writes.at(-1).method,'adpcmA.setSample');
+  samples.target='adpcm-b:0';samples.options.onTargetChange();
+  assert.equal(f.targets.at(-1).channel,'adpcm-b:0');
+  f.choose('other');await settle();const count=f.inspect.writes.length;
+  samples.options.onEdit('adpcmB.setDeltaN',[12345]);await settle();
+  assert.equal(samples.disposed,1);assert.equal(f.inspect.writes.length,count);
+  f.controller.dispose();
+});
+
 test('YM2608 combines six FM voices with SSG and independently routed rhythm/ADPCM controls',async()=>{
   const f=setup({entries:[chip('opna',true,'ym2608'),chip('other')]});f.controller.setVisible(true);await settle();
   const editor=f.editors[0],samples=f.sampleEditors[0];assert.equal(editor.options.channelCount,6);assert.equal(editor.options.supportsDac,false);assert.equal(editor.synth.supportsPan,undefined);

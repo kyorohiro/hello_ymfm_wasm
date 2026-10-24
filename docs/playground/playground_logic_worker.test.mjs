@@ -1290,7 +1290,7 @@ test('Worker useSoundChip aliases global FM, permits const fm, reuses on reevalu
   assert.equal(worker.messages.filter(m=>m.command==='pcm.create' || m.command==='fm.then').length,0);
  }finally{await worker.send({type:'stop'});}
 });
-for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2612','segapsg','ym2151','dx7','snes'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
+for(const name of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2610b','ym2612','segapsg','ym2151','dx7','snes'])test(`Worker useSoundChip ${name} shares pending creation, reuses and disposes on Stop`,async()=>{
  const worker=createWorkerHarness(),sent=[];let closed=0;
  const port={start(){},postMessage:data=>sent.push(data),close(){closed++;}};
  const source=`const [a,b]=await Promise.all([useSoundChip('${name}'),useSoundChip('${name}')]);
@@ -1371,7 +1371,7 @@ for(const chip of ['ym2610','ym2610b'])test(`native ${chip} section fallback use
  }finally{await worker.send({type:'stop'});}
 });
 
-for(const name of ['ym2203','ym2610'])test(`Worker useSoundChip ${name} returns selected FM without creating an extra chip`,async()=>{
+for(const name of ['ym2203','ym2610','ym2610b'])test(`Worker useSoundChip ${name} returns selected FM without creating an extra chip`,async()=>{
  const worker=createWorkerHarness();
  try {
   await worker.send({type:'run',capabilities:{chip:name},sourceCode:`
@@ -1420,7 +1420,7 @@ test('selected YM2608 Worker preserves the shared full client through reevaluati
  assert.equal(ports.length,2);
 });
 
-for (const name of ['ym2612', 'ym2203', 'ym2610']) test(`Worker creates independent ${name} clients and disposes both`, async () => {
+for (const name of ['ym2612', 'ym2203', 'ym2610', 'ym2610b']) test(`Worker creates independent ${name} clients and disposes both`, async () => {
  const worker = createWorkerHarness(), sent = [[], []];
  try {
   await worker.send({type: 'run', sourceCode: `const [a,b]=await Promise.all([createSoundChip('${name}'),createSoundChip('${name}')]);if(a===b||a===fm)throw Error('identity');a.noteOn(0,4,600);b.noteOff(0);`});
@@ -1820,4 +1820,19 @@ test('MSX Audio Worker source borrows all three physical chips and adopts AY ret
     assert.equal(worker.messages.find(message => message.type === 'execution-error'),undefined);
     assert(sent.ay.some(message => message.method === 'writeRegister' && message.args[0] === 10 && (message.args[1] & 31) === 3));
   } finally {await worker.send({type:'stop'});}
+});
+
+for(const selected of ['ym2610','ym2610b'])for(const backend of [undefined,'native-genesis'])test(`Worker ${selected} ${backend??'web'} borrows only its exact variant`,async()=>{
+ const worker=createWorkerHarness();const other=selected==='ym2610'?'ym2610b':'ym2610';
+ try{
+  await worker.send({type:'run',capabilities:{chip:selected,fmChannels:selected==='ym2610'?4:6,backend},sourceCode:`
+   const primary=await useSoundChip('${selected}');if(primary!==fm)throw Error('Wrong primary');
+   const other=await useSoundChip('${other}');if(other===primary||other.channelCount!==${other==='ym2610'?4:6})throw Error('Wrong variant');
+   if(await useSoundChip('${other}')!==other)throw Error('Lost cache');
+  `});
+  const requests=worker.messages.filter(message=>message.command==='pcm.create');assert.equal(requests.length,1);
+  assert.equal(requests[0].args[0],other);
+  await worker.send({type:'response',id:requests[0].id,value:{start(){},close(){},postMessage(){}}});
+  await waitFor(()=>worker.messages.some(message=>message.type==='complete'));
+ }finally{await worker.send({type:'stop'});}
 });

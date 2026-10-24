@@ -82,7 +82,7 @@ function program(fixture,name) {
   ],882]});
 }
 
-for (const name of ['ym2612','ym2203','ym2610']) for (const rate of [44100,48000,96000]) {
+for (const name of ['ym2612','ym2203','ym2610','ym2610b']) for (const rate of [44100,48000,96000]) {
   test(`independent ${name}: batched borrowed PCM preserves timed writes and VGM scheduling at ${rate} Hz`,async t => {
     const actual = await setup(name,rate), reference = await setup(name,rate);
     t.after(() => {actual.p.dispose(); reference.p.dispose();});

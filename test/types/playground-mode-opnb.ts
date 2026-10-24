@@ -45,8 +45,6 @@ async function checkBuiltInOpnbSections() {
   adpcmA.loadMemory('/tone.adpcm');
   // @ts-expect-error ADPCM-B requires a range
   adpcmB.setSample(0, 255);
-  // @ts-expect-error FM stays a dedicated FM facade
-  fm.ssg;
-  // @ts-expect-error FM stays a dedicated FM facade
-  pg.fm.adpcmA;
+  fm.ssg.setVolume(0, 8);
+  pg.fm.adpcmA.setVolume(19);
 }

@@ -3,9 +3,9 @@ import {watchAudioEndpoint} from './playground_audio_endpoint.js';
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
  * @param {AudioNode} destination
- * @param {'ym2612'|'ym2203'|'ym2610'} name */
+ * @param {'ym2612'|'ym2203'|'ym2610'|'ym2610b'} name */
 export async function createOpnAudio(context, destination, name) {
-  if (!['ym2612', 'ym2203', 'ym2610'].includes(name)) throw new Error(`Unsupported OPN chip: ${name}`);
+  if (!['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name)) throw new Error(`Unsupported OPN chip: ${name}`);
   const backend = name === 'ym2610' ? 'ym2610b' : name;
   const bytes = async path => {
     const response = await nativeFetch(new URL(path, import.meta.url));

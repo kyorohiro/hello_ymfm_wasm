@@ -79,15 +79,15 @@ function harness({failSetup = false, cancelAt = null, workerLookaheadSeconds = 0
 
 test('standalone comparison source stays reproducible and covers every measured public kind', async () => {
   assert.equal(await readFile(CHIP_COMPARISON_TARGET, 'utf8'), source);
-  assert.equal(new Set(CHIP_COMPARISON_KINDS).size, 21);
-  assert.equal((source.match(/await createSoundChip\(/g) ?? []).length, 21);
-  assert.equal((source.match(/await (?:source|chip)\.dispose\(\)/g) ?? []).length, 21);
+  assert.equal(new Set(CHIP_COMPARISON_KINDS).size, 22);
+  assert.equal((source.match(/await createSoundChip\(/g) ?? []).length, 22);
+  assert.equal((source.match(/await (?:source|chip)\.dispose\(\)/g) ?? []).length, 22);
   assert.doesNotMatch(source, /\beval\s*\(|\bFunction\s*\(|\bimport\s*\(|\bcontext\s*\.|calibration-source/);
   assert.doesNotMatch(source, /\bmixer\s*\.|(?<!\.)\bsetMasterVolume\s*\(/);
   assert.match(source, /SNES\/SPC BRR uses symmetric 7\/8 input headroom/);
 });
 
-test('all 21 references play once with the same duration and at most one live source', async () => {
+test('all 22 references play once with the same duration and at most one live source', async () => {
   const h = harness();
   await h.run();
   assert.equal(h.effectClears, 1);
@@ -95,16 +95,16 @@ test('all 21 references play once with the same duration and at most one live so
   assert.deepEqual(h.events.filter(([event]) => event === 'create').map(([,kind]) => kind), CHIP_COMPARISON_KINDS);
   assert.deepEqual(h.events.filter(([event]) => event === 'dispose').map(([,kind]) => kind), CHIP_COMPARISON_KINDS);
   assert.equal(h.active.size, 0);
-  assert.equal(h.sleeps.filter(seconds => seconds === 1.2).length, 21);
-  assert.equal(h.sleeps.filter(seconds => seconds === 0.08).length, 21);
-  assert.equal(h.sleeps.filter(seconds => seconds === h.gapSeconds).length, 21);
+  assert.equal(h.sleeps.filter(seconds => seconds === 1.2).length, 22);
+  assert.equal(h.sleeps.filter(seconds => seconds === 0.08).length, 22);
+  assert.equal(h.sleeps.filter(seconds => seconds === h.gapSeconds).length, 22);
   assert.equal(h.retiring.size, 0, 'the last chip must also be physically disposed before completion');
   const labels = h.messages.filter(message => /^Chip comparison \d/.test(message));
-  assert.equal(labels.length, 21);
+  assert.equal(labels.length, 22);
   for (const [index, kind] of CHIP_COMPARISON_KINDS.entries()) {
-    assert.match(labels[index], new RegExp(`^Chip comparison ${String(index + 1).padStart(2, '0')}/21: ${kind} · (?:sine|square) · 440 Hz$`));
+    assert.match(labels[index], new RegExp(`^Chip comparison ${String(index + 1).padStart(2, '0')}/22: ${kind} · (?:sine|square) · 440 Hz$`));
   }
-  assert.equal(h.messages.at(-1), 'Chip comparison complete: 21/21');
+  assert.equal(h.messages.at(-1), 'Chip comparison complete: 22/22');
 });
 
 test('Stop during a note disposes the source without sending a new key-off to a retired core', async () => {
@@ -113,7 +113,7 @@ test('Stop during a note disposes the source without sending a new key-off to a 
   const wait = h.events.findIndex(([event]) => event === 'sleep');
   assert.deepEqual(h.events.slice(wait + 1), [['dispose', 'ym2612']]);
   assert.equal(h.active.size, 0);
-  assert.equal(h.messages.includes('Chip comparison complete: 21/21'), false);
+  assert.equal(h.messages.includes('Chip comparison complete: 22/22'), false);
 });
 
 test('a setup failure still disposes the incomplete source before leaving the sequence', async () => {
@@ -140,11 +140,11 @@ test('gaps respect zero, default and maximum Worker lookahead and include the fi
     const h = harness({workerLookaheadSeconds});
     await h.run();
     const gap = Math.max(0.35, workerLookaheadSeconds + 0.1);
-    assert.equal(h.sleeps.filter(seconds => seconds === gap).length, 21);
+    assert.equal(h.sleeps.filter(seconds => seconds === gap).length, 22);
     assert.equal(h.sleeps.at(-1), gap);
     assert.equal(h.retiring.size, 0);
     assert.equal(h.active.size, 0);
     assert.equal(h.timingReads, 1);
-    assert.equal(h.messages.at(-1), 'Chip comparison complete: 21/21');
+    assert.equal(h.messages.at(-1), 'Chip comparison complete: 22/22');
   }
 });

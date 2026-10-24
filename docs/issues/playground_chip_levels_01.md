@@ -12,7 +12,7 @@
   波形固有のRMS、DC、量子化、周波数特性、内部の音源間バランスは維持する。
 - 48 kHzの実Web Worklet／WASMを使い、FX・masterより前の出力を観測する。
   220／440／880 Hzで各経路を測り、440 Hzから倍率を計算する。
-  追加21種類と内蔵28経路、合計147窓。各窓はwarmup 0.2秒後の0.4秒。
+  追加22種類と内蔵28経路、合計150窓。各窓はwarmup 0.2秒後の0.4秒。
 - SNES／SPCの基準BRRはrange12／filter0、対称な±7 nibbleを使う。
   デコード振幅7/8を明示的に補正する。-32768が連続するBRRは実DSPのGaussian補間で
   wrapするため、基準音から除外した。この対策は測定用データだけに適用する。
@@ -44,6 +44,7 @@ Genesis内蔵YM2612の基準振幅は0.1494140625。
 | DX7 | 0.124003 | 1.038825 |
 | Sega PSG | 0.200000 | 0.644089 |
 | AY-3-8910 | 0.083333 | 1.545813 |
+| YM2610B（追加6FM） | 0.124634 | 1.033570 |
 | RF5C164 | 0.459595 | 0.280286 |
 | OKIM6258 | 0.999756 | 0.128849 |
 | Game Boy | 0.250000 | 0.515271 |
@@ -74,7 +75,7 @@ New Cassetteも、引き継いだdefaultの明示値を優先する。
 
 npm向けの汎用初期値、VGM Analyzer、低レベル`generateStereo()`のPCM、C++コアの音量は変更しない。
 
-実機での聴き比べには[全21音源の共通Example](playground_chip_comparison_01.md)を使う。
+実機での聴き比べには[全22音源の共通Example](playground_chip_comparison_01.md)を使う。
 
 ## 再実行
 
@@ -124,3 +125,11 @@ node scripts/calibrate_playground_chip_levels.cjs --verify --baseline=docs/issue
 `/private/tmp/chip-calibration-verify-webkit-final.json`、Mixer／混在Exampleの記録は
 `/private/tmp/chip-levels-mixer-ui/`、`/private/tmp/chip-levels-stability-ui/`に出力した。
 ソースの照合結果は`/private/tmp/chip-levels-sources-final.json`。
+
+## YM2610B追加時の確認（2026-10-24）
+
+追加6FM版を220／440／880 Hzで実測し、既存147窓と合わせて150窓の基準とした。
+440 Hzの単位振幅は0.1246337890625、System倍率は1.033570。
+共通targetと既存49経路の倍率が変わらないことを照合した。RF5C164を含む既存設定へ補正を重ねない。
+最終Tauri配布物のWebKitでも3周波数を再測定し、期待値との差は最大約0.0000052%。
+保存値の優先規則・current／defaultの扱いは維持する。

@@ -1,23 +1,26 @@
-import {YM2610BSynth,NeoGeoFMSynth} from './ym2610bsynth.js?v=native-chip-comparison-1';
+import {YM2610BSynth,NeoGeoFMSynth} from './ym2610bsynth.js?v=extra-ym2610b-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=native-chip-comparison-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=extra-ym2610b-1';
 import {validateChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=native-chip-comparison-1';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=native-chip-comparison-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=extra-ym2610b-1';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2610b-1';
 
 export const EXTRA_YM2610_CLOCK_HELD_ERROR='Release the manually held additional YM2610 voices before changing the clock';
-const CLOCK=CHIP_CLOCKS.ym2610,MAX_MEMORY=0x1000000,FM_MAP=[1,2,4,5];
+export const EXTRA_YM2610B_CLOCK_HELD_ERROR='Release the manually held additional YM2610B voices before changing the clock';
+const MAX_MEMORY=0x1000000;
 const FM_EDITS=new Set(['setPreset','setOperator','setOperators','setAlgo','setPan','setModulation','setFrequency','setNote','setBlockFnum','setChannel3SpecialMode','setChannel3SpecialFrequency','setLfo']);
 const SSG_EDITS=new Set(['write','reset','tone','setFrequency','setNote','noise','setTonePeriod','setMixer','setVolume','setEnvelope']);
 const ADPCM_A_EDITS=new Set(['setSample','setVolume','setVoice','reset']);
 const ADPCM_EDITS=new Set(['setSample','setDeltaN','setPlaybackRate','setVolume','setPan','reset']);
-const logical=value=>{if(typeof value==='number')return FM_MAP[integer(value,3,'FM channel')];const m=/^(fm|ssg|adpcm-a|adpcm-b):(\d+)$/.exec(value);if(!m)throw new RangeError('Invalid YM2610 keyboard channel');const n=Number(m[2]),section=m[1];if(section==='fm')return FM_MAP[integer(n,3,'FM channel')];return integer(n,section==='ssg'?2:section==='adpcm-a'?5:0,'Keyboard channel')+({ssg:6,'adpcm-a':9,'adpcm-b':15})[section];};
-const channelName=ch=>ch<6?`fm:${FM_MAP.indexOf(ch)}`:ch<9?`ssg:${ch-6}`:ch<15?`adpcm-a:${ch-9}`:'adpcm-b:0';
-function makeClient(transport,clock){const full=new YM2610BSynth({transport,clock}),client=new NeoGeoFMSynth(full);Object.assign(client,{ssg:full.ssg,adpcmA:full.adpcmA,adpcmB:full.adpcmB,adpcm:full.adpcm});return client;}
+function makeClient(transport,clock,variant){
+  const full=new YM2610BSynth({transport,clock});
+  if(variant)return full;
+  const client=new NeoGeoFMSynth(full);Object.assign(client,{ssg:full.ssg,adpcmA:full.adpcmA,adpcmB:full.adpcmB,adpcm:full.adpcm});return client;
+}
 
-const abort=()=>new DOMException('Native additional YM2610 operation was cancelled','AbortError');
-function physical(command,fallback=1){
+const abort=label=>new DOMException(`Native additional ${label} operation was cancelled`,'AbortError');
+function physical(command,fallback){
   if(command.method==='set-retained-level')return command.channel+6;
   if(command.method==='key-off')return command.channel;
   if(command.method!=='write')return fallback;
@@ -37,9 +40,13 @@ function appliedFm(registers,base){
   }return state;
 }
 
-/** Independently owned original YM2610: mapped FM4, SSG3 and separate ADPCM-A/B ROM banks. */
-export function createNativeGenesisYm2610Endpoint(synth){
-  const context=createNativeVoiceContext(synth,{backend:'extra-ym2610',statusCommand:'native_genesis_extra_ym2610_status',label:'additional YM2610'});
+/** Independently owned YM2610/B, with immutable mapped FM4 or full FM6. */
+export function createNativeGenesisYm2610Endpoint(synth,{variant=false}={}){
+  if(typeof variant!=='boolean')throw new TypeError('YM2610 variant must be boolean');
+  const kind=variant?'ym2610b':'ym2610',label=variant?'YM2610B':'YM2610',CLOCK=CHIP_CLOCKS[kind],FM_MAP=variant?[0,1,2,3,4,5]:[1,2,4,5],maxFm=FM_MAP.length-1;
+  const logical=value=>{if(typeof value==='number')return FM_MAP[integer(value,maxFm,'FM channel')];const m=/^(fm|ssg|adpcm-a|adpcm-b):(\d+)$/.exec(value);if(!m)throw new RangeError(`Invalid ${label} keyboard channel`);const n=Number(m[2]),section=m[1];if(section==='fm')return FM_MAP[integer(n,maxFm,'FM channel')];return integer(n,section==='ssg'?2:section==='adpcm-a'?5:0,'Keyboard channel')+({ssg:6,'adpcm-a':9,'adpcm-b':15})[section];};
+  const channelName=ch=>ch<6?`fm:${FM_MAP.indexOf(ch)}`:ch<9?`ssg:${ch-6}`:ch<15?`adpcm-a:${ch-9}`:'adpcm-b:0';
+  const context=createNativeVoiceContext(synth,{backend:`extra-${kind}`,statusCommand:`native_genesis_extra_${kind}_status`,label:`additional ${label}`});
   const {capture,current}=context;let clock=CLOCK,appliedClock=CLOCK,initialized=false,collecting=null,uiSerial=Promise.resolve(),clockSerial=Promise.resolve(),mainGroup,mainCsmGroup;
   const mainSsgGroups=Array(3).fill(undefined),operations=new Set();
   const tagged=message=>{
@@ -49,36 +56,36 @@ export function createNativeGenesisYm2610Endpoint(synth){
       if(value.register>=8&&value.register<=10)mainSsgGroups[value.register-8]=value.value&31?value.group:undefined;
     }return value;
   };
-  const timed=(message,timing)=>context.timed('ym2610',tagged(message),timing),send=(message,timing)=>context.send('ym2610',tagged(message),timing);
+  const timed=(message,timing)=>context.timed(kind,tagged(message),timing),send=(message,timing)=>context.send(kind,tagged(message),timing);
   const rawWrite=({port=0,register,value})=>({method:'write',port:integer(port,1,'YM2610 port'),register:integer(register,255,'Register'),value:integer(value,255,'Value')});
   const client=makeClient({write:(port,register,value)=>send(rawWrite({port,register,value})),
-    writeBatch:writes=>{const commands=writes.map(rawWrite);if(context.isEnabled('ym2610'))synth.enqueueMany(commands.map(command=>timed(command)));},
+    writeBatch:writes=>{const commands=writes.map(rawWrite);if(context.isEnabled(kind))synth.enqueueMany(commands.map(command=>timed(command)));},
     loadAdpcmMemory:(romType,bytes,offset)=>upload(romType,bytes,offset),
     reset:()=>{cancelOperations(()=>true);send({method:'reset'});},
-  },clock),full=client.fm;
+  },clock,variant),full=client.fm??client;
   const base=full.getState();
   Object.defineProperties(client,{clock:{configurable:true,enumerable:true,get:()=>clock},
     _getState:{value:()=>({...full.getState(),clock,ssg:client.ssg._getState(),adpcmA:{levels:Array.from(client.adpcmA.levels)},adpcmB:{registers:Array.from(client.adpcmB.registers)}})},
-    _adoptClock:{value:hz=>{clock=validateChipClock(hz);full.clock=clock;client.ssg.clock=clock/4;client.adpcmB.clock=clock;}},
+    _adoptClock:{value:hz=>{clock=validateChipClock(hz);if(full!==client)full.clock=clock;client.ssg.clock=clock/4;client.adpcmB.clock=clock;}},
     _adoptState:{value:state=>{if(!state)return;if(state.clock!==undefined)client._adoptClock(state.clock);if(state.channels)full.channels=structuredClone(state.channels);if(state.modeRegister!==undefined)client._modeRegister=state.modeRegister;if(state.lfo)full.lfo=structuredClone(state.lfo);if(state.ssg?.registers)client.ssg._adoptState(state.ssg);if(state.adpcmA?.levels)client.adpcmA.levels.set(state.adpcmA.levels);if(state.adpcmB?.registers)client.adpcmB.registers.set(state.adpcmB.registers);}},
   });
-  Object.defineProperty(client,'_modeRegister',{get:()=>full._modeRegister,set:value=>{full._modeRegister=value;}});
+  if(full!==client)Object.defineProperty(client,'_modeRegister',{get:()=>full._modeRegister,set:value=>{full._modeRegister=value;}});
   trackSsgRetainedLevels(full,(channel,level)=>send({method:'set-retained-level',channel,level}));
   let inspector;
   const chip={writeRegister(register,value,port=0){if(!collecting)throw new Error('YM2610 inspector command outside an edit');collecting.push(rawWrite({port,register,value}));inspector?.observe(register,value,port);},reset(){}};
   const guard=createOpnAuditionGuard(chip,6);
-  inspector=new OpnKeyboardInspector(chip,{kind:'ym2610',guard,clock:()=>appliedClock,sampleRate:synth.clock.sampleRate||48000});
+  inspector=new OpnKeyboardInspector(chip,{kind,guard,clock:()=>appliedClock,sampleRate:synth.clock.sampleRate||48000});
   const notify=()=>synth.emit?.({type:'native-state',name:'fm',state:client._getState()});
   function adopt(data){
     if(!Array.isArray(data.registers)||data.registers.length!==2)throw new Error('Native additional YM2610 returned invalid registers');
     for(const row of data.registers)nativeSnapshotArray(row,256,255,'YM2610 registers');nativeSnapshotArray(data.keyMasks,6,15,'YM2610 key masks');nativeSnapshotArray(data.ssgLevels,3,31,'YM2610 retained SSG levels');context.validateHeld(data,15);
-    if(data.variant!=='ym2610'||!Array.isArray(data.ssgGates)||data.ssgGates.length!==3||data.ssgGates.some(g=>typeof g!=='boolean')||typeof data.irq!=='boolean'||data.held?.some(ch=>ch===0||ch===3))throw new Error('Native additional YM2610 returned invalid gates or variant');
+    if(data.variant!==kind||!Array.isArray(data.ssgGates)||data.ssgGates.length!==3||data.ssgGates.some(g=>typeof g!=='boolean')||typeof data.irq!=='boolean'||data.held?.some(ch=>ch<6&&!FM_MAP.includes(ch)))throw new Error('Native additional YM2610 returned invalid gates or variant');
     nativeSnapshotArray(data.romBytes,2,MAX_MEMORY,'YM2610 ROM extents');nativeSnapshotArray(data.romAllocatedBytes,2,64*1024*1024,'YM2610 resident ROM bytes');
     integer(data.status,255,'Status');integer(data.statusHi,255,'High status');appliedClock=validateChipClock(data.clock);inspector.sampleRate=data.sampleRate??synth.clock.sampleRate;for(let p=0;p<2;p++)inspector.registers[p].set(data.registers[p]);inspector.levels.set(data.ssgLevels);if(data.registers[0][0x10]&128)inspector.adpcmRepeat=data.registers[0][0x10]&16;
     const fmState=appliedFm(data.registers,base);fmState.channels=FM_MAP.map(ch=>fmState.channels[ch]);
     return {...data,...inspector.read(),registers:data.registers.map(row=>row.slice()),fmState,held:(data.held??[...inspector.held.keys()].map(logical)).map(channelName)};
   }
-  const snapshot=async(args={})=>{const data=await context.snapshot('ym2610',args);adopt(data);return data;},read=async(args={})=>adopt(await snapshot(args));
+  const snapshot=async(args={})=>{const data=await context.snapshot(kind,args);adopt(data);return data;},read=async(args={})=>adopt(await snapshot(args));
   const identified=message=>({...message,id:context.identity()});
   function translate(message){
     const args=message.args??[],method=message.method??message.type;if(!Array.isArray(args))throw new TypeError('YM2610 arguments must be an array');
@@ -98,7 +105,7 @@ export function createNativeGenesisYm2610Endpoint(synth){
   function cancelOperations(matches){for(const operation of operations)if(matches(operation)){operation.cancelled=true;operation.controller?.abort();}}
   function operation(timing={},group=mainGroup){
     const token=capture(),value={group,performance:timing.performance,owner:timing.owner,cancelled:false};operations.add(value);
-    value.check=()=>{current(token);timing.checkCurrent?.();if(value.cancelled)throw abort();};
+    value.check=()=>{current(token);timing.checkCurrent?.();if(value.cancelled)throw abort(label);};
     value.done=()=>operations.delete(value);return value;
   }
   async function upload(romType,input,offset=0,timing={}){
@@ -128,7 +135,7 @@ export function createNativeGenesisYm2610Endpoint(synth){
   client._cancelCsm=()=>{send({method:'cancel-csm'});client._modeRegister&=~0x81;};
   function stopped(){const previous=collecting;collecting=[];try{guard.handle({type:'clear-auditions'});}finally{collecting=previous;inspector.held.clear();}}
   function staged(state,method,args,commands=[]){
-    const value=makeClient({write:(port,register,data)=>commands.push(rawWrite({port,register,value:data}))},appliedClock),raw=value.fm;
+    const value=makeClient({write:(port,register,data)=>commands.push(rawWrite({port,register,value:data}))},appliedClock,variant),raw=value.fm??value;
     raw.channels=structuredClone(state.channels);raw._modeRegister=state.modeRegister;raw.lfo=structuredClone(state.lfo);value.ssg._adoptState(state.ssg);value.adpcmA.levels.set(state.adpcmA.levels);value.adpcmB.registers.set(state.adpcmB.registers);
     trackSsgRetainedLevels(raw,(channel,level)=>commands.push({method:'set-retained-level',channel,level}));
     const dot=method.indexOf('.'),section=dot<0?null:method.slice(0,dot),name=dot<0?method:method.slice(dot+1);(section?value[section]:value)[name](...args);
@@ -138,10 +145,10 @@ export function createNativeGenesisYm2610Endpoint(synth){
     const token=capture(),copy=structuredClone(args),result=uiSerial.then(async()=>{
       current(token);const applied=await read();current(token);const dot=method.indexOf('.'),section=dot<0?null:method.slice(0,dot),name=dot<0?method:method.slice(dot+1),allowed=section==='ssg'?SSG_EDITS:section==='adpcmA'?ADPCM_A_EDITS:['adpcmB','adpcm'].includes(section)?ADPCM_EDITS:section?new Set():FM_EDITS;let value,commands,patch,groups=[];
       if(allowed.has(name)){
-        const editArgs=[...copy];if(!section&&!['setLfo','setChannel3SpecialMode','setChannel3SpecialFrequency'].includes(name))editArgs[0]=integer(editArgs[0],3,'FM channel');
+        const editArgs=[...copy];if(!section&&!['setLfo','setChannel3SpecialMode','setChannel3SpecialFrequency'].includes(name))editArgs[0]=integer(editArgs[0],maxFm,'FM channel');
         const state={...appliedFm(applied.registers,base),ssg:{registers:applied.registers[0].slice(0,16),levels:applied.ssgLevels},adpcmA:{levels:applied.registers[1].slice(8,14)},adpcmB:{registers:[...applied.registers[0].slice(0x10,0x1c),255,255,0,0]}};
         commands=[];staged(state,method,editArgs,commands);patch=staged(client._getState(),method,editArgs);
-        const fallback=['adpcm','adpcmB'].includes(section)?15:section==='adpcmA'?9:section==='ssg'?name==='write'||name==='setEnvelope'||name==='reset'?6:6+integer(editArgs[0],2,'SSG channel'):name.startsWith('setChannel3')?2:name==='setLfo'?1:FM_MAP[editArgs[0]];
+        const fallback=['adpcm','adpcmB'].includes(section)?15:section==='adpcmA'?9:section==='ssg'?name==='write'||name==='setEnvelope'||name==='reset'?6:6+integer(editArgs[0],2,'SSG channel'):name.startsWith('setChannel3')?2:name==='setLfo'?FM_MAP[0]:FM_MAP[editArgs[0]];
         // Each ADPCM-A mask bit declares its own physical audition lease.
         const expanded=commands.flatMap(command=>command.method==='write'&&command.port===1&&command.register===0?Array.from({length:6},(_,ch)=>command.value&(1<<ch)?{...command,value:(command.value&128)|(1<<ch)}:null).filter(Boolean):[command]);
         for(const command of expanded){const ch=physical(command,fallback);let group=groups.at(-1);if(!group||group.channel!==ch){group=identified({method:'batch',channel:ch,audition:true,action:'edit',commands:[]});groups.push(group);}group.commands.push(command);}
@@ -157,11 +164,14 @@ export function createNativeGenesisYm2610Endpoint(synth){
   return {client,dispatch,read,invoke,
     cancelOwner(performance,owner){cancelOperations(op=>op.performance===performance&&op.owner===owner);},
     cancelPerformance(performance){cancelOperations(op=>op.performance!==undefined&&(performance===null||op.performance===performance));},
-    async initialize(){const token=capture();context.enable('ym2610');if(initialized)return;client.reset();await synth.flush();current(token);initialized=true;},
+    async initialize(){const token=capture();context.enable(kind);if(initialized)return;client.reset();await synth.flush();current(token);initialized=true;},
     async mix(volume=1,pan=0){if(!Number.isFinite(volume)||volume<0||volume>4||!Number.isFinite(pan)||Math.abs(pan)>1)throw new RangeError('Invalid YM2610 mix');const token=capture();send({method:'mix',volume,pan});await synth.flush();current(token);},
-    reset(){cancelOperations(()=>true);context.invalidate();context.disable('ym2610');initialized=false;mainGroup=mainCsmGroup=undefined;mainSsgGroups.fill(undefined);stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK,ssg:{registers:Array(16).fill(0),levels:[0,0,0]},adpcmA:{levels:Array(6).fill(0)},adpcmB:{registers:[0,0,0,0,0,0,0,0,0,0,0,0,255,255,0,0]}});},
+    reset(){cancelOperations(()=>true);context.invalidate();context.disable(kind);initialized=false;mainGroup=mainCsmGroup=undefined;mainSsgGroups.fill(undefined);stopped();appliedClock=CLOCK;client._adoptState({...base,clock:CLOCK,ssg:{registers:Array(16).fill(0),levels:[0,0,0]},adpcmA:{levels:Array(6).fill(0)},adpcmB:{registers:[0,0,0,0,0,0,0,0,0,0,0,0,255,255,0,0]}});},
   };
 }
 export function createNativeGenesisExtraYm2610(synth,options={}){
-  return createNativeGenesisExtraChip(synth,{...options,kind:'ym2610',label:'YM2610',clock:CLOCK,createEndpoint:facade=>createNativeGenesisYm2610Endpoint(facade,options)});
+  return createNativeGenesisExtraChip(synth,{...options,kind:'ym2610',label:'YM2610',clock:CHIP_CLOCKS.ym2610,createEndpoint:facade=>createNativeGenesisYm2610Endpoint(facade,{variant:false})});
+}
+export function createNativeGenesisExtraYm2610B(synth,options={}){
+  return createNativeGenesisExtraChip(synth,{...options,kind:'ym2610b',label:'YM2610B',clock:CHIP_CLOCKS.ym2610b,createEndpoint:facade=>createNativeGenesisYm2610Endpoint(facade,{variant:true})});
 }

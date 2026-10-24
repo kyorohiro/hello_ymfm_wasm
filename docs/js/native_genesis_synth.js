@@ -1,45 +1,45 @@
-import {createNativeGenesisExtraSpc,isExtraSpcRejection} from './native_genesis_extra_spc.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraSnes,EXTRA_SNES_ADMISSION_ERRORS} from './native_genesis_extra_snes.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraPwm,EXTRA_PWM_ADMISSION_ERRORS} from './native_genesis_extra_pwm.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraDx7,EXTRA_DX7_VOICE_HELD_ERROR} from './native_genesis_extra_dx7.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraHuc6280,EXTRA_HUC6280_CLOCK_HELD_ERROR} from './native_genesis_extra_huc6280.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraNes,EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR,EXTRA_NES_ADMISSION_ERRORS} from './native_genesis_extra_nes.js?v=native-chip-comparison-1';
+import {createNativeGenesisExtraSpc,isExtraSpcRejection} from './native_genesis_extra_spc.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraSnes,EXTRA_SNES_ADMISSION_ERRORS} from './native_genesis_extra_snes.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraPwm,EXTRA_PWM_ADMISSION_ERRORS} from './native_genesis_extra_pwm.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraDx7,EXTRA_DX7_VOICE_HELD_ERROR} from './native_genesis_extra_dx7.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraHuc6280,EXTRA_HUC6280_CLOCK_HELD_ERROR} from './native_genesis_extra_huc6280.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraNes,EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR,EXTRA_NES_ADMISSION_ERRORS} from './native_genesis_extra_nes.js?v=extra-ym2610b-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
-import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=native-chip-comparison-1';
+import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=extra-ym2610b-1';
 import {midiToOpnPitch} from './soundchip_pitch.js';
 import {createNativeGenesisMedia} from './native_genesis_media.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeGenesisMonitor} from './native_genesis_monitor.js';
 import {createNativeGenesisNoise,nativeGenesisNoiseMessage} from './native_genesis_noise.js';
 import {nativeGenesisLiveFxMessage,createNativeGenesisLiveFxStatus} from './native_genesis_livefx.js';
-import {createNativeGenesisExtraGameboy,EXTRA_GAMEBOY_CLOCK_HELD_ERROR} from './native_genesis_extra_gameboy.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraOkim6258,EXTRA_OKIM6258_CLOCK_HELD_ERROR,EXTRA_OKIM6258_MEMORY_HELD_ERROR} from './native_genesis_extra_okim6258.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraRf5c164,EXTRA_RF5C164_CLOCK_HELD_ERROR} from './native_genesis_extra_rf5c164.js?v=native-chip-comparison-1';
+import {createNativeGenesisExtraGameboy,EXTRA_GAMEBOY_CLOCK_HELD_ERROR} from './native_genesis_extra_gameboy.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraOkim6258,EXTRA_OKIM6258_CLOCK_HELD_ERROR,EXTRA_OKIM6258_MEMORY_HELD_ERROR} from './native_genesis_extra_okim6258.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraRf5c164,EXTRA_RF5C164_CLOCK_HELD_ERROR} from './native_genesis_extra_rf5c164.js?v=extra-ym2610b-1';
 import {createNativeGenesisRf5c164} from './native_genesis_rf5c164.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisDx7} from './native_genesis_dx7.js?v=audio-numeric-bindings-1';
-import {createNativeGenesisNes} from './native_genesis_nes.js?v=nes-wasm-1';
-import {createNativeGenesisConsole} from './native_genesis_console.js?v=native-consoles-1';
-import {createNativeGenesisSnes} from './native_genesis_snes.js?v=native-chip-comparison-1';
+import {createNativeGenesisDx7} from './native_genesis_dx7.js?v=extra-ym2610b-1';
+import {createNativeGenesisNes} from './native_genesis_nes.js?v=extra-ym2610b-1';
+import {createNativeGenesisConsole} from './native_genesis_console.js?v=extra-ym2610b-1';
+import {createNativeGenesisSnes} from './native_genesis_snes.js?v=extra-ym2610b-1';
 import {createNativeGenesisPwm} from './native_genesis_pwm.js?v=pwm-wasm-1';
-import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=native-chip-comparison-1';
-import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=native-chip-comparison-1';
-import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=native-chip-comparison-1';
-import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=native-chip-comparison-1';
-import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=native-chip-comparison-1';
-import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=native-chip-comparison-1';
-import {createNativeGenesisMsx} from './native_genesis_msx.js?v=native-chip-comparison-1';
-import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=native-chip-comparison-1';
-import {createNativeGenesisOpl} from './native_genesis_opl.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraYm2610,EXTRA_YM2610_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=native-chip-comparison-1';
-import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=native-chip-comparison-1';
+import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=extra-ym2610b-1';
+import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=extra-ym2610b-1';
+import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=extra-ym2610b-1';
+import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=extra-ym2610b-1';
+import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=extra-ym2610b-1';
+import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=extra-ym2610b-1';
+import {createNativeGenesisMsx} from './native_genesis_msx.js?v=extra-ym2610b-1';
+import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=extra-ym2610b-1';
+import {createNativeGenesisOpl} from './native_genesis_opl.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraYm2610,createNativeGenesisExtraYm2610B,EXTRA_YM2610_CLOCK_HELD_ERROR,EXTRA_YM2610B_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=extra-ym2610b-1';
+import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=extra-ym2610b-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -51,8 +51,8 @@ const GAME_GEAR_HELD_CLOCK_ERROR = 'Release the manually held Game Gear voices b
 const isReportedFailure = error => error?.name !== 'AbortError' && !['OPL_CLOCK_HELD','GAME_GEAR_CLOCK_HELD','YM2203_CLOCK_HELD','EXTRA_PSG_CLOCK_HELD','EXTRA_YM2612_CLOCK_HELD','EXTRA_YM2203_CLOCK_HELD','EXTRA_YM2203_SCHEDULE_BUSY','EXTRA_YM2608_CONTROL_REJECTED','EXTRA_CHIP_MEMORY_LIMIT','EXTRA_YM2610_CONTROL_REJECTED','EXTRA_YM2151_CONTROL_REJECTED','EXTRA_YM2413_CONTROL_REJECTED','EXTRA_AY8910_CONTROL_REJECTED','EXTRA_OPL_CONTROL_REJECTED','EXTRA_RF5C164_CONTROL_REJECTED','EXTRA_OKIM6258_CONTROL_REJECTED','EXTRA_GAMEBOY_CONTROL_REJECTED','EXTRA_NES_CONTROL_REJECTED','EXTRA_HUC6280_CONTROL_REJECTED','EXTRA_DX7_CONTROL_REJECTED','EXTRA_PWM_CONTROL_REJECTED','EXTRA_SNES_CONTROL_REJECTED','EXTRA_SPC_CONTROL_REJECTED'].includes(error?.code);
 const pwmBytes=command=>['pwm','extra-pwm'].includes(command.type)&&command.message?.method==='schedule-writes'?command.message.entries.length*24:0;
 const snesBytes=command=>command.type==='extra-snes'?command.message?.method==='prepare-timeline'?command.message.ram.length+command.message.dsp.length+command.message.events.length*4:['load-memory-batch','reset-state'].includes(command.message?.method)?command.message.uploads.reduce((sum,upload)=>sum+upload.data.length,0)+(command.message.dsp?.length??0):command.message?.method==='load-memory'?command.message.data.length:0:0;
-const pcmBytes=command=>pwmBytes(command)||snesBytes(command)||(command.type==='extra-spc'&&command.message?.method==='load-spc'?command.message.data.length:0)||(command.type==='extra-ym2608'&&command.message?.method==='prepare-timeline'?command.message.events.length*32+command.message.blocks.reduce((sum,b)=>sum+b.length,0):command.type==='extra-ym2203'&&command.message?.method==='schedule'?command.message.entries.length*24:command.type==='rf5c164-load-memory'?command.data.length:command.type==='extra-nes'&&command.message?.method==='memory'?command.message.data.length:['extra-rf5c164','extra-okim6258'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:['ym2608','ym2610b','extra-ym2608','extra-ym2610'].includes(command.type)&&['memory','rom'].includes(command.message?.method)?command.message.data.length:['nes','snes'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:command.type==='snes'&&command.message?.method==='prepare-timeline'?command.message.ram.length+command.message.dsp.length+command.message.events.length*4:0);
-const maxUpload=command=>command.type==='extra-okim6258'?16*1024*1024:command.type==='extra-ym2610'?32*1024*1024:command.type==='extra-ym2608'?command.message?.method==='prepare-timeline'?8*1024*1024:2*1024*1024:['pwm','extra-pwm'].includes(command.type)?32*1024*1024:command.type==='extra-ym2203'&&command.message?.method==='schedule'?4*1024*1024:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:['snes','extra-snes'].includes(command.type)&&command.message?.method==='prepare-timeline'?16*1024*1024+65664:command.type==='extra-snes'?65664:command.type==='extra-spc'?16*1024*1024:65536;
+const pcmBytes=command=>pwmBytes(command)||snesBytes(command)||(command.type==='extra-spc'&&command.message?.method==='load-spc'?command.message.data.length:0)||(command.type==='extra-ym2608'&&command.message?.method==='prepare-timeline'?command.message.events.length*32+command.message.blocks.reduce((sum,b)=>sum+b.length,0):command.type==='extra-ym2203'&&command.message?.method==='schedule'?command.message.entries.length*24:command.type==='rf5c164-load-memory'?command.data.length:command.type==='extra-nes'&&command.message?.method==='memory'?command.message.data.length:['extra-rf5c164','extra-okim6258'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:['ym2608','ym2610b','extra-ym2608','extra-ym2610','extra-ym2610b'].includes(command.type)&&['memory','rom'].includes(command.message?.method)?command.message.data.length:['nes','snes'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:command.type==='snes'&&command.message?.method==='prepare-timeline'?command.message.ram.length+command.message.dsp.length+command.message.events.length*4:0);
+const maxUpload=command=>command.type==='extra-okim6258'?16*1024*1024:['extra-ym2610','extra-ym2610b'].includes(command.type)?32*1024*1024:command.type==='extra-ym2608'?command.message?.method==='prepare-timeline'?8*1024*1024:2*1024*1024:['pwm','extra-pwm'].includes(command.type)?32*1024*1024:command.type==='extra-ym2203'&&command.message?.method==='schedule'?4*1024*1024:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:['snes','extra-snes'].includes(command.type)&&command.message?.method==='prepare-timeline'?16*1024*1024+65664:command.type==='extra-snes'?65664:command.type==='extra-spc'?16*1024*1024:65536;
 const unsupported = feature => {throw new Error(`${feature} is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.`);};
 const byte = (value, label) => {
   if (!Number.isInteger(value) || value < 0 || value > 255) throw new RangeError(`${label} must be an integer from 0 to 255`);
@@ -116,7 +116,7 @@ export class NativeGenesisSynth {
     this.gameGearMode=mode==='game-gear';this.oplMode=['ym3526','ym3812','ymf262'].includes(mode);this.msxMode=mode==='msx';this.msxAudioMode=mode==='msx-audio';this.masterSystemMode=mode==='master-system';this.x68000Mode=mode==='x68000';this.ym2203Mode=mode==='pc98-26';this.opnaMode=mode==='pc98';this.opnbMode=['neogeo','neogeo-b'].includes(mode);this.nesMode=mode==='nes';this.dx7Mode=!this.consoleKind&&!this.snesMode&&!this.nesMode&&!this.ym2203Mode&&!this.opnaMode&&!this.opnbMode&&!this.x68000Mode&&!this.masterSystemMode&&!this.gameGearMode&&!this.msxMode&&!this.msxAudioMode&&!this.oplMode&&(dx7===true||mode==='dx7');this.primaryMode=!!this.consoleKind||this.snesMode||this.nesMode||this.dx7Mode||this.ym2203Mode||this.opnaMode||this.opnbMode||this.x68000Mode||this.masterSystemMode||this.gameGearMode||this.msxMode||this.msxAudioMode||this.oplMode;
     this.chip = this.oplMode?mode:this.consoleKind??(this.msxAudioMode?'msx-audio':this.msxMode?'msx':this.masterSystemMode||this.gameGearMode?'segapsg':this.x68000Mode?'x68000':this.ym2203Mode?'ym2203':this.opnaMode?'ym2608':this.opnbMode?(mode==='neogeo-b'?'ym2610b':'ym2610'):this.snesMode?'snes':this.nesMode?'nes':this.dx7Mode?'dx7':'ym2612');this.mode=this.gameGearMode?'game-gear':this.masterSystemMode?'master-system':this.opnbMode?mode:this.ym2203Mode?'pc98-26':this.opnaMode?'pc98':this.chip==='huc6280'?'pc-engine':this.chip==='ym2612'?mode??(megaCD?'mega-cd':'genesis'):this.chip;this.nukedMode=!this.primaryMode&&['genesis-full-nuked','genesis-nuked'].includes(mode);this.engine=this.chip==='ym2612'?(this.nukedMode?'nuked':'ymfm'):undefined;this.pwmMode=!this.primaryMode&&['32x','genesis-full-nuked'].includes(mode);this.megaCD=!this.primaryMode&&(megaCD===true||mode==='mega-cd'||this.pwmMode);
     this.capabilities = Object.freeze({chip:this.chip, fmChannels:this.ym2203Mode?3:this.opnbMode?(mode==='neogeo-b'?6:4):this.opnaMode?6:this.primaryMode?0:6, psg:!this.primaryMode||this.masterSystemMode||this.gameGearMode, dac:!this.primaryMode,
-      pcm:this.megaCD,pwm:this.pwmMode, recorder:true, worker:true, noise:true, dynamicSoundChips:false, dynamicSoundChipKinds:Object.freeze(['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','dx7','pwm','snes','spc']), backend:'native-genesis',...(this.engine?{engine:this.engine}:{})});
+      pcm:this.megaCD,pwm:this.pwmMode, recorder:true, worker:true, noise:true, dynamicSoundChips:false, dynamicSoundChipKinds:Object.freeze(['segapsg','ym2612','ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','dx7','pwm','snes','spc']), backend:'native-genesis',...(this.engine?{engine:this.engine}:{})});
     this.clock = new NativeAudioClock(now);
     this.outputMonitor = createNativeGenesisMonitor({invoke:(command,args)=>this.invoke(command,args),
       getSession:()=>this.session,getSampleRate:()=>this.clock.sampleRate,
@@ -126,7 +126,7 @@ export class NativeGenesisSynth {
     this.pending = []; this.acceptedCommands = 0;this.acceptedPcmBytes=0; this.acceptedRequests = 0; this.serial = Promise.resolve(); this.flushQueued = false;
     this.starting = null; this.stopping = null; this.closing = null; this.error = null;this.workerSampleOrigin=null;
     this.listeners = new Set(); this.mixer = mixer; this.mixerReleases = [];
-    this.extraDevices = new Map(); this.extraSpcDevices = new Map(); this.extraSnesDevices = new Map(); this.extraPwmDevices = new Map(); this.extraDx7Devices = new Map(); this.extraHuc6280Devices = new Map(); this.extraNesDevices = new Map(); this.extraGameboyDevices = new Map(); this.extraOkim6258Devices = new Map(); this.extraRf5c164Devices = new Map(); this.extraPsgDevices = new Map(); this.extraYm2612Devices = new Map(); this.extraYm2203Devices = new Map(); this.extraYm2608Devices = new Map(); this.extraYm2610Devices = new Map(); this.extraYm2151Devices = new Map(); this.extraYm2413Devices = new Map(); this.extraAy8910Devices = new Map(); this.extraOplDevices = new Map(); this.nextExtraChipInstance = 0;
+    this.extraDevices = new Map(); this.extraSpcDevices = new Map(); this.extraSnesDevices = new Map(); this.extraPwmDevices = new Map(); this.extraDx7Devices = new Map(); this.extraHuc6280Devices = new Map(); this.extraNesDevices = new Map(); this.extraGameboyDevices = new Map(); this.extraOkim6258Devices = new Map(); this.extraRf5c164Devices = new Map(); this.extraPsgDevices = new Map(); this.extraYm2612Devices = new Map(); this.extraYm2203Devices = new Map(); this.extraYm2608Devices = new Map(); this.extraYm2610Devices = new Map(); this.extraYm2610BDevices = new Map(); this.extraYm2151Devices = new Map(); this.extraYm2413Devices = new Map(); this.extraAy8910Devices = new Map(); this.extraOplDevices = new Map(); this.nextExtraChipInstance = 0;
     this.extraRf5c164Options={decodeAudio,fetcher:fetcher??globalThis.fetch?.bind(globalThis)};
     this.liveFxDiagnostics=createNativeGenesisLiveFxStatus({invoke:(command,args)=>this.invoke(command,args),
       getSession:()=>this.session,getGeneration:()=>this.generation,isReady:()=>this.isReady()&&!this.stopping&&!this.closing,
@@ -228,6 +228,7 @@ export class NativeGenesisSynth {
   createExtraAy8910(options) { return createNativeGenesisExtraAy8910(this,options); }
   createExtraYm2151(options) { return createNativeGenesisExtraYm2151(this,options); }
   createExtraYm2610(options) { return createNativeGenesisExtraYm2610(this,options); }
+  createExtraYm2610B(options) { return createNativeGenesisExtraYm2610B(this,options); }
   createExtraYm2608(options) { return createNativeGenesisExtraYm2608(this,options); }
   createExtraYm2203(options) { return createNativeGenesisExtraYm2203(this,options); }
   validateGenesisStatus(status) {
@@ -380,7 +381,7 @@ export class NativeGenesisSynth {
     if (this.stopping || this.closing) throw new DOMException('Native audio is stopping','AbortError');
     if (this.acceptedCommands + commands.length > MAX_PENDING) throw new RangeError('Native audio command queue is full');
     const bytes=commands.reduce((sum,command)=>sum+pcmBytes(command),0);
-    if(bytes&&this.acceptedPcmBytes+bytes>(commands.some(command=>command.message?.method==='prepare-timeline'||['pwm','extra-pwm'].includes(command.type)||command.type==='extra-ym2610'||command.type==='extra-okim6258')?32*1024*1024:MAX_PCM_UPLOAD_PENDING))throw new RangeError('Native PCM upload queue is full');
+    if(bytes&&this.acceptedPcmBytes+bytes>(commands.some(command=>command.message?.method==='prepare-timeline'||['pwm','extra-pwm'].includes(command.type)||['extra-ym2610','extra-ym2610b'].includes(command.type)||command.type==='extra-okim6258')?32*1024*1024:MAX_PCM_UPLOAD_PENDING))throw new RangeError('Native PCM upload queue is full');
     this.acceptedCommands += commands.length;
     this.acceptedPcmBytes+=bytes;
     this.pending.push(...commands);
@@ -411,7 +412,7 @@ export class NativeGenesisSynth {
           // Aggregate admission is atomic across chip kinds and primary writes.
           // A rejected additional-chip reservation must leave the engine usable.
           const message=error?.message??String(error);
-          if(batch.some(command=>['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm','extra-snes','extra-spc'].includes(command.type)) &&
+          if(batch.some(command=>['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2610b','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm','extra-snes','extra-spc'].includes(command.type)) &&
               ['Additional Native sound-chip memory budget (64 MiB) exceeded','Additional Native sound-chip memory budget exceeded (67108864 bytes)'].includes(message)) {
             const rejected=new Error(message);rejected.code='EXTRA_CHIP_MEMORY_LIMIT';throw rejected;
           }
@@ -451,7 +452,7 @@ export class NativeGenesisSynth {
           if(batch.every(command=>command.type==='extra-ym2151'&&command.message?.method==='clock') && message===EXTRA_YM2151_CLOCK_HELD_ERROR) {
             const rejected=new Error(message);rejected.code='EXTRA_YM2151_CONTROL_REJECTED';throw rejected;
           }
-          if(batch.every(command=>command.type==='extra-ym2610'&&command.message?.method==='clock') && message===EXTRA_YM2610_CLOCK_HELD_ERROR) {
+          if(batch.every(command=>['extra-ym2610','extra-ym2610b'].includes(command.type)&&command.message?.method==='clock') && [EXTRA_YM2610_CLOCK_HELD_ERROR,EXTRA_YM2610B_CLOCK_HELD_ERROR].includes(message)) {
             const rejected=new Error(message);rejected.code='EXTRA_YM2610_CONTROL_REJECTED';throw rejected;
           }
           if(batch.every(command=>command.type==='extra-ym2608') && [EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR,'Native YM2608 timeline preparation already pending'].includes(error?.message??String(error))) {

@@ -1,4 +1,4 @@
 // Shared mock rack capacity, matching the Native rack across all supported kinds.
-const extraChipMaps=['extraPsg','extraYm2612','extraYm2203','extraYm2608','extraYm2610','extraYm2151','extraYm2413','extraAy8910','extraYm3526','extraYm3812','extraY8950','extraYmf262','extraRf5c164','extraOkim6258','extraGameboy','extraNes','extraHuc6280','extraDx7','extraPwm','extraSnes','extraSpc'];
+const extraChipMaps=['extraPsg','extraYm2612','extraYm2203','extraYm2608','extraYm2610','extraYm2610b','extraYm2151','extraYm2413','extraAy8910','extraYm3526','extraYm3812','extraY8950','extraYmf262','extraRf5c164','extraOkim6258','extraGameboy','extraNes','extraHuc6280','extraDx7','extraPwm','extraSnes','extraSpc'];
 const extraChipCount=native=>extraChipMaps.reduce((sum,name)=>sum+(native[name]?.size??0),0);
 module.exports={extraChipMaps,extraChipCount};

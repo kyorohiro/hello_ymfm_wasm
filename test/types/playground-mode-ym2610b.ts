@@ -17,6 +17,12 @@ async function checkNeoGeoYm2610bTypes() {
   fm.dac.stop();
   // @ts-expect-error six-channel YM2610B still has no YM2612 DAC
   pg.fm.writeDac(128);
+  const borrowed = await useSoundChip('ym2610b');
+  borrowed.setNote(5, 'C4');
+  borrowed.ssg.tone(2, {frequency:392,volume:7});
+  borrowed.adpcmA.keyOn(5);
+  // @ts-expect-error borrowed mode primary cannot be disposed
+  borrowed.dispose();
   const neo = await useSoundChip('ym2610');
   neo.adpcmA.keyOn(0);
   // @ts-expect-error separately added Neo Geo is four-channel

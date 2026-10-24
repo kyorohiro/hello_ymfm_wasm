@@ -4,7 +4,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 
 // Deliberately fixed coverage: a partial calibration must never become System.
 export const PLAYGROUND_CALIBRATION_KINDS = Object.freeze([
-  'ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
+  'ym2612','ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
   'segapsg','ay8910','rf5c164','okim6258','gameboy','nes','huc6280','pwm','snes','spc',
 ]);
 export const PLAYGROUND_CALIBRATION_PRIMARIES = Object.freeze([
@@ -39,7 +39,7 @@ export function buildPlaygroundMixerDefaults(report) {
   if(!Array.isArray(report.frequencies)||report.frequencies.length!==FREQUENCIES.length||
     FREQUENCIES.some(frequency=>report.frequencies.filter(value=>value===frequency).length!==1))fail('all 220, 440 and 880 Hz captures are required');
   const expected = expectedRoutes(), captures = new Map();
-  if(!Array.isArray(report.rows)||report.rows.length!==expected.size*FREQUENCIES.length)fail('all 21 extra and 28 primary routes at three frequencies are required');
+  if(!Array.isArray(report.rows)||report.rows.length!==expected.size*FREQUENCIES.length)fail('all 22 extra and 28 primary routes at three frequencies are required');
   for(const row of report.rows) {
     const identity = row&&expected.get(key(row));
     if(!identity||!FREQUENCIES.includes(row.frequencyHz))fail('unknown capture route or frequency');

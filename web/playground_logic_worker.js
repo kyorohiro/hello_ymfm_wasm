@@ -401,6 +401,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   let fallbackClock = timing.chipClock ?? CHIP_CLOCKS[capabilities.chip ?? 'ym2612'];
   const fm = keyboardApi(new Proxy({}, {
     get(_target, property) {
+      if (Object.hasOwn(sections, property)) return sections[property];
       if (property === 'clock') return chip?.fm.clock ?? fallbackClock;
       if (property === 'setClock' && !chip) return async hz => { await request('fm.setClock', [hz], run.currentLoop); fallbackClock = hz; };
       if (property === "id") return capabilities.chip ?? "ym2612";
@@ -745,10 +746,9 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       return result;
     },
     async useSoundChip(name, options) {
-      const token = run.token,scoped=supportsNativeExtra(name)&&!(name==='ym2610'?['ym2610','ym2610b'].includes(capabilities.chip):nativeConnections.some(endpoint=>endpoint.name===name)),caller=run.currentLoop;
+      const token = run.token,scoped=supportsNativeExtra(name)&&capabilities.chip!==name&&!nativeConnections.some(endpoint=>endpoint.name===name),caller=run.currentLoop;
       const check = () => { if (run.stopped || token !== run.token) throw new Error('Run stopped'); };
       check();
-      if (capabilities.backend === 'native-genesis' && capabilities.chip === 'ym2610b' && name === 'ym2610b') name = 'ym2610';
       const chip = await soundChips.use(name, options, chipName => {
         check();
         const endpoint = nativeConnections.find(endpoint => endpoint.name === chipName);
@@ -756,11 +756,10 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
         if (chipName === 'rf5c164' && primaryPcm) return primaryPcm;
         if (chipName === 'gameboy' && isGameboy) return gameboy;
         if (chipName === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') return psg;
-        if (chipName === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') return fm;
-        if ((['ym2612', 'ym2203', 'ym2610'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && (capabilities.chip ?? 'ym2612') === chipName) return fm;
+        if ((['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(chipName) || chipName === 'ym2608' && capabilities.backend === 'native-genesis') && (capabilities.chip ?? 'ym2612') === chipName) return fm;
         if(scoped){const previous=run.currentLoop;run.currentLoop=null;try{return globals.createSoundChip(chipName,{id:`${chipName}:shared`});}finally{run.currentLoop=previous;}}
         return globals.createSoundChip(chipName, {id:`${chipName}:shared`});
-      }, {evictOnDispose: !(name === 'ym2610' && capabilities.chip === 'ym2610b' && capabilities.backend === 'native-genesis') && !(name === 'rf5c164' && primaryPcm) && !(name === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
+      }, {evictOnDispose: !(name === 'rf5c164' && primaryPcm) && !(name === 'segapsg' && capabilities.psg && capabilities.backend === 'native-genesis') && !nativeConnections.some(endpoint => endpoint.name === name) && !((['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) || name === 'ym2608' && capabilities.backend === 'native-genesis' || name === 'gameboy') && (capabilities.chip ?? 'ym2612') === name)});
       check();
       if(scoped)await resumeScopedNativeExtra(caller,token,()=>{});
       return chip;
@@ -782,7 +781,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const pcm=name === 'spc' ? createSpcClient(port, response, {
         captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},
         invokeEvent:(callback,event)=>executeWithWorkerGuards(()=>callback(event)),isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,
-      }) : ['pwm','snes'].includes(name)&&response.native || ['huc6280','okim6258','gameboy','nes','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610'].includes(name) ? createOpnClient(name, port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'ym2151' ? createYm2151Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'segapsg' ? createSegaPsgClient(port,response) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : createRf5c164Client(port,source=>request('pcm.decode',[source],run.currentLoop),{...response,captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped});
+      }) : ['pwm','snes'].includes(name)&&response.native || ['huc6280','okim6258','gameboy','nes','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? createOpnClient(name, port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'ym2151' ? createYm2151Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'segapsg' ? createSegaPsgClient(port,response) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : createRf5c164Client(port,source=>request('pcm.decode',[source],run.currentLoop),{...response,captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped});
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       if(Number.isSafeInteger(response.instance)&&response.instance>0)pcmInstances.set(pcm,response.instance);

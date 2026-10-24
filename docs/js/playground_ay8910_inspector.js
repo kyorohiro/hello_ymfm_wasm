@@ -1,11 +1,11 @@
 import {AY8910Synth} from './ay8910synth.js?v=audio-numeric-bindings-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=native-chip-comparison-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=audio-numeric-bindings-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=extra-ym2610b-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=extra-ym2610b-1';
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};
 const channel=value=>{if(typeof value==='string'&&/^[0-2]$/.test(value))value=Number(value);if(!Number.isInteger(value)||value<0||value>2)throw new RangeError('AY8910 channel must be 0..2');return value;};
 /** Applied AY state; no inspection path renders audio or replays controls. */
 export class Ay8910VoiceInspector{
-  /** @param {import('./playground_native_voice_inspector.js?v=nes-wasm-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {import('./playground_native_voice_inspector.js?v=extra-ym2610b-1').NativeVoiceInspectorOptions} [options] */
   constructor({clock=()=>1789773,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){this.clock=typeof clock==='function'?clock:()=>clock;this.sampleRate=sampleRate;this.dispatch=dispatch;this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();}
   resetAuditions(){for(const [ch,id]of this.auditions)this.endAudition(ch,identity(id));this.auditions.clear();}
   reset(){this.resetAuditions();this.registers=new Uint8Array(16);this.levels=[9,9,9];}

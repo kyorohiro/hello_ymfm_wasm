@@ -33,8 +33,8 @@ class Processor extends AudioWorkletProcessor {
       } else this.receive(data, this.port);
     };
     const {name, wasmBinary} = options.processorOptions; this.name = name;
-    const [Chip, moduleFactory] = {ym2612: [Ym2612, ym2612Factory], ym2203: [Ym2203, ym2203Factory], ym2610: [Ym2610B, ym2610Factory]}[name];
-    Chip.create({moduleFactory, moduleOptions: {wasmBinary}, variant: false}).then(chip => {
+    const [Chip, moduleFactory] = {ym2612: [Ym2612, ym2612Factory], ym2203: [Ym2203, ym2203Factory], ym2610: [Ym2610B, ym2610Factory], ym2610b: [Ym2610B, ym2610Factory]}[name];
+    Chip.create({moduleFactory, moduleOptions: {wasmBinary}, variant: name === 'ym2610b'}).then(chip => {
       if (this.dead) { chip.dispose(); return; }
       this.chip = chip; this.rate = chip.sampleRate();
       this.auditions=createOpnAuditionGuard(chip,name==='ym2203'?3:6);

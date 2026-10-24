@@ -6,10 +6,10 @@ const path = require('node:path');
 const {captureWebMix} = require('./native_backend_extra_stability.cjs');
 const {extraChipCount} = require('./native_backend_extra_limits.cjs');
 
-const kinds = ['ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
+const kinds = ['ym2612','ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ym3526','ym3812','y8950','ymf262','dx7',
   'segapsg','ay8910','rf5c164','okim6258','gameboy','nes','huc6280','pwm','snes','spc'];
 const example = 'examples/genesis/chip-level-comparison.js';
-const marker = index => `Chip comparison ${String(index + 1).padStart(2, '0')}/21: ${kinds[index]} ·`;
+const marker = index => `Chip comparison ${String(index + 1).padStart(2, '0')}/${kinds.length}: ${kinds[index]} ·`;
 
 // The generic lifecycle observer tracks transfers to a logic Worker. Web Audio
 // also transfers the other channel end to an AudioWorklet; its close happens in
@@ -201,9 +201,9 @@ async function runChipComparison({page,native,tracker,artifacts,name,ready,asser
             row.pcm.push({kind:kinds[index],amplitude,expectedAmplitude,...pcm});
           }
         }
-        await page.waitForFunction(() => document.getElementById('consoleOutput').textContent.includes('Chip comparison complete: 21/21'), null, {timeout:20000});
+        await page.waitForFunction(() => document.getElementById('consoleOutput').textContent.includes('Chip comparison complete: 22/22'), null, {timeout:20000});
         row.completed=await stopAndObserve(backend+'/'+execution+' completed');
-        assert.deepEqual(row.completed.created.map(entry=>entry.name),kinds,'All21 sources play in documented order');
+        assert.deepEqual(row.completed.created.map(entry=>entry.name),kinds,'All22 sources play in documented order');
         assert.equal(row.completed.result.fulfilled,true,'Complete Example resolves normally');
         if (backend==='native') {row.native=nativeObservation;assertNativeOrder(nativeObservation,kinds,execution+' completed');await assertNoLiveAudio(page);}
         else {row.stopped=await captureWebMix(page,.2);assert.equal(Math.max(...row.stopped.peak),0,'Complete Web playback leaves no audio tail');}

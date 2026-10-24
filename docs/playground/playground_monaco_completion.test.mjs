@@ -121,6 +121,7 @@ test('global FM key-on hints include only the selected chip hardware channels', 
   assert.deepEqual(values('ym2203'), ['0x00', '0x01', '0x02', '0xf0', '0xf1', '0xf2']);
   assert.deepEqual(values('ym2610'), ['0x01', '0x02', '0x05', '0x06', '0xf1', '0xf2', '0xf5', '0xf6']);
   assert.equal(values('ym2608').length, 12);
+  assert.deepEqual(values('ym2610b'),['0x00','0x01','0x02','0x04','0x05','0x06','0xf0','0xf1','0xf2','0xf4','0xf5','0xf6']);
 });
 
 test('selected-mode register filtering does not restrict an explicitly declared independent fm', () => {
@@ -136,7 +137,7 @@ test('selected-mode register filtering does not restrict an explicitly declared 
 });
 
 test('play option guidance describes the selected logical FM channel range', () => {
-  for(const [chip, lastChannel] of [['ym2203', 2], ['ym2610', 3], ['ym2608', 5]]) {
+  for(const [chip, lastChannel] of [['ym2203', 2], ['ym2610', 3], ['ym2610b', 5], ['ym2608', 5]]) {
     const channel = chipSuggestions('play("C4", { ', chip).find(item => item.label === 'channel');
     assert.equal(channel.documentation, `${chip.toUpperCase()} FM channel number 0..${lastChannel}.`);
   }

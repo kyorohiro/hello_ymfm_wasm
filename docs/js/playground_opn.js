@@ -1,21 +1,21 @@
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 /** Independent OPN client. All writes and memory uploads use one ordered port. */
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {YM2203Synth} from './ym2203synth.js?v=native-chip-comparison-1';
-import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=native-chip-comparison-1';
-import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=native-chip-comparison-1';
+import {YM2203Synth} from './ym2203synth.js?v=extra-ym2610b-1';
+import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=extra-ym2610b-1';
+import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=extra-ym2610b-1';
 
 /**
  * Create a high-level OPN synth backed by ordered Worklet port commands.
  * The client owns the port; dispose rejects pending requests and closes it.
- * @param {'ym2612' | 'ym2203' | 'ym2610'} name Chip family to expose.
+ * @param {'ym2612' | 'ym2203' | 'ym2610' | 'ym2610b'} name Chip family to expose.
  * @param {MessagePort} port Paired with the chip's audio processor.
  * @returns The chip-specific synth and its disposal/optional scheduling controls.
  * @throws {Error} For an unsupported chip name.
  */
 export function createOpnClient(name, port, options = {}, lifecycle = {}) {
   let disposed = false, sequence = 0, constructing = true;
-  const scoped=options.native&&name==='ym2610';
+  const scoped=options.native&&['ym2610','ym2610b'].includes(name);
   const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{if(disposed||lifecycle.isStopped?.(context))throw new Error('Run stopped');lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
   const pending = new Map();
   port.onmessage = ({data}) => {
@@ -39,7 +39,7 @@ export function createOpnClient(name, port, options = {}, lifecycle = {}) {
   });
   const transport = {
     write: (port, register, value) => send('write', [port, register, value]),
-    reset: () => {if(!(constructing&&options.native&&['ym2203','ym2610'].includes(name)))send('reset');},
+    reset: () => {if(!(constructing&&options.native&&['ym2203','ym2610','ym2610b'].includes(name)))send('reset');},
     loadAdpcmMemory: (...args) => new Promise((resolve, reject) => {
       if (disposed) { reject(new Error(`${name} disposed`)); return; }
       const id = ++sequence;
@@ -55,10 +55,11 @@ export function createOpnClient(name, port, options = {}, lifecycle = {}) {
     const full = new YM2610BSynth({transport});
     synth = new NeoGeoFMSynth(full);
     Object.assign(synth, {ssg: full.ssg, adpcmA: full.adpcmA, adpcmB: full.adpcmB, adpcm: full.adpcm});
-  } else throw new Error(`Unsupported OPN chip: ${name}`);
+  } else if (name === 'ym2610b') synth = new YM2610BSynth({transport});
+  else throw new Error(`Unsupported OPN chip: ${name}`);
   constructing=false;
   if(options.native&&name==='ym2203')trackSsgRetainedLevels(synth,(channel,level)=>send('setRetainedLevel',[channel,level]));
-  if(scoped)trackSsgRetainedLevels(synth.fm,(channel,level)=>send('setRetainedLevel',[channel,level]));
+  if(scoped)trackSsgRetainedLevels(synth.fm ?? synth,(channel,level)=>send('setRetainedLevel',[channel,level]));
   if (name === 'ym2203') {
     // Relative VGM sample positions, executed in the audio processor.
     synth.scheduleRegisters = (entries, durationSamples) => request('schedule', [entries, durationSamples]);
@@ -75,7 +76,7 @@ export function createOpnClient(name, port, options = {}, lifecycle = {}) {
     if (synth.adpcmB) synth.adpcmB.clock = hz;
   }});
   if(scoped){
-    const full=client.fm,setClock=client.setClock.bind(client);
+    const full=client.fm ?? client,setClock=client.setClock.bind(client);
     Object.defineProperties(client,{
       _getState:{value:()=>({...full.getState(),clock:client.clock,ssg:client.ssg._getState(),adpcmA:{levels:Array.from(client.adpcmA.levels)},adpcmB:{registers:Array.from(client.adpcmB.registers)}})},
       _adoptState:{value:state=>{if(!state)return;if(state.clock!==undefined)client._adoptClock(state.clock);if(state.channels)full.channels=structuredClone(state.channels);if(state.modeRegister!==undefined)full._modeRegister=state.modeRegister;if(state.lfo)full.lfo=structuredClone(state.lfo);if(state.ssg?.registers)client.ssg._adoptState(state.ssg);if(state.adpcmA?.levels)client.adpcmA.levels.set(state.adpcmA.levels);if(state.adpcmB?.registers)client.adpcmB.registers.set(state.adpcmB.registers);}},

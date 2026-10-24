@@ -1,4 +1,4 @@
-import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=native-chip-comparison-1';
+import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=extra-ym2610b-1';
 
 /** The mode's primary instrument is playable before a script binds Keyboard.
  * Resolve its admin endpoint after audio preparation; never create a second chip.

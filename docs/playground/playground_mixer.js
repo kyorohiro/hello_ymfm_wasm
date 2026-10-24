@@ -1,5 +1,5 @@
 const names = {ym2612: 'YM2612', segapsg: 'Sega PSG', rf5c164: 'RF5C164', pwm: '32X PWM', dx7: 'DX7', snes: 'SNES S-DSP',
-  gameboy: 'Game Boy', nes: 'NES APU', ym2151: 'YM2151', ym2203: 'YM2203', ym2608: 'YM2608', ym2610: 'YM2610'};
+  gameboy: 'Game Boy', nes: 'NES APU', ym2151: 'YM2151', ym2203: 'YM2203', ym2608: 'YM2608', ym2610: 'YM2610', ym2610b: 'YM2610B'};
 
 /** One view of the runtime's mixer. Listening volume remains independent of script master gain. */
 export function createPlaygroundMixer({root, getMixer, getAudio, getOutputVolume, setOutputVolume,

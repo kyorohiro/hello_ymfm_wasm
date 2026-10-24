@@ -659,8 +659,18 @@ type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNative
 interface YM2612FMApi extends FMApi {}
 interface YM2203FMApi extends PlaygroundOPNFm<0 | 1 | 2, false> {}
 interface YM2608FMApi extends PlaygroundOPNFm<OPNFmChannel> {}
-interface YM2610FMApi extends PlaygroundOPNFm<0 | 1 | 2 | 3> {}
-interface YM2610BFMApi extends PlaygroundOPNFm<OPNFmChannel> {}
+interface YM2610FMApi extends PlaygroundOPNFm<0 | 1 | 2 | 3> {
+  ssg: PlaygroundCreatedYm2610['ssg'];
+  adpcm: PlaygroundCreatedYm2610['adpcm'];
+  adpcmA: PlaygroundCreatedYm2610['adpcmA'];
+  adpcmB: PlaygroundCreatedYm2610['adpcmB'];
+}
+interface YM2610BFMApi extends PlaygroundOPNFm<OPNFmChannel> {
+  ssg: PlaygroundCreatedYm2610B['ssg'];
+  adpcm: PlaygroundCreatedYm2610B['adpcm'];
+  adpcmA: PlaygroundCreatedYm2610B['adpcmA'];
+  adpcmB: PlaygroundCreatedYm2610B['adpcmB'];
+}
 type PlaygroundSelectedFm = {
   ym2612: YM2612FMApi;
   'mega-cd': YM2612FMApi;
@@ -1790,6 +1800,7 @@ type PlaygroundSoundChipMap = {
   ym2612: TetoricaSelectedChip extends PlaygroundGenesisSelectedChip ? YM2612FMApi : PlaygroundCreatedFm;
   ym2203: TetoricaSelectedChip extends 'ym2203' ? YM2203FMApi : PlaygroundCreatedYm2203;
   ym2610: TetoricaSelectedChip extends 'ym2610' ? YM2610FMApi : PlaygroundCreatedYm2610;
+  ym2610b: TetoricaSelectedChip extends 'ym2610b' ? YM2610BFMApi : PlaygroundCreatedYm2610B;
   rf5c164: TetoricaSelectedChip extends 'mega-cd' ? Omit<PlaygroundRf5c164, 'dispose'> : PlaygroundRf5c164;
   ym2608: PlaygroundYm2608;
   gameboy: TetoricaSelectedChip extends 'gameboy' ? PlaygroundPrimaryGameboy : PlaygroundGameboy;
@@ -1831,12 +1842,12 @@ declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipO
 /** Independent chips. Global play/write still target the default Playground chip. */
 type PlaygroundCreatedFm = Omit<FMApi, 'dac' | 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq'> & {dispose(): void};
 type PlaygroundCreatedOPN<C extends OPNFmChannel, Stereo extends boolean = true> = Omit<PlaygroundOPNFm<C, Stereo>, 'scheduleWrites' | 'read' | 'readStatus' | 'getIrq' | 'rawWrite' | 'writeAddress' | 'writeData'> & {dispose(): void};
-/** Native supports independent ymfm FM6/DAC-register chips; SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
+/** Native supports independent ymfm FM6/DAC-register chips; SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610/YM2610B, YM2608, YM2203, YM2612 and Sega PSG share a 16-instance limit and 64 MiB budget. */
 declare function createSoundChip(name: 'ym2612', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedFm & PlaygroundChipClock & {readonly id: string}>;
 type PlaygroundCreatedYm2203 = PlaygroundCreatedOPN<0 | 1 | 2, false> & {ssg: PlaygroundYm2608['ssg']; setClock(clock: number): Promise<void>; scheduleRegisters(entries: Array<[number, number, number]>, durationSamples: number): Promise<void>};
 /** Native: independent FM3/SSG3 mono OPN, including completion-based 44100 Hz register schedules. Shares the 16-instance rack limit. */
 declare function createSoundChip(name: 'ym2203', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2203 & PlaygroundChipClock & {readonly id: string}>;
-type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
+type PlaygroundCreatedOPNB<C extends OPNFmChannel> = PlaygroundCreatedOPN<C> & {
   ssg: PlaygroundYm2608['ssg'];
   adpcm: Omit<PlaygroundYm2608['adpcm'], 'loadSample'>;
   adpcmB: Omit<PlaygroundYm2608['adpcm'], 'loadSample'>;
@@ -1850,8 +1861,13 @@ type PlaygroundCreatedYm2610 = PlaygroundCreatedOPN<0 | 1 | 2 | 3> & {
     reset(): void;
   };
 };
+type PlaygroundCreatedYm2610 = PlaygroundCreatedOPNB<0 | 1 | 2 | 3>;
+type PlaygroundCreatedYm2610B = PlaygroundCreatedOPNB<OPNFmChannel>;
 /** Native: independent FM4/SSG3/ADPCM-A6/ADPCM-B. Logical FM0..3 map to hardware1,2,4,5. Each ROM bank has 16 MiB addresses; 64 KiB pages are allocated when uploaded within the shared 64 MiB budget. */
 declare function createSoundChip(name: 'ym2610', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2610 & PlaygroundChipClock & {readonly id: string}>;
+/** Independent FM6/SSG3/ADPCM-A6/ADPCM-B. FM0..5 map directly to hardware0..5.
+ * Browser and Native own separate A/B ROM banks per instance; Native shares the 16-instance / 64 MiB budget. */
+declare function createSoundChip(name: 'ym2610b', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundCreatedYm2610B & PlaygroundChipClock & {readonly id: string}>;
 
 /** Independent Sega PSG; resetAll only resets this chip. */
 type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
@@ -1867,7 +1883,7 @@ type PlaygroundSegaPsg = Omit<PSGApi, 'resetAll'> & {
 type PlaygroundPrimaryGameGearPsg = Omit<PlaygroundSegaPsg, 'dispose'> & PlaygroundChipClock & {readonly id: string};
 /** The Master System PSG has a mono output and no Game Gear stereo register. */
 type PlaygroundPrimaryMasterSystemPsg = Omit<PlaygroundPrimaryGameGearPsg, 'setStereo'>;
-/** Native SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
+/** Native SPC file players, SNES S-DSP, 32X PWM, DX7, HuC6280, NES (optional FDS), Game Boy, OKIM6258, RF5C164, YMF262, YM3526, YM3812, Y8950, YM2413, AY-3-8910, YM2151, YM2610/YM2610B, YM2608, YM2203, YM2612 and Sega PSG share a limit of 16 additional instances and 64 MiB; each has its own mixer id. */
 declare function createSoundChip(name: 'segapsg', options?: PlaygroundCreateSoundChipOptions): Promise<PlaygroundSegaPsg & PlaygroundChipClock & {readonly id: string}>;
 
 /** AY has three channels mixing tone and shared noise, plus one shared envelope. */

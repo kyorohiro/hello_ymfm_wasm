@@ -1,7 +1,7 @@
 # System初期音量を聴く共通Example
 
 2026-10-24。[固定の初期音量校正](playground_chip_levels_01.md)に続き、
-全21種類の追加音源を実機で順番に聴けるExampleを追加する。
+全22種類の追加音源を実機で順番に聴けるExampleを追加する。
 
 ## 使い方
 
@@ -9,7 +9,7 @@
    古いCassetteにファイルがなければ、New Cassetteで新しいExample一式を用意する。
 2. MixerタブのPresetで**System（read-only）**を選ぶ。
 3. RunしてConsoleを開く。現在の音源名・波形・440 Hzを順番に表示する。
-   全21音源を1回再生して完了する。もう一度聴く場合は再Run、途中でもStopできる。
+   全22音源を1回再生して完了する。もう一度聴く場合は再Run、途中でもStopできる。
 
 WorkerのConsole表示は、実際の発音より先読み時間だけ先行することがある。
 
@@ -21,7 +21,7 @@ Web Audio／Native、Main／Workerで同じソースを使う。
 FMは無変調の単一carrier、PCM／wavetableは合成sin波、Sega PSG／AY／NES pulseは矩形波。
 校正で使った公開APIの基準音を、440 Hz・各1.2秒、発音解除後0.08秒で再生する。
 音源間の無音区間は`max(0.35秒, Worker先読み時間 + 0.1秒)`。
-標準の先読み0.5秒なら、合計約40秒にチップ生成・データ転送の時間が加わる。
+標準の先読み0.5秒なら、合計約41秒にチップ生成・データ転送の時間が加わる。
 Mainも同じ設定から間隔を決め、先読み設定そのものは変更しない。
 
 SNES／SPCは実DSPのGaussian overflowを避けたBRRの7/8 headroomを維持する。
@@ -51,12 +51,12 @@ node --test scripts/build_playground_chip_comparison.test.mjs docs/playground/pl
 node scripts/check_playground_native_backend_browser.cjs --chip-comparison-only --root=w/tetorica-fm2612-playground-tauri/dist --out=/private/tmp/chip-comparison-final
 ```
 
-自動試験では配布Exampleをそのまま再生し、全21の生成順序・同時1台・System倍率・
+自動試験では配布Exampleをそのまま再生し、全22の生成順序・同時1台・System倍率・
 途中Stop／再Run・終了後のport／Worker解放・保存済みMixerファイルの非変更を確認する。
 Webでは実Worklet／WASMのPCMを試験専用observerで確認し、試聴出力は無音にする。
 Nativeの画面試験はIPC mockであり、物理出力の音質は実機で聴いて確認する。
 
-## 検証結果と配布物
+## 初回21種類版の検証結果と配布物
 
 生成再現性・全21逐次実行・先読み0／0.5／2秒の解放待ち・途中Stop・初期化失敗・無音待機中の取消しの6試験が成功。
 JavaScript全体4,861件成功、1件skip。Tauriの`npm test`も成功（Node 31件）。
@@ -85,3 +85,10 @@ JavaScript全体4,861件成功、1件skip。Tauriの`npm test`も成功（Node 3
 最終再生結果は`/private/tmp/chip-comparison-final-chromium-v3/chromium-chip-comparison.json`と
 `/private/tmp/chip-comparison-final-webkit-v3/webkit-chip-comparison.json`。
 空Workerでの所有権確認は`/private/tmp/chip-comparison-web-lifecycle-baseline.json`。
+
+## YM2610Bを含む22種類版
+
+[追加YM2610B](native_dynamic_ym2610b_01.md)をFM基準音に加え、同じ生成器から22種類のExampleを作り直した。
+ファイル名・Preset選択・保存値を変更しない規則は維持し、完了表示は`Chip comparison complete: 22/22`となる。
+両ブラウザー・Native／Web Audio・Main／Workerの全8通りで途中Stopから再Runし、22種類を完走した。
+合計264回生成、実Web PCM 88窓。旧21種類版の実績とは分けて[YM2610Bの検証記録](native_dynamic_ym2610b_01.md)に残した。

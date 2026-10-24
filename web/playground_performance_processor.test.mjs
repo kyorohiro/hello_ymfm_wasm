@@ -76,7 +76,7 @@ for(const [name,command,key]of[
   ['rf5c164',{method:'keyOn',args:[3]},3],['nes',{method:'setChannelEnabled',args:[1,true]},1],
   ['gameboy',{method:'writeRegister',args:[14,128]},2],['segapsg',{method:'write',args:[0xd2]},2],
   ['ym2151',{method:'writeRegister',args:[8,0x7a]},2],['ym3812',{method:'writeRegister',args:[0xb2,0x32]},2],['ymf262',{method:'writeRegister',args:[0xb2,0x32,1]},11],['ym2612',{method:'write',args:[0,0x28,0xf4]},3],
-  ['ym2608',{method:'write',args:[0,0x28,0xf1]},1],['pwm',{method:'write',args:[2,700]},0],
+  ['ym2608',{method:'write',args:[0,0x28,0xf1]},1],['ym2610b',{method:'write',args:[0,0x28,0xf6]},5],['pwm',{method:'write',args:[2,700]},0],
 ])test(`${name}: cancelling the applied owner releases only its tracked channel`,()=>{
   assert.deepEqual(identifyPerformanceNote(name,command),{key,on:true});
   const p=setup({chip:name});p.enqueue([command],.001,'voice');p.render(2);
@@ -129,4 +129,32 @@ test('PSG tone-3-rate noise leases its shared divider while tone volume and othe
   p.performance.endAudition(3,'expired');assert.equal(p.performance.receive(write(0xc4),p.port),true,'an expired release cannot unlock the held noise divider');assert.equal(p.applied.at(-1).args[0],0xc2);
   mode=6;p.enqueue([write(0xc5),write(0x11,4)],.002);p.render(1);assert.deepEqual(p.applied.slice(-2).map(command=>command.args[0]),[0xc5,0x11],'fixed-rate noise does not reserve tone 3 pitch');
   mode=7;p.performance.endAudition(3,'manual-noise');p.enqueue([write(0xc6),write(0x13,4)],.003);p.render(1);assert.deepEqual(p.applied.slice(-2).map(command=>command.args[0]),[0xc6,0x13]);
+});
+
+for(const chip of ['ym2610','ym2610b'])test(`${chip}: owner cancellation preserves another FM, SSG and ADPCM voice`,()=>{
+  const p=setup({chip}),write=(bank,register,value)=>({method:'write',args:[bank,register,value]});
+  p.enqueue([write(0,0x28,0xf0),write(0,8,12),write(1,0,3),write(0,0x10,0xa0)],.001,'old');
+  p.enqueue([write(0,0x28,0xf6),write(0,8,9),write(1,0,2),write(0,0x10,0xb0)],.002,'new');
+  // Port-1 ADPCM-A end registers must never be mistaken for FM key writes.
+  assert.equal(identifyPerformanceNote(chip,write(1,0x28,0xf6)),null);
+  p.render(3);const before=p.applied.length;
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'old'},p.port);
+  assert.deepEqual(p.applied.slice(before),[write(0,0x28,0),write(1,0,129)]);
+  const next=p.applied.length;
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'new'},p.port);
+  assert.deepEqual(p.applied.slice(next),[write(0,8,0),write(1,0,130),write(0,0x10,1),write(0,0x28,6)]);
+});
+
+for(const chip of ['ym2610','ym2610b'])test(`${chip}: ADPCM-B execute-clear, record and reset controls cannot stop a replacement owner`,()=>{
+  const p=setup({chip}),control=value=>({method:'write',args:[0,0x10,value]});
+  for(const value of [0x80,0xa0,0xb0])assert.deepEqual(identifyPerformanceNote(chip,control(value)),{key:'adpcmB',on:true});
+  const stops=[0,0x20,0x40,0x60,0x81,0xa1,0xc0,0xc1];
+  for(const value of stops)assert.deepEqual(identifyPerformanceNote(chip,control(value)),{key:'adpcmB',on:false});
+  p.enqueue([control(0xa0)],.001,'old');p.enqueue([control(0xb0)],.002,'new');
+  stops.forEach((value,index)=>p.enqueue([control(value)],(.003+index/1000),'old'));
+  p.render(12);assert.deepEqual(p.applied,[control(0xa0),control(0xb0)]);
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'old'},p.port);
+  assert.equal(p.applied.length,2);
+  p.performance.receive({type:'performance-cancel-owner',session:1,owner:'new'},p.port);
+  assert.deepEqual(p.applied.at(-1),control(1));
 });

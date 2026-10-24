@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const {extraChipCount}=require('./native_backend_extra_limits.cjs');
-const kinds=['segapsg','ym2612','ym2203','ym2608','ym2610','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','dx7','pwm','snes','spc'];
+const kinds=['segapsg','ym2612','ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','dx7','pwm','snes','spc'];
 function holdExtraCreation(native){
   const invoke=native.invoke.bind(native);let held=null;
   native.invoke=async(command,args)=>{

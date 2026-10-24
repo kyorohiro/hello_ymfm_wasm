@@ -1,7 +1,7 @@
-import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=native-chip-comparison-1';
-import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=native-chip-comparison-1';
-import {createPlaygroundOpnbSampleEditor} from './playground_opnb_sample_editor.js?v=native-chip-comparison-1';
-import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=native-chip-comparison-1';
+import {createPlaygroundOperatorTab} from './playground_operator_tab.js?v=extra-ym2610b-1';
+import {createPlaygroundOpnSsgEditor} from './playground_opn_ssg_editor.js?v=extra-ym2610b-1';
+import {createPlaygroundOpnbSampleEditor} from './playground_opnb_sample_editor.js?v=extra-ym2610b-1';
+import {createPlaygroundOpnaSampleEditor} from './playground_opna_sample_editor.js?v=extra-ym2610b-1';
 
 /** Reuse the OPN editor for connected additional FM instances. Reads happen on
  * selection, visible state notifications and explicit Refresh; no polling. */
@@ -68,20 +68,20 @@ export function createPlaygroundExtraFmEditor({root,primaryRoot,primaryEditor,pr
         'setChannel3SpecialFrequency','setFrequency'].map(method=>[method,(...args)=>{void edit(method,args,target);} ]));
       if(kind==='ym2203'){facade.supportsPan=false;facade.supportsLfo=false;}
       editor.attachSynth(facade);
-      if(['ym2203','ym2608','ym2610'].includes(kind)){
+      if(['ym2203','ym2608','ym2610','ym2610b'].includes(kind)){
         const ssgRoot=doc.createElement('div');extraRoot.append(ssgRoot);
         ssgEditor=createPlaygroundOpnSsgEditor({root:ssgRoot,onEdit:(method,args)=>{void edit(method,args,target);},onTargetChange:()=>{if(current(target.id,target.s,target.c,target.v)){section='ssg';publishTarget();}}});
       }
-      if(kind==='ym2608'||kind==='ym2610'){
+      if(['ym2608','ym2610','ym2610b'].includes(kind)){
         const sampleRoot=doc.createElement('div');extraRoot.append(sampleRoot);
-        sampleEditor=(kind==='ym2610'?createPlaygroundOpnbSampleEditor:createPlaygroundOpnaSampleEditor)({root:sampleRoot,onEdit:(method,args)=>{void edit(method,args,target);},onTargetChange:()=>{if(current(target.id,target.s,target.c,target.v)){section='sample';publishTarget();}}});
+        sampleEditor=(kind==='ym2608'?createPlaygroundOpnaSampleEditor:createPlaygroundOpnbSampleEditor)({root:sampleRoot,onEdit:(method,args)=>{void edit(method,args,target);},onTargetChange:()=>{if(current(target.id,target.s,target.c,target.v)){section='sample';publishTarget();}}});
       }
     }
     select.value=id;visibility();void refresh();
   }
   function update(){
     if(disposed)return;
-    const s=getInspector(),entries=(s?.list()??[]).filter(entry=>['ym2612','ym2203','ym2608','ym2610'].includes(entry.kind)&&entry.additional===true&&entry.connected!==false)
+    const s=getInspector(),entries=(s?.list()??[]).filter(entry=>['ym2612','ym2203','ym2608','ym2610','ym2610b'].includes(entry.kind)&&entry.additional===true&&entry.connected!==false)
       .flatMap(entry=>{try{return [{...entry,connection:s.getConnectionToken(entry.id)}];}catch{return [];}});
     const next=JSON.stringify(entries.map(entry=>[entry.id,entry.kind,entry.connection]));
     onAvailability(Boolean(entries.length));

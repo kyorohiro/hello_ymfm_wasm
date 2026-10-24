@@ -8742,6 +8742,177 @@
       },
       "measuredAmplitude": 0.12106399238109589,
       "amplitude": 0.12106399238109589
+    },
+    {
+      "kind": "ym2610b",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 220,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0 is physical FM channel 0 on the six-channel YM2610B; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1246337890625,
+          0.1246337890625
+        ],
+        "minimum": [
+          -0.1246337890625,
+          -0.1246337890625
+        ],
+        "maximum": [
+          0.1246337890625,
+          0.1246337890625
+        ],
+        "rms": [
+          0.08813814865912505,
+          0.08813814865912505
+        ],
+        "dc": [
+          -0.000010579589721449641,
+          -0.000010579589721449641
+        ],
+        "acRms": [
+          0.08813814802416889,
+          0.08813814802416889
+        ],
+        "nonzero": [
+          19200,
+          19200
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1246337890625,
+      "amplitude": 0.1246337890625
+    },
+    {
+      "kind": "ym2610b",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 440,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0 is physical FM channel 0 on the six-channel YM2610B; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.1246337890625,
+          0.1246337890625
+        ],
+        "minimum": [
+          -0.1246337890625,
+          -0.1246337890625
+        ],
+        "maximum": [
+          0.1246337890625,
+          0.1246337890625
+        ],
+        "rms": [
+          0.08812780284059372,
+          0.08812780284059372
+        ],
+        "dc": [
+          -2.9491068725443863e-7,
+          -2.9491068725443863e-7
+        ],
+        "acRms": [
+          0.08812780284010029,
+          0.08812780284010029
+        ],
+        "nonzero": [
+          19200,
+          19200
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.1246337890625,
+      "amplitude": 0.1246337890625
+    },
+    {
+      "kind": "ym2610b",
+      "role": "extra",
+      "mode": "genesis",
+      "frequencyHz": 880,
+      "waveform": "sine",
+      "defaultCalibration": true,
+      "noteInfo": "Public FM channel 0 is physical FM channel 0 on the six-channel YM2610B; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+      "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+      "referencePeak": 1,
+      "decodedReference": null,
+      "mixer": {
+        "id": "calibration-source",
+        "settings": {
+          "volume": 1,
+          "pan": 0,
+          "muted": false,
+          "solo": true
+        }
+      },
+      "pcm": {
+        "frames": 19200,
+        "sampleRate": 48000,
+        "peak": [
+          0.124603271484375,
+          0.124603271484375
+        ],
+        "minimum": [
+          -0.124603271484375,
+          -0.124603271484375
+        ],
+        "maximum": [
+          0.124603271484375,
+          0.124603271484375
+        ],
+        "rms": [
+          0.08805937030005613,
+          0.08805937030005613
+        ],
+        "dc": [
+          0.000008119291265226518,
+          0.000008119291265226518
+        ],
+        "acRms": [
+          0.08805936992574678,
+          0.08805936992574678
+        ],
+        "nonzero": [
+          19200,
+          19200
+        ],
+        "nonfinite": 0,
+        "overrange": 0
+      },
+      "measuredAmplitude": 0.124603271484375,
+      "amplitude": 0.124603271484375
     }
   ],
   "limits": [
@@ -9146,6 +9317,14 @@
         "name": "dx7",
         "amplitude": 0.12400331720709801,
         "volume": 1.038825
+      },
+      {
+        "kind": "ym2610b",
+        "role": "extra",
+        "mode": "genesis",
+        "name": "calibration-source",
+        "amplitude": 0.1246337890625,
+        "volume": 1.03357
       }
     ]
   }

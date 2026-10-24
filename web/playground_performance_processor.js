@@ -49,15 +49,26 @@ export function identifyPerformanceNote(chip,{method,type,args=[] ,register,valu
   if(chip==='huc6280'&&method==='keyOff')return {key:args[0],on:false};
   if(chip==='okim6258'&&['play','stop','keyOff'].includes(method))return {key:0,on:method==='play'};
   if(chip==='okim6258'&&method==='writeRegister'&&args[0]===0)return {key:0,on:!(args[1]&1)&&!!(args[1]&2)};
-  if(['ym2612','ym2203','ym2610','ym2608'].includes(chip)){
+  if(['ym2612','ym2203','ym2610','ym2610b','ym2608'].includes(chip)){
     const reg=type==='write'?register:method==='write'&&args.length>=3?args[1]:method==='writeRegister'?args[0]:null;
     const v=type==='write'?value:method==='write'?args[2]:args[1];
-    if(reg===0x28)return {key:[0,1,2,4,5,6].indexOf(v&7),on:!!(v&0xf0)};
+    const bank=type==='write'?registerPort:method==='write'?args[0]:args[2]??0;
+    if(bank===0&&reg===0x28)return {key:[0,1,2,4,5,6].indexOf(v&7),on:!!(v&0xf0)};
+    if(['ym2610','ym2610b'].includes(chip)){
+      if(bank===0&&reg>=8&&reg<=10)return {key:`ssg:${reg-8}`,on:!!(v&31)};
+      if(bank===0&&reg===0x10)return {key:'adpcmB',on:(v&0xc1)===0x80};
+      if(bank===1&&reg===0)return {events:Array.from({length:6},(_,channel)=>channel).filter(channel=>v&(1<<channel)).map(channel=>({key:`adpcmA:${channel}`,on:!(v&128)}))};
+    }
   }
   if(chip==='pwm'&&(method==='scheduleWrites'||(['write','writeRegister'].includes(method)&&args[0]>=2)))return {key:0,on:true};
   return null;
 }
 export function performanceNoteRelease(chip,key) {
+  if(['ym2610','ym2610b'].includes(chip)){
+    if(typeof key==='string'&&key.startsWith('ssg:'))return {method:'write',args:[0,8+Number(key.slice(4)),0]};
+    if(typeof key==='string'&&key.startsWith('adpcmA:'))return {method:'write',args:[1,0,128|(1<<Number(key.slice(7)))]};
+    if(key==='adpcmB')return {method:'write',args:[0,0x10,1]};
+  }
   if(chip==='dx7')return {method:'noteOff',args:[key]};
   if(chip==='snes')return key==='timeline'?{method:'stopTimeline',args:[]}:{method:'keyOff',args:[key]};
   if(chip==='rf5c164')return {method:'keyOff',args:[key]};

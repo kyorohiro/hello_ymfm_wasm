@@ -656,6 +656,7 @@ for (const chip of ['ym2610','ym2610b']) test(`primary ${chip} exposes shared SS
     if(adpcm!==adpcmB || pg.adpcm!==adpcmB)throw Error('ADPCM-B alias');
     for(const name of ['ssg','adpcmA','adpcmB','adpcm'])if(shared[name]!==pg[name])throw Error('Separate section '+name);
     if(ssg!==pg.ssg || adpcmA!==pg.adpcmA || adpcmB!==pg.adpcmB)throw Error('Separate globals');
+    const borrowed=await useSoundChip('${chip}');if(borrowed!==fm||borrowed.ssg!==ssg||borrowed.adpcmA!==adpcmA||borrowed.adpcm!==adpcmB)throw Error('Borrowed variant sections');
     if(typeof rhythm!=='undefined')throw Error('Unexpected OPNA rhythm');
     ssg.noise(2,{period:16,volume:10});
     await adpcmA.loadMemory(new Uint8Array(256).fill(0x17),256);
@@ -1478,7 +1479,7 @@ test('useSoundChip rejects unsupported options on Main',async t=>{
 });
 
 
-for(const [chip,channels] of [['ym2203',3],['ym2610',4]])test(`Main useSoundChip ${chip} aliases selected FM and preserves play`,async t=>{
+for(const [chip,channels] of [['ym2203',3],['ym2610',4],['ym2610b',6]])test(`Main useSoundChip ${chip} aliases selected FM and preserves play`,async t=>{
  const {runtime,megaDrive}=setup(t,{chip,fmChannels:channels,psg:false,dac:false});
  const notes=[];megaDrive.fm.noteOn=(...args)=>notes.push(args);
  Object.defineProperty(megaDrive.audioContext,'currentTime',{get:()=>performance.now()/1000});
@@ -1665,4 +1666,19 @@ test('MSX Main source shares AY and OPLL while omitting the MSX Audio OPL global
     if(typeof opl!=='undefined'||'opl' in pg||typeof play!=='undefined'||typeof psg!=='undefined'||typeof fm!=='undefined')throw Error('Extra primary global');
     ay.tone(2,{note:'A4',volume:6});opll.setVoice(8,{instrument:2,attenuation:4});opll.noteOn(8,69);
   `);assert.equal(ay.getRegisterSnapshot()[10],6);assert(opll.getRegisterSnapshot()[0x28]&16);await runtime.stop();assert.equal(ay._getState().levels[2],6);assert.equal(opll.getRegisterSnapshot()[0x38],0x24);
+});
+
+for(const selected of ['ym2610','ym2610b'])for(const backend of [undefined,'native-genesis'])test(`Main ${selected} ${backend??'web'} borrows only the exact variant`,async t=>{
+ const f=independentOpnFixture(),createRuntime=await runtimeWithOpnAudio(f.factory);
+ const {runtime,megaDrive}=setup(t,{chip:selected,fmChannels:selected==='ym2610'?4:6,backend}, {},createRuntime);
+ const other=selected==='ym2610'?'ym2610b':'ym2610';megaDrive.audio={masterInputNode:{}};megaDrive.createFXApi=()=>({});
+ // A host without dynamicSoundChipKinds uses the Browser factory in this fixture;
+ // the lookup rules themselves must stay identical to a Native host's rules.
+ await runtime.playSource(`
+  const primary=await useSoundChip('${selected}');if(primary!==fm)throw Error('Did not borrow exact primary');
+  context.extra=await useSoundChip('${other}');
+  if(context.extra===primary||context.extra.id!=='${other}:shared'||context.extra.channelCount!==${other==='ym2610'?4:6})throw Error('Borrowed the wrong variant');
+  if(await useSoundChip('${other}')!==context.extra)throw Error('Lost shared cache');
+ `);
+ assert.equal(f.devices.length,1);
 });

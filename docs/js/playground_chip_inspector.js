@@ -1,5 +1,5 @@
 import {encodeRf5c164} from './rf5c164_pcm.js';
-import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=native-chip-comparison-1';
+import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=extra-ym2610b-1';
 
 /** UI-only admin port access. Audio creation and Worker-owned ports are deliberately untouched. */
 export function createChipInspector({endpoints, decode}) {

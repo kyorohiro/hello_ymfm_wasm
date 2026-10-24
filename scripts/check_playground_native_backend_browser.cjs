@@ -289,7 +289,7 @@ class FakeNative {
           else assert.equal(message.method,'mix','Unknown Native SNES operation');
         }
       };
-      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm','extra-snes','extra-spc'].includes(entry.type));
+      const primaryCommands=args.commands.filter(entry=>!['extra-psg','extra-ym2612','extra-ym2203','extra-ym2608','extra-ym2610','extra-ym2610b','extra-ym2151','extra-ym2413','extra-ay8910','extra-ym3526','extra-ym3812','extra-y8950','extra-ymf262','extra-rf5c164','extra-okim6258','extra-gameboy','extra-nes','extra-huc6280','extra-dx7','extra-pwm','extra-snes','extra-spc'].includes(entry.type));
       for(const kind of ['gameboy','snes','huc6280'])for(const entry of args.commands.filter(entry=>entry.type===kind)){assert.equal(this.current.mode,kind==='huc6280'?'pc-engine':kind);applyConsole(kind,entry.message);}
       for(const entry of args.commands.filter(entry=>entry.type==='ym2203')){assert.equal(this.current.mode,'pc98-26');this.applyYm2203(entry.message);}
       if(this.current.mode==='pc98-26')assert(primaryCommands.every(entry=>['ym2203','mix','noise','fx'].includes(entry.type)),'Native YM2203 has only FM/SSG');
@@ -2401,7 +2401,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       if(chipComparisonOnly){
         await runChipComparison({page,native,tracker:lifecycle,artifacts,name,ready,assertNoLiveAudio,until});
         assert.deepEqual(errors,[]);await context.close();
-        console.log(name+': PASS shipped all21 chip comparison Example, Web/Native Main/Worker, factory Mixer levels, sequential disposal, mid-run Stop/reRun and final resource cleanup; Native IPC mocked');return;
+        console.log(name+': PASS shipped all22 chip comparison Example, Web/Native Main/Worker, factory Mixer levels, sequential disposal, mid-run Stop/reRun and final resource cleanup; Native IPC mocked');return;
       }
       if(extraStabilityOnly){
         await runExtraStability({page,native,tracker:lifecycle,artifacts,name,ready,assertNoLiveAudio,until});
@@ -2411,7 +2411,7 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       if(extraCreationOnly){
         await runExtraCreation({page,native,gate:creationGate,tracker:lifecycle,artifacts,name,assertNoLiveAudio,until});
         assert.deepEqual(errors,[]);await context.close();
-        console.log(name+': PASS all21 Native creation cancellation, Main/Worker delayed native replies, held Worker responses, same-ID reuse/shared waiters; no retained source/ID/IPC/ports/listeners/Workers, zero AudioContexts/Worklets (Native IPC mocked)');return;
+        console.log(name+': PASS all22 Native creation cancellation, Main/Worker delayed native replies, held Worker responses, same-ID reuse/shared waiters; no retained source/ID/IPC/ports/listeners/Workers, zero AudioContexts/Worklets (Native IPC mocked)');return;
       }
       if(extraSpcOnly){
         await runExtraSpc({page,native,artifacts,name,assertNoLiveAudio,until});
@@ -2475,8 +2475,10 @@ async function checkBrowser(name, type, url, artifacts,fftFixture) {
       }
       if(extraYm2610Only){
         await runExtraYm2610({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});
+        await changeNativeMode(page,native,'genesis','keep');
+        await runExtraYm2610({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode,kind:'ym2610b'});
         assert.deepEqual(errors,[]);await context.close();
-        console.log(name+': PASS independent Native YM2610/2608/2203/2612/PSG Main/Worker, sparse A/B ROM, FM4/SSG/ADPCM editors/Keyboard/Mixer, Stop/Run and replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
+        console.log(name+': PASS independent Native YM2610/YM2610B/2608/2203/2612/PSG Main/Worker, sparse A/B ROM, FM4/FM6/SSG/ADPCM editors/Keyboard/Mixer, Stop/Run and replacement; zero AudioContexts/Worklets, Native IPC mocked');return;
       }
       if(extraYm2608Only){
         await runExtraYm2608({page,native,artifacts,name,assertNoLiveAudio,until,changeMode:changeNativeMode});

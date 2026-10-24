@@ -1,4 +1,4 @@
-import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=native-chip-comparison-1';
+import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=extra-ym2610b-1';
 // Capture the trusted asset loader before user-code execution installs its
 // network guard, as the other Playground audio adapters do.
 const defaultFetch=globalThis.fetch?.bind(globalThis);
@@ -13,7 +13,7 @@ export async function createPWM32XAudio(context, destination, options = {}) {
     options.implementation==='js'?undefined:options.wasmBinary??(options.fetch??defaultFetch)(wasmUrl,{signal:options.signal}).then(response=>{
       if(!response.ok)throw new Error(`PWM WASM HTTP ${response.status}`);return response.arrayBuffer();
     }),
-    context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=native-chip-comparison-1', import.meta.url)),
+    context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=extra-ym2610b-1', import.meta.url)),
   ]);
   options.signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-pwm32x', {

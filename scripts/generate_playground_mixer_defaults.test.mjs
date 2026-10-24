@@ -30,14 +30,14 @@ function fixture() {
 const row = (report,role,mode,kind) => report.calibration.routes.find(route=>route.role===role&&route.mode===mode&&route.kind===kind);
 const entry = (profile,mode,id) => profile.factoryModes[mode].entries.find(entry=>entry.id===id);
 
-test('a complete 147-capture baseline produces deterministic 440 Hz defaults including SPC',()=>{
+test('a complete 150-capture baseline produces deterministic 440 Hz defaults including SPC',()=>{
   const report = fixture(), before = structuredClone(report), profile = buildPlaygroundMixerDefaults(report);
-  assert.equal(report.rows.length,147); assert.equal(report.calibration.routes.length,49);
-  assert.equal(profile.factoryDefaults.kinds.length,21);
+  assert.equal(report.rows.length,150); assert.equal(report.calibration.routes.length,50);
+  assert.equal(profile.factoryDefaults.kinds.length,22);
   assert.equal(profile.factoryDefaults.kinds.find(kind=>kind.name==='spc').volume,2,'known SPC DSP reference contributes to System');
   assert.equal(profile.calibration.referenceFrequencyHz,440);
   assert.equal(profile.calibration.targetAmplitude,.04);
-  assert.equal(profile.calibration.measuredExtraRoutes,21); assert.equal(profile.calibration.measuredPrimaryRoutes,28);
+  assert.equal(profile.calibration.measuredExtraRoutes,22); assert.equal(profile.calibration.measuredPrimaryRoutes,28);
   for(const kind of profile.factoryDefaults.kinds)assert.equal(kind.volume,row(report,'extra','genesis',kind.name).volume);
   const reordered = structuredClone(report);
   reordered.rows.reverse(); reordered.calibration.routes.reverse(); reordered.frequencies.reverse();

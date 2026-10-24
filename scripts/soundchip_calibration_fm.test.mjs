@@ -155,10 +155,9 @@ for(const frequency of [220,440,880])test(`YM2610B primary ${frequency} Hz borro
 });
 
 test('reference inventory and frequency validation are deterministic',()=>{
-  assert.equal(new Set(FM_CALIBRATION_KINDS).size,11);
+  assert.equal(new Set(FM_CALIBRATION_KINDS).size,12);
   assert.deepEqual(createFmCalibrationPrograms().map(({kind})=>kind),FM_CALIBRATION_KINDS);
   assert.throws(()=>buildFmCalibrationReference('unknown'),/Unsupported/);
-  assert.throws(()=>buildFmCalibrationReference('ym2610b'),/Unsupported/);
   for(const frequency of [0,-1,Infinity,NaN,'440'])assert.throws(()=>buildFmCalibrationReference('ym2612',frequency),/positive finite/);
   for(const frequency of [0,-1,Infinity,NaN,'440'])assert.throws(()=>buildYm2610bPrimaryCalibrationReference(frequency),/positive finite/);
   const reference=buildFmCalibrationReference('dx7',450);

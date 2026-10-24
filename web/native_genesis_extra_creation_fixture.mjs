@@ -5,7 +5,7 @@ import {createPlaygroundRuntime} from './playground_runtime.js';
 import {createInitVoice} from './msfa_dx7/src/sysex.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
 
-export const EXTRA_KINDS = Object.freeze(['segapsg', 'ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2151', 'ym2413', 'ay8910', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'rf5c164', 'okim6258', 'gameboy', 'nes', 'huc6280', 'dx7', 'pwm', 'snes', 'spc']);
+export const EXTRA_KINDS = Object.freeze(['segapsg', 'ym2612', 'ym2203', 'ym2608', 'ym2610', 'ym2610b', 'ym2151', 'ym2413', 'ay8910', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'rf5c164', 'okim6258', 'gameboy', 'nes', 'huc6280', 'dx7', 'pwm', 'snes', 'spc']);
 export const tick = () => new Promise(resolve => setTimeout(resolve, 2));
 export function deferred() {
   let resolve;
