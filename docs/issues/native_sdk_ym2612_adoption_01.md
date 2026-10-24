@@ -38,7 +38,7 @@ Tauriの`python3 scripts/import_soundchip_sdk.py`でローカルの配布ZIPを�
 アプリの対応ソースZIPにも同梱SDK全体と取り込み記録を含める。
 更新手順と責任範囲はTauriの[Native SDKの取り込み](../../w/tetorica-fm2612-playground-tauri/docs/native-sdk-ym2612.md)に記載する。
 
-## 検証結果
+## ローカルの検証結果
 
 macOSで実施。
 
@@ -54,11 +54,46 @@ macOSで実施。
 - [x] 対応ソースZIPの1,796ファイルを照合し、SDK全374ファイル／取り込み記録／文書／ツールの収録と22件のNativeソース固定記録を確認。
 - [x] インポーターが検証後に別のZIP内容を展開しないよう、読み込んだ同じバイト列から検証・展開する。回帰試験も成功。
 
-Windows／Linuxは今回のローカル作業では未実行。今後の既存Actionsの結果で確認し、
-ローカルのPCM一致だけを根拠に他OSのビルドや実機の聴感上の安定性まで検証済みとしない。
 - [x] 対応ソースZIPを独立した一時ディレクトリへ展開し、374ファイルのSDK照合、YM2612 fixtureのC++14ビルドと自己試験が成功。元のアプリ／SDK checkout、音声デバイス、ネットワークへの依存なし。
 - [x] 取り込み記録とSDK補助ヘッダー更新をCargoの再ビルド監視に含め、`cargo check --locked --offline`も成功。
 
 検証記録は`/private/tmp/tetorica-sdk-adoption-isolated.json`および
 `/private/tmp/tetorica-sdk-adoption-parity/`に保存した。文書のみを更新した最終対応ソースZIPも再生成し、全1,796ファイルの照合が成功した。独立ビルドに使ったソースからの差分が手順書だけで、コンパイル入力が変わっていないことも確認した。
-commit／push／公開は行っていない。
+ここまでの実装・ローカル検証を終えた時点ではcommit／push／公開は行っていなかった。
+その後、ユーザーがTauri移行を`9ef583e8e7fa9e75546b24dd89e119dab7d412c6`としてcommit／pushし、
+同じコミットへ`v0.90.2+test`タグをpushした。
+
+## GitHub Actionsの検証 — 2026-10-25
+
+[Build Desktop — run 40125688503](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40125688503)で、
+上記タグ／コミットの5環境のNative検証レポートを取得し、JSONの内容まで確認した。
+重複して起動したmainの手動実行`40125700793`はキャンセルし、タグ側を追跡した。
+タグ名とは別に、配布アプリの`package.json`／Tauri設定の版は`0.90.1`。
+
+| 構成 | Native検証レポート | インストーラービルド |
+| --- | --- | --- |
+| macOS ARM64 | 成功 | 成功（DMG） |
+| macOS x86_64 | 成功 | 成功（DMG） |
+| Windows x86_64 | 成功 | 成功（NSIS） |
+| Linux ARM64 | 成功 | 成功（DEB／AppImage） |
+| Linux x86_64 | 成功 | 成功（DEB／AppImage） |
+
+各環境で次を確認した。
+
+- `sources.json`: SDK374ファイルを含む22件のソース固定記録と、対応ソースZIP全1,796ファイルが照合成功。
+- `stability.json`: 全22 mode、604,032フレーム、88回のRun／Stop遷移が成功。
+- `extra-stability.json`: 3つの混合構成と7つの単独音源、追加生成の受入れ・台数制限が成功。
+- 全レポートで`deviceOpened: false`。音声デバイスを開かずに実Rustの生成経路を確認した。
+
+確認したアーティファクトは各`native-validation-<platform>`。
+集計は`/private/tmp/tetorica-sdk-adoption-ci-40125688503/inspection-summary.json`に保存した。
+対応ソースZIPのSHA-256も環境別に記録している。Windowsと他環境でZIPのハッシュは異なるが、
+各環境のマニフェストとcheckoutに対する全ファイル照合は成功している。
+
+Actions全体と全5ジョブが`completed`／`success`で完了した。
+インストーラーはDMG 2個、NSIS EXE 1個、DEB 2個、AppImage 2個の計7個を確認。
+Actionsにはインストーラー5構成分とNative検証レポート5構成分の計10アーティファクトが保存されている。
+リリースは`isDraft: true`で未公開。今回はインストーラーのダウンロード・インストールは行っていない。
+
+このCIはOS間のPCM bit一致や、各OSでのWASM比較を実施したものではない。
+実機の音声出力・ノイズ・Keyboard操作・インストール後の起動も別に確認する。

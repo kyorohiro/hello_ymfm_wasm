@@ -10,22 +10,28 @@ Last updated: 2026-10-25
 ### 現在地
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
-最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えたところ。
-今回の保存時点では、Tauriの移行もSDK側の作業もコミット済みで、両リポジトリの作業ツリーはclean。
-この記録の作成では、新しい実装・commit・push・公開・Actions実行を行っていない。
+最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
+ユーザーがcommit／pushした`v0.90.2+test`で、5構成すべての試験とインストーラービルドが成功済み。
+その後、PC-98と追加生成のYM2203も切り替え、ローカル検証後にユーザーが`16610b0e...`としてコミット済み。
+最新の作業はPC-98と追加生成のYM2608のSDK参照切替で、PCM／状態一致、Rust全試験、再生・混合試験まで成功。
+現在のTauriにはこのYM2608移行の未コミット差分がある。SDK本体と取り込み記録の変更はない。
+本体側にもcheckerと作業記録の変更があるため、両リポジトリの差分を確認する。
+今回のYM2608作業ではcommit・push・一般公開・Actions実行は行っていない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
 `w/`以下はそれぞれ独立したGitリポジトリなので、本体だけのcommitで保存できたと判断しない。
 
 | リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `df8cdd44fd0de269544506e02c880b83110f129f` (`v0.90.1+3`) |
+| 本体 | `hello_ymfm/` | `408ac673e57559a607b0fd02af895db3199197be` (`update docs`) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `9ef583e8e7fa9e75546b24dd89e119dab7d412c6` (YM2612のSDK移行) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `16610b0eb1acd99f8c002111b8cda1db777936e8` (YM2203のSDK移行) |
 
-本体には、保存作業前から次の未追跡ファイルがある。内容を保持する。
+本体には次のメモがある。CI結果・YM2203／YM2608作業による更新は上記HEAD後の未コミット差分。
 
-- [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：今回の移行の詳細記録。
+- [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
+- [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
+- [native_sdk_ym2608_adoption_01.md](native_sdk_ym2608_adoption_01.md)：最新のYM2608移行とローカル検証。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -71,20 +77,23 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 
 - Genesis主音源の `wasm/ym2612_wasm.cpp`。ファイル名にwasmを含むが、ここではNative C++として使う。
 - 追加生成YM2612の `native/reference/tauri/native_genesis_ym2612.cpp`。
+- PC-98／追加生成YM2203の `native/reference/tauri/native_genesis_ym2203.cpp`。
+- PC-98／追加生成YM2608の `native/reference/tauri/native_genesis_ym2608.cpp`。
 - 共有 `native/src/ymfm_opn_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`。
 
 共有providerは従来のarchive位置で一度だけコンパイルする。
-ローカルのYM2203／YM2608／YM2610等も共有OPNを使い、OPM／OPL側も共通ADPCMを参照する。
+SDK側のYM2203／YM2608に加え、ローカルのYM2610等も共有OPNを使い、OPM／OPL側も共通ADPCMを参照する。
 他音源の接続全体までSDKへ移したわけではない。重複providerを追加したり、旧スナップショットをまとめて削除したりしない。
 
 Genesisのgain／DC除去／PSG混合、Rustの予約・owner・回収・予算、CPAL、Mixer、FX／liveFx、録音、WebView／JS APIはアプリ側。
 Browser／npmのWASM配布とTauriの `dist/` は今回の取り込みで変更していない。
 Cargoは取り込み記録、SDKのymfmディレクトリ、wasmディレクトリ等を監視し、明示更新時に再ビルドする。
+YM2608のRhythm ROMはRustが従来の`native-ym2608/snapshot/web/`から読むため、同ディレクトリの監視も保持する。
 
 最初に読むファイルはTauriの [SDK取り込みガイド](../../w/tetorica-fm2612-playground-tauri/docs/native-sdk-ym2612.md)。
 配布ソースの再ビルドは [NATIVE-SOURCES.md](../../w/tetorica-fm2612-playground-tauri/NATIVE-SOURCES.md) を参照する。
 
-### 検証済みの結果
+### YM2612移行時のローカル検証
 
 2026-10-25、macOSで実施。デバイスを開かない自動試験と実機で聴く確認は区別する。
 
@@ -105,8 +114,79 @@ Sandbox内のCargo試験では既存HTTP bind試験2件が権限制限で失敗�
 この制限を回避するための製品変更は入れていない。
 最終対応ソースZIPは文書のみ再更新した後にも照合済みで、独立ビルド時からコンパイル入力は変わっていない。
 
-Windows／Linuxの今回の変更に対するビルド・実機音声は、このセッションでは未確認。
-ユーザーがその後にpush／Actions実行／公開したかも未照合なので、再開時に実際の結果を確認する。
+### YM2203移行のローカル検証 — 2026-10-25
+
+同梱SDKの版を変えず、PC-98と追加生成のYM2203接続の参照先を切り替えた。
+詳細は[native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)。
+
+| 対象 | 結果 |
+| --- | --- |
+| 接続／includeのソース一致 | 9組が同一 |
+| PC-98用の移行前後と実WASM | 186ケース、1,142,784フレーム。旧／SDKがbyte一致、WASMとの差分0 |
+| 追加生成用の移行前後と実WASM | 195ケース、1,198,080フレーム。同じくbyte一致、WASMとの差分0 |
+| 完全な状態取得 | 6ケース、49,152フレーム。280バイトの状態とPCM／status／IRQ／readが一致 |
+| Cargo | 723成功、4件ignored |
+| 再生／混合 | 22 mode・88 Run／Stop、3混合構成・7単独音源、受入れ／台数制限が成功 |
+| 配布ソース | SDK374ファイルを含む22件の固定記録と、最終ZIP1,796ファイルの照合成功 |
+
+本体の`scripts/check_native_ym2203.mjs`と追加生成用checkerは既定で実際のSDKをコンパイルし、
+両方のWASM比較が成功している。使用した5つのcppのパス／SHA-256も記録する。
+既定ビルドでの再確認を、381件の固有PCM比較へ二重に加算しない。
+今回の結果はmacOS ARM64で、音声デバイスを開かない検証。今回のYM2203差分に対する5構成のCIは未実行。
+
+### YM2608移行のローカル検証 — 2026-10-25
+
+PC-98と追加生成のYM2608も同じ固定SDKを使う。
+Rhythm ROMの素材は引き続きRustが従来のスナップショットから読み込むため、その監視は残す。
+詳細は[native_sdk_ym2608_adoption_01.md](native_sdk_ym2608_adoption_01.md)。
+
+| 対象 | 結果 |
+| --- | --- |
+| 接続／includeのソース一致 | 9組が同一 |
+| PC-98用の移行前後と実WASM | 30ケース、184,320フレーム。旧／SDKのPCMがbyte一致、WASMとの差分0 |
+| 追加生成用の移行前後と実WASM | 252ケース、1,585,152フレーム。PCM／status／statusHi／IRQ／4 readが一致、WASMとの差分0 |
+| Native状態・RAM比較 | 6ケース、49,152フレーム。524／536バイトの状態とPCM／read、RAMの3範囲が一致 |
+| Cargo | 723成功、4件ignored |
+| 再生／混合 | 22 mode・88 Run／Stop、3混合構成・7単独音源、受入れ／台数制限が成功 |
+| 配布ソース | SDK374ファイルを含む22件の固定記録と、最終ZIP1,796ファイルの照合成功 |
+
+本体のYM2608用checkerも既定でSDKをコンパイルし、PC-98用／追加生成用の両方で比較成功。
+固有の音声比較は282件、1,769,472フレーム。既定ビルドでの再確認は二重加算しない。
+状態比較はNative同士、RAM比較は1観測あたり96バイトの3範囲で、全RAMの毎フレーム比較ではない。
+今回の結果はmacOS ARM64で、音声デバイスを開かない検証。YM2608差分を含む各OSのCIは未実行。
+
+### YM2612移行のGitHub Actions — 2026-10-25
+
+- 対象: `v0.90.2+test`、Tauriコミット`9ef583e8e7fa9e75546b24dd89e119dab7d412c6`。
+- [Build Desktop — run 40125688503](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40125688503)は全体が`completed`／`success`。
+- 重複したmainの手動実行`40125700793`はキャンセル済み。タグ側の全5ジョブが成功した。
+- タグ名とは別に、アプリの`package.json`／Tauri設定の版は`0.90.1`。
+
+| 構成 | Native検証レポート | インストーラービルド |
+| --- | --- | --- |
+| macOS ARM64 | 成功 | 成功（DMG） |
+| macOS x86_64 | 成功 | 成功（DMG） |
+| Windows x86_64 | 成功 | 成功（NSIS） |
+| Linux ARM64 | 成功 | 成功（DEB／AppImage） |
+| Linux x86_64 | 成功 | 成功（DEB／AppImage） |
+
+5環境それぞれの`native-validation-<platform>`を取得し、次のJSON内容まで照合した。
+
+- `sources.json`: 22件の固定記録、SDK全374ファイル、対応ソースZIP全1,796ファイルが成功。
+- `stability.json`: 22 mode、604,032フレーム、88 Run／Stop遷移が成功。
+- `extra-stability.json`: 3混合構成、7単独音源、受入れと台数制限が成功。
+- 全環境で`deviceOpened: false`。デバイスを開かない実Rustの生成処理の検証。
+
+集計は`/private/tmp/tetorica-sdk-adoption-ci-40125688503/inspection-summary.json`。
+ZIPのSHA-256はWindowsと他環境で異なるため、環境別の記録を参照する。
+各環境でマニフェストとcheckoutに対する全ファイル照合は成功している。
+
+インストーラーはDMG 2個、NSIS EXE 1個、DEB 2個、AppImage 2個の計7個を確認。
+Actionsにもインストーラー5構成分と検証レポート5構成分の計10アーティファクトが保存されている。
+タグのリリースは`isDraft: true`で未公開。インストーラーのダウンロード・インストールは今回の自動確認では行っていない。
+今回のCIでOS間のPCM bit一致や各OSのWASM比較を確認したわけではない。
+実機の音声出力・ノイズ・Keyboard操作・インストール後の起動も別に確認する。
+
 Tauriの `Build Desktop` は `workflow_dispatch` または `v*` tagのpushで起動する設定で、通常のmain pushだけでは起動しない。
 
 ### 再開手順
@@ -146,26 +226,32 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. TauriのWindows／Linux／各Mac向けActions結果を確認し、失敗があれば最初の実エラーから修正する。
-2. Native Genesisの再生・Stop・再Runと、追加YM2612を実機でも聴いて確認する。
-3. 他音源のSDK取り込みは、ユーザーが次の対象を選んでから1種類ずつ進める。共有providerの重複と既存音への影響を確認する。
+1. YM2608の変更を含むコミットで5構成のActionsを確認する。上記のタグ成功を今回の変更へ流用しない。
+2. PC-98（YM2608）の再生・Stop・再Runと、追加YM2608を実機でも聴いて確認する。先行する音源の実機確認も自動試験とは別。
+3. 次のSDK取り込み候補はYM2610B。共有providerの重複と既存音への影響を確認する。
 4. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
 
 - Tauriの `native-validation/`、`native-source-bundle/`、`src-tauri/target/` はignoredな生成物。
 - 対応ソースZIP: `w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip`。
-  保存時点SHA-256: `afedc8d73b08bc3f3ac64d1b1ea35dfe0e9da289e89f2f77d82fa59621cf4215`。
+  YM2608移行後の最終SHA-256: `30219d51d724f886e9643499772f7adf46336e2c0421faaedcd7d2f7df5a212e`。
   再生成後に値が変わる場合は、その時点の作業ツリーとマニフェストを確認する。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
 - 検証ログ: `/private/tmp/tetorica-sdk-adoption-parity/`、`/private/tmp/tetorica-sdk-adoption-isolated.json`、
   `/private/tmp/tetorica-sdk-adoption-cargo-test-unrestricted.log`、`/private/tmp/tetorica-sdk-adoption-stability.json`、
   `/private/tmp/tetorica-sdk-adoption-extra-stability.json`。
+  YM2203の最新検証は`/private/tmp/tetorica-sdk-ym2203-adoption/summary.json`、
+  `/private/tmp/tetorica-sdk-ym2203-cargo-test.log`、`/private/tmp/tetorica-sdk-ym2203-stability.json`、
+  `/private/tmp/tetorica-sdk-ym2203-extra-stability.json`、`/private/tmp/tetorica-sdk-ym2203-sources.json`。
+  YM2608の最新検証は`/private/tmp/tetorica-sdk-ym2608-adoption/summary.json`、
+  `/private/tmp/tetorica-sdk-ym2608-cargo-test.log`、`/private/tmp/tetorica-sdk-ym2608-stability.json`、
+  `/private/tmp/tetorica-sdk-ym2608-extra-stability.json`、`/private/tmp/tetorica-sdk-ym2608-sources.json`。
   `/private/tmp`は消える可能性があるため、再開の必須データとして扱わない。
 
 ソースと由来の正本は各Gitコミット、Tauriの同梱SDK／取り込み記録、上記の手順書。
-過去の作業メモにある「未コミット」は当時の状態であり、保存時点ではTauriは `9ef583e...` にコミット済み。
+過去の作業メモにある「未コミット」は当時の状態。TauriのYM2612移行は`9ef583e...`、YM2203移行は`16610b0e...`にコミット済みで、最新のYM2608移行は未コミット。
 
 ## 旧記録 — 2026-08-24以降の作業メモ
 

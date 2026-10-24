@@ -13,6 +13,7 @@ import {encodeAdpcmB} from '../web/adpcm_b_sample.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const index=process.argv.indexOf(name);assert(index<0||process.argv[index+1],`${name} needs a value`);return index<0?null:process.argv[index+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const extra=process.argv.includes('--extra'),fixtureProfile=extra?['--extra']:[],planes=extra?9:2;
@@ -134,10 +135,15 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline core/output-rate comparison; Native bus scheduling, ownership, cancellation and UI/Keyboard IPC are validated separately. Stop gating/retained controls and zero callback allocations are covered by the fixture self-test.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2608-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),
-      path.join(project,'src/native_genesis_ym2608.cpp'),path.join(project,'src/native_genesis_ym2608_fixture.cpp'),
-      path.join(project,'src/native_genesis_ymfm_opn.cpp'),
-      ...['ymfm_ssg.cpp','ymfm_adpcm.cpp'].map(name=>path.join(project,'native-genesis',name)),'-o',fixture],{stdio:'pipe'});}
+    // Match Tauri's selected and additional YM2608 build: use the pinned SDK
+    // wrapper and its once-compiled OPN/SSG/ADPCM provider, retaining the app fixture.
+    const files=[path.join(sdk,'native/reference/tauri/native_genesis_ym2608.cpp'),
+      path.join(project,'src/native_genesis_ym2608_fixture.cpp'),path.join(sdk,'native/src/ymfm_opn_provider.cpp'),
+      path.join(sdk,'vendor/ymfm/ymfm_ssg.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+      ...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,[...fixtureProfile,'--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

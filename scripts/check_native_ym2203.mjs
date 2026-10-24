@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {opnPitchFromHz} from '../web/soundchip_pitch.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const value=process.argv.find(arg=>arg.startsWith(name+'='));if(value)return value.slice(name.length+1);const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const extra=process.argv.includes('--extra'),fixtureProfile=extra?['--extra']:[];
@@ -135,7 +136,15 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline isolated YM2203 only; ownership/IPC/UI verified independently. Forced voice-off and Stop use real WASM FM mute/TL and SSG volume controls. Deferred FM preview waits for an actual FM clock interval, tracked from the unchanged source resampler index and prescaler. Source mutes clear held output. All six voices, SSG noise/envelope, shared frequency latches, special/CSM modes, prescalers and timer/status/IRQ/data reads are exercised. No audio device or cross-platform compiler was used. '+(extra?'Additional Worklet reset clears output remainder and held PCM; force cancellation clears held PCM immediately and closes a cancelled CSM source while preserving independently keyed normal CH3.':'Primary Worklet reset retains output remainder/hold; existing primary behavior is retained.')};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-ym2203-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),...['src/native_genesis_ym2203.cpp','src/native_genesis_ym2203_fixture.cpp','src/native_genesis_ymfm_opn.cpp','native-genesis/ymfm_ssg.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+    // Match Tauri's selected and additional YM2203 build: use the pinned SDK
+    // wrapper and its once-compiled OPN/SSG/ADPCM provider, retaining the app fixture.
+    const files=[path.join(sdk,'native/reference/tauri/native_genesis_ym2203.cpp'),
+      path.join(project,'src/native_genesis_ym2203_fixture.cpp'),path.join(sdk,'native/src/ymfm_opn_provider.cpp'),
+      path.join(sdk,'vendor/ymfm/ymfm_ssg.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+      ...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,[...fixtureProfile,'--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
