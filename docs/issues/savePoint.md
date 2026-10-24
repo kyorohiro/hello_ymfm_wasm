@@ -29,9 +29,19 @@ X68000と追加生成OKIM6258のデコーダー、および追加生成OKI接続
 SDK原本は保持し、ビルド時の生成で従来と同じスレッド安全なテーブル初期化を適用する。
 X68000の機種用接続・サンプル管理・混合はアプリ側に保持する。
 このOKIM6258作業もTauriの`250489fd...`、本体の`fed03f7a...`へユーザーがコミット済み。
-最新の作業は、追加生成YM2413と共有OPL provider／PCM依存のSDK参照切替。
+追加生成YM2413と共有OPL provider／PCM依存のSDK参照も切り替えた。
 Master System／MSXの機種用接続・NativeOpllCore、PSG／AY、DOS PC／Y8950の接続はアプリ側に保持する。
-今回のTauri実装と文書、本体の比較checkerと記録は未コミット。
+このYM2413作業はTauriの`634e56f4...`、本体の`6c0b5770...`へユーザーがコミット済み。
+その後、同コミットを対象とする5構成のActions確認を行った。
+GitHub上のmainとローカルHEADの一致、両作業ツリーがcleanであることを確認してから、
+ユーザーの指示で[Build Desktop — run 40137093552](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40137093552)をmainへ手動実行した。全5構成の試験とインストーラービルドが成功し、run全体も`completed`／`success`。
+今回のCI確認では、音源やビルドコードを変更せず、本体の記録とTauriの取り込みガイドだけを更新している。
+TauriのCI結果ガイド更新はユーザーが`a8edd891...`にコミット済みで、CI対象との差はガイド1ファイルのみだった。
+最新の作業は、DOS PC／MSX Audioと追加生成のOPL系4音源の接続を固定SDKへ切り替える作業。
+共有providerは変更せず、選択中／追加生成cppとY8950メモリーhelperの参照先をSDKへ移した。
+Y8950の最大2 MiBの可変RAMページの所有・COW・予算・回収、RF5C164の接続とホスト処理はアプリ側に保持する。
+今回着手時の本体には前回CIの記録2ファイルの未コミット差分があり、それを保持して追記している。
+今回のTauri実装・文書と本体checker・記録は未コミットで、この新しい接続差分を含む5構成CIは未実行。
 先行する全OPNの5構成CI成功と、後続のYM2151／OKIM6258／YM2413差分のローカル検証は区別する。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
@@ -40,11 +50,11 @@ Master System／MSXの機種用接続・NativeOpllCore、PSG／AY、DOS PC／Y89
 
 | リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `fed03f7a414898c511e67478bf7d43aa6a03f273` (OKIM6258移行のcheckerと記録) |
+| 本体 | `hello_ymfm/` | `6c0b57703ff3f68d24ac54d7126941624cac0f61` (YM2413移行のcheckerと記録) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `250489fd0b6bc5ba2b97bd182834a41aaba60269` (OKIM6258移行。全OPN CIの対象は`5280f83a...`) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `a8edd891c5568c1d9543ed8c0e7d9f4f87f7c202` (CI結果のガイド更新。検証対象は`634e56f4...`) |
 
-本体には次のメモがある。今回のYM2413作業は、この保存時点のHEAD後の差分。
+本体には次のメモがある。前回CIの記録と今回のOPL接続移行は、この保存時点のHEAD後の差分。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -52,7 +62,8 @@ Master System／MSXの機種用接続・NativeOpllCore、PSG／AY、DOS PC／Y89
 - [native_sdk_ym2610_adoption_01.md](native_sdk_ym2610_adoption_01.md)：YM2610／YM2610B移行と全OPNの5構成CI。
 - [native_sdk_ym2151_adoption_01.md](native_sdk_ym2151_adoption_01.md)：YM2151／X68000移行とローカル検証。
 - [native_sdk_okim6258_adoption_01.md](native_sdk_okim6258_adoption_01.md)：OKIM6258移行と初期化対策の保持。
-- [native_sdk_ym2413_adoption_01.md](native_sdk_ym2413_adoption_01.md)：最新のYM2413／共有OPL provider移行。
+- [native_sdk_ym2413_adoption_01.md](native_sdk_ym2413_adoption_01.md)：YM2413／共有OPL provider移行と最新の5構成CI。
+- [native_sdk_opl_adoption_01.md](native_sdk_opl_adoption_01.md)：最新のOPL系4音源の接続移行とRAM付きY8950比較。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -103,6 +114,8 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - Neo Geo／追加生成YM2610・YM2610Bの `native/reference/tauri/native_genesis_ym2610b.cpp`。
 - 追加生成YM2151の `native/reference/tauri/native_genesis_ym2151.cpp`。
 - 追加生成YM2413の `native/reference/tauri/native_genesis_ym2413.cpp`。
+- DOS PC／選択中Y8950の `native/reference/tauri/native_genesis_opl.cpp` と、追加生成4種類の `native/reference/tauri/native_genesis_extra_opl.cpp`。
+- 両接続が引用する `native/reference/tauri/native_genesis_y8950_memory.h`。
 - 追加生成OKIの `native/reference/tauri/native_genesis_extra_okim6258.cpp`。
 - `vendor/mame-okim6258/okim6258.cpp`原本へ既存の初期化対策を適用して`OUT_DIR/tetorica_sdk_okim6258.cpp`へ生成したデコーダー。
 - 共有 `native/src/ymfm_opn_provider.cpp`、`native/src/ymfm_opm_provider.cpp`、`native/src/ymfm_opl_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`、`ymfm_pcm.cpp`。
@@ -110,7 +123,9 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 共有providerは従来のarchive位置で一度だけコンパイルする。
 上記のOPN接続は共通providerを使い、OPLL／OPL側も共通ADPCMを参照する。
 共有OPL provider／PCMは従来の`tetorica_native_master_system` archive内で一度だけコンパイルする。
-選択中Master System／MSXの機種用接続・NativeOpllCore、PSG／AYとDOS PC／Y8950の接続はアプリ側に残す。
+選択中Master System／MSXの機種用接続・NativeOpllCore、PSG／AYはアプリ側に残す。
+DOS PC／Y8950の選択中・追加生成接続とメモリーhelperもSDKを使用する。メモリーhelperはページを借用し、RAM本体の所有権をSDKへ移す変更ではない。
+同じarchive内の追加RF5C164接続はアプリ側に残す。OPLのcpp／header／メモリーhelperをSDK側で監視し、実消費元のない旧native-oplディレクトリの監視は外した。
 追加生成YM2413はSDKの独立接続を使用する。独立接続はNativeOpllCoreを流用する構造ではない。
 CargoはSDKのOPL provider／ymfmと独立YM2413接続を監視する。
 実消費元のなくなった旧native-master-systemディレクトリの監視は外し、ローカルの機種用接続／NativeOpllCoreとAY実装を供給するnative-msxの監視は保持する。
@@ -281,7 +296,28 @@ Cargoが生成した`OUT_DIR/tetorica_sdk_okim6258.cpp`自体も旧デコーダ�
 実際のSDK入力のパス／SHA-256を記録した。既定ビルドの再確認分は固有件数へ加算しない。
 状態比較は公開C ABI snapshotをNative同士で比べたもので、ymfm非公開メモリーやWASM全内部状態の比較ではない。
 SDK優先で解決するsegapsg.hも旧コピーと同一で、PSGのcpp実装はアプリ側のまま。
-今回もmacOS ARM64／Clangで音声デバイスを開かない検証。各OSのCIと実機確認は未実行。
+今回もmacOS ARM64／Clangで音声デバイスを開かない検証。このローカル検証終了時点では各OSのCIと実機確認は未実行で、後続のCI結果は下記に記録している。
+最終文書を含む対応ソースZIP全1,796ファイルと、SDK374ファイルを含む22件の固定記録のオフライン照合も成功。
+
+### OPL系4音源の接続移行 — 2026-10-25、ローカル検証
+
+共有providerは既にSDKへ移行済みで、今回は選択中／追加生成の接続とメモリーhelperだけを切り替えた。
+詳細は[native_sdk_opl_adoption_01.md](native_sdk_opl_adoption_01.md)。
+
+| 対象 | 結果 |
+| --- | --- |
+| ソース一致 | 採用する4ファイルはbyte一致、追加生成cppはコメント1行のみ差分 |
+| 選択中DOS OPL | 198ケース、1,216,512フレーム。旧／SDKがbyte一致、実WASMとの差分0 |
+| 追加OPL系4種類 | 552ケース、3,391,488フレーム。同上 |
+| 選択中Y8950 | 138ケース、847,872フレーム。PCM／status／IRQ／read等が一致、WASMとの差分0 |
+| RAM付きY8950 | 選択中／追加生成で72ケース、589,824フレーム。RAMを使うPCM／状態が一致、WASMとの差分0 |
+| Native公開状態・RAM | 6ケース、24,576フレーム。524／520バイトの状態全体とPCM／read／revision・毎観測384バイトのRAMが一致。終了時の全借用バッファは破棄後も不変 |
+| Cargo | 723成功、4件ignored |
+| 再生／混合 | 22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源、受入れ／16台制限が成功 |
+
+計960件、6,045,696フレーム。更新した4つのcheckerの既定ビルドも実SDKを使って成功し、パス／ハッシュを記録した。
+再実行分と別のNative公開状態比較は二重加算しない。全RAMの毎フレームdumpやWASM内部状態全体の比較ではない。
+前回の5構成CI `40137093552`は今回の接続差分を含まない。今回もmacOS ARM64で音声デバイスを開かない検証。
 最終文書を含む対応ソースZIP全1,796ファイルと、SDK374ファイルを含む22件の固定記録のオフライン照合も成功。
 
 ### YM2612移行のGitHub Actions — 2026-10-25
@@ -358,6 +394,26 @@ GitHub APIで、Native検証レポート5構成分とインストーラー5構�
 gh run view 40130334227 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
 ```
 
+### YM2151／OKIM6258／YM2413移行後のGitHub Actions — 2026-10-25、全5構成成功
+
+- [Build Desktop — run 40137093552](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40137093552)をmainで手動実行した。
+- 対象は`634e56f4dcbacd3d204ea5dace454d39fe0fc9ca`。全OPNに加え、YM2151、OKIM6258、YM2413／共有OPL providerの移行を含む。
+- macOS ARM64／x86_64、Windows x86_64、Linux ARM64／x86_64の5構成で、run全体と全5ジョブが成功した。CIのためのコード修正は不要だった。
+- 全5環境の検証JSONとGitHubのアーティファクトdigestを照合済み。SDK374／22件の固定記録／ZIP1,796ファイル、22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源と受入れ／16台制限が成功。両runnerはexit code 0、deviceOpened false。
+- インストーラービルドも全5構成で成功。macOSはDMG、WindowsはNSIS、Linuxは各DEB／AppImage。
+- 検証レポート5構成とインストーラー5構成の計10アーティファクトをGitHub APIで確認した。すべて有効期限内・サイズ0より大きい。インストーラー自体のダウンロードや起動は未確認。
+- タグを作らない`workflow_dispatch`で、アプリ版は`0.90.1`のまま。新しいドラフトリリースや一般公開は作らない。
+- 記録は[native_sdk_ym2413_adoption_01.md](native_sdk_ym2413_adoption_01.md)、取得したJSONと集計は`/private/tmp/tetorica-ym2413-ci-40137093552/`。
+- CIのソースZIPに対する比較基準のマニフェストを同ディレクトリの`before-docs-source-manifest.json`に保存した。
+  CI結果をTauriガイドへ追記した後のZIPも別に生成・照合済みで、差分は`docs/native-sdk-ym2612.md`のみ、コンパイル入力は同一。
+- CIの対応ソースZIPはmacOS／Linuxが`2829e9f948e257535bf71aac86a702ffe75701ba878cc01cb5c8900787c5a2ee`、Windowsが`ba9920701daf4513d586ef92037c2afcf7bb8d84a83842d665286623ca6e1c20`。
+  全環境でマニフェスト／checkoutとの照合は成功。Windowsとの差の原因は未断定で、SDK固定ハッシュは同じ。
+- 先行する各ローカル検証の「CI未実行」はその時点の記録。今回のCIはYM2151／OKIM6258／YM2413移行を含むが、OS間のPCM bit一致や各OSでのWASM比較、実機の音声出力・ノイズ・インストール後の起動は別の確認。
+
+```sh
+gh run view 40137093552 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
+```
+
 ### 再開手順
 
 まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
@@ -395,19 +451,21 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. 必要なOSのインストーラーを取得し、インストール後の起動を確認する。run `40130334227`の5構成と検証レポートは確認済み。
-2. 今回のYM2413／共有OPL provider差分をcommit／push後、必要に応じてYM2151／OKIM6258移行とともに5構成のCIを実行する。全OPN移行のCI成功とは区別する。
-3. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
-4. 次のSDK取り込みはアプリ側に残したDOS PC／Y8950の選択中／追加生成接続が候補。共有providerの重複と既存音への影響を確認する。
+1. 必要なOSのインストーラーを取得し、インストール後の起動を確認する。最新のrun `40137093552`は5構成の自動試験・ビルド・検証レポート照合まで成功済み。
+2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
+3. 今回のOPL接続移行をcommit／push後、必要に応じて新しい5構成CIで確認する。前回の成功は共有providerまでの移行に対するもの。
+4. 次のSDK取り込みはAY-3-8910、Sega PSG、RF5C164等から選ぶ。共有コアの重複と既存音への影響を確認する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
 
 - Tauriの `native-validation/`、`native-source-bundle/`、`src-tauri/target/` はignoredな生成物。
 - 対応ソースZIP: `w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip`。
-  YM2413／共有OPL provider移行と最終文書の反映後のSHA-256: `2829e9f948e257535bf71aac86a702ffe75701ba878cc01cb5c8900787c5a2ee`。
+  今回のOPL接続移行と最終文書の反映後のSHA-256: `c2d20e9b3e6eae720256571ffb2b2afefd03dad451ec5215b33acd570803e871`。
   全1,796ファイルとSDK374ファイルを含む22件の固定記録を再照合済み。
-  結果は`/private/tmp/tetorica-sdk-ym2413-sources.json`。
+  結果は`/private/tmp/tetorica-sdk-opl-sources.json`。
+  前回CIの結果をガイドへ反映した直後の旧ZIPは`85850ce5...`で、今回のOPL接続移行を含まない。
+  前回CI対象ZIPは`2829e9f9...`（macOS／Linux）。そのCI後の文書更新だけを行った時点では差分はガイド1ファイルだったが、最新ZIPには今回の接続参照・ビルド・文書の変更も入る。
   先行するOKIM6258移行後の旧ZIPは`7123fc45...`で、今回のYM2413差分を含まない。
   先行するYM2151移行後の旧ZIPは`b3c56199...`で、今回のOKIM6258差分を含まない。
   先行する全OPN CI後の文書更新だけを含む旧ZIPは`af8e3129...`で、今回のYM2151差分を含まない。
@@ -435,11 +493,17 @@ SDK自体をリモートから自動取得する設計には戻さない。
   YM2413の最新検証は`/private/tmp/tetorica-sdk-ym2413-adoption/summary.json`、
   `/private/tmp/tetorica-sdk-ym2413-cargo-test.log`、`/private/tmp/tetorica-sdk-ym2413-stability.json`、
   `/private/tmp/tetorica-sdk-ym2413-extra-stability.json`、`/private/tmp/tetorica-sdk-ym2413-sources.json`。
+  OPL接続の最新検証は`/private/tmp/tetorica-sdk-opl-adoption/summary.json`、
+  `/private/tmp/tetorica-sdk-opl-cargo-test.log`、`/private/tmp/tetorica-sdk-opl-stability.json`、
+  `/private/tmp/tetorica-sdk-opl-extra-stability.json`、`/private/tmp/tetorica-sdk-opl-sources.json`。
+  今回のCI記録は`/private/tmp/tetorica-ym2413-ci-40137093552/`にあり、
+  `inspection-summary.json`、`artifact-metadata.json`、`jobs-audit.json`、
+  `local-final-sources.json`、`local-final-manifest-diff.json`を保存済み。
   `/private/tmp`は消える可能性があるため、再開の必須データとして扱わない。
 
 ソースと由来の正本は各Gitコミット、Tauriの同梱SDK／取り込み記録、上記の手順書。
 過去の作業メモにある「未コミット」は当時の状態。TauriのYM2612移行は`9ef583e...`、YM2203移行は`16610b0e...`、YM2608移行は`53ab3d27...`、YM2610／YM2610B移行は`5280f83a...`にコミット済み。
-YM2151移行もTauriの`e4d68b27...`、本体の`f0e00dda...`、OKIM6258移行はTauriの`250489fd...`、本体の`fed03f7a...`にコミット済み。現在の未コミット差分はYM2413／共有OPL provider移行。
+YM2151移行もTauriの`e4d68b27...`、本体の`f0e00dda...`、OKIM6258移行はTauriの`250489fd...`、本体の`fed03f7a...`、YM2413移行はTauriの`634e56f4...`、本体の`6c0b5770...`にコミット済み。前回CIの本体記録は未コミットのまま保持し、今回のOPL接続移行と記録が加わっている。Tauriの前回CIガイド更新は`a8edd891...`にコミット済み。
 
 ## 旧記録 — 2026-08-24以降の作業メモ
 

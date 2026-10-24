@@ -105,5 +105,65 @@ ZIP SHA-256は`2829e9f948e257535bf71aac86a702ffe75701ba878cc01cb5c8900787c5a2ee`
 ## 残る確認
 
 先行する全OPN移行の5構成CIは今回の差分を含まない。
-新しい各OSのCI、インストール後の起動、実機の音声出力・ノイズ・Keyboard操作は別途確認する。
+ローカル検証の終了時点では、新しい各OSのCIは未実行だった。後続の実行経過は次節へ記録する。
+インストール後の起動、実機の音声出力・ノイズ・Keyboard操作は別途確認する。
 次のSDK取り込みは、アプリ側に残したDOS PC／Y8950の選択中／追加生成接続が候補。
+
+## YM2151／OKIM6258／YM2413移行後のCI — 全5構成成功
+
+ユーザーがTauriの変更を`634e56f4dcbacd3d204ea5dace454d39fe0fc9ca`としてcommit／pushし、
+本体のcheckerと記録も`6c0b57703ff3f68d24ac54d7126941624cac0f61`にコミット済み。
+開始前は両作業ツリーがcleanで、GitHub上のmainがTauriのローカルHEADと一致することを確認した。
+
+ユーザーの指示で、mainの[Build Desktop — run 40137093552](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40137093552)を手動実行した。
+先行する全OPN移行に加え、YM2151、OKIM6258、YM2413／共有OPL providerのSDK移行を含む。
+macOS ARM64／x86_64、Windows x86_64、Linux ARM64／x86_64の5構成。
+タグを作らない`workflow_dispatch`で、新しいドラフトリリースや一般公開は行わない。
+対象コミットを変えずに確認し、run全体が`completed`／`success`、全5ジョブが成功した。
+CIに通すための音源・ビルドコードの修正は不要だった。
+
+| 構成 | 自動試験・ソース照合 | インストーラービルド |
+| --- | --- | --- |
+| macOS ARM64 | 成功 | 成功（DMG） |
+| macOS x86_64 | 成功 | 成功（DMG） |
+| Windows x86_64 | 成功 | 成功（NSIS） |
+| Linux ARM64 | 成功 | 成功（DEB／AppImage） |
+| Linux x86_64 | 成功 | 成功（DEB／AppImage） |
+
+5環境それぞれの`native-validation-<platform>`を取得し、JSONの内容と
+ダウンロードしたアーティファクトZIPのGitHub上のdigestを照合した。全5構成の検証レポートが成功。
+
+- `sources.json`: SDK374ファイルを含む22件の固定記録と、対応ソースZIP全1,796ファイルが成功。
+- `stability.json`: 22 mode、604,032フレーム、88 Run／Stop遷移が成功。
+- `extra-stability.json`: 3混合構成、7単独音源と、受入れ・16台制限が成功。
+- 両report runnerは全環境でexit code 0、`deviceOpened: false`。
+
+SDKの配布ZIP固定ハッシュは全環境で同じ`26db7518...`。
+対応ソースZIPのSHA-256はmacOS／Linuxが`2829e9f948e257535bf71aac86a702ffe75701ba878cc01cb5c8900787c5a2ee`、
+Windowsが`ba9920701daf4513d586ef92037c2afcf7bb8d84a83842d665286623ca6e1c20`で、
+各環境のマニフェスト／checkoutに対する照合は成功している。
+Windowsとの差の原因をこの確認だけから断定していない。
+集計と各環境のレポートは`/private/tmp/tetorica-ym2413-ci-40137093552/inspection-summary.json`等に保存した。
+
+GitHub APIで、検証レポート5構成分とインストーラー5構成分の計10アーティファクトを確認した。
+すべて有効期限内で、サイズは0より大きい。インストーラー自体のダウンロード・インストール後の起動は未確認。
+成果物のメタデータと各ジョブの結果は同ディレクトリの`artifact-metadata.json`と`jobs-audit.json`に記録した。
+今回の実行はタグを作らず、タグ専用のドラフトリリース処理はスキップした。
+
+このCIはデバイスを開かない実Rustの試験で、各OS間のPCM bit一致や各OSでのWASM比較、
+インストール後の起動、実機の音声出力・ノイズ・Keyboard操作を確認したという意味ではない。
+
+```sh
+gh run view 40137093552 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
+```
+
+## CI完了後の文書更新
+
+CI完了後はTauriのSDKガイドへ結果を追記し、ローカルの対応ソースZIPを再生成・照合した。
+最終ZIP SHA-256は`85850ce52d433ad577a970e637e235422729d4616a4d75d4f42b0699875c391a`。
+CI対象マニフェストとの差分は`docs/native-sdk-ym2612.md`だけで、コンパイル入力は同一。
+SDK374ファイルを含む22件の固定記録と、全1,796ファイルの最終照合も成功した。
+この文書更新後のZIPは、上記CI成果物に含まれる更新前のZIPとは区別する。
+結果は`/private/tmp/tetorica-ym2413-ci-40137093552/local-final-sources.json`と
+`local-final-manifest-diff.json`に保存した。
+今回の未コミット差分は、本体のCI記録とTauriのガイド更新のみ。

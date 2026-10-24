@@ -120,7 +120,7 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline selected YM3526/YM3812/YMF262 output comparison. Standalone additional native ownership/scheduling/IPC/UI verified separately. Reset restores captured power-on state without callback allocation; no PCM sample memory is provided. Worklet external mute merges authoring forced mute with real WASM mute API. Deferred manual previews use the shipped FM inspector semantics. Status/timer/IRQ retention and zero callback allocations/frees verified by the C++ fixture. No real audio device or cross-platform compiler was used.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-opl-'));fixture=path.join(temporary,'fixture');
-    const files=[path.join(project,'src/native_genesis_extra_opl.cpp'),path.join(project,'src/native_genesis_extra_opl_fixture.cpp'),
+    const files=[path.join(sdk,'native/reference/tauri/native_genesis_extra_opl.cpp'),path.join(project,'src/native_genesis_extra_opl_fixture.cpp'),
       path.join(sdk,'native/src/ymfm_opl_provider.cpp'),path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp')];
     report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
       sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));

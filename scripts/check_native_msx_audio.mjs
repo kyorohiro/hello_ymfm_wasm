@@ -99,7 +99,7 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline Y8950 selected core only; existing MSX AY/OPLL PCM was validated separately and Native combination/ownership/IPC/UI is verified independently. Empty ADPCM RAM/I/O default compatibility is preserved without adding a new public RAM/upload API. Per-frame readStatus/getIrq and raw ports0..3 follow the same order in both native and WASM. The 524-byte state ABI, retained settings, deferred preview cancellation and zero callback allocations/frees are also fixture-tested. No real audio device or cross-platform compiler was used.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-msx-audio-'));fixture=path.join(temporary,'fixture');
-    const files=[path.join(project,'src/native_genesis_opl.cpp'),path.join(project,'src/native_genesis_opl_fixture.cpp'),
+    const files=[path.join(sdk,'native/reference/tauri/native_genesis_opl.cpp'),path.join(project,'src/native_genesis_opl_fixture.cpp'),
       path.join(sdk,'native/src/ymfm_opl_provider.cpp'),path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp')];
     report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
       sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));

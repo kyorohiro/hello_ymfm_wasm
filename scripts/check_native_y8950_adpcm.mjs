@@ -1,14 +1,18 @@
 /** Actual Native primary/additional Y8950 ADPCM output versus deployed Worklet/WASM. */
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {OPLSynth,OPL_PRESETS} from '../web/opl_synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),native=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const arg=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
-const out=arg('--out'),sanitize=process.argv.includes('--sanitize'),temp=await fs.mkdtemp(path.join(os.tmpdir(),'native-y8950-adpcm-')),fixture=path.join(temp,'fixture');
+const sdk=path.join(native,'vendor/tetorica-soundchip-native');
+const arg=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
+const out=arg('--out'),sanitize=process.argv.includes('--sanitize');
+let fixture=arg('--fixture'),temp;
+assert(!(fixture&&sanitize),'--sanitize requires compiling the fixture; omit --fixture');
 const flags=sanitize?['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer']:['-O2'];
 if(sanitize){process.env.ASAN_OPTIONS='detect_leaks=0';process.env.UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1';}
 let Processor;globalThis.sampleRate=48000;globalThis.currentFrame=0;
@@ -33,9 +37,16 @@ scenario('Stop silences FM and ADPCM, preserves RAM and allows later independent
 scenario('Keyboard ADPCM/FM coexistence, repeat-preserving release, retrigger and Stop',({fm,load,start,at,add})=>{fm();load();start();at(701);add('off-adpcm');at(1703);add('audition-adpcm');at(2801);add('off-adpcm');at(3901);add('audition-adpcm');at(6101);add('stop');});
 scenario('Keyboard low-clock DAC sample hold while FM continues',({fm,load,start,at,add})=>{add('clock',1000000);fm();load();start();for(const f of[701,702,703,1703,1704,1705,2801,3901]){at(f);add(f%2?'off-adpcm':'audition-adpcm');}at(4001);add('audition-adpcm');at(6101);add('off-adpcm');});
 scenario('ADPCM-only keyboard wakes idle core and preserves non-repeating choice',({load,start,at,add})=>{load();start({repeat:false});at(1);add('off-adpcm');at(701);add('audition-adpcm');at(1703);add('off-adpcm');at(2801);add('audition-adpcm');at(3901);add('stop');at(6101);add('audition-adpcm');});
-const report={schemaVersion:1,deviceOpened:false,rates,cases:[],maximumDifference:0,totalStereoFrames:0,sanitizer:sanitize?'ASan+UBSan':'none',limits:'Real C++ primary/additional synthesis versus deployed Worklet/WASM. C++ fixture owns preallocated RAM to exercise page-pointer ABI and detects callback C++ new/delete. Production Rust page COW, writable boundary preservation, aggregate pending/applied/retiring budget, callback Rust allocations/frees and owner/lifecycle fences are separately tested by cargo tests. No physical device was opened.'};
+const report={schemaVersion:1,deviceOpened:false,rates,cases:[],maximumDifference:0,totalStereoFrames:0,sanitizer:fixture?'not verified for external fixture':sanitize?'ASan+UBSan':'none',limits:'Real C++ primary/additional synthesis versus deployed Worklet/WASM. C++ fixture owns preallocated RAM to exercise page-pointer ABI and detects callback C++ new/delete. Production Rust page COW, writable boundary preservation, aggregate pending/applied/retiring budget, callback Rust allocations/frees and owner/lifecycle fences are separately tested by cargo tests. No physical device was opened.'};
 try{
- execFileSync('clang++',['-std=c++14',...flags,...['native-genesis','native-master-system/snapshot/src'].map(p=>'-I'+path.join(native,p)),...['src/native_genesis_opl.cpp','src/native_genesis_extra_opl.cpp','src/native_genesis_y8950_memory_fixture.cpp','src/native_genesis_ymfm_opl.cpp','native-master-system/snapshot/src/ymfm_pcm.cpp','native-genesis/ymfm_adpcm.cpp'].map(p=>path.join(native,p)),'-o',fixture],{stdio:'pipe'});
+ if(!fixture){temp=await fs.mkdtemp(path.join(os.tmpdir(),'native-y8950-adpcm-'));fixture=path.join(temp,'fixture');
+  const files=[path.join(sdk,'native/reference/tauri/native_genesis_opl.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_extra_opl.cpp'),
+   path.join(native,'src/native_genesis_y8950_memory_fixture.cpp'),path.join(sdk,'native/src/ymfm_opl_provider.cpp'),
+   path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp')];
+  report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+   sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++14',...flags,'-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+   ...files,'-o',fixture],{stdio:'pipe'});}
  for(const kind of['primary','extra'])for(const rate of rates)for(const scenario of cases){
   globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(e=>`${e.frame} ${e.op} ${e.args.join(' ')}`).join('\n')+'\n';
   const bytes=execFileSync(fixture,[kind,String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*40+1048576});assert.equal(bytes.length,scenario.frames*40);const pcm=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
@@ -60,4 +71,4 @@ try{
   }finally{processor.dispose();}
  }
  report.status='passed';if(out)await fs.writeFile(out,JSON.stringify(report,null,2)+'\n');console.log(`Native Y8950 ADPCM: ${report.cases.length} cases, ${report.totalStereoFrames} stereo frames, maximum difference ${report.maximumDifference}`);
-}finally{await fs.rm(temp,{recursive:true,force:true});}
+}finally{if(temp)await fs.rm(temp,{recursive:true,force:true});}
