@@ -154,11 +154,12 @@ function summarize(samples) {
 }
 
 const sourcePaths=[
-  'scripts/calibrate_analyzer_extra_levels.mjs','docs/vgm_analyzer/playback_core.js',
-  'docs/vgm_analyzer/playback_mixer.js','docs/js/vgmplayer.js','docs/js/opl_synth.js',
-  'docs/js/segapcmaudioengine.js','docs/js/segapcm.js','docs/generated/segapcm_wasm.wasm',
-  'docs/js/msxaudioengine.js','docs/js/k051649audioengine.js','docs/js/k051649.js','docs/generated/k051649_wasm.wasm',
-  'docs/js/ymf278baudioengine.js','docs/js/ymf278b.js','docs/generated/ymf278b_wasm.wasm',
+  'scripts/calibrate_analyzer_extra_levels.mjs','cli/render.js','docs/vgm_analyzer/playback_core.js',
+  'docs/vgm_analyzer/playback_mixer.js','docs/vgm_analyzer/mixer_defaults.js','docs/js/soundchip_mixer.js',
+  'docs/js/vgmplayer.js','docs/js/opl_synth.js',
+  'docs/js/segapcmaudioengine.js','docs/js/segapcm.js','docs/generated/segapcm_wasm.js','docs/generated/segapcm_wasm.wasm',
+  'docs/js/msxaudioengine.js','docs/js/k051649audioengine.js','docs/js/k051649.js','docs/generated/k051649_wasm.js','docs/generated/k051649_wasm.wasm',
+  'docs/js/ymf278baudioengine.js','docs/js/ymf278b.js','docs/generated/ymf278b_wasm.js','docs/generated/ymf278b_wasm.wasm',
   'docs/js/msm5205audioengine.js','docs/js/okim6295audioengine.js',
 ];
 
@@ -196,7 +197,7 @@ export async function calibrateAnalyzerExtraLevels() {
     const bytes=await readFile(resolve(root,pathname));
     sources[pathname]={sha256:createHash('sha256').update(bytes).digest('hex'),size:bytes.length};
   }
-  return {schemaVersion:1,passed:true,method:'actual Analyzer createPlaybackEngine/processFrames, synthetic one-voice references, unity Mixer/master, no device',
+  return {schemaVersion:1,passed:true,gainUnits:'source',method:'actual Analyzer createPlaybackEngine/processFrames, synthetic one-voice references, unity source Mixer/master, no device',
     sampleRate,warmupFrames,captureFrames,frequencies,referenceFrequencyHz,targetAmplitude,maximumGain,
     normalization:'None. Fixed gain uses measured peak-to-peak amplitude at 440 Hz. Input quantization and core frequency response are retained.',
     limitations:['YMF278B measures the current core FM section with reset mix registers; its PCM instrument levels, external wave ROM, and physical hardware mix accuracy are not calibrated.',

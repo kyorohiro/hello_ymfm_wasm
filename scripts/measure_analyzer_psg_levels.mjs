@@ -52,7 +52,7 @@ export function makeAnalyzerPsgLevelReference(id, frequencyHz, {ayFlags = 1} = {
     clocks = [[0x84, NES_CLOCK]]; flags = {};
     variant = 'Analyzer JSNES pulse1, duty50%, fixed15, sweep off, length halt; all other channels/FDS silent';
   }
-  return {id, source: id, section: id, frequencyHz, hardwareFrequencyHz, downstreamTrim: 1,
+  return {id, source: id, section: id, frequencyHz, hardwareFrequencyHz, gainUnits: 'source', downstreamTrim: 1, legacyEngineTrim: 1,
     canonical: id !== 'ay8910' || ayFlags === 1, variant, ...(id === 'ay8910' ? {ayType: 0, ayFlags} : {}),
     bytes: mixedVgm(commands, clocks, flags)};
 }
@@ -61,18 +61,22 @@ export function makeAnalyzerPsgLevelReference(id, frequencyHz, {ayFlags = 1} = {
 export async function measureAnalyzerPsgLevelReference(id, frequencyHz, options = {}) {
   const reference = makeAnalyzerPsgLevelReference(id, frequencyHz, options);
   const rendered = await renderPsgBalanceReference(reference, {gain: 1});
-  const unity = rendered.metrics, trim = reference.downstreamTrim;
+  const unity = rendered.metrics;
+  assert.equal(rendered.gainUnits, 'source');
+  assert.equal(reference.downstreamTrim, 1);
   assert.equal(rendered.pcm.sampleRate, sampleRate);
   assert(unity.acRms > .005, `${id}: audible AC reference required`);
   assert(Math.abs(unity.measuredFrequencyHz / reference.hardwareFrequencyHz - 1) < .001, `${id}: incorrect frequency`);
-  return {id, frequencyHz, sampleRate, canonical: reference.canonical, variant: reference.variant,
+  return {id, frequencyHz, sampleRate, gainUnits: 'source', canonical: reference.canonical, variant: reference.variant,
     ...(id === 'ay8910' ? {ayType: reference.ayType, ayFlags: reference.ayFlags} : {}),
-    hardwareFrequencyHz: reference.hardwareFrequencyHz, downstreamTrim: trim,
-    // Unity Mixer still contains Genesis's historical .35 trim. Divide only
-    // that known downstream trim to derive a reusable standalone-core default.
-    rawAcRms: unity.acRms / trim, amplitude: unity.amplitude / trim, rawDc: unity.dc / trim,
-    rawRms: unity.rms / trim, rawPeakToPeak: unity.peakToPeak / trim,
-    unity, previousMixerGain: Number((previousPeakGains[id] / trim).toFixed(6)),
+    hardwareFrequencyHz: reference.hardwareFrequencyHz, downstreamTrim: 1,
+    legacyEngineTrim: reference.legacyEngineTrim ?? 1,
+    // The application Mixer already cancels Genesis's legacy engine balance.
+    // Explicit unity is raw source PCM; another division would boost it twice.
+    rawAcRms: unity.acRms, amplitude: unity.amplitude, rawDc: unity.dc,
+    rawRms: unity.rms, rawPeakToPeak: unity.peakToPeak,
+    unity, previousMixerGain: previousPeakGains[id],
+    previousLegacyMixerGain: Number((previousPeakGains[id] / (reference.legacyEngineTrim ?? 1)).toFixed(6)),
     previousRawGain: previousPeakGains[id],
     referenceSha256: sha256(reference.bytes)};
 }
@@ -108,20 +112,21 @@ export async function measureAnalyzerPsgLevels() {
       amplitude: row.amplitude * defaults[row.id], ratioToTarget: row.rawAcRms * defaults[row.id] / targetAcRms,
       relativeToPrevious: defaults[row.id] / row.previousRawGain};
   }
-  const paths = ['scripts/measure_analyzer_psg_levels.mjs', 'scripts/measure_analyzer_psg_balance.mjs',
+  const paths = ['scripts/measure_analyzer_psg_levels.mjs', 'scripts/measure_analyzer_psg_balance.mjs', 'cli/render.js',
+    'docs/vgm_analyzer/playback_core.js', 'docs/vgm_analyzer/playback_mixer.js', 'docs/vgm_analyzer/mixer_defaults.js',
     'docs/js/ym2608audioengine.js', 'docs/js/genesisaudioengine.js', 'docs/js/ay8910audioengine.js', 'docs/js/nesapuaudioengine.js',
     'docs/js/multichipaudioengine.js', 'docs/js/nesapusynth.js', 'docs/js/ym2608.js', 'docs/js/ay8910.js', 'docs/js/segapsg.js',
     'docs/js/soundchip_pitch.js', 'docs/js/soundchip_mixer.js', 'docs/js/vgmplayer.js',
-    ...['ym2608', 'ym2612', 'segapsg', 'ay8910'].map(name => `docs/generated/${name}_wasm.wasm`),
+    ...['ym2608', 'ym2612', 'segapsg', 'ay8910'].flatMap(name => [`docs/generated/${name}_wasm.js`, `docs/generated/${name}_wasm.wasm`]),
     ...(await readdir(resolve(root, 'docs/js/nes_apu_vendor'))).filter(name => name.endsWith('.js')).map(name => `docs/js/nes_apu_vendor/${name}`)];
   const sources = Object.fromEntries(await Promise.all(paths.map(async path => [path, sha256(await readFile(resolve(root, path)))])));
-  return {schemaVersion: 1, passed: true, sampleRate, referenceFrequencyHz, masterGain: 1, warmupSeconds: .25, captureSeconds: 1,
+  return {schemaVersion: 1, passed: true, gainUnits: 'source', sampleRate, referenceFrequencyHz, masterGain: 1, warmupSeconds: .25, captureSeconds: 1,
     reference: {id: 'ym2608', gain: anchorGain, unityAcRms: fmUnity.metrics.acRms, targetAcRms,
       fm: fmAnchor.metrics, ssgUnity: ssgUnity.metrics, ssgAtUnchangedGain: ssgAnchor.metrics,
       ssgToFmAcRms: ssgAnchor.metrics.acRms / fmAnchor.metrics.acRms},
-    method: 'Steady single-voice AC RMS, with measured DC removed; actual Analyzer 44100Hz mixed graph, explicit unity source Mixer/master, no FX or device. Raw defaults remove only the reported downstream engine trim.',
+    method: 'Steady single-voice AC RMS, with measured DC removed; actual Analyzer 44100Hz mixed graph, explicit unity source Mixer/master, no FX or device. The application Mixer already cancels legacy engine trims, so measured unity is raw source PCM without further division.',
     normalization: 'None during measurement. Fixed six-decimal defaults equal unchanged YM2608 FM reference AC RMS divided by canonical 440Hz raw AC RMS. No clipping, compression, automatic track gain or per-note processing.',
-    limitations: ['Three standalone chip defaults only. Internal OPN FM/SSG/ADPCM/rhythm ratios and all npm/Playground presets are unchanged.',
+    limitations: ['Three raw-reference chip gains only; application listening levels are a separate policy. Internal OPN FM/SSG/ADPCM/rhythm ratios and all npm/Playground presets are unchanged.',
       'AY canonical type0 flags1 matches the previous normalized-AY reference. Flags0 has a different resistor/DAC model and is a comparison only; its lower output is retained rather than boosted/clamped to the canonical target. No YM2149 variant calibration is implied.',
       'NES measures the Analyzer JavaScript pulse1 only; nonlinear pulse/TND mix, filters, other pulse duties and FDS/DMC do not receive separate gains.',
       'RMS matching a steady sine and square does not establish perceived equal loudness for arbitrary music, envelopes, channel counts or frequencies. 220/880 captures describe core response; gains are derived only at 440Hz.'],

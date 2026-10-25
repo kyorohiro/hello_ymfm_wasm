@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildAnalyzerPsgDefaults} from './generate_analyzer_mixer_defaults.mjs';
+import {createHash} from 'node:crypto';
+import {buildAnalyzerPsgDefaults,generateAnalyzerMixerDefaults,verifyAnalyzerCalibrationSources} from './generate_analyzer_mixer_defaults.mjs';
+import {ANALYZER_MIXER_DEFAULTS} from '../docs/vgm_analyzer/mixer_calibration_data.js';
 
 const anchor=1.03357;
 function fixture() {
@@ -45,4 +47,19 @@ test('PSG balance rejects changed anchors, edited gains and silent range clampin
     const report=fixture();mutate(report);
     assert.throws(()=>buildAnalyzerPsgDefaults(report,anchor));
   }
+});
+
+test('packaging calibration check covers the current measured renderer and generated defaults',async()=>{
+  assert.deepEqual(await generateAnalyzerMixerDefaults({check:true}),ANALYZER_MIXER_DEFAULTS);
+});
+
+test('measurement source hashes stay mandatory and reject a changed renderer',async()=>{
+  const bytes=new TextEncoder().encode('measured renderer');
+  const sha256=createHash('sha256').update(bytes).digest('hex');
+  const reports=[{sources:[{path:'renderer.js',sha256}]},{sources:{'renderer.js':sha256}},
+    {sources:{'renderer.js':{sha256,size:bytes.length}}}];
+  await verifyAnalyzerCalibrationSources(reports,async path=>{assert.equal(path,'renderer.js');return bytes;});
+  for(const report of reports)await assert.rejects(verifyAnalyzerCalibrationSources([report],async()=>new TextEncoder().encode('changed renderer')),
+    /Analyzer calibration source changed; remeasure: renderer.js/);
+  for(const report of [{},{sources:[]},{sources:{}}])await assert.rejects(verifyAnalyzerCalibrationSources([report]),/Missing Analyzer calibration sources/);
 });

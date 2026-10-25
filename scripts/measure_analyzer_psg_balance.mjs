@@ -43,7 +43,8 @@ export function makePsgBalanceReference(section, frequencyHz) {
   bytes.set([86, 103, 109, 32]);
   for (const [offset, value] of [[4, bytes.length - 4], [8, 0x171], [0x18, 88200], [0x34, 0xcc], [0x2c, 7670454], [0x0c, PSG_CLOCK], [0x48, FM_CLOCK]]) view.setUint32(offset, value, true);
   bytes.set(commands, 256);
-  return {section, frequencyHz, hardwareFrequencyHz, source: section === 'sega-psg' ? 'psg' : 'ym2608', downstreamTrim: section === 'sega-psg' ? .35 : 1, bytes};
+  return {section, frequencyHz, hardwareFrequencyHz, source: section === 'sega-psg' ? 'psg' : 'ym2608',
+    gainUnits: 'source', downstreamTrim: 1, legacyEngineTrim: section === 'sega-psg' ? .35 : 1, bytes};
 }
 
 function metrics(samples, rate) {
@@ -74,7 +75,7 @@ export async function renderPsgBalanceReference(reference, {gain = undefined, wa
     for (let offset = 0; offset < count; offset += 4096) {const length = Math.min(4096, count - offset); player.process(left.subarray(offset, offset + length), right.subarray(offset, offset + length), length);}
     const pcm = {left: left.slice(warmup), right: right.slice(warmup), sampleRate};
     assert.deepEqual(pcm.left, pcm.right, 'Both hardware output sides must carry the same mono reference');
-    return {pcm, gain: gain ?? initialGain, initialGain, metrics: metrics(pcm.left, sampleRate)};
+    return {pcm, gain: gain ?? initialGain, initialGain, gainUnits: 'source', metrics: metrics(pcm.left, sampleRate)};
   } finally {engine.dispose();}
 }
 
@@ -91,7 +92,8 @@ export async function measureAnalyzerPsgBalance() {
     assert(Math.abs(unity.metrics.measuredFrequencyHz / reference.hardwareFrequencyHz - 1) < .001, `${section}: incorrect frequency`);
     rows.push({section, frequencyHz, source: reference.source, waveform: section === 'ym2608-fm' ? 'sine' : 'square',
       sampleRate: unity.pcm.sampleRate, frames: unity.pcm.left.length, hardwareFrequencyHz: reference.hardwareFrequencyHz,
-      masterGain: 1, downstreamTrim: reference.downstreamTrim, defaultMixerGain: currentDefault.gain,
+      masterGain: 1, gainUnits: 'source', downstreamTrim: reference.downstreamTrim,
+      legacyEngineTrim: reference.legacyEngineTrim, defaultMixerGain: currentDefault.gain,
       unity: unity.metrics, currentDefault: currentDefault.metrics, maxScalingError,
       referenceSha256: digest(reference.bytes)});
     console.log(`${section} ${frequencyHz} Hz: unity AC RMS ${unity.metrics.acRms.toFixed(9)}, default ${currentDefault.metrics.acRms.toFixed(9)}, amplitude ${currentDefault.metrics.amplitude.toFixed(9)}`);
@@ -99,7 +101,7 @@ export async function measureAnalyzerPsgBalance() {
   const comparisons = [220, 440, 880].map(frequencyHz => {
     const row = section => rows.find(item => item.section === section && item.frequencyHz === frequencyHz);
     const fm = row('ym2608-fm'), ssg = row('ym2608-ssg'), sega = row('sega-psg');
-    const candidate = (target, raw) => ({rawCoreGain: target / (raw / sega.downstreamTrim), genesisMixerGain: target / raw,
+    const candidate = (target, raw) => ({gainUnits: 'source', rawCoreGain: target / raw, genesisMixerGain: target / raw,
       relativeToCurrentSegaDefault: target / raw / sega.defaultMixerGain, withinCurrentGenesisMixerLimit: target / raw <= 2});
     return {frequencyHz, ym2608GainAnchor: fm.defaultMixerGain,
       currentSsgToFmAcRms: ssg.currentDefault.acRms / fm.currentDefault.acRms,
@@ -108,17 +110,19 @@ export async function measureAnalyzerPsgBalance() {
       matchYm2608SsgPeakToPeak: candidate(ssg.currentDefault.amplitude, sega.unity.amplitude),
       matchYm2608FmSineAcRms: candidate(fm.currentDefault.acRms, sega.unity.acRms)};
   });
-  const paths = ['scripts/measure_analyzer_psg_balance.mjs', 'docs/js/ym2608audioengine.js', 'docs/js/genesisaudioengine.js', 'docs/js/multichipaudioengine.js',
+  const paths = ['scripts/measure_analyzer_psg_balance.mjs', 'cli/render.js',
+    'docs/vgm_analyzer/playback_core.js', 'docs/vgm_analyzer/playback_mixer.js', 'docs/vgm_analyzer/mixer_defaults.js',
+    'docs/js/ym2608audioengine.js', 'docs/js/genesisaudioengine.js', 'docs/js/multichipaudioengine.js',
     'docs/js/ym2608.js', 'docs/js/ym2612.js', 'docs/js/segapsg.js', 'docs/js/soundchip_pitch.js', 'docs/js/vgmplayer.js', 'docs/js/soundchip_mixer.js',
-    ...['ym2608', 'ym2612', 'segapsg'].map(name => `docs/generated/${name}_wasm.wasm`)];
+    ...['ym2608', 'ym2612', 'segapsg'].flatMap(name => [`docs/generated/${name}_wasm.js`, `docs/generated/${name}_wasm.wasm`])];
   const sources = Object.fromEntries(await Promise.all(paths.map(async path => [path, digest(await readFile(resolve(root, path)))])));
-  return {schemaVersion: 1, passed: true, referenceFrequencyHz: 440, sampleRate: 44100, masterGain: 1, warmupSeconds: WARMUP, captureSeconds: CAPTURE, frequencies: [220, 440, 880],
+  return {schemaVersion: 1, passed: true, gainUnits: 'source', referenceFrequencyHz: 440, sampleRate: 44100, masterGain: 1, warmupSeconds: WARMUP, captureSeconds: CAPTURE, frequencies: [220, 440, 880],
     method: 'Actual Analyzer mixed engine at 44100 Hz; fresh WASM instances for unity and current defaults, one sustained full-level voice, hardware frequency quantization, rising DC-centered crossing estimate, half peak-to-peak and AC RMS.',
     reference: {ym2608MasterClock: FM_CLOCK, ym2608SsgClock: FM_CLOCK / 4, segaPsgClock: PSG_CLOCK,
       fm: 'Algorithm7, OP4 only, TL0/MUL1/AR31, other operators silent; both stereo bits enabled.',
       ssg: 'ChannelA only, fixed volume15, tone enabled; envelope and noise disabled.',
-      segaPsg: 'Tone0 only, attenuation0; remaining channels silent; Genesis downstream .35 retained and reported.'},
-    limits: 'Steady reference levels, not perceived loudness or music normalization. No envelope/gated-duty/polyphony weighting. Existing YM2608 FM/SSG ratio is retained by every Sega-only candidate. Current default gains are snapshots, not authoritative baseline inputs. No physical audio device or external ROM.',
+      segaPsg: 'Tone0 only, attenuation0; remaining channels silent. The application Mixer cancels the legacy Genesis .35 engine trim; measured unity is raw source PCM.'},
+    limits: 'Steady reference levels, not perceived loudness or music normalization. No envelope/gated-duty/polyphony weighting. Existing YM2608 FM/SSG ratio is retained by every Sega-only candidate. Source-unit Mixer gain equals raw-core gain; the separately recorded legacy engine trim must not be divided out again. Current default gains are snapshots, not authoritative baseline inputs. No physical audio device or external ROM.',
     sources, rows, comparisons, candidateReferenceFrequencyHz: 440};
 }
 

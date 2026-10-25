@@ -31,6 +31,9 @@ Mixerは調整値そのものを表示し、Genesisの既存倍率は接続側�
 [npm公開記録](npm_mixer_source_units_release_01.md)を参照。Tauriの同梱frontendとExamplesの更新は未実施。
 さらにCLIのWAV描画へ同じ調整を入れた`tetorica-vgm@0.2.14`も公開済み。
 11種類のWAV一致、latest・integrity・公開tarballの全byte一致を確認した。[VGM公開記録](npm_vgm_mixer_release_02.md)を参照。
+その後、itch.io Analyzerの校正ソースhash検証が旧記録で停止する問題を修正した。
+Extra／PSGを実際に再測定した`_02`記録へ切り替え、音量定数を変えずにZIP作成と両ブラウザー検証を完了。
+手順と生成物は[校正記録の更新](analyzer_mixer_calibration_refresh_01.md)を参照。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
