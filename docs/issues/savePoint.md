@@ -92,14 +92,23 @@ attempt 1、対象は`2125896b7173c5c662c6eaf2f2b69b4a010f12b7`。runは`complet
 このCI開始後にコード・試験を変更せず、本体の結果記録とTauriガイドだけを更新した。
 その結果記録は本体`77d93c04...`、Tauri`0191864a...`に保存済み。
 先行する成功CI `40148943609`はPWMもHuC6280も含まない。
-最新の作業では、Game Boyの選択中／独立追加音源に共通のNative接続とMAME由来APUを固定SDK参照へ切り替えた。
+その後、Game Boyの選択中／独立追加音源に共通のNative接続とMAME由来APUを固定SDK参照へ切り替えた。
 接続cpp／headerとAPU cpp／headerの4入力はbyte一致。既存のarchive・コンパイル設定・リンク順序を維持し、Rustの予約・PCM・Stopや機種APIは変更しない。
 Game Boy着手時は本体`77d93c04...`、Tauri`0191864a...`、SDKともcleanだった。
 `npm test`は31／31、Rust全試験は723成功・0失敗・4件ignored。MCPのTCP bindのため初めから制限外で実行し、sandbox内の失敗や製品修正はない。
 旧／SDKのstdoutはbyte一致し、実WASMの分割比較186回・1,714,080フレームの差は0。延べ90入力のうち36入力の重複を除き、固有Native入力は54件・488,208フレームだった。
 公開60バイトABIやStop／reset・NR52／DMG波形RAM・clock・位相、render allocation／free 0の自己試験と、22 mode・604,032フレーム・88 Run／Stopも成功。
 追加音源の3混合構成・7単独音源、受入れ／16台制限で17台目の拒否が成功し、両制限試験でStop後の予約予算は0。再生／混合の両runnerはexit code 0・`deviceOpened: false`だった。
-今回のGame Boy差分のcommit／pushと新しいCIは未実施。直前の成功CI `40162092207`はこの移行を含まない。
+Game Boyのローカル検証終了時点ではcommit／pushと新しいCIは未実施だった。その後ユーザーが本体`62fc578e...`、Tauri`407a75b3...`へ保存済み。
+最新の作業では、選択中NES＋FDSと独立追加NESの共通Native接続と、その中のAPU／FDS移植実装を固定SDK参照へ切り替えた。
+接続cpp／headerはbyte一致し、既存の1翻訳単位・archive・flags・リンク順序を維持する。RustのDMC転送payload所有・予約・予算と回収、PCM・Stopや機種APIは変更しない。
+NES着手時は本体`62fc578e...`、Tauri`407a75b3...`、SDKともcleanだった。
+`npm test`は31／31、Rust全試験は723成功・0失敗・4件ignored。MCPのTCP bindのため初めから制限外で実行し、sandbox内の失敗や製品修正はない。
+旧／SDKのstdoutはbyte一致し、実WASMの分割比較315回・3,064,320フレームとJS参照の差は0。選択中72入力の重複を除き、固有Native入力は81件・784,512フレームだった。
+400バイトABI、64 KiB DMCコピー・reset後の全RAM読出し、IRQ・最終バイト保護・FDS・6声のmuteとrender allocation／free 0の自己試験も成功。
+再生ライフサイクル22 mode・604,032フレーム・88 Run／Stopと、追加音源の3混合構成・7単独音源、受入れ／16台制限で17台目の拒否も成功。両制限試験でStop後の予約予算は0、再生／混合の両runnerはexit code 0・`deviceOpened: false`だった。
+今回のNES差分のcommit／pushと新しいCIは未実施。
+直前の成功CI `40162092207`はGame Boyも今回のNES移行も含まない。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
@@ -107,11 +116,11 @@ Game Boy着手時は本体`77d93c04...`、Tauri`0191864a...`、SDKともcleanだ
 
 | リポジトリ | ローカルパス | 再開の基準コミット（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `77d93c0489669eed4cdb81edf0b9f8e2f0f77e8a` (PWM／HuC6280のCI記録を保存済み。Game Boy着手前はclean) |
+| 本体 | `hello_ymfm/` | `62fc578ef346d7633f4f4f7b566e6beada8c4337` (Game Boy移行・ローカル検証を保存済み。NES着手前はclean) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `0191864a00a278a4314d97bc4a6372306793fcd0` (PWM／HuC6280のCI結果をcommit済み。Game Boy着手前はclean) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `407a75b32f5e419fc060a569b26ced849914867b` (Game Boy移行をcommit済み。NES着手前はclean) |
 
-本体には次のメモがある。PWMとHuC6280の参照切替・ローカル検証と全5構成CIは完了し、Game Boyの参照切替・ローカル検証も完了した。Game Boy差分は未コミットで、各リポジトリのgit statusで確認する。
+本体には次のメモがある。Game Boyまでの参照切替・ローカル検証は保存済みで、NESの参照切替・ローカル検証も完了した。NES差分は未コミットで、各リポジトリのgit statusで確認する。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -126,7 +135,8 @@ Game Boy着手時は本体`77d93c04...`、Tauri`0191864a...`、SDKともcleanだ
 - [native_sdk_rf5c164_adoption_01.md](native_sdk_rf5c164_adoption_01.md)：RF5C164接続／decoder／raw C APIの移行と、PSGと合わせたCI。
 - [native_sdk_pwm_adoption_01.md](native_sdk_pwm_adoption_01.md)：32X PWM接続／コアヘッダーの移行とローカル検証。
 - [native_sdk_huc6280_adoption_01.md](native_sdk_huc6280_adoption_01.md)：HuC6280接続／コアの移行とローカル検証、PWMと合わせたrun `40162092207`の全5構成成功。
-- [native_sdk_gameboy_adoption_01.md](native_sdk_gameboy_adoption_01.md)：最新のGame Boy共通接続／APUの移行とローカル検証。旧／SDK・実WASM比較とホスト試験は成功。
+- [native_sdk_gameboy_adoption_01.md](native_sdk_gameboy_adoption_01.md)：Game Boy共通接続／APUの移行とローカル検証。旧／SDK・実WASM比較とホスト試験は成功。
+- [native_sdk_nes_adoption_01.md](native_sdk_nes_adoption_01.md)：最新のNES＋FDS共通接続の移行とローカル検証。旧／SDK・実WASM比較とホスト試験は成功。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -185,6 +195,7 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - 選択中RF5C164と追加RF5C164の `native/reference/tauri/native_genesis_rf5c164.cpp`、`native_genesis_extra_rf5c164.cpp`。
 - 共通RF decoderの`vendor/mame-rf5c164/rf5c164.cpp`／`.h`とraw C APIの`wasm/rf5c164_wasm.cpp`。
 - 選択中／追加生成Game Boyの`native/reference/tauri/native_genesis_gameboy.cpp`と、共通APUの`vendor/mame-gameboy/gameboy_apu.cpp`／`.h`。
+- 選択中NES＋FDS／追加生成NESの共通接続とAPU／FDS実装を含む`native/reference/tauri/native_genesis_nes.cpp`／`.h`。
 - `vendor/mame-okim6258/okim6258.cpp`原本へ既存の初期化対策を適用して`OUT_DIR/tetorica_sdk_okim6258.cpp`へ生成したデコーダー。
 - 共有 `native/src/ymfm_opn_provider.cpp`、`native/src/ymfm_opm_provider.cpp`、`native/src/ymfm_opl_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`、`ymfm_pcm.cpp`。
 
@@ -671,10 +682,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. Game Boyのローカル検証・文書・対応ソースZIPの生成と照合は完了し、本体の記録へハッシュを保存済み。今回のcommit／pushとCIは未実施。
+1. NESのローカル検証と文書、対応ソースZIPの生成・照合とハッシュ記録まで完了。今回のcommit／pushとCIは未実施。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 先行する失敗CIと修正版の全5構成成功、今回のPSG／RF CIを区別し、必要なOSのインストーラーで起動を確認する。前回CI結果のTauriガイドはPSG移行とともにcommit済みで、現在ステージ済みの差分はない。
-4. Game Boyのローカル検証結果をもとに次の工程を決める。既存のPWM／HuC6280 CI成功と、その後のGame Boy差分は区別する。
+4. NESのローカル検証結果をもとに次の工程を決める。既存のPWM／HuC6280 CI成功と、その後のGame Boy／NES差分は区別する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -730,12 +741,18 @@ SDK自体をリモートから自動取得する設計には戻さない。
   `/private/tmp/tetorica-pwm-huc-ci-40162092207/local-final-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合し、
   同ディレクトリの`local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。
   コードと試験のコンパイル入力はCI対象から変更していない。
-- Game Boy移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+- Game Boy移行直後の旧ローカル対応ソースZIPは全1,796ファイル、SHA-256は
   `1db0c76e87d531e9daf300bc3dc985d92b672e51425c72a65009168c3258575c`。
   `/private/tmp/tetorica-sdk-gameboy-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
   `/private/tmp/tetorica-sdk-gameboy-adoption/source-manifest-delta.json`で着手時からの変更がTauriの5ファイルだけと確認し、
   同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
   直前の成功CIにはないGame Boy移行を含むため、そのCIの入力と同一ではない。
+- NES＋FDS移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+  `1fb6bf89c2a372abbad9190761b678ec611d944f12fabe7a0ac8f6ce8c7f0bec`。
+  `/private/tmp/tetorica-sdk-nes-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
+  `/private/tmp/tetorica-sdk-nes-adoption/source-manifest-delta.json`で着手時からの変更がTauriの4ファイルだけと確認し、
+  同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
+  直前の成功CIにはないGame Boy／NES移行を含むため、そのCIの入力と同一ではない。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
 - 検証ログ: `/private/tmp/tetorica-sdk-adoption-parity/`、`/private/tmp/tetorica-sdk-adoption-isolated.json`、

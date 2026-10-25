@@ -1,6 +1,7 @@
 /** Compare actual Native NES/FDS PCM with the current JS audio core. No device. */
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,7 +12,8 @@ import {ChipClockResampler} from '../web/playground_chip_clock.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const index=process.argv.indexOf(name);assert(index<0||process.argv[index+1],`${name} requires a value`);return index<0?null:process.argv[index+1];};
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
 let fixture=option('--fixture'),temporary;
 const reportPath=option('--out'),rates=[44100,48000,96000];
 const withWasm=process.argv.includes('--wasm');
@@ -21,7 +23,9 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
 let wasm,wasmOutput=0,wasmUpload=0;
 if(withWasm){
   const {default:factory}=await import('../docs/generated/nesapu_wasm.js');
-  wasm=await factory({wasmBinary:await fs.readFile(path.join(root,'docs/generated/nesapu_wasm.wasm'))});
+  const wasmBinary=await fs.readFile(path.join(root,'docs/generated/nesapu_wasm.wasm'));
+  report.wasmSha256=createHash('sha256').update(wasmBinary).digest('hex');
+  wasm=await factory({wasmBinary});
   wasmOutput=wasm._malloc(8);wasmUpload=wasm._malloc(65536);
   assert(wasmOutput&&wasmUpload,'WASM fixture buffers must be allocated');
   report.implementations=['native-cpp','wasm','javascript-reference'];
@@ -135,8 +139,10 @@ function eventText({frame,op,args}){
 try{
   if(!fixture){
     temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-nes-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(project,'native-nes'),'-I'+path.join(project,'src'),
-      path.join(project,'src/native_genesis_nes_fixture.cpp'),path.join(project,'src/native_genesis_nes.cpp'),'-o',fixture],{stdio:'pipe'});
+    const sources=[path.join(project,'src/native_genesis_nes_fixture.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_nes.cpp')];
+    const inputs=[...sources,path.join(sdk,'native/reference/tauri/native_genesis_nes.h'),path.join(project,'src/native_genesis_nes.h')];
+    report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off',...sources,'-o',fixture],{stdio:'pipe'});
   }
   for(const rate of rates)for(const scenario of cases){
     const sorted=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

@@ -8,7 +8,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {NesApuSynth} from '../web/nesapusynth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
 const out=option('--out'),rates=[44100,48000,96000];let fixture=option('--fixture'),temporary,Processor;
 const wasmBinary=await fs.readFile(path.join(root,'docs/generated/nesapu_wasm.wasm'));
 globalThis.sampleRate=48000;globalThis.currentFrame=0;
@@ -132,7 +133,11 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
  reference:'Actual deployed playground_nes_worklet.js renderSegment with shipped nesapu_wasm.wasm and ChipClockResampler; 1/128/irregular callback splits',
  wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),limits:'Offline standalone core PCM and C++ callback allocation audit only. Primary-compatible shared canonical NES/FDS core, independent64KiB DMC RAM and optionalFDS, no hidden siblings. Public NTSC/PAL and fractional constructor clocks are kept distinct from integer outer clock changes. Self-test covers instance/memory/clock/FDS isolation, observation preserving phase, full and individual gate Stop, finite DMC lifetime, reset and RAM/patch retention, bounds and zero callback allocation/free. Scheduling/ownership/IPC/UI are checked separately; no audio device or subjective listening, cross-platform compiler or real-time deadline guarantee.'};
 try{
- if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-nes-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off',...['src/native_genesis_nes_fixture.cpp','src/native_genesis_nes.cpp'].map(file=>path.join(project,file)),'-o',fixture],{stdio:'pipe'});}
+ if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-nes-'));fixture=path.join(temporary,'fixture');
+  const sources=[path.join(project,'src/native_genesis_nes_fixture.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_nes.cpp')];
+  const inputs=[...sources,path.join(sdk,'native/reference/tauri/native_genesis_nes.h'),path.join(project,'src/native_genesis_nes.h')];
+  report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off',...sources,'-o',fixture],{stdio:'pipe'});}
  const result=spawnSync(fixture,['--self-test'],{encoding:'utf8'});assert.equal(result.status,0,result.stderr);report.selfTest=JSON.parse(result.stderr);report.memoryCopyBenchmark=JSON.parse(execFileSync(fixture,['--memory-copy-benchmark'],{encoding:'utf8'}));
  for(const rate of rates)for(const scenario of cases){
   const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),bytes=execFileSync(path.resolve(fixture),[String(rate),String(scenario.clock),String(scenario.frames),String(Number(scenario.fds))],{input:events.map(eventText).join('\n')+'\n',maxBuffer:scenario.frames*8+1048576,timeout:30000});
