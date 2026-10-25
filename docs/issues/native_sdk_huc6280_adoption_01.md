@@ -3,8 +3,10 @@
 2026-10-25。PC Engineの選択中／独立追加HuC6280を、同梱済みの固定SDKへ参照を切り替えた。
 着手時は本体`2b1b8cf1b3a6003b34693887153718c989a3a74d`、Tauri`39a0278660cc985a1b32333553bd9ee1eaffcfea`、
 SDK`affd1059599f3c7598191c14f5a864b44963d4aa`で、すべてcleanだった。PWM移行はこれらの基準コミットに保存済み。
-今回はローカル実装・検証までで、HuC6280差分のcommit／pushと新しいCIは未実施。
-直近の全5構成成功run `40148943609`はPSG／RF移行の確認であり、PWMも今回のHuC6280も含まない。
+ローカル実装・検証の終了時点では、HuC6280差分のcommit／pushと新しいCIは未実施だった。
+その後ユーザーが本体`a8169ac2b5cf884e59304a55f2388da0ae1c21e4`、Tauri`2125896b7173c5c662c6eaf2f2b69b4a010f12b7`へcommit／pushした。
+両作業ツリーがcleanでremote mainと一致することを確認し、PWM／HuC6280を含む5構成CIを実行した。全5構成が成功し、結果は後述のCI記録を参照。
+先行する全5構成成功run `40148943609`はPSG／RF移行の確認であり、PWMも今回のHuC6280も含まない。
 
 ## ビルド境界
 
@@ -70,4 +72,37 @@ node scripts/check_native_extra_huc6280.mjs
 着手時のソースマニフェストとの差は、Tauriの`src-tauri/build.rs`、README、NATIVE-SOURCES、取り込みガイドの4ファイルのみ。
 `/private/tmp/tetorica-sdk-huc6280-adoption/source-manifest-delta.json`へ差分を、`summary.json`へ最終結果を集約した。
 ガイド自身へZIPの自己ハッシュは埋め込んでいない。
-新しい各OSのCI、sanitizer、実機の音声出力やインストール後の起動は今回の確認に含めない。
+上記のローカル検証は各OSのCI、sanitizer、実機の音声出力やインストール後の起動を含まない。
+
+## PWM／HuC6280の5構成CI — 全5構成成功
+
+ユーザーの指示で[Build Desktop — run 40162092207](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40162092207)を
+`workflow_dispatch`で`main`へ実行した。attempt 1、対象は`2125896b7173c5c662c6eaf2f2b69b4a010f12b7`。
+PWMとHuC6280のSDK参照切替を含む。attempt 1は`completed`／`success`で終了した。
+macOS ARM64・macOS x86_64・Windows x86_64・Linux ARM64・Linux x86_64の全5ジョブで、
+sources／Cargo／再生ライフサイクル／追加音源混合とインストーラービルドが成功した。
+macOSはDMG、WindowsはNSIS、Linux両構成はDEB／AppImageを生成した。
+
+全5構成の検証レポートZIPを取得し、GitHubのdigestと一致することを確認して各3件のJSONを監査した。
+
+- 各構成でSDK374ファイルを含む22件の固定記録と、対応ソースZIP1,796ファイルの照合が成功。
+- 22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源、受入れ／16台制限で17台目の拒否とStop後の予約予算0への回収が成功。
+- 両runnerはexit code 0、`deviceOpened: false`。アプリ版は`0.90.1`。
+- 検証5件・インストーラー5件の計10アーティファクトは対象run／commitに一致し、有効期限内・非空だった。全5ジョブのドラフトリリース添付stepはskipped。
+
+CIの対応ソースZIPは非Windows4構成が上記`dcbc9710...`と一致し、Windowsは
+`167ae8219491e94f1624330875be1d2ecdecf64cd87e3b571c4c81994ad826b2`だった。
+それぞれのCIでmanifestとcheckoutの照合は成功しており、ハッシュの差だけで原因を断定しない。
+今回のCI開始後にコードや試験を変更せず、結果記録だけを更新した。追加のcommit／push、新しいタグやreleaseは作成していない。
+結果用ガイドの更新後の対応ソースZIPも全1,796ファイルで、SHA-256は
+`229d8eb929c1504baa65085be4bf38ca966966e42c69b3546b1de1361002f495`。
+`local-final-sources.json`で全22件の固定記録・SDK374ファイル・ZIPの照合が成功し、
+`local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。
+コードと試験のコンパイル入力はCI対象から変えていない。
+証拠は`/private/tmp/tetorica-pwm-huc-ci-40162092207/`の`final-ci-summary.json`、`inspection-summary.json`、
+`jobs-audit.json`、`artifact-metadata.json`、`native-artifact-metadata.json`に保存した。
+取得したのは検証レポートZIPのみ。インストーラー・対応ソースZIPのダウンロードや起動・独立照合、実機の聴音・UI操作、OS間PCM一致や各OSでのWASM比較は別の確認とする。
+
+```sh
+gh run view 40162092207 --repo kyorohiro/tetorica-fm2612-playground-tauri
+```

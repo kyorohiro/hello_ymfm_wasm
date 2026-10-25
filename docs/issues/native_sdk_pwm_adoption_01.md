@@ -3,7 +3,8 @@
 2026-10-25。32X／32X Nukedの選択中PWMと独立追加生成が使うNative接続を、同梱済みの固定SDKへ切り替えた。
 着手時は本体`88049cad60d243853a6e739116d01d15c0a50152`、
 Tauri`66004f00e66e7dba2394777cd281f7feeec46da0`、SDK`affd1059599f3c7598191c14f5a864b44963d4aa`で、すべてcleanだった。
-今回はローカル検証まで。今回の差分のcommit／push、PWM移行を含むCIは未実施。
+このローカル検証終了時点では、差分のcommit／pushとPWM移行を含むCIは未実施だった。
+その後、ユーザーが差分を保存し、HuC6280移行後の[run 40162092207](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40162092207)で全5構成の検証とインストーラービルドが成功した。詳細は[後続のCI記録](native_sdk_huc6280_adoption_01.md)を参照する。
 直前の全5構成成功run `40148943609`はPSG／RF移行の確認であり、このPWM参照切替を含まない。
 
 ## ビルド境界
@@ -56,7 +57,7 @@ constructor境界・初期値、不正なFIFO状態のrollback、64ビットsour
 - 制限外のRust全試験は723成功・0失敗・4件ignored。初回sandbox内は721成功・2失敗・4件ignoredで、2件はMCPのローカルTCP bindの`Operation not permitted`だった。製品を修正せず制限外で再実行した。
 - 再生ライフサイクルは22 mode、604,032フレーム、88 Run／Stopが成功。
 - 既存の追加音源混合試験は3混合構成・7単独音源、受入れ／16台制限で17台目の拒否が成功。受入れ・台数制限の両試験でStop後の予約予算は0へ戻った。
-- 再生／混合の両runnerはexit code 0、`deviceOpened: false`。sanitizer、各OSのCIと実機の音声確認は実施していない。
+- 再生／混合の両runnerはexit code 0、`deviceOpened: false`。このローカル検証ではsanitizer、各OSのCIと実機の音声確認は実施していない。
 
 入力監査と集計は`/private/tmp/tetorica-sdk-pwm-adoption/source-audit.json`、`parity-summary.json`。
 ホストのログとreportは`/private/tmp/tetorica-sdk-pwm-npm-test.log`、
@@ -85,4 +86,4 @@ README、NATIVE-SOURCES、取り込みガイドの5ファイルだけ。`source-
 通常の2つのSDKビルド経路と有効なfixture指定も再確認し、比較数へ重複加算していない。
 各checkerは、製品のSDK入力に加えてfixtureが読むローカルC ABIヘッダーのハッシュも記録する。
 引数検証の根拠は`invalid-fixture-options.json`、全体の集計は同ディレクトリの`summary.json`。
-今回の各OSのCI、インストール後の起動、実機の音声・ノイズ確認は未実施。
+このローカル検証終了時点では各OSのCIは未実施だった。後続CIの成功とは別に、インストール後の起動、実機の音声・ノイズ確認は未実施。
