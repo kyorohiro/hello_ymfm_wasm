@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
-ARTIFACTS = ('ym2612', 'ym2203')
+ARTIFACTS = ('ym2612', 'ym2203', 'ym2608')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -28,6 +28,14 @@ YM2203_EXPORTS = [
     '_ym2203_set_source_mute_mask', '_ym2203_save_state', '_ym2203_load_state',
     '_malloc', '_free',
 ]
+YM2608_EXPORTS = [
+    '_ym2608_create', '_ym2608_destroy', '_ym2608_reset', '_ym2608_write',
+    '_ym2608_read', '_ym2608_read_status', '_ym2608_read_status_hi',
+    '_ym2608_get_irq', '_ym2608_sample_rate', '_ym2608_load_adpcm_a_rom',
+    '_ym2608_load_adpcm_b_memory', '_ym2608_clear_adpcm_b_memory',
+    '_ym2608_generate', '_ym2608_set_source_mute_mask', '_ym2608_save_state',
+    '_ym2608_load_state', '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -41,6 +49,8 @@ def sha256(data):
 @unittest.skipUnless(os.name == 'posix' and shutil.which('sh') and shutil.which('node'),
                      'These shell-route integration tests require POSIX sh and Node')
 class SdkBuildRouteMixin:
+    runtime_methods = ['cwrap', 'HEAPF32']
+
     @property
     def build_script(self):
         return Path('scripts/build_' + self.artifact + '_wasm.sh')
@@ -134,7 +144,7 @@ else:
                      '-sALLOW_MEMORY_GROWTH=1', '-sEXPORT_ALL=1'):
             self.assertIn(flag, arguments)
         for flag, expected in (('-sEXPORTED_FUNCTIONS=', self.exports),
-                               ('-sEXPORTED_RUNTIME_METHODS=', ['cwrap', 'HEAPF32']),
+                               ('-sEXPORTED_RUNTIME_METHODS=', self.runtime_methods),
                                ('-sINCOMING_MODULE_JS_API=', ['wasmBinary'])):
             actual = next(value[len(flag):] for value in arguments if value.startswith(flag))
             self.assertEqual(json.loads(actual), expected)
@@ -214,6 +224,31 @@ else:
                 finally:
                     path.write_bytes(original)
 
+    def assert_shared_output_preserves(self, previous_artifacts):
+        for artifact in previous_artifacts:
+            result = self.build_artifact(artifact)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        output = self.checkout / 'docs/generated'
+        previous_records = json.loads((output / 'build-info.json').read_text())['artifacts']
+        previous_outputs = {
+            name: (output / name).read_bytes()
+            for artifact in previous_artifacts
+            for name in (artifact + '_wasm.js', artifact + '_wasm.wasm')
+        }
+        # Rebuilding one chip replaces only its own entry and cannot alter
+        # other chips' records or outputs in the shared default directory.
+        for _ in range(2):
+            result = self.build()
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            info = json.loads((output / 'build-info.json').read_text())
+            self.assertEqual([entry['id'] for entry in info['artifacts']],
+                             sorted([*previous_artifacts, self.artifact]))
+            for previous in previous_records:
+                self.assertEqual(next(entry for entry in info['artifacts']
+                                      if entry['id'] == previous['id']), previous)
+            for name, data in previous_outputs.items():
+                self.assertEqual((output / name).read_bytes(), data)
+
 
 class Ym2612SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     artifact = 'ym2612'
@@ -225,23 +260,16 @@ class Ym2203SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     exports = YM2203_EXPORTS
 
     def test_shared_output_preserves_existing_ym2612_build_info(self):
-        result = self.build_artifact('ym2612')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        output = self.checkout / 'docs/generated'
-        initial = json.loads((output / 'build-info.json').read_text())['artifacts'][0]
-        original_glue = (output / 'ym2612_wasm.js').read_bytes()
-        original_wasm = (output / 'ym2612_wasm.wasm').read_bytes()
-        # The second YM2203 build replaces only its own entry, without adding
-        # duplicate records or changing the previously built YM2612 artifact.
-        for _ in range(2):
-            result = self.build()
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            info = json.loads((output / 'build-info.json').read_text())
-            self.assertEqual([entry['id'] for entry in info['artifacts']], ['ym2203', 'ym2612'])
-            self.assertEqual(next(entry for entry in info['artifacts']
-                                  if entry['id'] == 'ym2612'), initial)
-            self.assertEqual((output / 'ym2612_wasm.js').read_bytes(), original_glue)
-            self.assertEqual((output / 'ym2612_wasm.wasm').read_bytes(), original_wasm)
+        self.assert_shared_output_preserves(['ym2612'])
+
+
+class Ym2608SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ym2608'
+    exports = YM2608_EXPORTS
+    runtime_methods = ['cwrap', 'HEAPF32', 'HEAPU8']
+
+    def test_shared_output_preserves_existing_ym2612_and_ym2203_build_info(self):
+        self.assert_shared_output_preserves(['ym2612', 'ym2203'])
 
 
 if __name__ == '__main__':

@@ -17,14 +17,15 @@ SNAPSHOT = Path('third_party') / NAME
 RECEIPT = Path('third_party/soundchip-sdk.json')
 MANIFEST = 'RELEASE-MANIFEST.json'
 # The full release is pinned and checked; these inputs additionally identify a
-# complete set of YM2612/YM2203 WASM inputs instead of a partial source bundle.
+# complete set of YM2612/YM2203/YM2608 WASM inputs instead of a partial bundle.
 REQUIRED = {
     'sdk.json', 'LICENSE', 'LICENSES.md', 'catalog/chips.json',
     'catalog/source_inventory.json', 'scripts/build-wasm.sh',
     'scripts/record_wasm_build.mjs',
-    'wasm/ym2612_wasm.cpp', 'wasm/ym2203_wasm.cpp',
+    'wasm/ym2612_wasm.cpp', 'wasm/ym2203_wasm.cpp', 'wasm/ym2608_wasm.cpp',
     'wasm/opn_state.h', 'wasm/ymfm_wasm_interface.h',
     'scripts/build_ym2612_wasm.sh', 'scripts/build_ym2203_wasm.sh',
+    'scripts/build_ym2608_wasm.sh',
     'vendor/ymfm/LICENSE',
     'vendor/ymfm/chip_state.h', 'vendor/ymfm/ymfm.h',
     'vendor/ymfm/ymfm_fm.h', 'vendor/ymfm/ymfm_fm.ipp',
