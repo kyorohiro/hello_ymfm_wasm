@@ -11,23 +11,32 @@ import {presetToVoice} from '../web/msfa_dx7/src/preset.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const index=process.argv.indexOf(name);assert(index<0||process.argv[index+1],`${name} requires a value`);return index<0?null:process.argv[index+1];};
-let fixture=option('--fixture'),temporary;
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
+// Quoted includes resolve beside each .cc. Copy the complete pinned Native
+// selection into one private tree, rather than mixing adjacent vendor headers.
+async function compileSdkFixture(directory,fixture,report){
+ const sources='dx7note.cc env.cc exp2.cc fm_core.cc fm_op_kernel.cc freqlut.cc lfo.cc patch.cc pitchenv.cc resofilter.cc ringbuffer.cc sin.cc synth_unit.cc'.split(' ');
+ const headers='aligned_buf.h controllers.h dx7note.h env.h exp2.h fm_core.h fm_op_kernel.h freqlut.h lfo.h module.h patch.h pitchenv.h resofilter.h ringbuffer.h sin.h synth.h synth_unit.h'.split(' ');
+ const overrides=new Set('dx7note.cc env.cc ringbuffer.cc synth.h synth_unit.cc synth_unit.h'.split(' '));
+ const tree=path.join(directory,'msfa');await fs.mkdir(tree);
+ const selected=[...sources,...headers].map(name=>({name,file:path.join(sdk,overrides.has(name)?'native/reference/overrides/msfa':'vendor/msfa',name)}));
+ for(const {name,file}of selected)await fs.copyFile(file,path.join(tree,name));
+ const adapter=path.join(sdk,'native/reference/tauri/native_genesis_dx7.cpp'),nativeFixture=path.join(project,'src/native_genesis_dx7_fixture.cpp');
+ // The fixture's quoted ABI header remains local; the SDK wrapper's header
+ // resolves beside its own .cpp. Record both, even when their bytes coincide.
+ const inputs=[nativeFixture,path.join(project,'src/native_genesis_dx7.h'),adapter,path.join(sdk,'native/reference/tauri/native_genesis_dx7.h'),...selected.map(input=>input.file)];
+ report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+ report.sdkAssembly={files:30,shared:24,overrides:6,translationUnits:14,panicFeedbackReset:true};
+ execFileSync('clang++',['-std=c++17','-O2','-DMSFA_FORCE_SCALAR','-D_USE_MATH_DEFINES','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+tree,'-I'+path.join(project,'src'),nativeFixture,adapter,...sources.map(name=>path.join(tree,name)),'-o',fixture],{stdio:'pipe'});
+}
+let fixture=option('--fixture'),temporary;if(fixture)fixture=path.resolve(fixture);
 const output=option('--out'),rates=[44100,48000,96000];
 const wasmBytes=await fs.readFile(path.join(root,'web/msfa_dx7/wasm/msfa.wasm'));
 const report={schemaVersion:1,startedAt:new Date().toISOString(),deviceOpened:false,rates,
   internalSampleRate:44100,polyphony:16,wasmSha256:createHash('sha256').update(wasmBytes).digest('hex'),
   cases:[],maximumDifference:0,
-  limits:'Compares the actual native C++ MSFA core and integer-phase output adapter with shipped WASM. The public Web adapter supports 44.1/48 kHz; 96 kHz uses its same integer-phase algorithm over the shipped WASM exports. Whole-bus routing, command ownership and Stop fencing are covered separately by Rust and mocked-IPC browser tests.'};
-if(!fixture) {
-  temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-dx7-'));
-  fixture=path.join(temporary,'fixture');
-  const sourceNames=(await fs.readdir(path.join(project,'native-dx7'))).filter(name=>name.endsWith('.cc'));
-  execFileSync('clang++',['-std=c++17','-O2','-DMSFA_FORCE_SCALAR','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(project,'native-dx7'),'-I'+path.join(project,'src'),
-    path.join(project,'src/native_genesis_dx7_fixture.cpp'),path.join(project,'src/native_genesis_dx7.cpp'),
-    ...sourceNames.map(name=>path.join(project,'native-dx7',name)),'-o',fixture],{stdio:'pipe'});
-}
-
+  limits:'Compares the actual native C++ MSFA core and integer-phase output adapter with shipped WASM. The public Web adapter supports 44.1/48 kHz; 96 kHz uses its same integer-phase algorithm over the shipped WASM exports. The additional 96 feedback-heavy Panic restart cases verify the SDK correction against the WASM fresh-instance behavior; pre-migration cases are kept separately. Whole-bus routing, command ownership and Stop fencing are covered separately by Rust and mocked-IPC browser tests.'};
 // Same adapter as DX7Core: at 44.1 kHz the MSFA core owns its remainder;
 // other rates use two priming samples and a 64-frame source buffer. Integer
 // phase is independent of the host's render partitioning.
@@ -108,15 +117,25 @@ scenario('ratio half/fixed tuning, LFO and pitch envelope extremes',({add,at})=>
     operators:{...sine.operators,1:{...sine.operators[1],coarse:0,fine:37},6:{...sine.operators[6],mode:'fixed',coarse:3,fine:99,outputLevel:40}}});
   add('voice',1,0,voice);add('on',12,127);at(1501);add('on',115,50);at(3001);add('alloff');
 },12288);
+// Panic is an intentional SDK correction: all preallocated note feedback
+// caches now restart like the WASM wrapper's freshly constructed SynthUnit.
+// Keep these separate from the unchanged pre-migration regression scenarios.
+for(let algorithm=0;algorithm<32;algorithm++)scenario('feedback panic clean restart algorithm '+(algorithm+1),({add,at})=>{
+ const voice=presetToVoice({...sine,algorithm,feedback:7,lfo:{...sine.lfo,sync:false},
+  operators:Object.fromEntries(Array.from({length:6},(_,index)=>[index+1,{...sine.operators[index+1],coarse:index+1,outputLevel:85}]))});
+ add('voice',31,0,voice);add('on',60,100);at(1301);add('panic');at(1403);add('on',72,100);
+},8192,{silentRanges:[[1301,1403]],restart:[1490,8192],panicFeedbackReset:true});
 const energy=(pcm,start,end)=>{let sum=0;for(let index=start*2;index<end*2;index++)sum+=pcm[index]*pcm[index];return sum;};
 function eventText({frame,op,args}) {
   if(op==='voice')return `${frame} voice ${args[0]} ${args[1]} ${Buffer.from(args[2]).toString('hex')}`;
   return `${frame} ${op}${args.length?' '+args.join(' '):''}`;
 }
 try {
+  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-dx7-'));fixture=path.join(temporary,'fixture');await compileSdkFixture(temporary,fixture,report);}
   for(const rate of rates)for(const scenario of scenarios) {
+    const input=scenario.events.map(eventText).join('\n')+'\n';
     const bytes=execFileSync(path.resolve(fixture),[String(rate),String(scenario.frames)],{
-      input:scenario.events.map(eventText).join('\n')+'\n',maxBuffer:scenario.frames*8+1024*1024,timeout:20000,
+      input,maxBuffer:scenario.frames*8+1024*1024,timeout:20000,
     });
     assert.equal(bytes.length,scenario.frames*8,'Native fixture must return every stereo frame');
     const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4),reference=await wasmReference(rate);
@@ -136,11 +155,12 @@ try {
         }
       }
       assert(maximumDifference<=1e-7,`${rate} Hz ${scenario.name}: PCM difference ${maximumDifference}`);
+      if(scenario.checks.panicFeedbackReset)assert.equal(maximumDifference,0,'Feedback Panic restart must match freshly reset WASM exactly');
       assert(peak>.001,scenario.name+' must contain sounding PCM');
       for(const [start,end]of scenario.checks.silentRanges??[])assert.equal(energy(actual,start,end),0,'Panic must clear generated-ahead PCM immediately');
       if(scenario.checks.restart)assert(energy(actual,...scenario.checks.restart)>.001,'Panic must preserve the selected patch for Run');
       report.maximumDifference=Math.max(report.maximumDifference,maximumDifference);
-      report.cases.push({name:scenario.name,sampleRate:rate,frames:scenario.frames,maximumDifference,peak});
+      report.cases.push({name:scenario.name,sampleRate:rate,frames:scenario.frames,maximumDifference,peak,eventSha256:createHash('sha256').update(input).digest('hex'),pcmSha256:createHash('sha256').update(bytes).digest('hex'),panicFeedbackReset:!!scenario.checks.panicFeedbackReset});
     } finally {reference.dispose();}
   }
   // Check that our reference adapter really is the shipped public implementation
@@ -158,6 +178,7 @@ try {
       for(const value of publicCore.render(257))assert.equal(reference.sample(),value,'Public panic/restart adapter must match');
     } finally {publicCore.dispose();reference.dispose();}
   }
+  report.regressionCases=report.cases.filter(result=>!result.panicFeedbackReset).length;report.panicFeedbackCases=report.cases.filter(result=>result.panicFeedbackReset).length;
   report.totalStereoFrames=report.cases.reduce((total,result)=>total+result.frames,0);report.status='passed';
   if(output)await fs.writeFile(path.resolve(output),JSON.stringify(report,null,2)+'\n');
   console.log(`PASS: actual Native DX7 versus shipped WASM, ${report.cases.length} cases / ${report.totalStereoFrames} stereo frames at ${rates.join('/')} Hz; max difference ${report.maximumDifference}; no audio device.`);

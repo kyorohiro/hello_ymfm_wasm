@@ -11,9 +11,27 @@ import {presetToVoice} from '../docs/js/msfa_dx7/src/preset.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} requires a value`);return i<0?null:process.argv[i+1];};
-const out=option('--out'),temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-dx7-'));
-const fixture=option('--fixture')??path.join(temporary,'fixture');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
+// Quoted includes resolve beside each .cc. Copy the complete pinned Native
+// selection into one private tree, rather than mixing adjacent vendor headers.
+async function compileSdkFixture(directory,fixture,report){
+ const sources='dx7note.cc env.cc exp2.cc fm_core.cc fm_op_kernel.cc freqlut.cc lfo.cc patch.cc pitchenv.cc resofilter.cc ringbuffer.cc sin.cc synth_unit.cc'.split(' ');
+ const headers='aligned_buf.h controllers.h dx7note.h env.h exp2.h fm_core.h fm_op_kernel.h freqlut.h lfo.h module.h patch.h pitchenv.h resofilter.h ringbuffer.h sin.h synth.h synth_unit.h'.split(' ');
+ const overrides=new Set('dx7note.cc env.cc ringbuffer.cc synth.h synth_unit.cc synth_unit.h'.split(' '));
+ const tree=path.join(directory,'msfa');await fs.mkdir(tree);
+ const selected=[...sources,...headers].map(name=>({name,file:path.join(sdk,overrides.has(name)?'native/reference/overrides/msfa':'vendor/msfa',name)}));
+ for(const {name,file}of selected)await fs.copyFile(file,path.join(tree,name));
+ const adapter=path.join(sdk,'native/reference/tauri/native_genesis_dx7.cpp'),nativeFixture=path.join(project,'src/native_genesis_dx7_fixture.cpp');
+ // The fixture's quoted ABI header remains local; the SDK wrapper's header
+ // resolves beside its own .cpp. Record both, even when their bytes coincide.
+ const inputs=[nativeFixture,path.join(project,'src/native_genesis_dx7.h'),adapter,path.join(sdk,'native/reference/tauri/native_genesis_dx7.h'),...selected.map(input=>input.file)];
+ report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+ report.sdkAssembly={files:30,shared:24,overrides:6,translationUnits:14,panicFeedbackReset:true};
+ execFileSync('clang++',['-std=c++17','-O2','-DMSFA_FORCE_SCALAR','-D_USE_MATH_DEFINES','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+tree,'-I'+path.join(project,'src'),nativeFixture,adapter,...sources.map(name=>path.join(tree,name)),'-o',fixture],{stdio:'pipe'});
+}
+const out=option('--out');let fixture=option('--fixture');if(fixture)fixture=path.resolve(fixture);
+const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-dx7-'));
 const wasmBytes=await fs.readFile(path.join(root,'docs/js/msfa_dx7/wasm/msfa.wasm'));
 const rates=[44100,48000,96000],partitions=[[1],[128],[3,127,1,64,17,256]];
 const report={schemaVersion:1,startedAt:new Date().toISOString(),deviceOpened:false,rates,
@@ -79,11 +97,7 @@ async function reference(rate){
 }
 
 try{
- if(!option('--fixture')){const sources=(await fs.readdir(path.join(project,'native-dx7'))).filter(n=>n.endsWith('.cc'));
-  execFileSync('clang++',['-std=c++17','-O2','-DMSFA_FORCE_SCALAR','-fwrapv','-fno-strict-aliasing','-ffp-contract=off',
-   '-I'+path.join(project,'native-dx7'),'-I'+path.join(project,'src'),path.join(project,'src/native_genesis_dx7_fixture.cpp'),
-   path.join(project,'src/native_genesis_dx7.cpp'),...sources.map(n=>path.join(project,'native-dx7',n)),'-o',fixture],{stdio:'pipe'});
- }
+ if(!fixture){fixture=path.join(temporary,'fixture');await compileSdkFixture(temporary,fixture,report);}
  report.selfTest=JSON.parse(execFileSync(fixture,['--self-test'],{encoding:'utf8'}));
  const primaryPath=path.join(temporary,'primary.json');
  execFileSync(process.execPath,[path.join(root,'scripts/check_native_dx7.mjs'),'--fixture',fixture,'--out',primaryPath],{stdio:'pipe',timeout:60000});
@@ -110,7 +124,7 @@ try{
     frame+=count;
    }
    assert.equal(maximumDifference,0,`${rate}Hz ${scenario.name} split${split}`);assert(peak>.001,scenario.name+' must sound');
-   report.cases.push({name:scenario.name,sampleRate:rate,split,frames:scenario.frames,maximumDifference,peak});report.totalStereoFrames+=scenario.frames;
+   report.cases.push({name:scenario.name,sampleRate:rate,split,frames:scenario.frames,maximumDifference,peak,eventSha256:createHash('sha256').update(input).digest('hex'),pcmSha256:createHash('sha256').update(bytes).digest('hex')});report.totalStereoFrames+=scenario.frames;
    report.maximumDifference=Math.max(report.maximumDifference,maximumDifference);
    }finally{api.dispose();}
   }

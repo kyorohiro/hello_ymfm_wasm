@@ -100,7 +100,7 @@ Game Boy着手時は本体`77d93c04...`、Tauri`0191864a...`、SDKともcleanだ
 公開60バイトABIやStop／reset・NR52／DMG波形RAM・clock・位相、render allocation／free 0の自己試験と、22 mode・604,032フレーム・88 Run／Stopも成功。
 追加音源の3混合構成・7単独音源、受入れ／16台制限で17台目の拒否が成功し、両制限試験でStop後の予約予算は0。再生／混合の両runnerはexit code 0・`deviceOpened: false`だった。
 Game Boyのローカル検証終了時点ではcommit／pushと新しいCIは未実施だった。その後ユーザーが本体`62fc578e...`、Tauri`407a75b3...`へ保存済み。
-最新の作業では、選択中NES＋FDSと独立追加NESの共通Native接続と、その中のAPU／FDS移植実装を固定SDK参照へ切り替えた。
+その後、選択中NES＋FDSと独立追加NESの共通Native接続と、その中のAPU／FDS移植実装を固定SDK参照へ切り替えた。
 接続cpp／headerはbyte一致し、既存の1翻訳単位・archive・flags・リンク順序を維持する。RustのDMC転送payload所有・予約・予算と回収、PCM・Stopや機種APIは変更しない。
 NES着手時は本体`62fc578e...`、Tauri`407a75b3...`、SDKともcleanだった。
 `npm test`は31／31、Rust全試験は723成功・0失敗・4件ignored。MCPのTCP bindのため初めから制限外で実行し、sandbox内の失敗や製品修正はない。
@@ -112,20 +112,31 @@ NESのローカル検証終了後、ユーザーが本体`3349ac14...`、Tauri`a
 [Build Desktop — run 40168462256](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40168462256)を`main`へ手動実行した。
 attempt 1、対象は`a70e86d2061349a396de7e4816a5438fea5dcb4f`。runは`completed`／`success`で、全5構成の検証とインストーラービルドが成功した。CIのためのコード修正は不要だった。
 全5構成の検証JSON・取得ZIPのdigestと、計10アーティファクトのrun／commit一致・有効期限内・非空を確認した。全5ジョブのドラフトリリース添付stepはskipped。
-このCI開始後にコード・試験を変更せず、本体の結果記録3ファイルとTauriガイドだけを更新している。今回の記録更新のcommit／pushは未実施。
+このCI開始後にコード・試験を変更せず、本体の結果記録3ファイルとTauriガイドだけを更新した。その記録もユーザーが本体`95bba16c...`、Tauri`853d87f9...`へコミット済み。
 先行する成功CI `40162092207`はGame BoyもNES移行も含まない。今回のCIと、先行するローカルの旧／SDK・WASM比較結果は区別する。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
+
+最新の作業では、選択中／独立追加DX7の共通Native接続とMSFAを固定SDK参照へ切り替えた。
+着手時は本体`95bba16c...`、Tauri`853d87f9...`、SDKともcleanだった。
+接続cpp／headerはbyte一致。24共有ファイルと6 Native overrideを`OUT_DIR/tetorica_sdk_dx7_msfa/`へコピーして組み立て、既存の14翻訳単位・archive・flags・リンク順序を維持する。
+SDKのNative Panicは事前確保済み`Dx7Note`へ初期状態を値代入し、feedback履歴をallocation／freeなしで初期化する。
+このPanic後の再発音は意図した差分のため、通常再生の旧／SDK一致と分けて検証する。Rustの音色所有・lease・16 slot制御・予約、PCM・Stop・Mixer／FXと機種APIは変更しない。
+既存135入力・1,032,192 Nativeフレームは旧／SDKのstdoutがbyte一致。新しいPanic／再発音96入力はSDKと実WASMの差0で、旧版79入力の意図した再発音後の差と区別した。
+合計231固有Native入力・1,818,624フレーム、実WASM273比較・2,297,856フレームの最大差0。Panic後の新規インスタンス一致96／96とrender／制御中allocation／free 0の自己試験も成功。
+`npm test`のPython 22件・Node 31件、Rust全試験723成功・0失敗・4件ignored。MCPのTCP bindのため初めから制限外で実行し、sandbox内失敗や製品修正はない。
+22 mode・604,032フレーム・88 Run／Stopと、3混合構成・7単独音源、受入れ／16台制限で17台目の拒否が成功。両制限試験でStop後の予約予算0、両runnerはexit code 0・`deviceOpened: false`。
+直前の成功CI `40168462256`は今回のDX7移行を含まない。今回のcommit／push、CIと公開は未実施。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
 `w/`以下はそれぞれ独立したGitリポジトリなので、本体だけのcommitで保存できたと判断しない。
 
 | リポジトリ | ローカルパス | 再開の基準コミット（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `3349ac142a0bac7c2a56bc17e808478b6c8f92c5` (NES移行・ローカル検証までcommit／push済み。CI確認前はclean) |
+| 本体 | `hello_ymfm/` | `95bba16c8d5cc9ce4f3c3da3043c823cf7c47099` (Game Boy／NES移行とCI記録までcommit済み。DX7着手前はclean) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `a70e86d2061349a396de7e4816a5438fea5dcb4f` (Game Boy／NES移行を含む全5構成成功CIの対象。CI確認前はclean) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `853d87f9aa28567eb05b89eec22e8c2348460d68` (Game Boy／NES移行とCI結果ガイドまでcommit済み。DX7着手前はclean) |
 
-本体には次のメモがある。Game Boy／NESまでの参照切替・ローカル検証はcommit済みで、両移行を含む全5構成のCIも成功した。今回のCI結果記録は未コミットで、各リポジトリのgit statusで確認する。
+本体には次のメモがある。Game Boy／NESまでの参照切替・ローカル検証と全5構成のCI記録はcommit済み。今回のDX7移行は未コミットで、各リポジトリのgit statusで確認する。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -142,6 +153,7 @@ attempt 1、対象は`a70e86d2061349a396de7e4816a5438fea5dcb4f`。runは`complet
 - [native_sdk_huc6280_adoption_01.md](native_sdk_huc6280_adoption_01.md)：HuC6280接続／コアの移行とローカル検証、PWMと合わせたrun `40162092207`の全5構成成功。
 - [native_sdk_gameboy_adoption_01.md](native_sdk_gameboy_adoption_01.md)：Game Boy共通接続／APUの移行とローカル検証、NESと合わせたrun `40168462256`の全5構成成功。
 - [native_sdk_nes_adoption_01.md](native_sdk_nes_adoption_01.md)：NES＋FDS共通接続の移行とローカル検証、Game Boyと合わせたrun `40168462256`の全5構成成功。
+- [native_sdk_dx7_adoption_01.md](native_sdk_dx7_adoption_01.md)：DX7共通接続／MSFAの移行、通常再生の一致とNative Panicのfeedback履歴初期化、ローカル検証。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -201,6 +213,7 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - 共通RF decoderの`vendor/mame-rf5c164/rf5c164.cpp`／`.h`とraw C APIの`wasm/rf5c164_wasm.cpp`。
 - 選択中／追加生成Game Boyの`native/reference/tauri/native_genesis_gameboy.cpp`と、共通APUの`vendor/mame-gameboy/gameboy_apu.cpp`／`.h`。
 - 選択中NES＋FDS／追加生成NESの共通接続とAPU／FDS実装を含む`native/reference/tauri/native_genesis_nes.cpp`／`.h`。
+- 選択中／追加生成DX7の`native/reference/tauri/native_genesis_dx7.cpp`／`.h`と、`vendor/msfa/`の24共有ファイルおよび`native/reference/overrides/msfa/`の6ファイルからコピーして組み立てるMSFA。
 - `vendor/mame-okim6258/okim6258.cpp`原本へ既存の初期化対策を適用して`OUT_DIR/tetorica_sdk_okim6258.cpp`へ生成したデコーダー。
 - 共有 `native/src/ymfm_opn_provider.cpp`、`native/src/ymfm_opm_provider.cpp`、`native/src/ymfm_opl_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`、`ymfm_pcm.cpp`。
 
@@ -236,6 +249,11 @@ PSGのcpp／ヘッダーは既存のSDK ymfm／wasmディレクトリ監視で�
 Browser／npmのWASM配布とTauriの `dist/` は今回の取り込みで変更していない。
 Cargoは取り込み記録、SDKのymfmディレクトリ、wasmディレクトリ等を監視し、明示更新時に再ビルドする。
 YM2608のRhythm ROMはRustが従来の`native-ym2608/snapshot/web/`から読むため、同ディレクトリの監視も保持する。
+DX7はSDKから`OUT_DIR/tetorica_sdk_dx7_msfa/`へ13個のccと17個のheaderをコピーして組み立て、接続cppと合わせて既存archiveの14翻訳単位を維持する。
+引用includeのヘッダー解決を統一するため、全翻訳単位が同じprivateツリーを使う。SDK本体を編集せず、新しいPython／CMake依存も追加しない。
+Native Panicの修正だけは旧版と意図した差があり、事前確保済みnoteへの値代入でfeedback履歴を消す。通常note-on／release／kill、Rustの音色所有・lease・slot管理・予約、PCM・Mixer／FXは保持する。
+CargoはSDKのMSFA共有／overrideディレクトリと接続cpp／headerを監視し、実消費元のない旧native-dx7／ローカル接続のソース監視を外す。
+旧32ファイルのスナップショット、原本／修正版のハッシュとライセンスの同梱先、syncスクリプトは保持する。旧syncだけではSDKを更新しない。
 
 最初に読むファイルはTauriの [SDK取り込みガイド](../../w/tetorica-fm2612-playground-tauri/docs/native-sdk-ym2612.md)。
 配布ソースの再ビルドは [NATIVE-SOURCES.md](../../w/tetorica-fm2612-playground-tauri/NATIVE-SOURCES.md) を参照する。
@@ -667,6 +685,40 @@ gh run view 40148943609 --repo kyorohiro/tetorica-fm2612-playground-tauri --json
 gh run view 40168462256 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
 ```
 
+### DX7移行 — 2026-10-25、ローカル検証
+
+選択中／独立追加DX7の共通接続とMSFAを固定SDKへ切り替えた。接続cpp／headerとMSFA 30入力中29ファイルはbyte一致し、
+Native-only `synth_unit.cc`のPanicで16個の事前確保noteへ初期状態を値代入する点だけが異なる。
+SDKの374ファイル・版・取り込み記録、旧32件のsnapshot pin・ライセンスとBrowser／npmのWASMは変更していない。
+詳細は[native_sdk_dx7_adoption_01.md](native_sdk_dx7_adoption_01.md)。
+
+| 対象 | 固有Native入力数 | Nativeフレーム | 実WASM比較回数 | 比較フレーム |
+| --- | ---: | ---: | ---: | ---: |
+| 選択中DX7の既存再生比較 | 114 | 792,576 | 114 | 792,576 |
+| 独立追加DX7の既存比較 | 21 | 239,616 | 63 | 718,848 |
+| 32 algorithm × 3 rateのPanic／再発音 | 96 | 786,432 | 96 | 786,432 |
+| 合計 | 231 | 1,818,624 | 273 | 2,297,856 |
+
+既存135入力の旧／SDK stdoutはbyte一致。新しいPanic比較はSDKと実WASMが全96入力で差0で、
+旧版は79入力で再発音後だけに差があり、17入力は一致した。frame 1,403の再発音直前までは全入力が一致し、
+最大差は`0.0002746583195403218`。全273比較のSDK／実WASM最大差は0だった。
+追加側のblock分割3通りを固有Native入力へ加算せず、追加checker内の選択中再実行や既定経路の再確認・自己試験も集計へ加算していない。
+
+旧／SDKのTauri既存fixture自己試験が成功。SDKの強化fixtureはrate境界、不正slot、保護slot／release tail、16音確保、live edit／voice identity、即時Panic無音と新規音源一致96／96が成功。
+強化したPanicの新規音源一致判定は旧版で意図どおり失敗し、別に実行した旧版の制御試験は成功した。
+本体＋16 noteの確保量35,320バイト、17通りの部分生成失敗の回収、render／制御中allocation／free 0、LFO／filter／resampler独立性、単一slot killも確認した。
+private全状態やWASM内部状態を毎フレームdump比較したものではない。
+公開JS adapterは44.1／48 kHzで確認し、96 kHzは実WASM exportsへ同じ整数位相変換を適用した比較。公開APIの96 kHz対応を追加したという意味ではない。
+
+既定checker2本、inline fixture／out指定が成功し、不正12形式をコンパイル前に拒否。各fixtureのSDK32＋fixture側2の34入力のハッシュと、30組立入力の実読み込みを確認した。
+実Cargo生成物も30入力がSDKとbyte一致し、32ソース入力の監視・14 archive object・10 C ABI exportの各1回の定義を確認。旧ヘッダー混入や新しい動的ライブラリー指示はない。
+`npm test`はPython 22件・Node 31件成功、Rustは723成功・0失敗・4件ignored。TCP bindのため初めから制限外で実行し、sandbox内失敗はない。
+22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源と受入れ／16台制限も成功。両制限試験のStop後予約予算は0、両runnerはexit code 0・`deviceOpened: false`。
+直前の全5構成成功run `40168462256`は今回のDX7差分を含まない。今回はcommit／push、CI、sanitizer、実機聴音やUI操作・速度保証は未実施。
+比較・ソース監査は`/private/tmp/tetorica-sdk-dx7-adoption/`の`parity-summary.json`、`source-audit.json`、`self-tests.json`、`build-assembly-audit.json`。
+ホストログは`/private/tmp/tetorica-sdk-dx7-npm-test.log`と`/private/tmp/tetorica-sdk-dx7-cargo-test-unrestricted.log`。
+再生／混合レポートは`/private/tmp/tetorica-sdk-dx7-stability.json`と`/private/tmp/tetorica-sdk-dx7-extra-stability.json`。
+
 ### 再開手順
 
 まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
@@ -704,10 +756,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. Game Boy／NESの移行とローカル検証はcommit／push済みで、run `40168462256`の全5構成CIも成功。今回の結果記録と対応ソースZIPの再生成・照合も完了した。結果記録のcommit／pushは未実施。
+1. Game Boy／NESの移行とローカル検証、run `40168462256`の全5構成CIの結果記録はcommit済み。今回のDX7移行のローカル比較・ホスト全試験と文書、対応ソースZIPの生成・照合とハッシュ記録も完了した。DX7差分のcommit／pushと新しいCIは未実施。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
-3. 各成功CIの対象コミットを区別し、必要なOSのインストーラーで起動を確認する。今回のCIでも実機の聴音・UI操作は未確認。現在ステージ済みの差分はない。
-4. 次のSDK移行候補はDX7、その後にSNES／SPC。今回のCI確認ではこれらの移行には着手していない。Nuked YM2612の別variantも今回の範囲外。
+3. 各成功CIの対象コミットを区別し、必要なOSのインストーラーで起動を確認する。実機の聴音・UI操作は自動試験とは別の確認。現在ステージ済みの差分はない。
+4. DX7の次のSDK移行候補はSNES／SPC。今回SNES／SPC移行には着手していない。Nuked YM2612の別variantも今回の範囲外。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -782,8 +834,16 @@ SDK自体をリモートから自動取得する設計には戻さない。
   同ディレクトリの`local-final-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合し、
   `local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。
   製品コードと試験のコンパイル入力はCI対象から変更していない。
+- DX7移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+  `a0869853f65bce864ab7dec114a85e4ac4f58d4064054b14159028efb9d755a8`。
+  `/private/tmp/tetorica-sdk-dx7-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
+  `/private/tmp/tetorica-sdk-dx7-adoption/source-manifest-delta.json`で着手時からの変更がTauriの4ファイルだけと確認し、
+  同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
+  直前の成功CI `40168462256`にはないDX7移行を含むため、そのCIの入力と同一ではない。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
+- DX7移行の証拠は`/private/tmp/tetorica-sdk-dx7-adoption/`の`parity-summary.json`、`source-audit.json`、`self-tests.json`、`build-assembly-audit.json`。
+  通常再生比較とNative Panic修正の確認は分けて記録した。ホストログと再生／混合レポートは上記DX7ローカル検証節を参照する。
 - 検証ログ: `/private/tmp/tetorica-sdk-adoption-parity/`、`/private/tmp/tetorica-sdk-adoption-isolated.json`、
   `/private/tmp/tetorica-sdk-adoption-cargo-test-unrestricted.log`、`/private/tmp/tetorica-sdk-adoption-stability.json`、
   `/private/tmp/tetorica-sdk-adoption-extra-stability.json`。
