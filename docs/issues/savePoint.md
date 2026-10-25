@@ -15,7 +15,10 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 直前の成功CI run `40171879716`は今回のNuked移行を含まない。
 作業内容・最終pinと検証結果は[native_sdk_nuked_adoption_01.md](native_sdk_nuked_adoption_01.md)を参照する。
 対応ソースZIP全1,801ファイルとSDK379ファイルを含む22件の固定記録は照合済み。
-次はNuked移行を含む新しいTauriの5構成CIで確認する。
+本体`02b2e3ad...`とTauri`367fd7a...`へcommit／pushし、Nuked移行を含む
+[Tauri CI run 40175615215](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40175615215)は全5構成の検証・インストーラー生成が成功した。
+対象は`367fd7a851ffadd3a01c3cfb985972112156ca63`、attempt 1。SDKの修正版CI run `40175263453`もNative 5構成＋WASMの全6ジョブ成功。
+通常22音源IDと代替NukedのSDK参照が揃った。機種用補助処理・Rustの所有／予約・Mixer／FXはアプリ側に残る。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
@@ -820,6 +823,7 @@ SDK `0.1.1`・元コミット`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`の379フ
 SDKのソースZIPを独立展開した全24 CTest・18 WAV exampleとJavaScript参照10試験は成功。
 Tauriの`npm test`もPython 22件・Node 31件成功。ツール試験はSDK最終取り込み前の実行で、合成fixtureを使いreceiptに依存しない。
 2本の既定checkerは初回取り込み後のSDK入力から成功し、選択中12入力／追加8入力のハッシュと不正12形式の拒否を確認した。
+その後比較ツールにもSDKのLinux監査用shimを使い、記録対象は13／9入力になった。両既定checkerの同じ222／198ケース・自己試験も再実行して成功。再実行は合計420ケースへ加算しない。
 実Cargoの2 archive各1 objectはSDK接続cpp／コアCから生成された。10 raw C ABI・16独立C ABI・8 prefix済みexportは各1定義、非prefix定義0。
 6音源入力のSDK解決、実入力監視と旧ソース監視の除去、既存リンク順序も確認した。
 Rust全試験は723成功・0失敗・明示実行用4件ignored。MCPのローカルTCP bindのため初めから制限外で実行し、sandbox内の失敗はない。
@@ -833,8 +837,13 @@ Rust全試験は723成功・0失敗・明示実行用4件ignored。MCPのロー�
 最終ソースZIPを独立展開した全24 CTest・18 WAV exampleとJavaScript参照10試験は改めて成功し、検証scriptのexit codeは0だった。
 SDKの初回CI run `40174420834`はLinux 2構成で試験専用のallocation macroと標準ヘッダーのinclude順によりコンパイル失敗。
 SDKの監査用shimで標準ヘッダーを先に読む形へ修正済みで、製品音源・接続は変更していない。
-修正コミットのSDK CI run `40175263453`を開始した。このローカル記録時点では成否未確認。
-Tauriガイド確定後の対応ソースZIPと新しいTauri 5構成CIは後続で記録する。commit／pushとTauri CIはこのチェックポイントでは未実施。
+修正コミット`e4b7d7e...`のSDK CI run `40175263453`は全6ジョブ成功。Native 5構成それぞれで19ライブラリー・24 CTest・18 WAV exampleが成功し、診断ZIP 5個のdigestも照合した。
+移行を本体`02b2e3ad...`、Tauri`367fd7a...`へcommit／push後、両作業ツリーがcleanでremote mainと一致することを確認し、Tauri CI run `40175615215`を手動実行した。attempt 1、対象`367fd7a851ffadd3a01c3cfb985972112156ca63`で全5構成の検証・インストーラービルド／アップロードが成功。
+全構成でPython 22件・Node 31件成功。CargoはWindows 726成功／3 ignored、ほか4構成723成功／4 ignored。検証JSONでSDK379／22固定記録／ZIP1,801、22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源・受入れ／16台制限・Stop後予算0も成功。両runnerはexit code 0、`deviceOpened: false`。
+取得した検証ZIP 5個のGitHub digestと、計10アーティファクトのrun／commit一致・非空・有効期限内を確認した。ドラフトリリース添付は全5構成skipped。
+CI内のソースZIP SHAはWindows`013f72711887d4cc9cfa7b0901fce422f1ee2f54a164ea72be920b35470456b4`、ほか4構成`1a56f72f99db7f09e71c6bbc588d5430823bd9ae408780f5965cdfc2b295420c`。内容照合は全構成成功し、ハッシュ差の原因は断定しない。
+SDK CI証拠は`sdk-ci/summary.json`、Tauri証拠は`tauri-ci/final-ci-summary.json`ほか。後者のSHAは`df46e7fc4764bdb243f46a9e5970b193d87653dc0de8ec159d832640093c415b`。
+TauriのCI対象からの差分は結果記録ガイドだけ。本体比較ツールはSDK監査shimへ揃えて同じケースを再検証した。インストーラーの取得・起動、実機聴音・UI操作は別の確認で、新しいタグやreleaseは作成していない。
 証拠は`/private/tmp/tetorica-sdk-nuked-adoption/`。毎frameのprivate全状態・各OSでのWASM比較・実機聴音は別の確認。
 
 ### 再開手順
@@ -842,6 +851,10 @@ Tauriガイド確定後の対応ソースZIPと新しいTauri 5構成CIは後続
 Nuked移行のCI前チェックポイントでは、対応ソースZIP全1,801ファイルのSHA-256は
 `1a56f72f99db7f09e71c6bbc588d5430823bd9ae408780f5965cdfc2b295420c`。
 全22件の固定記録・SDK379ファイル・ZIPの照合結果は`/private/tmp/tetorica-sdk-nuked-adoption/sources.json`。
+CI結果記録後の最終ZIPも全1,801ファイルを照合し、SHA-256は
+`0413ecb4f5c9fe8f96a4b6a87ac46bd244a32c393af05e819363cbae9fc9c720`。
+CI入力との差はTauriガイド1ファイルのみで、結果は同ディレクトリの`local-final-sources.json`と`final-doc-source-audit.json`へ保存した。
+文書変更だけなので完了済みの製品試験は再実行していない。
 
 まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
 
@@ -878,7 +891,7 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. 通常22音源と代替NukedのSDK参照切替・ローカル比較・ホスト試験が完了。Nukedの最終pinはSDK `0.1.1`／379ファイル。対応ソースZIPを確定してNuked移行をcommit／pushし、新しいTauri 5構成CIを実行する。直前の成功run `40171879716`は今回のNuked移行を含まない。
+1. 通常22音源と代替NukedのSDK参照切替・ローカル比較・ホスト試験・5構成CIが完了。Nukedの最終pinはSDK `0.1.1`／379ファイル、Tauri成功CIはrun `40175615215`。次は利用するOSのインストーラーで起動・聴音を確認する。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 各成功CIの対象コミットを区別し、必要なOSのインストーラーで起動を確認する。実機の聴音・UI操作は自動試験とは別の確認。現在ステージ済みの差分はない。
 4. 主要22音源IDとNuked別variantのSDK参照が揃った。今回の最終pin・ホスト試験と後続CIはNuked作業記録で確認する。機種用の補助処理とRustの所有・予約・混合はアプリ側に残る。

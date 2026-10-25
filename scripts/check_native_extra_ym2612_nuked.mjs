@@ -109,11 +109,11 @@ try{
     if(sanitize){process.env.ASAN_OPTIONS='detect_leaks=0';process.env.UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1';}
     const symbols=['Reset','SetChipType','Clock','Write','SetTestPin','ReadTestPin','ReadIRQPin','Read'];
     execFileSync('clang',['-std=c11',...flags,...symbols.map(s=>`-DOPN2_${s}=tetorica_nuked_OPN2_${s}`),'-I'+include,'-c',path.join(include,'ym3438.c'),'-o',provider],{stdio:'pipe'});
-    const adapter=path.join(sdk,'native/reference/tauri/native_genesis_nuked.cpp'),fixtureSource=path.join(project,'src/native_genesis_nuked_ym2612_fixture.cpp');
+    const adapter=path.join(sdk,'native/reference/tauri/native_genesis_nuked.cpp'),auditShim=path.join(sdk,'native/tests/nuked_audit.cpp'),fixtureSource=path.join(project,'src/native_genesis_nuked_ym2612_fixture.cpp');
     // The fixture and SDK adapter resolve their quoted ABI headers separately.
-    const inputs=[fixtureSource,path.join(project,'src/native_genesis_ym2612.h'),adapter,path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(include,'ym3438.c'),path.join(include,'ym3438.h')];
+    const inputs=[fixtureSource,path.join(project,'src/native_genesis_ym2612.h'),auditShim,adapter,path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(include,'ym3438.c'),path.join(include,'ym3438.h')];
     report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
-    execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,'-I'+path.join(sdk,'wasm'),adapter,fixtureSource,provider,'-o',fixture],{stdio:'pipe'});}
+    execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,'-I'+path.join(sdk,'wasm'),auditShim,fixtureSource,provider,'-o',fixture],{stdio:'pipe'});}
   report.fixtureSha256=createHash('sha256').update(await fs.readFile(fixture)).digest('hex');
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){

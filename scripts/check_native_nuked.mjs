@@ -86,9 +86,11 @@ try{
   execFileSync('clang',['-std=c11',...flags,...symbols.map(s=>`-DOPN2_${s}=tetorica_nuked_OPN2_${s}`),'-I'+include,'-c',path.join(include,'ym3438.c'),'-o',provider],{stdio:'pipe'});
   // Machine mixing remains host-owned; the fixed SDK provides the prefixed
   // Nuked adapter, its included C wrapper/additional API, and one C provider.
-  const files=[path.join(project,'src/native_genesis_core.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_nuked.cpp'),path.join(project,'src/native_genesis_nuked_fixture.cpp'),
+  const adapter=path.join(sdk,'native/reference/tauri/native_genesis_nuked.cpp'),auditShim=path.join(sdk,'native/tests/nuked_audit.cpp');
+  // Parse libstdc++ stdlib forwards before the allocation-audit macros.
+  const files=[path.join(project,'src/native_genesis_core.cpp'),auditShim,path.join(project,'src/native_genesis_nuked_fixture.cpp'),
    path.join(sdk,'wasm/segapsg_wasm.cpp'),path.join(sdk,'vendor/ymfm/segapsg.cpp')];
-  const inputs=[...files,path.join(include,'ym3438.c'),path.join(include,'ym3438.h'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'vendor/ymfm/segapsg.h'),path.join(sdk,'vendor/ymfm/chip_state.h')];
+  const inputs=[...files,adapter,path.join(include,'ym3438.c'),path.join(include,'ym3438.h'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'vendor/ymfm/segapsg.h'),path.join(sdk,'vendor/ymfm/chip_state.h')];
   report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),
    sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
   execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_ISOLATED_FIXTURE','-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,

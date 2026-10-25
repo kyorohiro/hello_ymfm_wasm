@@ -68,6 +68,9 @@ SDKのソースZIPを独立した一時ディレクトリへ展開し、全24 CT
 `npm test`もPython 22件・Node 31件成功。合成fixtureを使うツール試験はSDK最終取り込み前に実行し、実際のreceiptに依存しない。
 2本の既定checkerも初回取り込み後のSDK入力からコンパイルして成功した。
 選択中12入力／独立追加8入力のSHA-256を記録し、inline fixture指定と不正12形式の拒否、入力fixtureの保持も確認した。
+SDKのLinux監査修正後、比較ツールも同じ`native/tests/nuked_audit.cpp`をコンパイルする形へ揃えた。
+adapterは同じ翻訳単位へincludeされ、最終の記録対象はshimを含む13／9入力になる。
+両既定checkerを再実行して同じ222／198ケースと自己試験が成功し、既存の420ケースへ重複加算しない。
 実Cargoの2 archiveは各1 object。DWARFのcompile unitはSDK接続cppとSDKコアCを指し、
 10個のraw C ABI・16個の独立追加C ABI・8個のprefix済みOPN2 exportは各1回だけ定義され、非prefix `OPN2_*`定義は0だった。
 独立したdependency preprocessは6個の音源入力をすべてSDK内へ解決し、実入力の監視・旧ソース監視の除去と既存のリンク順序も確認した。
@@ -95,6 +98,7 @@ node scripts/check_native_extra_ym2612_nuked.mjs
 
 証拠は`/private/tmp/tetorica-sdk-nuked-adoption/`の`source-audit.json`、`parity-summary.json`、
 `parity-source-audit.json`、`provider-symbol-audit.json`、`build-audit.json`、`host-summary.json`、`final-import-audit.json`。
+最終比較ツールの実依存13／9入力・SHAと従来結果の一致は`checker-shim-audit.json`、`selected-default-shim.json`、`extra-default-shim.json`。
 最終SDKの独立検証ログは同ディレクトリの`sdk-extracted-fixed.log`。
 ホストの実行ログとJSONは同ディレクトリの`cargo-test.log`、`npm-test.log`、`stability.json`、`extra-stability.json`。
 今回のCI、各OSのWASM比較、OS間PCM一致、sanitizer、実機聴音・UI操作とインストール後の起動は、このローカル比較とは別の確認。
@@ -107,5 +111,29 @@ Linuxの2構成でallocation監査用macroとlibstdc++の標準ヘッダーのin
 SDKの監査用shimで標準ヘッダーを先に読む形へ修正し、製品のNukedコア／接続は変更していない。
 Tauriの既存allocation fixture・Cargo全試験は成功しており、この失敗をTauriの音声コアの失敗とは扱わない。
 修正コミット`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`を対象に[SDK CI run 40175263453](https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40175263453)を開始した。
-このローカル記録時点ではSDK CIの成否を確認していない。新しいTauriの5構成CIも後続で実行して結果を追記する。
-このチェックポイントではcommit／pushとTauri CIは未実施。実機聴音や新しいタグ・アプリreleaseも行っていない。
+移行は本体`02b2e3ad1b72fb757319612cf8e1bf9ef168d5f9`、Tauri`367fd7a851ffadd3a01c3cfb985972112156ca63`へcommit／pushした。
+両作業ツリーがcleanでTauriのremote mainと一致することを確認し、
+[Tauri CI run 40175615215](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40175615215)を`main`へ手動実行した。
+attempt 1、対象は`367fd7a851ffadd3a01c3cfb985972112156ca63`。runは`completed`／`success`で終了した。
+実機聴音や新しいタグ・アプリreleaseは行っていない。
+
+修正版SDK CI `40175263453`はattempt 1で全6ジョブ成功。Native 5構成それぞれで19ライブラリー・24 CTest・18 WAV example・Python 51件・JS参照の検証が成功した。
+取得した診断ZIP 5個のGitHub digestを照合し、全5構成のSDK元ソースZIP SHA-256が`939fb035…76416b`と一致した。
+WASMジョブは通常ymfm YM2612のビルドと抽出ソース再ビルドの同期ABI検証が成功した。Nuked WASMの新規ビルドを確認したという意味ではない。
+4構成のGCC／Clang compiler inventoryで8シンボルprefix・C側だけの`-fwrapv`・試験用shimを確認。MSVCにはcompile_commandsがなく、ビルドログの全19ライブラリーと同時リンク試験を確認した。
+証拠は同ディレクトリの`sdk-ci/summary.json`、5診断ZIPと6ジョブログ。SDKは`e4b7d7e...`のまま変更していない。
+
+Tauri CIもWindows x64、Linux x64／ARM64、macOS Intel／ARM64の全5構成で検証とインストーラー生成・アップロードが成功した。
+各ジョブログでPython 22件・Node 31件、CargoはWindows 726成功／3 ignored、ほか4構成723成功／4 ignoredを確認した。
+全5構成のレポートでSDK379ファイル・22件の固定記録・対応ソースZIP1,801ファイル、22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源・受入れ／16台制限とStop後の予算回収が成功。両runnerはexit code 0、`deviceOpened: false`。
+計10アーティファクトのrun／commit一致・非空・有効期限内と、取得した検証ZIP 5個のGitHub digestを照合した。タグ用のドラフトリリース添付stepは全5構成skipped。
+CI内の対応ソースZIP SHA-256は、Windowsが`013f72711887d4cc9cfa7b0901fce422f1ee2f54a164ea72be920b35470456b4`、ほか4構成が`1a56f72f99db7f09e71c6bbc588d5430823bd9ae408780f5965cdfc2b295420c`。各CIで内容照合が成功し、ハッシュ差の原因は断定しない。
+証拠は`tauri-ci/final-ci-summary.json`、`inspection-summary.json`、`test-log-summary.json`、各run／job／artifact記録と検証ZIP。
+最終summaryのSHA-256は`df46e7fc4764bdb243f46a9e5970b193d87653dc0de8ec159d832640093c415b`。
+取得したのは検証レポートのみで、インストーラー／対応ソースZIP自体の取得・起動、各OSでのWASM比較・OS間PCM一致・実機聴音は未確認。
+CI対象からのTauri差分は結果記録のガイドだけ。本体の比較ツールには同じSDK監査shimを適用して再検証したが、Tauriの製品・試験入力は変えていない。
+
+結果記録後の最終対応ソースZIPも全1,801ファイルを照合した。SHA-256は
+`0413ecb4f5c9fe8f96a4b6a87ac46bd244a32c393af05e819363cbae9fc9c720`。
+CI入力manifestとの差は`docs/native-sdk-ym2612.md`の1ファイルだけ。`local-final-sources.json`と`final-doc-source-audit.json`へ保存した。
+完了済みの製品試験は文書変更後に再実行していない。
