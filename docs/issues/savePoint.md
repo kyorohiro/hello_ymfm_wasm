@@ -61,21 +61,26 @@ Genesis／Mega CD／32X系、Game Gear／Master Systemと追加PSGが、同じSD
 このPSG作業は本体`1da2fb00...`、Tauri`51dca52...`へユーザーがコミット済み。
 最新の作業はRF5C164の選択中／追加生成接続、共通decoderとraw C APIの固定SDKへの参照切り替え。
 双方の64 KiB所有RAM、追加接続の声別保持出力、Rustの転送payload・予約・寿命・予算管理を維持する。
-RF着手時は本体・Tauri・SDKともcleanだった。ローカル検証後、ユーザーが承認したPSG／RF両移行の5構成CIを実行する。
-ローカル検証後、TauriのRF変更を`4939ddc7f7125f47d969e29c975264eaa528d81c`へコミットした。
-本体checkerと記録も保存し、push後に両移行を含むCIを実行する。
+RF着手時は本体・Tauri・SDKともcleanだった。ローカル検証後、本体を`1d35f48a...`、
+Tauriを`4939ddc7...`へcommit／pushし、両作業ツリーがcleanでremote mainと一致することを確認した。
+ユーザーが承認したPSG／RF両移行の5構成CI
+[Build Desktop — run 40148943609](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40148943609)を`main`へ手動実行した。
+CIはattempt 1で`completed`／`success`となり、全5構成の検証とインストーラービルドが成功した。
+全5構成の検証JSON・取得ZIPのdigestと、計10アーティファクトのrun／commit一致も確認した。
+今回の結果記録は本体の作業記録2ファイルとTauriガイドだけ。コードは変更せず、ローカル試験も再実行していない。
+Tauriガイドは`66004f00...`へcommit／push済み。更新後の対応ソースZIPも再生成・照合し、CI入力との差はガイド1ファイルだけだった。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
 `w/`以下はそれぞれ独立したGitリポジトリなので、本体だけのcommitで保存できたと判断しない。
 
-| リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
+| リポジトリ | ローカルパス | 再開の基準コミット（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `1da2fb00abecd32bccd0b75b4fc4d965e36ee900` (PSG移行のcheckerと記録) |
+| 本体 | `hello_ymfm/` | `1d35f48a16dbc5b0264755f82ec3e97242e34e8a` (RF移行のcheckerと記録。この文書を含む後続の結果記録commitはgit logで確認) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `4939ddc7f7125f47d969e29c975264eaa528d81c` (RF移行。PSGも含む次のCI対象。最新の成功CI対象は842245dd) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `66004f00e66e7dba2394777cd281f7feeec46da0` (結果ガイドをcommit／push済み。全5構成成功のCI対象は親の`4939ddc7...`) |
 
-本体には次のメモがある。この保存時点のHEAD後の差分は、RF移行のcheckerと記録。
+本体には次のメモがある。RF実装後の結果記録は、CI結果を記録する本節とRF作業記録のみ。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -422,7 +427,8 @@ WASM比較は96ケース・546,816フレーム。既定2コンパイル経路の
 追加fixtureのfull-RAM転送／保持／範囲拒否・9通りのrate／clock分離・声別取り消し・Stop／reset・callback allocation／freeゼロも成功。
 Rust全試験は723成功・0失敗・4件ignored。22 mode・604,032フレーム・88 Run／Stopと、3混合構成・7単独音源・受入れ／16台制限・Stop後の予算回収も成功した。
 両runnerはexit code 0／deviceOpened false。今回もmacOS ARM64／Clangで、sanitizerは実行していない。
-この後、PSG移行と合わせた5構成CIを実行する。先行run `40143851548`は両移行を含まない。
+ローカル検証後、下記run `40148943609`でPSG移行と合わせた5構成CIを実行し、検証とビルドが全5構成で成功した。
+先行run `40143851548`は両移行を含まない。
 
 ### YM2612移行のGitHub Actions — 2026-10-25
 
@@ -572,6 +578,27 @@ CI入力とのマニフェスト差分はガイドとSNES試験の2ファイル�
 gh run view 40143851548 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
 ```
 
+### Sega PSG／RF5C164移行後のGitHub Actions — 2026-10-25、全5構成成功
+
+- [Build Desktop — run 40148943609](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40148943609)を`main`へ`workflow_dispatch`で手動実行した。
+- 対象は`4939ddc7f7125f47d969e29c975264eaa528d81c`。Sega PSGとRF5C164のSDK移行を含む。
+- attempt 1は`completed`／`success`。全5ジョブの検証とインストーラービルドが成功した。
+- 本体`1d35f48a16dbc5b0264755f82ec3e97242e34e8a`とTauriの対象HEADをpushし、remote mainとの一致と両作業ツリーがcleanであることを確認してから開始した。
+- 全5構成の検証JSONと検証ZIPのdigest照合が成功。macOS ARM64／x86_64はDMG、Windows x86_64はNSIS、Linux ARM64／x86_64はDEB／AppImageのビルドも成功した。
+- 各環境の`sources.json`でSDK374ファイルを含む22件の固定記録とソースZIP1,796ファイル、`stability.json`で22 mode・604,032フレーム・88 Run／Stopが成功。
+- `extra-stability.json`では3混合構成・7単独音源、受入れ／16台制限とStop後の予約予算回収が成功。両runnerはexit code 0、`deviceOpened: false`。
+- 最初のSSH公開鍵認証ではpushに失敗したが、コマンド単位のgh HTTPS認証で成功した。remoteやGit設定は変更していない。
+- アプリ版は`0.90.1`のまま。タグを作らない手動実行で、新しいドラフトリリースや一般公開は行わない。
+- 確認用レポートの取得先は`/private/tmp/tetorica-psg-rf-ci-40148943609/`。
+- `inspection-summary.json`は全5構成がpassedで、不足reportは0。CIの対応ソースZIPはmacOS／Linuxが`e1433b21...`、Windowsが`cac895015a0a3737fcb5116adf214c24b0ee7722d18938a4eae3c296592fe48a`で、各checkout／マニフェストとの照合は成功。差の原因は断定していない。
+- 最終根拠は`final-ci-summary.json`、`jobs-audit.json`、`artifact-metadata.json`。検証レポート5件とインストーラー5件の計10アーティファクトは対象run／commitと一致し、すべて有効期限内・サイズ0より大きかった。全5ジョブのドラフトリリース添付stepはskipped。
+- この結果記録は本体の作業記録2ファイルとTauriガイドだけ。コードは変更せず、完了したローカル試験は再実行していない。ガイド確定後の対応ソースZIPも別に再生成・照合した。Tauriガイドは`66004f00e66e7dba2394777cd281f7feeec46da0`へcommit／push済み。
+- インストーラーや対応ソースZIPのダウンロード・起動・独立照合は未確認。OS間のPCM bit一致や各OSでのWASM比較、実機の音声・ノイズ・UI操作・インストール後の起動も別の確認。
+
+```sh
+gh run view 40148943609 --repo kyorohiro/tetorica-fm2612-playground-tauri --json status,conclusion,headSha,jobs
+```
+
 ### 再開手順
 
 まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
@@ -609,10 +636,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. RF移行のローカル検証を終え、commit／push後に承認済みのPSG／RFを含む5構成CIを実行する。
+1. PSG／RF移行と全5構成CIの確認は完了。結果ガイドを含む対応ソースZIPも照合済みで、CI入力との差分はガイドだけ。Tauriの結果ガイドは`66004f00...`へcommit／push済み、本体の結果記録はこの文書を含むコミットで確認する。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
-3. 最初の失敗CIと修正版の全5構成成功を区別し、必要なOSのインストーラーで起動を確認する。SNES試験修正はcommit／push済み。本体の成功結果も29b9b885にコミット済みで、Tauriの同結果はステージ済み。
-4. PSG／RFの5構成CIが完了したら次のSDK取り込み対象を選ぶ。今回のCIと実機での聴感確認は区別する。
+3. 先行する失敗CIと修正版の全5構成成功、今回のPSG／RF CIを区別し、必要なOSのインストーラーで起動を確認する。前回CI結果のTauriガイドはPSG移行とともにcommit済みで、現在ステージ済みの差分はない。
+4. 次のSDK取り込み対象を選ぶ。今回のCIと実機での聴感確認は区別する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -631,10 +658,15 @@ SDK自体をリモートから自動取得する設計には戻さない。
   PSG移行直後の旧ZIPは全1,796ファイル、SHA-256は
   `c718713666283b34c8aa79ecdbf03d4f3760810877ad92cb44c43d21397cf875`。
   `/private/tmp/tetorica-sdk-segapsg-sources.json`でSDK374ファイルを含む22件の固定記録とZIPを照合した。
-  最新ZIPは今回のRF移行と最終文書を含む全1,796ファイル、SHA-256は
+  PSG／RFのCI対象コミット時点のローカルZIPは全1,796ファイル、SHA-256は
   `e1433b213fc340762f0578944e8b5797fcff7af26af6ad308db4febb73db353e`。
   `/private/tmp/tetorica-sdk-rf5c164-sources.json`でSDK374ファイルを含む22件の固定記録とZIPを照合した。
+  最初の照合で固定対象`native-megacd/README.md`への追記が検出されたため、そのファイルだけHEAD原本へ復元して再生成した。`PINNED`を変更した回避はしていない。
   PSG／RFのビルド参照切替も含むため、先行する成功CIの入力と同一ではない。
+  今回のCI結果をガイドへ追記した後のローカルZIPも全1,796ファイル、SHA-256は
+  `77c203bb0dc928ba7da75cdf0461525c9b531a438e8eaf8398eb6826fb0260e8`。
+  `/private/tmp/tetorica-psg-rf-ci-40148943609/local-final-sources.json`で全照合成功、
+  同ディレクトリの`local-final-source-delta.json`でCI入力との差分がガイド1ファイルのみと確認した。
   OPL接続移行直後の旧ZIPは`c2d20e9b...`で、今回のAY移行を含まない。
   前回CIの結果をガイドへ反映した直後の旧ZIPは`85850ce5...`で、今回のOPL接続移行を含まない。
   前回CI対象ZIPは`2829e9f9...`（macOS／Linux）。そのCI後の文書更新だけを行った時点では差分はガイド1ファイルだったが、最新ZIPには今回の接続参照・ビルド・文書の変更も入る。
@@ -675,6 +707,7 @@ SDK自体をリモートから自動取得する設計には戻さない。
   RF移行の最新検証は`/private/tmp/tetorica-sdk-rf5c164-adoption/summary.json`、
   `/private/tmp/tetorica-sdk-rf5c164-cargo-test.log`、`/private/tmp/tetorica-sdk-rf5c164-stability.json`、
   `/private/tmp/tetorica-sdk-rf5c164-extra-stability.json`、`/private/tmp/tetorica-sdk-rf5c164-sources.json`。
+  PSG／RFを含む全5構成成功CIは`/private/tmp/tetorica-psg-rf-ci-40148943609/`で確認する。
   PSG移行の最新検証は`/private/tmp/tetorica-sdk-segapsg-adoption/summary.json`、
   `/private/tmp/tetorica-sdk-segapsg-cargo-test.log`、`/private/tmp/tetorica-sdk-segapsg-stability.json`、
   `/private/tmp/tetorica-sdk-segapsg-extra-stability.json`。
@@ -687,6 +720,7 @@ SDK自体をリモートから自動取得する設計には戻さない。
 ソースと由来の正本は各Gitコミット、Tauriの同梱SDK／取り込み記録、上記の手順書。
 過去の作業メモにある「未コミット」は当時の状態。TauriのYM2612移行は`9ef583e...`、YM2203移行は`16610b0e...`、YM2608移行は`53ab3d27...`、YM2610／YM2610B移行は`5280f83a...`にコミット済み。
 YM2151移行もTauriの`e4d68b27...`、本体の`f0e00dda...`、OKIM6258移行はTauriの`250489fd...`、本体の`fed03f7a...`、YM2413移行はTauriの`634e56f4...`、本体の`6c0b5770...`にコミット済み。前回CI記録とOPL接続移行も、本体の`4137e903...`、Tauriの`4451195...`にコミット済み。Tauriの前回CIガイド更新は`a8edd891...`。今回のAY移行は本体の`ce2ad308...`、Tauriの`276e744e...`にcommit／push済み。その後の追加SNES試験修正とCI結果の文書更新も、本体の`a278e1d5...`、Tauriの`842245dd...`にcommit／push済み。
+Sega PSG移行は本体`1da2fb00...`／Tauri`51dca52...`、RF5C164移行は本体`1d35f48a...`／Tauri`4939ddc7...`へcommit／push済み。全5構成成功のCI結果ガイドはTauri`66004f00...`へcommit／push済み。本体の最終結果記録は本節とRF作業記録のみで、そのコミットはこの文書を含むgit logで確認する。
 
 ## 旧記録 — 2026-08-24以降の作業メモ
 
