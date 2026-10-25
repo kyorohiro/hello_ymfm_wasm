@@ -1,6 +1,6 @@
-# Building YM2612 WASM from the fixed SDK
+# Building YM2612 and YM2203 WASM from the fixed SDK
 
-The normal ymfm YM2612 build uses the complete local SDK source release at
+The normal ymfm YM2612 and YM2203 builds use the complete local SDK source release at
 `third_party/tetorica-soundchip-native/`. A fresh checkout contains the source,
 build recipes, provenance and component licenses. No SDK checkout, submodule,
 download or synchronized edit of another repository is required.
@@ -12,20 +12,25 @@ Install Emscripten and Python 3, then run:
 ```sh
 python3 scripts/import_soundchip_sdk.py --check
 sh scripts/build_ym2612_wasm.sh
+sh scripts/build_ym2203_wasm.sh
 ```
 
-The build verifies the snapshot before invoking the SDK's original YM2612
-recipe. It produces `docs/generated/ym2612_wasm.js` and
-`docs/generated/ym2612_wasm.wasm`. With Node.js available, the SDK also writes
+Each build verifies the snapshot before invoking the SDK's original chip
+recipe. It produces the corresponding `docs/generated/ym2612_wasm.js` /
+`ym2612_wasm.wasm` or `ym2203_wasm.js` / `ym2203_wasm.wasm` pair.
+The YM2203 recipe also retains its generated-glue whitespace cleanup using Perl.
+With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
-output hashes. These are build records; consumers still load the same JS/WASM
-pair through the existing `Ym2612` API.
+output hashes. Building one chip preserves the other chip's existing record.
+These are build records; consumers still load the same JS/WASM pairs through
+the existing `Ym2612` and `Ym2203` APIs.
 
 An optional output directory is resolved relative to the caller's working
 directory. The build script itself can be invoked from outside the checkout:
 
 ```sh
 sh /path/to/checkout/scripts/build_ym2612_wasm.sh ./ym2612-output
+sh /path/to/checkout/scripts/build_ym2203_wasm.sh ./ym2203-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipe retains
@@ -38,7 +43,7 @@ The synchronous `read()` and `generateStereo()` APIs are unchanged.
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; the YM2612 wrapper and ymfm inputs retain BSD-3-Clause.
+and `vendor/` notices; the YM2612/YM2203 wrappers and ymfm inputs retain BSD-3-Clause.
 
 Treat the imported directory as immutable. To update it, obtain a local SDK
 source-release ZIP and explicitly import its expected hash and revision:
@@ -64,15 +69,21 @@ node scripts/check_ym2612_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-build \
   --sdk-dir /path/to/sdk-build \
   --out /tmp/ym2612-comparison.json
+node scripts/check_ym2203_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-ym2203-build \
+  --sdk-dir /path/to/sdk-ym2203-build \
+  --out /tmp/ym2203-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
-recording compiler. The Node checker compares actual WASM PCM, internal
-envelopes, read/status/IRQ, reset and state restoration, including multiple
-clocks and irregular render blocks. It opens no audio device. Binary hashes
+recording compiler. The Node checkers compare actual WASM PCM,
+read/status/IRQ, reset and state restoration, including multiple clocks and
+irregular render blocks. YM2612 also checks internal envelopes; YM2203 checks
+FM/SSG, prescalers, source/channel mutes and engine resampling.
+They open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-Only normal YM2612 has switched to this build source. Other chip recipes and
+Normal YM2612 and YM2203 have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.

@@ -22,6 +22,9 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 本体の通常YM2612 WASMビルドも、その後同じ固定SDKソースへの切り替えを完了した。
 同梱379ファイルをoffline検証し、SDKのWASM用レシピで既存APIを維持して生成する。
 実施内容と検証は[YM2612 WASMのSDK移行](wasm_sdk_ym2612_adoption_01.md)を参照する。
+続いてYM2203 WASMも同じ固定SDKへ切り替えた。
+旧レシピ再ビルド／配布済みWASMとの比較各432ケースで差0、Browser・npmも検証済み。
+今回の詳細は[YM2203 WASMのSDK移行](wasm_sdk_ym2203_adoption_01.md)。次はYM2608への展開を判断する。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -924,8 +927,22 @@ Chromium／WebKitの実Workletと隔離したnpm配布物・型も検証済み�
 SDKとコンパイラー・入力／出力hashは[移行記録](wasm_sdk_ym2612_adoption_01.md)とそのJSON、
 `docs/generated/build-info.json`に記録した。
 
-次はYM2203等のWASMへ同じ手順を展開するかを判断する。ほかの26 artifactの一括移行、
-JS adapterのパッケージ分離・公開API再設計、高速レジスタ演奏は今回扱っていない。
+この節はYM2612移行時の記録。続けて実施したYM2203移行は次の節に記載する。
+JS adapterのパッケージ分離・公開API再設計、高速レジスタ演奏は扱っていない。
+
+### 完了した作業 — YM2203 WASMの固定SDK参照
+
+`scripts/build_ym2203_wasm.sh`も同梱SDK `0.1.1`のWASM用レシピを使う。
+固定SDK原本379ファイルと取り込み記録は変更せず、必須入力の検査とビルド経路の試験を拡張した。
+通常出力先での実ビルドが比較用SDK出力とbyte一致し、既存YM2612の生成記録・出力も維持した。
+
+旧レシピ再ビルド／配布済みWASMとSDKの2比較は、各432ケース・9,770,400出力ステレオフレームで差0。
+FM／SSG、プリスケーラー、timer／IRQ、mute、状態復元、既存Engineのリサンプリングを含む。
+Python23件、既存OPN／YM2203試験34件、Chromium／WebKit計4経路、隔離npm配布物と型も成功。
+校正記録の再測定は不要で、Mixer値・公開API・モノラル左右同値の出力は維持した。
+詳細と入力／出力hashは[YM2203移行記録](wasm_sdk_ym2203_adoption_01.md)とそのJSONを参照する。
+
+次はYM2608 WASMへの同じ手順の展開を判断する。残り25 artifactは今回一括移行していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
