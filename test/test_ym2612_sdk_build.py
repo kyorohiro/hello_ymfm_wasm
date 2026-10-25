@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
-ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b')
+ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -44,6 +44,12 @@ YM2610B_EXPORTS = [
     '_ym2610b_generate', '_ym2610b_save_state', '_ym2610b_load_state',
     '_malloc', '_free',
 ]
+YM2151_EXPORTS = [
+    '_ym2151_create', '_ym2164_create', '_ym2151_destroy', '_ym2151_reset',
+    '_ym2151_write', '_ym2151_read', '_ym2151_read_status', '_ym2151_get_irq',
+    '_ym2151_sample_rate', '_ym2151_generate', '_ym2151_set_mute_mask',
+    '_ym2151_save_state', '_ym2151_load_state', '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -59,6 +65,9 @@ def sha256(data):
 class SdkBuildRouteMixin:
     runtime_methods = ['cwrap', 'HEAPF32']
     trim_glue = False
+    assertions = True
+    vendor_sources = YMFM_SOURCES
+    fm_header = 'vendor/ymfm/ymfm_opn.h'
 
     @property
     def build_script(self):
@@ -66,7 +75,7 @@ class SdkBuildRouteMixin:
 
     @property
     def sources(self):
-        return ['wasm/' + self.artifact + '_wasm.cpp', *YMFM_SOURCES]
+        return ['wasm/' + self.artifact + '_wasm.cpp', *self.vendor_sources]
 
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='tetorica sdk build ')
@@ -148,10 +157,12 @@ else:
                          ['-Ivendor/ymfm'])
         for name in self.sources:
             self.assertTrue((self.sdk / name).is_file())
-        for flag in ('-std=c++14', '-O2', '-sASSERTIONS=1', '-sMODULARIZE=1',
+        for flag in ('-std=c++14', '-O2', '-sMODULARIZE=1',
                      '-sEXPORT_ES6=1', '-sENVIRONMENT=web,worker,node,shell',
                      '-sALLOW_MEMORY_GROWTH=1', '-sEXPORT_ALL=1'):
             self.assertIn(flag, arguments)
+        self.assertEqual([value for value in arguments if value.startswith('-sASSERTIONS=')],
+                         ['-sASSERTIONS=1'] if self.assertions else [])
         for flag, expected in (('-sEXPORTED_FUNCTIONS=', self.exports),
                                ('-sEXPORTED_RUNTIME_METHODS=', self.runtime_methods),
                                ('-sINCOMING_MODULE_JS_API=', ['wasmBinary'])):
@@ -183,7 +194,7 @@ else:
         self.assertEqual([entry['path'] for entry in artifact['sourceFiles']], expected_inputs)
         for essential in [*self.sources, 'wasm/ymfm_wasm_interface.h',
                           'vendor/ymfm/chip_state.h', 'vendor/ymfm/ymfm_fm.ipp',
-                          'vendor/ymfm/ymfm_opn.h', 'scripts/build-wasm.sh',
+                          self.fm_header, 'scripts/build-wasm.sh',
                           self.build_script.as_posix(), 'scripts/record_wasm_build.mjs']:
             self.assertIn(essential, expected_inputs)
         for entry in artifact['sourceFiles']:
@@ -218,7 +229,7 @@ else:
         self.assertEqual(len(self.calls()), 4)
 
     def test_tampered_sdk_is_rejected_before_compiler_or_output_creation(self):
-        for name in ('vendor/ymfm/ymfm_opn.h', 'scripts/record_wasm_build.mjs',
+        for name in (self.fm_header, 'scripts/record_wasm_build.mjs',
                      'wasm/' + self.artifact + '_wasm.cpp', self.build_script.as_posix()):
             with self.subTest(name=name):
                 path = self.sdk / name
@@ -290,6 +301,18 @@ class Ym2610bSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
 
     def test_shared_output_preserves_all_three_existing_build_records(self):
         self.assert_shared_output_preserves(['ym2612', 'ym2203', 'ym2608'])
+
+
+class Ym2151SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ym2151'
+    exports = YM2151_EXPORTS
+    trim_glue = True
+    assertions = False
+    vendor_sources = ['vendor/ymfm/ymfm_opm.cpp']
+    fm_header = 'vendor/ymfm/ymfm_opm.h'
+
+    def test_shared_output_preserves_all_four_existing_build_records(self):
+        self.assert_shared_output_preserves(['ym2612', 'ym2203', 'ym2608', 'ym2610b'])
 
 
 if __name__ == '__main__':

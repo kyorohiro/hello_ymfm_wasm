@@ -3,23 +3,13 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
 OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
 
-em++ -std=c++14 -O2 \
-  -Isrc \
-  wasm/ym2151_wasm.cpp \
-  src/ymfm_opm.cpp \
-  -sMODULARIZE=1 \
-  -sEXPORT_ES6=1 \
-  -sINCOMING_MODULE_JS_API='["wasmBinary"]' \
-  -sENVIRONMENT=web,worker,node,shell \
-  -sALLOW_MEMORY_GROWTH=1 \
-  -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym2151_create","_ym2164_create","_ym2151_destroy","_ym2151_reset","_ym2151_write","_ym2151_read","_ym2151_read_status","_ym2151_get_irq","_ym2151_sample_rate","_ym2151_generate","_ym2151_set_mute_mask","_ym2151_save_state","_ym2151_load_state","_malloc","_free"]' \
-  -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' \
-  -o "$OUT_DIR/ym2151_wasm.js"
-
-# Keep generated glue free of whitespace-only diff noise.
-perl -pi -e 's/[ \t]+$//' "$OUT_DIR/ym2151_wasm.js"
+# Keep the existing OPM/OPP register, state and synchronous PCM ABI.
+# The immutable recipe also records compiler/input/output hashes.
+exec sh "$SDK_DIR/scripts/build-wasm.sh" ym2151 "$OUT_DIR"

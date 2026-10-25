@@ -31,6 +31,9 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 続くYM2610／YM2610Bの共有WASMも同じ固定SDKへ切り替えた。
 通常OPN系5種類／4 artifactのWASMビルドが同梱SDKを使う。Mixer値・公開APIは維持する。
 詳細は[YM2610／YM2610B WASMのSDK移行](wasm_sdk_ym2610b_adoption_01.md)を参照。
+続くYM2151／YM2164の共有WASMも同じ固定SDKへ切り替えた。
+既存8CH・LFO／noise・timer／状態APIとMixer値を維持する。
+詳細は[YM2151／YM2164 WASMのSDK移行](wasm_sdk_ym2151_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -980,7 +983,24 @@ Python31件、既存OPN／YM2610試験40件、両Browser計8経路、隔離npm�
 詳細と最終比較結果・hashは[YM2610／YM2610B移行記録](wasm_sdk_ym2610b_adoption_01.md)とそのJSONを参照する。
 
 これで通常OPN系5種類／4 artifactのWASMビルドが固定SDK参照になった。
-次はYM2151用WASMへの展開が候補。残り23 artifactは今回一括移行していない。
+この節はYM2610／YM2610B移行時の記録。続くYM2151／YM2164移行は次の節に記載する。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — YM2151／YM2164 WASMの固定SDK参照
+
+`scripts/build_ym2151_wasm.sh`も同梱SDK `0.1.1`の共有WASMレシピを使う。
+固定379ファイルと取り込み記録は変更せず、OPM／OPPのvariant選択と既存ABI・ビルド条件を維持する。
+通常出力と比較用SDK出力はbyte一致し、先行4音源の生成記録・出力も保持した。
+
+旧再ビルド／配布済み版との各1,408比較・17,640,320出力ステレオフレームで差0。
+重点32設定でown／cross／resetを各64回確認し、LFO4波形・noise全32periodとTimer BのOPP倍周期も検証した。
+Python35件、既存YM2151／Synth／state／Playground・MSX複合試験53件、両Browser計4経路と音色／Keyboard UIが成功。
+隔離npm配布物・型・Analyzer ZIPも検証済み。
+影響する校正hash参照はなく、再測定・Mixer値・公開APIの変更は不要だった。
+詳細と最終比較結果・hashは[YM2151／YM2164移行記録](wasm_sdk_ym2151_adoption_01.md)とそのJSONを参照する。
+
+これで通常OPN用4 artifactとOPM／OPP用1 artifactのWASMビルドが固定SDK参照になった。
+次はX68000のADPCM用OKIM6258 WASMへの展開が候補。残り22 artifactは今回一括移行していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
