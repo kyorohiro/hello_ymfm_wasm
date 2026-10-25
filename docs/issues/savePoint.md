@@ -41,7 +41,7 @@ DOS PC／MSX Audioと追加生成のOPL系4音源の接続も固定SDKへ切り�
 共有providerは変更せず、選択中／追加生成cppとY8950メモリーhelperの参照先をSDKへ移した。
 Y8950の最大2 MiBの可変RAMページの所有・COW・予算・回収、RF5C164の接続とホスト処理はアプリ側に保持する。
 このOPL作業と前回CIの記録は、本体の`4137e903...`、Tauriの`4451195...`へユーザーがコミット済み。
-最新の実装はAY-3-8910の共有コアと追加生成用接続の固定SDKへの参照切り替え。
+AY-3-8910の共有コアと追加生成用接続も固定SDKへ参照を切り替えた。
 選択中MSX／MSX Audioの機種用接続とAYレート変換、Rustの予約・owner・混合は保持する。
 AY着手時は本体・Tauri・SDKともcleanだった。その後ユーザーが本体を`ce2ad308...`、Tauriを`276e744e...`としてcommit／pushした。
 両作業ツリーがcleanであることを確認し、ユーザーの指示でOPL接続移行と今回のAY差分を含む
@@ -54,7 +54,13 @@ CIは`completed`／`failure`で終了し、macOS ARM64・Windows・Linux 2構成
 修正版CIは`completed`／`success`で終了し、macOS x86_64を含む全5構成の検証とインストーラービルドが成功した。
 全5構成の検証JSONと取得ZIPのdigest照合も成功し、計10アーティファクトの存在を確認した。
 先行するrun `40137093552`の成功と、後続のOPL接続／AY移行のローカル検証・今回のCI結果は区別する。
-現在の差分は本体の作業記録2ファイルとTauriガイドだけ。新しいCI開始後にコードは変更せず、ローカル試験も再実行していない。
+修正版CIの結果は本体で`29b9b885...`にコミット済み。Tauriガイドの同結果はステージ済みだった。
+最新の作業はSega PSGの共通コアとraw C APIを固定SDKへ参照切り替えする作業。
+Genesis／Mega CD／32X系、Game Gear／Master Systemと追加PSGが、同じSDKコアを一度だけコンパイルして使う。
+機種用接続、NativePsgCore、GenesisのDC／gain／混合・Rustの制御は維持する。
+着手時の本体とSDKはclean、Tauriには前回CIガイドのステージ済み差分だけがあった。
+このステージ済み内容とindexを保持し、今回の変更は作業ツリーへ追加している。
+今回の実装・checker・文書は未コミットで、PSG移行を含む新しい5構成CIは未実行。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
@@ -62,11 +68,11 @@ CIは`completed`／`failure`で終了し、macOS ARM64・Windows・Linux 2構成
 
 | リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `a278e1d565d0ef345bcdf1532763480cd156614d` (最初のCI結果とローカル修正の記録。新CI開始前はclean) |
+| 本体 | `hello_ymfm/` | `29b9b8855c25440d7c8b7867e657797d3a83bd4b` (修正版CI全5構成成功の記録) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `842245ddf060fedaeb42e6b01d30175b488816b7` (SNES試験修正・前回CIガイドを含む新CI対象。開始前はclean) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `842245ddf060fedaeb42e6b01d30175b488816b7` (最新の成功CI対象。結果ガイドはステージ済み、今回のPSG移行は作業ツリー差分) |
 
-本体には次のメモがある。この保存時点のHEAD後の差分は、CI結果を記録する本節とAY作業記録のみ。
+本体には次のメモがある。この保存時点のHEAD後の差分は、PSG移行のcheckerと記録。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -77,6 +83,7 @@ CIは`completed`／`failure`で終了し、macOS ARM64・Windows・Linux 2構成
 - [native_sdk_ym2413_adoption_01.md](native_sdk_ym2413_adoption_01.md)：YM2413／共有OPL provider移行と先行する5構成CI。
 - [native_sdk_opl_adoption_01.md](native_sdk_opl_adoption_01.md)：OPL系4音源の接続移行とRAM付きY8950比較。
 - [native_sdk_ay8910_adoption_01.md](native_sdk_ay8910_adoption_01.md)：最新の共有AYコアと独立接続の移行、OPL接続／AY移行後のCIと追加SNES試験のローカル修正。
+- [native_sdk_segapsg_adoption_01.md](native_sdk_segapsg_adoption_01.md)：最新のSega PSG共通コア／raw C APIの移行。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -121,6 +128,7 @@ SDK同梱先を直接編集せず、更新時だけTauriの `scripts/import_soun
 Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri/build.rs) は次をSDKからコンパイルする。
 
 - Genesis主音源の `wasm/ym2612_wasm.cpp`。ファイル名にwasmを含むが、ここではNative C++として使う。
+- 共通PSGの `wasm/segapsg_wasm.cpp` と `vendor/ymfm/segapsg.cpp`／`.h`、引用する`chip_state.h`。
 - 追加生成YM2612の `native/reference/tauri/native_genesis_ym2612.cpp`。
 - PC-98／追加生成YM2203の `native/reference/tauri/native_genesis_ym2203.cpp`。
 - PC-98／追加生成YM2608の `native/reference/tauri/native_genesis_ym2608.cpp`。
@@ -137,7 +145,9 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 共有providerは従来のarchive位置で一度だけコンパイルする。
 上記のOPN接続は共通providerを使い、OPLL／OPL側も共通ADPCMを参照する。
 共有OPL provider／PCMは従来の`tetorica_native_master_system` archive内で一度だけコンパイルする。
-選択中Master System／MSXの機種用接続・NativeOpllCore、PSGと選択中AYのレート変換はアプリ側に残す。AYコアはSDKを共有する。
+選択中Master System／MSXの機種用接続・NativeOpllCoreと選択中AYのレート変換はアプリ側に残す。
+PSGのNativePsgCoreもアプリ側に残し、共通PSGコアとraw C APIはSDKを一度だけコンパイルする。
+Game GearはSDKヘッダーを優先し、Master Systemも既存のSDK優先includeで同じヘッダーを使う。AYコアもSDKを共有する。
 DOS PC／Y8950の選択中・追加生成接続とメモリーhelperもSDKを使用する。メモリーhelperはページを借用し、RAM本体の所有権をSDKへ移す変更ではない。
 同じarchive内の追加RF5C164接続はアプリ側に残す。OPLのcpp／header／メモリーhelperをSDK側で監視し、実消費元のない旧native-oplディレクトリの監視は外した。
 追加生成YM2413はSDKの独立接続を使用する。独立接続はNativeOpllCoreを流用する構造ではない。
@@ -156,6 +166,8 @@ CargoはSDKのmame-okim6258ディレクトリと追加生成OKI接続を監視�
 他音源の接続全体までSDKへ移したわけではない。重複providerを追加したり、旧スナップショットをまとめて削除したりしない。
 
 Genesisのgain／DC除去／PSG混合、Rustの予約・owner・回収・予算、CPAL、Mixer、FX／liveFx、録音、WebView／JS APIはアプリ側。
+PSGのcpp／ヘッダーは既存のSDK ymfm／wasmディレクトリ監視で覆う。
+旧native-genesisにはFX／noise等が参照する共通ヘッダーもあるためディレクトリ監視を維持し、原典やsyncスクリプトも保持する。
 Browser／npmのWASM配布とTauriの `dist/` は今回の取り込みで変更していない。
 Cargoは取り込み記録、SDKのymfmディレクトリ、wasmディレクトリ等を監視し、明示更新時に再ビルドする。
 YM2608のRhythm ROMはRustが従来の`native-ym2608/snapshot/web/`から読むため、同ディレクトリの監視も保持する。
@@ -359,6 +371,32 @@ fixture自己試験のcallback操作中のallocation／freeは0。macOS ARM64／
 このローカル検証終了時点では、OPL接続と今回のAY差分を含む5構成CIは未実行だった。
 下記run `40142510765`は4構成成功・macOS x86_64失敗で終了した。実機の音声確認は未実行。
 
+### Sega PSG移行 — 2026-10-25、ローカル検証
+
+共通コア／raw C APIと関連ヘッダー4ファイルが旧コピーとbyte一致。
+機種用接続は維持し、同じ固定SDKのコアを既存のGenesis archive内で一度だけコンパイルする。
+詳細は[native_sdk_segapsg_adoption_01.md](native_sdk_segapsg_adoption_01.md)。
+
+| 対象 | 比較数 | フレーム | 実WASMとの最大差 |
+| --- | --- | --- | --- |
+| Game Gear／追加PSG共通接続 | 69 | 454,656 | 0 |
+| Master System | 63 | 387,072 | 0 |
+| Nuked＋PSG | 222 | 1,363,968 | `2.9802322387695312e-8` |
+| Genesis＋PSG | 6 | 49,152 | `3.725290298461914e-9` |
+
+全360ケース・2,254,848フレームで旧／SDKの出力がbyte一致。混合FMのWASM丸め差は旧実装と同じ。
+既定の4コンパイル経路も成功し、再確認分は二重加算しない。
+raw C API別比較は6ケース・36,864フレームでPCMと全40バイトの直列化フィールドが一致した。
+これはNative同士・同一ビルドの状態API比較であり、WASM内部状態や非公開オブジェクトのdumpではない。
+状態APIはvectorを確保するためcallback割当てゼロの主張とは分ける。
+Game Gear／Master System／Nukedのfixture自己試験は公開状態・独立性・callback allocation／freeゼロも成功。
+PSGのattenuation 0は最大音量で、新しい比較はこの設定をStop／off／再試奏後も保持するもの。
+
+Rust全試験は723成功・0失敗・4件ignored。
+22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源、受入れ／16台制限と17台目拒否、Stop後の予算回収も成功。
+両runnerはexit code 0、deviceOpened false。今回もmacOS ARM64／Clangでのローカル検証で、sanitizerは実行していない。
+先行するrun `40143851548`の全5構成成功は今回のPSG移行を含まない。
+
 ### YM2612移行のGitHub Actions — 2026-10-25
 
 - 対象: `v0.90.2+test`、Tauriコミット`9ef583e8e7fa9e75546b24dd89e119dab7d412c6`。
@@ -544,10 +582,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. 全5構成の成功結果を記録した文書更新を保存する。最終対応ソースZIPは再生成・照合済みで、CI入力との差分はガイド1ファイルのみ。
+1. 今回のPSG移行を保存する。Tauriでは既存のステージ済みCIガイドと、今回追加した作業ツリー差分を区別する。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
-3. 最初の失敗CIと修正版の全5構成成功を区別して保存し、必要なOSのインストーラーで起動を確認する。SNES試験修正と前回CIの文書はcommit／push済みで、その後の成功結果の文書更新が未コミット。
-4. 次のSDK取り込みはSega PSG、RF5C164等から選ぶ。共有コアの重複と既存音への影響を確認する。
+3. 最初の失敗CIと修正版の全5構成成功を区別し、必要なOSのインストーラーで起動を確認する。SNES試験修正はcommit／push済み。本体の成功結果も29b9b885にコミット済みで、Tauriの同結果はステージ済み。
+4. 次のSDK取り込みはRF5C164等から選ぶ。今回のPSG移行はローカル検証後にcommit／pushし、必要に応じて次の移行とまとめて5構成CIで確認する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -559,10 +597,14 @@ SDK自体をリモートから自動取得する設計には戻さない。
   追加SNES試験修正後のCI入力ZIPは全1,796ファイル、SHA-256は
   `2cafb70e38ffd8eecfab984253fc5cd01e696f3221a493da44850a5396a62e06`。
   `local-final-sources.json`で全照合成功、`local-final-manifest-diff.json`で差分がガイドと試験の2ファイルだけと確認した。
-  このZIPは今回の成功結果をガイドへ追記する前のもの。最新ローカルZIPは全1,796ファイル、SHA-256は
+  このZIPは修正版CI結果をガイドへ追記する前のもの。そのCI結果のみを追記した旧ローカルZIPは全1,796ファイル、SHA-256は
   `ff6d69a7c1b701c9348ba51c037ee66ecc1fd5891bc2468989ee81864b4203bc`。
   `/private/tmp/tetorica-opl-ay-fixed-ci-40143851548/local-final-sources.json`で照合成功し、
   同ディレクトリの`local-final-manifest-diff.json`でCI入力との差分がガイド1ファイルのみと確認した。
+  最新ZIPは今回のPSG移行と最終文書を含む全1,796ファイル、SHA-256は
+  `c718713666283b34c8aa79ecdbf03d4f3760810877ad92cb44c43d21397cf875`。
+  `/private/tmp/tetorica-sdk-segapsg-sources.json`でSDK374ファイルを含む22件の固定記録とZIPを照合した。
+  ビルド参照切替も含むため、先行する成功CIの入力と同一ではない。
   OPL接続移行直後の旧ZIPは`c2d20e9b...`で、今回のAY移行を含まない。
   前回CIの結果をガイドへ反映した直後の旧ZIPは`85850ce5...`で、今回のOPL接続移行を含まない。
   前回CI対象ZIPは`2829e9f9...`（macOS／Linux）。そのCI後の文書更新だけを行った時点では差分はガイド1ファイルだったが、最新ZIPには今回の接続参照・ビルド・文書の変更も入る。
@@ -600,6 +642,9 @@ SDK自体をリモートから自動取得する設計には戻さない。
   `/private/tmp/tetorica-sdk-ay8910-cargo-test.log`、`/private/tmp/tetorica-sdk-ay8910-stability.json`、
   `/private/tmp/tetorica-sdk-ay8910-extra-stability.json`、`/private/tmp/tetorica-sdk-ay8910-sources.json`。
   OPL接続／AY移行を含むCIの確認先は`/private/tmp/tetorica-opl-ay-ci-40142510765/`。
+  PSG移行の最新検証は`/private/tmp/tetorica-sdk-segapsg-adoption/summary.json`、
+  `/private/tmp/tetorica-sdk-segapsg-cargo-test.log`、`/private/tmp/tetorica-sdk-segapsg-stability.json`、
+  `/private/tmp/tetorica-sdk-segapsg-extra-stability.json`。
   SNES試験修正後に全5構成が成功したCIは`/private/tmp/tetorica-opl-ay-fixed-ci-40143851548/`で確認する。
   前回のCI記録は`/private/tmp/tetorica-ym2413-ci-40137093552/`にあり、
   `inspection-summary.json`、`artifact-metadata.json`、`jobs-audit.json`、

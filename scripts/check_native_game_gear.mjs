@@ -8,6 +8,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out');let fixture=option('--fixture'),temporary;
 const binary=await fs.readFile(path.join(root,'docs/generated/segapsg_wasm.wasm'));
@@ -57,6 +58,11 @@ scenario('Stop retains stereo periods noise mode and remembered attenuation with
   at(701);add('stop');at(1703);add('audition',0);add('audition',3);at(2801);add('off',3);
   at(3301);write(0xf9);at(3901);add('stop');at(4501);add('audition',3);
 });
+scenario('authored zero attenuation survives Stop, key-off and audition with independent tone/noise stereo',({tone,write,add,at})=>{
+  tone(0,191,0);tone(2,137,15);write(0xe7);write(0xf0);add('stereo',0x81);
+  at(701);add('stop');at(1703);add('audition',0);add('audition',3);at(2801);add('off',0);add('off',3);
+  at(3901);add('audition',0);at(4501);add('audition',3);at(5101);add('stop');
+});
 scenario('slow-clock Stop clears held stereo PCM immediately and retains routing for replay',({tone,write,add,at})=>{
   tone(0,113,3);tone(2,181,5);write(0xe7);write(0xf4);add('stereo',0x96);add('clock',100000);
   at(701);add('stop');at(1703);add('audition',0);add('audition',3);at(2801);add('stop');
@@ -80,7 +86,11 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
   limits:'Offline standalone Sega PSG output only; fixture links solely the Game Gear wrapper and common SegaPSG synthesis, without any OPLL/Genesis source. Native IPC/ownership/UI verified separately. Source mutes use the real WASM channel mute API. Native Stop explicitly clears held PCM for immediate silence. State fixture checks 28-byte FFI layout, retained stereo/clock/periods/noise/levels, reset semantics, observational snapshots and zero callback allocations/frees. No real audio device or cross-platform compiler was used.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-game-gear-'));fixture=path.join(temporary,'fixture');
-    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-genesis'),...['src/native_genesis_game_gear.cpp','src/native_genesis_game_gear_fixture.cpp','native-genesis/segapsg.cpp'].map(p=>path.join(project,p)),'-o',fixture],{stdio:'pipe'});}
+    const files=[path.join(project,'src/native_genesis_game_gear.cpp'),path.join(project,'src/native_genesis_game_gear_fixture.cpp'),
+      path.join(sdk,'vendor/ymfm/segapsg.cpp')];
+    report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
+      sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

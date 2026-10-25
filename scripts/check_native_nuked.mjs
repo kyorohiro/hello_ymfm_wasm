@@ -8,6 +8,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
 const out=option('--out'),sanitize=process.argv.includes('--sanitize');let fixture=option('--fixture'),temporary;
 const [fmBinary,psgBinary]=await Promise.all(['nuked_opn2_wasm.wasm','segapsg_wasm.wasm'].map(name=>fs.readFile(path.join(root,'docs/generated',name))));
@@ -83,7 +84,12 @@ try{
   const flags=sanitize?['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fwrapv']:['-O2','-fwrapv'];
   if(sanitize){process.env.ASAN_OPTIONS='detect_leaks=0';process.env.UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1';}
   execFileSync('clang',['-std=c11',...flags,...symbols.map(s=>`-DOPN2_${s}=tetorica_nuked_OPN2_${s}`),'-I'+include,'-c',path.join(include,'ym3438.c'),'-o',provider],{stdio:'pipe'});
-  execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_ISOLATED_FIXTURE','-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,'-I'+path.join(project,'native-genesis'),...['src/native_genesis_core.cpp','src/native_genesis_nuked.cpp','src/native_genesis_nuked_fixture.cpp',...['segapsg_wasm.cpp','segapsg.cpp'].map(n=>'native-genesis/'+n)].map(p=>path.join(project,p)),provider,'-o',fixture],{stdio:'pipe'});
+  const files=[...['src/native_genesis_core.cpp','src/native_genesis_nuked.cpp','src/native_genesis_nuked_fixture.cpp'].map(p=>path.join(project,p)),
+   path.join(sdk,'wasm/segapsg_wasm.cpp'),path.join(sdk,'vendor/ymfm/segapsg.cpp')];
+  report.nativeSources=await Promise.all([...files,path.join(include,'ym3438.c')].map(async file=>({file:path.relative(root,file),
+   sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_ISOLATED_FIXTURE','-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,
+   '-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),'-I'+path.join(project,'native-genesis'),...files,provider,'-o',fixture],{stdio:'pipe'});
  }
  report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
  for(const rate of rates)for(const scenario of scenarios){

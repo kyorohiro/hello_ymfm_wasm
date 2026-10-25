@@ -44,6 +44,11 @@ scenario('PSG immediate Stop retains periods, noise mode and remembered attenuat
   tone(0,191,6);psg(0xe6);psg(0xf4);at(701);add('stop',0);at(1703);add('audition',0);add('audition',3);
   at(2801);add('off',3);at(3301);psg(0xf9);at(3901);add('stop',0);at(4501);add('audition',3);
 });
+scenario('PSG authored zero attenuation survives Stop, key-off and audition',({tone,psg,add,at})=>{
+  tone(0,191,0);tone(2,137,15);psg(0xe7);psg(0xf0);
+  at(701);add('stop',0);at(1703);add('audition',0);add('audition',3);at(2801);add('off',0);add('off',3);
+  at(3901);add('audition',0);at(4501);add('audition',3);at(5101);add('stop',0);
+});
 scenario('OPLL all nine ROM voices, distinct pitches, sustain and mono melody bus',({synth,at})=>{
   for(let ch=0;ch<9;ch++)fm(synth,ch,48+ch*3,ch+1);
   at(701);synth.setVoice(0,{instrument:15,attenuation:1,sustain:true});at(1703);synth.setPitch(8,391,5);
@@ -103,7 +108,7 @@ try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-master-system-'));fixture=path.join(temporary,'fixture');
     const files=[path.join(project,'src/native_genesis_master_system.cpp'),path.join(project,'src/native_genesis_master_system_fixture.cpp'),
       path.join(sdk,'native/src/ymfm_opl_provider.cpp'),path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),
-      path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp'),path.join(project,'native-genesis/segapsg.cpp')];
+      path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp'),path.join(sdk,'vendor/ymfm/segapsg.cpp')];
     report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
       sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
     execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
