@@ -1,6 +1,7 @@
 /** Actual Native/Web WASM PC Engine PCM comparison. No audio output device. */
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,7 +13,8 @@ import {ChipClockResampler} from '../web/playground_chip_clock.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri/src');
-const option=name=>{const index=process.argv.indexOf(name);assert(index<0||process.argv[index+1],`${name} needs a value`);return index<0?null:process.argv[index+1];};
+const sdk=path.resolve(project,'../vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} needs a value`);return value;};
 const reportPath=option('--out');let fixture=option('--fixture'),temporary;
 const rates=[44100,48000,96000],cases=[];
 function scenario(name,build,{frames=6144}={}){
@@ -70,10 +72,15 @@ scenario('deterministic raw writes, all modes and cold reset',({synth,add,at})=>
   at(5601);synth.initialize();synth.noteOn(0,'G4');
 });
 
-const module=await factory({wasmBinary:await fs.readFile(path.join(root,'docs/generated/huc6280_wasm.wasm'))});
-const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed HuC6280 Web WASM plus ChipClockResampler',rates,cases:[],maximumDifference:0,totalStereoFrames:0};
+const wasmBinary=await fs.readFile(path.join(root,'docs/generated/huc6280_wasm.wasm'));
+const module=await factory({wasmBinary});
+const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed HuC6280 Web WASM plus ChipClockResampler',wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0};
 try{
-  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-huc6280-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off',path.join(project,'native_genesis_huc6280.cpp'),path.join(project,'native_genesis_huc6280_fixture.cpp'),'-o',fixture],{stdio:'pipe'});}
+  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-huc6280-'));fixture=path.join(temporary,'fixture');
+    const sources=[path.join(sdk,'native/reference/tauri/native_genesis_huc6280.cpp'),path.join(project,'native_genesis_huc6280_fixture.cpp')];
+    const inputs=[...sources,path.join(sdk,'native/reference/tauri/native_genesis_huc6280.h'),path.join(sdk,'vendor/mame-huc6280/huc6280.cpp'),path.join(sdk,'vendor/mame-huc6280/huc6280.h'),path.join(project,'native_genesis_huc6280.h')];
+    report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(sdk,'vendor/mame-huc6280'),...sources,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of cases){
     const sorted=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

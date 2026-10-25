@@ -69,12 +69,21 @@ CIはattempt 1で`completed`／`success`となり、全5構成の検証とイン
 全5構成の検証JSON・取得ZIPのdigestと、計10アーティファクトのrun／commit一致も確認した。
 RFのCI結果記録は本体の作業記録2ファイルとTauriガイドだけで、コード変更やローカル試験の再実行はしていない。
 Tauriガイドは`66004f00...`へcommit／push済み。更新後の対応ソースZIPも再生成・照合し、CI入力との差はガイド1ファイルだけだった。
-最新の作業は32X PWMのNative接続cpp／headerと`pwm32x_core.h`の固定SDK参照への切替。
+32X PWMのNative接続cpp／headerと`pwm32x_core.h`も固定SDKへ参照を切り替えた。
 既存のPWM archive、C++17・O2・`/EHsc`・`-ffp-contract=off`と、Rustの予約・owner・混合を維持する。
-PWM着手時は本体`88049cad...`、Tauri`66004f00...`、SDKともcleanだった。今回の差分は未コミットで、commit／pushと新しいCIは行っていない。
+PWM着手時は本体`88049cad...`、Tauri`66004f00...`、SDKともcleanだった。ローカル検証後、本体`2b1b8cf1...`、Tauri`39a02786...`へ保存済み。PWMを含む新しいCIは未実施。
 固有Native命令列132件・911,616フレームで旧／SDKがbyte一致し、実WASMのblock分割比較282回・1,800,960フレームとJS参照の差も0だった。
 `npm test`は31／31成功。sandbox内Cargoの2件のTCP bind制限を受け、製品を修正せず制限外で再実行し、723成功・0失敗・4件ignoredだった。
 22 mode・88 Run／Stopと既存の3混合構成・7単独音源、受入れ／16台制限・Stop後の予算回収も成功した。直前run `40148943609`はPWM移行を含まない。
+最新の作業では、PC Engineの選択中／独立追加HuC6280のNative接続とコアの固定SDK参照へ切り替えた。
+接続cppはinclude2行だけが異なり、接続headerとコアcpp／headerはbyte一致。直接includeを維持し、同archive内の1翻訳単位だけでコンパイルする。
+HuC6280着手時は本体`2b1b8cf1...`、Tauri`39a02786...`、SDKともcleanだった。Rustの予約・PCM・Stopと機種APIは維持する。
+旧／SDKはbyte一致し、実WASM比較192回・1,556,352フレームの差は0だった。
+選択中39入力が追加側51入力の部分集合のため、両suiteの延べ90入力を重複加算せず、固有Native入力は51件・438,912フレームとする。
+既存fixtureとSDK既存の検証fixtureによる公開状態・Stop／reset・waveコピー・callback allocation／free 0も成功。
+`npm test`は31／31、Rust全試験は723成功・0失敗・4件ignored。今回はMCPのTCP bindのため初めから制限外で実行し、sandbox内の失敗や製品修正はない。
+再生ライフサイクル22 mode・604,032フレーム・88 Run／Stopと、3混合構成・7単独音源、受入れ／16台制限で17台目の拒否も成功。両制限試験でStop後の予約予算は0、両runnerはexit code 0・`deviceOpened: false`だった。
+HuC6280差分のcommit／pushとCIは未実施。直近CI `40148943609`はPWMもHuC6280も含まない。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
@@ -82,11 +91,11 @@ PWM着手時は本体`88049cad...`、Tauri`66004f00...`、SDKともcleanだっ�
 
 | リポジトリ | ローカルパス | 再開の基準コミット（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `88049cad60d243853a6e739116d01d15c0a50152` (PSG／RFのCI結果記録。PWM着手前はclean) |
+| 本体 | `hello_ymfm/` | `2b1b8cf1b3a6003b34693887153718c989a3a74d` (PWM移行の記録。HuC6280着手前はclean) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `66004f00e66e7dba2394777cd281f7feeec46da0` (PWM着手時の基準。全5構成成功のCI対象は親の`4939ddc7...`で、PWM差分を含まない) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `39a0278660cc985a1b32333553bd9ee1eaffcfea` (PWMをcommit済み、HuC6280着手時の基準。最新成功CIはPWM／HuC6280差分を含まない) |
 
-本体には次のメモがある。PWM参照切替とローカル検証は完了し、対応ソースZIPも照合済み。未コミットの差分は各リポジトリのgit statusで確認する。
+本体には次のメモがある。PWMとHuC6280の参照切替・ローカル検証は完了した。HuC6280差分は未コミットで、各リポジトリのgit statusで確認する。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -99,7 +108,8 @@ PWM着手時は本体`88049cad...`、Tauri`66004f00...`、SDKともcleanだっ�
 - [native_sdk_ay8910_adoption_01.md](native_sdk_ay8910_adoption_01.md)：最新の共有AYコアと独立接続の移行、OPL接続／AY移行後のCIと追加SNES試験のローカル修正。
 - [native_sdk_segapsg_adoption_01.md](native_sdk_segapsg_adoption_01.md)：Sega PSG共通コア／raw C APIの移行。
 - [native_sdk_rf5c164_adoption_01.md](native_sdk_rf5c164_adoption_01.md)：RF5C164接続／decoder／raw C APIの移行と、PSGと合わせたCI。
-- [native_sdk_pwm_adoption_01.md](native_sdk_pwm_adoption_01.md)：最新の32X PWM接続／コアヘッダーの移行とローカル検証。
+- [native_sdk_pwm_adoption_01.md](native_sdk_pwm_adoption_01.md)：32X PWM接続／コアヘッダーの移行とローカル検証。
+- [native_sdk_huc6280_adoption_01.md](native_sdk_huc6280_adoption_01.md)：最新のHuC6280接続／コアの移行とローカル検証。旧／SDK・実WASM比較とホスト試験は成功。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -643,10 +653,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. PWMのローカル検証と対応ソースZIPの生成・照合は完了。今回のcommit／pushとCIは未実施。
+1. HuC6280のローカル検証・文書・対応ソースZIPの生成と照合は完了し、本体の記録へハッシュを保存済み。今回のcommit／pushとCIは未実施。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 先行する失敗CIと修正版の全5構成成功、今回のPSG／RF CIを区別し、必要なOSのインストーラーで起動を確認する。前回CI結果のTauriガイドはPSG移行とともにcommit済みで、現在ステージ済みの差分はない。
-4. 次のSDK取り込み対象やCI確認の工程を決める。既存のPSG／RF CI成功と、今回のPWM差分は区別する。
+4. HuC6280のローカル検証結果をもとに次の工程を決める。既存のPSG／RF CI成功と、その後のPWM／HuC6280差分は区別する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -681,12 +691,18 @@ SDK自体をリモートから自動取得する設計には戻さない。
   先行するYM2151移行後の旧ZIPは`b3c56199...`で、今回のOKIM6258差分を含まない。
   先行する全OPN CI後の文書更新だけを含む旧ZIPは`af8e3129...`で、今回のYM2151差分を含まない。
   再生成後に値が変わる場合は、その時点の作業ツリーとマニフェストを確認する。
-- PWM移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+- PWM移行直後のローカル対応ソースZIPは全1,796ファイル、SHA-256は
   `519b7c8853903f5bb34e33f3be201baa7cdf8e7bcddf1c831b4f0ff795fe07f3`。
   `/private/tmp/tetorica-sdk-pwm-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
   `/private/tmp/tetorica-sdk-pwm-adoption/source-manifest-delta.json`で着手時からの変更がTauriの5ファイルだけと確認し、
   同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
   今回のPWM差分を含むため、前回成功CIの入力と同一ではない。
+- HuC6280移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+  `dcbc9710d9d89db204fec2d1841e82ca0976c73c192db7fc37a599a232a1c865`。
+  `/private/tmp/tetorica-sdk-huc6280-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
+  `/private/tmp/tetorica-sdk-huc6280-adoption/source-manifest-delta.json`で着手時からの変更がTauriの4ファイルだけと確認し、
+  同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
+  前回CIの入力にはないPWM／HuC6280移行を含むため、前回成功CIの入力と同一ではない。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
 - 検証ログ: `/private/tmp/tetorica-sdk-adoption-parity/`、`/private/tmp/tetorica-sdk-adoption-isolated.json`、

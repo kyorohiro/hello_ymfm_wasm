@@ -9,7 +9,8 @@ import {fileURLToPath} from 'node:url';
 import {Huc6280Synth} from '../web/huc6280synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri/src');
-const option=name=>{const index=process.argv.indexOf(name);assert(index<0||process.argv[index+1],`${name} needs a value`);return index<0?null:process.argv[index+1];};
+const sdk=path.resolve(project,'../vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} needs a value`);return value;};
 const reportPath=option('--out');let fixture=option('--fixture'),temporary,Processor;
 const wasmBinary=await fs.readFile(path.join(root,'docs/generated/huc6280_wasm.wasm'));
 globalThis.sampleRate=48000;globalThis.currentFrame=0;
@@ -92,7 +93,11 @@ scenario('long LFO and dual-noise progression across arbitrary callback boundari
 const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed playground_huc6280_worklet.js renderSegment, shipped huc6280_wasm.wasm and ChipClockResampler',wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,
  limits:'Offline standalone core PCM comparison and C++ allocation audit. No device, Rust scheduling, IPC, UI, effects, other-platform compiler or real-time deadline guarantee. Six wavetable/DDA channels, CH4/5 noise, shared LFO and raw slots6/7 are per-instance. Mute changes output gain while oscillator/LFO/noise state progresses. Public constructor base3579545Hz and acknowledged integer outer-clock changes100k..100MHz.'};
 try{
- if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-huc6280-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off',path.join(project,'native_genesis_huc6280.cpp'),path.join(project,'native_genesis_huc6280_fixture.cpp'),'-o',fixture],{stdio:'pipe'});}
+ if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-huc6280-'));fixture=path.join(temporary,'fixture');
+  const sources=[path.join(sdk,'native/reference/tauri/native_genesis_huc6280.cpp'),path.join(project,'native_genesis_huc6280_fixture.cpp')];
+  const inputs=[...sources,path.join(sdk,'native/reference/tauri/native_genesis_huc6280.h'),path.join(sdk,'vendor/mame-huc6280/huc6280.cpp'),path.join(sdk,'vendor/mame-huc6280/huc6280.h'),path.join(project,'native_genesis_huc6280.h')];
+  report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(sdk,'vendor/mame-huc6280'),...sources,'-o',fixture],{stdio:'pipe'});}
  report.selfTest=JSON.parse(execFileSync(fixture,['--self-test'],{encoding:'utf8'}));
  for(const rate of rates)for(const scenario of cases){
   const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
