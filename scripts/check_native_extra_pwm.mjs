@@ -8,6 +8,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {PWM32XPlayback} from '../web/pwm32x_playback.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1]);return i<0?null:process.argv[i+1];};
 const reportPath=option('--out');let fixture=option('--fixture'),temporary,Processor;
 const wasmBinary=await fs.readFile(path.join(root,'docs/generated/pwm32x_wasm.wasm'));
@@ -80,7 +81,11 @@ function flatten(events,frames) {
 const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed playground_pwm_worklet.js / PWM32XPlayback and pwm32x_wasm.wasm; default public cases also checked against JS PWM32XPlayback',wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,cases:[],totalStereoFrames:0,maximumDifference:0,
  limits:'Offline standalone PCM and allocation audit, no device/IPC/Rust scheduling/FX/UI/deadline guarantee. All public cases use default MAME/duty/gain1 and existing primary C ABI. The configuration-only DAC/mute case compares canonical C++ Core directly, without adding public options/setters. Tagged-owner FIFO/latch cancellation has C ABI self-tests and Rust integration tests; ordinary tag0 writes preserve primary PCM.'};
 try {
- if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-pwm-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(project,'native-pwm/snapshot/wasm'),path.join(project,'src/native_genesis_pwm.cpp'),path.join(project,'src/native_genesis_extra_pwm_fixture.cpp'),'-o',fixture],{stdio:'pipe'});}
+ if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-pwm-'));fixture=path.join(temporary,'fixture');
+  const sources=[path.join(sdk,'native/reference/tauri/native_genesis_pwm.cpp'),path.join(project,'src/native_genesis_extra_pwm_fixture.cpp')];
+  report.nativeSources=await Promise.all([...sources,path.join(sdk,'wasm/pwm32x_core.h'),path.join(sdk,'native/reference/tauri/native_genesis_pwm.h'),path.join(project,'src/native_genesis_pwm.h')].map(async file=>({file:path.relative(root,file),
+   sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(sdk,'wasm'),...sources,'-o',fixture],{stdio:'pipe'});}
  report.selfTest=JSON.parse(execFileSync(fixture,['--self-test'],{encoding:'utf8'}));
  for(const rate of rates)for(const scenario of cases){
   const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),native=flatten(events,scenario.frames);
