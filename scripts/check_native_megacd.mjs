@@ -14,6 +14,7 @@ import {ChipClockResampler} from '../web/playground_chip_clock.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const index=process.argv.indexOf(name);assert(index<0||process.argv[index+1],`${name} requires a value`);return index<0?null:process.argv[index+1];};
 let fixture=option('--fixture'),temporary;
 const output=option('--out');
@@ -25,9 +26,12 @@ report.wasmSha256=createHash('sha256').update(wasmBinary).digest('hex');
 if(!fixture) {
   temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-megacd-'));
   fixture=path.join(temporary,'fixture');
-  execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(project,'native-megacd'),'-I'+path.join(project,'src'),
-    path.join(project,'src/native_megacd_fixture.cpp'),path.join(project,'src/native_genesis_rf5c164.cpp'),
-    path.join(project,'native-megacd/rf5c164.cpp'),'-o',fixture],{stdio:'pipe'});
+  const sources=[path.join(project,'src/native_megacd_fixture.cpp'),
+    path.join(sdk,'native/reference/tauri/native_genesis_rf5c164.cpp'),path.join(sdk,'vendor/mame-rf5c164/rf5c164.cpp')];
+  report.nativeSources=await Promise.all(sources.map(async file=>({file:path.relative(root,file),
+    sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/mame-rf5c164'),'-I'+path.join(sdk,'vendor/ymfm'),
+    '-I'+path.join(project,'src'),...sources,'-o',fixture],{stdio:'pipe'});
 }
 const events=[];
 let at=0;

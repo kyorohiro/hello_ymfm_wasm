@@ -55,12 +55,15 @@ CIは`completed`／`failure`で終了し、macOS ARM64・Windows・Linux 2構成
 全5構成の検証JSONと取得ZIPのdigest照合も成功し、計10アーティファクトの存在を確認した。
 先行するrun `40137093552`の成功と、後続のOPL接続／AY移行のローカル検証・今回のCI結果は区別する。
 修正版CIの結果は本体で`29b9b885...`にコミット済み。Tauriガイドの同結果はステージ済みだった。
-最新の作業はSega PSGの共通コアとraw C APIを固定SDKへ参照切り替えする作業。
+Sega PSGの共通コアとraw C APIも固定SDKへ参照切り替えした。
 Genesis／Mega CD／32X系、Game Gear／Master Systemと追加PSGが、同じSDKコアを一度だけコンパイルして使う。
 機種用接続、NativePsgCore、GenesisのDC／gain／混合・Rustの制御は維持する。
-着手時の本体とSDKはclean、Tauriには前回CIガイドのステージ済み差分だけがあった。
-このステージ済み内容とindexを保持し、今回の変更は作業ツリーへ追加している。
-今回の実装・checker・文書は未コミットで、PSG移行を含む新しい5構成CIは未実行。
+このPSG作業は本体`1da2fb00...`、Tauri`51dca52...`へユーザーがコミット済み。
+最新の作業はRF5C164の選択中／追加生成接続、共通decoderとraw C APIの固定SDKへの参照切り替え。
+双方の64 KiB所有RAM、追加接続の声別保持出力、Rustの転送payload・予約・寿命・予算管理を維持する。
+RF着手時は本体・Tauri・SDKともcleanだった。ローカル検証後、ユーザーが承認したPSG／RF両移行の5構成CIを実行する。
+ローカル検証後、TauriのRF変更を`4939ddc7f7125f47d969e29c975264eaa528d81c`へコミットした。
+本体checkerと記録も保存し、push後に両移行を含むCIを実行する。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
@@ -68,11 +71,11 @@ Genesis／Mega CD／32X系、Game Gear／Master Systemと追加PSGが、同じSD
 
 | リポジトリ | ローカルパス | 保存時点のHEAD（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `29b9b8855c25440d7c8b7867e657797d3a83bd4b` (修正版CI全5構成成功の記録) |
+| 本体 | `hello_ymfm/` | `1da2fb00abecd32bccd0b75b4fc4d965e36ee900` (PSG移行のcheckerと記録) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `842245ddf060fedaeb42e6b01d30175b488816b7` (最新の成功CI対象。結果ガイドはステージ済み、今回のPSG移行は作業ツリー差分) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `4939ddc7f7125f47d969e29c975264eaa528d81c` (RF移行。PSGも含む次のCI対象。最新の成功CI対象は842245dd) |
 
-本体には次のメモがある。この保存時点のHEAD後の差分は、PSG移行のcheckerと記録。
+本体には次のメモがある。この保存時点のHEAD後の差分は、RF移行のcheckerと記録。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -83,7 +86,8 @@ Genesis／Mega CD／32X系、Game Gear／Master Systemと追加PSGが、同じSD
 - [native_sdk_ym2413_adoption_01.md](native_sdk_ym2413_adoption_01.md)：YM2413／共有OPL provider移行と先行する5構成CI。
 - [native_sdk_opl_adoption_01.md](native_sdk_opl_adoption_01.md)：OPL系4音源の接続移行とRAM付きY8950比較。
 - [native_sdk_ay8910_adoption_01.md](native_sdk_ay8910_adoption_01.md)：最新の共有AYコアと独立接続の移行、OPL接続／AY移行後のCIと追加SNES試験のローカル修正。
-- [native_sdk_segapsg_adoption_01.md](native_sdk_segapsg_adoption_01.md)：最新のSega PSG共通コア／raw C APIの移行。
+- [native_sdk_segapsg_adoption_01.md](native_sdk_segapsg_adoption_01.md)：Sega PSG共通コア／raw C APIの移行。
+- [native_sdk_rf5c164_adoption_01.md](native_sdk_rf5c164_adoption_01.md)：最新のRF5C164接続／decoder／raw C APIの移行と、PSGと合わせたCI。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -139,6 +143,8 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - DOS PC／選択中Y8950の `native/reference/tauri/native_genesis_opl.cpp` と、追加生成4種類の `native/reference/tauri/native_genesis_extra_opl.cpp`。
 - 両接続が引用する `native/reference/tauri/native_genesis_y8950_memory.h`。
 - 追加生成OKIの `native/reference/tauri/native_genesis_extra_okim6258.cpp`。
+- 選択中RF5C164と追加RF5C164の `native/reference/tauri/native_genesis_rf5c164.cpp`、`native_genesis_extra_rf5c164.cpp`。
+- 共通RF decoderの`vendor/mame-rf5c164/rf5c164.cpp`／`.h`とraw C APIの`wasm/rf5c164_wasm.cpp`。
 - `vendor/mame-okim6258/okim6258.cpp`原本へ既存の初期化対策を適用して`OUT_DIR/tetorica_sdk_okim6258.cpp`へ生成したデコーダー。
 - 共有 `native/src/ymfm_opn_provider.cpp`、`native/src/ymfm_opm_provider.cpp`、`native/src/ymfm_opl_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`、`ymfm_pcm.cpp`。
 
@@ -149,7 +155,10 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 PSGのNativePsgCoreもアプリ側に残し、共通PSGコアとraw C APIはSDKを一度だけコンパイルする。
 Game GearはSDKヘッダーを優先し、Master Systemも既存のSDK優先includeで同じヘッダーを使う。AYコアもSDKを共有する。
 DOS PC／Y8950の選択中・追加生成接続とメモリーhelperもSDKを使用する。メモリーhelperはページを借用し、RAM本体の所有権をSDKへ移す変更ではない。
-同じarchive内の追加RF5C164接続はアプリ側に残す。OPLのcpp／header／メモリーhelperをSDK側で監視し、実消費元のない旧native-oplディレクトリの監視は外した。
+同じOPL archive内の追加RF5C164接続もSDKへ切り替えた。選択中接続・共通decoder・raw C APIは既存のMega-CD archiveを使う。
+SDK接続は各64 KiB RAMを所有し、追加接続の声別履歴も維持する。Rust転送payload・予約・予算・寿命管理はホスト側。
+OPLとRFの実cpp／headerをSDK側で監視し、実消費元のない旧native-opl／native-megacdディレクトリのソース監視は外した。
+原典、ライセンスの同梱先、旧コピーとsyncスクリプトは保持する。
 追加生成YM2413はSDKの独立接続を使用する。独立接続はNativeOpllCoreを流用する構造ではない。
 CargoはSDKのOPL provider／ymfmと独立YM2413接続を監視する。
 実消費元のなくなった旧native-master-systemディレクトリの監視は外し、ローカルの機種用接続／NativeOpllCoreの監視は保持する。
@@ -397,6 +406,24 @@ Rust全試験は723成功・0失敗・4件ignored。
 両runnerはexit code 0、deviceOpened false。今回もmacOS ARM64／Clangでのローカル検証で、sanitizerは実行していない。
 先行するrun `40143851548`の全5構成成功は今回のPSG移行を含まない。
 
+### RF5C164移行 — 2026-10-25、ローカル検証
+
+選択中／追加生成接続、共通decoder、raw C APIとヘッダー8ファイルが旧コピーとbyte一致。
+詳細は[native_sdk_rf5c164_adoption_01.md](native_sdk_rf5c164_adoption_01.md)。
+
+| 対象 | ケース | フレーム | 結果 |
+| --- | --- | --- | --- |
+| 選択中Mega CD | 21 | 98,304 | 旧／SDK byte一致、実WASM最大差0 |
+| 独立追加生成 | 75 | 448,512 | 同上、毎フレーム95項目のPCM／公開状態／位置read／RAM probe |
+| raw C API／追加状態の別比較 | 6 | 24,576 | PCM／毎フレーム16 readと、27観測点ずつの全64 KiB RAMが独立期待値・旧SDKの双方と一致 |
+
+WASM比較は96ケース・546,816フレーム。既定2コンパイル経路の再確認は重複加算しない。
+別比較のraw直列化状態は65,660バイト、追加公開状態は100バイト。これはNative同士の同一ビルド比較で、WASM内部状態や全RAMの毎フレームdumpではない。
+追加fixtureのfull-RAM転送／保持／範囲拒否・9通りのrate／clock分離・声別取り消し・Stop／reset・callback allocation／freeゼロも成功。
+Rust全試験は723成功・0失敗・4件ignored。22 mode・604,032フレーム・88 Run／Stopと、3混合構成・7単独音源・受入れ／16台制限・Stop後の予算回収も成功した。
+両runnerはexit code 0／deviceOpened false。今回もmacOS ARM64／Clangで、sanitizerは実行していない。
+この後、PSG移行と合わせた5構成CIを実行する。先行run `40143851548`は両移行を含まない。
+
 ### YM2612移行のGitHub Actions — 2026-10-25
 
 - 対象: `v0.90.2+test`、Tauriコミット`9ef583e8e7fa9e75546b24dd89e119dab7d412c6`。
@@ -582,10 +609,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. 今回のPSG移行を保存する。Tauriでは既存のステージ済みCIガイドと、今回追加した作業ツリー差分を区別する。
+1. RF移行のローカル検証を終え、commit／push後に承認済みのPSG／RFを含む5構成CIを実行する。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 最初の失敗CIと修正版の全5構成成功を区別し、必要なOSのインストーラーで起動を確認する。SNES試験修正はcommit／push済み。本体の成功結果も29b9b885にコミット済みで、Tauriの同結果はステージ済み。
-4. 次のSDK取り込みはRF5C164等から選ぶ。今回のPSG移行はローカル検証後にcommit／pushし、必要に応じて次の移行とまとめて5構成CIで確認する。
+4. PSG／RFの5構成CIが完了したら次のSDK取り込み対象を選ぶ。今回のCIと実機での聴感確認は区別する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -601,10 +628,13 @@ SDK自体をリモートから自動取得する設計には戻さない。
   `ff6d69a7c1b701c9348ba51c037ee66ecc1fd5891bc2468989ee81864b4203bc`。
   `/private/tmp/tetorica-opl-ay-fixed-ci-40143851548/local-final-sources.json`で照合成功し、
   同ディレクトリの`local-final-manifest-diff.json`でCI入力との差分がガイド1ファイルのみと確認した。
-  最新ZIPは今回のPSG移行と最終文書を含む全1,796ファイル、SHA-256は
+  PSG移行直後の旧ZIPは全1,796ファイル、SHA-256は
   `c718713666283b34c8aa79ecdbf03d4f3760810877ad92cb44c43d21397cf875`。
   `/private/tmp/tetorica-sdk-segapsg-sources.json`でSDK374ファイルを含む22件の固定記録とZIPを照合した。
-  ビルド参照切替も含むため、先行する成功CIの入力と同一ではない。
+  最新ZIPは今回のRF移行と最終文書を含む全1,796ファイル、SHA-256は
+  `e1433b213fc340762f0578944e8b5797fcff7af26af6ad308db4febb73db353e`。
+  `/private/tmp/tetorica-sdk-rf5c164-sources.json`でSDK374ファイルを含む22件の固定記録とZIPを照合した。
+  PSG／RFのビルド参照切替も含むため、先行する成功CIの入力と同一ではない。
   OPL接続移行直後の旧ZIPは`c2d20e9b...`で、今回のAY移行を含まない。
   前回CIの結果をガイドへ反映した直後の旧ZIPは`85850ce5...`で、今回のOPL接続移行を含まない。
   前回CI対象ZIPは`2829e9f9...`（macOS／Linux）。そのCI後の文書更新だけを行った時点では差分はガイド1ファイルだったが、最新ZIPには今回の接続参照・ビルド・文書の変更も入る。
@@ -642,6 +672,9 @@ SDK自体をリモートから自動取得する設計には戻さない。
   `/private/tmp/tetorica-sdk-ay8910-cargo-test.log`、`/private/tmp/tetorica-sdk-ay8910-stability.json`、
   `/private/tmp/tetorica-sdk-ay8910-extra-stability.json`、`/private/tmp/tetorica-sdk-ay8910-sources.json`。
   OPL接続／AY移行を含むCIの確認先は`/private/tmp/tetorica-opl-ay-ci-40142510765/`。
+  RF移行の最新検証は`/private/tmp/tetorica-sdk-rf5c164-adoption/summary.json`、
+  `/private/tmp/tetorica-sdk-rf5c164-cargo-test.log`、`/private/tmp/tetorica-sdk-rf5c164-stability.json`、
+  `/private/tmp/tetorica-sdk-rf5c164-extra-stability.json`、`/private/tmp/tetorica-sdk-rf5c164-sources.json`。
   PSG移行の最新検証は`/private/tmp/tetorica-sdk-segapsg-adoption/summary.json`、
   `/private/tmp/tetorica-sdk-segapsg-cargo-test.log`、`/private/tmp/tetorica-sdk-segapsg-stability.json`、
   `/private/tmp/tetorica-sdk-segapsg-extra-stability.json`。

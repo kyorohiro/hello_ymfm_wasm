@@ -1,5 +1,9 @@
 # Native SDK Sega PSG取り込み
 
+ローカル移行は本体`1da2fb00...`、Tauri`51dca52...`へコミット済み。
+RF5C164移行と合わせた5構成CIの確認は[RF5C164取り込み記録](native_sdk_rf5c164_adoption_01.md)で追跡する。
+以下の未コミット・CI未実行の記述はローカル検証終了時点の履歴。
+
 2026-10-25。Playground TauriのSega PSG共通コアとraw C APIを、同梱済み固定SDKからビルドするようにした。
 Genesis／Mega CD／32X系、Game Gear／Master Systemと追加生成PSGが同じコアを共有する。
 機種用接続・レート変換・音量・混合をSDKへ移す変更ではない。

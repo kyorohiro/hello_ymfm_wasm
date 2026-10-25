@@ -8,6 +8,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {RF5C164Synth} from '../web/rf5c164synth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
 const option=name=>{const index=process.argv.indexOf(name);return index<0?null:process.argv[index+1];};
 const out=option('--out'),rates=[44100,48000,96000],scenarios=[];
 let fixture=option('--fixture'),temporary,Processor;
@@ -36,7 +37,11 @@ for(const hz of[100000,100001,6250000,12500000,25000000,100000000])scenario(`clo
 scenario('rapid per-frame sample/clock edits exercise fractional boundaries',({api,add,at})=>{load(add);for(let ch=0;ch<8;ch++)voice(api,ch);for(let frame=1;frame<1024;frame++){at(frame);if(!(frame%17))add('clock',100000+(frame*637127)%99900001);if(!(frame%13))api.keyOn(frame%8);if(!(frame%11))api.setPitch(frame%8,frame*53%65536);}},{frames:2048});
 const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed RF5C164 WASM in shipped RF Worklet renderSegment; raw and RF5C164Synth high controls',wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,limits:'Offline PCM, register shadow, channel-position bus and full-RAM probe comparison. Native source isolation, 8voice clipping/lowclock hold, reset retention, readonly snapshot, range checks and callback allocation/free audit in C++ self-test. Native rack/control/IPC/UI verified separately. No audio device or cross-platform compiler used.'};
 try{
- if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-rf-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++14','-O2',...['src/native_genesis_extra_rf5c164.cpp','src/native_genesis_extra_rf5c164_fixture.cpp'].map(file=>path.join(project,file)),'-o',fixture],{stdio:'pipe'});}
+ if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-rf-'));fixture=path.join(temporary,'fixture');
+  const sources=[path.join(sdk,'native/reference/tauri/native_genesis_extra_rf5c164.cpp'),path.join(project,'src/native_genesis_extra_rf5c164_fixture.cpp')];
+  report.nativeSources=await Promise.all(sources.map(async file=>({file:path.relative(root,file),
+   sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++14','-O2',...sources,'-o',fixture],{stdio:'pipe'});}
  report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
  for(const rate of rates)for(const scenario of scenarios){globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,args})=>`${frame} ${op} ${args.join(' ')}`).join('\n')+'\n';const bytes=execFileSync(fixture,[String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*95*4+1048576,timeout:30000});assert.equal(bytes.length,scenario.frames*95*4);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4),reference=new Processor({processorOptions:{wasmBinary}});await reference.testReady;
   const state={registers:Array.from({length:8},()=>new Uint8Array(7)),control:0,selected:0,mask:255,clock:12500000,bank:0};let next=0,maximumDifference=0,peak=0,first;const left=new Float32Array(1),right=new Float32Array(1);
