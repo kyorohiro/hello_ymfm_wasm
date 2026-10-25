@@ -75,7 +75,7 @@ PWM着手時は本体`88049cad...`、Tauri`66004f00...`、SDKともcleanだっ�
 固有Native命令列132件・911,616フレームで旧／SDKがbyte一致し、実WASMのblock分割比較282回・1,800,960フレームとJS参照の差も0だった。
 `npm test`は31／31成功。sandbox内Cargoの2件のTCP bind制限を受け、製品を修正せず制限外で再実行し、723成功・0失敗・4件ignoredだった。
 22 mode・88 Run／Stopと既存の3混合構成・7単独音源、受入れ／16台制限・Stop後の予算回収も成功した。直前run `40148943609`はPWM移行を含まない。
-最新の作業では、PC Engineの選択中／独立追加HuC6280のNative接続とコアの固定SDK参照へ切り替えた。
+その後、PC Engineの選択中／独立追加HuC6280のNative接続とコアの固定SDK参照へ切り替えた。
 接続cppはinclude2行だけが異なり、接続headerとコアcpp／headerはbyte一致。直接includeを維持し、同archive内の1翻訳単位だけでコンパイルする。
 HuC6280着手時は本体`2b1b8cf1...`、Tauri`39a02786...`、SDKともcleanだった。Rustの予約・PCM・Stopと機種APIは維持する。
 旧／SDKはbyte一致し、実WASM比較192回・1,556,352フレームの差は0だった。
@@ -89,8 +89,17 @@ HuC6280のローカル検証終了後、ユーザーが本体`a8169ac2...`、Tau
 attempt 1、対象は`2125896b7173c5c662c6eaf2f2b69b4a010f12b7`。runは`completed`／`success`で終了した。
 全5構成のsources／Cargo／再生／混合とインストーラービルドが成功し、検証レポート5組のJSON・ZIP digest監査も成功した。
 計10アーティファクトのrun／commit一致・有効期限内・非空と、全5ドラフトリリース添付stepのskippedも確認した。
-今回のCI開始後にコード・試験を変更せず、本体の結果記録とTauriガイドだけを更新した。追加のcommit／pushは行っていない。
+このCI開始後にコード・試験を変更せず、本体の結果記録とTauriガイドだけを更新した。
+その結果記録は本体`77d93c04...`、Tauri`0191864a...`に保存済み。
 先行する成功CI `40148943609`はPWMもHuC6280も含まない。
+最新の作業では、Game Boyの選択中／独立追加音源に共通のNative接続とMAME由来APUを固定SDK参照へ切り替えた。
+接続cpp／headerとAPU cpp／headerの4入力はbyte一致。既存のarchive・コンパイル設定・リンク順序を維持し、Rustの予約・PCM・Stopや機種APIは変更しない。
+Game Boy着手時は本体`77d93c04...`、Tauri`0191864a...`、SDKともcleanだった。
+`npm test`は31／31、Rust全試験は723成功・0失敗・4件ignored。MCPのTCP bindのため初めから制限外で実行し、sandbox内の失敗や製品修正はない。
+旧／SDKのstdoutはbyte一致し、実WASMの分割比較186回・1,714,080フレームの差は0。延べ90入力のうち36入力の重複を除き、固有Native入力は54件・488,208フレームだった。
+公開60バイトABIやStop／reset・NR52／DMG波形RAM・clock・位相、render allocation／free 0の自己試験と、22 mode・604,032フレーム・88 Run／Stopも成功。
+追加音源の3混合構成・7単独音源、受入れ／16台制限で17台目の拒否が成功し、両制限試験でStop後の予約予算は0。再生／混合の両runnerはexit code 0・`deviceOpened: false`だった。
+今回のGame Boy差分のcommit／pushと新しいCIは未実施。直前の成功CI `40162092207`はこの移行を含まない。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
@@ -98,11 +107,11 @@ attempt 1、対象は`2125896b7173c5c662c6eaf2f2b69b4a010f12b7`。runは`complet
 
 | リポジトリ | ローカルパス | 再開の基準コミット（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `a8169ac2b5cf884e59304a55f2388da0ae1c21e4` (HuC6280移行・ローカル検証をユーザーがcommit／push済み。CI開始前はclean) |
+| 本体 | `hello_ymfm/` | `77d93c0489669eed4cdb81edf0b9f8e2f0f77e8a` (PWM／HuC6280のCI記録を保存済み。Game Boy着手前はclean) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `2125896b7173c5c662c6eaf2f2b69b4a010f12b7` (PWM／HuC6280を含むCI対象。ユーザーがcommit／push済み、dispatch前はclean) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `0191864a00a278a4314d97bc4a6372306793fcd0` (PWM／HuC6280のCI結果をcommit済み。Game Boy着手前はclean) |
 
-本体には次のメモがある。PWMとHuC6280の参照切替・ローカル検証はユーザーがcommit／push済みで、全5構成CIも成功した。追加の差分は本体の結果記録3ファイルとTauriガイドだけ。
+本体には次のメモがある。PWMとHuC6280の参照切替・ローカル検証と全5構成CIは完了し、Game Boyの参照切替・ローカル検証も完了した。Game Boy差分は未コミットで、各リポジトリのgit statusで確認する。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -116,7 +125,8 @@ attempt 1、対象は`2125896b7173c5c662c6eaf2f2b69b4a010f12b7`。runは`complet
 - [native_sdk_segapsg_adoption_01.md](native_sdk_segapsg_adoption_01.md)：Sega PSG共通コア／raw C APIの移行。
 - [native_sdk_rf5c164_adoption_01.md](native_sdk_rf5c164_adoption_01.md)：RF5C164接続／decoder／raw C APIの移行と、PSGと合わせたCI。
 - [native_sdk_pwm_adoption_01.md](native_sdk_pwm_adoption_01.md)：32X PWM接続／コアヘッダーの移行とローカル検証。
-- [native_sdk_huc6280_adoption_01.md](native_sdk_huc6280_adoption_01.md)：最新のHuC6280接続／コアの移行とローカル検証、PWMと合わせたrun `40162092207`の全5構成成功。
+- [native_sdk_huc6280_adoption_01.md](native_sdk_huc6280_adoption_01.md)：HuC6280接続／コアの移行とローカル検証、PWMと合わせたrun `40162092207`の全5構成成功。
+- [native_sdk_gameboy_adoption_01.md](native_sdk_gameboy_adoption_01.md)：最新のGame Boy共通接続／APUの移行とローカル検証。旧／SDK・実WASM比較とホスト試験は成功。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -174,6 +184,7 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - 追加生成OKIの `native/reference/tauri/native_genesis_extra_okim6258.cpp`。
 - 選択中RF5C164と追加RF5C164の `native/reference/tauri/native_genesis_rf5c164.cpp`、`native_genesis_extra_rf5c164.cpp`。
 - 共通RF decoderの`vendor/mame-rf5c164/rf5c164.cpp`／`.h`とraw C APIの`wasm/rf5c164_wasm.cpp`。
+- 選択中／追加生成Game Boyの`native/reference/tauri/native_genesis_gameboy.cpp`と、共通APUの`vendor/mame-gameboy/gameboy_apu.cpp`／`.h`。
 - `vendor/mame-okim6258/okim6258.cpp`原本へ既存の初期化対策を適用して`OUT_DIR/tetorica_sdk_okim6258.cpp`へ生成したデコーダー。
 - 共有 `native/src/ymfm_opn_provider.cpp`、`native/src/ymfm_opm_provider.cpp`、`native/src/ymfm_opl_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`、`ymfm_pcm.cpp`。
 
@@ -660,10 +671,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. PWM／HuC6280を含むrun `40162092207`は全5構成の検証・artifact監査・インストーラービルドが成功。結果用ガイドを含む対応ソースZIPも再生成・照合し、CI入力との差がガイド1ファイルだけと確認した。今回新しいコード変更や追加commit／pushはしていない。
+1. Game Boyのローカル検証・文書・対応ソースZIPの生成と照合は完了し、本体の記録へハッシュを保存済み。今回のcommit／pushとCIは未実施。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 先行する失敗CIと修正版の全5構成成功、今回のPSG／RF CIを区別し、必要なOSのインストーラーで起動を確認する。前回CI結果のTauriガイドはPSG移行とともにcommit済みで、現在ステージ済みの差分はない。
-4. 今回のPWM／HuC6280 CI結果をもとに次の工程を決める。既存のPSG／RF CI成功と、今回の後続CI成功は対象コミットを区別する。
+4. Game Boyのローカル検証結果をもとに次の工程を決める。既存のPWM／HuC6280 CI成功と、その後のGame Boy差分は区別する。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -714,11 +725,17 @@ SDK自体をリモートから自動取得する設計には戻さない。
   全5構成で22件の固定記録・SDK374ファイル・ソースZIP1,796ファイル、22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源、受入れ／16台制限・Stop後の予算0が成功。両runnerはexit code 0・`deviceOpened: false`。
   非Windows4構成のCIソースZIPは上記`dcbc9710...`、Windowsは`167ae8219491e94f1624330875be1d2ecdecf64cd87e3b571c4c81994ad826b2`。各CIの照合は成功し、ハッシュ差の原因は断定しない。
   取得したのは検証レポートZIPだけで、インストーラー・ソースZIPのダウンロード・起動・独立照合は行っていない。実機の聴音・UI操作・OS間PCM一致と各OSでのWASM比較も別の確認とする。今回は新しいタグやreleaseを作成していない。
-- PWM／HuC6280のCI結果ガイドを含む最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+- PWM／HuC6280のCI結果ガイドを反映した直後のローカル対応ソースZIPは全1,796ファイル、SHA-256は
   `229d8eb929c1504baa65085be4bf38ca966966e42c69b3546b1de1361002f495`。
   `/private/tmp/tetorica-pwm-huc-ci-40162092207/local-final-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合し、
   同ディレクトリの`local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。
   コードと試験のコンパイル入力はCI対象から変更していない。
+- Game Boy移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+  `1db0c76e87d531e9daf300bc3dc985d92b672e51425c72a65009168c3258575c`。
+  `/private/tmp/tetorica-sdk-gameboy-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
+  `/private/tmp/tetorica-sdk-gameboy-adoption/source-manifest-delta.json`で着手時からの変更がTauriの5ファイルだけと確認し、
+  同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
+  直前の成功CIにはないGame Boy移行を含むため、そのCIの入力と同一ではない。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
 - 検証ログ: `/private/tmp/tetorica-sdk-adoption-parity/`、`/private/tmp/tetorica-sdk-adoption-isolated.json`、

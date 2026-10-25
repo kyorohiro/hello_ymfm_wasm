@@ -7,7 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} needs a value`);return value;};
 const out=option('--out'),rates=[44100,48000,96000],cases=[];
 let fixture=option('--fixture'),temporary,Processor;
 const wasmBinary=await fs.readFile(path.join(root,'docs/generated/gameboy_apu_wasm.wasm'));
@@ -34,7 +35,11 @@ const raw=[...base];for(let i=0;i<300;i++){const address=random()%48,value=rando
 cases.push({name:'deterministic raw writes including gaps and ignored addresses',frames:8192,events:[...raw,W(8001,48,255),W(8002,255,255)]});
 const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed playground_gameboy_worklet.js renderSegment with shipped gameboy_apu_wasm.wasm and ChipClockResampler; 1/128/irregular callback splits',wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,limits:'Offline PCM comparison and C++ self-test only. Existing standalone Native GameBoy core reused without hidden sibling chips. Self-test covers instance/clock/wave-RAM isolation, read-only state observation, Stop/channel Stop register retention, source-mute phase/register/reset semantics, rate and clock guards, zero callback allocation/free. Source mute calls the same public low-level WASM mask used by this pinned core. Rust/control/IPC/UI tested separately; no audio device, subjective listening or cross-platform compiler used.'};
 try{
- if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-gameboy-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-ffp-contract=off','-fwrapv','-fno-strict-aliasing','-I'+path.join(project,'native-gameboy/snapshot/third_party/mame-gameboy'),...['src/native_genesis_gameboy_fixture.cpp','src/native_genesis_gameboy.cpp','native-gameboy/snapshot/third_party/mame-gameboy/gameboy_apu.cpp'].map(file=>path.join(project,file)),'-o',fixture],{stdio:'pipe'});}
+ if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-gameboy-'));fixture=path.join(temporary,'fixture');
+  const sources=[path.join(project,'src/native_genesis_gameboy_fixture.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_gameboy.cpp'),path.join(sdk,'vendor/mame-gameboy/gameboy_apu.cpp')];
+  const inputs=[...sources,path.join(sdk,'native/reference/tauri/native_genesis_gameboy.h'),path.join(sdk,'vendor/mame-gameboy/gameboy_apu.h'),path.join(project,'src/native_genesis_gameboy.h')];
+  report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++17','-O2','-ffp-contract=off','-fwrapv','-fno-strict-aliasing','-I'+path.join(sdk,'vendor/mame-gameboy'),...sources,'-o',fixture],{stdio:'pipe'});}
  // The fixture emits its compact self-test JSON to stderr, preserving primary harness output.
  const selfResult=spawnSync(fixture,['--self-test'],{encoding:'utf8'});assert.equal(selfResult.status,0,selfResult.stderr);report.selfTest=JSON.parse(selfResult.stderr);
  for(const rate of rates)for(const scenario of cases){globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,address,value})=>`${frame} ${op} ${address} ${value}`).join('\n')+'\n';const bytes=execFileSync(fixture,[String(rate),String(scenario.frames)],{input,maxBuffer:scenario.frames*8+1048576,timeout:30000});assert.equal(bytes.length,scenario.frames*8);const actual=new Float32Array(bytes.buffer,bytes.byteOffset,bytes.length/4);
