@@ -71,3 +71,6 @@ node scripts/check_fm2612_package.mjs
 本体のWeb配布用JSとnpm向け配布物、およびTauriのNative接続ソースまで更新する。
 npm公開、Web配信、Tauriの同梱フロントエンド更新／配布、Examplesの依存更新はこの作業では行わない。
 次に予定していたYM2612 WASMの固定SDK参照への移行は、引き続き次作業として残す。
+
+追記：その後の指示で、npm向け変更を`tetorica-fm2612@0.2.28`として公開した。
+公開物と検証済み配布物の一致は[npm公開記録](npm_mixer_source_units_release_01.md)を参照。

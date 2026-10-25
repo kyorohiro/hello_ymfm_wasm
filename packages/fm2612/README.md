@@ -368,10 +368,10 @@ support and endpoint options still apply.
 These constants compare a fixed single voice at known levels. They do not
 analyze playing audio or perform automatic normalization, compression, or
 limiting. Timbre and polyphony still affect loudness and headroom. Chip kinds
-outside the 22 measured kinds keep their legacy defaults. The preset is
-intended initially for standalone chip / `createSoundChip` output routes;
-MegaSynth's built-in sources have different trims, so it does not reproduce
-the balance of a complete Playground machine mode.
+outside the 22 measured kinds keep their legacy defaults. The preset supplies
+standalone chip defaults rather than every machine-specific route or mode
+preset. MegaSynth's built-in Genesis FM/PSG sources also support its source
+units; separate endpoint and master gains still apply.
 
 ### Synth routing and settings
 
@@ -951,10 +951,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.27.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.28.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.27.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.28.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -971,6 +971,18 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.28` updates the **opt-in calibrated Mixer preset** to the shared listening
+levels: Sega PSG `0.35`, AY-3-8910 `0.85`, NES `1.16`, Game Boy `0.36`, and
+HuC6280 `0.44`. It selects `gainUnits: 'source'`, so integrated Genesis
+FM/PSG Mixer values replace the existing machine balance instead of multiplying
+it. A source-unit PSG volume of `0.35` has the same meaning for Genesis and
+standalone playback. Plain `new SoundChipMixer()`, no-mixer playback, direct
+chip PCM, and internal OPN section balance retain their previous behavior.
+When updating an application that saves calibrated Mixer settings, convert
+old Genesis-relative primary FM/PSG volumes by `0.9`/`0.35` once; standalone
+settings need no conversion. The shared Native runtime requires an updated
+Tauri host for source-unit Genesis mix commands.
 
 `0.2.27` refines the **opt-in calibrated Mixer preset** with measured AC-RMS
 defaults for Sega PSG, AY-3-8910 and the WASM NES core. The existing OPN internal

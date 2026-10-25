@@ -27,6 +27,8 @@ Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated pr
 その後、未反映だったPSG・AY・NES・PC Engineの初期値も揃えた。
 Mixerは調整値そのものを表示し、Genesisの既存倍率は接続側で相殺するsource単位へ整理した。
 旧保存設定の読込み時換算と検証は[psg_mixer_balance_02.md](psg_mixer_balance_02.md)を参照。
+続く指示で`tetorica-fm2612@0.2.28`をnpmへ公開し、latest・integrity・公開tarballの全byte一致を確認した。
+[npm公開記録](npm_mixer_source_units_release_01.md)を参照。Tauriの同梱frontendとExamplesの更新は未実施。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
