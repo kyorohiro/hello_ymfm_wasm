@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
-ARTIFACTS = ('ym2612', 'ym2203', 'ym2608')
+ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -36,6 +36,14 @@ YM2608_EXPORTS = [
     '_ym2608_generate', '_ym2608_set_source_mute_mask', '_ym2608_save_state',
     '_ym2608_load_state', '_malloc', '_free',
 ]
+YM2610B_EXPORTS = [
+    '_ym2610b_create', '_ym2610b_create_variant', '_ym2610b_load_rom',
+    '_ym2610b_clear_roms', '_ym2610b_set_source_mute_mask', '_ym2610b_destroy',
+    '_ym2610b_reset', '_ym2610b_write', '_ym2610b_read', '_ym2610b_read_status',
+    '_ym2610b_read_status_hi', '_ym2610b_get_irq', '_ym2610b_sample_rate',
+    '_ym2610b_generate', '_ym2610b_save_state', '_ym2610b_load_state',
+    '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -50,6 +58,7 @@ def sha256(data):
                      'These shell-route integration tests require POSIX sh and Node')
 class SdkBuildRouteMixin:
     runtime_methods = ['cwrap', 'HEAPF32']
+    trim_glue = False
 
     @property
     def build_script(self):
@@ -153,9 +162,9 @@ else:
         self.assertEqual(arguments[-2:], ['-o', str(output / javascript)])
         self.assertTrue(Path(arguments[-1]).is_absolute())
         generated = (output / javascript).read_bytes()
-        # Only the YM2203 recipe applies the retained Perl whitespace cleanup.
+        # Selected recipes retain the Perl whitespace cleanup before recording.
         expected_glue = (b'// fake compiler output; not a synthesis test\n'
-                         if self.artifact == 'ym2203'
+                         if self.trim_glue
                          else b'// fake compiler output; not a synthesis test \t  \n')
         self.assertEqual(generated, expected_glue)
 
@@ -258,6 +267,7 @@ class Ym2612SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
 class Ym2203SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     artifact = 'ym2203'
     exports = YM2203_EXPORTS
+    trim_glue = True
 
     def test_shared_output_preserves_existing_ym2612_build_info(self):
         self.assert_shared_output_preserves(['ym2612'])
@@ -270,6 +280,16 @@ class Ym2608SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
 
     def test_shared_output_preserves_existing_ym2612_and_ym2203_build_info(self):
         self.assert_shared_output_preserves(['ym2612', 'ym2203'])
+
+
+class Ym2610bSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ym2610b'
+    exports = YM2610B_EXPORTS
+    runtime_methods = ['cwrap', 'HEAPF32', 'HEAPU8']
+    trim_glue = True
+
+    def test_shared_output_preserves_all_three_existing_build_records(self):
+        self.assert_shared_output_preserves(['ym2612', 'ym2203', 'ym2608'])
 
 
 if __name__ == '__main__':

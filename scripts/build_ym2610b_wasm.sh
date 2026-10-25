@@ -3,22 +3,13 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
 OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
 
-# Keep runtime checks while optimizing the audio-thread synthesis hot path.
-em++ -std=c++14 -O2 -sASSERTIONS=1 \
-  -Isrc \
-  wasm/ym2610b_wasm.cpp \
-  src/ymfm_adpcm.cpp src/ymfm_misc.cpp src/ymfm_opl.cpp src/ymfm_opm.cpp \
-  src/ymfm_opn.cpp src/ymfm_opq.cpp src/ymfm_opz.cpp src/ymfm_pcm.cpp src/ymfm_ssg.cpp \
-  -sMODULARIZE=1 -sEXPORT_ES6=1 \
-  -sINCOMING_MODULE_JS_API='["wasmBinary"]' \
-  -sENVIRONMENT=web,worker,node,shell -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym2610b_create","_ym2610b_create_variant","_ym2610b_load_rom","_ym2610b_clear_roms","_ym2610b_set_source_mute_mask","_ym2610b_destroy","_ym2610b_reset","_ym2610b_write","_ym2610b_read","_ym2610b_read_status","_ym2610b_read_status_hi","_ym2610b_get_irq","_ym2610b_sample_rate","_ym2610b_generate","_ym2610b_save_state","_ym2610b_load_state","_malloc","_free"]' \
-  -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32","HEAPU8"]' \
-  -o "$OUT_DIR/ym2610b_wasm.js"
-
-# Keep generated glue free of whitespace-only diff noise.
-perl -pi -e 's/[ \t]+$//' "$OUT_DIR/ym2610b_wasm.js"
+# Compile both variants from the immutable recipe and record build hashes.
+# Register, ROM-transfer and synchronous PCM APIs retain the existing ABI.
+exec sh "$SDK_DIR/scripts/build-wasm.sh" ym2610b "$OUT_DIR"

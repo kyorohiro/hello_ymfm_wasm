@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readSource,renderSource} from '../cli/index.js';
 import {getNodePlaybackFactory} from '../cli/render.js';
 import {Ym2610BAudioEngine} from '../docs/js/ym2610baudioengine.js';
-import {createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
+import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
+import {createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
+import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 const fixture=(chip,name)=>new URL(`./fixtures/${chip}-${name}.vgz`,import.meta.url);
 for(const chip of ['ym2610','ym2610b'])test(`${chip} FM/SSG/ADPCM-A/B and mix match the Browser engine`,async()=>{
@@ -16,6 +18,9 @@ for(const chip of ['ym2610','ym2610b'])test(`${chip} FM/SSG/ADPCM-A/B and mix ma
     outputs.push(result.bytes);
     const engine=await Ym2610BAudioEngine.create({moduleFactory:await getNodePlaybackFactory('ym2610b'),clock:8000000,variant:chip==='ym2610b'});
     try {
+      // CLI rendering installs the Analyzer's calibrated source mixer. Use the
+      // same boundary for the manually assembled Browser reference engine.
+      installPlaybackMixer(engine,selectPlaybackConfiguration(new Ym2612VGM(source)));
       const player=createPlaybackPlayer(engine,source);player.play();
       assert.deepEqual(result.bytes,(await renderVgmToWav(player,{maxSeconds:.05})).bytes);
     }finally{engine.dispose();}

@@ -27,7 +27,10 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 詳細は[YM2203 WASMのSDK移行](wasm_sdk_ym2203_adoption_01.md)を参照。
 続くYM2608 WASMも同じ固定SDKへ切り替えた。旧再ビルド／配布済みWASMとの各586比較で差0。
 リズム・ADPCM・RAM転送／状態復元、Browser／npmも検証済み。校正04の全数値は旧03と一致した。
-今回の詳細は[YM2608 WASMのSDK移行](wasm_sdk_ym2608_adoption_01.md)。次はYM2610／YM2610B用WASMへの展開を判断する。
+今回の詳細は[YM2608 WASMのSDK移行](wasm_sdk_ym2608_adoption_01.md)。
+続くYM2610／YM2610Bの共有WASMも同じ固定SDKへ切り替えた。
+通常OPN系5種類／4 artifactのWASMビルドが同梱SDKを使う。Mixer値・公開APIは維持する。
+詳細は[YM2610／YM2610B WASMのSDK移行](wasm_sdk_ym2610b_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -959,7 +962,25 @@ Python27件、既存OPN／YM2608試験38件、両Browser計4経路、隔離npm�
 影響する校正を04として実際に測定し直し、旧03と全数値が一致した。Mixer値・APIは維持する。
 詳細と入力／出力hashは[YM2608移行記録](wasm_sdk_ym2608_adoption_01.md)とそのJSONを参照する。
 
-次はYM2610／YM2610B用WASMへの展開を判断する。残り24 artifactは今回一括移行していない。
+この節はYM2608移行時の記録。続くYM2610／YM2610B移行は次の節に記載する。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — YM2610／YM2610B WASMの固定SDK参照
+
+`scripts/build_ym2610b_wasm.sh`も同梱SDK `0.1.1`の共有WASMレシピを使う。
+固定379ファイルと取り込み記録は変更せず、4CH／6CHのvariant選択と既存ABIを維持する。
+通常出力と比較用SDK出力はbyte一致し、先行3音源の生成記録・出力も保持した。
+
+FM／SSG／ADPCM-A／Bと独立ROM、状態復元・既存Engineを旧再ビルド／配布済み版の両方と比較した。
+各1,108比較・14,063,856出力ステレオフレームで差0。重点36設定のown／cross／resetを各72回確認した。
+A全6声とBの終了フラグ・再発音、B repeatの末尾折返しも別枠で確認した。
+Python31件、既存OPN／YM2610試験40件、両Browser計8経路、隔離npm配布物・型・Analyzer ZIPは成功。
+旧配布版でも失敗するCLI比較試験のMixer適用漏れも、試験側だけを直して比較条件を揃えた。
+影響する校正hash参照はなく、再測定・Mixer値・公開APIの変更は不要だった。
+詳細と最終比較結果・hashは[YM2610／YM2610B移行記録](wasm_sdk_ym2610b_adoption_01.md)とそのJSONを参照する。
+
+これで通常OPN系5種類／4 artifactのWASMビルドが固定SDK参照になった。
+次はYM2151用WASMへの展開が候補。残り23 artifactは今回一括移行していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
