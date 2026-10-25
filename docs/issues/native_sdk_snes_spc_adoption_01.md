@@ -4,7 +4,7 @@
 着手時は本体`24ab8cbd5f7cbe1205cddd66807a67fb538005f0`、Tauri`469200109298ad3ba80ca1f0dca7ee0063b0eaa5`、
 SDK`affd1059599f3c7598191c14f5a864b44963d4aa`で、すべてcleanだった。直前のDX7移行までコミット済み。
 直前の全5構成成功CI run `40168462256`はGame Boy／NES移行までを含み、DX7と今回のSNES／SPCは含まない。
-今回はローカルの実装・検証後、DX7とまとめて5構成CIで確認する。タグやreleaseの作成は行わない。
+ローカルの実装・検証後、DX7とまとめた5構成CI run `40171879716`も全構成で成功した。タグやreleaseは作成していない。
 
 ## ビルド境界
 
@@ -99,4 +99,43 @@ node scripts/check_native_extra_spc.mjs
 `src-tauri/build.rs`、`README.md`、`NATIVE-SOURCES.md`、`docs/native-sdk-ym2612.md`の4ファイルだけと確認し、
 同ディレクトリの`summary.json`へ最終結果を集約した。SDK取り込み記録とfrontend archiveは変更していない。
 ガイド自身へZIPの自己ハッシュは埋め込まない。
-各OSのCI結果は実行後に別節へ記録する。実機聴音・UI操作、インストール後の起動、sanitizer、リアルタイム期限や処理速度の保証は別の確認。
+上記はローカル検証とCI入力の対応ソースZIPの記録。各OSのCI結果は次節に記録する。
+実機聴音・UI操作、インストール後の起動、sanitizer、リアルタイム期限や処理速度の保証は別の確認。
+
+## DX7／SNES／SPC移行後の5構成CI — 全5構成成功
+
+本体`8898a75fc4424aca11596d8cd7fb6046d1c3b585`、Tauri`8b9e922ad6e9c1f8d33cf5719b05330b58311944`へ
+SNES／SPC移行とローカル検証をcommit／pushし、両作業ツリーがcleanでremote mainと一致し、SDKもcleanであることを確認した。
+そのTauriコミットを対象に[Build Desktop — run 40171879716](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40171879716)を
+`workflow_dispatch`でmainへ手動実行した。attempt 1、2026-10-25 07:12:01 UTC開始、07:26:29 UTC完了。
+run全体は`completed`／`success`で、全5構成の検証・インストーラービルドとアップロードが成功した。CIのためのコード修正は不要だった。
+
+| 構成 | 自動試験・ソース照合 | インストーラービルド |
+| --- | --- | --- |
+| macOS ARM64 | 成功 | 成功（DMG） |
+| macOS x86_64 | 成功 | 成功（DMG） |
+| Windows x86_64 | 成功 | 成功（NSIS） |
+| Linux ARM64 | 成功 | 成功（DEB／AppImage） |
+| Linux x86_64 | 成功 | 成功（DEB／AppImage） |
+
+全5構成のログでPython 22件・Node 31件が成功。Rust全試験はmacOS／Linux各構成が723成功・0失敗・4件ignored、Windowsが726成功・0失敗・3件ignoredだった。
+
+- 全5構成でSDK374ファイルを含む22件の固定記録と対応ソースZIP全1,796ファイルの照合が成功。SDK版とfrontend archiveは変更していない。
+- 各構成で22 mode・604,032フレーム・88 Run／Stop、3混合構成・7単独音源、受入れ／16台制限と17台目の拒否が成功。受入れ・台数制限の両方でStop後の予約予算は0、再生／混合runnerはともにexit code 0、`deviceOpened: false`。
+- 全5構成の検証レポートZIPを取得し、GitHubのartifact digestとサイズへ一致。検証5組＋インストーラー5組の計10成果物は対象run／commitと一致し、有効期限内・非空だった。
+- 全5ジョブのドラフトリリース添付stepはskipped。アプリ版は`0.90.1`のままで、新しいタグ・ドラフトリリース・一般公開は作成していない。
+
+CIの対応ソースZIP SHA-256はmacOS／Linuxが`39cd14b113557665c039d0af3960839ed566c7ad2fdc49286859d8b5c53fa684`、
+Windowsが`f3ac24c3a08277ebcdf3651dce8f2620ebae6dc05bc149fac4de48cb89fb19e3`。各CI内の照合は成功しており、ハッシュ差の原因は断定しない。
+証拠は`/private/tmp/tetorica-dx7-snes-spc-ci-40171879716/`の
+`final-ci-summary.json`、`jobs-audit.json`、`inspection-summary.json`、`test-log-summary.json`、`artifact-metadata.json`、`native-artifact-metadata.json`。
+
+このCIはDX7とSNES／SPCの移行を含み、先行するrun `40168462256`は含まない。
+CI開始後の変更は結果記録だけで、製品・試験入力を変更せず、完了済みのローカル試験は再実行していない。
+ローカルのSNES／SPC 519比較とDX7 273比較は別の検証で、各OSでWASM比較を実行したという意味ではない。
+取得したのは検証レポートZIPのみ。インストーラーや対応ソースZIP自体の取得・独立照合・起動、OS間のPCM一致、実機聴音・UI操作は未確認。
+
+CI結果をガイドへ反映した後のローカル対応ソースZIPも、全1,796ファイルを再生成・照合した。
+SHA-256は`3c18c7ca41db0477591881002501c0dbfeac39c9ba972a714e705666cfd99389`。
+同証拠ディレクトリの`local-final-sources.json`で全22件の固定記録・SDK374ファイル・ZIPの照合が成功し、
+`local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。製品と試験のコンパイル入力は同じ。

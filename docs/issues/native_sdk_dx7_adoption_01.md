@@ -4,7 +4,8 @@
 着手時は本体`95bba16c8d5cc9ce4f3c3da3043c823cf7c47099`、Tauri`853d87f9aa28567eb05b89eec22e8c2348460d68`、
 SDK`affd1059599f3c7598191c14f5a864b44963d4aa`で、すべてcleanだった。
 Game Boy／NES＋FDSの移行と全5構成成功CI run `40168462256`の記録は、これらの基準コミットに保存済み。
-同CIは今回のDX7移行を含まない。今回の作業はローカルの実装と検証で、commit／push、CI、公開は行わない。
+同CIはDX7移行を含まない。この節から下の移行記録は、ローカルの実装・検証を終えた時点のもの。
+その後DX7をcommitし、SNES／SPC移行とまとめた5構成CIも成功した。結果は末尾へ記録する。
 
 ## ビルド境界
 
@@ -92,4 +93,24 @@ node scripts/check_native_extra_dx7.mjs
 着手時のマニフェストとの差分は`src-tauri/build.rs`、`README.md`、`NATIVE-SOURCES.md`、`docs/native-sdk-ym2612.md`の4ファイルのみ。
 `/private/tmp/tetorica-sdk-dx7-adoption/source-manifest-delta.json`に差分、同ディレクトリの`summary.json`に最終結果を集約した。
 SDK取り込み記録とfrontend archiveは変更していない。ガイド自身へZIPの自己ハッシュは埋め込まない。
-今回の各OSのCI、sanitizer、実機の音声出力・ノイズ・UI操作やインストール後の起動は未確認。リアルタイム期限や処理速度の保証もこの比較範囲に含まない。
+ローカル検証終了時点では各OSの新しいCIは未実施だった。sanitizer、実機の音声出力・ノイズ・UI操作やインストール後の起動は未確認。リアルタイム期限や処理速度の保証もこの比較範囲に含まない。
+
+## SNES／SPCとまとめた5構成CI — 全5構成成功
+
+DX7移行を本体`24ab8cbd5f7cbe1205cddd66807a67fb538005f0`、Tauri`469200109298ad3ba80ca1f0dca7ee0063b0eaa5`へ保存した後、
+SNES／SPC移行も含むTauri`8b9e922ad6e9c1f8d33cf5719b05330b58311944`をmainへcommit／pushし、
+[Build Desktop — run 40171879716](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40171879716)を手動実行した。
+attempt 1、2026-10-25。runは`completed`／`success`で、Windows x86_64、Linux x86_64／ARM64、macOS x86_64／ARM64の
+全5構成の自動試験・ソース照合・インストーラービルドが成功した。CIのための製品・試験修正は不要だった。
+ログでもPython 22件・Node 31件が全構成で成功。Rust全試験はmacOS／Linuxが723成功・0失敗・4件ignored、Windowsが726成功・0失敗・3件ignoredだった。
+
+全5構成でSDK374ファイル・22件の固定記録・対応ソースZIP1,796ファイル、22 mode・604,032フレーム・88 Run／Stop、
+3混合構成・7単独音源、受入れ／16台制限と17台目拒否が成功した。両制限試験のStop後予約予算は0、両runnerはexit code 0・`deviceOpened: false`。
+5検証レポートZIPのdigest／サイズが一致し、計10成果物のrun／commit一致・有効期限内・非空を確認。全5ドラフトリリース添付stepはskippedだった。
+版は`0.90.1`のままで、新しいタグやreleaseは作成していない。
+
+詳細とCI入力ソースZIPのハッシュは[SNES／SPC移行のCI記録](native_sdk_snes_spc_adoption_01.md)を参照する。
+証拠は`/private/tmp/tetorica-dx7-snes-spc-ci-40171879716/`の`final-ci-summary.json`、`inspection-summary.json`等。
+先行run `40168462256`はDX7移行を含まない。今回のCIと上記ローカル273比較は別の検証で、各OSのWASM比較やOS間のPCM一致を主張しない。
+検証レポートだけを取得し、インストーラー／対応ソースZIP自体の取得・独立照合・起動、実機聴音・UI操作は行っていない。
+CI後の変更は結果記録だけで、製品・試験入力はCI対象と同じ。
