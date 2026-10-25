@@ -12,13 +12,16 @@ const round = value => Number(value.toFixed(6));
 const psgLevels=JSON.parse(await readFile(new URL('../issues/analyzer_psg_levels_01.json',import.meta.url),'utf8'));
 const psgGain=.455420;
 
-test('Analyzer uses canonical measured kind levels and its explicitly measured renderer overrides',()=>{
+test('Analyzer uses canonical kind levels, measured renderer overrides and the Game Boy listening policy',async()=>{
  for(const {name,volume} of baseline){
   const id=aliases[name]??name;
   assert.deepEqual(mixerDefaults(id),{gain:ANALYZER_MIXER_DEFAULTS[id]??volume,pan:0,muted:false},id);
  }
  assert.equal(mixerDefaults('rf5c164').gain,.280286,'Existing RF decoder trim is already present in the measured output');
- assert.equal(mixerDefaults('gameBoyDmg').gain,.515271,'Measured Game Boy default replaces the old .28 heuristic');
+ assert.equal(mixerDefaults('gameBoyDmg').gain,.36,'Game Boy uses the chosen listening level');
+ const peakReport=JSON.parse(await readFile(new URL('../issues/playground_chip_levels_01.json',import.meta.url),'utf8'));
+ for(const role of ['primary','extra'])assert.equal(peakReport.calibration.routes.find(row=>row.kind==='gameboy'&&row.role===role).volume,
+  .515271,'Historical Game Boy wave calibration remains intact');
  for(const id of ['unknown','YM2612','__proto__'])assert.deepEqual(mixerDefaults(id),{gain:1,pan:0,muted:false});
  const settings=mixerDefaults('ym2612');settings.gain=2;
  assert.equal(mixerDefaults('ym2612').gain,.775938,'Returned defaults are not shared mutable state');
@@ -88,11 +91,11 @@ test('only standalone Sega PSG, AY and NES defaults use the measured OPNA-FM AC-
   assert.ok(Math.abs(row.rawAcRms*gain/psgLevels.reference.targetAcRms-1)<1e-6,id+' AC-RMS target');
  }
  assert.equal(mixerDefaults('psg',{kind:'ym2612'}).gain,1.3012,'Existing Genesis .35 trim is compensated once');
- for(const [name,volume] of [['segapsg',.455420],['ay8910',1.100331],['nes',1.514209],['gameboy',.515271],['huc6280',.798619]]){
-  assert.equal(baseline.find(record=>record.name===name).volume,volume,name+' library policy is measured independently');
+ for(const [name,volume] of [['segapsg',.455420],['ay8910',1.100331],['nes',1.514209],['gameboy',.36],['huc6280',.798619]]){
+  assert.equal(baseline.find(record=>record.name===name).volume,volume,name+' library default follows its measured or listening policy');
  }
  assert.notEqual(mixerDefaults('nesApu').gain,baseline.find(record=>record.name==='nes').volume,'Analyzer JSNES retains its own AC-RMS calibration rather than borrowing the WASM NES gain');
- assert.equal(mixerDefaults('gameBoyDmg').gain,.515271);
+ assert.equal(mixerDefaults('gameBoyDmg').gain,.36);
  assert.equal(mixerDefaults('huc6280').gain,.798619);
  const ayAlternate=psgLevels.rows.find(row=>row.id==='ay8910'&&row.frequencyHz===440&&row.ayFlags===0);
  assert.equal(ayAlternate.canonical,false,'A different AY DAC model must not set or clamp the common AY default');

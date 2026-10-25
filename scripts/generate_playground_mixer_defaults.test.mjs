@@ -7,7 +7,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {
   PLAYGROUND_CALIBRATION_KINDS,PLAYGROUND_CALIBRATION_PRIMARIES,PLAYGROUND_CALIBRATION_ENGINES,
-  buildPlaygroundMixerDefaults,renderPlaygroundMixerDefaults,generatePlaygroundMixerDefaults,
+  buildPlaygroundMixerDefaults,buildPlaygroundMixerPolicy,renderPlaygroundMixerDefaults,generatePlaygroundMixerDefaults,
 } from './generate_playground_mixer_defaults.mjs';
 
 function fixture() {
@@ -30,6 +30,18 @@ function fixture() {
 }
 const row = (report,role,mode,kind) => report.calibration.routes.find(route=>route.role===role&&route.mode===mode&&route.kind===kind);
 const entry = (profile,mode,id) => profile.factoryModes[mode].entries.find(entry=>entry.id===id);
+
+test('listening policy changes Game Boy primary and extra defaults without changing measured data or other routes',()=>{
+  const report=fixture(),before=structuredClone(report),raw=buildPlaygroundMixerDefaults(report);
+  const policy=buildPlaygroundMixerPolicy(report);
+  assert.equal(policy.factoryDefaults.kinds.find(entry=>entry.name==='gameboy').volume,.36);
+  assert.equal(entry(policy,'gameboy','gameboy').settings.volume,.36);
+  const expected=structuredClone(raw);
+  expected.factoryDefaults.kinds.find(entry=>entry.name==='gameboy').volume=.36;
+  entry(expected,'gameboy','gameboy').settings.volume=.36;
+  assert.deepEqual(policy,expected);
+  assert.deepEqual(report,before);
+});
 
 test('a complete 153-capture baseline produces deterministic 440 Hz defaults including SPC',()=>{
   const report = fixture(), before = structuredClone(report), profile = buildPlaygroundMixerDefaults(report);
@@ -146,6 +158,14 @@ test('generated module constructs independent application mixers and preserves s
   assert.equal(second.get('segapsg').volume,entry(profile,'genesis','segapsg').settings.volume);
   assert.deepEqual(first.exportDefaults(),{version:1,kinds:[]});
   assert.deepEqual(first.exportState(),{version:1,entries:[{id:'segapsg',name:'segapsg',settings:{volume:.1234567}}]});
+  const gameboy=generated.createPlaygroundSoundChipMixer('gameboy');
+  gameboy.register('gameboy','gameboy',()=>{});gameboy.register('extra','gameboy',()=>{});
+  assert.equal(gameboy.get('gameboy').volume,.36);assert.equal(gameboy.get('extra').volume,.36);
+  gameboy.restoreState({version:1,entries:[{id:'gameboy',name:'gameboy',settings:{volume:1}}]},{version:1,kinds:[]});
+  assert.equal(gameboy.get('gameboy').volume,1,'saved absolute volume is retained');
+  assert.equal(gameboy.get('extra').volume,.36,'unmodified extra uses the listening fallback');
+  gameboy.restoreState({version:1,entries:[]},{version:1,kinds:[]});
+  assert.equal(gameboy.get('gameboy').volume,.36,'System fallback is applied once');
   first.restoreState({version:1,entries:[]},{version:1,kinds:[]});
   assert.equal(first.get('segapsg').volume,entry(profile,'genesis','segapsg').settings.volume);
   assert.throws(()=>generated.createPlaygroundSoundChipMixer('missing-mode'),/No Playground Mixer calibration/);

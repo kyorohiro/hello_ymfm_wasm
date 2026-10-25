@@ -21,6 +21,9 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 通常22音源IDと代替NukedのSDK参照が揃った。機種用補助処理・Rustの所有／予約・Mixer／FXはアプリ側に残る。
 次に着手する作業は、本体のYM2612 WASMビルドを固定SDKソースへ切り替えること。
 下の「次に着手する作業」に範囲と検証方針を記録した。今回は記録のみで、このWASM移行の調査・実装は未着手。
+その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
+Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
+内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。WASM SDK移行は引き続き次作業。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。

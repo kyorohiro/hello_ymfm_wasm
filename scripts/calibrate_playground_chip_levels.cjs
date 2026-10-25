@@ -35,12 +35,14 @@ async function main(){
   const {FM_CALIBRATION_KINDS,buildFmCalibrationReference,buildYm2610bPrimaryCalibrationReference}=await import('./soundchip_calibration_fm.mjs');
   const {PCM_CALIBRATION_KINDS,buildPcmCalibrationReference}=await import('./soundchip_calibration_pcm.mjs');
   const {probeAmplitude,deriveCalibrationGains}=await import('./soundchip_calibration_metrics.mjs');
+  const {buildPlaygroundMixerPolicy}=await import('./generate_playground_mixer_defaults.mjs');
   const all=[...FM_CALIBRATION_KINDS,...PCM_CALIBRATION_KINDS];
   if(kinds?.some(k=>!all.includes(k)))throw Error('Unknown requested calibration kind');
   const builder=(kind,hz,chipEngine)=>FM_CALIBRATION_KINDS.includes(kind)?buildFmCalibrationReference(kind,hz,{engine:chipEngine}):buildPcmCalibrationReference(kind,hz);
   const selected=all.filter(k=>!kinds||kinds.includes(k));
   const baseline=baselinePath?JSON.parse(await fs.readFile(path.resolve(baselinePath),'utf8')):null;
   if(verify&&(!baseline?.passed||baseline.verify||!baseline.calibration?.targetAmplitude))throw Error('--verify requires a successful uncalibrated --baseline report');
+  const defaultPolicy=verify?buildPlaygroundMixerPolicy(baseline):null;
   const routes=[...selected.map(kind=>({kind,role:'extra',mode:'genesis'})),...(selected.includes('ym2612')?[{kind:'ym2612',chipEngine:'nuked',role:'extra',mode:'genesis'}]:[]),...(!onlyExtra?primary.filter(([,kind])=>selected.includes(kind)).map(([mode,kind,accessKind])=>({kind,role:'primary',mode,accessKind:accessKind??kind})):[])];
   const report={schemaVersion:1,passed:false,engine,verify,method:'half peak-to-peak; RMS/DC/AC-RMS recorded separately',
     frequencies,rows:[],limits:['Known single-voice waveforms; not perceived loudness or polyphony normalization.',
@@ -94,7 +96,12 @@ async function main(){
           if(verify){
             const original=baseline.rows.find(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.chipEngine===route.chipEngine&&r.frequencyHz===frequencyHz);
             if(!original)throw Error('Missing baseline route');
-            const gain=baseline.calibration.routes.find(r=>r.kind===route.kind&&r.role===route.role&&r.mode===route.mode&&r.chipEngine===route.chipEngine)?.volume;
+            const gain=route.role==='primary'
+              ? defaultPolicy.factoryModes[route.mode]?.entries.find(entry=>entry.id===sourceId)?.settings.volume
+              : defaultPolicy.factoryEngines.engines.find(entry=>entry.name===route.kind&&entry.engine===route.chipEngine)?.volume
+                ?? defaultPolicy.factoryDefaults.kinds.find(entry=>entry.name===route.kind)?.volume;
+            if(!Number.isFinite(gain)||gain<=0)throw Error('Missing default Mixer policy for '+route.kind);
+            if(Math.abs(mix.settings.volume-gain)>1e-6)throw Error(`Default Mixer policy mismatch ${route.role}/${route.mode}/${route.kind}: ${mix.settings.volume} vs ${gain}`);
             const expected=original.amplitude*gain,relativeError=Math.abs(amplitude/expected-1);
             const row=report.rows.at(-1);Object.assign(row,{expectedAmplitude:expected,relativeError});
             if(!Number.isFinite(relativeError)||relativeError>.025)throw Error(`Default gain mismatch ${route.role}/${route.mode}/${route.kind}/${frequencyHz}: ${amplitude} vs ${expected}`);

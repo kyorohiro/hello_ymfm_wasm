@@ -44,6 +44,9 @@ function assertChipComparisonResources(resources,workletTransfers,label) {
 }
 
 async function runChipComparison({page,native,tracker,artifacts,name,ready,assertNoLiveAudio,until}) {
+  const {buildPlaygroundMixerDefaults}=await import('./generate_playground_mixer_defaults.mjs');
+  const calibration=JSON.parse(await fs.readFile(path.join(__dirname,'../docs/issues/playground_chip_levels_01.json'),'utf8'));
+  const measuredKinds=new Map(buildPlaygroundMixerDefaults(calibration).factoryDefaults.kinds.map(({name,volume})=>[name,volume]));
   const source = await page.evaluate(async example => {
     const response = await fetch(example);
     if (!response.ok) throw Error('Missing chip comparison Example');
@@ -194,8 +197,13 @@ async function runChipComparison({page,native,tracker,artifacts,name,ready,asser
             assert.equal(pcm.nonfinite,0,kinds[index]+' finite Web PCM');
             assert.equal(pcm.overrange,0,kinds[index]+' Web mix headroom');
             assert(Math.max(...pcm.acRms)>.001,kinds[index]+' contributes an alternating waveform');
-            const target=await page.evaluate(async () => (await import('./playground_mixer_defaults.js')).PLAYGROUND_MIXER_CALIBRATION.targetAmplitude);
-            const expectedAmplitude=target*(['snes','spc'].includes(kinds[index])?7/8:1);
+            const policy=await page.evaluate(async () => {
+              const defaults=await import('./playground_mixer_defaults.js');
+              return {target:defaults.PLAYGROUND_MIXER_CALIBRATION.targetAmplitude,listeningLevels:defaults.PLAYGROUND_MIXER_LISTENING_LEVELS};
+            });
+            const listeningVolume=policy.listeningLevels?.[kinds[index]];
+            const levelRatio=listeningVolume===undefined?1:listeningVolume/measuredKinds.get(kinds[index]);
+            const expectedAmplitude=policy.target*levelRatio*(['snes','spc'].includes(kinds[index])?7/8:1);
             const amplitude=Math.max(...pcm.maximum.map((high,ch)=>(high-pcm.minimum[ch])/2));
             assert(Math.abs(amplitude/expectedAmplitude-1)<.05,kinds[index]+' default amplitude within 5% of its known reference: '+amplitude+' vs '+expectedAmplitude);
             row.pcm.push({kind:kinds[index],amplitude,expectedAmplitude,...pcm});

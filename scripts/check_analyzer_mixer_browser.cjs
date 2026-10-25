@@ -82,7 +82,7 @@ const server=http.createServer(async(request,response)=>{
 
 const expected={
   'genesis-pcm.vgz':{ym2612:.862153,psg:1.3012,rf5c164:.280286},
-  'gameboy-tone.vgm':{gameBoyDmg:.515271},
+  'gameboy-tone.vgm':{gameBoyDmg:.36},
   'nes-tone.vgm':{nesApu:1.512236},
   'y8950-psg.vgz':{y8950:1.03357,psg:.45542},
   'ay-tone.vgm':{ay8910:1.100331},

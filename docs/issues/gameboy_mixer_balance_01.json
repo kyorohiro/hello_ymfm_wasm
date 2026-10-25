@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "deviceOpened": false,
+  "id": "gameBoyDmg",
+  "variant": "gameboy-pulse50-max",
+  "sampleRate": 44100,
+  "warmupSeconds": 0.25,
+  "captureSeconds": 1,
+  "displayedGain": 0.36,
+  "initialGainSnapshot": 0.515271,
+  "referenceSha256": "a794c2f7eddf45083296a2fee841bf77c7462ffad2b4c2095b7de4e332fb2dbc",
+  "sameReferenceAsOriginal": true,
+  "unity": {
+    "minimum": -0.25,
+    "maximum": 0.25,
+    "peak": 0.25,
+    "peakToPeak": 0.5,
+    "amplitude": 0.25,
+    "dc": 0.000091552734375,
+    "rms": 0.24833052188730245,
+    "acRms": 0.2483305050107957,
+    "measuredFrequencyHz": 439.8398321246922
+  },
+  "atGain036": {
+    "minimum": -0.09000000357627869,
+    "maximum": 0.09000000357627869,
+    "peak": 0.09000000357627869,
+    "peakToPeak": 0.18000000715255737,
+    "amplitude": 0.09000000357627869,
+    "dc": 0.0000329589860659177,
+    "rms": 0.08939899140813123,
+    "acRms": 0.08939898533258842,
+    "measuredFrequencyHz": 439.8398321246087
+  },
+  "maxScalingError": 3.5762786898541066e-9,
+  "ym2612AnchorAcRms": 0.09133997152333745,
+  "ratioToYm2612": 0.978749870857436,
+  "dbRelativeYm2612": -0.1865656447521694,
+  "limits": [
+    "Maximum sustained50% pulse0 only; no arbitrary-music loudness guarantee",
+    "Explicit gain bypasses saved or default Mixer precedence; root tests precedence separately",
+    "No device or repository edits"
+  ]
+}

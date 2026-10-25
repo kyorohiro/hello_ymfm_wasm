@@ -18,18 +18,19 @@ const preset = SOUNDCHIP_MIXER_PRESETS.calibrated;
 const kinds = records => ({version: 1, kinds: records});
 const state = entries => ({version: 1, entries});
 
-test('calibrated export contains exactly the measured additional kinds and engine, without machine-specific gains', () => {
+test('calibrated export combines measured kinds, PSG balance and Game Boy listening level without machine-specific gains', () => {
   assert.equal(rootPresets, SOUNDCHIP_MIXER_PRESETS);
   assert.deepEqual(Object.keys(SOUNDCHIP_MIXER_PRESETS), ['calibrated']);
   const factoryDefaults = {version: 1, kinds: measured.factoryDefaults.kinds.map(record =>
-    ({...record, ...(Object.hasOwn(reducedPsg, record.name) ? {volume: reducedPsg[record.name]} : {})}))};
+    ({...record, ...(Object.hasOwn(reducedPsg, record.name) ? {volume: reducedPsg[record.name]} : {}),
+      ...(record.name==='gameboy'?{volume:.36}:{})}))};
   assert.deepEqual(preset, {factoryDefaults, factoryEngines: measured.factoryEngines});
   assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set(PLAYGROUND_CALIBRATION_KINDS));
   assert.equal(preset.factoryDefaults.kinds.length, 22);
   assert.deepEqual(preset.factoryEngines.engines, [{name: 'ym2612', engine: 'nuked', volume: 0.493869}]);
   assert.equal(Object.hasOwn(preset, 'factoryEntries'), false);
   const changed = preset.factoryDefaults.kinds.filter(record => record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
-  assert.deepEqual(new Set(changed.map(record => record.name)), new Set(['segapsg', 'ay8910', 'nes']));
+  assert.deepEqual(new Set(changed.map(record => record.name)), new Set(['segapsg', 'ay8910', 'nes', 'gameboy']));
   for (const record of changed) assert.ok(record.volume < measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
 });
 
@@ -48,7 +49,8 @@ test('only the standalone PSG-family fallbacks use the steady OPNA-FM AC-RMS ref
     assert.equal(preset.factoryDefaults.kinds.find(record => record.name === name).volume,
       measured.factoryDefaults.kinds.find(record => record.name === name).volume, name + ' internal section balance remains unchanged');
   }
-  for (const name of ['gameboy', 'huc6280']) assert.equal(preset.factoryDefaults.kinds.find(record => record.name === name).volume,
+  assert.equal(preset.factoryDefaults.kinds.find(record=>record.name==='gameboy').volume,.36);
+  for (const name of ['huc6280']) assert.equal(preset.factoryDefaults.kinds.find(record => record.name === name).volume,
     measured.factoryDefaults.kinds.find(record => record.name === name).volume, name + ' wavetable reference is unchanged');
 });
 
