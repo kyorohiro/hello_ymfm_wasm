@@ -18,7 +18,7 @@ npx tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 ```
 
 To test a local build, install its distribution tarball with
-`npm install ./tetorica-vgm-0.2.13.tgz`, then use `npx tetorica-vgm --help`.
+`npm install ./tetorica-vgm-0.2.14.tgz`, then use `npx tetorica-vgm --help`.
 
 Try playback, Note-ish and sheet music in the
 [browser VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html).
@@ -499,6 +499,16 @@ count still affect the result.
 YM2608's borrowed PCM path now passes through the shared playback Mixer, so
 its gain, pan and mute settings also reach rendered audio. Analysis, export
 formats and low-level chip PCM units are unchanged.
+
+## Version 0.2.14
+
+WAV rendering adopts the shared listening levels: Sega PSG `0.35`,
+AY-3-8910 `0.85`, NES APU `1.16`, Game Boy `0.36`, and HuC6280 `0.44`.
+Mixer values now use source units, so Genesis FM/PSG do not receive an extra
+machine-balance multiplier. Genesis and standalone PSG both use `0.35`.
+OPN internal FM/SSG/rhythm/ADPCM ratios remain unchanged; analysis and score
+exports are unchanged. This fixed balance does not normalize individual
+tracks, waveforms, instruments, or polyphony.
 
 ## MDX export
 

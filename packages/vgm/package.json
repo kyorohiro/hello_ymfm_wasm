@@ -1,6 +1,6 @@
 {
   "name": "tetorica-vgm",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "description": "VGM and experimental SPC analysis, MIDI and sheet music exports",
   "type": "module",
   "license": "BSD-3-Clause",
