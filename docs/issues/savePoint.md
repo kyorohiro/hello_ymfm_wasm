@@ -116,7 +116,7 @@ attempt 1、対象は`a70e86d2061349a396de7e4816a5438fea5dcb4f`。runは`complet
 先行する成功CI `40162092207`はGame BoyもNES移行も含まない。今回のCIと、先行するローカルの旧／SDK・WASM比較結果は区別する。
 新しいタグ、ドラフトリリース、一般公開は作成していない。
 
-最新の作業では、選択中／独立追加DX7の共通Native接続とMSFAを固定SDK参照へ切り替えた。
+その後、選択中／独立追加DX7の共通Native接続とMSFAを固定SDK参照へ切り替えた。
 着手時は本体`95bba16c...`、Tauri`853d87f9...`、SDKともcleanだった。
 接続cpp／headerはbyte一致。24共有ファイルと6 Native overrideを`OUT_DIR/tetorica_sdk_dx7_msfa/`へコピーして組み立て、既存の14翻訳単位・archive・flags・リンク順序を維持する。
 SDKのNative Panicは事前確保済み`Dx7Note`へ初期状態を値代入し、feedback履歴をallocation／freeなしで初期化する。
@@ -125,18 +125,30 @@ SDKのNative Panicは事前確保済み`Dx7Note`へ初期状態を値代入し�
 合計231固有Native入力・1,818,624フレーム、実WASM273比較・2,297,856フレームの最大差0。Panic後の新規インスタンス一致96／96とrender／制御中allocation／free 0の自己試験も成功。
 `npm test`のPython 22件・Node 31件、Rust全試験723成功・0失敗・4件ignored。MCPのTCP bindのため初めから制限外で実行し、sandbox内失敗や製品修正はない。
 22 mode・604,032フレーム・88 Run／Stopと、3混合構成・7単独音源、受入れ／16台制限で17台目の拒否が成功。両制限試験でStop後の予約予算0、両runnerはexit code 0・`deviceOpened: false`。
-直前の成功CI `40168462256`は今回のDX7移行を含まない。今回のcommit／push、CIと公開は未実施。
+直前の成功CI `40168462256`はDX7移行を含まない。DX7ローカル検証後、ユーザーが本体`24ab8cbd...`、Tauri`46920010...`へコミット済み。
+
+最新の作業では、選択中／独立追加SNES S-DSPと独立追加SPC700ファイルプレーヤーの共通コア・接続を固定SDK参照へ切り替えた。
+着手時は本体`24ab8cbd...`、Tauri`46920010...`、SDKともclean。2接続cpp／2 ABI headerとSNES-SPC 24ファイルの28組はbyte一致する。
+既存の`tetorica_native_snes` archive内の6翻訳単位を維持し、共有`SPC_DSP.cpp`を一度だけコンパイルする。既存のflags・リンク順序も保持する。
+SNESの所有RAM／借用timeline、SPCのコピーloadと元ファイル保持、control側の準備とcallbackへの公開・回収は既存のRust実装を使う。
+旧34件のsnapshot pin・LGPLライセンス・由来、SDK374ファイル・版と取り込み記録は保持する。
+旧／SDKのstdout／stderrはbyte一致。SNESの重複を除く75入力・761,856フレームと、SPCの84入力・688,128フレームで、実WASM比較519回・4,792,320フレームの最大差は0。
+SNES／SPCの公開ABI・RAMコピー／timeline／load／seek／観測とallocation／free 0の自己試験、実Cargoの6 object・35 C ABIの各1回の定義も確認した。
+`npm test`のPython 22件・Node 31件、Rust 723成功・0失敗・4件ignored。初めから制限外で実行し、sandbox内失敗はない。
+22 mode・604,032フレーム・88 Run／Stopと3混合構成・7単独音源、受入れ／16台制限と17台目拒否も成功。両制限試験のStop後予約予算0、両runnerはexit code 0・`deviceOpened: false`。
+ローカル検証は完了し、文書と対応ソースZIPの照合後、DX7を含む5構成CIへ進む。直前run `40168462256`はDX7も今回のSNES／SPCも含まない。
+これで通常の22音源IDのSDK参照が揃う。代替Nuked YM2612と機種用の補助処理はアプリ側に残る。
 
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
 `w/`以下はそれぞれ独立したGitリポジトリなので、本体だけのcommitで保存できたと判断しない。
 
 | リポジトリ | ローカルパス | 再開の基準コミット（すべてmain） |
 | --- | --- | --- |
-| 本体 | `hello_ymfm/` | `95bba16c8d5cc9ce4f3c3da3043c823cf7c47099` (Game Boy／NES移行とCI記録までcommit済み。DX7着手前はclean) |
+| 本体 | `hello_ymfm/` | `24ab8cbd5f7cbe1205cddd66807a67fb538005f0` (DX7移行とローカル検証までcommit済み。SNES／SPC着手前はclean) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
-| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `853d87f9aa28567eb05b89eec22e8c2348460d68` (Game Boy／NES移行とCI結果ガイドまでcommit済み。DX7着手前はclean) |
+| Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `469200109298ad3ba80ca1f0dca7ee0063b0eaa5` (DX7移行とローカル検証までcommit済み。SNES／SPC着手前はclean) |
 
-本体には次のメモがある。Game Boy／NESまでの参照切替・ローカル検証と全5構成のCI記録はcommit済み。今回のDX7移行は未コミットで、各リポジトリのgit statusで確認する。
+本体には次のメモがある。Game Boy／NESまでの全5構成CI記録と、DX7の移行・ローカル検証はcommit済み。今回のSNES／SPC移行は未コミットで、各リポジトリのgit statusで確認する。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -154,6 +166,7 @@ SDKのNative Panicは事前確保済み`Dx7Note`へ初期状態を値代入し�
 - [native_sdk_gameboy_adoption_01.md](native_sdk_gameboy_adoption_01.md)：Game Boy共通接続／APUの移行とローカル検証、NESと合わせたrun `40168462256`の全5構成成功。
 - [native_sdk_nes_adoption_01.md](native_sdk_nes_adoption_01.md)：NES＋FDS共通接続の移行とローカル検証、Game Boyと合わせたrun `40168462256`の全5構成成功。
 - [native_sdk_dx7_adoption_01.md](native_sdk_dx7_adoption_01.md)：DX7共通接続／MSFAの移行、通常再生の一致とNative Panicのfeedback履歴初期化、ローカル検証。
+- [native_sdk_snes_spc_adoption_01.md](native_sdk_snes_spc_adoption_01.md)：SNES S-DSP／SPC700共通コア・接続の移行、所有・再リンク境界と検証。
 - [todo_schedule_register_01.md](todo_schedule_register_01.md)：AY／YM2149等の高速レジスタ制御の別案。今回のSDK移行では実装していない。
 
 ### SDK側の完了範囲
@@ -214,6 +227,7 @@ Tauriの [src-tauri/build.rs](../../w/tetorica-fm2612-playground-tauri/src-tauri
 - 選択中／追加生成Game Boyの`native/reference/tauri/native_genesis_gameboy.cpp`と、共通APUの`vendor/mame-gameboy/gameboy_apu.cpp`／`.h`。
 - 選択中NES＋FDS／追加生成NESの共通接続とAPU／FDS実装を含む`native/reference/tauri/native_genesis_nes.cpp`／`.h`。
 - 選択中／追加生成DX7の`native/reference/tauri/native_genesis_dx7.cpp`／`.h`と、`vendor/msfa/`の24共有ファイルおよび`native/reference/overrides/msfa/`の6ファイルからコピーして組み立てるMSFA。
+- 選択中／追加生成SNES S-DSPの`native/reference/tauri/native_genesis_snes.cpp`／`.h`、追加SPC700の`native_genesis_spc.cpp`／`.h`と、`vendor/snes-spc/snes_spc/`の共通コア4翻訳単位。
 - `vendor/mame-okim6258/okim6258.cpp`原本へ既存の初期化対策を適用して`OUT_DIR/tetorica_sdk_okim6258.cpp`へ生成したデコーダー。
 - 共有 `native/src/ymfm_opn_provider.cpp`、`native/src/ymfm_opm_provider.cpp`、`native/src/ymfm_opl_provider.cpp` と `vendor/ymfm/ymfm_ssg.cpp`、`ymfm_adpcm.cpp`、`ymfm_pcm.cpp`。
 
@@ -254,6 +268,11 @@ DX7はSDKから`OUT_DIR/tetorica_sdk_dx7_msfa/`へ13個のccと17個のheaderを
 Native Panicの修正だけは旧版と意図した差があり、事前確保済みnoteへの値代入でfeedback履歴を消す。通常note-on／release／kill、Rustの音色所有・lease・slot管理・予約、PCM・Mixer／FXは保持する。
 CargoはSDKのMSFA共有／overrideディレクトリと接続cpp／headerを監視し、実消費元のない旧native-dx7／ローカル接続のソース監視を外す。
 旧32ファイルのスナップショット、原本／修正版のハッシュとライセンスの同梱先、syncスクリプトは保持する。旧syncだけではSDKを更新しない。
+SNES／SPCは2接続と4コアを既存の`tetorica_native_snes` archive内の6翻訳単位としてコンパイルし、`SPC_DSP.cpp`を重複しない。
+SDKの独立CMakeターゲットを追加せず、C++17・O2・MSVC `/EHsc`・wrapv／noalias／ffp設定と既存のリンク順序を維持する。
+SNESの所有64 KiB RAM／借用timelineとSPCのコピーload／元ファイル保持、control側の生成・seek・破棄とcallbackへの公開・回収は既存のRust実装。
+CargoはSDKのSNES-SPCディレクトリと2接続cpp／headerを監視し、実消費元のない旧`native-snes/`／ローカル接続のソース監視を外す。
+旧34件の固定記録とLGPLライセンス・由来・syncスクリプトを保持し、実際のSDKを改変して再リンクする手順を`NATIVE-SOURCES.md`へ更新する。
 
 最初に読むファイルはTauriの [SDK取り込みガイド](../../w/tetorica-fm2612-playground-tauri/docs/native-sdk-ym2612.md)。
 配布ソースの再ビルドは [NATIVE-SOURCES.md](../../w/tetorica-fm2612-playground-tauri/NATIVE-SOURCES.md) を参照する。
@@ -719,6 +738,35 @@ private全状態やWASM内部状態を毎フレームdump比較したもので�
 ホストログは`/private/tmp/tetorica-sdk-dx7-npm-test.log`と`/private/tmp/tetorica-sdk-dx7-cargo-test-unrestricted.log`。
 再生／混合レポートは`/private/tmp/tetorica-sdk-dx7-stability.json`と`/private/tmp/tetorica-sdk-dx7-extra-stability.json`。
 
+### SNES／SPC移行 — 2026-10-25、ローカル検証
+
+選択中／独立追加SNES S-DSPと独立追加SPC700プレーヤーを固定SDK参照へ切り替えた。
+28組のソース・ABI header・由来ファイルは旧コピーとbyte一致し、旧34件のsnapshot pinを保持した。
+既存archiveの6翻訳単位と共有S-DSPの1回の定義を維持する。詳細は[native_sdk_snes_spc_adoption_01.md](native_sdk_snes_spc_adoption_01.md)。
+macOS ARM64／Clang・Nodeで旧／SDKを別々にコンパイルし、全入力のstdout／stderrがbyte一致した。
+
+| 対象 | 固有Native入力数 | Nativeフレーム | 実WASM比較回数 | 比較フレーム |
+| --- | ---: | ---: | ---: | ---: |
+| SNES（選択中と追加生成の重複を除く） | 75 | 761,856 | 267 | 2,727,936 |
+| 独立追加SPC | 84 | 688,128 | 252 | 2,064,384 |
+| 合計 | 159 | 1,449,984 | 519 | 4,792,320 |
+
+実配布WASM／Workletの最大差は0。選択中SNESの42入力は追加側75入力の部分集合で二重加算しない。
+追加側の3通りのblock分割比較をNative入力へ加算せず、既定経路の再確認やfixture指定・自己試験も集計から除く。
+実WASM SHA-256は`cbbe06819574249217f35da16eebd45a53274e53251f31242e7dd407b03d0d70`。
+SNESの既存／SDK fixtureを旧／SDKで2種類の自己試験へ実行し、8回とも成功。152バイトstate ABI、ローカル確保量67,280バイト、コピーRAM・全体reset・境界・安定view、8声・保護gate、保持Stop・独立性と借用timelineのpause／完了／再開、render／制御allocation／free 0を確認。
+SPCの28シナリオ×3 rateと、実WASMへの810 snapshot・358,056 DSP書込みを照合した。強化fixtureも旧／SDKで成功し、56バイトstate／16バイトevent ABI、ローカル確保量204,624バイト、コピーload・control側seek・pause・独立mute・観測／overflow・失敗／reload、render allocation／free 0を確認。
+公開状態や限定された観測点の比較であり、毎フレームのprivate全状態のdump比較ではない。
+3本の既定checkerとinline指定が成功し、不正18形式をコンパイル前に拒否。指定fixtureは保持し、SNES 10入力／SPC 15入力を依存列と実ファイルのSHA-256へ照合した。
+実Cargo archiveは6 objectを保持し、35個のNative C ABI exportは各1回だけ定義された。6 CPPの依存preprocessでSDK側headerだけを解決し、SDK入力の監視を確認。旧sourceの全体監視を外し、個別のlicense／対応ソースresource監視を保持する。
+`npm test`はPython 22件・Node 31件成功、Rustは723成功・0失敗・4件ignored。MCPのTCP bindのため初めから制限外で実行し、sandbox内失敗はない。
+再生ライフサイクル22 mode・604,032フレーム・88 Run／Stopと、3混合構成・7単独音源、受入れ／16台制限で17台目拒否も成功。両制限試験のStop後予約予算は0、両runnerはexit code 0・`deviceOpened: false`。
+証拠は`/private/tmp/tetorica-sdk-snes-spc-adoption/`の`source-audit.json`、`snes-parity-summary.json`、`spc-parity-summary.json`、`independent-checker-audit.json`、`build-audit.json`、`host-summary.json`。
+ホストログは`/private/tmp/tetorica-sdk-snes-spc-npm-test.log`と`/private/tmp/tetorica-sdk-snes-spc-cargo-test-unrestricted.log`。
+再生／混合レポートは`/private/tmp/tetorica-sdk-snes-spc-stability.json`と`/private/tmp/tetorica-sdk-snes-spc-extra-stability.json`。
+直前の全5構成成功CI run `40168462256`はDX7も今回のSNES／SPC移行も含まない。
+今回のローカル検証と対応ソースZIP照合後、commit／pushしてDX7とまとめた5構成CIへ進む。
+
 ### 再開手順
 
 まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
@@ -756,10 +804,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. Game Boy／NESの移行とローカル検証、run `40168462256`の全5構成CIの結果記録はcommit済み。今回のDX7移行のローカル比較・ホスト全試験と文書、対応ソースZIPの生成・照合とハッシュ記録も完了した。DX7差分のcommit／pushと新しいCIは未実施。
+1. Game Boy／NESの全5構成CI記録とDX7移行・ローカル検証はcommit済み。SNES／SPCのローカル比較・ホスト全試験と文書、対応ソースZIPの生成・照合も完了。commit／push後にDX7とまとめた5構成CIを実行する。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 各成功CIの対象コミットを区別し、必要なOSのインストーラーで起動を確認する。実機の聴音・UI操作は自動試験とは別の確認。現在ステージ済みの差分はない。
-4. DX7の次のSDK移行候補はSNES／SPC。今回SNES／SPC移行には着手していない。Nuked YM2612の別variantも今回の範囲外。
+4. SNES／SPCで通常の22音源IDのSDK参照が揃う。代替Nuked YM2612の別variantの移行は今回の範囲外。機種用の補助処理とRustの所有・予約・混合はアプリ側に残る。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -834,12 +882,18 @@ SDK自体をリモートから自動取得する設計には戻さない。
   同ディレクトリの`local-final-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合し、
   `local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。
   製品コードと試験のコンパイル入力はCI対象から変更していない。
-- DX7移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+- DX7移行直後の旧ローカル対応ソースZIPは全1,796ファイル、SHA-256は
   `a0869853f65bce864ab7dec114a85e4ac4f58d4064054b14159028efb9d755a8`。
   `/private/tmp/tetorica-sdk-dx7-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
   `/private/tmp/tetorica-sdk-dx7-adoption/source-manifest-delta.json`で着手時からの変更がTauriの4ファイルだけと確認し、
   同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
   直前の成功CI `40168462256`にはないDX7移行を含むため、そのCIの入力と同一ではない。
+- SNES／SPC移行後の最新ローカル対応ソースZIPは全1,796ファイル、SHA-256は
+  `39cd14b113557665c039d0af3960839ed566c7ad2fdc49286859d8b5c53fa684`。
+  `/private/tmp/tetorica-sdk-snes-spc-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合した。
+  `/private/tmp/tetorica-sdk-snes-spc-adoption/source-manifest-delta.json`で着手時からの変更がTauriの4ファイルだけと確認し、
+  同ディレクトリの`summary.json`へ比較・ホスト試験・ZIPの最終結果を集約した。
+  直前の成功CI `40168462256`にはないDX7と今回のSNES／SPC移行を含むため、そのCI入力と同一ではない。
 - SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
 - DX7移行の証拠は`/private/tmp/tetorica-sdk-dx7-adoption/`の`parity-summary.json`、`source-audit.json`、`self-tests.json`、`build-assembly-audit.json`。

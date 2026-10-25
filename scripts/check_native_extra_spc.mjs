@@ -8,7 +8,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createSyntheticSpc} from '../web/spc_test_fixture.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1]);return i<0?null:process.argv[i+1];};
+const sdk=path.join(project,'vendor/tetorica-soundchip-native'),core=path.join(sdk,'vendor/snes-spc/snes_spc');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
 const output=option('--out');let fixture=option('--fixture'),Processor;
 const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-spc-'));
 globalThis.sampleRate=48000;globalThis.currentFrame=0;
@@ -59,7 +60,11 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
 function fnv(bytes){let h=2166136261;for(const value of bytes)h=Math.imul(h^value,16777619)>>>0;return h;}
 try{
  for(const[name,bytes]of files)await fs.writeFile(path.join(temporary,name+'.spc'),bytes);
- if(!fixture){fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(project,'native-snes/snapshot/third_party/snes-spc/snes_spc'),...['src/native_genesis_spc_fixture.cpp','src/native_genesis_spc.cpp',...['SNES_SPC.cpp','SNES_SPC_misc.cpp','SNES_SPC_state.cpp','SPC_DSP.cpp'].map(n=>'native-snes/snapshot/third_party/snes-spc/snes_spc/'+n)].map(n=>path.join(project,n)),'-o',fixture],{stdio:'pipe'});}
+ if(!fixture){fixture=path.join(temporary,'fixture');
+  const sources=[path.join(project,'src/native_genesis_spc_fixture.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_spc.cpp'),...['SNES_SPC.cpp','SNES_SPC_misc.cpp','SNES_SPC_state.cpp','SPC_DSP.cpp'].map(name=>path.join(core,name))];
+  const inputs=[...sources,path.join(project,'src/native_genesis_spc.h'),path.join(sdk,'native/reference/tauri/native_genesis_spc.h'),...['SNES_SPC.h','SPC_DSP.h','blargg_common.h','blargg_config.h','blargg_endian.h','blargg_source.h','SPC_CPU.h'].map(name=>path.join(core,name))];
+  report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+core,...sources,'-o',fixture],{stdio:'pipe'});}
  report.selfTest=JSON.parse(execFileSync(fixture,['--self-test',path.join(temporary,'firmware.spc')],{encoding:'utf8'}));
  for(const rate of report.rates)for(const scenario of cases){
   const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),lines=events.map(({frame,op,args})=>op==='install'?`${frame} install ${path.join(temporary,args[0]+'.spc')} ${args[1]} ${args[2]} ${Number(args[3])}`:`${frame} ${op} ${args.map(v=>typeof v==='boolean'?Number(v):v).join(' ')}`).join('\n')+'\n';

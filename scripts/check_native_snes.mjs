@@ -5,16 +5,26 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import factory from '../docs/generated/spc_wasm.js';
 import {SnesDspCore} from '../web/spc.js';
 import {SnesSynth} from '../web/snessynth.js';
 import {SpcResampler} from '../web/spc_resampler.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
+async function compileSdkFixture(fixture,report){
+  const core=path.join(sdk,'vendor/snes-spc/snes_spc'),adapter=path.join(sdk,'native/reference/tauri/native_genesis_snes.cpp');
+  // The fixture and SDK wrapper resolve their quoted ABI headers separately.
+  // Record both, plus every project-owned transitive DSP header.
+  const sources=[path.join(project,'src/native_genesis_snes_fixture.cpp'),path.join(project,'src/native_genesis_snes.h'),adapter,path.join(sdk,'native/reference/tauri/native_genesis_snes.h'),...['SPC_DSP.cpp','SPC_DSP.h','blargg_common.h','blargg_config.h','blargg_endian.h','blargg_source.h'].map(name=>path.join(core,name))];
+  report.nativeSources=await Promise.all(sources.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+core,sources[0],adapter,path.join(core,'SPC_DSP.cpp'),'-o',fixture],{stdio:'pipe'});
+}
 const output=option('--out'),provided=option('--fixture');
-let temporary,fixture=provided;
-const report={schemaVersion:1,deviceOpened:false,rates:[44100,48000,96000],cases:[],totalStereoFrames:0,maximumDifference:0,
+let temporary,fixture=provided?path.resolve(provided):null;
+const report={schemaVersion:1,checker:path.relative(root,fileURLToPath(import.meta.url)),checkerSha256:createHash('sha256').update(await fs.readFile(fileURLToPath(import.meta.url))).digest('hex'),deviceOpened:false,rates:[44100,48000,96000],cases:[],totalStereoFrames:0,maximumDifference:0,
   reference:'Current Browser accurate SPC_DSP WASM, SnesSynth and SpcResampler with sourceFrames:1; no SPC700 CPU, ROM or game audio.',
   limits:'Core PCM, resampling and fixed state lifecycle; ownership/IPC and UI are checked separately.'};
 const wave=new Uint8Array([0xb0,0x12,0x34,0x56,0x78,0x76,0x54,0x32,0x10,0xb3,0xfe,0xdc,0xba,0x98,0x9a,0xbc,0xde,0xf0]);
@@ -66,9 +76,10 @@ function line({frame,op,args}){
   return `${frame} ${op}${args.length?' '+args.join(' '):''}`;
 }
 try{
-  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-snes-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(project,'native-snes/snapshot/third_party/snes-spc/snes_spc'),path.join(project,'src/native_genesis_snes_fixture.cpp'),path.join(project,'src/native_genesis_snes.cpp'),path.join(project,'native-snes/snapshot/third_party/snes-spc/snes_spc/SPC_DSP.cpp'),'-o',fixture],{stdio:'pipe'});}
+  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-snes-'));fixture=path.join(temporary,'fixture');await compileSdkFixture(fixture,report);}
   execFileSync(fixture,['--self-test'],{stdio:'pipe'});
   const wasmBinary=await fs.readFile(path.join(root,'docs/generated/spc_wasm.wasm'));
+  report.wasmSha256=createHash('sha256').update(wasmBinary).digest('hex');
   for(const rate of report.rates)for(const scenario of scenes){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
     const native=execFileSync(fixture,[String(rate),String(scenario.frames)],{input:events.map(line).join('\n')+'\n',maxBuffer:scenario.frames*8+1048576});

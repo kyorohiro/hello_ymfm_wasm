@@ -9,15 +9,24 @@ import {createHash} from 'node:crypto';
 import {SnesSynth} from '../web/snessynth.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1];};
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
+async function compileSdkFixture(fixture,report){
+  const core=path.join(sdk,'vendor/snes-spc/snes_spc'),adapter=path.join(sdk,'native/reference/tauri/native_genesis_snes.cpp');
+  // The fixture and SDK wrapper resolve their quoted ABI headers separately.
+  // Record both, plus every project-owned transitive DSP header.
+  const sources=[path.join(project,'src/native_genesis_snes_fixture.cpp'),path.join(project,'src/native_genesis_snes.h'),adapter,path.join(sdk,'native/reference/tauri/native_genesis_snes.h'),...['SPC_DSP.cpp','SPC_DSP.h','blargg_common.h','blargg_config.h','blargg_endian.h','blargg_source.h'].map(name=>path.join(core,name))];
+  report.nativeSources=await Promise.all(sources.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+  execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+core,sources[0],adapter,path.join(core,'SPC_DSP.cpp'),'-o',fixture],{stdio:'pipe'});
+}
 const output=option('--out'),provided=option('--fixture');
-let temporary,fixture=provided,Processor;
+let temporary,fixture=provided?path.resolve(provided):null,Processor;
 globalThis.sampleRate=48000;globalThis.currentFrame=0;
 globalThis.AudioWorkletProcessor=class{constructor(){this.testMessages=[];this.port={postMessage:data=>{this.testMessages.push(data);if(data.error)this.testError=data.error;},close(){}};}};
 globalThis.registerProcessor=(name,processor)=>{if(name==='tetorica-playground-snes')Processor=processor;};
 await import('../docs/js/playground_snes_worklet.js');
 const wasmBinary=await fs.readFile(path.join(root,'docs/generated/spc_wasm.wasm'));
-const report={schemaVersion:1,deviceOpened:false,rates:[44100,48000,96000],cases:[],totalStereoFrames:0,maximumDifference:0,
+const report={schemaVersion:1,checker:path.relative(root,fileURLToPath(import.meta.url)),checkerSha256:createHash('sha256').update(await fs.readFile(fileURLToPath(import.meta.url))).digest('hex'),deviceOpened:false,rates:[44100,48000,96000],cases:[],totalStereoFrames:0,maximumDifference:0,
   wasmSha256:createHash('sha256').update(wasmBinary).digest('hex'),
   reference:'Actual deployed playground_snes_worklet.js with shipped accurateSPC_DSP WASM and SpcResampler; instrument sourceFrames1, captured timeline sourceFrames128. No SPC700 CPU, ROM or game audio.',
   limits:'Offline standalone core, fixed32kHz DSP / output interpolation, RAM/BRR/DSP/timeline lifecycle and new/delete audit. No output device, Rust queue ownership, IPC, UI, effects, other-platform compiler or callbackdeadline guarantee. Constructor has no clock option; SNES sample clock is fixed32000Hz.'};
@@ -100,7 +109,7 @@ function line({frame,op,args}){
   return `${frame} ${op}${args.length?' '+args.join(' '):''}`;
 }
 try{
-  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-snes-'));fixture=path.join(temporary,'fixture');execFileSync('clang++',['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+path.join(project,'native-snes/snapshot/third_party/snes-spc/snes_spc'),path.join(project,'src/native_genesis_snes_fixture.cpp'),path.join(project,'src/native_genesis_snes.cpp'),path.join(project,'native-snes/snapshot/third_party/snes-spc/snes_spc/SPC_DSP.cpp'),'-o',fixture],{stdio:'pipe'});}
+  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'tetorica-native-snes-'));fixture=path.join(temporary,'fixture');await compileSdkFixture(fixture,report);}
   report.selfTest=JSON.parse(execFileSync(fixture,['--self-test-extra'],{encoding:'utf8'}));
   for(const rate of report.rates)for(const scenario of scenes){
     const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);
