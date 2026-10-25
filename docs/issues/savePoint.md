@@ -19,11 +19,12 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 [Tauri CI run 40175615215](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40175615215)は全5構成の検証・インストーラー生成が成功した。
 対象は`367fd7a851ffadd3a01c3cfb985972112156ca63`、attempt 1。SDKの修正版CI run `40175263453`もNative 5構成＋WASMの全6ジョブ成功。
 通常22音源IDと代替NukedのSDK参照が揃った。機種用補助処理・Rustの所有／予約・Mixer／FXはアプリ側に残る。
-次に着手する作業は、本体のYM2612 WASMビルドを固定SDKソースへ切り替えること。
-下の「次に着手する作業」に範囲と検証方針を記録した。今回は記録のみで、このWASM移行の調査・実装は未着手。
+本体の通常YM2612 WASMビルドも、その後同じ固定SDKソースへの切り替えを完了した。
+同梱379ファイルをoffline検証し、SDKのWASM用レシピで既存APIを維持して生成する。
+実施内容と検証は[YM2612 WASMのSDK移行](wasm_sdk_ym2612_adoption_01.md)を参照する。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
-内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。WASM SDK移行は引き続き次作業。
+内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
 その後、未反映だったPSG・AY・NES・PC Engineの初期値も揃えた。
 Mixerは調整値そのものを表示し、Genesisの既存倍率は接続側で相殺するsource単位へ整理した。
 旧保存設定の読込み時換算と検証は[psg_mixer_balance_02.md](psg_mixer_balance_02.md)を参照。
@@ -36,6 +37,9 @@ Extra／PSGを実際に再測定した`_02`記録へ切り替え、音量定数�
 手順と生成物は[校正記録の更新](analyzer_mixer_calibration_refresh_01.md)を参照。
 その後、Synthで内蔵音色のOP配列を1つずらして読み、OP4へ以前の設定が残るバグを修正した。
 `1OP Basic`のTLは`[127, 127, 127, 2]`へ戻る。記録は[SynthのOP対応修正](synth_preset_operator_mapping_01.md)を参照。
+Synth修正はユーザーがrelease済み。その後、通常YM2612 WASMのSDK参照を実装し、
+旧ビルド・配布済みWASMとの比較各444ケースでPCM・内部envelope・read/status/IRQ・状態bytes差0。
+Analyzerの影響する校正は03として実測し直し、校正値・Mixerの数値は維持した。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
@@ -906,31 +910,23 @@ node scripts/check_native_extra_stability.mjs --out=native-validation/extra-stab
 先にNATIVE-SOURCES.mdに従ってNode／Rust／C++環境とロック済み依存、音声sidecarを準備する。
 SDK自体をリモートから自動取得する設計には戻さない。
 
-### 次に着手する作業 — 本体YM2612 WASMの固定SDK参照
+### 完了した作業 — 本体YM2612 WASMの固定SDK参照
 
-TauriのNative側に続き、本体のWASMビルドも固定したSDKソースから生成する形へ揃える。
-まずは通常のymfm YM2612だけを対象とする。
-現在の[ビルドスクリプト](../../scripts/build_ym2612_wasm.sh)は、本体の`wasm/ym2612_wasm.cpp`と`src/ymfm_*.cpp`を使っている。
+[ビルドスクリプト](../../scripts/build_ym2612_wasm.sh)は完全同梱したSDK `0.1.1`／
+`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`のWASM用レシピを使う。
+Native用wrapperへの置換ではなく、既存と同じWASM ABI・同期JS APIを維持した移行。
+全379ファイルをmanifestと取り込み記録でoffline検証し、通常ビルドでリモート取得は行わない。
+改変検出・分離したfresh copyからの入力解決と出力先も試験した。
 
-進め方と完了条件：
+旧レシピの再ビルド／配布済みWASMとSDK版の2比較が各444ケースで差0。
+状態の継続、内部envelope、全6CH、timer/IRQ、DAC、block分割も一致した。
+Chromium／WebKitの実Workletと隔離したnpm配布物・型も検証済み。
+SDKとコンパイラー・入力／出力hashは[移行記録](wasm_sdk_ym2612_adoption_01.md)とそのJSON、
+`docs/generated/build-info.json`に記録した。
 
-1. 既存のwrapper・ymfmソース・export・コンパイラー設定を、SDKのWASM用レシピと比較する。
-   Native用wrapperとは生成・状態管理の契約が異なるため、SDKのWASM用wrapperを使う。
-2. SDKは版・元コミット・ZIP／manifestハッシュを固定したソース配布物として本体へ同梱する。
-   別checkout、submodule、ビルド中のリモート取得や、複数リポジトリの同時更新を通常ビルドの条件にしない。
-   現在の基準候補はNativeと同じSDK `0.1.1`／`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`。
-   ソース差・必要機能を確認し、固定配布物を直接編集せず明示的な取り込み手順を使う。
-3. 本体のYM2612 WASMビルドを同梱SDKへ参照切り替えし、既存JS側の公開APIと生成物の読込みを維持する。
-   同期`read()`／`generateStereo()`を保ち、Native IPC向けの非同期契約へ置き換えない。
-4. 旧ビルドとSDKビルドで、発音PCM・status／read・reset・状態保存／復元後の継続PCMを比較する。
-   サンプルレートやblock分割も確認し、コンパイラー差によるWASMバイナリー差と動作差を区別する。
-   既存のBrowser／package側の読込み・同期APIも必要な範囲で確認する。
-5. 使用したSDK・コンパイラー・入力／出力ハッシュと検証結果を記録する。
-   YM2612が成立してから、次の音源群への展開を判断する。
-
-この次作業では27種類のWASMを一括移行しない。JS adapterのパッケージ分離・公開API再設計、
-高速レジスタ演奏の新機能も別作業とする。npmやアプリの公開は、この記録では実行指示されていない。
-今回は次作業の記録のみで、ビルド参照・SDK同梱物・生成WASMは変更していない。
+次はYM2203等のWASMへ同じ手順を展開するかを判断する。ほかの26 artifactの一括移行、
+JS adapterのパッケージ分離・公開API再設計、高速レジスタ演奏は今回扱っていない。
+npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
 

@@ -12,4 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify pinned SDK and offline YM2612 build route
+        run: |
+          python3 scripts/import_soundchip_sdk.py --check
+          python3 -m unittest discover -s test -p 'test_*sdk*.py' -v
       - run: sh scripts/test_vgm_mock.sh

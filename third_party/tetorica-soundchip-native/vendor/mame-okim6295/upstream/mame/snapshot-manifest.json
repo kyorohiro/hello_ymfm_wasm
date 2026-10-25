@@ -1,0 +1,28 @@
+{
+  "repository": "https://github.com/mamedev/mame",
+  "commit": "9d8a6727a206fc822b8b69d67a51e6fd7dbf4d4b",
+  "role": "upstream-source-reference",
+  "buildStatus": "reference-only; MAME framework required",
+  "files": [
+    {
+      "path": "okim6295.cpp",
+      "upstreamPath": "src/devices/sound/okim6295.cpp",
+      "sha256": "ff6f45f2e7db51cab3344ab3e1a55d0d95e1341c2994a35983e733fae022b18b"
+    },
+    {
+      "path": "okim6295.h",
+      "upstreamPath": "src/devices/sound/okim6295.h",
+      "sha256": "c2c75718818b24864911fc714c8cf61a278266c93f565d97831a81303c6db2a1"
+    },
+    {
+      "path": "okiadpcm.cpp",
+      "upstreamPath": "src/devices/sound/okiadpcm.cpp",
+      "sha256": "a49dbd1089b3163a3a38480f6d877462c506b9f85e66a0cf5ea015b2a193dcd8"
+    },
+    {
+      "path": "okiadpcm.h",
+      "upstreamPath": "src/devices/sound/okiadpcm.h",
+      "sha256": "28f70d023aa2f18a0287b1290ac108692b5f270ce91622c636742af2e8909ab4"
+    }
+  ]
+}

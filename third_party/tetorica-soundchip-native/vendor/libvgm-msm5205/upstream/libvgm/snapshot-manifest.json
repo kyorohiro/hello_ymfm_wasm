@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/ValleyBell/libvgm",
+  "commit": "bad50c571db45b872304bdcd0603dd2214f0663e",
+  "role": "upstream-source-reference",
+  "buildStatus": "reference-only; libvgm support files without an explicit license are omitted",
+  "files": [
+    {
+      "path": "emu/cores/msm5205.c",
+      "upstreamPath": "emu/cores/msm5205.c",
+      "sha256": "7d69c40afbeacb98a8d0798e12201b04b8dc40b4d4c60f73c61d7cb47da18ad0"
+    }
+  ],
+  "omittedDependencies": [
+    "emu/EmuCores.h",
+    "emu/EmuHelper.h",
+    "emu/SoundDevs.h",
+    "emu/cores/msm5205.h",
+    "emu/dac_control.h",
+    "emu/logging.h",
+    "emu/snddef.h",
+    "stdtype.h"
+  ],
+  "omissionReason": "These libvgm integration headers have no explicit license declaration in the pinned snapshot. Upstream reports incomplete per-module license assignment; no license is inferred for those files.",
+  "licenseDiscussion": "https://github.com/ValleyBell/libvgm/issues/129",
+  "comparisonNote": "Independently collected upstream reference. The historical revision used for the Tetorica JavaScript adaptation is not established by this snapshot."
+}

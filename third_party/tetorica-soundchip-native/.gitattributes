@@ -1,0 +1,3 @@
+# Hash inventories describe exact upstream bytes, including original line endings.
+# Disable checkout conversion on Windows as well as on Unix hosts.
+* -text

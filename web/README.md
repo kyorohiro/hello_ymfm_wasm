@@ -6,6 +6,11 @@ Build the WASM files:
 sh scripts/build_ym2612_wasm.sh
 ```
 
+The normal YM2612 build verifies and compiles the fixed SDK source release
+included in `third_party/tetorica-soundchip-native/`. It requires Emscripten
+and Python 3; no separate SDK checkout or download is needed. See
+[build and update instructions](../docs/building_ym2612_wasm.md).
+
 This generates:
 
 - `docs/generated/ym2612_wasm.js`

@@ -231,6 +231,13 @@ npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 
 - [https://kyorohiro.itch.io](https://kyorohiro.itch.io)
 
+## Building YM2612 WASM
+
+Run `sh scripts/build_ym2612_wasm.sh` with Emscripten and Python 3 installed.
+The normal YM2612 build verifies and uses the complete, pinned
+`tetorica-soundchip-native` source release included in `third_party/`.
+See [build and SDK update instructions](docs/building_ym2612_wasm.md).
+
 ## License and Attribution
 
 Unless otherwise noted, this repository uses the BSD 3-Clause License for both the upstream ymfm-derived parts and the original files added in this project. Vendored components and modifications to them retain their applicable licenses.

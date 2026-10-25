@@ -1,5 +1,6 @@
 .DS_Store
 /node_modules/
+__pycache__/
 # Prerequisites
 *.d
 
@@ -50,6 +51,9 @@ reference/
 
 /yrw801.rom
 /ym2608_adpcm_rom.bin
+# Keep the complete fixed SDK source release, including its reference/ sources.
+!/third_party/tetorica-soundchip-native/
+!/third_party/tetorica-soundchip-native/**
 /w/
 /ww/
 /www/

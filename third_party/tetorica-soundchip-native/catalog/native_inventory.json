@@ -1,0 +1,827 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    "Reference C++/C ABI sources and standalone targets are included for all 22 public chip IDs; each verificationScope records supported APIs and tested configurations.",
+    "Standalone CMake targets build eighteen static libraries covering all twenty-two chip IDs: YM2612, YM2203, YM2608, YM2610/YM2610B, YM2151, YM2413, Sega PSG, AY-3-8910, OKIM6258, RF5C164, the shared YM3526/YM3812/YMF262/Y8950 OPL family, Game Boy, HuC6280, NES with optional FDS, 32X PWM, DX7, SNES S-DSP and the SPC700/SPC-file player. A nineteenth standalone library builds the alternative Nuked YM2612 engine; the twenty-two chip identifiers remain unchanged.",
+    "Vendor component origins and license files are recorded by the shared source inventory, rather than copied again here."
+  ],
+  "chips": [
+    {
+      "id": "ym2612",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ym2612.cpp",
+        "native/reference/tauri/native_genesis_ym2612.h",
+        "native/reference/tauri/native_genesis_nuked.cpp",
+        "native/reference/tauri/native_genesis_nuked_ym2612.inc",
+        "native/include/tetorica/ym2612.hpp",
+        "native/src/ymfm_opn_provider.cpp",
+        "native/include/tetorica/nuked_ym2612.hpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_ym2612",
+      "verificationScope": "Default ymfm engine with explicit Native OPN template definitions; alternative Nuked engine has its own independently linked target and raw/native ABIs.",
+      "tests": [
+        "tetorica.ym2612.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/nuked-opn2/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_nuked.cpp": "LGPL-2.1-or-later",
+        "native/reference/tauri/native_genesis_nuked_ym2612.inc": "LGPL-2.1-or-later"
+      },
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ym2612.cpp",
+        "native/reference/tauri/native_genesis_ym2612.h",
+        "native/include/tetorica/ym2612.hpp",
+        "native/src/ymfm_opn_provider.cpp",
+        "native/include/tetorica/nuked_ym2612.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ],
+      "alternativeEngines": [
+        {
+          "id": "nuked-opn2",
+          "status": "verified",
+          "target": "tetorica_native_nuked_ym2612",
+          "alias": "tetorica::nuked_ym2612",
+          "header": "native/include/tetorica/nuked_ym2612.hpp",
+          "sourceFiles": [
+            "native/reference/tauri/native_genesis_nuked.cpp",
+            "native/reference/tauri/native_genesis_nuked_ym2612.inc",
+            "native/reference/tauri/native_genesis_ym2612.h",
+            "vendor/nuked-opn2/ym3438.c",
+            "vendor/nuked-opn2/ym3438.h",
+            "wasm/nuked_opn2_wasm.c"
+          ],
+          "licenseFiles": [
+            "LICENSE",
+            "vendor/nuked-opn2/LICENSE"
+          ],
+          "tests": [
+            "tetorica.nuked_ym2612.self_test",
+            "tetorica.nuked_colink.self_test"
+          ],
+          "verificationScope": "Unchanged pinned wrapper and C provider, per-TU OPN2 symbol prefixes, process-global YM2612 initialization via call_once, synchronous raw and Native output/control contracts, allocation-free callback paths, concurrent independent first constructions and coexistence with ymfm/PSG."
+        }
+      ]
+    },
+    {
+      "id": "ym2203",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ym2203.cpp",
+        "native/reference/tauri/native_genesis_ym2203.h",
+        "native/include/tetorica/ym2203.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_ym2203",
+      "verificationScope": "Independent ymfm YM2203 FM/SSG renderer, primary and additional constructor profiles. Three FM and three SSG voices, prescalers, timers/CSM and mono output on both channels; no YM2608 rhythm, ADPCM memory or host audio device is provided by this target.",
+      "tests": [
+        "tetorica.ym2203.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ym2203.cpp",
+        "native/reference/tauri/native_genesis_ym2203.h",
+        "native/include/tetorica/ym2203.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ym2610",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ym2610b.cpp",
+        "native/reference/tauri/native_genesis_ym2610b.h",
+        "native/include/tetorica/ym2610.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ym2610b.cpp",
+        "native/reference/tauri/native_genesis_ym2610b.h",
+        "native/include/tetorica/ym2610.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "target": "tetorica_native_ym2610",
+      "verificationScope": "Common ymfm YM2610/YM2610B renderer with immutable four-FM/six-FM selection, primary and additional profiles, SSG, ADPCM-A/B and separate ROM banks. Primary owns dense 16 MiB banks; additional instances borrow externally owned immutable 64 KiB pages. Offline PCM, memory lifetime/bounds, cancellation, Stop/reset and observation checks; no host queue, audio device or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.ym2610.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ym2610b",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ym2610b.cpp",
+        "native/reference/tauri/native_genesis_ym2610b.h",
+        "native/include/tetorica/ym2610b.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ym2610b.cpp",
+        "native/reference/tauri/native_genesis_ym2610b.h",
+        "native/include/tetorica/ym2610b.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "target": "tetorica_native_ym2610",
+      "verificationScope": "Common ymfm YM2610/YM2610B renderer with immutable four-FM/six-FM selection, primary and additional profiles, SSG, ADPCM-A/B and separate ROM banks. Primary owns dense 16 MiB banks; additional instances borrow externally owned immutable 64 KiB pages. Offline PCM, memory lifetime/bounds, cancellation, Stop/reset and observation checks; no host queue, audio device or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.ym2610.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "rf5c164",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_rf5c164.cpp",
+        "native/reference/tauri/native_genesis_rf5c164.h",
+        "native/reference/tauri/native_genesis_extra_rf5c164.cpp",
+        "native/reference/tauri/native_genesis_extra_rf5c164.h",
+        "native/include/tetorica/rf5c164.hpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-rf5c164/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_extra_rf5c164.cpp": "BSD-3-Clause"
+      },
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_rf5c164.cpp",
+        "native/reference/tauri/native_genesis_rf5c164.h",
+        "native/reference/tauri/native_genesis_extra_rf5c164.h",
+        "native/include/tetorica/rf5c164.hpp"
+      ],
+      "target": "tetorica_native_rf5c164",
+      "verificationScope": "Independent primary and additional RF5C164 APIs with eight PCM voices, owned 64 KiB RAM, banked writes/absolute uploads, loop markers and clock resampling. Common-operation PCM comparison plus additional Worklet/WASM state/position/RAM parity and source-scoped cancellation; primary validation/read/Stop API differs. No audio device, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.rf5c164.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ym2608",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ym2608.cpp",
+        "native/reference/tauri/native_genesis_ym2608.h",
+        "native/include/tetorica/ym2608.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_ym2608",
+      "verificationScope": "Independent ymfm YM2608 renderer, primary and additional constructor profiles. Six FM, three SSG and six rhythm voices, ADPCM-B, bounded ROM/RAM transfers, timers/CSM, Stop/reset and observational state; no hardware ROM, host audio device or playback-deadline guarantee is provided by this target.",
+      "tests": [
+        "tetorica.ym2608.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ym2608.cpp",
+        "native/reference/tauri/native_genesis_ym2608.h",
+        "native/include/tetorica/ym2608.hpp",
+        "native/src/ymfm_opn_provider.cpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "gameboy",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_gameboy.cpp",
+        "native/reference/tauri/native_genesis_gameboy.h",
+        "native/include/tetorica/gameboy.hpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_gameboy",
+      "verificationScope": "Independent pinned DMG APU renderer exposing native_gameboy_*: two pulse channels, wave RAM, noise, stereo routing, power, mute, clock resampling, per-channel gate stop, immediate global Stop, reset and observational state. Per-channel stop retains the outer held mix until the next source interval. Existing Native-only friend accessor is applied without changing DSP. Offline Worklet/WASM PCM comparison; no machine emulator, audio device, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.gameboy.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-gameboy/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_gameboy.cpp": "BSD-3-Clause",
+        "native/reference/tauri/native_genesis_gameboy.h": "BSD-3-Clause"
+      },
+      "defaultLicensedFiles": [
+        "native/include/tetorica/gameboy.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "segapsg",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_psg.h",
+        "native/reference/tauri/native_genesis_game_gear.cpp",
+        "native/reference/tauri/native_genesis_game_gear.h",
+        "native/include/tetorica/segapsg.hpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_segapsg",
+      "verificationScope": "Sega PSG only, preserving the native_game_gear_* C ABI; three tones, noise and Game Gear stereo routing. No Genesis FM or Master System OPLL core is constructed by this target.",
+      "tests": [
+        "tetorica.segapsg.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_psg.h",
+        "native/reference/tauri/native_genesis_game_gear.cpp",
+        "native/reference/tauri/native_genesis_game_gear.h",
+        "native/include/tetorica/segapsg.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ym2151",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ym2151.cpp",
+        "native/reference/tauri/native_genesis_ym2151.h",
+        "native/include/tetorica/ym2151.hpp",
+        "native/src/ymfm_opm_provider.cpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_ym2151",
+      "verificationScope": "ymfm OPM only, with explicit Native OPM template definitions; X68000 OKIM6258 and host audio are outside this target",
+      "tests": [
+        "tetorica.ym2151.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ym2151.cpp",
+        "native/reference/tauri/native_genesis_ym2151.h",
+        "native/include/tetorica/ym2151.hpp",
+        "native/src/ymfm_opm_provider.cpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "pwm",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_pwm.cpp",
+        "native/reference/tauri/native_genesis_pwm.h",
+        "native/include/tetorica/pwm.hpp",
+        "wasm/pwm32x_core.h"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_pwm",
+      "verificationScope": "Independent fixed duty/gain-1 32X PWM renderer with native_pwm_* ABI, three-entry stereo FIFOs, routing, timer/cycle/clock state, immediate global Stop, reset and observational snapshots. Nonzero 64-bit host tags support FIFO/latch ownership and source cancellation without changing synthesis; tag zero is ordinary primary traffic. Native control/ownership tests plus offline JavaScript and deployed Worklet/WASM PCM comparisons. Direct-core configuration-only tests do not add public gain/mode/mute setters. No 32X CPU, audio device, host queue, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.pwm.self_test",
+        "tetorica.extra_pwm.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-32x-pwm/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_pwm.cpp": "BSD-3-Clause",
+        "native/reference/tauri/native_genesis_pwm.h": "BSD-3-Clause",
+        "wasm/pwm32x_core.h": "BSD-3-Clause"
+      },
+      "defaultLicensedFiles": [
+        "native/include/tetorica/pwm.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "nes",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_nes.cpp",
+        "native/reference/tauri/native_genesis_nes.h",
+        "native/include/tetorica/nes.hpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_nes",
+      "verificationScope": "Independent retained Native NES APU implementation with constructor-selected optional FDS, native_nes_* ABI, owned copied 64 KiB DMC memory, pulse/triangle/noise/DMC/FDS sources, protected host gates, mute, IRQ/state observation, clock conversion and distinct Stop/reset retention. Compiles only the Native implementation, avoiding the WASM core's duplicate exports. Offline deployed WASM/Worklet PCM comparisons and Native state/control tests; no console CPU/PPU, game ROM, audio device, event scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.nes.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/tetorica-nes/LICENSE-FDS",
+        "vendor/tetorica-nes/LICENSE-JSNES"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_nes.cpp": "Apache-2.0 AND MIT"
+      },
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_nes.h",
+        "native/include/tetorica/nes.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "dx7",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_dx7.cpp",
+        "native/reference/tauri/native_genesis_dx7.h",
+        "native/reference/overrides/msfa/dx7note.cc",
+        "native/reference/overrides/msfa/env.cc",
+        "native/reference/overrides/msfa/ringbuffer.cc",
+        "native/reference/overrides/msfa/synth.h",
+        "native/reference/overrides/msfa/synth_unit.cc",
+        "native/reference/overrides/msfa/synth_unit.h",
+        "native/include/tetorica/dx7.hpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_dx7",
+      "verificationScope": "Independent MSFA DX7 renderer with native_dx7_* ABI, caller-validated copied 155-byte voices, sixteen preallocated slots, protected slot allocation, identity-scoped live edits, release/kill and panic. Fixed scalar 44.1 kHz internal synthesis with integer-phase output-rate conversion; shared MSFA sources and the six selected Native overrides are assembled in the build directory. SDK Native panic amendment resets preallocated note state without allocation for clean feedback restart. Native lifecycle/allocation tests and deployed WASM PCM comparisons; no native SysEx parser, voice bank manager, device, IPC scheduler, portable snapshot or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.dx7.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "differencesDocument": "docs/research.md",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/msfa/COPYING"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_dx7.cpp": "Apache-2.0",
+        "native/reference/overrides/msfa/dx7note.cc": "Apache-2.0",
+        "native/reference/overrides/msfa/env.cc": "Apache-2.0",
+        "native/reference/overrides/msfa/ringbuffer.cc": "Apache-2.0",
+        "native/reference/overrides/msfa/synth.h": "Apache-2.0",
+        "native/reference/overrides/msfa/synth_unit.cc": "Apache-2.0",
+        "native/reference/overrides/msfa/synth_unit.h": "Apache-2.0"
+      },
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_dx7.h",
+        "native/include/tetorica/dx7.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "snes",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_snes.cpp",
+        "native/reference/tauri/native_genesis_snes.h",
+        "native/include/tetorica/snes.hpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/snes-spc/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_snes.cpp": "LGPL-2.1-or-later",
+        "native/reference/tauri/native_genesis_snes.h": "LGPL-2.1-or-later"
+      },
+      "defaultLicensedFiles": [
+        "native/include/tetorica/snes.hpp"
+      ],
+      "target": "tetorica_native_snes",
+      "verificationScope": "Independent accurate eight-voice S-DSP instrument with native_snes_* ABI, copied owned 64 KiB RAM, stable read-only RAM views, DSP registers and protected KON/KOFF, Stop/reset and observational 152-byte state. Fixed 32 kHz source with integer-phase output-rate interpolation. Caller-validated timelines borrow immutable initial RAM/DSP and ordered event tuples for replay. Stop retains authored settings and RAM, so stored echo can remain audible; reset clears RAM. Native lifecycle and zero-allocation controls/rendering tests plus actual WASM/Worklet PCM comparisons; no SPC700 CPU, SPC-file loader, audio device, IPC scheduler, portable save state or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.snes.self_test",
+        "tetorica.snes.extra_self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "spc",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_spc.cpp",
+        "native/reference/tauri/native_genesis_spc.h",
+        "native/include/tetorica/spc.hpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/snes-spc/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_spc.cpp": "LGPL-2.1-or-later",
+        "native/reference/tauri/native_genesis_spc.h": "LGPL-2.1-or-later"
+      },
+      "defaultLicensedFiles": [
+        "native/include/tetorica/spc.hpp"
+      ],
+      "target": "tetorica_native_spc",
+      "verificationScope": "Independent SPC700 and accurate S-DSP player with native_spc_* ABI, copied SPC files, control-only load and incremental seek blocks up to 16000 native frames, pause/resume, future-source mute, snapshots and fixed-capacity borrowed raw DSP events with overflow accounting. Fixed 32 kHz synthesis, 128-native-frame lookahead and integer-phase output interpolation. Load failures latch an error until successful reload; hosts retain original file bytes and prepare cores for Stop or absolute seeks outside rendering. Native lifecycle/allocation tests and deployed Worklet/WASM PCM, selected-state, RAM-hash, DSP-register and ordered-event comparisons; no complete IPL ROM, metadata end/fade, host lifetime queue, device, portable checkpoint or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.spc.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "huc6280",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_huc6280.cpp",
+        "native/reference/tauri/native_genesis_huc6280.h",
+        "native/include/tetorica/huc6280.hpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_huc6280",
+      "verificationScope": "Independent pinned HuC6280 sound renderer exposing native_huc6280_*: six audible wave/DDA sources, noise on channels 4/5, LFO, stereo, copied 32-byte waveforms, channel-selected writes, retained gate-off/Stop, mute, clock resampling, reset and observational state. The unchanged wrapper includes the shared core implementation once in its own translation unit. Offline Worklet/WASM PCM comparison and Native state/control tests; no PC Engine CPU/CD audio, device, event scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.huc6280.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-huc6280/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/reference/tauri/native_genesis_huc6280.cpp": "BSD-3-Clause",
+        "native/reference/tauri/native_genesis_huc6280.h": "BSD-3-Clause"
+      },
+      "defaultLicensedFiles": [
+        "native/include/tetorica/huc6280.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "okim6258",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_extra_okim6258.cpp",
+        "native/reference/tauri/native_genesis_extra_okim6258.h",
+        "native/include/tetorica/okim6258.hpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-okim6258/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_extra_okim6258.cpp",
+        "native/reference/tauri/native_genesis_extra_okim6258.h",
+        "native/include/tetorica/okim6258.hpp"
+      ],
+      "target": "tetorica_native_okim6258",
+      "verificationScope": "Independent pinned MAME-derived OKIM6258 adapter with native_extra_okim6258_* ABI. Raw FIFO and retained immutable borrowed sample playback, low-nibble-first ADPCM, repeat/end, pan, clock/divider/rate guards, Stop/reset and observational state. Host owns and serializes sample buffers and rendering; no audio device, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.okim6258.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ym3526",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ym3526.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ym3526.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "target": "tetorica_native_opl",
+      "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.opl.self_test",
+        "tetorica.extra_opl.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ym3812",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ym3812.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ym3812.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "target": "tetorica_native_opl",
+      "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.opl.self_test",
+        "tetorica.extra_opl.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "y8950",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/y8950.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/y8950.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "target": "tetorica_native_opl",
+      "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.opl.self_test",
+        "tetorica.extra_opl.self_test",
+        "tetorica.y8950_memory.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ymf262",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ymf262.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "status": "verified",
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ymf262.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "target": "tetorica_native_opl",
+      "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee.",
+      "tests": [
+        "tetorica.opl.self_test",
+        "tetorica.extra_opl.self_test"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ym2413",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ym2413.cpp",
+        "native/reference/tauri/native_genesis_ym2413.h",
+        "native/reference/tauri/native_genesis_opll.h",
+        "native/include/tetorica/ym2413.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_ym2413",
+      "verificationScope": "Independent OPLL renderer with nine melodic channels or six melodic channels plus five aliased rhythm voices, and explicit Native OPL template definitions. The older machine-level native_genesis_opll.h remains a reference; no Sega PSG or AY core is constructed by this target.",
+      "tests": [
+        "tetorica.ym2413.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ym2413.cpp",
+        "native/reference/tauri/native_genesis_ym2413.h",
+        "native/reference/tauri/native_genesis_opll.h",
+        "native/include/tetorica/ym2413.hpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "ay8910",
+      "sourceFiles": [
+        "native/reference/tauri/native_genesis_ay8910.cpp",
+        "native/reference/tauri/native_genesis_ay8910.h",
+        "native/include/tetorica/ay8910.hpp"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_ay8910",
+      "verificationScope": "Independent AY-3-8910 renderer using the pinned MAME adaptation, type 0 and legacy-normalization flag 1. Three tones, shared noise/envelope and mono output on both channels; no YM2149 type/flag selection, OPLL or machine-level mixer is provided by this target.",
+      "tests": [
+        "tetorica.ay8910.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-ay8910/LICENSE"
+      ],
+      "declaredFileLicenses": {},
+      "defaultLicensedFiles": [
+        "native/reference/tauri/native_genesis_ay8910.cpp",
+        "native/reference/tauri/native_genesis_ay8910.h",
+        "native/include/tetorica/ay8910.hpp"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    }
+  ],
+  "differencesDocument": "docs/chip-differences.md",
+  "licensePolicy": {
+    "tetoricaOriginal": "BSD-3-Clause",
+    "licenseFile": "LICENSE",
+    "explicitDeclarations": "Existing file-level and third-party licenses take precedence for their corresponding files."
+  }
+}

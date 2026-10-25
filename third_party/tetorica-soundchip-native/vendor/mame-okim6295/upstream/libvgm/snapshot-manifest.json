@@ -1,0 +1,36 @@
+{
+  "repository": "https://github.com/ValleyBell/libvgm",
+  "commit": "bad50c571db45b872304bdcd0603dd2214f0663e",
+  "role": "upstream-source-reference",
+  "buildStatus": "reference-only; libvgm support files without an explicit license are omitted",
+  "files": [
+    {
+      "path": "emu/cores/okim6295.c",
+      "upstreamPath": "emu/cores/okim6295.c",
+      "sha256": "00778ea2bb630abf549ea25671e9d19df50d4ce4889be9e1fcfa6739b5ae6194"
+    },
+    {
+      "path": "emu/cores/okiadpcm.c",
+      "upstreamPath": "emu/cores/okiadpcm.c",
+      "sha256": "95ad62ea67fb3f239873abf79200ce11d3d548c40022ec02da0dd4a3abaf5af1"
+    },
+    {
+      "path": "emu/cores/okiadpcm.h",
+      "upstreamPath": "emu/cores/okiadpcm.h",
+      "sha256": "f850732fe0cdb032d2cedda758d4b74eb6562f701b80ec75d7a59d41cd243864"
+    }
+  ],
+  "omittedDependencies": [
+    "emu/EmuCores.h",
+    "emu/EmuHelper.h",
+    "emu/EmuStructs.h",
+    "emu/SoundDevs.h",
+    "emu/cores/okim6295.h",
+    "emu/logging.h",
+    "emu/snddef.h",
+    "stdtype.h"
+  ],
+  "omissionReason": "These libvgm integration headers have no explicit license declaration in the pinned snapshot. Upstream reports incomplete per-module license assignment; no license is inferred for those files.",
+  "licenseDiscussion": "https://github.com/ValleyBell/libvgm/issues/129",
+  "comparisonNote": "Independently collected upstream reference. The historical revision used for the Tetorica JavaScript adaptation is not established by this snapshot."
+}

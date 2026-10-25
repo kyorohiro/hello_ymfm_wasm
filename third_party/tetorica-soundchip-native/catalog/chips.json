@@ -1,0 +1,2150 @@
+{
+  "additionalArtifacts": [
+    {
+      "buildScript": "scripts/build_k051649_wasm.sh",
+      "chipIds": [
+        "k051649"
+      ],
+      "format": "emscripten-es-module",
+      "id": "k051649",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-k051649/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "sourceFiles": [
+        "wasm/k051649_wasm.cpp",
+        "vendor/mame-k051649/k051649.cpp",
+        "vendor/mame-k051649/k051649.h",
+        "vendor/mame-k051649/upstream/k051649.cpp",
+        "vendor/mame-k051649/upstream/k051649.h"
+      ]
+    },
+    {
+      "buildScript": "scripts/build_segapcm_wasm.sh",
+      "chipIds": [
+        "segapcm"
+      ],
+      "format": "emscripten-es-module",
+      "id": "segapcm",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-segapcm/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "sourceFiles": [
+        "wasm/segapcm_wasm.cpp",
+        "vendor/mame-segapcm/segapcm.cpp",
+        "vendor/mame-segapcm/segapcm.h",
+        "vendor/mame-segapcm/upstream/segapcm.cpp",
+        "vendor/mame-segapcm/upstream/segapcm.h"
+      ]
+    },
+    {
+      "buildScript": "scripts/build_ym3438_wasm.sh",
+      "chipIds": [
+        "ym3438"
+      ],
+      "format": "emscripten-es-module",
+      "id": "ym3438",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "sourceFiles": [
+        "wasm/opn_variant_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ]
+    },
+    {
+      "buildScript": "scripts/build_ymf276_wasm.sh",
+      "chipIds": [
+        "ymf276"
+      ],
+      "format": "emscripten-es-module",
+      "id": "ymf276",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "sourceFiles": [
+        "wasm/opn_variant_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ]
+    },
+    {
+      "buildScript": "scripts/build_ymf278b_wasm.sh",
+      "chipIds": [
+        "ymf278b"
+      ],
+      "format": "emscripten-es-module",
+      "id": "ymf278b",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "sourceFiles": [
+        "wasm/ymf278b_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ]
+    },
+    {
+      "buildScript": "scripts/build_ymf288_wasm.sh",
+      "chipIds": [
+        "ymf288"
+      ],
+      "format": "emscripten-es-module",
+      "id": "ymf288",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "sourceFiles": [
+        "wasm/opn_variant_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ]
+    }
+  ],
+  "chips": [
+    {
+      "id": "ay8910",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-ay8910/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ay8910.cpp",
+          "native/reference/tauri/native_genesis_ay8910.h",
+          "native/include/tetorica/ay8910.hpp"
+        ],
+        "id": "ay8910",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/mame-ay8910/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ay8910.cpp",
+          "native/reference/tauri/native_genesis_ay8910.h",
+          "native/include/tetorica/ay8910.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ay8910",
+        "tests": [
+          "tetorica.ay8910.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent AY-3-8910 renderer using the pinned MAME adaptation, type 0 and legacy-normalization flag 1. Three tones, shared noise/envelope and mono output on both channels; no YM2149 type/flag selection, OPLL or machine-level mixer is provided by this target."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/ay8910.hpp",
+        "native/reference/tauri/native_genesis_ay8910.cpp",
+        "native/reference/tauri/native_genesis_ay8910.h",
+        "vendor/mame-ay8910/ay8910.cpp",
+        "vendor/mame-ay8910/ay8910.h",
+        "vendor/mame-ay8910/upstream/ay8910.cpp",
+        "vendor/mame-ay8910/upstream/ay8910.h",
+        "wasm/ay8910_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ay8910_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ay8910"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "dx7",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/msfa/COPYING",
+        "vendor/msfa/LICENSE",
+        "vendor/msfa/THIRD_PARTY_NOTICES.md",
+        "vendor/msfa/UPSTREAM.md"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/overrides/msfa/dx7note.cc": "Apache-2.0",
+          "native/reference/overrides/msfa/env.cc": "Apache-2.0",
+          "native/reference/overrides/msfa/ringbuffer.cc": "Apache-2.0",
+          "native/reference/overrides/msfa/synth.h": "Apache-2.0",
+          "native/reference/overrides/msfa/synth_unit.cc": "Apache-2.0",
+          "native/reference/overrides/msfa/synth_unit.h": "Apache-2.0",
+          "native/reference/tauri/native_genesis_dx7.cpp": "Apache-2.0"
+        },
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_dx7.h",
+          "native/include/tetorica/dx7.hpp"
+        ],
+        "differencesDocument": "docs/research.md",
+        "id": "dx7",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/msfa/COPYING"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_dx7.cpp",
+          "native/reference/tauri/native_genesis_dx7.h",
+          "native/reference/overrides/msfa/dx7note.cc",
+          "native/reference/overrides/msfa/env.cc",
+          "native/reference/overrides/msfa/ringbuffer.cc",
+          "native/reference/overrides/msfa/synth.h",
+          "native/reference/overrides/msfa/synth_unit.cc",
+          "native/reference/overrides/msfa/synth_unit.h",
+          "native/include/tetorica/dx7.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_dx7",
+        "tests": [
+          "tetorica.dx7.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent MSFA DX7 renderer with native_dx7_* ABI, caller-validated copied 155-byte voices, sixteen preallocated slots, protected slot allocation, identity-scoped live edits, release/kill and panic. Fixed scalar 44.1 kHz internal synthesis with integer-phase output-rate conversion; shared MSFA sources and the six selected Native overrides are assembled in the build directory. SDK Native panic amendment resets preallocated note state without allocation for clean feedback restart. Native lifecycle/allocation tests and deployed WASM PCM comparisons; no native SysEx parser, voice bank manager, device, IPC scheduler, portable snapshot or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/dx7.hpp",
+        "native/reference/overrides/msfa/dx7note.cc",
+        "native/reference/overrides/msfa/env.cc",
+        "native/reference/overrides/msfa/ringbuffer.cc",
+        "native/reference/overrides/msfa/synth.h",
+        "native/reference/overrides/msfa/synth_unit.cc",
+        "native/reference/overrides/msfa/synth_unit.h",
+        "native/reference/tauri/native_genesis_dx7.cpp",
+        "native/reference/tauri/native_genesis_dx7.h",
+        "vendor/msfa/aligned_buf.h",
+        "vendor/msfa/controllers.h",
+        "vendor/msfa/dx7note.cc",
+        "vendor/msfa/dx7note.h",
+        "vendor/msfa/env.cc",
+        "vendor/msfa/env.h",
+        "vendor/msfa/exp2.cc",
+        "vendor/msfa/exp2.h",
+        "vendor/msfa/fm_core.cc",
+        "vendor/msfa/fm_core.h",
+        "vendor/msfa/fm_op_kernel.cc",
+        "vendor/msfa/fm_op_kernel.h",
+        "vendor/msfa/freqlut.cc",
+        "vendor/msfa/freqlut.h",
+        "vendor/msfa/lfo.cc",
+        "vendor/msfa/lfo.h",
+        "vendor/msfa/module.h",
+        "vendor/msfa/patch.cc",
+        "vendor/msfa/patch.h",
+        "vendor/msfa/pitchenv.cc",
+        "vendor/msfa/pitchenv.h",
+        "vendor/msfa/resofilter.cc",
+        "vendor/msfa/resofilter.h",
+        "vendor/msfa/ringbuffer.cc",
+        "vendor/msfa/ringbuffer.h",
+        "vendor/msfa/sin.cc",
+        "vendor/msfa/sin.h",
+        "vendor/msfa/synth.h",
+        "vendor/msfa/synth_unit.cc",
+        "vendor/msfa/synth_unit.h",
+        "wasm/dx7/dx7.cc",
+        "wasm/dx7/dx7.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_dx7_wasm.sh",
+            "format": "standalone-wasm",
+            "id": "dx7"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "gameboy",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-gameboy/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_gameboy.cpp": "BSD-3-Clause",
+          "native/reference/tauri/native_genesis_gameboy.h": "BSD-3-Clause"
+        },
+        "defaultLicensedFiles": [
+          "native/include/tetorica/gameboy.hpp"
+        ],
+        "id": "gameboy",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/mame-gameboy/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_gameboy.cpp",
+          "native/reference/tauri/native_genesis_gameboy.h",
+          "native/include/tetorica/gameboy.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_gameboy",
+        "tests": [
+          "tetorica.gameboy.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent pinned DMG APU renderer exposing native_gameboy_*: two pulse channels, wave RAM, noise, stereo routing, power, mute, clock resampling, per-channel gate stop, immediate global Stop, reset and observational state. Per-channel stop retains the outer held mix until the next source interval. Existing Native-only friend accessor is applied without changing DSP. Offline Worklet/WASM PCM comparison; no machine emulator, audio device, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/gameboy.hpp",
+        "native/reference/tauri/native_genesis_gameboy.cpp",
+        "native/reference/tauri/native_genesis_gameboy.h",
+        "vendor/mame-gameboy/gameboy_apu.cpp",
+        "vendor/mame-gameboy/gameboy_apu.h",
+        "vendor/mame-gameboy/upstream/gb.cpp",
+        "vendor/mame-gameboy/upstream/gb.h",
+        "wasm/gameboy_apu_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_gameboy_apu_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "gameboy_apu"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "huc6280",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-huc6280/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_huc6280.cpp": "BSD-3-Clause",
+          "native/reference/tauri/native_genesis_huc6280.h": "BSD-3-Clause"
+        },
+        "defaultLicensedFiles": [
+          "native/include/tetorica/huc6280.hpp"
+        ],
+        "id": "huc6280",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/mame-huc6280/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_huc6280.cpp",
+          "native/reference/tauri/native_genesis_huc6280.h",
+          "native/include/tetorica/huc6280.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_huc6280",
+        "tests": [
+          "tetorica.huc6280.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent pinned HuC6280 sound renderer exposing native_huc6280_*: six audible wave/DDA sources, noise on channels 4/5, LFO, stereo, copied 32-byte waveforms, channel-selected writes, retained gate-off/Stop, mute, clock resampling, reset and observational state. The unchanged wrapper includes the shared core implementation once in its own translation unit. Offline Worklet/WASM PCM comparison and Native state/control tests; no PC Engine CPU/CD audio, device, event scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/huc6280.hpp",
+        "native/reference/tauri/native_genesis_huc6280.cpp",
+        "native/reference/tauri/native_genesis_huc6280.h",
+        "vendor/mame-huc6280/huc6280.cpp",
+        "vendor/mame-huc6280/huc6280.h",
+        "vendor/mame-huc6280/upstream/c6280.cpp",
+        "vendor/mame-huc6280/upstream/c6280.h",
+        "wasm/huc6280_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_huc6280_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "huc6280"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "nes",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/tetorica-nes/AUTHORS-JSNES.md",
+        "vendor/tetorica-nes/LICENSE-FDS",
+        "vendor/tetorica-nes/LICENSE-JSNES",
+        "vendor/tetorica-nes/UPSTREAM-FDS.md",
+        "vendor/tetorica-nes/UPSTREAM-JSNES.md",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_nes.cpp": "Apache-2.0 AND MIT"
+        },
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_nes.h",
+          "native/include/tetorica/nes.hpp"
+        ],
+        "id": "nes",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/tetorica-nes/LICENSE-FDS",
+          "vendor/tetorica-nes/LICENSE-JSNES"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_nes.cpp",
+          "native/reference/tauri/native_genesis_nes.h",
+          "native/include/tetorica/nes.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_nes",
+        "tests": [
+          "tetorica.nes.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent retained Native NES APU implementation with constructor-selected optional FDS, native_nes_* ABI, owned copied 64 KiB DMC memory, pulse/triangle/noise/DMC/FDS sources, protected host gates, mute, IRQ/state observation, clock conversion and distinct Stop/reset retention. Compiles only the Native implementation, avoiding the WASM core's duplicate exports. Offline deployed WASM/Worklet PCM comparisons and Native state/control tests; no console CPU/PPU, game ROM, audio device, event scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/nes.hpp",
+        "native/reference/tauri/native_genesis_nes.cpp",
+        "native/reference/tauri/native_genesis_nes.h",
+        "vendor/tetorica-nes/nes_core.cpp",
+        "vendor/tetorica-nes/nes_core.h",
+        "wasm/nesapu_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_nesapu_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "nesapu"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "okim6258",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-okim6258/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_extra_okim6258.cpp",
+          "native/reference/tauri/native_genesis_extra_okim6258.h",
+          "native/include/tetorica/okim6258.hpp"
+        ],
+        "id": "okim6258",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/mame-okim6258/LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_extra_okim6258.cpp",
+          "native/reference/tauri/native_genesis_extra_okim6258.h",
+          "native/include/tetorica/okim6258.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_okim6258",
+        "tests": [
+          "tetorica.okim6258.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent pinned MAME-derived OKIM6258 adapter with native_extra_okim6258_* ABI. Raw FIFO and retained immutable borrowed sample playback, low-nibble-first ADPCM, repeat/end, pan, clock/divider/rate guards, Stop/reset and observational state. Host owns and serializes sample buffers and rendering; no audio device, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/okim6258.hpp",
+        "native/reference/tauri/native_genesis_extra_okim6258.cpp",
+        "native/reference/tauri/native_genesis_extra_okim6258.h",
+        "vendor/mame-okim6258/okim6258.cpp",
+        "vendor/mame-okim6258/okim6258.h",
+        "vendor/mame-okim6258/upstream/okim6258.cpp",
+        "vendor/mame-okim6258/upstream/okim6258.h",
+        "wasm/okim6258_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_okim6258_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "okim6258"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "pwm",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-32x-pwm/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_pwm.cpp": "BSD-3-Clause",
+          "native/reference/tauri/native_genesis_pwm.h": "BSD-3-Clause",
+          "wasm/pwm32x_core.h": "BSD-3-Clause"
+        },
+        "defaultLicensedFiles": [
+          "native/include/tetorica/pwm.hpp"
+        ],
+        "id": "pwm",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/mame-32x-pwm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_pwm.cpp",
+          "native/reference/tauri/native_genesis_pwm.h",
+          "native/include/tetorica/pwm.hpp",
+          "wasm/pwm32x_core.h"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_pwm",
+        "tests": [
+          "tetorica.pwm.self_test",
+          "tetorica.extra_pwm.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent fixed duty/gain-1 32X PWM renderer with native_pwm_* ABI, three-entry stereo FIFOs, routing, timer/cycle/clock state, immediate global Stop, reset and observational snapshots. Nonzero 64-bit host tags support FIFO/latch ownership and source cancellation without changing synthesis; tag zero is ordinary primary traffic. Native control/ownership tests plus offline JavaScript and deployed Worklet/WASM PCM comparisons. Direct-core configuration-only tests do not add public gain/mode/mute setters. No 32X CPU, audio device, host queue, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/pwm.hpp",
+        "native/reference/tauri/native_genesis_pwm.cpp",
+        "native/reference/tauri/native_genesis_pwm.h",
+        "vendor/mame-32x-pwm/upstream/mega32x.cpp",
+        "vendor/mame-32x-pwm/upstream/mega32x.h",
+        "wasm/pwm32x_core.h",
+        "wasm/pwm32x_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_pwm32x_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "pwm32x"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "rf5c164",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-rf5c164/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_extra_rf5c164.cpp": "BSD-3-Clause"
+        },
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_rf5c164.cpp",
+          "native/reference/tauri/native_genesis_rf5c164.h",
+          "native/reference/tauri/native_genesis_extra_rf5c164.h",
+          "native/include/tetorica/rf5c164.hpp"
+        ],
+        "id": "rf5c164",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/mame-rf5c164/LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_rf5c164.cpp",
+          "native/reference/tauri/native_genesis_rf5c164.h",
+          "native/reference/tauri/native_genesis_extra_rf5c164.cpp",
+          "native/reference/tauri/native_genesis_extra_rf5c164.h",
+          "native/include/tetorica/rf5c164.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_rf5c164",
+        "tests": [
+          "tetorica.rf5c164.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent primary and additional RF5C164 APIs with eight PCM voices, owned 64 KiB RAM, banked writes/absolute uploads, loop markers and clock resampling. Common-operation PCM comparison plus additional Worklet/WASM state/position/RAM parity and source-scoped cancellation; primary validation/read/Stop API differs. No audio device, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/rf5c164.hpp",
+        "native/reference/tauri/native_genesis_extra_rf5c164.cpp",
+        "native/reference/tauri/native_genesis_extra_rf5c164.h",
+        "native/reference/tauri/native_genesis_rf5c164.cpp",
+        "native/reference/tauri/native_genesis_rf5c164.h",
+        "vendor/mame-rf5c164/rf5c164.cpp",
+        "vendor/mame-rf5c164/rf5c164.h",
+        "vendor/mame-rf5c164/upstream/rf5c68.cpp",
+        "wasm/rf5c164_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_rf5c164_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "rf5c164"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "segapsg",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_psg.h",
+          "native/reference/tauri/native_genesis_game_gear.cpp",
+          "native/reference/tauri/native_genesis_game_gear.h",
+          "native/include/tetorica/segapsg.hpp"
+        ],
+        "id": "segapsg",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_psg.h",
+          "native/reference/tauri/native_genesis_game_gear.cpp",
+          "native/reference/tauri/native_genesis_game_gear.h",
+          "native/include/tetorica/segapsg.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_segapsg",
+        "tests": [
+          "tetorica.segapsg.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Sega PSG only, preserving the native_game_gear_* C ABI; three tones, noise and Game Gear stereo routing. No Genesis FM or Master System OPLL core is constructed by this target."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/segapsg.hpp",
+        "native/reference/tauri/native_genesis_game_gear.cpp",
+        "native/reference/tauri/native_genesis_game_gear.h",
+        "native/reference/tauri/native_genesis_psg.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/segapsg_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_segapsg_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "segapsg"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "snes",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/snes-spc/LICENSE",
+        "vendor/snes-spc/README.upstream.md",
+        "vendor/snes-spc/license.txt",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_snes.cpp": "LGPL-2.1-or-later",
+          "native/reference/tauri/native_genesis_snes.h": "LGPL-2.1-or-later"
+        },
+        "defaultLicensedFiles": [
+          "native/include/tetorica/snes.hpp"
+        ],
+        "id": "snes",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/snes-spc/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_snes.cpp",
+          "native/reference/tauri/native_genesis_snes.h",
+          "native/include/tetorica/snes.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_snes",
+        "tests": [
+          "tetorica.snes.self_test",
+          "tetorica.snes.extra_self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent accurate eight-voice S-DSP instrument with native_snes_* ABI, copied owned 64 KiB RAM, stable read-only RAM views, DSP registers and protected KON/KOFF, Stop/reset and observational 152-byte state. Fixed 32 kHz source with integer-phase output-rate interpolation. Caller-validated timelines borrow immutable initial RAM/DSP and ordered event tuples for replay. Stop retains authored settings and RAM, so stored echo can remain audible; reset clears RAM. Native lifecycle and zero-allocation controls/rendering tests plus actual WASM/Worklet PCM comparisons; no SPC700 CPU, SPC-file loader, audio device, IPC scheduler, portable save state or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/snes.hpp",
+        "native/reference/tauri/native_genesis_snes.cpp",
+        "native/reference/tauri/native_genesis_snes.h",
+        "vendor/snes-spc/snes_spc/SNES_SPC.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC_state.cpp",
+        "vendor/snes-spc/snes_spc/SPC_CPU.h",
+        "vendor/snes-spc/snes_spc/SPC_DSP.cpp",
+        "vendor/snes-spc/snes_spc/SPC_DSP.h",
+        "vendor/snes-spc/snes_spc/SPC_Filter.cpp",
+        "vendor/snes-spc/snes_spc/SPC_Filter.h",
+        "vendor/snes-spc/snes_spc/blargg_common.h",
+        "vendor/snes-spc/snes_spc/blargg_config.h",
+        "vendor/snes-spc/snes_spc/blargg_endian.h",
+        "vendor/snes-spc/snes_spc/blargg_source.h",
+        "vendor/snes-spc/snes_spc/dsp.cpp",
+        "vendor/snes-spc/snes_spc/dsp.h",
+        "vendor/snes-spc/snes_spc/spc.cpp",
+        "vendor/snes-spc/snes_spc/spc.h",
+        "wasm/spc_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_spc_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "spc"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "spc",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/snes-spc/LICENSE",
+        "vendor/snes-spc/README.upstream.md",
+        "vendor/snes-spc/license.txt",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_spc.cpp": "LGPL-2.1-or-later",
+          "native/reference/tauri/native_genesis_spc.h": "LGPL-2.1-or-later"
+        },
+        "defaultLicensedFiles": [
+          "native/include/tetorica/spc.hpp"
+        ],
+        "id": "spc",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/snes-spc/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_spc.cpp",
+          "native/reference/tauri/native_genesis_spc.h",
+          "native/include/tetorica/spc.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_spc",
+        "tests": [
+          "tetorica.spc.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent SPC700 and accurate S-DSP player with native_spc_* ABI, copied SPC files, control-only load and incremental seek blocks up to 16000 native frames, pause/resume, future-source mute, snapshots and fixed-capacity borrowed raw DSP events with overflow accounting. Fixed 32 kHz synthesis, 128-native-frame lookahead and integer-phase output interpolation. Load failures latch an error until successful reload; hosts retain original file bytes and prepare cores for Stop or absolute seeks outside rendering. Native lifecycle/allocation tests and deployed Worklet/WASM PCM, selected-state, RAM-hash, DSP-register and ordered-event comparisons; no complete IPL ROM, metadata end/fade, host lifetime queue, device, portable checkpoint or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/spc.hpp",
+        "native/reference/tauri/native_genesis_spc.cpp",
+        "native/reference/tauri/native_genesis_spc.h",
+        "vendor/snes-spc/snes_spc/SNES_SPC.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC_state.cpp",
+        "vendor/snes-spc/snes_spc/SPC_CPU.h",
+        "vendor/snes-spc/snes_spc/SPC_DSP.cpp",
+        "vendor/snes-spc/snes_spc/SPC_DSP.h",
+        "vendor/snes-spc/snes_spc/SPC_Filter.cpp",
+        "vendor/snes-spc/snes_spc/SPC_Filter.h",
+        "vendor/snes-spc/snes_spc/blargg_common.h",
+        "vendor/snes-spc/snes_spc/blargg_config.h",
+        "vendor/snes-spc/snes_spc/blargg_endian.h",
+        "vendor/snes-spc/snes_spc/blargg_source.h",
+        "vendor/snes-spc/snes_spc/dsp.cpp",
+        "vendor/snes-spc/snes_spc/dsp.h",
+        "vendor/snes-spc/snes_spc/spc.cpp",
+        "vendor/snes-spc/snes_spc/spc.h",
+        "wasm/spc_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_spc_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "spc"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "y8950",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/y8950.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "id": "y8950",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/y8950.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_opl",
+        "tests": [
+          "tetorica.opl.self_test",
+          "tetorica.extra_opl.self_test",
+          "tetorica.y8950_memory.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/y8950.hpp",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/src/ymfm_opl_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/y8950_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_y8950_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "y8950"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym2151",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ym2151.cpp",
+          "native/reference/tauri/native_genesis_ym2151.h",
+          "native/include/tetorica/ym2151.hpp",
+          "native/src/ymfm_opm_provider.cpp"
+        ],
+        "id": "ym2151",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ym2151.cpp",
+          "native/reference/tauri/native_genesis_ym2151.h",
+          "native/include/tetorica/ym2151.hpp",
+          "native/src/ymfm_opm_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ym2151",
+        "tests": [
+          "tetorica.ym2151.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "ymfm OPM only, with explicit Native OPM template definitions; X68000 OKIM6258 and host audio are outside this target"
+      },
+      "sourceFiles": [
+        "native/include/tetorica/ym2151.hpp",
+        "native/reference/tauri/native_genesis_ym2151.cpp",
+        "native/reference/tauri/native_genesis_ym2151.h",
+        "native/src/ymfm_opm_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym2151_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym2151_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym2151"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym2203",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ym2203.cpp",
+          "native/reference/tauri/native_genesis_ym2203.h",
+          "native/include/tetorica/ym2203.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "id": "ym2203",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ym2203.cpp",
+          "native/reference/tauri/native_genesis_ym2203.h",
+          "native/include/tetorica/ym2203.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ym2203",
+        "tests": [
+          "tetorica.ym2203.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent ymfm YM2203 FM/SSG renderer, primary and additional constructor profiles. Three FM and three SSG voices, prescalers, timers/CSM and mono output on both channels; no YM2608 rhythm, ADPCM memory or host audio device is provided by this target."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/ym2203.hpp",
+        "native/reference/tauri/native_genesis_ym2203.cpp",
+        "native/reference/tauri/native_genesis_ym2203.h",
+        "native/src/ymfm_opn_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym2203_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym2203_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym2203"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym2413",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ym2413.cpp",
+          "native/reference/tauri/native_genesis_ym2413.h",
+          "native/reference/tauri/native_genesis_opll.h",
+          "native/include/tetorica/ym2413.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "id": "ym2413",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ym2413.cpp",
+          "native/reference/tauri/native_genesis_ym2413.h",
+          "native/reference/tauri/native_genesis_opll.h",
+          "native/include/tetorica/ym2413.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ym2413",
+        "tests": [
+          "tetorica.ym2413.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent OPLL renderer with nine melodic channels or six melodic channels plus five aliased rhythm voices, and explicit Native OPL template definitions. The older machine-level native_genesis_opll.h remains a reference; no Sega PSG or AY core is constructed by this target."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/ym2413.hpp",
+        "native/reference/tauri/native_genesis_opll.h",
+        "native/reference/tauri/native_genesis_ym2413.cpp",
+        "native/reference/tauri/native_genesis_ym2413.h",
+        "native/src/ymfm_opl_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym2413_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym2413_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym2413"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym2608",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ym2608.cpp",
+          "native/reference/tauri/native_genesis_ym2608.h",
+          "native/include/tetorica/ym2608.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "id": "ym2608",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ym2608.cpp",
+          "native/reference/tauri/native_genesis_ym2608.h",
+          "native/include/tetorica/ym2608.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ym2608",
+        "tests": [
+          "tetorica.ym2608.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Independent ymfm YM2608 renderer, primary and additional constructor profiles. Six FM, three SSG and six rhythm voices, ADPCM-B, bounded ROM/RAM transfers, timers/CSM, Stop/reset and observational state; no hardware ROM, host audio device or playback-deadline guarantee is provided by this target."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/ym2608.hpp",
+        "native/reference/tauri/native_genesis_ym2608.cpp",
+        "native/reference/tauri/native_genesis_ym2608.h",
+        "native/src/ymfm_opn_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym2608_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym2608_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym2608"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym2610",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ym2610b.cpp",
+          "native/reference/tauri/native_genesis_ym2610b.h",
+          "native/include/tetorica/ym2610.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "id": "ym2610",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ym2610b.cpp",
+          "native/reference/tauri/native_genesis_ym2610b.h",
+          "native/include/tetorica/ym2610.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ym2610",
+        "tests": [
+          "tetorica.ym2610.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Common ymfm YM2610/YM2610B renderer with immutable four-FM/six-FM selection, primary and additional profiles, SSG, ADPCM-A/B and separate ROM banks. Primary owns dense 16 MiB banks; additional instances borrow externally owned immutable 64 KiB pages. Offline PCM, memory lifetime/bounds, cancellation, Stop/reset and observation checks; no host queue, audio device or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/ym2610.hpp",
+        "native/reference/tauri/native_genesis_ym2610b.cpp",
+        "native/reference/tauri/native_genesis_ym2610b.h",
+        "native/src/ymfm_opn_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym2610b_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym2610b_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym2610b"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym2610b",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ym2610b.cpp",
+          "native/reference/tauri/native_genesis_ym2610b.h",
+          "native/include/tetorica/ym2610b.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "id": "ym2610b",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ym2610b.cpp",
+          "native/reference/tauri/native_genesis_ym2610b.h",
+          "native/include/tetorica/ym2610b.hpp",
+          "native/src/ymfm_opn_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ym2610",
+        "tests": [
+          "tetorica.ym2610.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Common ymfm YM2610/YM2610B renderer with immutable four-FM/six-FM selection, primary and additional profiles, SSG, ADPCM-A/B and separate ROM banks. Primary owns dense 16 MiB banks; additional instances borrow externally owned immutable 64 KiB pages. Offline PCM, memory lifetime/bounds, cancellation, Stop/reset and observation checks; no host queue, audio device or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/ym2610b.hpp",
+        "native/reference/tauri/native_genesis_ym2610b.cpp",
+        "native/reference/tauri/native_genesis_ym2610b.h",
+        "native/src/ymfm_opn_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym2610b_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym2610b_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym2610b"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "engines": [
+        "ymfm",
+        "nuked-opn2"
+      ],
+      "id": "ym2612",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/nuked-opn2/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "alternativeEngines": [
+          {
+            "alias": "tetorica::nuked_ym2612",
+            "header": "native/include/tetorica/nuked_ym2612.hpp",
+            "id": "nuked-opn2",
+            "licenseFiles": [
+              "LICENSE",
+              "vendor/nuked-opn2/LICENSE"
+            ],
+            "sourceFiles": [
+              "native/reference/tauri/native_genesis_nuked.cpp",
+              "native/reference/tauri/native_genesis_nuked_ym2612.inc",
+              "native/reference/tauri/native_genesis_ym2612.h",
+              "vendor/nuked-opn2/ym3438.c",
+              "vendor/nuked-opn2/ym3438.h",
+              "wasm/nuked_opn2_wasm.c"
+            ],
+            "status": "verified",
+            "target": "tetorica_native_nuked_ym2612",
+            "tests": [
+              "tetorica.nuked_ym2612.self_test",
+              "tetorica.nuked_colink.self_test"
+            ],
+            "verificationScope": "Unchanged pinned wrapper and C provider, per-TU OPN2 symbol prefixes, process-global YM2612 initialization via call_once, synchronous raw and Native output/control contracts, allocation-free callback paths, concurrent independent first constructions and coexistence with ymfm/PSG."
+          }
+        ],
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/reference/tauri/native_genesis_nuked.cpp": "LGPL-2.1-or-later",
+          "native/reference/tauri/native_genesis_nuked_ym2612.inc": "LGPL-2.1-or-later"
+        },
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_ym2612.cpp",
+          "native/reference/tauri/native_genesis_ym2612.h",
+          "native/include/tetorica/ym2612.hpp",
+          "native/src/ymfm_opn_provider.cpp",
+          "native/include/tetorica/nuked_ym2612.hpp"
+        ],
+        "id": "ym2612",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/nuked-opn2/LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_ym2612.cpp",
+          "native/reference/tauri/native_genesis_ym2612.h",
+          "native/reference/tauri/native_genesis_nuked.cpp",
+          "native/reference/tauri/native_genesis_nuked_ym2612.inc",
+          "native/include/tetorica/ym2612.hpp",
+          "native/src/ymfm_opn_provider.cpp",
+          "native/include/tetorica/nuked_ym2612.hpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ym2612",
+        "tests": [
+          "tetorica.ym2612.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Default ymfm engine with explicit Native OPN template definitions; alternative Nuked engine has its own independently linked target and raw/native ABIs."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/nuked_ym2612.hpp",
+        "native/include/tetorica/ym2612.hpp",
+        "native/reference/tauri/native_genesis_nuked.cpp",
+        "native/reference/tauri/native_genesis_nuked_ym2612.inc",
+        "native/reference/tauri/native_genesis_ym2612.cpp",
+        "native/reference/tauri/native_genesis_ym2612.h",
+        "native/src/ymfm_opn_provider.cpp",
+        "vendor/nuked-opn2/ym3438.c",
+        "vendor/nuked-opn2/ym3438.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/nuked_opn2_wasm.c",
+        "wasm/opn_state.h",
+        "wasm/ym2612_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_nuked_opn2_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "nuked_opn2"
+          },
+          {
+            "buildScript": "scripts/build_ym2612_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym2612"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym3526",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/ym3526.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "id": "ym3526",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/ym3526.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_opl",
+        "tests": [
+          "tetorica.opl.self_test",
+          "tetorica.extra_opl.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ym3526.hpp",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/src/ymfm_opl_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym3526_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym3526_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym3526"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ym3812",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/ym3812.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "id": "ym3812",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/ym3812.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_opl",
+        "tests": [
+          "tetorica.opl.self_test",
+          "tetorica.extra_opl.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ym3812.hpp",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/src/ymfm_opl_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ym3812_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ym3812_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ym3812"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "ymf262",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {},
+        "defaultLicensedFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/ymf262.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "id": "ymf262",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/ymfm/LICENSE"
+        ],
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/reference/tauri/native_genesis_opl.cpp",
+          "native/reference/tauri/native_genesis_opl.h",
+          "native/reference/tauri/native_genesis_extra_opl.cpp",
+          "native/reference/tauri/native_genesis_extra_opl.h",
+          "native/reference/tauri/native_genesis_y8950_memory.h",
+          "native/include/tetorica/opl.hpp",
+          "native/include/tetorica/ymf262.hpp",
+          "native/src/ymfm_opl_provider.cpp"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_opl",
+        "tests": [
+          "tetorica.opl.self_test",
+          "tetorica.extra_opl.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "Common selected-kind OPL library, primary and additional profiles: 0 YM3526, 1 YM3812, 2 YMF262, 3 Y8950. FM/rhythm, OPL3 four-operator and four-bus routing, controls/observations and offline Worklet/WASM comparison. Y8950 adds caller-owned writable 4 KiB pages in a 2 MiB ADPCM address space; host owns synchronization and lifetime. No audio device, scheduler or playback-deadline guarantee."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/opl.hpp",
+        "native/include/tetorica/ymf262.hpp",
+        "native/reference/tauri/native_genesis_extra_opl.cpp",
+        "native/reference/tauri/native_genesis_extra_opl.h",
+        "native/reference/tauri/native_genesis_opl.cpp",
+        "native/reference/tauri/native_genesis_opl.h",
+        "native/reference/tauri/native_genesis_y8950_memory.h",
+        "native/src/ymfm_opl_provider.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h",
+        "wasm/opn_state.h",
+        "wasm/ymf262_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ymf262_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ymf262"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    }
+  ],
+  "differencesDocument": "docs/chip-differences.md",
+  "javascriptReferences": [
+    {
+      "entryPoint": "reference/javascript/msm5205audioengine.js",
+      "format": "javascript-es-module",
+      "id": "msm5205",
+      "licenseFiles": [
+        "vendor/libvgm-msm5205/LICENSE"
+      ],
+      "native": {
+        "status": "not-ported"
+      },
+      "provenanceStatus": "imported-reference-source; unchanged from the Tetorica JavaScript implementation",
+      "sourceFiles": [
+        "reference/javascript/msm5205audioengine.js"
+      ],
+      "wasm": {
+        "status": "not-ported"
+      }
+    },
+    {
+      "entryPoint": "reference/javascript/okim6295audioengine.js",
+      "format": "javascript-es-module",
+      "id": "okim6295",
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "native": {
+        "status": "not-ported"
+      },
+      "provenanceStatus": "imported-reference-source; unchanged from the Tetorica JavaScript implementation",
+      "sourceFiles": [
+        "reference/javascript/okim6295audioengine.js"
+      ],
+      "wasm": {
+        "status": "not-ported"
+      }
+    }
+  ],
+  "notes": [
+    "Source collection is complete for these 22 Playground IDs; each Native verificationScope records its supported API and tested configurations.",
+    "A WASM recipe is not a claim of runtime verification; release build-info and tests report the verified scope.",
+    "snes (DSP/RAM access) and spc (SPC CPU/file player) share the SNES-SPC sources but remain separate APIs.",
+    "JavaScript references are separate from the 22 Playground IDs and 27 WASM recipes; their Native/WASM ports are not implemented.",
+    "Pinned upstream source references preserve original C/C++ implementations and dependencies; they are not additional SDK Native/WASM targets."
+  ],
+  "schemaVersion": 1,
+  "stage": "bootstrap",
+  "upstreamReferences": [
+    {
+      "buildStatus": "reference-only; libvgm support files without an explicit license are omitted",
+      "commit": "bad50c571db45b872304bdcd0603dd2214f0663e",
+      "comparisonNote": "Independently collected upstream reference. The historical revision used for the Tetorica JavaScript adaptation is not established by this snapshot.",
+      "id": "libvgm-msm5205-upstream",
+      "licenseDiscussion": "https://github.com/ValleyBell/libvgm/issues/129",
+      "licenseFiles": [
+        "vendor/libvgm-msm5205/LICENSE"
+      ],
+      "omissionReason": "These libvgm integration headers have no explicit license declaration in the pinned snapshot. Upstream reports incomplete per-module license assignment; no license is inferred for those files.",
+      "omittedDependencies": [
+        "emu/EmuCores.h",
+        "emu/EmuHelper.h",
+        "emu/SoundDevs.h",
+        "emu/cores/msm5205.h",
+        "emu/dac_control.h",
+        "emu/logging.h",
+        "emu/snddef.h",
+        "stdtype.h"
+      ],
+      "repository": "https://github.com/ValleyBell/libvgm",
+      "role": "upstream-source-reference",
+      "sdkIntegration": {
+        "native": "not-integrated",
+        "wasm": "not-integrated"
+      },
+      "snapshotManifest": "vendor/libvgm-msm5205/upstream/libvgm/snapshot-manifest.json",
+      "sourceFiles": [
+        "vendor/libvgm-msm5205/upstream/libvgm/emu/cores/msm5205.c"
+      ]
+    },
+    {
+      "buildStatus": "reference-only; libvgm support files without an explicit license are omitted",
+      "commit": "bad50c571db45b872304bdcd0603dd2214f0663e",
+      "comparisonNote": "Independently collected upstream reference. The historical revision used for the Tetorica JavaScript adaptation is not established by this snapshot.",
+      "id": "libvgm-okim6295-upstream",
+      "licenseDiscussion": "https://github.com/ValleyBell/libvgm/issues/129",
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "omissionReason": "These libvgm integration headers have no explicit license declaration in the pinned snapshot. Upstream reports incomplete per-module license assignment; no license is inferred for those files.",
+      "omittedDependencies": [
+        "emu/EmuCores.h",
+        "emu/EmuHelper.h",
+        "emu/EmuStructs.h",
+        "emu/SoundDevs.h",
+        "emu/cores/okim6295.h",
+        "emu/logging.h",
+        "emu/snddef.h",
+        "stdtype.h"
+      ],
+      "repository": "https://github.com/ValleyBell/libvgm",
+      "role": "upstream-source-reference",
+      "sdkIntegration": {
+        "native": "not-integrated",
+        "wasm": "not-integrated"
+      },
+      "snapshotManifest": "vendor/mame-okim6295/upstream/libvgm/snapshot-manifest.json",
+      "sourceFiles": [
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okim6295.c",
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.c",
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.h"
+      ]
+    },
+    {
+      "buildStatus": "reference-only; MAME framework required",
+      "commit": "9d8a6727a206fc822b8b69d67a51e6fd7dbf4d4b",
+      "id": "mame-okim6295-upstream",
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "repository": "https://github.com/mamedev/mame",
+      "role": "upstream-source-reference",
+      "sdkIntegration": {
+        "native": "not-integrated",
+        "wasm": "not-integrated"
+      },
+      "snapshotManifest": "vendor/mame-okim6295/upstream/mame/snapshot-manifest.json",
+      "sourceFiles": [
+        "vendor/mame-okim6295/upstream/mame/okim6295.cpp",
+        "vendor/mame-okim6295/upstream/mame/okim6295.h",
+        "vendor/mame-okim6295/upstream/mame/okiadpcm.cpp",
+        "vendor/mame-okim6295/upstream/mame/okiadpcm.h"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+#include "opn_state.h"
+#include <cstdint>
+
+#include "ymfm_wasm_interface.h"
+#include "ymfm_opn.h"
+
+namespace
+{
+
+struct ym2203_handle
+{
+    ymfm_wasm_interface intf;
+    ymfm::ym2203 chip;
+    uint32_t source_mute_mask = 0;
+    uint32_t channel_mute_mask = 0;
+
+    ym2203_handle() : intf(), chip(intf)
+    {
+        chip.reset();
+    }
+};
+
+inline ym2203_handle *cast_handle(void *ptr)
+{
+    return static_cast<ym2203_handle *>(ptr);
+}
+
+inline float normalize_sample(int32_t value)
+{
+    if (value < -32768)
+        value = -32768;
+    if (value > 32767)
+        value = 32767;
+    return static_cast<float>(value) / 32768.0f;
+}
+
+} // namespace
+
+extern "C"
+{
+
+void *ym2203_create()
+{
+    return new ym2203_handle();
+}
+
+void ym2203_destroy(void *ptr)
+{
+    delete cast_handle(ptr);
+}
+
+void ym2203_reset(void *ptr)
+{
+    cast_handle(ptr)->chip.reset();
+}
+
+void ym2203_write(void *ptr, uint32_t offset, uint8_t data)
+{
+    cast_handle(ptr)->chip.write(offset, data);
+}
+
+uint8_t ym2203_read(void *ptr, uint32_t offset)
+{
+    return cast_handle(ptr)->chip.read(offset);
+}
+
+uint8_t ym2203_read_status(void *ptr)
+{
+    return cast_handle(ptr)->chip.read_status();
+}
+
+uint8_t ym2203_get_irq(void *ptr)
+{
+    return cast_handle(ptr)->intf.irq_asserted ? 1 : 0;
+}
+
+uint32_t ym2203_sample_rate(void *ptr, uint32_t clock)
+{
+    return cast_handle(ptr)->chip.sample_rate(clock);
+}
+
+void ym2203_set_source_mute_mask(void *ptr, uint32_t mask)
+{
+    auto *handle = cast_handle(ptr);
+    handle->source_mute_mask = mask;
+}
+
+void ym2203_set_mute_mask(void *ptr, uint32_t mask)
+{
+    cast_handle(ptr)->channel_mute_mask = mask;
+    cast_handle(ptr)->chip.set_mute_mask(mask);
+}
+
+void ym2203_generate(void *ptr, float *left, float *right, uint32_t frames)
+{
+    auto *handle = cast_handle(ptr);
+    for (uint32_t index = 0; index < frames; index++)
+    {
+        ymfm::ym2203::output_data output;
+        handle->chip.generate(&output);
+        handle->intf.advance_sample(handle->chip);
+        // YM2203 has one FM output and three SSG outputs, all mono.
+        // Match examples/vgmrender by summing them into both channels.
+        int32_t mix = 0;
+        for (uint32_t out = 0; out < ymfm::ym2203::OUTPUTS; out++)
+            if (out == 0 || !(handle->source_mute_mask & 1)) mix += output.data[out];
+        left[index] = right[index] = normalize_sample(mix);
+    }
+}
+
+
+uint32_t ym2203_save_state(void *ptr, uint8_t *out) {
+    auto *h = cast_handle(ptr);
+    return save_opn_state(h->chip, h->intf, {&h->source_mute_mask, &h->channel_mute_mask}, {}, out);
+}
+int ym2203_load_state(void *ptr, const uint8_t *data, uint32_t size) {
+    auto *h = cast_handle(ptr);
+    if (!load_opn_state(h->chip, h->intf, {&h->source_mute_mask, &h->channel_mute_mask}, {}, data, size)) return 0;
+    h->chip.set_mute_mask(h->channel_mute_mask);
+    return 1;
+}
+}

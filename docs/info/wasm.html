@@ -88,11 +88,15 @@
           Related source:
           <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/README.md">web/README.md</a>,
           <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/web/ym2612.js">web/ym2612.js</a>,
-          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/wasm/ym2612_wasm.cpp">wasm/ym2612_wasm.cpp</a>
+          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/third_party/tetorica-soundchip-native/wasm/ym2612_wasm.cpp">SDK YM2612 wrapper</a>
         </p>
 
         <h2>Build</h2>
         <pre>sh scripts/build_ym2612_wasm.sh</pre>
+        <p>The build verifies the fixed SDK source release included in the checkout.
+          It requires Emscripten and Python 3. See the
+          <a href="https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/building_ym2612_wasm.md">build and SDK update instructions</a>.
+        </p>
         <p>This generates:</p>
         <ul>
           <li><code>docs/generated/ym2612_wasm.js</code></li>

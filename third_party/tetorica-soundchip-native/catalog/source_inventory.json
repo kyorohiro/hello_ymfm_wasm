@@ -1,0 +1,3054 @@
+{
+  "schemaVersion": 1,
+  "origin": {
+    "repository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+    "commit": "0fff93d46ab3e9227ecffcacdf96f3ca115e6f72",
+    "snapshot": "Local working-tree bytes; per-file SHA256 is authoritative, not a claim of unmodified upstream source"
+  },
+  "components": [
+    {
+      "id": "ymfm",
+      "sourceFiles": [
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "vendor/ymfm/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/aaronsgiles/ymfm",
+        "https://github.com/kyorohiro/hello_ymfm_wasm"
+      ],
+      "sourceVersion": [
+        "Local adapted snapshot 0fff93d46ab3e9227ecffcacdf96f3ca115e6f72; exact bytes identified below"
+      ],
+      "files": [
+        {
+          "path": "vendor/ymfm/chip_state.h",
+          "originPath": "src/chip_state.h",
+          "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+        },
+        {
+          "path": "vendor/ymfm/segapsg.cpp",
+          "originPath": "src/segapsg.cpp",
+          "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612"
+        },
+        {
+          "path": "vendor/ymfm/segapsg.h",
+          "originPath": "src/segapsg.h",
+          "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7"
+        },
+        {
+          "path": "vendor/ymfm/ymfm.h",
+          "originPath": "src/ymfm.h",
+          "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.cpp",
+          "originPath": "src/ymfm_adpcm.cpp",
+          "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.h",
+          "originPath": "src/ymfm_adpcm.h",
+          "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.h",
+          "originPath": "src/ymfm_fm.h",
+          "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.ipp",
+          "originPath": "src/ymfm_fm.ipp",
+          "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.cpp",
+          "originPath": "src/ymfm_misc.cpp",
+          "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.h",
+          "originPath": "src/ymfm_misc.h",
+          "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.cpp",
+          "originPath": "src/ymfm_opl.cpp",
+          "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.h",
+          "originPath": "src/ymfm_opl.h",
+          "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.cpp",
+          "originPath": "src/ymfm_opm.cpp",
+          "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.h",
+          "originPath": "src/ymfm_opm.h",
+          "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.cpp",
+          "originPath": "src/ymfm_opn.cpp",
+          "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.h",
+          "originPath": "src/ymfm_opn.h",
+          "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.cpp",
+          "originPath": "src/ymfm_opq.cpp",
+          "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.h",
+          "originPath": "src/ymfm_opq.h",
+          "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opx.h",
+          "originPath": "src/ymfm_opx.h",
+          "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.cpp",
+          "originPath": "src/ymfm_opz.cpp",
+          "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.h",
+          "originPath": "src/ymfm_opz.h",
+          "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.cpp",
+          "originPath": "src/ymfm_pcm.cpp",
+          "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.h",
+          "originPath": "src/ymfm_pcm.h",
+          "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.cpp",
+          "originPath": "src/ymfm_ssg.cpp",
+          "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd"
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.h",
+          "originPath": "src/ymfm_ssg.h",
+          "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584"
+        },
+        {
+          "path": "vendor/ymfm/LICENSE",
+          "originPath": "LICENSE",
+          "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+        }
+      ]
+    },
+    {
+      "id": "mame-32x-pwm",
+      "sourceFiles": [
+        "vendor/mame-32x-pwm/upstream/mega32x.cpp",
+        "vendor/mame-32x-pwm/upstream/mega32x.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-32x-pwm/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/df862b468443b391b24405c322aea60695d1825e/src/mame/shared/mega32x.cpp"
+      ],
+      "sourceVersion": [
+        "df862b468443b391b24405c322aea60695d1825e"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-32x-pwm/LICENSE",
+          "originPath": "third_party/mame-32x-pwm/LICENSE",
+          "sha256": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6"
+        },
+        {
+          "path": "vendor/mame-32x-pwm/README.md",
+          "originPath": "third_party/mame-32x-pwm/README.md",
+          "sha256": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec"
+        },
+        {
+          "path": "vendor/mame-32x-pwm/upstream/mega32x.cpp",
+          "originPath": "third_party/mame-32x-pwm/upstream/mega32x.cpp",
+          "sha256": "17490105d503cb3229090639debd80a31acc400221085ddddb32145b16ead91a"
+        },
+        {
+          "path": "vendor/mame-32x-pwm/upstream/mega32x.h",
+          "originPath": "third_party/mame-32x-pwm/upstream/mega32x.h",
+          "sha256": "fcb83da0eda963035d444eca408e1bc870a0eb723277db7c38219d6aa2348c0a"
+        }
+      ]
+    },
+    {
+      "id": "mame-ay8910",
+      "sourceFiles": [
+        "vendor/mame-ay8910/ay8910.cpp",
+        "vendor/mame-ay8910/ay8910.h",
+        "vendor/mame-ay8910/upstream/ay8910.cpp",
+        "vendor/mame-ay8910/upstream/ay8910.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-ay8910/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/dd06c01bbbd7d0c1c8aefa477c095861c7f8bf31/src/devices/sound/ay8910.cpp",
+        "https://github.com/mamedev/mame/blob/dd06c01bbbd7d0c1c8aefa477c095861c7f8bf31/src/devices/sound/ay8910.h",
+        "https://raw.githubusercontent.com/vgmrips/vgmplay-legacy/master/VGMPlay/vgmspec171.txt"
+      ],
+      "sourceVersion": [
+        "dd06c01bbbd7d0c1c8aefa477c095861c7f8bf31"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-ay8910/LICENSE",
+          "originPath": "third_party/mame-ay8910/LICENSE",
+          "sha256": "9ce97eec16b71e54663cfff119162feb89ae254464bf2bad3c8b8d73870e9a0e"
+        },
+        {
+          "path": "vendor/mame-ay8910/README.md",
+          "originPath": "third_party/mame-ay8910/README.md",
+          "sha256": "d41552a7edc4156988dfee0395d501431507f5c8429217786d6a4be5078ae99f"
+        },
+        {
+          "path": "vendor/mame-ay8910/ay8910.cpp",
+          "originPath": "third_party/mame-ay8910/ay8910.cpp",
+          "sha256": "3ea3efe1b29a554c39a2b1995e9ed3d2588c16d24b085ca1565c3a24f4414646"
+        },
+        {
+          "path": "vendor/mame-ay8910/ay8910.h",
+          "originPath": "third_party/mame-ay8910/ay8910.h",
+          "sha256": "e93d1904d2c232f820c23a6df59dfebf309550a6f8b0032e20c51295e7d31e7a"
+        },
+        {
+          "path": "vendor/mame-ay8910/upstream/ay8910.cpp",
+          "originPath": "third_party/mame-ay8910/upstream/ay8910.cpp",
+          "sha256": "865e8ea6ff17acf107f00c48f39ee04df48319fc1780aa0ddb635d754fa2d514"
+        },
+        {
+          "path": "vendor/mame-ay8910/upstream/ay8910.h",
+          "originPath": "third_party/mame-ay8910/upstream/ay8910.h",
+          "sha256": "837b224a5fb0be9dbedd93746518c7d97dd6cb4622d1065afb7466b041cadb51"
+        }
+      ]
+    },
+    {
+      "id": "mame-gameboy",
+      "sourceFiles": [
+        "vendor/mame-gameboy/gameboy_apu.cpp",
+        "vendor/mame-gameboy/gameboy_apu.h",
+        "vendor/mame-gameboy/upstream/gb.cpp",
+        "vendor/mame-gameboy/upstream/gb.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-gameboy/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/0e6df89e98f10a05af5fd4df32572982e1709c81/src/devices/sound/gb.cpp",
+        "https://github.com/mamedev/mame/blob/fca00cace9e40ca70d82bbcc6dbd82167325e12b/src/devices/sound/gb.h",
+        "https://www.smspower.org/uploads/Music/vgmspec170.txt"
+      ],
+      "sourceVersion": [
+        "0e6df89e98f10a05af5fd4df32572982e1709c81",
+        "fca00cace9e40ca70d82bbcc6dbd82167325e12b"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-gameboy/LICENSE",
+          "originPath": "third_party/mame-gameboy/LICENSE",
+          "sha256": "acb20353889f489aba276d31cbd8ffce15c6bd353f873dc2255e67053446f3dc"
+        },
+        {
+          "path": "vendor/mame-gameboy/README.md",
+          "originPath": "third_party/mame-gameboy/README.md",
+          "sha256": "831990cae084021f75b9432aa6a9c50f2b686e79541482e86997a9cf67e50f61"
+        },
+        {
+          "path": "vendor/mame-gameboy/gameboy_apu.cpp",
+          "originPath": "third_party/mame-gameboy/gameboy_apu.cpp",
+          "sha256": "ba5fa988a82d175500dac392f518d7d86258c3743910b87f24218ef5602c91de"
+        },
+        {
+          "path": "vendor/mame-gameboy/gameboy_apu.h",
+          "originPath": "third_party/mame-gameboy/gameboy_apu.h",
+          "sha256": "3f464c0874e12995ddc3403587ab4bed0538c57e49d3179c7a0c50e6a1d96a12",
+          "originSha256": "1d0d70f8d716dd62f67cc4d4a31d3d5df85c602711fb0595ea754c50249475a8",
+          "adaptation": "Add only the existing NativeGameboyAccess friend declaration for non-advancing state observation and gate-only Stop. Rendering, layout and public core methods are unchanged; original imported digest retained in originSha256.",
+          "amendmentOriginPath": "w/tetorica-fm2612-playground-tauri/src-tauri/native-gameboy/snapshot/third_party/mame-gameboy/gameboy_apu.h",
+          "amendmentOriginCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+          "amendmentOriginSha256": "3f464c0874e12995ddc3403587ab4bed0538c57e49d3179c7a0c50e6a1d96a12"
+        },
+        {
+          "path": "vendor/mame-gameboy/upstream/gb.cpp",
+          "originPath": "third_party/mame-gameboy/upstream/gb.cpp",
+          "sha256": "c3ce71628faf03013234275e1ed5023b4b4393a843cd81b6b60f6dc0c625dee3"
+        },
+        {
+          "path": "vendor/mame-gameboy/upstream/gb.h",
+          "originPath": "third_party/mame-gameboy/upstream/gb.h",
+          "sha256": "79a124a25f43ba325c19940a351f44267654bb8652c651e53de069ce07389599"
+        }
+      ]
+    },
+    {
+      "id": "mame-huc6280",
+      "sourceFiles": [
+        "vendor/mame-huc6280/huc6280.cpp",
+        "vendor/mame-huc6280/huc6280.h",
+        "vendor/mame-huc6280/upstream/c6280.cpp",
+        "vendor/mame-huc6280/upstream/c6280.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-huc6280/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/ad84df9d8a14c9f2bdd996b22d2832bcdb2e4f24/src/devices/sound/c6280.cpp"
+      ],
+      "sourceVersion": [
+        "ad84df9d8a14c9f2bdd996b22d2832bcdb2e4f24"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-huc6280/LICENSE",
+          "originPath": "third_party/mame-huc6280/LICENSE",
+          "sha256": "d9aef90a96f93be90d39250e2a85c4ce78b381b6abbf16856fc337e71263dc1d"
+        },
+        {
+          "path": "vendor/mame-huc6280/README.md",
+          "originPath": "third_party/mame-huc6280/README.md",
+          "sha256": "1b792f719db680de5b5121ed2293256ac00fe6e51725e2aadc38dfaaa768b8dd"
+        },
+        {
+          "path": "vendor/mame-huc6280/huc6280.cpp",
+          "originPath": "third_party/mame-huc6280/huc6280.cpp",
+          "sha256": "5693c83943957e2ee0ee1bd5045503034363fed282764f99acb907293222f26f"
+        },
+        {
+          "path": "vendor/mame-huc6280/huc6280.h",
+          "originPath": "third_party/mame-huc6280/huc6280.h",
+          "sha256": "6b1464fc6d56390e56f99bf072d7300126cc91cd317bacc78b43be4d552af2b6"
+        },
+        {
+          "path": "vendor/mame-huc6280/upstream/c6280.cpp",
+          "originPath": "third_party/mame-huc6280/upstream/c6280.cpp",
+          "sha256": "192eeee545d8f438000f68e3867a26df7cd7b26efd9985d14f4dd7b53d61c8fc"
+        },
+        {
+          "path": "vendor/mame-huc6280/upstream/c6280.h",
+          "originPath": "third_party/mame-huc6280/upstream/c6280.h",
+          "sha256": "167fd885f209efdbdbe9375f7a39fce6f2545006bc5b4e06673824865162dfe5"
+        }
+      ]
+    },
+    {
+      "id": "mame-k051649",
+      "sourceFiles": [
+        "vendor/mame-k051649/k051649.cpp",
+        "vendor/mame-k051649/k051649.h",
+        "vendor/mame-k051649/upstream/k051649.cpp",
+        "vendor/mame-k051649/upstream/k051649.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-k051649/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/20d4667cdf485066a113f1ef24bae0887cd7134c/src/devices/sound/k051649.cpp",
+        "https://github.com/mamedev/mame/blob/20d4667cdf485066a113f1ef24bae0887cd7134c/src/devices/sound/k051649.h",
+        "https://www.smspower.org/uploads/Music/vgmspec170.txt",
+        "https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/ChipMapper.c",
+        "https://github.com/vgmrips/vgmplay-legacy/blob/master/VGMPlay/chips/k051649.c"
+      ],
+      "sourceVersion": [
+        "20d4667cdf485066a113f1ef24bae0887cd7134c"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-k051649/LICENSE",
+          "originPath": "third_party/mame-k051649/LICENSE",
+          "sha256": "8c50ff4995e94ba978d1ae2e90e3fd6fd4864c7d9dd3be0bc0ce37d754cf7b07"
+        },
+        {
+          "path": "vendor/mame-k051649/README.md",
+          "originPath": "third_party/mame-k051649/README.md",
+          "sha256": "ade6b36bed8d703e3fcc8924a1469c05d26f7685ab7ab430243da1edc074137a"
+        },
+        {
+          "path": "vendor/mame-k051649/k051649.cpp",
+          "originPath": "third_party/mame-k051649/k051649.cpp",
+          "sha256": "27a073a5be349b4edcf1f2c9b5e464a3ec633142c0b3fee9f1a20b64153a1c36"
+        },
+        {
+          "path": "vendor/mame-k051649/k051649.h",
+          "originPath": "third_party/mame-k051649/k051649.h",
+          "sha256": "527fa76035e60f717ffba8eaa514028a89925135e10da347b305b801e40efd8a"
+        },
+        {
+          "path": "vendor/mame-k051649/upstream/k051649.cpp",
+          "originPath": "third_party/mame-k051649/upstream/k051649.cpp",
+          "sha256": "003db1a492076e437b6b22f515ddb7f0c0fde01de0722ff308123a07a4637122"
+        },
+        {
+          "path": "vendor/mame-k051649/upstream/k051649.h",
+          "originPath": "third_party/mame-k051649/upstream/k051649.h",
+          "sha256": "42d22c7bd3a4a5665891fdec4fccc67586a226e2fcc8f971ff11cb964dfd8a06"
+        }
+      ]
+    },
+    {
+      "id": "mame-okim6258",
+      "sourceFiles": [
+        "vendor/mame-okim6258/okim6258.cpp",
+        "vendor/mame-okim6258/okim6258.h",
+        "vendor/mame-okim6258/upstream/okim6258.cpp",
+        "vendor/mame-okim6258/upstream/okim6258.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-okim6258/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/70743c6fb2602a5c2666c679b618706eabfca2ad/src/devices/sound/okim6258.cpp",
+        "https://github.com/h1romas4/libymfm.wasm/blob/bb006894793c573b33a79a211e2769d021556aec/src/rust/sound/chip_okim6258.rs",
+        "https://github.com/ValleyBell/libvgm/blob/master/emu/cores/okim6258.c",
+        "https://github.com/ValleyBell/libvgm/blob/master/player/vgmplayer.cpp"
+      ],
+      "sourceVersion": [
+        "70743c6fb2602a5c2666c679b618706eabfca2ad",
+        "bb006894793c573b33a79a211e2769d021556aec"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-okim6258/LICENSE",
+          "originPath": "third_party/mame-okim6258/LICENSE",
+          "sha256": "ee01db1519dfa17005dd1ef3a1baf7ff77395a08a7299406be4bbfdba1103973"
+        },
+        {
+          "path": "vendor/mame-okim6258/README.md",
+          "originPath": "third_party/mame-okim6258/README.md",
+          "sha256": "290ac7774e297daacc17c25c0f15b70eea7b9b8db594468023410e7795f73df0"
+        },
+        {
+          "path": "vendor/mame-okim6258/okim6258.cpp",
+          "originPath": "third_party/mame-okim6258/okim6258.cpp",
+          "sha256": "6ae2d4ff48e7d8a985436ba48e53cd92aa9b3edb8f1003a97bf16616506020a0"
+        },
+        {
+          "path": "vendor/mame-okim6258/okim6258.h",
+          "originPath": "third_party/mame-okim6258/okim6258.h",
+          "sha256": "99cb4110730a953a932c26c3e1a56019132eade49bfab8bfade9f4fbd242a172"
+        },
+        {
+          "path": "vendor/mame-okim6258/upstream/okim6258.cpp",
+          "originPath": "third_party/mame-okim6258/upstream/okim6258.cpp",
+          "sha256": "101b08bc609be97d6d051c2724ca6a2dfd0b71b533ba0094e8d1668fe7670f63"
+        },
+        {
+          "path": "vendor/mame-okim6258/upstream/okim6258.h",
+          "originPath": "third_party/mame-okim6258/upstream/okim6258.h",
+          "sha256": "f971312d5699aac54755365e9f699353ee86ec5714cf79ebfc7677279f7a9228"
+        }
+      ]
+    },
+    {
+      "id": "mame-rf5c164",
+      "sourceFiles": [
+        "vendor/mame-rf5c164/rf5c164.cpp",
+        "vendor/mame-rf5c164/rf5c164.h",
+        "vendor/mame-rf5c164/upstream/rf5c68.cpp"
+      ],
+      "licenseFiles": [
+        "vendor/mame-rf5c164/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2/src/devices/sound/rf5c68.cpp"
+      ],
+      "sourceVersion": [
+        "d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-rf5c164/LICENSE",
+          "originPath": "third_party/mame-rf5c164/LICENSE",
+          "sha256": "0a2b34be38b92350c6503001de126a201bcd297203b839ac1dfc6ebd005dd853"
+        },
+        {
+          "path": "vendor/mame-rf5c164/README.md",
+          "originPath": "third_party/mame-rf5c164/README.md",
+          "sha256": "3be506399ecf8d36c6724c82673436c7e122d82c84c1263114f1628ac1282af6"
+        },
+        {
+          "path": "vendor/mame-rf5c164/rf5c164.cpp",
+          "originPath": "third_party/mame-rf5c164/rf5c164.cpp",
+          "sha256": "9e8867bbbc74c60cf92f1300da9c01d59c0e820f69fd2a4461dfd08e3f6b8aea"
+        },
+        {
+          "path": "vendor/mame-rf5c164/rf5c164.h",
+          "originPath": "third_party/mame-rf5c164/rf5c164.h",
+          "sha256": "438829c9b8706a78c3ac71551f44a02a3bad0431bc1ec17df1e2b1ee7d91483d"
+        },
+        {
+          "path": "vendor/mame-rf5c164/upstream/rf5c68.cpp",
+          "originPath": "third_party/mame-rf5c164/upstream/rf5c68.cpp",
+          "sha256": "71e94d93dd9fdbbcf2c396c62ab2aa50d948bfcc2be688391f2f58268522aea9"
+        }
+      ]
+    },
+    {
+      "id": "mame-segapcm",
+      "sourceFiles": [
+        "vendor/mame-segapcm/segapcm.cpp",
+        "vendor/mame-segapcm/segapcm.h",
+        "vendor/mame-segapcm/upstream/segapcm.cpp",
+        "vendor/mame-segapcm/upstream/segapcm.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-segapcm/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/f5149345d9a293d6b742b4a9bda99dc651c3e430/src/devices/sound/segapcm.cpp",
+        "https://github.com/mamedev/mame/blob/f5149345d9a293d6b742b4a9bda99dc651c3e430/src/devices/sound/segapcm.h",
+        "https://www.smspower.org/uploads/Music/vgmspec170.txt",
+        "https://github.com/ValleyBell/libvgm/blob/master/emu/cores/segapcm.c",
+        "https://github.com/ValleyBell/libvgm/blob/master/player/vgmplayer.cpp"
+      ],
+      "sourceVersion": [
+        "f5149345d9a293d6b742b4a9bda99dc651c3e430"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-segapcm/LICENSE",
+          "originPath": "third_party/mame-segapcm/LICENSE",
+          "sha256": "90f2e4f538108c6004c13fb752c70eba8f5dcb6075289d9cab39edefd870f820"
+        },
+        {
+          "path": "vendor/mame-segapcm/README.md",
+          "originPath": "third_party/mame-segapcm/README.md",
+          "sha256": "03b2a82409cc298fd9a4984f6fe639cd482f36a8dd793f7816df40d5cbff2bb1"
+        },
+        {
+          "path": "vendor/mame-segapcm/segapcm.cpp",
+          "originPath": "third_party/mame-segapcm/segapcm.cpp",
+          "sha256": "21e3979427656710d8539c124c7dfb3df3c4ce1e422f58ea30a4a2310db9fa40"
+        },
+        {
+          "path": "vendor/mame-segapcm/segapcm.h",
+          "originPath": "third_party/mame-segapcm/segapcm.h",
+          "sha256": "8f54c9a2c3c80a935829da4b2b09a9562c782f133fef5e492d7bd1c77bccfcf6"
+        },
+        {
+          "path": "vendor/mame-segapcm/upstream/segapcm.cpp",
+          "originPath": "third_party/mame-segapcm/upstream/segapcm.cpp",
+          "sha256": "fb3f2d9497d5381f9ebf16ac3c6c8ed6c094eb3273526053075b6c44859c13ee"
+        },
+        {
+          "path": "vendor/mame-segapcm/upstream/segapcm.h",
+          "originPath": "third_party/mame-segapcm/upstream/segapcm.h",
+          "sha256": "7965d82e6b857fb00705e0638d7376b9266bec213a764cd08cbba6e1e6c8cbcf"
+        }
+      ]
+    },
+    {
+      "id": "nuked-opn2",
+      "sourceFiles": [
+        "vendor/nuked-opn2/ym3438.c",
+        "vendor/nuked-opn2/ym3438.h"
+      ],
+      "licenseFiles": [
+        "vendor/nuked-opn2/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/Nuked-OPN2",
+        "https://github.com/nukeykt/Nuked-OPN2"
+      ],
+      "sourceVersion": [
+        "335747d78cb0abbc3b55b004e62dad9763140115"
+      ],
+      "files": [
+        {
+          "path": "vendor/nuked-opn2/LICENSE",
+          "originPath": "third_party/nuked-opn2/LICENSE",
+          "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+        },
+        {
+          "path": "vendor/nuked-opn2/README.md",
+          "originPath": "third_party/nuked-opn2/README.md",
+          "sha256": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa"
+        },
+        {
+          "path": "vendor/nuked-opn2/ym3438.c",
+          "originPath": "third_party/nuked-opn2/ym3438.c",
+          "sha256": "8fa385546f0f2d1c975d097002af00cd729ae2ae097c068e9c883ce08ddf3a76"
+        },
+        {
+          "path": "vendor/nuked-opn2/ym3438.h",
+          "originPath": "third_party/nuked-opn2/ym3438.h",
+          "sha256": "8e60e35f77049d0e600ad1a47bfc3dfc8b832483e614104473a83c1f33cd7189"
+        }
+      ]
+    },
+    {
+      "id": "snes-spc",
+      "sourceFiles": [
+        "vendor/snes-spc/snes_spc/SNES_SPC.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC_state.cpp",
+        "vendor/snes-spc/snes_spc/SPC_CPU.h",
+        "vendor/snes-spc/snes_spc/SPC_DSP.cpp",
+        "vendor/snes-spc/snes_spc/SPC_DSP.h",
+        "vendor/snes-spc/snes_spc/SPC_Filter.cpp",
+        "vendor/snes-spc/snes_spc/SPC_Filter.h",
+        "vendor/snes-spc/snes_spc/blargg_common.h",
+        "vendor/snes-spc/snes_spc/blargg_config.h",
+        "vendor/snes-spc/snes_spc/blargg_endian.h",
+        "vendor/snes-spc/snes_spc/blargg_source.h",
+        "vendor/snes-spc/snes_spc/dsp.cpp",
+        "vendor/snes-spc/snes_spc/dsp.h",
+        "vendor/snes-spc/snes_spc/spc.cpp",
+        "vendor/snes-spc/snes_spc/spc.h"
+      ],
+      "licenseFiles": [
+        "vendor/snes-spc/LICENSE",
+        "vendor/snes-spc/README.upstream.md",
+        "vendor/snes-spc/license.txt"
+      ],
+      "upstream": [
+        "https://github.com/blarggs-audio-libraries/snes_spc",
+        "http://slack.net/~ant/libs/audio.html#snes_spc",
+        "http://www.slack.net/~ant/",
+        "http://groups.google.com/group/blargg-sound-libs"
+      ],
+      "sourceVersion": [
+        "ec8ee2bbe30451614c1d02a83f7af1c97d497d45"
+      ],
+      "files": [
+        {
+          "path": "vendor/snes-spc/LICENSE",
+          "originPath": "third_party/snes-spc/LICENSE",
+          "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+        },
+        {
+          "path": "vendor/snes-spc/README.md",
+          "originPath": "third_party/snes-spc/README.md",
+          "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775"
+        },
+        {
+          "path": "vendor/snes-spc/README.upstream.md",
+          "originPath": "third_party/snes-spc/README.upstream.md",
+          "sha256": "da0bfe0b5183787d61314fe7964e2c231675a9e61ce734ff7887b55fbf7d1362"
+        },
+        {
+          "path": "vendor/snes-spc/changes.txt",
+          "originPath": "third_party/snes-spc/changes.txt",
+          "sha256": "2f753e4f016d9cd8a37dc338f7a4d1bae70cd3a3623027f514542bee8daea148"
+        },
+        {
+          "path": "vendor/snes-spc/license.txt",
+          "originPath": "third_party/snes-spc/license.txt",
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        {
+          "path": "vendor/snes-spc/readme.txt",
+          "originPath": "third_party/snes-spc/readme.txt",
+          "sha256": "3832c72b8bf6c5b4e4b6d424d674c2a658b92aa595be10b14bdb715b0d6eb22b"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC.cpp",
+          "originPath": "third_party/snes-spc/snes_spc/SNES_SPC.cpp",
+          "sha256": "3d235748b0c520a000263b8098305061673b405754c900a94b9545991628533f"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC.h",
+          "originPath": "third_party/snes-spc/snes_spc/SNES_SPC.h",
+          "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
+          "originPath": "third_party/snes-spc/snes_spc/SNES_SPC_misc.cpp",
+          "sha256": "d89d85fd584299360eb304219658f2b92121b5dd4e8a4089e1e7d4806c1a8d3e"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC_state.cpp",
+          "originPath": "third_party/snes-spc/snes_spc/SNES_SPC_state.cpp",
+          "sha256": "6af18978d82617f12b9830b87e06dd6c27f772b78de9d18a8ebbdf38d93309d2"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_CPU.h",
+          "originPath": "third_party/snes-spc/snes_spc/SPC_CPU.h",
+          "sha256": "8f28ed5a3461cbf85c64c6a8ecdb6f51b486396e37940e112b94748b44c3a7a8"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_DSP.cpp",
+          "originPath": "third_party/snes-spc/snes_spc/SPC_DSP.cpp",
+          "sha256": "ec2ad75d60192fd1d03c63b5fea25874f96ec1beade45d6cecbd08277f35c9fc"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_DSP.h",
+          "originPath": "third_party/snes-spc/snes_spc/SPC_DSP.h",
+          "sha256": "736ac067d04e38bd1bc888c8e06799579a35fa14c9879f7c7ab7b69c6b085f8a"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_Filter.cpp",
+          "originPath": "third_party/snes-spc/snes_spc/SPC_Filter.cpp",
+          "sha256": "34c6ab92475d5fd700c3e01bff7d2fe8e59f8d188a0719c1ad12141d905f62e8"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_Filter.h",
+          "originPath": "third_party/snes-spc/snes_spc/SPC_Filter.h",
+          "sha256": "a86f33de7fbaa1d448de8e3879c4619e1d9a30a494c5a9606d682cee8dd89bb9"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_common.h",
+          "originPath": "third_party/snes-spc/snes_spc/blargg_common.h",
+          "sha256": "4bc17a19fe46de2860868d3f88c037aee718b4dedc61450a28de3d1336053dba"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_config.h",
+          "originPath": "third_party/snes-spc/snes_spc/blargg_config.h",
+          "sha256": "b318cfcd2828719d8e3435e4972bc75ba82697c2cc6b8d291130d66d7b6904b8"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_endian.h",
+          "originPath": "third_party/snes-spc/snes_spc/blargg_endian.h",
+          "sha256": "97062e15b46e1347a4fc2e95fd131bcb89c1b8947b28d20a27c1f342a387d637"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_source.h",
+          "originPath": "third_party/snes-spc/snes_spc/blargg_source.h",
+          "sha256": "bd6b376d6d9b1bccce3b89e915b1ad9a6fede7d43b273258bfa13c3855fb1a6a"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/dsp.cpp",
+          "originPath": "third_party/snes-spc/snes_spc/dsp.cpp",
+          "sha256": "80b7ff9f2f7ab4af0485c5faaa3dc333359a8892c63b996a3448c047bad62bb6"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/dsp.h",
+          "originPath": "third_party/snes-spc/snes_spc/dsp.h",
+          "sha256": "ac61fc96a688ce7429942a76562b0ce8cfb014f84c2c2398ef875b0f33521c2b"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/spc.cpp",
+          "originPath": "third_party/snes-spc/snes_spc/spc.cpp",
+          "sha256": "0f6bf884f2d6ef5728d8bb3fc277ff1e1bf74813251d8308f4e6d3aa1e33ec1f"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/spc.h",
+          "originPath": "third_party/snes-spc/snes_spc/spc.h",
+          "sha256": "e45c8e2862f44a23804bb6fe14c747e16f49efc2e991a92138d285c36b45e0c7"
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc.txt",
+          "originPath": "third_party/snes-spc/snes_spc.txt",
+          "sha256": "bf36fda81ac9ad8fecee4efe59bd360772ea0eaa49a0ea801dc06761a07ff295"
+        }
+      ]
+    },
+    {
+      "id": "tetorica-nes",
+      "sourceFiles": [
+        "vendor/tetorica-nes/nes_core.cpp",
+        "vendor/tetorica-nes/nes_core.h"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica-nes/AUTHORS-JSNES.md",
+        "vendor/tetorica-nes/LICENSE-FDS",
+        "vendor/tetorica-nes/LICENSE-JSNES",
+        "vendor/tetorica-nes/UPSTREAM-FDS.md",
+        "vendor/tetorica-nes/UPSTREAM-JSNES.md"
+      ],
+      "upstream": [
+        "https://github.com/FIX94/fixNES",
+        "https://github.com/bfirsh/jsnes"
+      ],
+      "sourceVersion": [
+        "0e96d50e835305a19dc48b074009db71ff260548",
+        "b8a45d088e922b6abcd87c4eb1b7237919e9d3d2",
+        "156fcaca9f4cd9c23d423737994c45cfb05d16ca"
+      ],
+      "files": [
+        {
+          "path": "vendor/tetorica-nes/AUTHORS-JSNES.md",
+          "originPath": "third_party/tetorica-nes/AUTHORS-JSNES.md",
+          "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a"
+        },
+        {
+          "path": "vendor/tetorica-nes/LICENSE-FDS",
+          "originPath": "third_party/tetorica-nes/LICENSE-FDS",
+          "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce"
+        },
+        {
+          "path": "vendor/tetorica-nes/LICENSE-JSNES",
+          "originPath": "third_party/tetorica-nes/LICENSE-JSNES",
+          "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+        },
+        {
+          "path": "vendor/tetorica-nes/README.md",
+          "originPath": "third_party/tetorica-nes/README.md",
+          "sha256": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396"
+        },
+        {
+          "path": "vendor/tetorica-nes/UPSTREAM-FDS.md",
+          "originPath": "third_party/tetorica-nes/UPSTREAM-FDS.md",
+          "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316"
+        },
+        {
+          "path": "vendor/tetorica-nes/UPSTREAM-JSNES.md",
+          "originPath": "third_party/tetorica-nes/UPSTREAM-JSNES.md",
+          "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792"
+        },
+        {
+          "path": "vendor/tetorica-nes/nes_core.cpp",
+          "originPath": "third_party/tetorica-nes/nes_core.cpp",
+          "sha256": "6658f4012eeac783ea72693b2284dd150dcb2e22a1f29859b83e1ae3d333f959"
+        },
+        {
+          "path": "vendor/tetorica-nes/nes_core.h",
+          "originPath": "third_party/tetorica-nes/nes_core.h",
+          "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31"
+        }
+      ]
+    },
+    {
+      "id": "msfa",
+      "sourceFiles": [
+        "vendor/msfa/aligned_buf.h",
+        "vendor/msfa/controllers.h",
+        "vendor/msfa/dx7note.cc",
+        "vendor/msfa/dx7note.h",
+        "vendor/msfa/env.cc",
+        "vendor/msfa/env.h",
+        "vendor/msfa/exp2.cc",
+        "vendor/msfa/exp2.h",
+        "vendor/msfa/fm_core.cc",
+        "vendor/msfa/fm_core.h",
+        "vendor/msfa/fm_op_kernel.cc",
+        "vendor/msfa/fm_op_kernel.h",
+        "vendor/msfa/freqlut.cc",
+        "vendor/msfa/freqlut.h",
+        "vendor/msfa/lfo.cc",
+        "vendor/msfa/lfo.h",
+        "vendor/msfa/module.h",
+        "vendor/msfa/patch.cc",
+        "vendor/msfa/patch.h",
+        "vendor/msfa/pitchenv.cc",
+        "vendor/msfa/pitchenv.h",
+        "vendor/msfa/resofilter.cc",
+        "vendor/msfa/resofilter.h",
+        "vendor/msfa/ringbuffer.cc",
+        "vendor/msfa/ringbuffer.h",
+        "vendor/msfa/sin.cc",
+        "vendor/msfa/sin.h",
+        "vendor/msfa/synth.h",
+        "vendor/msfa/synth_unit.cc",
+        "vendor/msfa/synth_unit.h"
+      ],
+      "licenseFiles": [
+        "vendor/msfa/COPYING",
+        "vendor/msfa/UPSTREAM.md"
+      ],
+      "upstream": [
+        "https://github.com/google/music-synthesizer-for-android",
+        "https://github.com/kyorohiro/tetorica-msfa-dx7-wasm"
+      ],
+      "sourceVersion": [
+        "f67d41d313b7dc85f6fb99e79e515cc9d208cfff"
+      ],
+      "files": [
+        {
+          "path": "vendor/msfa/COPYING",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/COPYING",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "vendor/msfa/UPSTREAM.md",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/UPSTREAM.md",
+          "sha256": "15b1157f0b45f12f9e6a61290a85b5e776e50106f37bd979c7d3993c63603964"
+        },
+        {
+          "path": "vendor/msfa/aligned_buf.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/aligned_buf.h",
+          "sha256": "802aefb025fb3c93584a0550be0b67a5b1fc77f003df15627104cc0a4caa5dac"
+        },
+        {
+          "path": "vendor/msfa/controllers.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/controllers.h",
+          "sha256": "68bf695b3b3176bf618a919f840093909a89325c57057c73bf8eee5fc8ae61b9"
+        },
+        {
+          "path": "vendor/msfa/dx7note.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/dx7note.cc",
+          "sha256": "551e1553962021625768b0f14741af59e6e3901ec3675c5128c8945cb174595d"
+        },
+        {
+          "path": "vendor/msfa/dx7note.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/dx7note.h",
+          "sha256": "fa4d2a3972597c6b1ca828b7e78d8553baf97567f7877d2396d243f626dd52a3"
+        },
+        {
+          "path": "vendor/msfa/env.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/env.cc",
+          "sha256": "ef739bf4aacc5b6a8076ac3bf3142c172dda54022f2209bd627271be113367cd"
+        },
+        {
+          "path": "vendor/msfa/env.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/env.h",
+          "sha256": "ac12c10d59d2ce9ae888f6ca063caf564c4c7d3a2971c3bf04be2977ab65c340"
+        },
+        {
+          "path": "vendor/msfa/exp2.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/exp2.cc",
+          "sha256": "fe7dc02d600fcaf198ca32b10edfb28ff695d107b401c3fa92a7ac73d2e9096f"
+        },
+        {
+          "path": "vendor/msfa/exp2.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/exp2.h",
+          "sha256": "23aa480e221e5d1f928a5ccab654a9c01a80eb0b610fd66d9364af09d18cdda8"
+        },
+        {
+          "path": "vendor/msfa/fm_core.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/fm_core.cc",
+          "sha256": "1ae2ec59f2a353eab6ebbe558f6e4f0a3b7d5f7308a7a002c1fb792c9e9a54ee"
+        },
+        {
+          "path": "vendor/msfa/fm_core.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/fm_core.h",
+          "sha256": "8b44690d4965cffe82f71dd12125b7d3b63fb59556c4cac0472cc984cd29a1ea"
+        },
+        {
+          "path": "vendor/msfa/fm_op_kernel.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/fm_op_kernel.cc",
+          "sha256": "e91aa1e067bf67c799871344eb1f3cdd92c2c0e4797b2efc2403ac7bb7113af5"
+        },
+        {
+          "path": "vendor/msfa/fm_op_kernel.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/fm_op_kernel.h",
+          "sha256": "62bfcbbccf445504dd195a6beb05179b9e03235e8e4b19e661b761ddc0e80603"
+        },
+        {
+          "path": "vendor/msfa/freqlut.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/freqlut.cc",
+          "sha256": "963e0b6fbb94b9a614d2376e3a4f753dc7c71b1d23b454af31f01fade150032f"
+        },
+        {
+          "path": "vendor/msfa/freqlut.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/freqlut.h",
+          "sha256": "d319ee2d35e8e8e2c860b6fc2a2d1382bf5782d1d147264914325ca41f89f00b"
+        },
+        {
+          "path": "vendor/msfa/lfo.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/lfo.cc",
+          "sha256": "47a34fc38eab4cfc46376732a6ddfd24631b8ef27a67ec4177300a264e5ff867"
+        },
+        {
+          "path": "vendor/msfa/lfo.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/lfo.h",
+          "sha256": "f88ba2fbd63626483c7a028537a0434aec3b7a159fee154efc0451f8b784dba2"
+        },
+        {
+          "path": "vendor/msfa/module.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/module.h",
+          "sha256": "a03078ae9e62aeb8808df4b8dd02fdb941dc90e04f4840dcf25af6c785e0427d"
+        },
+        {
+          "path": "vendor/msfa/patch.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/patch.cc",
+          "sha256": "b4a70d7812052dc52621c2d80f480dcc17b6ff0044cc6e215caae88df41d07b7"
+        },
+        {
+          "path": "vendor/msfa/patch.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/patch.h",
+          "sha256": "2ddf975db873de9071adcec6bf8539a38f98e35e5f2b220045cff658e489b020"
+        },
+        {
+          "path": "vendor/msfa/pitchenv.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/pitchenv.cc",
+          "sha256": "da4d85e5957f103e9aae7418fc803ecc61933b42c1d4add67f4ea1dcc8b597e3"
+        },
+        {
+          "path": "vendor/msfa/pitchenv.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/pitchenv.h",
+          "sha256": "5701a2dcaf13e1ba7141cfc605ba6163ddffd73a91a0362d31b18a4f99fcd72d"
+        },
+        {
+          "path": "vendor/msfa/resofilter.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/resofilter.cc",
+          "sha256": "2c1a61601aad45804f02995b1f665a43bd865f76029a84d826669a0202a3bc76"
+        },
+        {
+          "path": "vendor/msfa/resofilter.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/resofilter.h",
+          "sha256": "c83bbae6fde4c498d4b9c5116aee52295798184fc09bb79c3fdc04aa79332dec"
+        },
+        {
+          "path": "vendor/msfa/ringbuffer.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/ringbuffer.cc",
+          "sha256": "4337739745ed3696ba4d599bd185cedea9ebe7a64a3dc8c8e79b0f6e19fe4fe6"
+        },
+        {
+          "path": "vendor/msfa/ringbuffer.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/ringbuffer.h",
+          "sha256": "7a3505e990d8e27d4c4ab697d5bef51a18b2aa0c6e88866c33e100616adaac3d"
+        },
+        {
+          "path": "vendor/msfa/sin.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/sin.cc",
+          "sha256": "06ac6f168f6e63f73e6195bbd4a1a65713f01594aeccef469f9c36e9e22e1d11"
+        },
+        {
+          "path": "vendor/msfa/sin.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/sin.h",
+          "sha256": "77486d3ac19d53514a8d26cd2164374ceceab9b15f8d98f876d4db7647321cc2"
+        },
+        {
+          "path": "vendor/msfa/synth.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/synth.h",
+          "sha256": "06d955a1fb369aa80e53fbaf0e09dcbebef0de664bb517dcb2003f8ec2703a42"
+        },
+        {
+          "path": "vendor/msfa/synth_unit.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/synth_unit.cc",
+          "sha256": "5b74290c49e7b3ea240f02520d00eaeb006bc9365140252adaa85dc01ff12d5f"
+        },
+        {
+          "path": "vendor/msfa/synth_unit.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/vendor/msfa/synth_unit.h",
+          "sha256": "e9d1c1fc7d1ddfe7ab006fb93fa04d56e806d584b2d1f453d28961e6153f5063"
+        }
+      ]
+    },
+    {
+      "id": "wasm-wrappers",
+      "sourceFiles": [
+        "wasm/ay8910_wasm.cpp",
+        "wasm/gameboy_apu_wasm.cpp",
+        "wasm/huc6280_wasm.cpp",
+        "wasm/k051649_wasm.cpp",
+        "wasm/nesapu_wasm.cpp",
+        "wasm/nuked_opn2_wasm.c",
+        "wasm/okim6258_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/opn_variant_wasm.cpp",
+        "wasm/pwm32x_core.h",
+        "wasm/pwm32x_wasm.cpp",
+        "wasm/rf5c164_wasm.cpp",
+        "wasm/segapcm_wasm.cpp",
+        "wasm/segapsg_wasm.cpp",
+        "wasm/spc_wasm.cpp",
+        "wasm/y8950_wasm.cpp",
+        "wasm/ym2151_wasm.cpp",
+        "wasm/ym2203_wasm.cpp",
+        "wasm/ym2413_wasm.cpp",
+        "wasm/ym2608_wasm.cpp",
+        "wasm/ym2610b_wasm.cpp",
+        "wasm/ym2612_wasm.cpp",
+        "wasm/ym3526_wasm.cpp",
+        "wasm/ym3812_wasm.cpp",
+        "wasm/ymf262_wasm.cpp",
+        "wasm/ymf278b_wasm.cpp",
+        "wasm/ymfm_wasm_interface.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-32x-pwm/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/hello_ymfm_wasm"
+      ],
+      "sourceVersion": [
+        "Local adapted snapshot 0fff93d46ab3e9227ecffcacdf96f3ca115e6f72; exact bytes identified below"
+      ],
+      "files": [
+        {
+          "path": "wasm/ay8910_wasm.cpp",
+          "originPath": "wasm/ay8910_wasm.cpp",
+          "sha256": "15107f52744c9e67db2daf0bfa052ebb04a63dc92779576e46c4c10b64009ebb"
+        },
+        {
+          "path": "wasm/gameboy_apu_wasm.cpp",
+          "originPath": "wasm/gameboy_apu_wasm.cpp",
+          "sha256": "03ad182b928394ca58340a50e36570dc425ff080338bd196b903572638bc2db7"
+        },
+        {
+          "path": "wasm/huc6280_wasm.cpp",
+          "originPath": "wasm/huc6280_wasm.cpp",
+          "sha256": "89d1de8929f13e520a33f6993ebc56d46684d67e8ab6a6314346895574ff7765"
+        },
+        {
+          "path": "wasm/k051649_wasm.cpp",
+          "originPath": "wasm/k051649_wasm.cpp",
+          "sha256": "32f4dcc756a4beda40a9137f5585891e1917a1a091085398cd032c3bc723c466"
+        },
+        {
+          "path": "wasm/nesapu_wasm.cpp",
+          "originPath": "wasm/nesapu_wasm.cpp",
+          "sha256": "49f5f980b5685fc4b3878369e367700e37fbf143db4930765ab347a702d7e105"
+        },
+        {
+          "path": "wasm/nuked_opn2_wasm.c",
+          "originPath": "wasm/nuked_opn2_wasm.c",
+          "sha256": "85cb336960d5bfbff1265268f732a48a426ecb943810e0165a1bbb1750839115"
+        },
+        {
+          "path": "wasm/okim6258_wasm.cpp",
+          "originPath": "wasm/okim6258_wasm.cpp",
+          "sha256": "0110baff438a0fb270b7ef0426c658d560967968bc8fa16008f1d79807f31815"
+        },
+        {
+          "path": "wasm/opn_state.h",
+          "originPath": "wasm/opn_state.h",
+          "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0"
+        },
+        {
+          "path": "wasm/opn_variant_wasm.cpp",
+          "originPath": "wasm/opn_variant_wasm.cpp",
+          "sha256": "3fc9abd084029938d8dbe1d73d30a92fe42e7dd7a0cc9e49f6395c35453c689d"
+        },
+        {
+          "path": "wasm/pwm32x_core.h",
+          "originPath": "wasm/pwm32x_core.h",
+          "sha256": "5ad3e58e1d0133d676ffcc2e332840fb57f19d97cc52b6302b1914b084b8927c"
+        },
+        {
+          "path": "wasm/pwm32x_wasm.cpp",
+          "originPath": "wasm/pwm32x_wasm.cpp",
+          "sha256": "9ed05d4cab51ad0565d0a9f1da96e97e204007660482e567938f1c0f003d24bb"
+        },
+        {
+          "path": "wasm/rf5c164_wasm.cpp",
+          "originPath": "wasm/rf5c164_wasm.cpp",
+          "sha256": "09351371671187946edc2b7cfb9bcb6093136ba59f220add9f54b79c1e69a055"
+        },
+        {
+          "path": "wasm/segapcm_wasm.cpp",
+          "originPath": "wasm/segapcm_wasm.cpp",
+          "sha256": "52cb59b1a94166c1081796eecc4fa803928b610ad3e1fe0becd7f603f6b7a643"
+        },
+        {
+          "path": "wasm/segapsg_wasm.cpp",
+          "originPath": "wasm/segapsg_wasm.cpp",
+          "sha256": "4ce18ea3f2167d6c0b81abc809948bd21f7a540fbe6aa50ef6f5db1961c97e8e"
+        },
+        {
+          "path": "wasm/spc_wasm.cpp",
+          "originPath": "wasm/spc_wasm.cpp",
+          "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77"
+        },
+        {
+          "path": "wasm/y8950_wasm.cpp",
+          "originPath": "wasm/y8950_wasm.cpp",
+          "sha256": "e7b45082fc47409a77d815744e125f25a544bf86ee4a5799d4d22fc05f35cd15"
+        },
+        {
+          "path": "wasm/ym2151_wasm.cpp",
+          "originPath": "wasm/ym2151_wasm.cpp",
+          "sha256": "545a78c39eb4de0af371f08f6bc960546f15a8d8773dfbcb57f6688d939e7fb6"
+        },
+        {
+          "path": "wasm/ym2203_wasm.cpp",
+          "originPath": "wasm/ym2203_wasm.cpp",
+          "sha256": "9744d178ea2aa251183bdee330b532216d653946a72eb148f5196a1463b6f63d"
+        },
+        {
+          "path": "wasm/ym2413_wasm.cpp",
+          "originPath": "wasm/ym2413_wasm.cpp",
+          "sha256": "e76d64214d86d7f57fded2e513f3fcfc807717ed0b9a7bd7591a4ef82b0af79e"
+        },
+        {
+          "path": "wasm/ym2608_wasm.cpp",
+          "originPath": "wasm/ym2608_wasm.cpp",
+          "sha256": "d62fd4958a90359a766b443738a84caf9aa18023ba008ab6743d10113965cd0c"
+        },
+        {
+          "path": "wasm/ym2610b_wasm.cpp",
+          "originPath": "wasm/ym2610b_wasm.cpp",
+          "sha256": "aeda15e37d3336028f46a8daf9ae48d092d7188f079d74a3492db25d21f6f849"
+        },
+        {
+          "path": "wasm/ym2612_wasm.cpp",
+          "originPath": "wasm/ym2612_wasm.cpp",
+          "sha256": "97a475b0c042693133e5ee2016bc229d259deb576365f7d3e54cd2b9d4292a35"
+        },
+        {
+          "path": "wasm/ym3526_wasm.cpp",
+          "originPath": "wasm/ym3526_wasm.cpp",
+          "sha256": "cf9aa371dcf1e0146558b7f32343b9b5793300e1030b594ea4d1f9d8d8f700bd"
+        },
+        {
+          "path": "wasm/ym3812_wasm.cpp",
+          "originPath": "wasm/ym3812_wasm.cpp",
+          "sha256": "44d2692f2281e9e34eedf72bada6846fcc83ec0d3db0989f020784cc7c047427"
+        },
+        {
+          "path": "wasm/ymf262_wasm.cpp",
+          "originPath": "wasm/ymf262_wasm.cpp",
+          "sha256": "68a8cf2c1fd2f45065653ba3b83debd4c01e2fb534446db0141dd0e5e8e822c2"
+        },
+        {
+          "path": "wasm/ymf278b_wasm.cpp",
+          "originPath": "wasm/ymf278b_wasm.cpp",
+          "sha256": "ce11eea43c745c8e28bacb9907064a9313587a8dc4b96b7b7b5c593f3c1a2f32"
+        },
+        {
+          "path": "wasm/ymfm_wasm_interface.h",
+          "originPath": "wasm/ymfm_wasm_interface.h",
+          "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f"
+        }
+      ]
+    },
+    {
+      "id": "dx7-wrapper",
+      "sourceFiles": [
+        "wasm/dx7/dx7.cc",
+        "wasm/dx7/dx7.h"
+      ],
+      "licenseFiles": [
+        "vendor/msfa/LICENSE",
+        "vendor/msfa/THIRD_PARTY_NOTICES.md"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/tetorica-msfa-dx7-wasm"
+      ],
+      "sourceVersion": [
+        "0.3.1",
+        "176aea739fa6b7324b1d0d77a338357fa954d3d4"
+      ],
+      "files": [
+        {
+          "path": "wasm/dx7/dx7.cc",
+          "originPath": "w/tetorica-msfa-dx7-wasm/native/dx7.cc",
+          "sha256": "49c1beb44b0f44a5f7638b338f5af97fbe81b4efaba6d6ac78b540391d184d14"
+        },
+        {
+          "path": "wasm/dx7/dx7.h",
+          "originPath": "w/tetorica-msfa-dx7-wasm/native/dx7.h",
+          "sha256": "1b59c5dc4a39f884b8937a8ea8b1c9a393f13e2851f4d88e5c4f90fc185c13df"
+        },
+        {
+          "path": "vendor/msfa/LICENSE",
+          "originPath": "web/msfa_dx7/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "vendor/msfa/THIRD_PARTY_NOTICES.md",
+          "originPath": "web/msfa_dx7/THIRD_PARTY_NOTICES.md",
+          "sha256": "d78ec8c2979abef6e229dac2b7229135ebd94514d03cdbd18a007b14a9a68b5c"
+        }
+      ]
+    },
+    {
+      "id": "libvgm-msm5205",
+      "sourceFiles": [
+        "reference/javascript/msm5205audioengine.js"
+      ],
+      "licenseFiles": [
+        "vendor/libvgm-msm5205/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/ValleyBell/libvgm/blob/master/emu/cores/msm5205.c",
+        "https://github.com/ValleyBell/libvgm/blob/master/player/vgmplayer_cmdhandler.cpp"
+      ],
+      "sourceVersion": [
+        "Tetorica JavaScript reference snapshot a9f9a8a86ec4bd182224b1bc3979cfde6cf95b48; exact imported bytes identified below",
+        "The upstream revision used for this historical JavaScript adaptation was not recorded. Separately collected pinned upstream references are cataloged under upstreamReferences; their revisions do not establish the adaptation's original revision.",
+        "The SDK component README has been amended; JavaScript engine and license bytes remain unchanged. The original imported README SHA-256 is retained in originSha256."
+      ],
+      "files": [
+        {
+          "path": "reference/javascript/msm5205audioengine.js",
+          "originPath": "web/msm5205audioengine.js",
+          "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5"
+        },
+        {
+          "path": "vendor/libvgm-msm5205/LICENSE",
+          "originPath": "third_party/libvgm-msm5205/LICENSE",
+          "sha256": "3315f9a2466767cf2e59ccc74f593bd702af01d44519e3d2d48cdf4d9891512e"
+        },
+        {
+          "path": "vendor/libvgm-msm5205/README.md",
+          "originPath": "third_party/libvgm-msm5205/README.md",
+          "sha256": "53ef04029add857e206b8f039a31b72d3274b5e377631ee4400350e0f1d915f7",
+          "originSha256": "4ae997cefdc782d583cea0587839475e0c813a189151b5e3c1bbde8e457387bd",
+          "adaptation": "SDK documentation amended to describe independently pinned upstream sources, license boundaries, and omitted framework dependencies; original imported README digest retained in originSha256"
+        }
+      ]
+    },
+    {
+      "id": "mame-okim6295",
+      "sourceFiles": [
+        "reference/javascript/okim6295audioengine.js"
+      ],
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/master/src/devices/sound/okim6295.cpp",
+        "https://github.com/mamedev/mame/blob/master/src/devices/sound/okiadpcm.cpp",
+        "https://github.com/ValleyBell/libvgm/blob/master/emu/cores/okim6295.c"
+      ],
+      "sourceVersion": [
+        "Tetorica JavaScript reference snapshot a9f9a8a86ec4bd182224b1bc3979cfde6cf95b48; exact imported bytes identified below",
+        "The upstream revision used for this historical JavaScript adaptation was not recorded. Separately collected pinned upstream references are cataloged under upstreamReferences; their revisions do not establish the adaptation's original revision.",
+        "The SDK component README has been amended; JavaScript engine and license bytes remain unchanged. The original imported README SHA-256 is retained in originSha256."
+      ],
+      "files": [
+        {
+          "path": "reference/javascript/okim6295audioengine.js",
+          "originPath": "web/okim6295audioengine.js",
+          "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2"
+        },
+        {
+          "path": "vendor/mame-okim6295/LICENSE",
+          "originPath": "third_party/mame-okim6295/LICENSE",
+          "sha256": "951803c525415c349f53adab1fde00c49b242e981f1242931140791c18b72176"
+        },
+        {
+          "path": "vendor/mame-okim6295/README.md",
+          "originPath": "third_party/mame-okim6295/README.md",
+          "sha256": "56c31643a450029ade937c1738ccb8e59703394c30d003dad533d621fbe3700c",
+          "originSha256": "c4f3c0182f7cce78f053932f700695d6a1f0cf3be2c094a2df9c4f33cb601d83",
+          "adaptation": "SDK documentation amended to describe independently pinned upstream sources, license boundaries, and omitted framework dependencies; original imported README digest retained in originSha256"
+        }
+      ]
+    },
+    {
+      "id": "libvgm-msm5205-upstream",
+      "sourceFiles": [
+        "vendor/libvgm-msm5205/upstream/libvgm/emu/cores/msm5205.c"
+      ],
+      "licenseFiles": [
+        "vendor/libvgm-msm5205/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/ValleyBell/libvgm/tree/bad50c571db45b872304bdcd0603dd2214f0663e"
+      ],
+      "sourceVersion": [
+        "Independently collected upstream reference pinned at https://github.com/ValleyBell/libvgm@bad50c571db45b872304bdcd0603dd2214f0663e",
+        "Included source bytes are unmodified. No SDK Native or WASM integration is provided. reference-only; libvgm support files without an explicit license are omitted",
+        "This snapshot does not establish the historical revision used by the Tetorica JavaScript adaptation."
+      ],
+      "files": [
+        {
+          "path": "vendor/libvgm-msm5205/upstream/libvgm/emu/cores/msm5205.c",
+          "originPath": "emu/cores/msm5205.c",
+          "sha256": "7d69c40afbeacb98a8d0798e12201b04b8dc40b4d4c60f73c61d7cb47da18ad0"
+        },
+        {
+          "path": "vendor/libvgm-msm5205/upstream/libvgm/snapshot-manifest.json",
+          "originPath": "snapshot-manifest.json",
+          "sha256": "5a0c2a24b046aaa0a1a0fb2b72fe0bed036d2b8f736be33dbf75155ea427bbef",
+          "provenanceRole": "SDK-generated snapshot manifest; not an upstream source file"
+        },
+        {
+          "path": "vendor/libvgm-msm5205/LICENSE",
+          "originPath": "third_party/libvgm-msm5205/LICENSE",
+          "sha256": "3315f9a2466767cf2e59ccc74f593bd702af01d44519e3d2d48cdf4d9891512e"
+        }
+      ]
+    },
+    {
+      "id": "libvgm-okim6295-upstream",
+      "sourceFiles": [
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okim6295.c",
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.c",
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/ValleyBell/libvgm/tree/bad50c571db45b872304bdcd0603dd2214f0663e"
+      ],
+      "sourceVersion": [
+        "Independently collected upstream reference pinned at https://github.com/ValleyBell/libvgm@bad50c571db45b872304bdcd0603dd2214f0663e",
+        "Included source bytes are unmodified. No SDK Native or WASM integration is provided. reference-only; libvgm support files without an explicit license are omitted",
+        "This snapshot does not establish the historical revision used by the Tetorica JavaScript adaptation."
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-okim6295/upstream/libvgm/emu/cores/okim6295.c",
+          "originPath": "emu/cores/okim6295.c",
+          "sha256": "00778ea2bb630abf549ea25671e9d19df50d4ce4889be9e1fcfa6739b5ae6194"
+        },
+        {
+          "path": "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.c",
+          "originPath": "emu/cores/okiadpcm.c",
+          "sha256": "95ad62ea67fb3f239873abf79200ce11d3d548c40022ec02da0dd4a3abaf5af1"
+        },
+        {
+          "path": "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.h",
+          "originPath": "emu/cores/okiadpcm.h",
+          "sha256": "f850732fe0cdb032d2cedda758d4b74eb6562f701b80ec75d7a59d41cd243864"
+        },
+        {
+          "path": "vendor/mame-okim6295/upstream/libvgm/snapshot-manifest.json",
+          "originPath": "snapshot-manifest.json",
+          "sha256": "7f39e5344c5dab8b87d93a3c72da4fa5ec296e0af19345415ed07064a0fe7fa4",
+          "provenanceRole": "SDK-generated snapshot manifest; not an upstream source file"
+        },
+        {
+          "path": "vendor/mame-okim6295/LICENSE",
+          "originPath": "third_party/mame-okim6295/LICENSE",
+          "sha256": "951803c525415c349f53adab1fde00c49b242e981f1242931140791c18b72176"
+        }
+      ]
+    },
+    {
+      "id": "mame-okim6295-upstream",
+      "sourceFiles": [
+        "vendor/mame-okim6295/upstream/mame/okim6295.cpp",
+        "vendor/mame-okim6295/upstream/mame/okim6295.h",
+        "vendor/mame-okim6295/upstream/mame/okiadpcm.cpp",
+        "vendor/mame-okim6295/upstream/mame/okiadpcm.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/tree/9d8a6727a206fc822b8b69d67a51e6fd7dbf4d4b"
+      ],
+      "sourceVersion": [
+        "Independently collected upstream reference pinned at https://github.com/mamedev/mame@9d8a6727a206fc822b8b69d67a51e6fd7dbf4d4b",
+        "Included source bytes are unmodified. No SDK Native or WASM integration is provided. reference-only; MAME framework required",
+        "This snapshot does not establish the historical revision used by the Tetorica JavaScript adaptation."
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-okim6295/upstream/mame/okim6295.cpp",
+          "originPath": "src/devices/sound/okim6295.cpp",
+          "sha256": "ff6f45f2e7db51cab3344ab3e1a55d0d95e1341c2994a35983e733fae022b18b"
+        },
+        {
+          "path": "vendor/mame-okim6295/upstream/mame/okim6295.h",
+          "originPath": "src/devices/sound/okim6295.h",
+          "sha256": "c2c75718818b24864911fc714c8cf61a278266c93f565d97831a81303c6db2a1"
+        },
+        {
+          "path": "vendor/mame-okim6295/upstream/mame/okiadpcm.cpp",
+          "originPath": "src/devices/sound/okiadpcm.cpp",
+          "sha256": "a49dbd1089b3163a3a38480f6d877462c506b9f85e66a0cf5ea015b2a193dcd8"
+        },
+        {
+          "path": "vendor/mame-okim6295/upstream/mame/okiadpcm.h",
+          "originPath": "src/devices/sound/okiadpcm.h",
+          "sha256": "28f70d023aa2f18a0287b1290ac108692b5f270ce91622c636742af2e8909ab4"
+        },
+        {
+          "path": "vendor/mame-okim6295/upstream/mame/snapshot-manifest.json",
+          "originPath": "snapshot-manifest.json",
+          "sha256": "58caadb706959f29c4fe505fb4d8659b2b217c73da6ffcf3e1f1d319f0296faf",
+          "provenanceRole": "SDK-generated snapshot manifest; not an upstream source file"
+        },
+        {
+          "path": "vendor/mame-okim6295/LICENSE",
+          "originPath": "third_party/mame-okim6295/LICENSE",
+          "sha256": "951803c525415c349f53adab1fde00c49b242e981f1242931140791c18b72176"
+        }
+      ]
+    },
+    {
+      "id": "tetorica-native-ymfm-provider",
+      "sourceFiles": [
+        "native/src/ymfm_opn_provider.cpp",
+        "native/src/ymfm_opm_provider.cpp",
+        "native/src/ymfm_opl_provider.cpp"
+      ],
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri"
+      ],
+      "sourceVersion": [
+        "Tauri Native OPN/OPM/OPL template-provider fix 83bfba8cbbc272a02279aba250b13e4c0f6ca57b; exact imported and packaged bytes identified below",
+        "Native-only include shim; vendor ymfm files, WASM recipes, and WASM binaries are unchanged."
+      ],
+      "files": [
+        {
+          "path": "native/src/ymfm_opn_provider.cpp",
+          "originPath": "src-tauri/src/native_genesis_ymfm_opn.cpp",
+          "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+          "originSha256": "0f280b572a77795edd87917c2c0cf91d91a547ef5467978c4ae3f5176363c058",
+          "sha256": "83f41e6966a136f019ab9be343b689446bf50f5990a1b2d18d6533f2aeefa637",
+          "adaptation": "SDK include-path relocation only"
+        },
+        {
+          "path": "native/src/ymfm_opm_provider.cpp",
+          "originPath": "src-tauri/src/native_genesis_ymfm_opm.cpp",
+          "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+          "originSha256": "e592cb8101f1f9887b360c12061702a7ac01c6c638c46a8c31583cad11f874e6",
+          "sha256": "9b6d50381d95198438109647d7931f7ec2d90b127679be205dfc8d4dacf89db2",
+          "adaptation": "SDK include-path relocation only"
+        },
+        {
+          "path": "native/src/ymfm_opl_provider.cpp",
+          "originPath": "src-tauri/src/native_genesis_ymfm_opl.cpp",
+          "originCommit": "83bfba8cbbc272a02279aba250b13e4c0f6ca57b",
+          "originSha256": "75bc291a79d9e86570abc55c4417e5b9d65700706f31773ff9c6ac3240836c07",
+          "sha256": "d2d3783960513a27ad349e72143e3ecc87d96a73f1659b9acc5a430722bea0ec",
+          "adaptation": "SDK include-path relocation only"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "ay8910",
+      "chipIds": [
+        "ay8910"
+      ],
+      "sourceFiles": [
+        "wasm/ay8910_wasm.cpp",
+        "vendor/mame-ay8910/ay8910.cpp",
+        "vendor/mame-ay8910/ay8910.h",
+        "vendor/mame-ay8910/upstream/ay8910.cpp",
+        "vendor/mame-ay8910/upstream/ay8910.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-ay8910/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ay8910_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ay8910_wasm.js",
+          "originPath": "docs/generated/ay8910_wasm.js",
+          "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+        },
+        {
+          "path": "dist/wasm/ay8910_wasm.wasm",
+          "originPath": "docs/generated/ay8910_wasm.wasm",
+          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ay8910_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "gameboy_apu",
+      "chipIds": [
+        "gameboy"
+      ],
+      "sourceFiles": [
+        "wasm/gameboy_apu_wasm.cpp",
+        "vendor/mame-gameboy/gameboy_apu.cpp",
+        "vendor/mame-gameboy/gameboy_apu.h",
+        "vendor/mame-gameboy/upstream/gb.cpp",
+        "vendor/mame-gameboy/upstream/gb.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-gameboy/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_gameboy_apu_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/gameboy_apu_wasm.js",
+          "originPath": "docs/generated/gameboy_apu_wasm.js",
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        {
+          "path": "dist/wasm/gameboy_apu_wasm.wasm",
+          "originPath": "docs/generated/gameboy_apu_wasm.wasm",
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_gameboy_apu_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "huc6280",
+      "chipIds": [
+        "huc6280"
+      ],
+      "sourceFiles": [
+        "wasm/huc6280_wasm.cpp",
+        "vendor/mame-huc6280/huc6280.cpp",
+        "vendor/mame-huc6280/huc6280.h",
+        "vendor/mame-huc6280/upstream/c6280.cpp",
+        "vendor/mame-huc6280/upstream/c6280.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-huc6280/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_huc6280_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/huc6280_wasm.js",
+          "originPath": "docs/generated/huc6280_wasm.js",
+          "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f"
+        },
+        {
+          "path": "dist/wasm/huc6280_wasm.wasm",
+          "originPath": "docs/generated/huc6280_wasm.wasm",
+          "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_huc6280_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "k051649",
+      "chipIds": [
+        "k051649"
+      ],
+      "sourceFiles": [
+        "wasm/k051649_wasm.cpp",
+        "vendor/mame-k051649/k051649.cpp",
+        "vendor/mame-k051649/k051649.h",
+        "vendor/mame-k051649/upstream/k051649.cpp",
+        "vendor/mame-k051649/upstream/k051649.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-k051649/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_k051649_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/k051649_wasm.js",
+          "originPath": "docs/generated/k051649_wasm.js",
+          "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7"
+        },
+        {
+          "path": "dist/wasm/k051649_wasm.wasm",
+          "originPath": "docs/generated/k051649_wasm.wasm",
+          "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_k051649_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "nesapu",
+      "chipIds": [
+        "nes"
+      ],
+      "sourceFiles": [
+        "wasm/nesapu_wasm.cpp",
+        "vendor/tetorica-nes/nes_core.cpp",
+        "vendor/tetorica-nes/nes_core.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/tetorica-nes/AUTHORS-JSNES.md",
+        "vendor/tetorica-nes/LICENSE-FDS",
+        "vendor/tetorica-nes/LICENSE-JSNES",
+        "vendor/tetorica-nes/UPSTREAM-FDS.md",
+        "vendor/tetorica-nes/UPSTREAM-JSNES.md",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_nesapu_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/nesapu_wasm.js",
+          "originPath": "docs/generated/nesapu_wasm.js",
+          "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+        },
+        {
+          "path": "dist/wasm/nesapu_wasm.wasm",
+          "originPath": "docs/generated/nesapu_wasm.wasm",
+          "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_nesapu_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "nuked_opn2",
+      "chipIds": [
+        "ym2612"
+      ],
+      "engine": "nuked",
+      "sourceFiles": [
+        "wasm/nuked_opn2_wasm.c",
+        "vendor/nuked-opn2/ym3438.c",
+        "vendor/nuked-opn2/ym3438.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/nuked-opn2/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_nuked_opn2_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/nuked_opn2_wasm.js",
+          "originPath": "docs/generated/nuked_opn2_wasm.js",
+          "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+        },
+        {
+          "path": "dist/wasm/nuked_opn2_wasm.wasm",
+          "originPath": "docs/generated/nuked_opn2_wasm.wasm",
+          "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_nuked_opn2_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "okim6258",
+      "chipIds": [
+        "okim6258"
+      ],
+      "sourceFiles": [
+        "wasm/okim6258_wasm.cpp",
+        "vendor/mame-okim6258/okim6258.cpp",
+        "vendor/mame-okim6258/okim6258.h",
+        "vendor/mame-okim6258/upstream/okim6258.cpp",
+        "vendor/mame-okim6258/upstream/okim6258.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-okim6258/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_okim6258_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/okim6258_wasm.js",
+          "originPath": "docs/generated/okim6258_wasm.js",
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+        },
+        {
+          "path": "dist/wasm/okim6258_wasm.wasm",
+          "originPath": "docs/generated/okim6258_wasm.wasm",
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_okim6258_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "pwm32x",
+      "chipIds": [
+        "pwm"
+      ],
+      "sourceFiles": [
+        "wasm/pwm32x_wasm.cpp",
+        "wasm/pwm32x_core.h",
+        "vendor/mame-32x-pwm/upstream/mega32x.cpp",
+        "vendor/mame-32x-pwm/upstream/mega32x.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-32x-pwm/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_pwm32x_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/pwm32x_wasm.js",
+          "originPath": "docs/generated/pwm32x_wasm.js",
+          "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+        },
+        {
+          "path": "dist/wasm/pwm32x_wasm.wasm",
+          "originPath": "docs/generated/pwm32x_wasm.wasm",
+          "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_pwm32x_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "rf5c164",
+      "chipIds": [
+        "rf5c164"
+      ],
+      "sourceFiles": [
+        "wasm/rf5c164_wasm.cpp",
+        "vendor/mame-rf5c164/rf5c164.cpp",
+        "vendor/mame-rf5c164/rf5c164.h",
+        "vendor/mame-rf5c164/upstream/rf5c68.cpp"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-rf5c164/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_rf5c164_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/rf5c164_wasm.js",
+          "originPath": "docs/generated/rf5c164_wasm.js",
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+        },
+        {
+          "path": "dist/wasm/rf5c164_wasm.wasm",
+          "originPath": "docs/generated/rf5c164_wasm.wasm",
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_rf5c164_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "segapcm",
+      "chipIds": [
+        "segapcm"
+      ],
+      "sourceFiles": [
+        "wasm/segapcm_wasm.cpp",
+        "vendor/mame-segapcm/segapcm.cpp",
+        "vendor/mame-segapcm/segapcm.h",
+        "vendor/mame-segapcm/upstream/segapcm.cpp",
+        "vendor/mame-segapcm/upstream/segapcm.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-segapcm/LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_segapcm_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/segapcm_wasm.js",
+          "originPath": "docs/generated/segapcm_wasm.js",
+          "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5"
+        },
+        {
+          "path": "dist/wasm/segapcm_wasm.wasm",
+          "originPath": "docs/generated/segapcm_wasm.wasm",
+          "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_segapcm_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "segapsg",
+      "chipIds": [
+        "segapsg"
+      ],
+      "sourceFiles": [
+        "wasm/segapsg_wasm.cpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_segapsg_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/segapsg_wasm.js",
+          "originPath": "docs/generated/segapsg_wasm.js",
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+        },
+        {
+          "path": "dist/wasm/segapsg_wasm.wasm",
+          "originPath": "docs/generated/segapsg_wasm.wasm",
+          "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_segapsg_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "spc",
+      "chipIds": [
+        "snes",
+        "spc"
+      ],
+      "sourceFiles": [
+        "wasm/spc_wasm.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC.h",
+        "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
+        "vendor/snes-spc/snes_spc/SNES_SPC_state.cpp",
+        "vendor/snes-spc/snes_spc/SPC_CPU.h",
+        "vendor/snes-spc/snes_spc/SPC_DSP.cpp",
+        "vendor/snes-spc/snes_spc/SPC_DSP.h",
+        "vendor/snes-spc/snes_spc/SPC_Filter.cpp",
+        "vendor/snes-spc/snes_spc/SPC_Filter.h",
+        "vendor/snes-spc/snes_spc/blargg_common.h",
+        "vendor/snes-spc/snes_spc/blargg_config.h",
+        "vendor/snes-spc/snes_spc/blargg_endian.h",
+        "vendor/snes-spc/snes_spc/blargg_source.h",
+        "vendor/snes-spc/snes_spc/dsp.cpp",
+        "vendor/snes-spc/snes_spc/dsp.h",
+        "vendor/snes-spc/snes_spc/spc.cpp",
+        "vendor/snes-spc/snes_spc/spc.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/snes-spc/LICENSE",
+        "vendor/snes-spc/README.upstream.md",
+        "vendor/snes-spc/license.txt",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_spc_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/spc_wasm.js",
+          "originPath": "docs/generated/spc_wasm.js",
+          "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699"
+        },
+        {
+          "path": "dist/wasm/spc_wasm.wasm",
+          "originPath": "docs/generated/spc_wasm.wasm",
+          "sha256": "cbbe06819574249217f35da16eebd45a53274e53251f31242e7dd407b03d0d70"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_spc_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "y8950",
+      "chipIds": [
+        "y8950"
+      ],
+      "sourceFiles": [
+        "wasm/y8950_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_y8950_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/y8950_wasm.js",
+          "originPath": "docs/generated/y8950_wasm.js",
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+        },
+        {
+          "path": "dist/wasm/y8950_wasm.wasm",
+          "originPath": "docs/generated/y8950_wasm.wasm",
+          "sha256": "5bbc90a0fb7d56a604e8f8fee986a6e37507aacdb898e808bc2e0b04639070bb"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_y8950_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym2151",
+      "chipIds": [
+        "ym2151"
+      ],
+      "sourceFiles": [
+        "wasm/ym2151_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym2151_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym2151_wasm.js",
+          "originPath": "docs/generated/ym2151_wasm.js",
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+        },
+        {
+          "path": "dist/wasm/ym2151_wasm.wasm",
+          "originPath": "docs/generated/ym2151_wasm.wasm",
+          "sha256": "4064e4285b688c07afc41a54de6643362fb175ff2bf28a15f935dd519af54ace"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym2151_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym2203",
+      "chipIds": [
+        "ym2203"
+      ],
+      "sourceFiles": [
+        "wasm/ym2203_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym2203_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym2203_wasm.js",
+          "originPath": "docs/generated/ym2203_wasm.js",
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e"
+        },
+        {
+          "path": "dist/wasm/ym2203_wasm.wasm",
+          "originPath": "docs/generated/ym2203_wasm.wasm",
+          "sha256": "02ed70255298fe41b95ebe0092cb6c1b7081a9d24449633f9c739e9214d4fee8"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym2203_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym2413",
+      "chipIds": [
+        "ym2413"
+      ],
+      "sourceFiles": [
+        "wasm/ym2413_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym2413_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym2413_wasm.js",
+          "originPath": "docs/generated/ym2413_wasm.js",
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+        },
+        {
+          "path": "dist/wasm/ym2413_wasm.wasm",
+          "originPath": "docs/generated/ym2413_wasm.wasm",
+          "sha256": "67bf8fb4dc9b0359aef94db4ee567a3966a59529ca401e898b578e35bf1d7c78"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym2413_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym2608",
+      "chipIds": [
+        "ym2608"
+      ],
+      "sourceFiles": [
+        "wasm/ym2608_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym2608_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym2608_wasm.js",
+          "originPath": "docs/generated/ym2608_wasm.js",
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+        },
+        {
+          "path": "dist/wasm/ym2608_wasm.wasm",
+          "originPath": "docs/generated/ym2608_wasm.wasm",
+          "sha256": "fd5afee961c5f1999a5cea1128dd9dda46822fff4fe68c6830743b18d36fdcfe"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym2608_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym2610b",
+      "chipIds": [
+        "ym2610",
+        "ym2610b"
+      ],
+      "sourceFiles": [
+        "wasm/ym2610b_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym2610b_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym2610b_wasm.js",
+          "originPath": "docs/generated/ym2610b_wasm.js",
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879"
+        },
+        {
+          "path": "dist/wasm/ym2610b_wasm.wasm",
+          "originPath": "docs/generated/ym2610b_wasm.wasm",
+          "sha256": "2b14473809584320dfd30f3cf89079171b5f0119ee91cd96fe1c047682956635"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym2610b_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym2612",
+      "chipIds": [
+        "ym2612"
+      ],
+      "sourceFiles": [
+        "wasm/ym2612_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym2612_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym2612_wasm.js",
+          "originPath": "docs/generated/ym2612_wasm.js",
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+        },
+        {
+          "path": "dist/wasm/ym2612_wasm.wasm",
+          "originPath": "docs/generated/ym2612_wasm.wasm",
+          "sha256": "5184f6440860c438fb424fae60255f666358657571810e51a0f8e147cc8b8b13"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym2612_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym3438",
+      "chipIds": [
+        "ym3438"
+      ],
+      "sourceFiles": [
+        "wasm/opn_variant_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym3438_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym3438_wasm.js",
+          "originPath": "docs/generated/ym3438_wasm.js",
+          "sha256": "023cf6770e2cd0b9983f7a6793d55cc21c2de47750a19458567b6ccb11c3f81e"
+        },
+        {
+          "path": "dist/wasm/ym3438_wasm.wasm",
+          "originPath": "docs/generated/ym3438_wasm.wasm",
+          "sha256": "8868f560f070cab6cdd4e199f8ab48831143fb976451e3d1283eef8a791b98de"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym3438_wasm.sh",
+        "scripts/build_opn_variant_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym3526",
+      "chipIds": [
+        "ym3526"
+      ],
+      "sourceFiles": [
+        "wasm/ym3526_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym3526_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym3526_wasm.js",
+          "originPath": "docs/generated/ym3526_wasm.js",
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+        },
+        {
+          "path": "dist/wasm/ym3526_wasm.wasm",
+          "originPath": "docs/generated/ym3526_wasm.wasm",
+          "sha256": "fc8e600e4a50cf9443a2a71e99b0c84ee37293809d9668d572cb15ed1456de21"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym3526_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ym3812",
+      "chipIds": [
+        "ym3812"
+      ],
+      "sourceFiles": [
+        "wasm/ym3812_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ym3812_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ym3812_wasm.js",
+          "originPath": "docs/generated/ym3812_wasm.js",
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+        },
+        {
+          "path": "dist/wasm/ym3812_wasm.wasm",
+          "originPath": "docs/generated/ym3812_wasm.wasm",
+          "sha256": "cb7fbf2d59d02ca3bec669b9cf0db3a6d1cc33c94ade8b7a0d89bcb04b4286f3"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ym3812_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ymf262",
+      "chipIds": [
+        "ymf262"
+      ],
+      "sourceFiles": [
+        "wasm/ymf262_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ymf262_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ymf262_wasm.js",
+          "originPath": "docs/generated/ymf262_wasm.js",
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+        },
+        {
+          "path": "dist/wasm/ymf262_wasm.wasm",
+          "originPath": "docs/generated/ymf262_wasm.wasm",
+          "sha256": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ymf262_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ymf276",
+      "chipIds": [
+        "ymf276"
+      ],
+      "sourceFiles": [
+        "wasm/opn_variant_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ymf276_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ymf276_wasm.js",
+          "originPath": "docs/generated/ymf276_wasm.js",
+          "sha256": "76bef5969998cf45fe3d1452592b5bc74f9f1c363740a9b011f8d5462ddd096c"
+        },
+        {
+          "path": "dist/wasm/ymf276_wasm.wasm",
+          "originPath": "docs/generated/ymf276_wasm.wasm",
+          "sha256": "41b5fc30e6bb06b12fd60adf39fc78e696924690bb917987dba0929501a16ae0"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ymf276_wasm.sh",
+        "scripts/build_opn_variant_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ymf278b",
+      "chipIds": [
+        "ymf278b"
+      ],
+      "sourceFiles": [
+        "wasm/ymf278b_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ymf278b_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ymf278b_wasm.js",
+          "originPath": "docs/generated/ymf278b_wasm.js",
+          "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48"
+        },
+        {
+          "path": "dist/wasm/ymf278b_wasm.wasm",
+          "originPath": "docs/generated/ymf278b_wasm.wasm",
+          "sha256": "001442e4d5f8ca18bd90094fbd70442d0e9dfcb944cc936b1de4372e988f849b"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ymf278b_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "ymf288",
+      "chipIds": [
+        "ymf288"
+      ],
+      "sourceFiles": [
+        "wasm/opn_variant_wasm.cpp",
+        "wasm/opn_state.h",
+        "wasm/ymfm_wasm_interface.h",
+        "vendor/ymfm/chip_state.h",
+        "vendor/ymfm/segapsg.cpp",
+        "vendor/ymfm/segapsg.h",
+        "vendor/ymfm/ymfm.h",
+        "vendor/ymfm/ymfm_adpcm.cpp",
+        "vendor/ymfm/ymfm_adpcm.h",
+        "vendor/ymfm/ymfm_fm.h",
+        "vendor/ymfm/ymfm_fm.ipp",
+        "vendor/ymfm/ymfm_misc.cpp",
+        "vendor/ymfm/ymfm_misc.h",
+        "vendor/ymfm/ymfm_opl.cpp",
+        "vendor/ymfm/ymfm_opl.h",
+        "vendor/ymfm/ymfm_opm.cpp",
+        "vendor/ymfm/ymfm_opm.h",
+        "vendor/ymfm/ymfm_opn.cpp",
+        "vendor/ymfm/ymfm_opn.h",
+        "vendor/ymfm/ymfm_opq.cpp",
+        "vendor/ymfm/ymfm_opq.h",
+        "vendor/ymfm/ymfm_opx.h",
+        "vendor/ymfm/ymfm_opz.cpp",
+        "vendor/ymfm/ymfm_opz.h",
+        "vendor/ymfm/ymfm_pcm.cpp",
+        "vendor/ymfm/ymfm_pcm.h",
+        "vendor/ymfm/ymfm_ssg.cpp",
+        "vendor/ymfm/ymfm_ssg.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/ymfm/LICENSE"
+      ],
+      "buildScript": "scripts/build_ymf288_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/ymf288_wasm.js",
+          "originPath": "docs/generated/ymf288_wasm.js",
+          "sha256": "9e98de8c8649cce49f8a8dcb12bbd0679f0f591a0d1c0c16a1c4c82ce263dd86"
+        },
+        {
+          "path": "dist/wasm/ymf288_wasm.wasm",
+          "originPath": "docs/generated/ymf288_wasm.wasm",
+          "sha256": "b28340f9a0e9b1d3143a01c49d7644244df2b5f2c3639812bec1c81ea3a2e218"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_ymf288_wasm.sh",
+        "scripts/build_opn_variant_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "dx7",
+      "chipIds": [
+        "dx7"
+      ],
+      "sourceFiles": [
+        "vendor/msfa/aligned_buf.h",
+        "vendor/msfa/controllers.h",
+        "vendor/msfa/dx7note.cc",
+        "vendor/msfa/dx7note.h",
+        "vendor/msfa/env.cc",
+        "vendor/msfa/env.h",
+        "vendor/msfa/exp2.cc",
+        "vendor/msfa/exp2.h",
+        "vendor/msfa/fm_core.cc",
+        "vendor/msfa/fm_core.h",
+        "vendor/msfa/fm_op_kernel.cc",
+        "vendor/msfa/fm_op_kernel.h",
+        "vendor/msfa/freqlut.cc",
+        "vendor/msfa/freqlut.h",
+        "vendor/msfa/lfo.cc",
+        "vendor/msfa/lfo.h",
+        "vendor/msfa/module.h",
+        "vendor/msfa/patch.cc",
+        "vendor/msfa/patch.h",
+        "vendor/msfa/pitchenv.cc",
+        "vendor/msfa/pitchenv.h",
+        "vendor/msfa/resofilter.cc",
+        "vendor/msfa/resofilter.h",
+        "vendor/msfa/ringbuffer.cc",
+        "vendor/msfa/ringbuffer.h",
+        "vendor/msfa/sin.cc",
+        "vendor/msfa/sin.h",
+        "vendor/msfa/synth.h",
+        "vendor/msfa/synth_unit.cc",
+        "vendor/msfa/synth_unit.h",
+        "wasm/dx7/dx7.cc",
+        "wasm/dx7/dx7.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/msfa/COPYING",
+        "vendor/msfa/LICENSE",
+        "vendor/msfa/THIRD_PARTY_NOTICES.md",
+        "vendor/msfa/UPSTREAM.md"
+      ],
+      "buildScript": "scripts/build_dx7_wasm.sh",
+      "format": "standalone-wasm",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/msfa.wasm",
+          "originPath": "web/msfa_dx7/wasm/msfa.wasm",
+          "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f"
+        }
+      ],
+      "provenanceStatus": "imported tetorica-msfa-dx7-wasm@0.3.1; SHA matches source checkout wasm/msfa.wasm",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_dx7_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    }
+  ],
+  "javascriptReferences": [
+    {
+      "id": "msm5205",
+      "format": "javascript-es-module",
+      "entryPoint": "reference/javascript/msm5205audioengine.js",
+      "sourceFiles": [
+        "reference/javascript/msm5205audioengine.js"
+      ],
+      "licenseFiles": [
+        "vendor/libvgm-msm5205/LICENSE"
+      ],
+      "native": {
+        "status": "not-ported"
+      },
+      "wasm": {
+        "status": "not-ported"
+      },
+      "provenanceStatus": "imported-reference-source; unchanged from the Tetorica JavaScript implementation"
+    },
+    {
+      "id": "okim6295",
+      "format": "javascript-es-module",
+      "entryPoint": "reference/javascript/okim6295audioengine.js",
+      "sourceFiles": [
+        "reference/javascript/okim6295audioengine.js"
+      ],
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "native": {
+        "status": "not-ported"
+      },
+      "wasm": {
+        "status": "not-ported"
+      },
+      "provenanceStatus": "imported-reference-source; unchanged from the Tetorica JavaScript implementation"
+    }
+  ],
+  "upstreamReferences": [
+    {
+      "repository": "https://github.com/ValleyBell/libvgm",
+      "commit": "bad50c571db45b872304bdcd0603dd2214f0663e",
+      "role": "upstream-source-reference",
+      "buildStatus": "reference-only; libvgm support files without an explicit license are omitted",
+      "omittedDependencies": [
+        "emu/EmuCores.h",
+        "emu/EmuHelper.h",
+        "emu/SoundDevs.h",
+        "emu/cores/msm5205.h",
+        "emu/dac_control.h",
+        "emu/logging.h",
+        "emu/snddef.h",
+        "stdtype.h"
+      ],
+      "omissionReason": "These libvgm integration headers have no explicit license declaration in the pinned snapshot. Upstream reports incomplete per-module license assignment; no license is inferred for those files.",
+      "licenseDiscussion": "https://github.com/ValleyBell/libvgm/issues/129",
+      "comparisonNote": "Independently collected upstream reference. The historical revision used for the Tetorica JavaScript adaptation is not established by this snapshot.",
+      "id": "libvgm-msm5205-upstream",
+      "snapshotManifest": "vendor/libvgm-msm5205/upstream/libvgm/snapshot-manifest.json",
+      "sourceFiles": [
+        "vendor/libvgm-msm5205/upstream/libvgm/emu/cores/msm5205.c"
+      ],
+      "licenseFiles": [
+        "vendor/libvgm-msm5205/LICENSE"
+      ],
+      "sdkIntegration": {
+        "native": "not-integrated",
+        "wasm": "not-integrated"
+      }
+    },
+    {
+      "repository": "https://github.com/ValleyBell/libvgm",
+      "commit": "bad50c571db45b872304bdcd0603dd2214f0663e",
+      "role": "upstream-source-reference",
+      "buildStatus": "reference-only; libvgm support files without an explicit license are omitted",
+      "omittedDependencies": [
+        "emu/EmuCores.h",
+        "emu/EmuHelper.h",
+        "emu/EmuStructs.h",
+        "emu/SoundDevs.h",
+        "emu/cores/okim6295.h",
+        "emu/logging.h",
+        "emu/snddef.h",
+        "stdtype.h"
+      ],
+      "omissionReason": "These libvgm integration headers have no explicit license declaration in the pinned snapshot. Upstream reports incomplete per-module license assignment; no license is inferred for those files.",
+      "licenseDiscussion": "https://github.com/ValleyBell/libvgm/issues/129",
+      "comparisonNote": "Independently collected upstream reference. The historical revision used for the Tetorica JavaScript adaptation is not established by this snapshot.",
+      "id": "libvgm-okim6295-upstream",
+      "snapshotManifest": "vendor/mame-okim6295/upstream/libvgm/snapshot-manifest.json",
+      "sourceFiles": [
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okim6295.c",
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.c",
+        "vendor/mame-okim6295/upstream/libvgm/emu/cores/okiadpcm.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "sdkIntegration": {
+        "native": "not-integrated",
+        "wasm": "not-integrated"
+      }
+    },
+    {
+      "repository": "https://github.com/mamedev/mame",
+      "commit": "9d8a6727a206fc822b8b69d67a51e6fd7dbf4d4b",
+      "role": "upstream-source-reference",
+      "buildStatus": "reference-only; MAME framework required",
+      "id": "mame-okim6295-upstream",
+      "snapshotManifest": "vendor/mame-okim6295/upstream/mame/snapshot-manifest.json",
+      "sourceFiles": [
+        "vendor/mame-okim6295/upstream/mame/okim6295.cpp",
+        "vendor/mame-okim6295/upstream/mame/okim6295.h",
+        "vendor/mame-okim6295/upstream/mame/okiadpcm.cpp",
+        "vendor/mame-okim6295/upstream/mame/okiadpcm.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-okim6295/LICENSE"
+      ],
+      "sdkIntegration": {
+        "native": "not-integrated",
+        "wasm": "not-integrated"
+      }
+    }
+  ]
+}

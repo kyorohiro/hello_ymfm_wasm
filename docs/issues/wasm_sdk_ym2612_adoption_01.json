@@ -1,0 +1,2014 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-25",
+  "scope": "Normal ymfm YM2612 WASM only; no publish, native/other-chip implementation changes or device playback.",
+  "sourceCommitBeforeChange": "848f308374a3b025b5186520c8cb510186f6cf1a",
+  "legacyRecipeSha256": "b6549bb67c0b74147d3fcf61110471bef6834acdc92a4355c0e2ab4a39e29bc2",
+  "sdkPin": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.1",
+    "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+    "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+    "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+    "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+    "fileCount": 379
+  },
+  "byteIdenticalSourceInputs": [
+    {
+      "legacy": "src/ymfm.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm.h",
+      "size": 18554,
+      "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405"
+    },
+    {
+      "legacy": "src/ymfm_adpcm.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_adpcm.cpp",
+      "size": 22040,
+      "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0"
+    },
+    {
+      "legacy": "src/ymfm_adpcm.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_adpcm.h",
+      "size": 13752,
+      "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d"
+    },
+    {
+      "legacy": "src/ymfm_fm.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_fm.h",
+      "size": 17705,
+      "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9"
+    },
+    {
+      "legacy": "src/ymfm_fm.ipp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_fm.ipp",
+      "size": 59507,
+      "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6"
+    },
+    {
+      "legacy": "src/ymfm_misc.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_misc.cpp",
+      "size": 4435,
+      "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9"
+    },
+    {
+      "legacy": "src/ymfm_misc.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_misc.h",
+      "size": 3077,
+      "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d"
+    },
+    {
+      "legacy": "src/ymfm_opl.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opl.cpp",
+      "size": 67501,
+      "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501"
+    },
+    {
+      "legacy": "src/ymfm_opl.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opl.h",
+      "size": 33768,
+      "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce"
+    },
+    {
+      "legacy": "src/ymfm_opm.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opm.cpp",
+      "size": 17474,
+      "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940"
+    },
+    {
+      "legacy": "src/ymfm_opm.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opm.h",
+      "size": 12759,
+      "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196"
+    },
+    {
+      "legacy": "src/ymfm_opn.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opn.cpp",
+      "size": 68238,
+      "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2"
+    },
+    {
+      "legacy": "src/ymfm_opn.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opn.h",
+      "size": 28892,
+      "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39"
+    },
+    {
+      "legacy": "src/ymfm_opq.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opq.cpp",
+      "size": 15749,
+      "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde"
+    },
+    {
+      "legacy": "src/ymfm_opq.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opq.h",
+      "size": 11258,
+      "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b"
+    },
+    {
+      "legacy": "src/ymfm_opx.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opx.h",
+      "size": 12535,
+      "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b"
+    },
+    {
+      "legacy": "src/ymfm_opz.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opz.cpp",
+      "size": 28628,
+      "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273"
+    },
+    {
+      "legacy": "src/ymfm_opz.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_opz.h",
+      "size": 14377,
+      "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6"
+    },
+    {
+      "legacy": "src/ymfm_pcm.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_pcm.cpp",
+      "size": 21684,
+      "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab"
+    },
+    {
+      "legacy": "src/ymfm_pcm.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_pcm.h",
+      "size": 12880,
+      "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200"
+    },
+    {
+      "legacy": "src/ymfm_ssg.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_ssg.cpp",
+      "size": 8421,
+      "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd"
+    },
+    {
+      "legacy": "src/ymfm_ssg.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/ymfm_ssg.h",
+      "size": 7752,
+      "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584"
+    },
+    {
+      "legacy": "src/chip_state.h",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/chip_state.h",
+      "size": 521,
+      "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+    },
+    {
+      "legacy": "LICENSE",
+      "sdk": "third_party/tetorica-soundchip-native/vendor/ymfm/LICENSE",
+      "size": 1519,
+      "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+    },
+    {
+      "legacy": "wasm/ym2612_wasm.cpp",
+      "sdk": "third_party/tetorica-soundchip-native/wasm/ym2612_wasm.cpp",
+      "size": 5226,
+      "sha256": "97a475b0c042693133e5ee2016bc229d259deb576365f7d3e54cd2b9d4292a35"
+    },
+    {
+      "legacy": "wasm/ymfm_wasm_interface.h",
+      "sdk": "third_party/tetorica-soundchip-native/wasm/ymfm_wasm_interface.h",
+      "size": 1719,
+      "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f"
+    }
+  ],
+  "sdkBuildInfo": {
+    "schemaVersion": 1,
+    "artifacts": [
+      {
+        "id": "ym2612",
+        "format": "emscripten-es-module",
+        "sourceFingerprint": "e283eac1c0690b6a4ebdab76fc0f39a5050088b12ec01da8d265c73348c5e6c7",
+        "sourceFiles": [
+          {
+            "path": "scripts/build-wasm.sh",
+            "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+            "size": 1653
+          },
+          {
+            "path": "scripts/build_ym2612_wasm.sh",
+            "sha256": "e62bc0f95f1cd38814480f9a1b7d925987f6cd69b74f947337680972c409d21f",
+            "size": 1127
+          },
+          {
+            "path": "scripts/record_wasm_build.mjs",
+            "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+            "size": 1891
+          },
+          {
+            "path": "vendor/ymfm/chip_state.h",
+            "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+            "size": 521
+          },
+          {
+            "path": "vendor/ymfm/segapsg.cpp",
+            "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
+            "size": 7696
+          },
+          {
+            "path": "vendor/ymfm/segapsg.h",
+            "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
+            "size": 2033
+          },
+          {
+            "path": "vendor/ymfm/ymfm.h",
+            "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+            "size": 18554
+          },
+          {
+            "path": "vendor/ymfm/ymfm_adpcm.cpp",
+            "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+            "size": 22040
+          },
+          {
+            "path": "vendor/ymfm/ymfm_adpcm.h",
+            "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+            "size": 13752
+          },
+          {
+            "path": "vendor/ymfm/ymfm_fm.h",
+            "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+            "size": 17705
+          },
+          {
+            "path": "vendor/ymfm/ymfm_fm.ipp",
+            "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+            "size": 59507
+          },
+          {
+            "path": "vendor/ymfm/ymfm_misc.cpp",
+            "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9",
+            "size": 4435
+          },
+          {
+            "path": "vendor/ymfm/ymfm_misc.h",
+            "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d",
+            "size": 3077
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opl.cpp",
+            "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+            "size": 67501
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opl.h",
+            "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+            "size": 33768
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opm.cpp",
+            "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940",
+            "size": 17474
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opm.h",
+            "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196",
+            "size": 12759
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opn.cpp",
+            "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2",
+            "size": 68238
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opn.h",
+            "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39",
+            "size": 28892
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opq.cpp",
+            "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde",
+            "size": 15749
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opq.h",
+            "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b",
+            "size": 11258
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opx.h",
+            "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b",
+            "size": 12535
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opz.cpp",
+            "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273",
+            "size": 28628
+          },
+          {
+            "path": "vendor/ymfm/ymfm_opz.h",
+            "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6",
+            "size": 14377
+          },
+          {
+            "path": "vendor/ymfm/ymfm_pcm.cpp",
+            "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+            "size": 21684
+          },
+          {
+            "path": "vendor/ymfm/ymfm_pcm.h",
+            "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+            "size": 12880
+          },
+          {
+            "path": "vendor/ymfm/ymfm_ssg.cpp",
+            "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd",
+            "size": 8421
+          },
+          {
+            "path": "vendor/ymfm/ymfm_ssg.h",
+            "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584",
+            "size": 7752
+          },
+          {
+            "path": "wasm/opn_state.h",
+            "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0",
+            "size": 2974
+          },
+          {
+            "path": "wasm/ym2612_wasm.cpp",
+            "sha256": "97a475b0c042693133e5ee2016bc229d259deb576365f7d3e54cd2b9d4292a35",
+            "size": 5226
+          },
+          {
+            "path": "wasm/ymfm_wasm_interface.h",
+            "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+            "size": 1719
+          }
+        ],
+        "outputs": [
+          {
+            "path": "ym2612_wasm.js",
+            "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+            "size": 34902
+          },
+          {
+            "path": "ym2612_wasm.wasm",
+            "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+            "size": 40357
+          }
+        ],
+        "compiler": {
+          "command": "em++",
+          "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+        },
+        "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+      }
+    ]
+  },
+  "comparisons": [
+    {
+      "id": "legacy-sdk-parity",
+      "reportSha256": "b1ffd6029f37c0b7c313e94b3296795a337902462684014b562544781c5bad77",
+      "localReport": "/private/tmp/tetorica-ym2612-wasm-sdk/legacy-sdk-parity.json",
+      "passed": true,
+      "inputs": {
+        "legacy": {
+          "directory": "/private/tmp/tetorica-ym2612-wasm-sdk/legacy",
+          "javascript": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/legacy/ym2612_wasm.js",
+            "bytes": 34902,
+            "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/legacy/ym2612_wasm.wasm",
+            "bytes": 40341,
+            "sha256": "31616e6e1aa10cfd1aeefec681a155aab753eaaa72132ba0ec985bf6cae7395b"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_base",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_end",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_free",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_init",
+              "kind": "function"
+            },
+            {
+              "name": "fflush",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "strerror",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_create",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate_with_internal_envelope",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_get_irq",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read_status",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_reset",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_sample_rate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_write",
+              "kind": "function"
+            }
+          ]
+        },
+        "sdk": {
+          "directory": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk",
+          "javascript": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk/ym2612_wasm.js",
+            "bytes": 34902,
+            "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk/ym2612_wasm.wasm",
+            "bytes": 40357,
+            "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_base",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_end",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_free",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_init",
+              "kind": "function"
+            },
+            {
+              "name": "fflush",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "strerror",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_create",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate_with_internal_envelope",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_get_irq",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read_status",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_reset",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_sample_rate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_write",
+              "kind": "function"
+            }
+          ],
+          "buildInfo": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk/build-info.json",
+            "bytes": 6592,
+            "sha256": "fe9de9aa175557cf58f00d4602a2844f2fd7a1452eb0152f7661238effd76559",
+            "artifact": {
+              "id": "ym2612",
+              "format": "emscripten-es-module",
+              "sourceFingerprint": "e283eac1c0690b6a4ebdab76fc0f39a5050088b12ec01da8d265c73348c5e6c7",
+              "sourceFiles": [
+                {
+                  "path": "scripts/build-wasm.sh",
+                  "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+                  "size": 1653
+                },
+                {
+                  "path": "scripts/build_ym2612_wasm.sh",
+                  "sha256": "e62bc0f95f1cd38814480f9a1b7d925987f6cd69b74f947337680972c409d21f",
+                  "size": 1127
+                },
+                {
+                  "path": "scripts/record_wasm_build.mjs",
+                  "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+                  "size": 1891
+                },
+                {
+                  "path": "vendor/ymfm/chip_state.h",
+                  "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+                  "size": 521
+                },
+                {
+                  "path": "vendor/ymfm/segapsg.cpp",
+                  "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
+                  "size": 7696
+                },
+                {
+                  "path": "vendor/ymfm/segapsg.h",
+                  "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
+                  "size": 2033
+                },
+                {
+                  "path": "vendor/ymfm/ymfm.h",
+                  "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+                  "size": 18554
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_adpcm.cpp",
+                  "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+                  "size": 22040
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_adpcm.h",
+                  "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+                  "size": 13752
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_fm.h",
+                  "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+                  "size": 17705
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_fm.ipp",
+                  "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+                  "size": 59507
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_misc.cpp",
+                  "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9",
+                  "size": 4435
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_misc.h",
+                  "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d",
+                  "size": 3077
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opl.cpp",
+                  "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+                  "size": 67501
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opl.h",
+                  "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+                  "size": 33768
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opm.cpp",
+                  "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940",
+                  "size": 17474
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opm.h",
+                  "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196",
+                  "size": 12759
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opn.cpp",
+                  "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2",
+                  "size": 68238
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opn.h",
+                  "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39",
+                  "size": 28892
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opq.cpp",
+                  "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde",
+                  "size": 15749
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opq.h",
+                  "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b",
+                  "size": 11258
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opx.h",
+                  "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b",
+                  "size": 12535
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opz.cpp",
+                  "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273",
+                  "size": 28628
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opz.h",
+                  "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6",
+                  "size": 14377
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_pcm.cpp",
+                  "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+                  "size": 21684
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_pcm.h",
+                  "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+                  "size": 12880
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_ssg.cpp",
+                  "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd",
+                  "size": 8421
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_ssg.h",
+                  "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584",
+                  "size": 7752
+                },
+                {
+                  "path": "wasm/opn_state.h",
+                  "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0",
+                  "size": 2974
+                },
+                {
+                  "path": "wasm/ym2612_wasm.cpp",
+                  "sha256": "97a475b0c042693133e5ee2016bc229d259deb576365f7d3e54cd2b9d4292a35",
+                  "size": 5226
+                },
+                {
+                  "path": "wasm/ymfm_wasm_interface.h",
+                  "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+                  "size": 1719
+                }
+              ],
+              "outputs": [
+                {
+                  "path": "ym2612_wasm.js",
+                  "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+                  "size": 34902
+                },
+                {
+                  "path": "ym2612_wasm.wasm",
+                  "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+                  "size": 40357
+                }
+              ],
+              "compiler": {
+                "command": "em++",
+                "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+              },
+              "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+            }
+          }
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2612_wasm_sdk.mjs",
+          "bytes": 25016,
+          "sha256": "a249b53fc868016db7d61ce65f1de581c67f416811186e827795a2469077b514"
+        },
+        "wrappers": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612.js",
+            "bytes": 22574,
+            "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ym2612.js",
+            "bytes": 22574,
+            "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+          }
+        ],
+        "pitch": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/soundchip_pitch.js",
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        }
+      },
+      "caseCount": 444,
+      "caseRecordsSha256": "a9610948909cc1daace4b38671362abf9cdc12c30afeffd233bf0a96d60684e0",
+      "method": "Actual generated JS factories and WASM, synchronous public Ym2612 wrapper, byte-exact PCM and four physical-slot envelope traces. No tolerance, gain, clipping, resampling or emulation mock.",
+      "clocks": [
+        3579545,
+        7670454,
+        8000000
+      ],
+      "layouts": {
+        "regular": [
+          256
+        ],
+        "irregular": [
+          1,
+          17,
+          127,
+          509,
+          3,
+          1024,
+          257,
+          4096
+        ]
+      },
+      "checkpointFrame": 2345,
+      "wrapperChecks": {
+        "legacy": {
+          "passed": true,
+          "rates": {
+            "100000": 694,
+            "3579545": 24857,
+            "3993600": 27733,
+            "7670454": 53267,
+            "8000000": 55555,
+            "100000000": 694444
+          },
+          "stateBytes": 826,
+          "borrowedAndCopiedAndEnvelopePcmEqual": true,
+          "opaqueForeignStatesRejected": true,
+          "wrongNativeStateSizesRejected": true,
+          "zeroFramesAndReserveObservational": true,
+          "synchronousIoAndGeneration": true,
+          "resetPcmSha256": "b81a36112891e17accc56bd0393bd37c951f1cba66c6b2b2ca6634eb528222ec"
+        },
+        "sdk": {
+          "passed": true,
+          "rates": {
+            "100000": 694,
+            "3579545": 24857,
+            "3993600": 27733,
+            "7670454": 53267,
+            "8000000": 55555,
+            "100000000": 694444
+          },
+          "stateBytes": 826,
+          "borrowedAndCopiedAndEnvelopePcmEqual": true,
+          "opaqueForeignStatesRejected": true,
+          "wrongNativeStateSizesRejected": true,
+          "zeroFramesAndReserveObservational": true,
+          "synchronousIoAndGeneration": true,
+          "resetPcmSha256": "b81a36112891e17accc56bd0393bd37c951f1cba66c6b2b2ca6634eb528222ec"
+        }
+      },
+      "scenariosPerClock": 74,
+      "scenarioClockPairs": 222,
+      "scenarioRenderExecutions": 2220,
+      "frameCountScope": "Case/layout renders plus own-state, cross-state and reset continuations, counting both builds; additional wrapper self-check frames are excluded.",
+      "totalStereoFrames": 11557320,
+      "totalEnvelopeValues": 46229280,
+      "crossStateLoads": 444,
+      "ownStateLoads": 444,
+      "resetContinuations": 444,
+      "maximumDifference": 0,
+      "limits": [
+        "Clock changes are sampleRate queries and pitch-register quantization; this low-level chip does not contain an output resampler.",
+        "Raw state bytes are tested between these exact builds only. The public JS opaque snapshot still rejects foreign wrapper instances.",
+        "Read/status/IRQ observations are at every rendered chunk boundary, plus synchronous write/read/IRQ hooks; not a per-master-clock bus trace.",
+        "No browser, Worklet scheduling, Native backend, Mixer, device or listening judgement is exercised."
+      ]
+    },
+    {
+      "id": "deployed-sdk-parity",
+      "reportSha256": "99a898a1aec54e43168548d79c44ec058b45773ca8ac2ba71a0328973ff21f00",
+      "localReport": "/private/tmp/tetorica-ym2612-wasm-sdk/deployed-sdk-parity.json",
+      "passed": true,
+      "inputs": {
+        "legacy": {
+          "directory": "/private/tmp/tetorica-ym2612-wasm-sdk/deployed",
+          "javascript": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/deployed/ym2612_wasm.js",
+            "bytes": 34902,
+            "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/deployed/ym2612_wasm.wasm",
+            "bytes": 40341,
+            "sha256": "5184f6440860c438fb424fae60255f666358657571810e51a0f8e147cc8b8b13"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_base",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_end",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_free",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_init",
+              "kind": "function"
+            },
+            {
+              "name": "fflush",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "strerror",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_create",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate_with_internal_envelope",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_get_irq",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read_status",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_reset",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_sample_rate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_write",
+              "kind": "function"
+            }
+          ]
+        },
+        "sdk": {
+          "directory": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk",
+          "javascript": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk/ym2612_wasm.js",
+            "bytes": 34902,
+            "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk/ym2612_wasm.wasm",
+            "bytes": 40357,
+            "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_base",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_end",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_free",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_init",
+              "kind": "function"
+            },
+            {
+              "name": "fflush",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "strerror",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_create",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_generate_with_internal_envelope",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_get_irq",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_read_status",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_reset",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_sample_rate",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "ym2612_write",
+              "kind": "function"
+            }
+          ],
+          "buildInfo": {
+            "path": "/private/tmp/tetorica-ym2612-wasm-sdk/sdk/build-info.json",
+            "bytes": 6592,
+            "sha256": "fe9de9aa175557cf58f00d4602a2844f2fd7a1452eb0152f7661238effd76559",
+            "artifact": {
+              "id": "ym2612",
+              "format": "emscripten-es-module",
+              "sourceFingerprint": "e283eac1c0690b6a4ebdab76fc0f39a5050088b12ec01da8d265c73348c5e6c7",
+              "sourceFiles": [
+                {
+                  "path": "scripts/build-wasm.sh",
+                  "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+                  "size": 1653
+                },
+                {
+                  "path": "scripts/build_ym2612_wasm.sh",
+                  "sha256": "e62bc0f95f1cd38814480f9a1b7d925987f6cd69b74f947337680972c409d21f",
+                  "size": 1127
+                },
+                {
+                  "path": "scripts/record_wasm_build.mjs",
+                  "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+                  "size": 1891
+                },
+                {
+                  "path": "vendor/ymfm/chip_state.h",
+                  "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+                  "size": 521
+                },
+                {
+                  "path": "vendor/ymfm/segapsg.cpp",
+                  "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
+                  "size": 7696
+                },
+                {
+                  "path": "vendor/ymfm/segapsg.h",
+                  "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
+                  "size": 2033
+                },
+                {
+                  "path": "vendor/ymfm/ymfm.h",
+                  "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+                  "size": 18554
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_adpcm.cpp",
+                  "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+                  "size": 22040
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_adpcm.h",
+                  "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+                  "size": 13752
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_fm.h",
+                  "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+                  "size": 17705
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_fm.ipp",
+                  "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+                  "size": 59507
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_misc.cpp",
+                  "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9",
+                  "size": 4435
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_misc.h",
+                  "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d",
+                  "size": 3077
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opl.cpp",
+                  "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+                  "size": 67501
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opl.h",
+                  "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+                  "size": 33768
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opm.cpp",
+                  "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940",
+                  "size": 17474
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opm.h",
+                  "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196",
+                  "size": 12759
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opn.cpp",
+                  "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2",
+                  "size": 68238
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opn.h",
+                  "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39",
+                  "size": 28892
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opq.cpp",
+                  "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde",
+                  "size": 15749
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opq.h",
+                  "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b",
+                  "size": 11258
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opx.h",
+                  "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b",
+                  "size": 12535
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opz.cpp",
+                  "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273",
+                  "size": 28628
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_opz.h",
+                  "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6",
+                  "size": 14377
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_pcm.cpp",
+                  "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+                  "size": 21684
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_pcm.h",
+                  "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+                  "size": 12880
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_ssg.cpp",
+                  "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd",
+                  "size": 8421
+                },
+                {
+                  "path": "vendor/ymfm/ymfm_ssg.h",
+                  "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584",
+                  "size": 7752
+                },
+                {
+                  "path": "wasm/opn_state.h",
+                  "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0",
+                  "size": 2974
+                },
+                {
+                  "path": "wasm/ym2612_wasm.cpp",
+                  "sha256": "97a475b0c042693133e5ee2016bc229d259deb576365f7d3e54cd2b9d4292a35",
+                  "size": 5226
+                },
+                {
+                  "path": "wasm/ymfm_wasm_interface.h",
+                  "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+                  "size": 1719
+                }
+              ],
+              "outputs": [
+                {
+                  "path": "ym2612_wasm.js",
+                  "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+                  "size": 34902
+                },
+                {
+                  "path": "ym2612_wasm.wasm",
+                  "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+                  "size": 40357
+                }
+              ],
+              "compiler": {
+                "command": "em++",
+                "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+              },
+              "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+            }
+          }
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2612_wasm_sdk.mjs",
+          "bytes": 25016,
+          "sha256": "a249b53fc868016db7d61ce65f1de581c67f416811186e827795a2469077b514"
+        },
+        "wrappers": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612.js",
+            "bytes": 22574,
+            "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ym2612.js",
+            "bytes": 22574,
+            "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+          }
+        ],
+        "pitch": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/soundchip_pitch.js",
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        }
+      },
+      "caseCount": 444,
+      "caseRecordsSha256": "a9610948909cc1daace4b38671362abf9cdc12c30afeffd233bf0a96d60684e0",
+      "method": "Actual generated JS factories and WASM, synchronous public Ym2612 wrapper, byte-exact PCM and four physical-slot envelope traces. No tolerance, gain, clipping, resampling or emulation mock.",
+      "clocks": [
+        3579545,
+        7670454,
+        8000000
+      ],
+      "layouts": {
+        "regular": [
+          256
+        ],
+        "irregular": [
+          1,
+          17,
+          127,
+          509,
+          3,
+          1024,
+          257,
+          4096
+        ]
+      },
+      "checkpointFrame": 2345,
+      "wrapperChecks": {
+        "legacy": {
+          "passed": true,
+          "rates": {
+            "100000": 694,
+            "3579545": 24857,
+            "3993600": 27733,
+            "7670454": 53267,
+            "8000000": 55555,
+            "100000000": 694444
+          },
+          "stateBytes": 826,
+          "borrowedAndCopiedAndEnvelopePcmEqual": true,
+          "opaqueForeignStatesRejected": true,
+          "wrongNativeStateSizesRejected": true,
+          "zeroFramesAndReserveObservational": true,
+          "synchronousIoAndGeneration": true,
+          "resetPcmSha256": "b81a36112891e17accc56bd0393bd37c951f1cba66c6b2b2ca6634eb528222ec"
+        },
+        "sdk": {
+          "passed": true,
+          "rates": {
+            "100000": 694,
+            "3579545": 24857,
+            "3993600": 27733,
+            "7670454": 53267,
+            "8000000": 55555,
+            "100000000": 694444
+          },
+          "stateBytes": 826,
+          "borrowedAndCopiedAndEnvelopePcmEqual": true,
+          "opaqueForeignStatesRejected": true,
+          "wrongNativeStateSizesRejected": true,
+          "zeroFramesAndReserveObservational": true,
+          "synchronousIoAndGeneration": true,
+          "resetPcmSha256": "b81a36112891e17accc56bd0393bd37c951f1cba66c6b2b2ca6634eb528222ec"
+        }
+      },
+      "scenariosPerClock": 74,
+      "scenarioClockPairs": 222,
+      "scenarioRenderExecutions": 2220,
+      "frameCountScope": "Case/layout renders plus own-state, cross-state and reset continuations, counting both builds; additional wrapper self-check frames are excluded.",
+      "totalStereoFrames": 11557320,
+      "totalEnvelopeValues": 46229280,
+      "crossStateLoads": 444,
+      "ownStateLoads": 444,
+      "resetContinuations": 444,
+      "maximumDifference": 0,
+      "limits": [
+        "Clock changes are sampleRate queries and pitch-register quantization; this low-level chip does not contain an output resampler.",
+        "Raw state bytes are tested between these exact builds only. The public JS opaque snapshot still rejects foreign wrapper instances.",
+        "Read/status/IRQ observations are at every rendered chunk boundary, plus synchronous write/read/IRQ hooks; not a per-master-clock bus trace.",
+        "No browser, Worklet scheduling, Native backend, Mixer, device or listening judgement is exercised."
+      ]
+    }
+  ],
+  "caseRecordsEqualBetweenReferencePairs": true,
+  "browserReports": [
+    {
+      "path": "/private/tmp/tetorica-ym2612-wasm-sdk/playground-chromium.json",
+      "sha256": "8ae499f8b38fe822b5a6cf4fa0a54991d7c01c2423ccebb69f08865a97847d4a",
+      "report": {
+        "schemaVersion": 1,
+        "passed": true,
+        "engine": "chromium",
+        "verify": true,
+        "gainUnits": "source",
+        "method": "half peak-to-peak; RMS/DC/AC-RMS recorded separately",
+        "frequencies": [
+          440
+        ],
+        "rows": [
+          {
+            "kind": "ym2612",
+            "role": "extra",
+            "mode": "genesis",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "calibration-source",
+              "engine": "ymfm",
+              "settings": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13876332342624664,
+                0.13876332342624664
+              ],
+              "minimum": [
+                -0.11887233704328537,
+                -0.11887233704328537
+              ],
+              "maximum": [
+                0.13876332342624664,
+                0.13876332342624664
+              ],
+              "rms": [
+                0.09188824686108832,
+                0.09188824686108832
+              ],
+              "dc": [
+                0.009999761982677834,
+                0.009999761982677834
+              ],
+              "acRms": [
+                0.09134251294711625,
+                0.09134251294711625
+              ],
+              "nonzero": [
+                19163,
+                19163
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.128817830234766,
+            "amplitude": 0.128817830234766,
+            "expectedAmplitude": 0.12881783203125,
+            "relativeError": 1.3945926302660894e-08
+          },
+          {
+            "kind": "ym2612",
+            "chipEngine": "nuked",
+            "role": "extra",
+            "mode": "genesis",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "calibration-source",
+              "engine": "nuked",
+              "settings": {
+                "volume": 0.493869,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13876500725746155,
+                0.13876500725746155
+              ],
+              "minimum": [
+                -0.11887038499116898,
+                -0.11887038499116898
+              ],
+              "maximum": [
+                0.13876500725746155,
+                0.13876500725746155
+              ],
+              "rms": [
+                0.0918906799390223,
+                0.0918906799390223
+              ],
+              "dc": [
+                0.00999926419208047,
+                0.00999926419208047
+              ],
+              "acRms": [
+                0.09134501505431379,
+                0.09134501505431379
+              ],
+              "nonzero": [
+                19170,
+                19170
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.12881769612431526,
+            "amplitude": 0.12881769612431526,
+            "expectedAmplitude": 0.12881769845581054,
+            "relativeError": 1.809918437345459e-08
+          },
+          {
+            "kind": "ym2612",
+            "role": "primary",
+            "mode": "genesis",
+            "accessKind": "ym2612",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "ym2612",
+              "settings": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13080693781375885,
+                0.13080693781375885
+              ],
+              "minimum": [
+                -0.13080693781375885,
+                -0.13080693781375885
+              ],
+              "maximum": [
+                0.12682873010635376,
+                0.12682873010635376
+              ],
+              "rms": [
+                0.0913573789323101,
+                0.0913573789323101
+              ],
+              "dc": [
+                -0.0019422869386001669,
+                -0.0019422869386001669
+              ],
+              "acRms": [
+                0.09133672977958998,
+                0.09133672977958998
+              ],
+              "nonzero": [
+                19164,
+                19164
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.1288178339600563,
+            "amplitude": 0.1288178339600563,
+            "expectedAmplitude": 0.12881783203125,
+            "relativeError": 1.4973131179374377e-08
+          },
+          {
+            "kind": "ym2612",
+            "role": "primary",
+            "mode": "genesis-full-nuked",
+            "accessKind": "ym2612",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "ym2612",
+              "settings": {
+                "volume": 0.49387,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13876529037952423,
+                0.13876529037952423
+              ],
+              "minimum": [
+                -0.11887062340974808,
+                -0.11887062340974808
+              ],
+              "maximum": [
+                0.13876529037952423,
+                0.13876529037952423
+              ],
+              "rms": [
+                0.0918908648588109,
+                0.0918908648588109
+              ],
+              "dc": [
+                0.00999928424856686,
+                0.00999928424856686
+              ],
+              "acRms": [
+                0.09134519888322873,
+                0.09134519888322873
+              ],
+              "nonzero": [
+                19170,
+                19170
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.12881795689463615,
+            "amplitude": 0.12881795689463615,
+            "expectedAmplitude": 0.12881795601877902,
+            "relativeError": 6.799185214845238e-09
+          }
+        ],
+        "limits": [
+          "Known single-voice waveforms; not perceived loudness or polyphony normalization.",
+          "SPC uses an original synthetic single-voice file to measure output units; authored file contents are not normalized.",
+          "Measurements use actual Web Worklets/WASM; this runner does not open a Native audio device."
+        ]
+      }
+    },
+    {
+      "path": "/private/tmp/tetorica-ym2612-wasm-sdk/playground-webkit.json",
+      "sha256": "780bf221879a69426296d81b42af464ba12fabf24a6acd5f0ef30cc7257f33e7",
+      "report": {
+        "schemaVersion": 1,
+        "passed": true,
+        "engine": "webkit",
+        "verify": true,
+        "gainUnits": "source",
+        "method": "half peak-to-peak; RMS/DC/AC-RMS recorded separately",
+        "frequencies": [
+          440
+        ],
+        "rows": [
+          {
+            "kind": "ym2612",
+            "role": "extra",
+            "mode": "genesis",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "calibration-source",
+              "engine": "ymfm",
+              "settings": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13876332342624664,
+                0.13876332342624664
+              ],
+              "minimum": [
+                -0.11887233704328537,
+                -0.11887233704328537
+              ],
+              "maximum": [
+                0.13876332342624664,
+                0.13876332342624664
+              ],
+              "rms": [
+                0.09189282060709879,
+                0.09189282060709879
+              ],
+              "dc": [
+                0.009935449262229668,
+                0.009935449262229668
+              ],
+              "acRms": [
+                0.09135413141772024,
+                0.09135413141772024
+              ],
+              "nonzero": [
+                19167,
+                19167
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.128817830234766,
+            "amplitude": 0.128817830234766,
+            "expectedAmplitude": 0.12881783203125,
+            "relativeError": 1.3945926302660894e-08
+          },
+          {
+            "kind": "ym2612",
+            "chipEngine": "nuked",
+            "role": "extra",
+            "mode": "genesis",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "calibration-source",
+              "engine": "nuked",
+              "settings": {
+                "volume": 0.493869,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13876500725746155,
+                0.13876500725746155
+              ],
+              "minimum": [
+                -0.11887038499116898,
+                -0.11887038499116898
+              ],
+              "maximum": [
+                0.13876500725746155,
+                0.13876500725746155
+              ],
+              "rms": [
+                0.09190146057824608,
+                0.09190146057824608
+              ],
+              "dc": [
+                0.010007268671127651,
+                0.010007268671127651
+              ],
+              "acRms": [
+                0.09135498360877083,
+                0.09135498360877083
+              ],
+              "nonzero": [
+                19170,
+                19170
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.12881769612431526,
+            "amplitude": 0.12881769612431526,
+            "expectedAmplitude": 0.12881769845581054,
+            "relativeError": 1.809918437345459e-08
+          },
+          {
+            "kind": "ym2612",
+            "role": "primary",
+            "mode": "genesis",
+            "accessKind": "ym2612",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "ym2612",
+              "settings": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13080693781375885,
+                0.13080693781375885
+              ],
+              "minimum": [
+                -0.13080693781375885,
+                -0.13080693781375885
+              ],
+              "maximum": [
+                0.12682873010635376,
+                0.12682873010635376
+              ],
+              "rms": [
+                0.09135493785913726,
+                0.09135493785913726
+              ],
+              "dc": [
+                -0.001978364639606601,
+                -0.001978364639606601
+              ],
+              "acRms": [
+                0.09133351380845689,
+                0.09133351380845689
+              ],
+              "nonzero": [
+                19163,
+                19163
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.1288178339600563,
+            "amplitude": 0.1288178339600563,
+            "expectedAmplitude": 0.12881783203125,
+            "relativeError": 1.4973131179374377e-08
+          },
+          {
+            "kind": "ym2612",
+            "role": "primary",
+            "mode": "genesis-full-nuked",
+            "accessKind": "ym2612",
+            "frequencyHz": 440,
+            "waveform": "sine",
+            "defaultCalibration": true,
+            "noteInfo": "Public FM channel 0; multiplier 1; nearest OPN BLOCK/F-NUM at the chip's current clock.",
+            "limitations": "Both hardware stereo output bits are enabled; per-output amplitude must be measured separately.",
+            "referencePeak": 1,
+            "decodedReference": null,
+            "mixer": {
+              "id": "ym2612",
+              "settings": {
+                "volume": 0.49387,
+                "pan": 0,
+                "muted": false,
+                "solo": true
+              }
+            },
+            "pcm": {
+              "frames": 19200,
+              "sampleRate": 48000,
+              "peak": [
+                0.13876529037952423,
+                0.13876529037952423
+              ],
+              "minimum": [
+                -0.11887062340974808,
+                -0.11887062340974808
+              ],
+              "maximum": [
+                0.13876529037952423,
+                0.13876529037952423
+              ],
+              "rms": [
+                0.0918953926473679,
+                0.0918953926473679
+              ],
+              "dc": [
+                0.009936141997595769,
+                0.009936141997595769
+              ],
+              "acRms": [
+                0.09135664328343907,
+                0.09135664328343907
+              ],
+              "nonzero": [
+                19170,
+                19170
+              ],
+              "nonfinite": 0,
+              "overrange": 0
+            },
+            "measuredAmplitude": 0.12881795689463615,
+            "amplitude": 0.12881795689463615,
+            "expectedAmplitude": 0.12881795601877902,
+            "relativeError": 6.799185214845238e-09
+          }
+        ],
+        "limits": [
+          "Known single-voice waveforms; not perceived loudness or polyphony normalization.",
+          "SPC uses an original synthetic single-voice file to measure output units; authored file contents are not normalized.",
+          "Measurements use actual Web Worklets/WASM; this runner does not open a Native audio device."
+        ]
+      }
+    }
+  ],
+  "analyzerCalibration": {
+    "path": "docs/issues/analyzer_psg_levels_03.json",
+    "sha256": "bae758a548af196859753834b88896308d0d442341e4ae6819dbd7e492f74917",
+    "allMetricsAndDefaultsEqualTo": "docs/issues/analyzer_psg_levels_02.json",
+    "mixerGainsChanged": false
+  },
+  "checks": {
+    "pythonImportAndBuildRoute": 19,
+    "stateTimerFrames": 41,
+    "workletProcessor": 8,
+    "existingVgmMockRunner": 185,
+    "calibrationUnit": 17,
+    "isolatedNpmPackage": {
+      "passed": true,
+      "files": 803,
+      "wasmEnginesLoaded": 26,
+      "typesChecked": true
+    }
+  },
+  "limitations": [
+    "No remote CI, OS/device listening, npm publish or app deployment performed.",
+    "Full trace reports live under /private/tmp; hashes, build inputs and executable checker are recorded here for reproduction.",
+    "Build-route unit tests use a recording compiler; real WASM behavior is verified separately by both parity reports."
+  ],
+  "integrationFiles": [
+    {
+      "path": "scripts/build_ym2612_wasm.sh",
+      "sha256": "578e09a65e58eea8b660be339ef5ce7a5c94d6aa586b8b8c3b56447d57c1c0cd",
+      "size": 514
+    },
+    {
+      "path": "scripts/import_soundchip_sdk.py",
+      "sha256": "9308beda00e20b4e0f80e431c6cc7d6020b85ba99fc4c3fd07c0eb0d137fe931",
+      "size": 9855
+    },
+    {
+      "path": "scripts/check_ym2612_wasm_sdk.mjs",
+      "sha256": "a249b53fc868016db7d61ce65f1de581c67f416811186e827795a2469077b514",
+      "size": 25016
+    },
+    {
+      "path": "test/test_soundchip_sdk.py",
+      "sha256": "de5f79ea4aa36ac00aa2fa8c22baa1fea01ebfe73c5c3dd571b6a07549ed6c54",
+      "size": 13629
+    },
+    {
+      "path": "test/test_ym2612_sdk_build.py",
+      "sha256": "02dbd5a30c5cf33c4df60ae943b0a53e23d563a03337807b14adec731c682834",
+      "size": 9850
+    },
+    {
+      "path": ".github/workflows/vgm-mock.yml",
+      "sha256": "dcb3fa1b67128aefbc39ef48dd34c0f4519a33e3641a512cbb9e75697f86cc08",
+      "size": 507
+    }
+  ],
+  "analyzerPackage": {
+    "path": "release/hello_ymfm_wasm_ym2612-sdk_itch_vgm_analyzer.zip",
+    "sha256": "ace8ddf63ebb77580bdab45a6e5332f9204de8a4f3184224cde6391d5f3256ac",
+    "size": 1751705,
+    "localReferenceCount": 753,
+    "sdkWasmAndCalibrationModuleMatch": true
+  }
+}
