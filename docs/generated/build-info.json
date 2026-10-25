@@ -66,6 +66,185 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "y8950",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "9e60f75aa35f10c68c1c69f9b383e1c91200948861c32553c812768f10c860c1",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_y8950_wasm.sh",
+          "sha256": "da9668a4ea053d0bbb6f31870e2704bee9891e6de9eb74f9e9f7ec5d4fd9a20d",
+          "size": 841
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/ymfm/chip_state.h",
+          "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+          "size": 521
+        },
+        {
+          "path": "vendor/ymfm/segapsg.cpp",
+          "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
+          "size": 7696
+        },
+        {
+          "path": "vendor/ymfm/segapsg.h",
+          "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
+          "size": 2033
+        },
+        {
+          "path": "vendor/ymfm/ymfm.h",
+          "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+          "size": 18554
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.cpp",
+          "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+          "size": 22040
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.h",
+          "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+          "size": 13752
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.h",
+          "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+          "size": 17705
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.ipp",
+          "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+          "size": 59507
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.cpp",
+          "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9",
+          "size": 4435
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.h",
+          "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d",
+          "size": 3077
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.cpp",
+          "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+          "size": 67501
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.h",
+          "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+          "size": 33768
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.cpp",
+          "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940",
+          "size": 17474
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.h",
+          "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196",
+          "size": 12759
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.cpp",
+          "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2",
+          "size": 68238
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.h",
+          "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39",
+          "size": 28892
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.cpp",
+          "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde",
+          "size": 15749
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.h",
+          "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b",
+          "size": 11258
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opx.h",
+          "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b",
+          "size": 12535
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.cpp",
+          "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273",
+          "size": 28628
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.h",
+          "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6",
+          "size": 14377
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.cpp",
+          "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+          "size": 21684
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.h",
+          "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+          "size": 12880
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.cpp",
+          "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd",
+          "size": 8421
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.h",
+          "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584",
+          "size": 7752
+        },
+        {
+          "path": "wasm/opn_state.h",
+          "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0",
+          "size": 2974
+        },
+        {
+          "path": "wasm/y8950_wasm.cpp",
+          "sha256": "e7b45082fc47409a77d815744e125f25a544bf86ee4a5799d4d22fc05f35cd15",
+          "size": 2705
+        },
+        {
+          "path": "wasm/ymfm_wasm_interface.h",
+          "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+          "size": 1719
+        }
+      ],
+      "outputs": [
+        {
+          "path": "y8950_wasm.js",
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "size": 15461
+        },
+        {
+          "path": "y8950_wasm.wasm",
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "size": 22425
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "ym2151",
       "format": "emscripten-es-module",
       "sourceFingerprint": "06f54a203e5b96ac7384eefb00c856acdd9360dc7486a3977e57a9f77038bd4d",

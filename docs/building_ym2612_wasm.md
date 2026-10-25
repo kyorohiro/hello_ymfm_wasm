@@ -19,6 +19,7 @@ download or synchronized edit of another repository is required.
 | YM3526 | `scripts/build_ym3526_wasm.sh` | `ym3526_wasm` |
 | YM3812 | `scripts/build_ym3812_wasm.sh` | `ym3812_wasm` |
 | YMF262 | `scripts/build_ymf262_wasm.sh` | `ymf262_wasm` |
+| Y8950 | `scripts/build_y8950_wasm.sh` | `y8950_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -34,6 +35,7 @@ sh scripts/build_ym2413_wasm.sh
 sh scripts/build_ym3526_wasm.sh
 sh scripts/build_ym3812_wasm.sh
 sh scripts/build_ymf262_wasm.sh
+sh scripts/build_y8950_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -44,7 +46,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812` and `Ymf262` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262` and `Y8950` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -64,15 +66,17 @@ sh /path/to/checkout/scripts/build_ym2413_wasm.sh ./ym2413-output
 sh /path/to/checkout/scripts/build_ym3526_wasm.sh ./ym3526-output
 sh /path/to/checkout/scripts/build_ym3812_wasm.sh ./ym3812-output
 sh /path/to/checkout/scripts/build_ymf262_wasm.sh ./ymf262-output
+sh /path/to/checkout/scripts/build_y8950_wasm.sh ./y8950-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipe retains
 C++14, O2, the existing exports and memory growth settings.
-OPN and YM2413 recipes retain their explicit `ASSERTIONS=1`; OPM/OPP, OKIM6258 and the OPL1/2/3 recipes retain
+OPN and YM2413 recipes retain their explicit `ASSERTIONS=1`; OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
 YMF262 also retains `generateStereoInto()` for caller-provided output buffers.
+Y8950 retains its sample-memory load/clear APIs and `HEAPU8` runtime support.
 
 ## Fixed source and updates
 
@@ -80,7 +84,7 @@ YMF262 also retains `generateStereoInto()` for caller-provided output buffers.
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these ten wrappers, ymfm inputs and the MAME-derived
+and `vendor/` notices; these eleven wrappers, ymfm inputs and the MAME-derived
 OKIM6258 adaptation retain BSD-3-Clause.
 
 Treat the imported directory as immutable. To update it, obtain a local SDK
@@ -143,6 +147,10 @@ node scripts/check_ymf262_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-ymf262-build \
   --sdk-dir /path/to/sdk-ymf262-build \
   --out /tmp/ymf262-comparison.json
+node scripts/check_y8950_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-y8950-build \
+  --sdk-dir /path/to/sdk-y8950-build \
+  --out /tmp/y8950-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -173,10 +181,15 @@ eight waveforms, NEW compatibility behavior, four output buses folded into
 stereo, rhythm, mutes and timers/IRQ. It preserves the existing lack of CSM
 key-on and snapshot APIs, and compares reset/replay/seek and caller-buffer
 rendering with the AudioEngine scratch-buffer path.
+The Y8950 checker covers its existing OPL1 FM/rhythm, timers/IRQ/CSM and ADPCM
+playback, CPU writes/feed, memory range/resize/clear, source mutes and VGM data
+block replay/seek. It distinguishes native RAM from the JS upload mirror:
+raw reset retains actual RAM, while public reset reuploads that mirror.
+No snapshot, Into or working external-RAM readback API is introduced.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The ten module recipes above have switched to this build source. Other chip recipes and
+The eleven module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.

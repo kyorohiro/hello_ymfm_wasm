@@ -12,7 +12,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
-             'ym2413', 'ym3526', 'ym3812', 'ymf262')
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -79,6 +79,12 @@ YMF262_EXPORTS = [
     '_ymf262_read', '_ymf262_read_status', '_ymf262_get_irq',
     '_ymf262_sample_rate', '_ymf262_generate', '_ymf262_set_mute_mask',
     '_malloc', '_free',
+]
+Y8950_EXPORTS = [
+    '_y8950_set_mute_mask', '_y8950_create', '_y8950_destroy', '_y8950_reset',
+    '_y8950_write', '_y8950_read', '_y8950_read_status', '_y8950_get_irq',
+    '_y8950_sample_rate', '_y8950_generate', '_y8950_load_memory',
+    '_y8950_clear_memory', '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -432,6 +438,24 @@ class Ymf262SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         self.assert_shared_output_preserves(
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812'])
+
+
+class Y8950SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'y8950'
+    exports = Y8950_EXPORTS
+    assertions = False
+    runtime_methods = ['cwrap', 'HEAPF32', 'HEAPU8']
+    vendor_sources = ['vendor/ymfm/ymfm_opl.cpp', 'vendor/ymfm/ymfm_adpcm.cpp',
+                      'vendor/ymfm/ymfm_pcm.cpp']
+    core_header = 'vendor/ymfm/ymfm_opl.h'
+    support_sources = [*SdkBuildRouteMixin.support_sources, 'vendor/ymfm/ymfm.h',
+                       'vendor/ymfm/ymfm_fm.h', 'vendor/ymfm/ymfm_adpcm.h',
+                       'vendor/ymfm/ymfm_pcm.h']
+
+    def test_shared_output_preserves_all_ten_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262'])
 
 
 if __name__ == '__main__':

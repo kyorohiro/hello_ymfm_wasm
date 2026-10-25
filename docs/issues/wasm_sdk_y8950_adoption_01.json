@@ -1,0 +1,4476 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-26",
+  "scope": "Y8950 MSX-AUDIO WASM uses the immutable bundled SDK. Existing OPL1 nine-channel FM/rhythm, ADPCM and memory load/clear, read/status/IRQ, reset/replay and synchronous owned PCM APIs retained. Numeric Mixer defaults retained. No snapshot, Into or new external-RAM readback API introduced.",
+  "startingPoint": {
+    "sourceCommitBeforeChange": "915afaa7a15060c5e106b6b6f28ca93d3ce76654",
+    "startingStatus": "",
+    "legacyRecipeSha256": "978869c7b83f8cc0e84b220d68dff5b061ecd10d041598becb86f42a89a0a6aa",
+    "sdkPin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.1",
+      "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+      "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+      "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+      "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+      "fileCount": 379
+    }
+  },
+  "sourceAudit": {
+    "path": "/private/tmp/tetorica-y8950-wasm-sdk/source-audit.json",
+    "bytes": 11008,
+    "sha256": "e76b0ce97ef85f79acc72a3a5ca15dd00d9967ad1af5943f700ab06be33cc61b",
+    "record": {
+      "readOnly": true,
+      "chip": "y8950",
+      "baseHead": "915afaa7a15060c5e106b6b6f28ca93d3ce76654",
+      "pin": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.1",
+        "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+        "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+        "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+        "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+        "fileCount": 379
+      },
+      "manifestMatchesPin": true,
+      "legacyRecipeSource": "git show 915afaa7a15060c5e106b6b6f28ca93d3ce76654:scripts/build_y8950_wasm.sh",
+      "allSourceLicenseComparisonsEqual": true,
+      "sourceLicenseComparisonCount": 12,
+      "sourceComparisons": [
+        {
+          "local": "LICENSE",
+          "sdk": "vendor/ymfm/LICENSE",
+          "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm.h",
+          "sdk": "vendor/ymfm/ymfm.h",
+          "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_adpcm.cpp",
+          "sdk": "vendor/ymfm/ymfm_adpcm.cpp",
+          "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_adpcm.h",
+          "sdk": "vendor/ymfm/ymfm_adpcm.h",
+          "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_fm.h",
+          "sdk": "vendor/ymfm/ymfm_fm.h",
+          "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_fm.ipp",
+          "sdk": "vendor/ymfm/ymfm_fm.ipp",
+          "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_opl.cpp",
+          "sdk": "vendor/ymfm/ymfm_opl.cpp",
+          "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_opl.h",
+          "sdk": "vendor/ymfm/ymfm_opl.h",
+          "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_pcm.cpp",
+          "sdk": "vendor/ymfm/ymfm_pcm.cpp",
+          "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_pcm.h",
+          "sdk": "vendor/ymfm/ymfm_pcm.h",
+          "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+          "bytesEqual": true
+        },
+        {
+          "local": "wasm/y8950_wasm.cpp",
+          "sdk": "wasm/y8950_wasm.cpp",
+          "sha256": "e7b45082fc47409a77d815744e125f25a544bf86ee4a5799d4d22fc05f35cd15",
+          "bytesEqual": true
+        },
+        {
+          "local": "wasm/ymfm_wasm_interface.h",
+          "sdk": "wasm/ymfm_wasm_interface.h",
+          "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+          "bytesEqual": true
+        }
+      ],
+      "recipes": {
+        "legacy": {
+          "sha256": "978869c7b83f8cc0e84b220d68dff5b061ecd10d041598becb86f42a89a0a6aa",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API='[\"wasmBinary\"]'",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS='[\"_y8950_set_mute_mask\",\"_y8950_create\",\"_y8950_destroy\",\"_y8950_reset\",\"_y8950_write\",\"_y8950_read\",\"_y8950_read_status\",\"_y8950_get_irq\",\"_y8950_sample_rate\",\"_y8950_generate\",\"_y8950_load_memory\",\"_y8950_clear_memory\",\"_malloc\",\"_free\"]'",
+            "-sEXPORTED_RUNTIME_METHODS='[\"cwrap\",\"HEAPF32\",\"HEAPU8\"]'"
+          ],
+          "exports": [
+            "_y8950_set_mute_mask",
+            "_y8950_create",
+            "_y8950_destroy",
+            "_y8950_reset",
+            "_y8950_write",
+            "_y8950_read",
+            "_y8950_read_status",
+            "_y8950_get_irq",
+            "_y8950_sample_rate",
+            "_y8950_generate",
+            "_y8950_load_memory",
+            "_y8950_clear_memory",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32",
+            "HEAPU8"
+          ],
+          "perlCleanup": false
+        },
+        "sdk": {
+          "sha256": "da9668a4ea053d0bbb6f31870e2704bee9891e6de9eb74f9e9f7ec5d4fd9a20d",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API='[\"wasmBinary\"]'",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS='[\"_y8950_set_mute_mask\",\"_y8950_create\",\"_y8950_destroy\",\"_y8950_reset\",\"_y8950_write\",\"_y8950_read\",\"_y8950_read_status\",\"_y8950_get_irq\",\"_y8950_sample_rate\",\"_y8950_generate\",\"_y8950_load_memory\",\"_y8950_clear_memory\",\"_malloc\",\"_free\"]'",
+            "-sEXPORTED_RUNTIME_METHODS='[\"cwrap\",\"HEAPF32\",\"HEAPU8\"]'"
+          ],
+          "exports": [
+            "_y8950_set_mute_mask",
+            "_y8950_create",
+            "_y8950_destroy",
+            "_y8950_reset",
+            "_y8950_write",
+            "_y8950_read",
+            "_y8950_read_status",
+            "_y8950_get_irq",
+            "_y8950_sample_rate",
+            "_y8950_generate",
+            "_y8950_load_memory",
+            "_y8950_clear_memory",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32",
+            "HEAPU8"
+          ],
+          "perlCleanup": false
+        }
+      },
+      "flagsAndExportsExactlyEqual": true,
+      "preprocessorMethod": "clang++ -MM only; no compilation/object output",
+      "translationUnitCount": 4,
+      "physicalDependencyCount": 11,
+      "normalizedDependencySetsExactlyEqual": true,
+      "dependencies": {
+        "legacy": [
+          "src/ymfm.h",
+          "src/ymfm_adpcm.cpp",
+          "src/ymfm_adpcm.h",
+          "src/ymfm_fm.h",
+          "src/ymfm_fm.ipp",
+          "src/ymfm_opl.cpp",
+          "src/ymfm_opl.h",
+          "src/ymfm_pcm.cpp",
+          "src/ymfm_pcm.h",
+          "wasm/y8950_wasm.cpp",
+          "wasm/ymfm_wasm_interface.h"
+        ],
+        "sdk": [
+          "vendor/ymfm/ymfm.h",
+          "vendor/ymfm/ymfm_adpcm.cpp",
+          "vendor/ymfm/ymfm_adpcm.h",
+          "vendor/ymfm/ymfm_fm.h",
+          "vendor/ymfm/ymfm_fm.ipp",
+          "vendor/ymfm/ymfm_opl.cpp",
+          "vendor/ymfm/ymfm_opl.h",
+          "vendor/ymfm/ymfm_pcm.cpp",
+          "vendor/ymfm/ymfm_pcm.h",
+          "wasm/y8950_wasm.cpp",
+          "wasm/ymfm_wasm_interface.h"
+        ]
+      },
+      "activeCalibrationGuards": [
+        {
+          "report": "docs/issues/analyzer_nes_levels_01.json",
+          "sourceCount": 11,
+          "y8950AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/analyzer_extra_levels_02.json",
+          "sourceCount": 23,
+          "y8950AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/analyzer_psg_levels_04.json",
+          "sourceCount": 32,
+          "y8950AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/soundchip_psg_levels_01.json",
+          "sourceCount": 12,
+          "y8950AssetsTracked": []
+        }
+      ],
+      "calibrationRefreshRequiredForOnlyY8950Assets": [],
+      "wholeBundleIntegrityCheck": {
+        "command": "python3 scripts/import_soundchip_sdk.py --check",
+        "passed": true,
+        "output": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)"
+      },
+      "license": "Original ymfm BSD-3-Clause preserved; Tetorica integration retains SDK BSD-3-Clause. No GPL/LGPL decoder enters this recipe.",
+      "recipeDifferences": [
+        "SDK cd ROOT",
+        "SDK EMXX override (default em++)",
+        "src -> vendor/ymfm",
+        "Application shim passes absolute output; old default docs/generated vs SDK dist/wasm"
+      ],
+      "stateSupport": {
+        "nativeSaveLoadExports": false,
+        "publicSaveLoad": false,
+        "note": "Neither recipe/wrapper exports snapshot entry points; internal core save_restore is not exposed."
+      },
+      "chipSemantics": {
+        "model": "Y8950 / MSX-AUDIO (OPL1 FM plus ADPCM-B)",
+        "notModel": "YM3812 / OPL2",
+        "operatorWaveforms": "Uses opl_registers revision1: one sine waveform. OPL2 waveform enable and E0 selections do not apply.",
+        "channels": 9,
+        "operatorsPerMelodicChannel": 2,
+        "rhythmVoices": 5,
+        "adpcmVoices": 1,
+        "muteLayout": "Bits0..8 physicalFM/rhythm groups; bit9 ADPCM. FM and ADPCM continue clocking when muted.",
+        "output": "FM shift1 plus ADPCM output shift3 summed, then YM3014-style roundtrip_fp truncation. Mono output copied identically to both stereo arrays.",
+        "sampleRate": "floor(clock/72); wrapper advances timer interface by literal72 masterclocks per generated native frame. Minimum timerA4frames/288clocks; timerB16frames/1152clocks.",
+        "readSemantics": "Even offsets call live read_status (status synthesis into FM status can update IRQ). No fixed0x06. BitsPLAYING01,BRDY08,EOS10,TimerA40,TimerB20,IRQ80. Odd offsets dispatch selected register:05/19 externalIO returns0;09/1a call adpcm.read(0x02/0x13) and return0; all others including0f returnff. GenericADPCM read-reg8 memory/dummy side effects are not reachable through these existing Y8950 read_data mappings.",
+        "sampleMemory": "sample_interface vector is capped2MiB by load_memory range checks. RAM reads outsideallocatedsize and non-ADPCM access return0; external ADPCM writes only affect in-rangebytes. Explicit memorySize can grow withzero fill or shrink.",
+        "resetMemorySemantics": "Raw C reset resets FM/ADPCM and keeps external vector/pending address; publicreset recreates handle then uploads JS sampleMemory and reapplies mute. Native CPU datawrites do not mutate JS shadow, so publicreset restores shadow rather than retaining CPU-written bytes."
+      },
+      "catalogDependencyCoverage": {
+        "catalog": "catalog/chips.json",
+        "chip": "y8950",
+        "actualPhysicalDependencies": 11,
+        "missingActualDependencies": [],
+        "allCompiledInputsDeclared": true
+      },
+      "externalRepositories": {
+        "tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "worktreeClean": true
+        },
+        "tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "worktreeClean": true
+        }
+      },
+      "scope": "Read-only recipe/source/dependency audit; no repository edits, compilation or source pin changes.",
+      "calibrationGuardChecks": [
+        {
+          "command": "node scripts/generate_analyzer_mixer_defaults.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: 8 Analyzer-specific reference levels"
+        },
+        {
+          "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/web/soundchip_mixer_presets.js"
+        }
+      ]
+    }
+  },
+  "builds": {
+    "frozenPairs": {
+      "deployed": {
+        "js": {
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+        },
+        "wasm": {
+          "bytes": 22409,
+          "sha256": "5bbc90a0fb7d56a604e8f8fee986a6e37507aacdb898e808bc2e0b04639070bb"
+        }
+      },
+      "legacy": {
+        "js": {
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+        },
+        "wasm": {
+          "bytes": 22409,
+          "sha256": "b6b93f35b7e7a04fadf497ab83ea9a585de65b82ec82662ae2d624a931007188"
+        }
+      },
+      "sdk": {
+        "js": {
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+        },
+        "wasm": {
+          "bytes": 22425,
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+        }
+      },
+      "defaultMatchesSdk": true
+    },
+    "defaultReceipt": {
+      "id": "y8950",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "9e60f75aa35f10c68c1c69f9b383e1c91200948861c32553c812768f10c860c1",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_y8950_wasm.sh",
+          "sha256": "da9668a4ea053d0bbb6f31870e2704bee9891e6de9eb74f9e9f7ec5d4fd9a20d",
+          "size": 841
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/ymfm/chip_state.h",
+          "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+          "size": 521
+        },
+        {
+          "path": "vendor/ymfm/segapsg.cpp",
+          "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
+          "size": 7696
+        },
+        {
+          "path": "vendor/ymfm/segapsg.h",
+          "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
+          "size": 2033
+        },
+        {
+          "path": "vendor/ymfm/ymfm.h",
+          "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+          "size": 18554
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.cpp",
+          "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+          "size": 22040
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.h",
+          "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+          "size": 13752
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.h",
+          "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+          "size": 17705
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.ipp",
+          "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+          "size": 59507
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.cpp",
+          "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9",
+          "size": 4435
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.h",
+          "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d",
+          "size": 3077
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.cpp",
+          "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+          "size": 67501
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.h",
+          "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+          "size": 33768
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.cpp",
+          "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940",
+          "size": 17474
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.h",
+          "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196",
+          "size": 12759
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.cpp",
+          "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2",
+          "size": 68238
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.h",
+          "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39",
+          "size": 28892
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.cpp",
+          "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde",
+          "size": 15749
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.h",
+          "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b",
+          "size": 11258
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opx.h",
+          "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b",
+          "size": 12535
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.cpp",
+          "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273",
+          "size": 28628
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.h",
+          "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6",
+          "size": 14377
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.cpp",
+          "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+          "size": 21684
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.h",
+          "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+          "size": 12880
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.cpp",
+          "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd",
+          "size": 8421
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.h",
+          "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584",
+          "size": 7752
+        },
+        {
+          "path": "wasm/opn_state.h",
+          "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0",
+          "size": 2974
+        },
+        {
+          "path": "wasm/y8950_wasm.cpp",
+          "sha256": "e7b45082fc47409a77d815744e125f25a544bf86ee4a5799d4d22fc05f35cd15",
+          "size": 2705
+        },
+        {
+          "path": "wasm/ymfm_wasm_interface.h",
+          "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+          "size": 1719
+        }
+      ],
+      "outputs": [
+        {
+          "path": "y8950_wasm.js",
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "size": 15461
+        },
+        {
+          "path": "y8950_wasm.wasm",
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "size": 22425
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    "existingTenArtifactsPreserved": [
+      {
+        "id": "okim6258",
+        "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2151",
+        "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2203",
+        "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2413",
+        "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2608",
+        "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2610b",
+        "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2612",
+        "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3526",
+        "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3812",
+        "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ymf262",
+        "recordSha256": "f7d26b834504dc82013673c2d26daffc5acdc6bd8f2305e83789fc8903e956c0",
+        "recordUnchanged": true
+      }
+    ],
+    "sdkFilesUnchanged": 379,
+    "distPackageAssetsEqualTestedDefault": true
+  },
+  "runtime": {
+    "checker": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+      "bytes": 58704,
+      "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+    },
+    "reports": [
+      {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy-sdk-parity.json",
+        "bytes": 1104170,
+        "sha256": "94c45a9db20f4d387c297871c9ddd60f6938c611af0c4c89953ea479df10e8c4",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-y8950-wasm-sdk/legacy",
+            "javascript": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy/y8950_wasm.js",
+              "bytes": 15461,
+              "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy/y8950_wasm.wasm",
+              "bytes": 22409,
+              "sha256": "b6b93f35b7e7a04fadf497ab83ea9a585de65b82ec82662ae2d624a931007188"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "y8950_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_create",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_generate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_load_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_reset",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_write",
+                "kind": "function"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-y8950-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.js",
+              "bytes": 15461,
+              "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.wasm",
+              "bytes": 22425,
+              "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "y8950_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_create",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_generate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_load_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_reset",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_write",
+                "kind": "function"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/build-info.json",
+              "bytes": 6586,
+              "sha256": "6c47a30894b2bf4afe26356e194d0d308da2374b0fe136f90eaf657b3c105202"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+            "bytes": 58704,
+            "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950.js",
+              "bytes": 11054,
+              "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950.js",
+              "bytes": 11092,
+              "sha256": "7818d8da16ac36dc514ee8911665fcd33003b08e4923b93a66dcb1d5b8f63c15"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950audioengine.js",
+              "bytes": 7868,
+              "sha256": "36e82e69c3f7f5ea703df80dc34c400197ec80bbd3f9def422ae321b3e4f6e60"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950audioengine.js",
+              "bytes": 7962,
+              "sha256": "efa03c590f62170acf716f9847285d13ea2fc5953f6e0d8bc0806264761e356f"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+              "bytes": 20452,
+              "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          3579545,
+          4000000,
+          8000000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "probeFrames": 257,
+        "method": "Actual generated JS/WASM and unchanged synchronous Y8950 wrapper/AudioEngine. Exact mono stereo PCM, explicit post-scenario PCM probes, rate/status/IRQ hooks (ordinary observations exclude data-port reads), held resampler timing and public reset/replay. Actual VgmPlayer seek rebuilds from zero; no synthetic snapshot/state API, tolerance, mock, Mixer or device.",
+        "wrapperSync": "Byte-identical after removing only deployed y8950.js/soundchip.js/segapsg.js import cache suffixes; actual hashes retained.",
+        "authoredInput": "Original synthetic OPL1 FM/rhythm programs and ADPCM bytes only. Nine FM voices, five drums, external/CPU ADPCM, up to2MiB memory boundaries and VGM type0x88 sample blocks are exercised without copyrighted ROMs.",
+        "rawScenariosPerClock": 243,
+        "scenarioConfigurations": 897,
+        "scenarioRenderExecutions": 3930,
+        "resetReplayExecutions": 342,
+        "scenarioBodyOutputStereoFrames": 21823488,
+        "postScenarioProbeOutputStereoFrames": 1010010,
+        "totalOutputStereoFrames": 22833498,
+        "totalWrapperSelfCheckOutputStereoFrames": 555780,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+        "totalPlayerDeliveredOutputStereoFrames": 646698,
+        "totalGeneratedOutputStereoFrames": 24162360,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "limits": [
+          "Native PCM runs at floor(clock/72), with each generated sample advancing interface clocks by72. Nine OPL1 FM/rhythm voices and one ADPCM-B voice are summed to mono and copied to both outputs. OPL2 waveform selection is ignored. Engine cases test separate averaging/holding rates without optional Sega PSG.",
+          "No raw save/load exports or public state API exist for this wrapper/Engine. Internal state bytes are not inspected or claimed equivalent; continuation PCM probes, public reset/replay and VgmPlayer seek replay are compared instead.",
+          "Raw reset preserves existing free-running counters and pending address; public reset recreates the native handle and reapplies the JS mute mask. Both existing paths are exercised without changing them.",
+          "Status supplies live ADPCM PLAYING0x01/BRDY0x08/EOS0x10, TimerA0x40/TimerB0x20 and IRQ0x80 without fixed0x06. Status reads synchronize live ADPCM flags into FM IRQ. Ordinary observations read status/even ports only; explicit bounded data-port reads are separate.",
+          "Y8950 exposes no generateStereoInto, snapshots or direct external-RAM readback. Existing09/1a data reads dispatch ADPCM indices0x02/0x13 and return0;0f returnsff. Explicit tests record actual behavior, without inventing dummy/data cursor semantics.",
+          "Public memory upload can grow or shrink storage; growth zero-fills and out-of-bounds external reads return0. Raw C uploads and CPU record writes change native RAM without updating JS sampleMemory. Raw reset retains that RAM; public reset recreates the handle and reloads the uploaded JS mirror. Clear empties storage without immediately resetting decoder history.",
+          "Y8950 readStatus synchronizes visible status into the FM engine: a masked timer flag can be cleared by reading while masked; timers continue and reassert. ADPCM EOS remains live until decoder reset and is maskable; current FM IRQ mask does not assert on EOS. Ordinary observations exclude data-port reads.",
+          "Public reset retains mute/gain controls. Replay tests explicitly reapply neutral controls before reset, then replay authored register/memory setup; separate positives verify retained mute and uploaded memory. Engine mute clears held resampling values until the next native sample while both sources continue.",
+          "VgmPlayer seeks use the existing replay-from-zero helper. Actual rendered Engine frames include prefetch queues and are counted separately from delivered/discarded player frames.",
+          "No browser, Worklet scheduling, Native backend, physical hardware, Mixer or listening judgement is tested."
+        ],
+        "comparisons": 1794,
+        "caseKindCounts": {
+          "chip": 1458,
+          "engine": 336
+        },
+        "caseManifestCanonicalSha256": "ecf0a0afdcf2ca09a4685dfc667a6e2556f6f3dbeb953af7943cdc21b55fc4bf"
+      },
+      {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed-sdk-parity.json",
+        "bytes": 1104176,
+        "sha256": "2b5af8d5e2e92a8ca24ab24ba74b9867d0a6bddf14c1dba20aa4a7f29cf39d5c",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-y8950-wasm-sdk/deployed",
+            "javascript": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed/y8950_wasm.js",
+              "bytes": 15461,
+              "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed/y8950_wasm.wasm",
+              "bytes": 22409,
+              "sha256": "5bbc90a0fb7d56a604e8f8fee986a6e37507aacdb898e808bc2e0b04639070bb"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "y8950_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_create",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_generate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_load_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_reset",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_write",
+                "kind": "function"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-y8950-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.js",
+              "bytes": 15461,
+              "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.wasm",
+              "bytes": 22425,
+              "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "y8950_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_create",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_generate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_load_memory",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_reset",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "y8950_write",
+                "kind": "function"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/build-info.json",
+              "bytes": 6586,
+              "sha256": "6c47a30894b2bf4afe26356e194d0d308da2374b0fe136f90eaf657b3c105202"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+            "bytes": 58704,
+            "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950.js",
+              "bytes": 11054,
+              "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950.js",
+              "bytes": 11092,
+              "sha256": "7818d8da16ac36dc514ee8911665fcd33003b08e4923b93a66dcb1d5b8f63c15"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950audioengine.js",
+              "bytes": 7868,
+              "sha256": "36e82e69c3f7f5ea703df80dc34c400197ec80bbd3f9def422ae321b3e4f6e60"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950audioengine.js",
+              "bytes": 7962,
+              "sha256": "efa03c590f62170acf716f9847285d13ea2fc5953f6e0d8bc0806264761e356f"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+              "bytes": 20452,
+              "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          3579545,
+          4000000,
+          8000000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "probeFrames": 257,
+        "method": "Actual generated JS/WASM and unchanged synchronous Y8950 wrapper/AudioEngine. Exact mono stereo PCM, explicit post-scenario PCM probes, rate/status/IRQ hooks (ordinary observations exclude data-port reads), held resampler timing and public reset/replay. Actual VgmPlayer seek rebuilds from zero; no synthetic snapshot/state API, tolerance, mock, Mixer or device.",
+        "wrapperSync": "Byte-identical after removing only deployed y8950.js/soundchip.js/segapsg.js import cache suffixes; actual hashes retained.",
+        "authoredInput": "Original synthetic OPL1 FM/rhythm programs and ADPCM bytes only. Nine FM voices, five drums, external/CPU ADPCM, up to2MiB memory boundaries and VGM type0x88 sample blocks are exercised without copyrighted ROMs.",
+        "rawScenariosPerClock": 243,
+        "scenarioConfigurations": 897,
+        "scenarioRenderExecutions": 3930,
+        "resetReplayExecutions": 342,
+        "scenarioBodyOutputStereoFrames": 21823488,
+        "postScenarioProbeOutputStereoFrames": 1010010,
+        "totalOutputStereoFrames": 22833498,
+        "totalWrapperSelfCheckOutputStereoFrames": 555780,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+        "totalPlayerDeliveredOutputStereoFrames": 646698,
+        "totalGeneratedOutputStereoFrames": 24162360,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "limits": [
+          "Native PCM runs at floor(clock/72), with each generated sample advancing interface clocks by72. Nine OPL1 FM/rhythm voices and one ADPCM-B voice are summed to mono and copied to both outputs. OPL2 waveform selection is ignored. Engine cases test separate averaging/holding rates without optional Sega PSG.",
+          "No raw save/load exports or public state API exist for this wrapper/Engine. Internal state bytes are not inspected or claimed equivalent; continuation PCM probes, public reset/replay and VgmPlayer seek replay are compared instead.",
+          "Raw reset preserves existing free-running counters and pending address; public reset recreates the native handle and reapplies the JS mute mask. Both existing paths are exercised without changing them.",
+          "Status supplies live ADPCM PLAYING0x01/BRDY0x08/EOS0x10, TimerA0x40/TimerB0x20 and IRQ0x80 without fixed0x06. Status reads synchronize live ADPCM flags into FM IRQ. Ordinary observations read status/even ports only; explicit bounded data-port reads are separate.",
+          "Y8950 exposes no generateStereoInto, snapshots or direct external-RAM readback. Existing09/1a data reads dispatch ADPCM indices0x02/0x13 and return0;0f returnsff. Explicit tests record actual behavior, without inventing dummy/data cursor semantics.",
+          "Public memory upload can grow or shrink storage; growth zero-fills and out-of-bounds external reads return0. Raw C uploads and CPU record writes change native RAM without updating JS sampleMemory. Raw reset retains that RAM; public reset recreates the handle and reloads the uploaded JS mirror. Clear empties storage without immediately resetting decoder history.",
+          "Y8950 readStatus synchronizes visible status into the FM engine: a masked timer flag can be cleared by reading while masked; timers continue and reassert. ADPCM EOS remains live until decoder reset and is maskable; current FM IRQ mask does not assert on EOS. Ordinary observations exclude data-port reads.",
+          "Public reset retains mute/gain controls. Replay tests explicitly reapply neutral controls before reset, then replay authored register/memory setup; separate positives verify retained mute and uploaded memory. Engine mute clears held resampling values until the next native sample while both sources continue.",
+          "VgmPlayer seeks use the existing replay-from-zero helper. Actual rendered Engine frames include prefetch queues and are counted separately from delivered/discarded player frames.",
+          "No browser, Worklet scheduling, Native backend, physical hardware, Mixer or listening judgement is tested."
+        ],
+        "comparisons": 1794,
+        "caseKindCounts": {
+          "chip": 1458,
+          "engine": 336
+        },
+        "caseManifestCanonicalSha256": "ecf0a0afdcf2ca09a4685dfc667a6e2556f6f3dbeb953af7943cdc21b55fc4bf"
+      }
+    ],
+    "caseArraysEqualBetweenReferencePairs": true,
+    "caseManifestCanonicalization": "JSON with sorted keys, compact separators, UTF-8; full case arrays remain in temporary raw reports and can be regenerated with the checked-in checker.",
+    "scenarioNames": [
+      "melody/channel0/connection0/feedback0",
+      "melody/channel0/connection0/feedback1",
+      "melody/channel0/connection0/feedback2",
+      "melody/channel0/connection0/feedback3",
+      "melody/channel0/connection0/feedback4",
+      "melody/channel0/connection0/feedback5",
+      "melody/channel0/connection0/feedback6",
+      "melody/channel0/connection0/feedback7",
+      "melody/channel0/connection1/feedback0",
+      "melody/channel0/connection1/feedback1",
+      "melody/channel0/connection1/feedback2",
+      "melody/channel0/connection1/feedback3",
+      "melody/channel0/connection1/feedback4",
+      "melody/channel0/connection1/feedback5",
+      "melody/channel0/connection1/feedback6",
+      "melody/channel0/connection1/feedback7",
+      "melody/channel1/connection0/feedback0",
+      "melody/channel1/connection0/feedback1",
+      "melody/channel1/connection0/feedback2",
+      "melody/channel1/connection0/feedback3",
+      "melody/channel1/connection0/feedback4",
+      "melody/channel1/connection0/feedback5",
+      "melody/channel1/connection0/feedback6",
+      "melody/channel1/connection0/feedback7",
+      "melody/channel1/connection1/feedback0",
+      "melody/channel1/connection1/feedback1",
+      "melody/channel1/connection1/feedback2",
+      "melody/channel1/connection1/feedback3",
+      "melody/channel1/connection1/feedback4",
+      "melody/channel1/connection1/feedback5",
+      "melody/channel1/connection1/feedback6",
+      "melody/channel1/connection1/feedback7",
+      "melody/channel2/connection0/feedback0",
+      "melody/channel2/connection0/feedback1",
+      "melody/channel2/connection0/feedback2",
+      "melody/channel2/connection0/feedback3",
+      "melody/channel2/connection0/feedback4",
+      "melody/channel2/connection0/feedback5",
+      "melody/channel2/connection0/feedback6",
+      "melody/channel2/connection0/feedback7",
+      "melody/channel2/connection1/feedback0",
+      "melody/channel2/connection1/feedback1",
+      "melody/channel2/connection1/feedback2",
+      "melody/channel2/connection1/feedback3",
+      "melody/channel2/connection1/feedback4",
+      "melody/channel2/connection1/feedback5",
+      "melody/channel2/connection1/feedback6",
+      "melody/channel2/connection1/feedback7",
+      "melody/channel3/connection0/feedback0",
+      "melody/channel3/connection0/feedback1",
+      "melody/channel3/connection0/feedback2",
+      "melody/channel3/connection0/feedback3",
+      "melody/channel3/connection0/feedback4",
+      "melody/channel3/connection0/feedback5",
+      "melody/channel3/connection0/feedback6",
+      "melody/channel3/connection0/feedback7",
+      "melody/channel3/connection1/feedback0",
+      "melody/channel3/connection1/feedback1",
+      "melody/channel3/connection1/feedback2",
+      "melody/channel3/connection1/feedback3",
+      "melody/channel3/connection1/feedback4",
+      "melody/channel3/connection1/feedback5",
+      "melody/channel3/connection1/feedback6",
+      "melody/channel3/connection1/feedback7",
+      "melody/channel4/connection0/feedback0",
+      "melody/channel4/connection0/feedback1",
+      "melody/channel4/connection0/feedback2",
+      "melody/channel4/connection0/feedback3",
+      "melody/channel4/connection0/feedback4",
+      "melody/channel4/connection0/feedback5",
+      "melody/channel4/connection0/feedback6",
+      "melody/channel4/connection0/feedback7",
+      "melody/channel4/connection1/feedback0",
+      "melody/channel4/connection1/feedback1",
+      "melody/channel4/connection1/feedback2",
+      "melody/channel4/connection1/feedback3",
+      "melody/channel4/connection1/feedback4",
+      "melody/channel4/connection1/feedback5",
+      "melody/channel4/connection1/feedback6",
+      "melody/channel4/connection1/feedback7",
+      "melody/channel5/connection0/feedback0",
+      "melody/channel5/connection0/feedback1",
+      "melody/channel5/connection0/feedback2",
+      "melody/channel5/connection0/feedback3",
+      "melody/channel5/connection0/feedback4",
+      "melody/channel5/connection0/feedback5",
+      "melody/channel5/connection0/feedback6",
+      "melody/channel5/connection0/feedback7",
+      "melody/channel5/connection1/feedback0",
+      "melody/channel5/connection1/feedback1",
+      "melody/channel5/connection1/feedback2",
+      "melody/channel5/connection1/feedback3",
+      "melody/channel5/connection1/feedback4",
+      "melody/channel5/connection1/feedback5",
+      "melody/channel5/connection1/feedback6",
+      "melody/channel5/connection1/feedback7",
+      "melody/channel6/connection0/feedback0",
+      "melody/channel6/connection0/feedback1",
+      "melody/channel6/connection0/feedback2",
+      "melody/channel6/connection0/feedback3",
+      "melody/channel6/connection0/feedback4",
+      "melody/channel6/connection0/feedback5",
+      "melody/channel6/connection0/feedback6",
+      "melody/channel6/connection0/feedback7",
+      "melody/channel6/connection1/feedback0",
+      "melody/channel6/connection1/feedback1",
+      "melody/channel6/connection1/feedback2",
+      "melody/channel6/connection1/feedback3",
+      "melody/channel6/connection1/feedback4",
+      "melody/channel6/connection1/feedback5",
+      "melody/channel6/connection1/feedback6",
+      "melody/channel6/connection1/feedback7",
+      "melody/channel7/connection0/feedback0",
+      "melody/channel7/connection0/feedback1",
+      "melody/channel7/connection0/feedback2",
+      "melody/channel7/connection0/feedback3",
+      "melody/channel7/connection0/feedback4",
+      "melody/channel7/connection0/feedback5",
+      "melody/channel7/connection0/feedback6",
+      "melody/channel7/connection0/feedback7",
+      "melody/channel7/connection1/feedback0",
+      "melody/channel7/connection1/feedback1",
+      "melody/channel7/connection1/feedback2",
+      "melody/channel7/connection1/feedback3",
+      "melody/channel7/connection1/feedback4",
+      "melody/channel7/connection1/feedback5",
+      "melody/channel7/connection1/feedback6",
+      "melody/channel7/connection1/feedback7",
+      "melody/channel8/connection0/feedback0",
+      "melody/channel8/connection0/feedback1",
+      "melody/channel8/connection0/feedback2",
+      "melody/channel8/connection0/feedback3",
+      "melody/channel8/connection0/feedback4",
+      "melody/channel8/connection0/feedback5",
+      "melody/channel8/connection0/feedback6",
+      "melody/channel8/connection0/feedback7",
+      "melody/channel8/connection1/feedback0",
+      "melody/channel8/connection1/feedback1",
+      "melody/channel8/connection1/feedback2",
+      "melody/channel8/connection1/feedback3",
+      "melody/channel8/connection1/feedback4",
+      "melody/channel8/connection1/feedback5",
+      "melody/channel8/connection1/feedback6",
+      "melody/channel8/connection1/feedback7",
+      "operators/AM-PM/flags0/depth0/EGT-KSR",
+      "operators/AM-PM/flags0/depth1/EGT-KSR",
+      "operators/AM-PM/flags0/depth2/EGT-KSR",
+      "operators/AM-PM/flags0/depth3/EGT-KSR",
+      "operators/AM-PM/flags1/depth0/EGT-KSR",
+      "operators/AM-PM/flags1/depth1/EGT-KSR",
+      "operators/AM-PM/flags1/depth2/EGT-KSR",
+      "operators/AM-PM/flags1/depth3/EGT-KSR",
+      "operators/AM-PM/flags2/depth0/EGT-KSR",
+      "operators/AM-PM/flags2/depth1/EGT-KSR",
+      "operators/AM-PM/flags2/depth2/EGT-KSR",
+      "operators/AM-PM/flags2/depth3/EGT-KSR",
+      "operators/AM-PM/flags3/depth0/EGT-KSR",
+      "operators/AM-PM/flags3/depth1/EGT-KSR",
+      "operators/AM-PM/flags3/depth2/EGT-KSR",
+      "operators/AM-PM/flags3/depth3/EGT-KSR",
+      "operators/all-multipliers/half-rate-aliases",
+      "OPL1/sine-only/ignored-OPL2-waveform-registers",
+      "rhythm/bassDrum/group6/retrigger",
+      "rhythm/snare/group7/retrigger",
+      "rhythm/tom/group8/retrigger",
+      "rhythm/cymbal/group8/retrigger",
+      "rhythm/hiHat/group7/retrigger",
+      "rhythm/all-key-bits/mask0/six-melody-voices",
+      "rhythm/all-key-bits/mask1/six-melody-voices",
+      "rhythm/all-key-bits/mask2/six-melody-voices",
+      "rhythm/all-key-bits/mask3/six-melody-voices",
+      "rhythm/all-key-bits/mask4/six-melody-voices",
+      "rhythm/all-key-bits/mask5/six-melody-voices",
+      "rhythm/all-key-bits/mask6/six-melody-voices",
+      "rhythm/all-key-bits/mask7/six-melody-voices",
+      "rhythm/all-key-bits/mask8/six-melody-voices",
+      "rhythm/all-key-bits/mask9/six-melody-voices",
+      "rhythm/all-key-bits/mask10/six-melody-voices",
+      "rhythm/all-key-bits/mask11/six-melody-voices",
+      "rhythm/all-key-bits/mask12/six-melody-voices",
+      "rhythm/all-key-bits/mask13/six-melody-voices",
+      "rhythm/all-key-bits/mask14/six-melody-voices",
+      "rhythm/all-key-bits/mask15/six-melody-voices",
+      "rhythm/all-key-bits/mask16/six-melody-voices",
+      "rhythm/all-key-bits/mask17/six-melody-voices",
+      "rhythm/all-key-bits/mask18/six-melody-voices",
+      "rhythm/all-key-bits/mask19/six-melody-voices",
+      "rhythm/all-key-bits/mask20/six-melody-voices",
+      "rhythm/all-key-bits/mask21/six-melody-voices",
+      "rhythm/all-key-bits/mask22/six-melody-voices",
+      "rhythm/all-key-bits/mask23/six-melody-voices",
+      "rhythm/all-key-bits/mask24/six-melody-voices",
+      "rhythm/all-key-bits/mask25/six-melody-voices",
+      "rhythm/all-key-bits/mask26/six-melody-voices",
+      "rhythm/all-key-bits/mask27/six-melody-voices",
+      "rhythm/all-key-bits/mask28/six-melody-voices",
+      "rhythm/all-key-bits/mask29/six-melody-voices",
+      "rhythm/all-key-bits/mask30/six-melody-voices",
+      "rhythm/all-key-bits/mask31/six-melody-voices",
+      "timer/A-B/mask-clear-control1",
+      "timer/A-B/mask-clear-control2",
+      "timer/A-B/mask-clear-control3",
+      "timer/A-B/mask-clear-control33",
+      "timer/A-B/mask-clear-control34",
+      "timer/A-B/mask-clear-control65",
+      "timer/A-B/mask-clear-control67",
+      "timer/A-B/mask-clear-control99",
+      "CSM/all-nine/no-ordinary-key-on/control1",
+      "CSM/all-nine/no-ordinary-key-on/control3",
+      "CSM/all-nine/no-ordinary-key-on/control33",
+      "CSM/all-nine/no-ordinary-key-on/control65",
+      "CSM/all-nine/no-ordinary-key-on/control97",
+      "mixed/nine-operators/rhythm-mode-transitions",
+      "mute/all-nine-groups/high-bit-mask/feedback-keeps-evolving",
+      "bus/pending-address/aliases/byte-truncation",
+      "reset/raw-free-running-vs-public-recreation/LFO-noise-latch",
+      "engine/master-gain/mute-controls",
+      "ADPCM/external/delta1/memory-mode0",
+      "ADPCM/external/delta1/memory-mode1",
+      "ADPCM/external/delta1/memory-mode2",
+      "ADPCM/external/delta1/memory-mode3",
+      "ADPCM/external/delta2048/memory-mode0",
+      "ADPCM/external/delta2048/memory-mode1",
+      "ADPCM/external/delta2048/memory-mode2",
+      "ADPCM/external/delta2048/memory-mode3",
+      "ADPCM/external/delta10546/memory-mode0",
+      "ADPCM/external/delta10546/memory-mode1",
+      "ADPCM/external/delta10546/memory-mode2",
+      "ADPCM/external/delta10546/memory-mode3",
+      "ADPCM/external/delta32768/memory-mode0",
+      "ADPCM/external/delta32768/memory-mode1",
+      "ADPCM/external/delta32768/memory-mode2",
+      "ADPCM/external/delta32768/memory-mode3",
+      "ADPCM/external/delta65535/memory-mode0",
+      "ADPCM/external/delta65535/memory-mode1",
+      "ADPCM/external/delta65535/memory-mode2",
+      "ADPCM/external/delta65535/memory-mode3",
+      "ADPCM/sample-memory/address0/end-stop-repeat",
+      "ADPCM/sample-memory/address2097088/end-stop-repeat",
+      "ADPCM/resize-grow-shrink-clear/outside-memory-zero",
+      "ADPCM/CPU-external-record/raw-and-public-reset",
+      "ADPCM/CPU-driven-ready-data-feed",
+      "mixed/FM-rhythm-ADPCM/sample-data-patches",
+      "engine/FM-ADPCM-independent-mutes",
+      "cold-key-off/default-silence"
+    ],
+    "samePositiveWrapperAndMemoryChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "stateApiAbsent": true,
+      "adpcmMemory": {
+        "passed": true,
+        "memoryCases": [
+          {
+            "name": "grow-zero-fills-and-preserves-prefix",
+            "renderedOutputStereoFrames": 2048,
+            "pcmSha256": "84ecebb7c0a0ff21dcefc38f692b68099894c9595de9935fff94306473206eb6",
+            "uploadedMirrorBytes": [
+              512,
+              512
+            ]
+          },
+          {
+            "name": "shrink-drops-trailing-data-before-zero-regrowth",
+            "renderedOutputStereoFrames": 2048,
+            "pcmSha256": "dd74e0c21ad78b1d3c18f042ea91f47cf31e1563a4511a4a95b37540493bc497",
+            "uploadedMirrorBytes": [
+              128,
+              128
+            ]
+          },
+          {
+            "name": "clear-retains-decoder-independent-zero-external-reads",
+            "renderedOutputStereoFrames": 2048,
+            "pcmSha256": "6c7f1daf2dcf554c4f32b4bc45844c1a9f15708d3714210539ee21dd24d4ab96",
+            "uploadedMirrorBytes": [
+              0,
+              512
+            ]
+          },
+          {
+            "name": "out-of-range-external-reads-equal-allocated-zeroes",
+            "renderedOutputStereoFrames": 2048,
+            "pcmSha256": "64add303d0bb45555eae48c05b56241e81a75fd6761ea7619fcd1ffd2e3ece15",
+            "uploadedMirrorBytes": [
+              32,
+              128
+            ]
+          },
+          {
+            "name": "last-64-bytes-at-2MiB-equal-low-address-reference",
+            "renderedOutputStereoFrames": 2048,
+            "pcmSha256": "a48afba3bd64e19a8e8cf6d9f60564140f3d68be5e56720cb23331702c7c6b02",
+            "uploadedMirrorBytes": [
+              2097152,
+              64
+            ]
+          }
+        ],
+        "rangeValidation": true,
+        "publicUploadCopiesBytes": true,
+        "growZeroFillsAndShrinkDropsData": true,
+        "rawCUploadDoesNotUpdateJsMirror": true,
+        "cpuRecordDoesNotUpdateJsMirror": true,
+        "rawResetRetainsActualRam": true,
+        "publicResetReloadsUploadedMirror": true,
+        "cpuRecordEndpointOmitsFinalByte": true,
+        "outOfBoundsCpuWritesDiscarded": true,
+        "clearPreservesDecoderHistory": true,
+        "clearTailPcmSha256": "0227ce16c33d826f211a151598a201010fdd6d776994a93ebef1ccf93bacb0e2",
+        "rawPatchPcmSha256": "9e4515ec4ebc06eba40b1a771c5e0f331b690caa8fbf20b75637bbd73d6e3089",
+        "cpuRecordPcmSha256": "1700e88ef09150d961cc930e3ad70307fa278c0f3bbd421f870560c7ad2d4fc3",
+        "speed": [
+          {
+            "delta": 2048,
+            "pcmSha256": "9905e18c271f9acc49658e99cb561029bedaff317b9f32514d3bcc10a91120c4"
+          },
+          {
+            "delta": 10546,
+            "pcmSha256": "2ae0a6d6d8c4426ab699ea7171e9de13f15a2823b599cb3571e6de46d397d968"
+          },
+          {
+            "delta": 32768,
+            "pcmSha256": "1d2715263ae544ca449b1b5c4428feec0d75b3a3d8dbccc9c7c0569b479a1410"
+          },
+          {
+            "delta": 65535,
+            "pcmSha256": "c9d1184e9fd0fc07b6b39c35c0dffeffd6fb2f9bc119a867d3204668cabfa45c"
+          }
+        ],
+        "granularity": [
+          {
+            "mode": 0,
+            "pcmSha256": "b81c5733d131c1d0179fcc6c82e09b8817b0b3d94ba21f38b8c4e1165385b2cc"
+          },
+          {
+            "mode": 1,
+            "pcmSha256": "a48afba3bd64e19a8e8cf6d9f60564140f3d68be5e56720cb23331702c7c6b02"
+          },
+          {
+            "mode": 2,
+            "pcmSha256": "a48afba3bd64e19a8e8cf6d9f60564140f3d68be5e56720cb23331702c7c6b02"
+          },
+          {
+            "mode": 3,
+            "pcmSha256": "a48afba3bd64e19a8e8cf6d9f60564140f3d68be5e56720cb23331702c7c6b02"
+          }
+        ],
+        "levelZeroSilent": true,
+        "endFlags": {
+          "firstEosFrame": 65,
+          "repeatWrapFrames": 512,
+          "repeatPcmSha256": "66d62edaf93b0cb786e903324ccf16f31e33552efece69ac2ff6ea381ffd9ead",
+          "maskHidesButDoesNotErase": true,
+          "irqClearDoesNotEraseDecoderEos": true,
+          "adpcmEosDoesNotAssertCurrentIrqMask": true
+        },
+        "cpuReady": [
+          {
+            "value": 119,
+            "afterEightFramesStatus": 9,
+            "pcmSha256": "73dab6fe2265412f0ed23743d5edf299b0aad143b41a2160794902673ed9a3a5"
+          },
+          {
+            "value": 255,
+            "afterEightFramesStatus": 9,
+            "pcmSha256": "477be6e25f3763653d8037405f213b3ec934c6a190e68a6169a3d2c51647868b"
+          },
+          {
+            "value": 21,
+            "afterEightFramesStatus": 9,
+            "pcmSha256": "d1ba7244487a136fcd7a121e9ee720f7bc5d6f4c9430b81469a7cf266e2ad2cf"
+          },
+          {
+            "value": 163,
+            "afterEightFramesStatus": 9,
+            "pcmSha256": "de9f418f239709d9a1ed8db54ebc15141d7d2d82edf3aa8f51ab04dce65c25ed"
+          }
+        ],
+        "explicitDataReads": [
+          {
+            "register": 5,
+            "values": [
+              0,
+              0
+            ]
+          },
+          {
+            "register": 9,
+            "values": [
+              0,
+              0
+            ]
+          },
+          {
+            "register": 25,
+            "values": [
+              0,
+              0
+            ]
+          },
+          {
+            "register": 26,
+            "values": [
+              0,
+              0
+            ]
+          },
+          {
+            "register": 15,
+            "values": [
+              255,
+              255
+            ]
+          },
+          {
+            "register": 255,
+            "values": [
+              255,
+              255
+            ]
+          }
+        ],
+        "dataReadLimit": "The current Y8950 read_data switch exposes09/1a as ADPCM read indices0x02/0x13, not CPU-data index8. They return0;0f returnsff. No public external-RAM readback/dummy-cursor or serialized-memory API is invented. RAM contents are observed through independently uploaded expected ADPCM PCM.",
+        "adpcmMonoNotFictitiousPan": true,
+        "independentFmAndAdpcmMutesPreservePhase": true,
+        "engineMutePreservesBothSourcePhases": true,
+        "engineMuteClearsHeldPrefixUntilNextSourceSample": 1,
+        "totalOutputStereoFrames": 57867
+      },
+      "rates": {
+        "100000": 1388,
+        "3579545": 49715,
+        "3993600": 55466,
+        "7670454": 106534,
+        "8000000": 111111,
+        "100000000": 1388888
+      },
+      "connectionFeedback": [
+        {
+          "connection": 0,
+          "feedback": 0,
+          "pcmSha256": "7355820ff6e7a03c0fa290ecbb46f5123fa7c6f4d8576ad66876ab587c7d24f6"
+        },
+        {
+          "connection": 0,
+          "feedback": 1,
+          "pcmSha256": "8a2408e8b34571ea02dc5336cb39952dd5b9b63be63627ebb53613df05c9b7cd"
+        },
+        {
+          "connection": 0,
+          "feedback": 2,
+          "pcmSha256": "8efd3bfdb94252dac2abf0aca7426aac76090821d0019410a10d85aa4e0bd750"
+        },
+        {
+          "connection": 0,
+          "feedback": 3,
+          "pcmSha256": "4d3f0017914a067c689638e18ee46c5bdf7b5ceb228d05a7ad4da1b2d2c40737"
+        },
+        {
+          "connection": 0,
+          "feedback": 4,
+          "pcmSha256": "9c8233b618316779f1326aa1d26b730f5b263ff0f19327996fc1c83f55d72c12"
+        },
+        {
+          "connection": 0,
+          "feedback": 5,
+          "pcmSha256": "839e51d08a581d23ae5ac2c37ea89fe704c03988fdd75580151a90d846082393"
+        },
+        {
+          "connection": 0,
+          "feedback": 6,
+          "pcmSha256": "99e877566cd1dd35a9baf0b77f71f816b8b947a05369fd9774ffdd64e24ee68e"
+        },
+        {
+          "connection": 0,
+          "feedback": 7,
+          "pcmSha256": "d072f89fd0fca17819c42b7c86dcb6b4fa085a2dfe7de562bea88e4fd337c7b8"
+        },
+        {
+          "connection": 1,
+          "feedback": 0,
+          "pcmSha256": "726146300a7651105bdea3c2ee29b59576074797968dba0273d414caa03680c3"
+        },
+        {
+          "connection": 1,
+          "feedback": 1,
+          "pcmSha256": "da0ade64ab71e5b07b0efa70205311fbd8d69447e8b53136d4bf5b7516d7ac31"
+        },
+        {
+          "connection": 1,
+          "feedback": 2,
+          "pcmSha256": "624421ab33165ded480d2f1f2f1651aac2edfaacb37938830ab8fef16185f869"
+        },
+        {
+          "connection": 1,
+          "feedback": 3,
+          "pcmSha256": "c886d2e0369dd4d9b9360b205bef46b0d4dbfe4cd3ceba3d1a2af1dad0243031"
+        },
+        {
+          "connection": 1,
+          "feedback": 4,
+          "pcmSha256": "242d341f489a9fbaefeb91db7fd681ad16c62263314506521afca95381d72132"
+        },
+        {
+          "connection": 1,
+          "feedback": 5,
+          "pcmSha256": "7221a9edea8e92353616642c6a7f1fa738e5f604fa96b3e1d2e66d21c3df2903"
+        },
+        {
+          "connection": 1,
+          "feedback": 6,
+          "pcmSha256": "a27c22f480407d459408117fc228ddce1b81bc0663f94a256c604b9ee99ec1b7"
+        },
+        {
+          "connection": 1,
+          "feedback": 7,
+          "pcmSha256": "11df1e7533f0becb370910d4585f3a36864bd7bb6e4e84b26acdd705dc0aa64a"
+        }
+      ],
+      "modulation": [
+        {
+          "flags": 0,
+          "pcmSha256": "87589adf2eef0d263ff63e10f7feeadfe5dc945aad15b161d399244163a207bf"
+        },
+        {
+          "flags": 1,
+          "pcmSha256": "faf30bf2d5aea030097de900de47d42f899c57d9ad31be0dfa3118e03b3ed8f9"
+        },
+        {
+          "flags": 2,
+          "pcmSha256": "cb38a88a19e6fb786f08dd02e05ba3174d77492e3aa11980ab3d13757fb03618"
+        },
+        {
+          "flags": 3,
+          "pcmSha256": "1ac03b50320448f05399d982f4139b9e8f0d131693708bb4a3b7369ac47bb642"
+        }
+      ],
+      "sineOnly": [
+        {
+          "waveform": 0,
+          "pcmSha256": "4d3f0017914a067c689638e18ee46c5bdf7b5ceb228d05a7ad4da1b2d2c40737"
+        },
+        {
+          "waveform": 1,
+          "pcmSha256": "4d3f0017914a067c689638e18ee46c5bdf7b5ceb228d05a7ad4da1b2d2c40737"
+        },
+        {
+          "waveform": 2,
+          "pcmSha256": "4d3f0017914a067c689638e18ee46c5bdf7b5ceb228d05a7ad4da1b2d2c40737"
+        },
+        {
+          "waveform": 3,
+          "pcmSha256": "4d3f0017914a067c689638e18ee46c5bdf7b5ceb228d05a7ad4da1b2d2c40737"
+        },
+        {
+          "waveform": 7,
+          "pcmSha256": "4d3f0017914a067c689638e18ee46c5bdf7b5ceb228d05a7ad4da1b2d2c40737"
+        },
+        {
+          "waveform": 255,
+          "pcmSha256": "4d3f0017914a067c689638e18ee46c5bdf7b5ceb228d05a7ad4da1b2d2c40737"
+        }
+      ],
+      "envelopes": [
+        {
+          "sustain": false,
+          "pcmSha256": "c6f800b5540710dc1bfe755b90befeeb87d6f146df6d8b712d96ee38cbea14f6"
+        },
+        {
+          "sustain": true,
+          "pcmSha256": "20c98553cbf327f123ece8a42f1cbbccf47f2c12d46852b537b12def4699e911"
+        }
+      ],
+      "timers": [
+        {
+          "name": "A",
+          "firstIrqFrame": 4,
+          "flag": 64,
+          "unmaskWithoutReadRevealsRunningFlag": true,
+          "maskedStatusReadClearsHiddenFlag": true,
+          "timerReassertsAfterUnmask": true,
+          "stopAndIrqClear": true
+        },
+        {
+          "name": "B",
+          "firstIrqFrame": 16,
+          "flag": 32,
+          "unmaskWithoutReadRevealsRunningFlag": true,
+          "maskedStatusReadClearsHiddenFlag": true,
+          "timerReassertsAfterUnmask": true,
+          "stopAndIrqClear": true
+        }
+      ],
+      "csm": [
+        {
+          "channel": 0,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 1,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 2,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 3,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 4,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 5,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 6,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 7,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        },
+        {
+          "channel": 8,
+          "maskedTimerCsmPcmSha256": "dca9090c4c01361e4b817ca1a0dd1c06794bfe82c6caefc14cb714dc5e999cc6"
+        }
+      ],
+      "rhythmGroups": [
+        {
+          "mask": 16,
+          "physicalGroup": 6,
+          "pcmSha256": "2db447dbefaa39b6ad2e7613e997002176452116a0df6d61c789644bd6eb72d5"
+        },
+        {
+          "mask": 8,
+          "physicalGroup": 7,
+          "pcmSha256": "50eb17ac03ba43b1982a42363999b1b29b600107b01a96f4618451953aed4670"
+        },
+        {
+          "mask": 4,
+          "physicalGroup": 8,
+          "pcmSha256": "1b7a2d4b7bd57b22ecf1300b50c0f6a06564f49a086f9800418848f15344fd08"
+        },
+        {
+          "mask": 2,
+          "physicalGroup": 8,
+          "pcmSha256": "5ce59f35a37a9d778f7a702e5472e812d40678cecc7a132a95496c4218477809"
+        },
+        {
+          "mask": 1,
+          "physicalGroup": 7,
+          "pcmSha256": "9b4870569934a93c1b18a304083b79a35264ff192af965f09f827c527e5f17a1"
+        }
+      ],
+      "allNineMelodyMuteGroups": true,
+      "unknownMuteBitsIgnored": true,
+      "pendingAddressSurvivesGeneration": true,
+      "rawResetRetainsPendingAddress": true,
+      "rawResetDiffersFromPowerOn": true,
+      "publicResetRecreatesPowerOnRetainsMute": true,
+      "resetPcm": {
+        "raw": "b3db2b4e6d2e7fc1d7c7407df0dde02a007ec8796ee472aa97bb4ff5a3b03775",
+        "fresh": "5be280e3935cd64843dc39b51f6c723425b3aa76afa57a0bacd457c9bb3d2f6d",
+        "public": "5be280e3935cd64843dc39b51f6c723425b3aa76afa57a0bacd457c9bb3d2f6d"
+      },
+      "ownedPcmSurvivesOverwriteAndGrowth": true,
+      "engineChecks": [
+        {
+          "outputRate": 96000,
+          "sourceFrames": 530,
+          "outputFrames": 1024,
+          "pcmSha256": "92455b6ea05810cb6c5a915503e05bad37f7e971876713ce5e456b27733569c9"
+        },
+        {
+          "outputRate": 22050,
+          "sourceFrames": 2308,
+          "outputFrames": 1024,
+          "pcmSha256": "9ca9b9d692c0ee81ba3f940d33c343d1b10cfe974828112eec38af86e9c61965"
+        }
+      ],
+      "totalOutputStereoFrames": 277890,
+      "frameCountScope": "All raw/public chip and Engine output frames in bounded positive self-checks. Native source frames produced internally by Engine resampling are reported separately and not double-counted."
+    },
+    "sameActualVgmPlayerChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "rows": [
+        {
+          "clock": 3579545,
+          "outputRate": 44100,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "a0b5c53e709ba91ee1ab7ad298699401ef5c71905e0ae10c4904bc25b3054867",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "6b6cb22a2839d00ce398f1e37687b0893a9c97306a22ac1b4eeb19ad9b67ccb1",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "66ef2f91a7fd53dedac308ec53da7e919780d68cd7c1c95c2b6feed5fd8939cd"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "f005cf4e23507b80ee991aaedeba64cd047567f6a0cc322f6e36093cea6f8bb7"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "frames": 257,
+              "pcmSha256": "c597e64db00d6f949a268aa865edb975f325574b9608467f81b5a412fab35625"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "frames": 257,
+              "pcmSha256": "eb8edbe4ce3e0daf9ff7d7bb74dfb145a7398ac4e5665b6d4040005660c335d5"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "frames": 257,
+              "pcmSha256": "6773887331fe9dc98a2ea87fd4d5de62275932178b617aca16cf65c7f797462b"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "frames": 257,
+              "pcmSha256": "199430f36acde9d7d4f18bb11244330f622caa76951bb8db70da931ac46d7bc9"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 3579545,
+          "outputRate": 48000,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "a0b5c53e709ba91ee1ab7ad298699401ef5c71905e0ae10c4904bc25b3054867",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 7801,
+          "baselinePcmSha256": "9f8b00cf3b7c76f4744e1f8c8a5777593ff792edb3046785b30296aabf441962",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "dfec96aa3c6e4c617a6941069ac7f6ae03d149a855fc180b33227175b5304a15"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "cee4fefb9571e24b537ea5980c4989c3f3c366f24858b33c81f85b28652c87d9"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 762,
+              "frames": 257,
+              "pcmSha256": "3156cdc9007ac445ebef8d42423cbe556f61a96fc7b536313b878d16dd9fb120"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1853,
+              "frames": 257,
+              "pcmSha256": "7b2b71295e9999b60e15a2e6a3ec5703ce772688bca0cffd6cc5ce512fd5814c"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2552,
+              "frames": 257,
+              "pcmSha256": "a51ddb45838770dc23b1dbf93753b63f9636cf9152f0daf4dc1e1915cb9d7640"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5552,
+              "frames": 257,
+              "pcmSha256": "b0bebcec116fe5e229ca210cbe0f0f27ef4eef3df0bc77d6d3d97a1b0dce477f"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 3579545,
+          "outputRate": 96000,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "a0b5c53e709ba91ee1ab7ad298699401ef5c71905e0ae10c4904bc25b3054867",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "b6ed97ee0ec9df693e9d009ca16e28ae270c3c8a8eac0522c1284ac7db79ff3c",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "57f426e0f9344da89b7ba16aae9c35da02aafb4a216f02dc65f73e7c1a9fc95b"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "frames": 257,
+              "pcmSha256": "b78f0356dec288c92641329bc298b80526a75f56ae27d1a50b6af5cf536155a1"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "frames": 257,
+              "pcmSha256": "53fee624e44df6dcf948b9d552e23659e8d849d61143adff989eaa1a2254f484"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "frames": 257,
+              "pcmSha256": "e9fb04e55c42a9411a280d8b3b8ddcc02367cd01d3e629f33996403db2c3002b"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "frames": 257,
+              "pcmSha256": "0344e196f37d938a846dca5661d4e86356201ea12fc0778ec1c3061bd0926fed"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "frames": 257,
+              "pcmSha256": "7355ecc25cd047b2da714a9e84e8aba8b50f1e45721a520d7dfbfb1c5c028563"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 4000000,
+          "outputRate": 44100,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "0e3ba9f74652c066016d3f5da5bb3f09c0879a4302b075155502b1fd4f522eb5",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "652fad3c0081417779fd05b34ef0e2f03396f0f2c59c305304f6f8c9226eb2d7",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "92066aa36791fd16714d21da72ba5e1a6d09ff06b1192a8b857de5af17beda4e"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "ec66d093f294aa85fe15debacb9b790d82bb35f6724e89af7fb1fda0f75681ba"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "frames": 257,
+              "pcmSha256": "7c8d03cb5c1a6edf889244b9cad234ee3e77d38d4d3a61fba63018ea4a4f6feb"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "frames": 257,
+              "pcmSha256": "e69e88049cc0b69fcdf4a65757736007bc54b4688f4e55b462868645bee413fa"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "frames": 257,
+              "pcmSha256": "c2cc8eafa807851e44996f3c180a8127dccecca0f2180a7cdacb3777860ec8a5"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "frames": 257,
+              "pcmSha256": "43a0c0ad373ef39f327ea926c864048926dee6b13ca5b5b57a048154f7879425"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 4000000,
+          "outputRate": 48000,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "0e3ba9f74652c066016d3f5da5bb3f09c0879a4302b075155502b1fd4f522eb5",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 7801,
+          "baselinePcmSha256": "06dee8e7a9529e2e8241d8b16c2a8bead5c201c9e69060437907f63696c42b38",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "da7332e017bf8e63a9c16de3db5d3d0b0cdc6673458d044450f05a1d1cb4bb98"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "223ef3709d2186df623f8fe54eaa88ed658d7c0800a548d7df75a3ef0a02463e"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 762,
+              "frames": 257,
+              "pcmSha256": "c7c6a2b56bd9f5c7ea6407e161be32c493157e0ad27a1a65e2e57499acba048a"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1853,
+              "frames": 257,
+              "pcmSha256": "4d8f58c051ddd5b91d2b09e5ee3f35d5aadbddee4f19a1d9827fe4eb3d88db01"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2552,
+              "frames": 257,
+              "pcmSha256": "4f059c968a450fa06e606b767f29d217b14ec7aeb0d897a977c84741f792f70f"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5552,
+              "frames": 257,
+              "pcmSha256": "cb4c62b432e4a6089e83e85c6778ef487aedf0ac39b9c974e1bf77e55d4d6682"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 4000000,
+          "outputRate": 96000,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "0e3ba9f74652c066016d3f5da5bb3f09c0879a4302b075155502b1fd4f522eb5",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "17d4fb1989fde52ec520439d2bc06751e4f8811b3ac9b19d5075d220f66db74e",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "949470e72f5438ece6983d6b70760862f65a26ff74974f5d964b0588d204ec8d"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "frames": 257,
+              "pcmSha256": "7ee5f7e3adfd743ad64038cff5b80ef74a2296deac59c7cb10605e5d01f0e00f"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "frames": 257,
+              "pcmSha256": "79f23d576ccfad22b26c5e4393ac37af9829aae3744ed028fe738f6ae333da02"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "frames": 257,
+              "pcmSha256": "999c6c6f3c0896d1ee8bad53e0648af83f0000dbfcc30df58f8709d12509e5ad"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "frames": 257,
+              "pcmSha256": "3cdea2377118421c3f8961e0000e6ce64ed1a0670efa0972b09240bba715ca16"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "frames": 257,
+              "pcmSha256": "ff1c22a0c8ee51594a678fa6d9bdd789c404f7db254ab7f07864a1313cfc86ea"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 8000000,
+          "outputRate": 44100,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "aad076e69227e47fcc1afa6a9392015b08c2921b7df1a9ba011471f56f5229a6",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "0ae42f7b7f0d8c56347e7a68d393f0655a118a97783f994e3cb8cf42739c5a00",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "99e1926a283c4e3001f6461aa2f14e87e5db7dd851e41a682bdc1dadce33b04b"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "fcbca87feb6cf4b549f81ef76f3217b63b21ff10c24f4b9ee35d7108180adc99"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "frames": 257,
+              "pcmSha256": "785a504c90fcd051224809f9eaa99a42cad7a2083eb73a2d2016f2f655e7e976"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "frames": 257,
+              "pcmSha256": "da5e5b418e595550aa0b73f4c3035607e7f5398384faaf9b23c775836713f740"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "frames": 257,
+              "pcmSha256": "2011ea1ff5eb68a9c0737f26b3a8800542dc95b2a28612d5fe9ef8b39b2347d4"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "frames": 257,
+              "pcmSha256": "54355552cf379c1cc5af63c45f870d53540669ea0f1e1f69668c318a5f77270a"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 8000000,
+          "outputRate": 48000,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "aad076e69227e47fcc1afa6a9392015b08c2921b7df1a9ba011471f56f5229a6",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 7801,
+          "baselinePcmSha256": "68ef21f3c2a25a51ee41d32186a4ea29274974c910967aeadcd6f9c4742462fa",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "a4f099237c47822d323adfbfe993e8770051788539e8ddcc00a4101ba27d3fbf"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "cf955b62771d9fa89291a338ad6211edea8b864cecf9d6c66c7cb3409fd10d3f"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 762,
+              "frames": 257,
+              "pcmSha256": "84294231e0bf1dbf7e87e52f7a304b7a6a94354b6bcda2027c84519e03b7afd7"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1853,
+              "frames": 257,
+              "pcmSha256": "a1f07611a84eac73e12fcd5dee56f321000cfdfbf8ff7503fd7d242e5905fb85"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2552,
+              "frames": 257,
+              "pcmSha256": "6bec0e519270caa8928892907ebad46c6dd311dd1e486a46cf8e6f145f394285"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5552,
+              "frames": 257,
+              "pcmSha256": "01f1863ad6e05208f59f8bb65f15d0545abb2f2123df3bf9042929bda1ecb7c9"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 8000000,
+          "outputRate": 96000,
+          "fixtureSampleDataBlockType": 136,
+          "loadedMemoryVerifiedAgainstAuthoredData": true,
+          "fixtureBytes": 2300,
+          "fixtureSha256": "aad076e69227e47fcc1afa6a9392015b08c2921b7df1a9ba011471f56f5229a6",
+          "fixtureVgmSamples": 7168,
+          "loadedSampleMemoryBytes": 1536,
+          "loadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7",
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "86871441606f98276960de5906524287cf7c6c40cc6d44e27eb1c5e23de5917d",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "ce06637f2c050650aea437f976098bcf210ef2a62156b9f90e21c6413c234a84"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "frames": 257,
+              "pcmSha256": "3a999cc7b2194dff2dae0968a0f1c03fc738e4a655cd920d027ae1280fc1820f"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "frames": 257,
+              "pcmSha256": "74663c0a123b4feac1642218c9ec0c9f62f66a6a90e08c26756280600c3f017a"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "frames": 257,
+              "pcmSha256": "ae4297b9b3bc1cf2667b07afd02574b9eaf6187268bf8ba6c5c6b96fe73770c2"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "frames": 257,
+              "pcmSha256": "0e605d149136b9c08e60c447146c393bc38e44d048fb7085baa50214b4cd54eb"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "frames": 257,
+              "pcmSha256": "74178b52ecd1d088a4925bd00da91bd58177753095021b4c0f7085b087fe2809"
+            }
+          ],
+          "noStateCheckpoints": true
+        }
+      ],
+      "generatedEngineOutputStereoFrames": 386541,
+      "deliveredPlayerOutputStereoFrames": 323349,
+      "requestedPlayerOutputStereoFrames": 323349,
+      "engineRenderExecutions": 252,
+      "playerProcessCalls": 903,
+      "frameCountScope": "Actual Engine processFrames calls include parser render-ahead queues during baseline, reset/replay and all silent seek prefixes. Delivered/requested player frames include the seek-discarded prefix and are a separate view, not added again to generated frame totals."
+    },
+    "freeze": {
+      "path": "/private/tmp/tetorica-y8950-wasm-sdk/checker-freeze.json",
+      "bytes": 8875,
+      "sha256": "18bddbb92223d00dc7f5ea5122eb18077a2ad3ca155a7263bc2fd64d68a6959a",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+          "bytes": 58704,
+          "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+        },
+        "checkerFrozen": true,
+        "deviceOpened": false,
+        "caseArraysAndWrapperAndPlayerChecksIdenticalBetweenReferencePairs": true,
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy-sdk-parity.json",
+            "bytes": 1104170,
+            "sha256": "94c45a9db20f4d387c297871c9ddd60f6938c611af0c4c89953ea479df10e8c4",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy/y8950_wasm.js",
+                "bytes": 15461,
+                "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy/y8950_wasm.wasm",
+                "bytes": 22409,
+                "sha256": "b6b93f35b7e7a04fadf497ab83ea9a585de65b82ec82662ae2d624a931007188"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.js",
+                "bytes": 15461,
+                "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.wasm",
+                "bytes": 22425,
+                "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/build-info.json",
+                "bytes": 6586,
+                "sha256": "6c47a30894b2bf4afe26356e194d0d308da2374b0fe136f90eaf657b3c105202"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+                "bytes": 58704,
+                "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950.js",
+                "bytes": 11054,
+                "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950.js",
+                "bytes": 11092,
+                "sha256": "7818d8da16ac36dc514ee8911665fcd33003b08e4923b93a66dcb1d5b8f63c15"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950audioengine.js",
+                "bytes": 7868,
+                "sha256": "36e82e69c3f7f5ea703df80dc34c400197ec80bbd3f9def422ae321b3e4f6e60"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950audioengine.js",
+                "bytes": 7962,
+                "sha256": "efa03c590f62170acf716f9847285d13ea2fc5953f6e0d8bc0806264761e356f"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+                "bytes": 20452,
+                "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClock": 243,
+              "scenarioConfigurations": 897,
+              "scenarioRenderExecutions": 3930,
+              "scenarioBodyOutputStereoFrames": 21823488,
+              "postScenarioProbeOutputStereoFrames": 1010010,
+              "totalOutputStereoFrames": 22833498,
+              "totalWrapperSelfCheckOutputStereoFrames": 555780,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+              "totalPlayerDeliveredOutputStereoFrames": 646698,
+              "totalGeneratedOutputStereoFrames": 24162360,
+              "resetReplayExecutions": 342
+            },
+            "comparisons": 1794,
+            "chipComparisons": 1458,
+            "engineComparisons": 336,
+            "selectedResetReplayConfigurations": 171,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed-sdk-parity.json",
+            "bytes": 1104176,
+            "sha256": "2b5af8d5e2e92a8ca24ab24ba74b9867d0a6bddf14c1dba20aa4a7f29cf39d5c",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed/y8950_wasm.js",
+                "bytes": 15461,
+                "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed/y8950_wasm.wasm",
+                "bytes": 22409,
+                "sha256": "5bbc90a0fb7d56a604e8f8fee986a6e37507aacdb898e808bc2e0b04639070bb"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.js",
+                "bytes": 15461,
+                "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/y8950_wasm.wasm",
+                "bytes": 22425,
+                "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+              },
+              {
+                "path": "/private/tmp/tetorica-y8950-wasm-sdk/sdk/build-info.json",
+                "bytes": 6586,
+                "sha256": "6c47a30894b2bf4afe26356e194d0d308da2374b0fe136f90eaf657b3c105202"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+                "bytes": 58704,
+                "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950.js",
+                "bytes": 11054,
+                "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950.js",
+                "bytes": 11092,
+                "sha256": "7818d8da16ac36dc514ee8911665fcd33003b08e4923b93a66dcb1d5b8f63c15"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/y8950audioengine.js",
+                "bytes": 7868,
+                "sha256": "36e82e69c3f7f5ea703df80dc34c400197ec80bbd3f9def422ae321b3e4f6e60"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/y8950audioengine.js",
+                "bytes": 7962,
+                "sha256": "efa03c590f62170acf716f9847285d13ea2fc5953f6e0d8bc0806264761e356f"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+                "bytes": 20452,
+                "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClock": 243,
+              "scenarioConfigurations": 897,
+              "scenarioRenderExecutions": 3930,
+              "scenarioBodyOutputStereoFrames": 21823488,
+              "postScenarioProbeOutputStereoFrames": 1010010,
+              "totalOutputStereoFrames": 22833498,
+              "totalWrapperSelfCheckOutputStereoFrames": 555780,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+              "totalPlayerDeliveredOutputStereoFrames": 646698,
+              "totalGeneratedOutputStereoFrames": 24162360,
+              "resetReplayExecutions": 342
+            },
+            "comparisons": 1794,
+            "chipComparisons": 1458,
+            "engineComparisons": 336,
+            "selectedResetReplayConfigurations": 171,
+            "maximumDifference": 0
+          }
+        ],
+        "scope": "Actual synchronous owned chip/Engine PCM, probes, hooks/status/IRQ/timing, uploaded mirror hashes, public reset/replay and real VgmPlayer sample-data/seek replay. Bounded real RAM/CPU positive controls distinguish native writes from JS mirror and public reset. No snapshot or external RAM readback API exists; neither is invented. Native source frames and Player delivered frames are not double-counted."
+      }
+    },
+    "independentReview": {
+      "path": "/private/tmp/tetorica-y8950-wasm-sdk/checker-audit.json",
+      "bytes": 9765,
+      "sha256": "efbbeeffed0f397df64e327950edc45e16bd7ebb1131872f4f5c3c74656f8573",
+      "record": {
+        "passed": true,
+        "reviewScope": "Independent read-only review of final Y8950 checker,14 input/report hashes and arithmetic main/self/player counter reconstruction. No production or checker source edits by reviewer.",
+        "checker": {
+          "path": "scripts/check_y8950_wasm_sdk.mjs",
+          "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4",
+          "bytes": 58704
+        },
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy-sdk-parity.json",
+            "sha256": "94c45a9db20f4d387c297871c9ddd60f6938c611af0c4c89953ea479df10e8c4",
+            "passed": true,
+            "checkerSha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4",
+            "frozenInputHashesVerified": 14,
+            "comparisons": 1794,
+            "chipComparisons": 1458,
+            "engineComparisons": 336,
+            "resetReplayConfigurations": 171,
+            "countersIndependentlyRecomputed": true,
+            "rawScenariosPerClock": 243,
+            "scenarioConfigurations": 897,
+            "scenarioRenderExecutions": 3930,
+            "resetReplayExecutions": 342,
+            "scenarioBodyOutputStereoFrames": 21823488,
+            "postScenarioProbeOutputStereoFrames": 1010010,
+            "totalOutputStereoFrames": 22833498,
+            "totalWrapperSelfCheckOutputStereoFrames": 555780,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 24162360,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed-sdk-parity.json",
+            "sha256": "2b5af8d5e2e92a8ca24ab24ba74b9867d0a6bddf14c1dba20aa4a7f29cf39d5c",
+            "passed": true,
+            "checkerSha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4",
+            "frozenInputHashesVerified": 14,
+            "comparisons": 1794,
+            "chipComparisons": 1458,
+            "engineComparisons": 336,
+            "resetReplayConfigurations": 171,
+            "countersIndependentlyRecomputed": true,
+            "rawScenariosPerClock": 243,
+            "scenarioConfigurations": 897,
+            "scenarioRenderExecutions": 3930,
+            "resetReplayExecutions": 342,
+            "scenarioBodyOutputStereoFrames": 21823488,
+            "postScenarioProbeOutputStereoFrames": 1010010,
+            "totalOutputStereoFrames": 22833498,
+            "totalWrapperSelfCheckOutputStereoFrames": 555780,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 24162360,
+            "maximumDifference": 0
+          }
+        ],
+        "caseArraysIdenticalBetweenReferencePairs": true,
+        "wrapperChecksIdenticalBetweenReferencePairs": true,
+        "playerChecksIdenticalBetweenReferencePairs": true,
+        "wrapperPositiveFrameDerivation": {
+          "perBuildFmAndWrapperParts": {
+            "rateQueryPair": 1402,
+            "connectionsFeedback": 65536,
+            "modulation": 32768,
+            "sineOnly": 24576,
+            "envelopes": 16384,
+            "timersWithMaskedStatusReadControls": 212,
+            "maskedCsm": 4896,
+            "rhythmAndMelodyMutes": 42140,
+            "highMuteBits": 1402,
+            "pendingAddress": 1748,
+            "rawResetPendingLatch": 1402,
+            "rawFreshPublicReset": 14021,
+            "retainedMuteAndWarmup": 1213,
+            "ownedOverwriteGrowth": 8227,
+            "engineResamplingGain": 4096
+          },
+          "perBuildFmAndWrapper": 220023,
+          "perBuildMemoryParts": {
+            "invalidMemoryPhaseControls": 1608,
+            "fiveIndependentExpectedMemoryCases": 10240,
+            "clearPreservesInFlightDecoderHistory": 474,
+            "rawCPatchRawResetAndPublicMirrorControls": 7168,
+            "cpuRecordRawResetAndPublicMirrorControls": 9216,
+            "cpuRecordEndpoint": 2048,
+            "discardOutsideAllocationBeforeGrow": 2048,
+            "fourDeltaSpeeds": 4096,
+            "nibbleOrder": 2048,
+            "zeroAndNonzeroLevel": 1402,
+            "fourAddressGranularities": 4096,
+            "boundedActualEosAndStop": 129,
+            "repeatWrapAndStop": 576,
+            "fourCpuReadyFeeds": 32,
+            "register08HighBitsNotPan": 2048,
+            "independentAdpcmMute": 3814,
+            "independentFmMute": 3814,
+            "engineWholeMuteHeldPrefixPhase": 3010
+          },
+          "perBuildMemory": 57867,
+          "perBuildTotal": 277890,
+          "bothBuilds": 555780,
+          "eosFrameDerivation": "ceil(32bytes*2nibbles*65536/65535)=65 nativeframes"
+        },
+        "playerFrameDerivation": {
+          "method": "Twice full7168-sample baseline; each seek prefix plus257 continuation consumes authored waits through the next event boundary. Sum rates over3clocks×2builds; delivered seek-discarded frames are not added twice.",
+          "rows": [
+            {
+              "outputRate": 44100,
+              "baselineOutputFrames": 7168,
+              "seekOutputFrames": [
+                0,
+                1,
+                701,
+                1703,
+                2345,
+                5101
+              ],
+              "generatedPerClockBuild": 30211,
+              "deliveredPerClockBuild": 25729
+            },
+            {
+              "outputRate": 48000,
+              "baselineOutputFrames": 7801,
+              "seekOutputFrames": [
+                0,
+                1,
+                762,
+                1853,
+                2552,
+                5552
+              ],
+              "generatedPerClockBuild": 32876,
+              "deliveredPerClockBuild": 27864
+            },
+            {
+              "outputRate": 96000,
+              "baselineOutputFrames": 15603,
+              "seekOutputFrames": [
+                0,
+                2,
+                1525,
+                3707,
+                5104,
+                11104
+              ],
+              "generatedPerClockBuild": 65760,
+              "deliveredPerClockBuild": 54190
+            }
+          ],
+          "expectedLoadedSampleMemoryBytes": 1536,
+          "expectedLoadedSampleMemorySha256": "e166f252b00957bc103fc882a5451b81f0ecfb769c77df53f40a03bd6dc606c7"
+        },
+        "reviewedInvariants": [
+          "Y8950 FM uses OPL1 single sine waveform,9two-operator channels and5rhythm instruments; OPL2 waveform-register changes leave PCM unchanged. FM feedback,connections,AM/PM,EGT and physical melody/rhythm mute progressions have positive controls.",
+          "Native rate is floor(clock/72), and the existing wrapper advances timers by72 masterclocks per generated frame. TimerA/B minima4/16frames; all9masked TimerA CSM voices sound with no ordinary key-on.",
+          "Live status has PLAYING01/BRDY08/EOS10 plus timer40/20 andIRQ80; no fixed06. Reading status synchronizes visible live status into FM. Unmask without a masked read exposes expired timer; a masked status read clears hidden timer flag until next expiry. These existing side effects are explicitly tested.",
+          "Odd reads are bounded explicit tests rather than ordinary observation:05/19 IO read0;09/1a dispatch ADPCM indices02/13 and read0;0f/ff readff. GenericADPCM CPU reg8 read/dummy/address cursor is not exposed by this existing Y8950 mapping, so no invented RAM-readback proof.",
+          "2MiB bounds,copy semantics,nonzero offsets,zero-fill growth,shrink/regrowth,clear,in-flight decoder history and out-of-range zero/discard behavior are compared to independently uploaded expected ADPCM PCM. Final64bytes at2MiB match low-address control.",
+          "Raw C upload and CPU data-port recording change actual external RAM without changing JS upload mirror. Raw reset retains actual patched/recorded RAM; public reset recreates handle and reuploads JS shadow. Triple-control PCM comparisons distinguish these paths.",
+          "Existing CPU record endpoint refuses the configured final byte; the independently uploaded31-byte expected patch proves that quirk. It is recorded without product modification.",
+          "Delta-N and nibble-order controls differ; memory mode granularity and level0 silence are tested.32byte/65535 one-shot reaches realEOS at65frames; repeat512frames traverses several wraps; stop clears PCM. EOS mask/unmask andIRQclear semantics are checked without claiming unsupported ADPCM IRQ.",
+          "CPU-driven feeds clearBRDY then8actual frames restore ready and audible PCM. ADPCM output is mono; register08 FM high bits do not pan it. Nine FM bits and tenthADPCM mute remain independent and preserve synthesis phases.",
+          "Engine whole mute keeps synthesis advancing but applyMute clears held resampler output. The exact1-frame prefix before next native sample is proven silent; following PCM equals continuously running reference. Engine masks persist across reset; replay setup deliberately neutralizes persistent controls.",
+          "Owned PCM is audible and both sides survive overwrite and actual capacity+1 growth. Engine averaging/holding source counts/remainder and single master gain are verified. No Into/snapshot API or serialized state equivalence is invented.",
+          "Actual VgmPlayer uses register command5c,clock header58 and sample block88. Nineclock/rate routes×6seeks replay from zero without checkpoints; final1536-byte sample mirror matches independently authored patched/offset data hash.",
+          "Main bodies/probes, bounded wrapper/memory checks and actual VgmPlayer Engine prefetch generation are separate. Delivered/discarded Player frames and internal resampling source frames are not added twice."
+        ],
+        "unresolvedFindings": [],
+        "limits": [
+          "Exact agreement validates these fixed builds, not original hardware accuracy. Existing read/status/CPU-endpoint quirks are preserved.",
+          "No snapshot state serialization or portability is claimed; public wrapper lacks that API.",
+          "Optional PSG mixing and physical device scheduling are excluded from the checker.",
+          "Separate Browser4FM routes, narrowed FM UI and bounded Web/main ADPCM PCM+editor checks cover integration; no physical listening judgement."
+        ],
+        "cliAudit": {
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/checker-cli-audit.json",
+          "sha256": "3d2d05441dd6000f69ae94a07022b5856e129622b85ed6266ec9c98b6053c88d",
+          "invalidFormsRejectedBeforeBuildInputAccess": 18,
+          "validHelp": true,
+          "checkerSha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+        },
+        "reviewerRepositoryEdits": false
+      }
+    },
+    "secondIndependentReview": {
+      "path": "/private/tmp/tetorica-y8950-wasm-sdk/checker-audit-docs.json",
+      "bytes": 9015,
+      "sha256": "5f7d3fe13a1415897d1cd6c2b266c357d03b3fd532bfda7f6179295df144fd3a",
+      "record": {
+        "schemaVersion": 1,
+        "passed": true,
+        "reviewMode": "Independent read-only checker implementation, completed reports, CLI evidence, narrow render-test fix and documentation audit; no repository edits or synthesis reruns.",
+        "checker": {
+          "path": "scripts/check_y8950_wasm_sdk.mjs",
+          "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+        },
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/legacy-sdk-parity.json",
+            "sha256": "94c45a9db20f4d387c297871c9ddd60f6938c611af0c4c89953ea479df10e8c4",
+            "passed": true,
+            "caseCount": 1794,
+            "kindCounts": {
+              "chip": 1458,
+              "engine": 336
+            },
+            "rawScenariosPerClock": 243,
+            "scenarioConfigurations": 897,
+            "scenarioRenderExecutions": 3930,
+            "regularReplayConfigurations": 171,
+            "resetReplayExecutions": 342,
+            "scenarioBodyOutputStereoFrames": 21823488,
+            "postScenarioProbeOutputStereoFrames": 1010010,
+            "mainOutputStereoFrames": 22833498,
+            "wrapperOutputStereoFrames": 555780,
+            "actualPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "playerDeliveredFramesIncludingDiscardedSeekPrefixes": 646698,
+            "totalGeneratedOutputStereoFrames": 24162360,
+            "playerClockRateConfigurationsPerBuild": 9,
+            "seekWindowsPerBuild": 54,
+            "currentInputHashRecordsVerified": 14
+          },
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed-sdk-parity.json",
+            "sha256": "2b5af8d5e2e92a8ca24ab24ba74b9867d0a6bddf14c1dba20aa4a7f29cf39d5c",
+            "passed": true,
+            "caseCount": 1794,
+            "kindCounts": {
+              "chip": 1458,
+              "engine": 336
+            },
+            "rawScenariosPerClock": 243,
+            "scenarioConfigurations": 897,
+            "scenarioRenderExecutions": 3930,
+            "regularReplayConfigurations": 171,
+            "resetReplayExecutions": 342,
+            "scenarioBodyOutputStereoFrames": 21823488,
+            "postScenarioProbeOutputStereoFrames": 1010010,
+            "mainOutputStereoFrames": 22833498,
+            "wrapperOutputStereoFrames": 555780,
+            "actualPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "playerDeliveredFramesIncludingDiscardedSeekPrefixes": 646698,
+            "totalGeneratedOutputStereoFrames": 24162360,
+            "playerClockRateConfigurationsPerBuild": 9,
+            "seekWindowsPerBuild": 54,
+            "currentInputHashRecordsVerified": 14
+          }
+        ],
+        "positiveFrameBreakdownPerBuild": {
+          "fmWrapper": {
+            "rate_zero_invalid_phase": 1402,
+            "connection_feedback": 65536,
+            "AM_vibrato": 32768,
+            "sine_only": 24576,
+            "EGT_sustain": 16384,
+            "timers_including_masked_read_side_effect": 212,
+            "nine_CSM_channels": 4896,
+            "five_rhythm_groups": 15050,
+            "nine_melody_mutes": 27090,
+            "ignored_high_mute_bits": 1402,
+            "pending_latch": 3150,
+            "raw_public_reset_phase": 14021,
+            "retained_mute": 701,
+            "owned_sides_and_8192_to_8193_buffer_growth": 8739,
+            "Engine_resampling_gain": 4096
+          },
+          "memory": {
+            "invalid_calls_phase": 1608,
+            "five_memory_reference_pairs": 10240,
+            "inflight_clear_history": 474,
+            "raw_patch_reset_shadow": 7168,
+            "cpu_record_reset_shadow": 9216,
+            "cpu_record_endpoint": 2048,
+            "out_of_bounds_cpu_writes": 2048,
+            "delta_speed": 4096,
+            "nibble_order": 2048,
+            "level_zero": 1402,
+            "address_granularity": 4096,
+            "eos_65_frames_and_stop": 129,
+            "repeat_and_stop": 576,
+            "cpu_feed": 32,
+            "register08_mono": 2048,
+            "source_mutes": 7628,
+            "engine_held_prefix": 3010
+          },
+          "fmWrapperTotal": 220023,
+          "memoryTotal": 57867,
+          "combined": 277890
+        },
+        "cliEvidenceReviewed": {
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/checker-cli-audit.json",
+          "sha256": "3d2d05441dd6000f69ae94a07022b5856e129622b85ed6266ec9c98b6053c88d",
+          "currentCheckerHashMatches": true,
+          "validHelp": true,
+          "rejectedInvalidForms": 18,
+          "scope": "Reviewed independent CLI evidence without duplicating execution."
+        },
+        "renderTestRepairReviewed": {
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/render-test-repair.json",
+          "sha256": "1609aff70a0c5e0d783f0aa16b8752f3101fada6a9c41d3087897554e1330bd7",
+          "originalTestMatchesBaseCommit": true,
+          "correctedTestCurrentHashMatches": true,
+          "fourLogHashesAndIsolatedLoaderHashMatch": true,
+          "review": "The manually assembled Browser engine reference now installs the calibrated playback mixer already used by CLI/Analyzer. Existing failure is reproduced with frozen deployed WASM; corrected old target2/2 and SDK suite126/126 pass. No production gain/source/API changed."
+        },
+        "coverageReview": {
+          "memoryAndReset": "Expected bytes uploaded independently to comparison instances validate native patches/CPU recording through ADPCM PCM. Raw/CPU writes bypass the JS upload mirror; raw reset retains native RAM, public reset recreates/reuploads the mirror. These distinct behaviors are tested and documented without calling either serialized state recovery.",
+          "memoryBoundsAndDecoder": "Zero growth, shrink/regrowth, clear, discarded out-of-range writes, the final64 bytes of2MiB and existing record-final-byte omission have meaningful reference outputs. Clear-tail test preserves an active nonzero decoder and distinguishes storage clearing from stopping.",
+          "adpcmControls": "Delta-N and nibble changes affect PCM; level0 is silent; memory mode granularity matches current core; repeat remains audible past several endpoint passes, EOS arrives at65 frames in the bounded example and decoder stop clears output. CPU feed produces audible samples and BRDY transitions.",
+          "dataReadLimit": "The preserved09/1A mapping calls ADPCM indices0x02/0x13, not CPU-data index8. Bounded reads assert actual0/FF behavior. Ordinary observations avoid data ports; no working external-RAM readback/dummy cursor or new API is claimed.",
+          "timerAndMuteSideEffects": "Y8950 masked status reads can clear hidden FM timer flags; no-read unmask and later reassertion are checked separately. Nine CSM positives sound with TimerA IRQ masked. Engine unmute compares running source phase only after its calculated one-output-frame held-zero prefix; retained controls are explicitly neutralized before replay and tested separately.",
+          "FMOwnershipAndContinuation": "Nine FM channels, two connections/eight feedback levels, AM/vibrato/sustain, sine-only behavior, five drums/mutes and bus latch are exercised. Both owned PCM sides survive overwrite and actual buffer-capacity increase. No Into/state API is invented.",
+          "playerSeekAndMemory": "Real VgmPlayer type0x88 blocks cover authored patches/offsets/growth. Nine clock/rate configurations per build compare complete reset/replay plus54 seek windows from zero, with empty checkpoints. Final1536-byte JS upload mirror matches independently reconstructed authored bytes/hash; native RAM is not misrepresented as fully read back.",
+          "frameAccounting": "Recomputed both-report body/probe/replay counts and independent bounded positive call sums agree. Wrapper memory frames are included once. Actual Player Engine output includes render-ahead/seek prefixes; delivered frames and native source resampling frames are not added again.",
+          "documentation": "README, build guide, issue and SavePoint agree with eleven migrated artifacts and16 remaining, unchanged fixed379-file SDK and APIs/Mixer.59 Python and final126 Node tests are distinguished from initial pre-existing failure. FM Worklet4 routes, FM UI2, ADPCM PCM4/UI4 and Web/main-only exclusions are described separately; no remoteCI/publication/microphone/listening claim.",
+          "historicalSavePointTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7"
+        },
+        "documentationInputs": [
+          {
+            "path": "README.md",
+            "sha256": "8c446ab5a7428cb87814cc7fa63f4022d6283e262d8c6f2a7bf3284ea70b5e62"
+          },
+          {
+            "path": "docs/building_ym2612_wasm.md",
+            "sha256": "de8fc15f0491ce7c67c96531f3a7ebe3b8d60a9eaa7759a1dfb03794196623f5"
+          },
+          {
+            "path": "docs/issues/wasm_sdk_y8950_adoption_01.md",
+            "sha256": "9050770f12b4af6b18f620d57565a4021a78763d7b80aaf933330bf9e4cdce62"
+          },
+          {
+            "path": "docs/issues/savePoint.md",
+            "sha256": "78fba34111ae24ac301b4796681d483e2f758b4950ceb257d724e34eb7dbcf5e"
+          }
+        ],
+        "pendingRootFinalization": [
+          {
+            "document": "docs/issues/wasm_sdk_y8950_adoption_01.md",
+            "target": "wasm_sdk_y8950_adoption_01.json"
+          }
+        ],
+        "materialIssues": [],
+        "limitations": [
+          "This audit verifies implementation/report consistency, not hardware conformance or subjective listening.",
+          "No serialized core-state equivalence or direct native-RAM byte readback is available; continuation, reset/replay, expected ADPCM PCM and existing upload-mirror hashes are used.",
+          "Dedicated checker excludes browser/Worklet scheduling, optional SegaPSG, Native backend and Mixer. Separate browser evidence retains its limited Web Audio/main scope."
+        ]
+      }
+    },
+    "cli": {
+      "path": "/private/tmp/tetorica-y8950-wasm-sdk/checker-cli-audit.json",
+      "bytes": 3404,
+      "sha256": "3d2d05441dd6000f69ae94a07022b5856e129622b85ed6266ec9c98b6053c88d",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "scripts/check_y8950_wasm_sdk.mjs",
+          "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4",
+          "bytes": 58704
+        },
+        "invalidForms": [
+          {
+            "argv": [],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--help",
+              "--out",
+              "/tmp/no"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--wat"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--legacy-dir",
+              "c"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/y8950_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/y8950_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/y8950_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/y8950_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          }
+        ],
+        "validHelp": true
+      }
+    }
+  },
+  "browserFmWorklet": {
+    "path": "/private/tmp/tetorica-y8950-wasm-sdk/playground-summary.json",
+    "bytes": 8596,
+    "sha256": "77000fa86e0109a9231e98c3ef5213a9e5eb8bd5fb054e8f79f5647c60c83294",
+    "record": {
+      "passed": true,
+      "method": "Listening output muted; actual generated WASM in Playground Worklets captured before FX/master. No physical listening judgement.",
+      "totalRoutes": 4,
+      "sources": {
+        "docs/generated/y8950_wasm.js": {
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "bytes": 15461,
+          "matchesFrozenSdk": true
+        },
+        "docs/generated/y8950_wasm.wasm": {
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "bytes": 22425,
+          "matchesFrozenSdk": true
+        }
+      },
+      "browsers": [
+        {
+          "engine": "chromium",
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/playground-chromium.json",
+          "sha256": "7bd03fb639d847f346029bce95827d3e52b905c42d47af7e2c3b6e7f5e2dc69d",
+          "passed": true,
+          "rows": [
+            {
+              "kind": "y8950",
+              "role": "extra",
+              "mode": "genesis",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "Mono chip output is sent equally to both channels. Silent modulator uses AR=0 rather than a low-amplitude preset.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "calibration-source",
+                "settings": {
+                  "volume": 1.03357,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12894392013549805,
+                  0.12894392013549805
+                ],
+                "minimum": [
+                  -0.12894392013549805,
+                  -0.12894392013549805
+                ],
+                "maximum": [
+                  0.12869158387184143,
+                  0.12869158387184143
+                ],
+                "rms": [
+                  0.09110422189384512,
+                  0.09110422189384512
+                ],
+                "dc": [
+                  -7.05343096190821e-05,
+                  -7.05343096190821e-05
+                ],
+                "acRms": [
+                  0.09110419458945967,
+                  0.09110419458945967
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            },
+            {
+              "kind": "y8950",
+              "role": "primary",
+              "mode": "msx-audio",
+              "accessKind": "y8950",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "Mono chip output is sent equally to both channels. Silent modulator uses AR=0 rather than a low-amplitude preset.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "y8950",
+                "settings": {
+                  "volume": 1.03357,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12894392013549805,
+                  0.12894392013549805
+                ],
+                "minimum": [
+                  -0.12894392013549805,
+                  -0.12894392013549805
+                ],
+                "maximum": [
+                  0.12869158387184143,
+                  0.12869158387184143
+                ],
+                "rms": [
+                  0.09110422189384512,
+                  0.09110422189384512
+                ],
+                "dc": [
+                  -7.05343096190821e-05,
+                  -7.05343096190821e-05
+                ],
+                "acRms": [
+                  0.09110419458945967,
+                  0.09110419458945967
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            }
+          ]
+        },
+        {
+          "engine": "webkit",
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/playground-webkit.json",
+          "sha256": "9e95ba02a86de93f9182e2a93a70c49d8b0cc6b4e5ab782af0706b3c25c2e5e1",
+          "passed": true,
+          "rows": [
+            {
+              "kind": "y8950",
+              "role": "extra",
+              "mode": "genesis",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "Mono chip output is sent equally to both channels. Silent modulator uses AR=0 rather than a low-amplitude preset.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "calibration-source",
+                "settings": {
+                  "volume": 1.03357,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12894392013549805,
+                  0.12894392013549805
+                ],
+                "minimum": [
+                  -0.12894392013549805,
+                  -0.12894392013549805
+                ],
+                "maximum": [
+                  0.12869158387184143,
+                  0.12869158387184143
+                ],
+                "rms": [
+                  0.0911068025155829,
+                  0.0911068025155829
+                ],
+                "dc": [
+                  -6.573236044459918e-05,
+                  -6.573236044459918e-05
+                ],
+                "acRms": [
+                  0.0911067788030628,
+                  0.0911067788030628
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            },
+            {
+              "kind": "y8950",
+              "role": "primary",
+              "mode": "msx-audio",
+              "accessKind": "y8950",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "Mono chip output is sent equally to both channels. Silent modulator uses AR=0 rather than a low-amplitude preset.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "y8950",
+                "settings": {
+                  "volume": 1.03357,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12894392013549805,
+                  0.12894392013549805
+                ],
+                "minimum": [
+                  -0.12894392013549805,
+                  -0.12894392013549805
+                ],
+                "maximum": [
+                  0.12869158387184143,
+                  0.12869158387184143
+                ],
+                "rms": [
+                  0.09110410396907133,
+                  0.09110410396907133
+                ],
+                "dc": [
+                  -7.066244869141277e-05,
+                  -7.066244869141277e-05
+                ],
+                "acRms": [
+                  0.09110407656535302,
+                  0.09110407656535302
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "browserFmVoiceKeyboard": {
+    "path": "/private/tmp/tetorica-y8950-wasm-sdk/voice-summary.json",
+    "bytes": 2324,
+    "sha256": "c4916d327c6dd8e5e151e0144d0effe70678ecc33a9f3d6002a948593e9c4b1b",
+    "record": {
+      "passed": true,
+      "exitCode": 0,
+      "test": {
+        "path": "scripts/check_playground_opl_browser.cjs",
+        "sha256": "0563279e103e9e7c5dcafc20c88afac5afd1c7b3340bb1a37aea7c1df283296b",
+        "unchangedFromHead": true
+      },
+      "harness": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/run-voice-muted.cjs",
+        "sha256": "74ae8f9a22c13dc373bc26ec2412a9047c7d200c8907b0831233ac937772d1d9",
+        "changes": [
+          "In-memory final output routed through existing silent zero-gain node; postmaster meters preserved.",
+          "Execution loop restricted to main; existing --chip=y8950 selects only Y8950."
+        ],
+        "originalApplicationAndTestFilesUnchanged": true
+      },
+      "log": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/voice-muted.log",
+        "sha256": "c8b198ecd5b7e144ace7d9f5cd68f4003b768e313dfa39c15a20e4ee32c7301b"
+      },
+      "testedAssets": {
+        "docs/generated/y8950_wasm.js": {
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "bytes": 15461,
+          "matchesFrozenSdk": true
+        },
+        "docs/generated/y8950_wasm.wasm": {
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "bytes": 22425,
+          "matchesFrozenSdk": true
+        }
+      },
+      "listeningOutputMuted": true,
+      "routes": [
+        {
+          "browser": "chromium",
+          "chip": "y8950",
+          "passed": true,
+          "execution": [
+            "main"
+          ],
+          "panelPitch": 439.95810489087955,
+          "keyboard": true,
+          "fourOp": false
+        },
+        {
+          "browser": "webkit",
+          "chip": "y8950",
+          "passed": true,
+          "execution": [
+            "main"
+          ],
+          "panelPitch": 440.01260576638913,
+          "keyboard": true,
+          "fourOp": false
+        }
+      ],
+      "scope": "Existing generic OPL voice / Keyboard UI narrowed to Y8950 OPL1 FM / MSX-AUDIO in Chromium and WebKit main mode; no other OPL mode or Worker coverage claimed.",
+      "assertions": [
+        "MSX-AUDIO primary Y8950, lazy audio and nine physical FM channels with AY-3-8910 and YM2413 composition",
+        "Sine preset, raw frequency and partial carrier level readback",
+        "Held real mono PCM at approximately440Hz; release silence",
+        "Main program notes and PC/Guitar key note-on/off share device",
+        "Stop clears all melodic gates without residual output",
+        "No missing assets or browser page errors"
+      ]
+    }
+  },
+  "browserAdpcmPcmStopAndPanel": {
+    "path": "/private/tmp/tetorica-y8950-wasm-sdk/adpcm-summary.json",
+    "bytes": 11697,
+    "sha256": "2addd30ef713251b361eea6bbc995724ebf2a09a0a54de14bfaf32225d87f67a",
+    "record": {
+      "passed": true,
+      "execution": "Web Audio/main only",
+      "listeningOutput": "Final destination zeroGain. Existing helper listeningVolume mute removed only in memory; public listening/mixer levels stay normal for measurement. Sample Editor preview routes into the existing master input.",
+      "counts": {
+        "browsers": 2,
+        "shippedExampleCaptures": 2,
+        "adpcmOnlyPcmRoutes": 4,
+        "adpcmOnlyStopCaptures": 4,
+        "existingPanelUiRoutes": 4
+      },
+      "originalHelpers": {
+        "scripts/native_backend_y8950_adpcm.cjs": {
+          "sha256": "b71e16fd749e99c3d85ceb1cfa0d685f4bf169311860ee8c2b36465d3c2c4972",
+          "unchangedFromHead": true
+        },
+        "scripts/native_backend_y8950_adpcm_panel.cjs": {
+          "sha256": "d638f319c0fd1a5fff93de50447b666008e0090f2428a8ae92aec6efba43c08e",
+          "unchangedFromHead": true
+        }
+      },
+      "harness": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/run-adpcm-web-main.cjs",
+        "sha256": "461deb22cf207bcc7d4ce5fb94e61a8047f0836a18a2aa8003740f0d1b5e4c98",
+        "originalSourcesEdited": false,
+        "inMemoryFilters": [
+          "Only backend=webaudio and execution=main",
+          "Remove listeningVolume0; install finaldestination zeroGain before playback through silent prepare",
+          "Omit Native lifecycle/resource instrumentation assertions; no replacement pass result"
+        ]
+      },
+      "log": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/adpcm-web-main.log",
+        "sha256": "521489e7793830f2f8842f6070307575daf089359729d50cc01a3d86a641d224"
+      },
+      "notRun": [
+        "Native IPC backend",
+        "Worker execution",
+        "Native lifecycle/resource instrumentation",
+        "physical microphone"
+      ],
+      "browsers": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/chromium-y8950-adpcm.json",
+          "sha256": "60aa620bdee8a995e93373122921ee8a212f18eb81d1b513c8ad8b33d2a81e2b",
+          "examplePcm": {
+            "frames": 38400,
+            "sampleRate": 48000,
+            "peak": [
+              0.0609392486512661,
+              0.0609392486512661
+            ],
+            "minimum": [
+              -0.05576635152101517,
+              -0.05576635152101517
+            ],
+            "maximum": [
+              0.0609392486512661,
+              0.0609392486512661
+            ],
+            "rms": [
+              0.014604796669090033,
+              0.014604796669090033
+            ],
+            "dc": [
+              -3.631935999834468e-05,
+              -3.631935999834468e-05
+            ],
+            "acRms": [
+              0.01460475150933944,
+              0.01460475150933944
+            ],
+            "nonzero": [
+              33974,
+              33974
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          },
+          "adpcmOnly": [
+            {
+              "additional": false,
+              "pcm": {
+                "frames": 12000,
+                "sampleRate": 48000,
+                "peak": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "minimum": [
+                  -0.0359579436480999,
+                  -0.0359579436480999
+                ],
+                "maximum": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "rms": [
+                  0.024373590864814946,
+                  0.024373590864814946
+                ],
+                "dc": [
+                  0.00028617583129865427,
+                  0.00028617583129865427
+                ],
+                "acRms": [
+                  0.024371910779398712,
+                  0.024371910779398712
+                ],
+                "nonzero": [
+                  11993,
+                  11993
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "stopped": {
+                "frames": 4800,
+                "sampleRate": 48000,
+                "peak": [
+                  0,
+                  0
+                ],
+                "minimum": [
+                  0,
+                  0
+                ],
+                "maximum": [
+                  0,
+                  0
+                ],
+                "rms": [
+                  0,
+                  0
+                ],
+                "dc": [
+                  0,
+                  0
+                ],
+                "acRms": [
+                  0,
+                  0
+                ],
+                "nonzero": [
+                  0,
+                  0
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            },
+            {
+              "additional": true,
+              "pcm": {
+                "frames": 12000,
+                "sampleRate": 48000,
+                "peak": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "minimum": [
+                  -0.0359579436480999,
+                  -0.0359579436480999
+                ],
+                "maximum": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "rms": [
+                  0.024349923342534364,
+                  0.024349923342534364
+                ],
+                "dc": [
+                  0.000285412252572011,
+                  0.000285412252572011
+                ],
+                "acRms": [
+                  0.024348250586713242,
+                  0.024348250586713242
+                ],
+                "nonzero": [
+                  11994,
+                  11994
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "stopped": {
+                "frames": 4800,
+                "sampleRate": 48000,
+                "peak": [
+                  0,
+                  0
+                ],
+                "minimum": [
+                  0,
+                  0
+                ],
+                "maximum": [
+                  0,
+                  0
+                ],
+                "rms": [
+                  0,
+                  0
+                ],
+                "dc": [
+                  0,
+                  0
+                ],
+                "acRms": [
+                  0,
+                  0
+                ],
+                "nonzero": [
+                  0,
+                  0
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            }
+          ],
+          "uiRoutes": [
+            {
+              "additional": false,
+              "label": "chromium/webaudio/main/primary",
+              "loadedRange": {
+                "start": 0,
+                "end": 1600
+              },
+              "rawWrite": {
+                "revision": 37,
+                "waveformKnown": false
+              },
+              "disposed": false
+            },
+            {
+              "additional": true,
+              "label": "chromium/webaudio/main/additional",
+              "loadedRange": {
+                "start": 0,
+                "end": 1600
+              },
+              "rawWrite": {
+                "revision": 34,
+                "waveformKnown": false
+              },
+              "disposed": true
+            }
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/webkit-y8950-adpcm.json",
+          "sha256": "c40910eacb83c85b959d3e9df5cf8e294382522704f446208bb397eb82cef579",
+          "examplePcm": {
+            "frames": 38400,
+            "sampleRate": 48000,
+            "peak": [
+              0.0609392486512661,
+              0.0609392486512661
+            ],
+            "minimum": [
+              -0.05576635152101517,
+              -0.05576635152101517
+            ],
+            "maximum": [
+              0.0609392486512661,
+              0.0609392486512661
+            ],
+            "rms": [
+              0.014626125834980717,
+              0.014626125834980717
+            ],
+            "dc": [
+              -2.7539744221295828e-05,
+              -2.7539744221295828e-05
+            ],
+            "acRms": [
+              0.014626099907466055,
+              0.014626099907466055
+            ],
+            "nonzero": [
+              34102,
+              34102
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          },
+          "adpcmOnly": [
+            {
+              "additional": false,
+              "pcm": {
+                "frames": 12000,
+                "sampleRate": 48000,
+                "peak": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "minimum": [
+                  -0.0359579436480999,
+                  -0.0359579436480999
+                ],
+                "maximum": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "rms": [
+                  0.024349923342534364,
+                  0.024349923342534364
+                ],
+                "dc": [
+                  0.000285412252572011,
+                  0.000285412252572011
+                ],
+                "acRms": [
+                  0.024348250586713242,
+                  0.024348250586713242
+                ],
+                "nonzero": [
+                  11994,
+                  11994
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "stopped": {
+                "frames": 4800,
+                "sampleRate": 48000,
+                "peak": [
+                  0,
+                  0
+                ],
+                "minimum": [
+                  0,
+                  0
+                ],
+                "maximum": [
+                  0,
+                  0
+                ],
+                "rms": [
+                  0,
+                  0
+                ],
+                "dc": [
+                  0,
+                  0
+                ],
+                "acRms": [
+                  0,
+                  0
+                ],
+                "nonzero": [
+                  0,
+                  0
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            },
+            {
+              "additional": true,
+              "pcm": {
+                "frames": 12000,
+                "sampleRate": 48000,
+                "peak": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "minimum": [
+                  -0.0359579436480999,
+                  -0.0359579436480999
+                ],
+                "maximum": [
+                  0.03646261617541313,
+                  0.03646261617541313
+                ],
+                "rms": [
+                  0.024349923342534364,
+                  0.024349923342534364
+                ],
+                "dc": [
+                  0.000285412252572011,
+                  0.000285412252572011
+                ],
+                "acRms": [
+                  0.024348250586713242,
+                  0.024348250586713242
+                ],
+                "nonzero": [
+                  11994,
+                  11994
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "stopped": {
+                "frames": 4800,
+                "sampleRate": 48000,
+                "peak": [
+                  0,
+                  0
+                ],
+                "minimum": [
+                  0,
+                  0
+                ],
+                "maximum": [
+                  0,
+                  0
+                ],
+                "rms": [
+                  0,
+                  0
+                ],
+                "dc": [
+                  0,
+                  0
+                ],
+                "acRms": [
+                  0,
+                  0
+                ],
+                "nonzero": [
+                  0,
+                  0
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            }
+          ],
+          "uiRoutes": [
+            {
+              "additional": false,
+              "label": "webkit/webaudio/main/primary",
+              "loadedRange": {
+                "start": 0,
+                "end": 1600
+              },
+              "rawWrite": {
+                "revision": 37,
+                "waveformKnown": false
+              },
+              "disposed": false
+            },
+            {
+              "additional": true,
+              "label": "webkit/webaudio/main/additional",
+              "loadedRange": {
+                "start": 0,
+                "end": 1600
+              },
+              "rawWrite": {
+                "revision": 34,
+                "waveformKnown": false
+              },
+              "disposed": true
+            }
+          ]
+        }
+      ],
+      "testedAssets": {
+        "docs/generated/y8950_wasm.js": {
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "bytes": 15461,
+          "matchesFrozenSdk": true
+        },
+        "docs/generated/y8950_wasm.wasm": {
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "bytes": 22425,
+          "matchesFrozenSdk": true
+        }
+      }
+    }
+  },
+  "verification": {
+    "python": {
+      "command": "python3 -m unittest discover -s test -p 'test_*sdk*.py' -v",
+      "passed": 59,
+      "log": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/python-sdk-tests.log",
+        "bytes": 10801,
+        "sha256": "ae8dcdcfdcb28a0cbce26ba810b3a970131f58e34eecb25eafddaaf142af29fd"
+      }
+    },
+    "existingOplAdpcmMsxTests": {
+      "command": "node --test web/opl.test.mjs web/opl_synth.test.mjs web/playground_opl_inspector.test.mjs test/opl-export.test.mjs docs/vgm_analyzer/opl_notes.test.mjs web/y8950_adpcm.test.mjs web/y8950-mute.test.mjs web/playground_y8950_adpcm.test.mjs web/y8950_adpcm_preview.test.mjs test/y8950-render.test.mjs test/y8950-export.test.mjs test/msx-render.test.mjs",
+      "passed": 126,
+      "log": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/opl-adpcm-tests-final.log",
+        "bytes": 11781,
+        "sha256": "ac25d47fde4056af97f908db2571ebee160ee559a2862c481415fd947cb64ecf"
+      },
+      "scope": "Shared OPL unit/render/parser/Synth/Inspector, Y8950 ADPCM/load/preview/Stop/mutes, VGM export/render and MSX compound rendering. Browser routes are separately scoped in browser records."
+    },
+    "existingRenderTestRepair": {
+      "path": "/private/tmp/tetorica-y8950-wasm-sdk/render-test-repair.json",
+      "bytes": 2302,
+      "sha256": "1609aff70a0c5e0d783f0aa16b8752f3101fada6a9c41d3087897554e1330bd7",
+      "record": {
+        "originalTest": {
+          "path": "test/y8950-render.test.mjs",
+          "sha256": "60fa725314e01d4a3f7f9180f9ade32ef92eb3d858f7682e4454485943085e55"
+        },
+        "originalSdkSuite": {
+          "passed": 125,
+          "failed": 1,
+          "total": 126,
+          "failure": "Y8950 FM, embedded ADPCM and optional PSG match the Browser engine"
+        },
+        "originalDeployedReproduction": {
+          "passed": 1,
+          "failed": 1,
+          "total": 2,
+          "wasmSha256": "5bbc90a0fb7d56a604e8f8fee986a6e37507aacdb898e808bc2e0b04639070bb"
+        },
+        "cause": "CLI installs the calibrated Analyzer playback mixer, but the manually assembled Browser reference omitted it. This already fails with frozen deployed WASM.",
+        "productionMixerValuesChanged": false,
+        "correctedTest": {
+          "path": "test/y8950-render.test.mjs",
+          "sha256": "02c7e006f720661fe4ef21fb986f4d22592f38a6c2152cd60517902ad5f86933"
+        },
+        "correctedSdkSuite": {
+          "passed": 126,
+          "failed": 0
+        },
+        "correctedFrozenDeployedTarget": {
+          "passed": 2,
+          "failed": 0
+        },
+        "changedBoundary": "Test-only manual Browser reference installs installPlaybackMixer(engine, selectPlaybackConfiguration(new Ym2612VGM(source))). No audio/Mixer constants or runtime source changed.",
+        "logs": [
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/opl-adpcm-tests.log",
+            "sha256": "00e490444eb43175029541311305a57324f3b272fe2ec9e34f29739a95b6dd22",
+            "bytes": 162887
+          },
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed-render-baseline.log",
+            "sha256": "20ef7b8cf0e8683621d028bbb9098e85b6b7a3b51dd92828dc1204e2206d92de",
+            "bytes": 151930
+          },
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/opl-adpcm-tests-final.log",
+            "sha256": "ac25d47fde4056af97f908db2571ebee160ee559a2862c481415fd947cb64ecf",
+            "bytes": 11781
+          },
+          {
+            "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed-render-fixed.log",
+            "sha256": "71f783be4bd874ffc2f485c829e27ee7cc699b0290e95cb626052f5849531830",
+            "bytes": 848
+          }
+        ],
+        "isolatedLoader": {
+          "path": "/private/tmp/tetorica-y8950-wasm-sdk/deployed-loader.mjs",
+          "sha256": "44c35c8144958ed1358e04b397afe8c20de33017a5108451217cb31bf8953479",
+          "overrides": "Y8950 generated factory only; injects and SHA-verifies the frozen deployed WASM. No app asset edits."
+        }
+      }
+    },
+    "npm": {
+      "command": "node scripts/check_fm2612_package.mjs",
+      "passed": true,
+      "published": false,
+      "packageVersion": "0.2.28",
+      "files": 803,
+      "wasmEngines": 26,
+      "localSynthReferences": 942,
+      "compressedBytes": 1590277,
+      "unpackedBytes": 5933007,
+      "installedY8950AudiblePcm": true,
+      "typeChecks": [
+        "NodeNext",
+        "Bundler",
+        "positive and negative declarations",
+        "browser without Node ambient types"
+      ],
+      "log": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/npm-check.log",
+        "bytes": 1637,
+        "sha256": "2f8db2cd193181554e7ad01c72320b588f7f57ae11bb1d0a7f764b5fb7019f96"
+      }
+    },
+    "analyzerPackage": {
+      "command": "sh scripts/package_itch_vgm_analyzer.sh y8950-sdk",
+      "passed": true,
+      "localReferences": 753,
+      "log": {
+        "path": "/private/tmp/tetorica-y8950-wasm-sdk/analyzer-package.log",
+        "bytes": 20565,
+        "sha256": "150b3a4883b84dfbd2e70f8dee67ee2daa1000c8c30edd19fdeeef42f425e5d6"
+      },
+      "zip": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_y8950-sdk_itch_vgm_analyzer.zip",
+        "sha256": "191ec8e1d544fd801813c2c53174ab507adf28e7e22b3943c6899cb77199faf9",
+        "bytes": 1751765,
+        "fileCount": 370,
+        "assets": [
+          {
+            "path": "generated/y8950_wasm.js",
+            "bytes": 15461,
+            "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+            "testedDefaultMatches": true
+          },
+          {
+            "path": "generated/y8950_wasm.wasm",
+            "bytes": 22425,
+            "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+            "testedDefaultMatches": true
+          }
+        ]
+      }
+    },
+    "calibration": {
+      "refreshRequired": false,
+      "numericMixerDefaultsChanged": false,
+      "reason": "Active calibration source guards do not track Y8950 generated assets; source audit records all four guards. Both generated Mixer checks pass; old level records preserved."
+    }
+  },
+  "integrity": {
+    "path": "/private/tmp/tetorica-y8950-wasm-sdk/final-integrity-audit.json",
+    "bytes": 10936,
+    "sha256": "4fc1a2258f6b714f08e2650e48f1372b0f6eaa8a0ccd9c862d0bb3991ae21349",
+    "record": {
+      "passed": true,
+      "baseCommit": "915afaa7a15060c5e106b6b6f28ca93d3ce76654",
+      "previousArtifactsPreserved": [
+        {
+          "id": "okim6258",
+          "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2151",
+          "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2203",
+          "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2413",
+          "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2608",
+          "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2610b",
+          "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2612",
+          "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3526",
+          "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3812",
+          "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ymf262",
+          "recordSha256": "f7d26b834504dc82013673c2d26daffc5acdc6bd8f2305e83789fc8903e956c0",
+          "recordUnchanged": true
+        }
+      ],
+      "previousGeneratedFilesPreserved": [
+        {
+          "path": "docs/generated/ym2612_wasm.js",
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2612_wasm.wasm",
+          "bytes": 40357,
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.js",
+          "bytes": 35153,
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.wasm",
+          "bytes": 45306,
+          "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.js",
+          "bytes": 36356,
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.wasm",
+          "bytes": 53893,
+          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.js",
+          "bytes": 36296,
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.wasm",
+          "bytes": 51172,
+          "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.js",
+          "bytes": 15584,
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.wasm",
+          "bytes": 31322,
+          "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.js",
+          "bytes": 14797,
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.wasm",
+          "bytes": 20173,
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.js",
+          "bytes": 32911,
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.wasm",
+          "bytes": 33469,
+          "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.js",
+          "bytes": 14274,
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.wasm",
+          "bytes": 18894,
+          "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.js",
+          "bytes": 14274,
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.wasm",
+          "bytes": 19058,
+          "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ymf262_wasm.js",
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ymf262_wasm.wasm",
+          "bytes": 21377,
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "unchanged": true
+        }
+      ],
+      "unchangedPublicMixerCalibrationAndPinFiles": [
+        {
+          "path": "third_party/soundchip-sdk.json",
+          "sha256": "f195c3929eb1895235e431f496f90314d7419a260a504361a352f080e87a6500",
+          "bytes": 407,
+          "unchanged": true
+        },
+        {
+          "path": "web/y8950.js",
+          "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59",
+          "bytes": 11054,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/y8950.js",
+          "sha256": "7818d8da16ac36dc514ee8911665fcd33003b08e4923b93a66dcb1d5b8f63c15",
+          "bytes": 11092,
+          "unchanged": true
+        },
+        {
+          "path": "web/y8950audioengine.js",
+          "sha256": "36e82e69c3f7f5ea703df80dc34c400197ec80bbd3f9def422ae321b3e4f6e60",
+          "bytes": 7868,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/y8950audioengine.js",
+          "sha256": "efa03c590f62170acf716f9847285d13ea2fc5953f6e0d8bc0806264761e356f",
+          "bytes": 7962,
+          "unchanged": true
+        },
+        {
+          "path": "web/opl_synth.js",
+          "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48",
+          "bytes": 20452,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/opl_synth.js",
+          "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48",
+          "bytes": 20452,
+          "unchanged": true
+        },
+        {
+          "path": "web/soundchip_mixer_presets.js",
+          "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+          "bytes": 2967,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/soundchip_mixer_presets.js",
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+          "bytes": 2986,
+          "unchanged": true
+        },
+        {
+          "path": "docs/vgm_analyzer/playback_mixer.js",
+          "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+          "bytes": 4433,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/calibrate_playground_chip_levels.cjs",
+          "sha256": "b90d85dfdbdb620b1a1512c13029aff1892cb1e0e7d0d0b4f65b43ad211bac97",
+          "bytes": 12107,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/check_playground_opl_browser.cjs",
+          "sha256": "0563279e103e9e7c5dcafc20c88afac5afd1c7b3340bb1a37aea7c1df283296b",
+          "bytes": 9395,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_01.json",
+          "sha256": "d113077b099a2cf45de97bc5d00f4d61e2d25501c3c9ec227ef4908fdf020876",
+          "bytes": 34163,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_02.json",
+          "sha256": "ad4acdb5bd6be083f995754651956e2285e181dcd3eea09a9341bb74543eb37a",
+          "bytes": 35083,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_mixer_levels_validation.json",
+          "sha256": "07227a8aa9b0dbe5aedd33a6028f4db408dc2f60352fae50015f4a3309cd4c47",
+          "bytes": 10372,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_nes_levels_01.json",
+          "sha256": "1cca711e8b58417d7759a48f6b18b2c298224f0497a6078e013469c71378d3af",
+          "bytes": 24645,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_01.json",
+          "sha256": "6a234c9833d6889e704b436f48b50bba75d18ccf2760272df37f869ab6076ab3",
+          "bytes": 20391,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_02.json",
+          "sha256": "0ead909b24b29daa965d0ecc128b211c4d9f44c8158630545c38f8aa6f9f28ef",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_03.json",
+          "sha256": "bae758a548af196859753834b88896308d0d442341e4ae6819dbd7e492f74917",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_04.json",
+          "sha256": "f8f31e9295bd41ac6ed840c5e01de658bba7a6945f4af73373a05357d4cfc42d",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/playground_chip_levels_01.json",
+          "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234",
+          "bytes": 248714,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/soundchip_psg_levels_01.json",
+          "sha256": "2b92f8286b9dee25994972b146f9ee2c145df883434d5971d2a01f620b39d2f6",
+          "bytes": 35365,
+          "unchanged": true
+        }
+      ],
+      "allOldLevelRecordsPreserved": 11,
+      "defaultOutputs": [
+        {
+          "path": "docs/generated/y8950_wasm.js",
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true
+        },
+        {
+          "path": "docs/generated/y8950_wasm.wasm",
+          "bytes": 22425,
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true
+        }
+      ],
+      "sdkVerification": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)",
+      "protectedSavePointTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7",
+      "externalRepositories": {
+        "w/tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "clean": true
+        },
+        "w/tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "clean": true
+        }
+      }
+    }
+  },
+  "remaining": {
+    "migratedSdkWasmArtifacts": 11,
+    "remainingSdkDispatcherArtifacts": 16,
+    "nextCandidate": "AY-3-8910 WASM",
+    "remoteCiRun": false,
+    "npmOrApplicationPublished": false,
+    "physicalListeningTested": false,
+    "sdkOrTauriRepositoryEdited": false,
+    "existingOkim6258CatalogNote": "Individual chip_state.h catalog omission remains a future SDK update candidate, covered by full379-file manifest verification. Y8950 catalog covers all11 actual physical dependencies.",
+    "existingY8950ReadDataNote": "09/1a call ADPCM indices0x02/0x13 rather than CPU-data index8; no working external-RAM readback capability is added or claimed. Native CPU-record RAM and JS upload mirror are intentionally distinguished under raw/public reset."
+  }
+}

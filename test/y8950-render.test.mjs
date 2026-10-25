@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readSource,renderSource} from '../cli/index.js';
 import {getNodePlaybackFactory} from '../cli/render.js';
 import {Y8950AudioEngine} from '../docs/js/y8950audioengine.js';
-import {createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
+import {createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
+import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
+import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 const fixture=name=>new URL(`./fixtures/y8950-${name}.vgz`,import.meta.url);
 test('Y8950 FM, embedded ADPCM and optional PSG match the Browser engine',async()=>{
@@ -14,6 +16,9 @@ test('Y8950 FM, embedded ADPCM and optional PSG match the Browser engine',async(
     assert.deepEqual(result.warnings,[]);assert(result.bytes.subarray(44).some(v=>v!==0),name);
     const engine=await Y8950AudioEngine.create({y8950ModuleFactory:await getNodePlaybackFactory('y8950'),y8950Clock:3579545,segaPsgModuleFactory:await getNodePlaybackFactory('segapsg'),psgClock:name==='psg'?3579545:0});
     try {
+      // Match the calibrated source mixer installed by CLI/Analyzer creation.
+      // The manually assembled reference still uses the independent chip engine.
+      installPlaybackMixer(engine,selectPlaybackConfiguration(new Ym2612VGM(source)));
       const player=createPlaybackPlayer(engine,source);player.play();
       assert.deepEqual(result.bytes,(await renderVgmToWav(player,{maxSeconds:.05})).bytes);
       player.reset();player.play();
