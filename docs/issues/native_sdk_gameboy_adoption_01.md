@@ -4,8 +4,9 @@
 着手時は本体`77d93c0489669eed4cdb81edf0b9f8e2f0f77e8a`、Tauri`0191864a00a278a4314d97bc4a6372306793fcd0`、
 SDK`affd1059599f3c7598191c14f5a864b44963d4aa`で、すべてcleanだった。
 PWM／HuC6280移行の5構成CI成功とその記録は、この基準コミットまでに保存済み。
-今回はローカル実装・検証までで、Game Boy差分のcommit／pushと新しいCIは未実施。
-直前の全5構成成功run `40162092207`は、今回のGame Boy参照切替を含まない。
+ローカル検証終了時点ではGame Boy差分のcommit／pushと新しいCIは未実施だった。
+その後、本体`62fc578e...`、Tauri`407a75b3...`へ保存済み。NES＋FDS移行と合わせた5構成CIの結果は末尾に記録する。
+先行する全5構成成功run `40162092207`は、このGame Boy参照切替を含まない。
 
 ## ビルド境界
 
@@ -77,4 +78,20 @@ node scripts/check_native_extra_gameboy.mjs
 README、NATIVE-SOURCES、取り込みガイドの5ファイルのみ。
 `/private/tmp/tetorica-sdk-gameboy-adoption/source-manifest-delta.json`へ差分を、`summary.json`へ最終結果を集約した。
 ガイド自身へZIPの自己ハッシュは埋め込んでいない。
-新しい各OSのCI、sanitizer、実機の音声出力やインストール後の起動は今回の確認に含めない。
+ここまでのローカル検証では、新しい各OSのCI、sanitizer、実機の音声出力やインストール後の起動は確認していない。
+
+## Game Boy／NES＋FDS移行後の5構成CI — 全5構成成功
+
+2026-10-25、[Build Desktop — run 40168462256](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40168462256)を、
+NES＋FDS移行まで保存したTauriの`main`、`a70e86d2061349a396de7e4816a5438fea5dcb4f`へ`workflow_dispatch`で実行した。
+attempt 1は`completed`／`success`で終了し、macOS ARM64／x86_64、Windows x86_64、Linux ARM64／x86_64の全5構成で検証とインストーラービルドが成功した。CIのためのコード修正は不要だった。
+
+- 全5構成で`npm test`のPython 22件とNode 31件が成功。CargoはWindowsが726成功・0失敗・3件ignored、ほか4構成が723成功・0失敗・4件ignored。
+- 22件の固定記録・SDK374ファイル・対応ソースZIP1,796ファイルを照合し、Game Boy／NESを含む22 mode・604,032フレーム・88 Run／Stopが成功。
+- 既存の3混合構成・7単独音源、受入れ／16台制限で17台目の拒否とStop後の予約予算0が成功。両runnerはexit code 0、`deviceOpened: false`。この混合構成はGame Boy／NES専用の組合せを追加したものではない。
+- 検証レポート5組のJSONと取得ZIPのdigestを照合。検証5件・インストーラー5件の計10アーティファクトは対象run／commitと一致し、有効期限内・非空だった。全5ジョブのドラフトリリース添付stepはskipped。
+
+証拠は`/private/tmp/tetorica-gb-nes-ci-40168462256/`の`final-ci-summary.json`、`inspection-summary.json`、`test-log-summary.json`、`native-artifact-metadata.json`。
+取得したのは検証レポートZIPだけで、インストーラーと対応ソースZIPのダウンロード・起動・独立照合はしていない。
+OS間のPCM一致、各OSでのWASM比較、実機の聴音・ノイズ・UI操作は別の確認。先行するローカル比較結果と区別する。
+今回のCI開始後に製品コード・試験は変更せず、記録だけを更新した。アプリ版は`0.90.1`のままで、新しいcommit／push・タグ・releaseは作成していない。

@@ -3,8 +3,9 @@
 2026-10-25。選択中NES＋FDSと独立追加NESの共通Native接続を、同梱済みの固定SDKへ参照を切り替えた。
 着手時は本体`62fc578ef346d7633f4f4f7b566e6beada8c4337`、Tauri`407a75b32f5e419fc060a569b26ced849914867b`、
 SDK`affd1059599f3c7598191c14f5a864b44963d4aa`で、すべてcleanだった。Game Boy移行はこれらの基準コミットに保存済み。
-今回はローカル実装・検証までで、NES差分のcommit／pushと新しいCIは未実施。
-直前の全5構成成功run `40162092207`は、Game Boyも今回のNES移行も含まない。
+ローカル検証終了時点ではNES差分のcommit／pushと新しいCIは未実施だった。
+その後、本体`3349ac142a0bac7c2a56bc17e808478b6c8f92c5`、Tauri`a70e86d2061349a396de7e4816a5438fea5dcb4f`へcommit／push済み。
+Game Boy移行と合わせた5構成CIの結果は末尾に記録する。先行する全5構成成功run `40162092207`は、Game BoyもこのNES移行も含まない。
 
 ## ビルド境界
 
@@ -73,4 +74,26 @@ node scripts/check_native_extra_nes.mjs
 着手時のマニフェストとの差分は`src-tauri/build.rs`、`README.md`、`NATIVE-SOURCES.md`、`docs/native-sdk-ym2612.md`の4ファイルのみ。
 `/private/tmp/tetorica-sdk-nes-adoption/source-manifest-delta.json`に差分、同ディレクトリの`summary.json`に最終結果を集約した。
 SDK取り込み記録とfrontend archiveは変更していない。ガイド自身へZIPの自己ハッシュは埋め込まない。
-新しい各OSのCI、sanitizer、実機の音声出力やインストール後の起動は今回の確認に含めない。
+ここまでのローカル検証では、新しい各OSのCI、sanitizer、実機の音声出力やインストール後の起動は確認していない。
+
+## Game Boy／NES＋FDS移行後の5構成CI — 全5構成成功
+
+2026-10-25、[Build Desktop — run 40168462256](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40168462256)を、
+両移行を保存したTauriの`main`、`a70e86d2061349a396de7e4816a5438fea5dcb4f`へ`workflow_dispatch`で実行した。
+attempt 1は`completed`／`success`で終了し、macOS ARM64／x86_64、Windows x86_64、Linux ARM64／x86_64の全5構成で検証とインストーラービルドが成功した。CIのためのコード修正は不要だった。
+
+- 全5構成で`npm test`のPython 22件とNode 31件が成功。CargoはWindowsが726成功・0失敗・3件ignored、ほか4構成が723成功・0失敗・4件ignored。
+- 22件の固定記録・SDK374ファイル・対応ソースZIP1,796ファイルを照合し、Game Boy／NESを含む22 mode・604,032フレーム・88 Run／Stopが成功。
+- 既存の3混合構成・7単独音源、受入れ／16台制限で17台目の拒否とStop後の予約予算0が成功。両runnerはexit code 0、`deviceOpened: false`。この混合構成はGame Boy／NES専用の組合せを追加したものではない。
+- 検証レポート5組のJSONと取得ZIPのdigestを照合。検証5件・インストーラー5件の計10アーティファクトは対象run／commitと一致し、有効期限内・非空だった。全5ジョブのドラフトリリース添付stepはskipped。
+
+証拠は`/private/tmp/tetorica-gb-nes-ci-40168462256/`の`final-ci-summary.json`、`inspection-summary.json`、`test-log-summary.json`、`native-artifact-metadata.json`。
+CIの対応ソースZIPはmacOS／Linuxが`1fb6bf89c2a372abbad9190761b678ec611d944f12fabe7a0ac8f6ce8c7f0bec`、
+Windowsが`ac7cef894eff5ce76f14ebb25a47b3921b0068c6789840883c1e58674240d5ea`。各CI内のソース照合は成功し、ハッシュ差の原因は断定しない。
+取得したのは検証レポートZIPだけで、インストーラーと対応ソースZIPのダウンロード・起動・独立照合はしていない。
+OS間のPCM一致、各OSでのWASM比較、実機の聴音・ノイズ・UI操作は別の確認。先行するローカル比較結果と区別する。
+今回のCI開始後に製品コード・試験は変更せず、記録だけを更新した。アプリ版は`0.90.1`のままで、新しいcommit／push・タグ・releaseは作成していない。
+CI結果をガイドへ反映した後のローカル対応ソースZIPも、全1,796ファイルを再生成・照合した。
+SHA-256は`63ff0c8eeab3e7153089f3d868cb9c806e6472ae30de98a18a4f9e0ae594f007`。
+`/private/tmp/tetorica-gb-nes-ci-40168462256/local-final-sources.json`で全22件の固定記録とSDK374ファイルを含めて照合が成功し、
+`local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。製品コードと試験のコンパイル入力は同じ。
