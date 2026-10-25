@@ -42,6 +42,8 @@ X68000のFM・ADPCM双方のビルド元が揃った。詳細は[OKIM6258 WASM�
 詳細は[YM3526 WASMのSDK移行](wasm_sdk_ym3526_adoption_01.md)を参照。
 続くYM3812 WASMも同じ固定SDKへ切り替えた。OPL2の4波形・gate、9CH FM・リズム・timer／IRQ／CSMと再演奏／seekを比較した。
 詳細は[YM3812 WASMのSDK移行](wasm_sdk_ym3812_adoption_01.md)を参照。
+続くYMF262 WASMも同じ固定SDKへ切り替えた。18CH・4OP・8波形・4bus合算とreset／再演奏／seekを比較した。
+詳細は[YMF262 WASMのSDK移行](wasm_sdk_ymf262_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1079,8 +1081,26 @@ Python51件、既存OPL／Synth／Inspector／VGM試験81件、両Browser計4経
 隔離npm配布物・型・Analyzer ZIPも検証済み。校正値の変更と再測定は不要だった。
 詳細と最終比較結果・hashは[YM3812移行記録](wasm_sdk_ym3812_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計9 artifact。次は同じOPL系のYMF262（OPL3）用WASMへの展開が候補。
-残り18 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はYM3812移行時の記録。続くYMF262移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — YMF262 WASMの固定SDK参照
+
+`scripts/build_ymf262_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルと取り込み記録、APIとMixer値を保持し、先行9音源の生成記録・出力も維持した。
+通常生成物は比較用SDK出力とbyte一致する。同期IntoとAudioEngineのscratch再利用も維持する。
+既存snapshot機能はないため、raw／public reset・再演奏・seekを比較した。
+
+旧再ビルド／配布済み版との各3,456比較・44,658,756出力ステレオフレームで差0。
+重点162設定のpublic reset／再演奏324回と、実VgmPlayerの9構成×6seekを確認した。
+全18CH・6組の4OP・8波形・4busのstereo合算／clamp、NEW切替、5打楽器、timer／IRQとCSM無効の既存仕様も確認した。
+Python55件、既存OPL／Synth／Inspector／VGM試験81件、両Browser計4経路とYMF262音色／4OP stereo／Keyboard UIが成功。
+隔離npm配布物・型・Analyzer ZIPも検証済み。校正値の変更と再測定は不要だった。
+詳細と最終比較結果・hashは[YMF262移行記録](wasm_sdk_ymf262_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計10 artifact。次はY8950（MSX-AUDIO）用WASMへの展開が候補。
+残り17 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

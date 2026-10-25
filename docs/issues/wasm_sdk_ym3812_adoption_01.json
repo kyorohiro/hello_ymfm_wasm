@@ -3116,7 +3116,7 @@
         "positive and negative declarations",
         "browser without Node ambient types"
       ],
-      "installedYm3526AudiblePcm": true,
+      "installedYm3812AudiblePcm": true,
       "log": {
         "path": "/private/tmp/tetorica-ym3812-wasm-sdk/npm-check.log",
         "bytes": 1634,
@@ -3156,7 +3156,7 @@
     "calibration": {
       "refreshRequired": false,
       "numericMixerDefaultsChanged": false,
-      "reason": "Active calibration source guards do not track YM3526 generated assets; source audit records all4 guards. Both generated Mixer checks pass; old level records preserved."
+      "reason": "Active calibration source guards do not track YM3812 generated assets; source audit records all4 guards. Both generated Mixer checks pass; old level records preserved."
     }
   },
   "integrity": {
@@ -3479,6 +3479,6 @@
     "npmOrApplicationPublished": false,
     "physicalListeningTested": false,
     "sdkOrTauriRepositoryEdited": false,
-    "existingOkim6258CatalogNote": "Individual chip_state.h catalog omission remains a future SDK update candidate, covered by full379-file manifest verification. YM3526 catalog covers all11 actual physical dependencies."
+    "existingOkim6258CatalogNote": "Individual chip_state.h catalog omission remains a future SDK update candidate, covered by full379-file manifest verification. YM3812 catalog covers all11 actual physical dependencies."
   }
 }

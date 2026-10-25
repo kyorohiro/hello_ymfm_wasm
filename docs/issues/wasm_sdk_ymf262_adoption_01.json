@@ -1,0 +1,3934 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-26",
+  "scope": "YMF262 OPL3 WASM build uses immutable bundled SDK. Existing18CH/6four-operator-pair FM, NEW compatibility behavior,8waveforms,4output buses folded to stereo, rhythm/read/status/IRQ/reset and synchronous caller-buffer PCM APIs and numeric Mixer defaults retained. No snapshot facility introduced.",
+  "startingPoint": {
+    "sourceCommitBeforeChange": "b20bd5c2fb398b5dc50c5c343f724f5f71cde51d",
+    "startingStatus": "",
+    "legacyRecipeSha256": "5341ec01d0a4ea6b9705c05c519beff2567ebd9dfedb9cfbf1eaef8405ca15e1",
+    "sdkPin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.1",
+      "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+      "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+      "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+      "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+      "fileCount": 379
+    }
+  },
+  "sourceAudit": {
+    "path": "/private/tmp/tetorica-ymf262-wasm-sdk/source-audit.json",
+    "bytes": 10748,
+    "sha256": "7f12a54444e1297637b70d3158ba8638a0658da041997072d508720da89768aa",
+    "record": {
+      "readOnly": true,
+      "chip": "ymf262",
+      "baseHead": "b20bd5c2fb398b5dc50c5c343f724f5f71cde51d",
+      "pin": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.1",
+        "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+        "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+        "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+        "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+        "fileCount": 379
+      },
+      "manifestMatchesPin": true,
+      "legacyRecipeSource": "git show b20bd5c2fb398b5dc50c5c343f724f5f71cde51d:scripts/build_ymf262_wasm.sh",
+      "allSourceLicenseComparisonsEqual": true,
+      "sourceLicenseComparisonCount": 12,
+      "sourceComparisons": [
+        {
+          "local": "LICENSE",
+          "sdk": "vendor/ymfm/LICENSE",
+          "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm.h",
+          "sdk": "vendor/ymfm/ymfm.h",
+          "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_adpcm.cpp",
+          "sdk": "vendor/ymfm/ymfm_adpcm.cpp",
+          "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_adpcm.h",
+          "sdk": "vendor/ymfm/ymfm_adpcm.h",
+          "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_fm.h",
+          "sdk": "vendor/ymfm/ymfm_fm.h",
+          "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_fm.ipp",
+          "sdk": "vendor/ymfm/ymfm_fm.ipp",
+          "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_opl.cpp",
+          "sdk": "vendor/ymfm/ymfm_opl.cpp",
+          "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_opl.h",
+          "sdk": "vendor/ymfm/ymfm_opl.h",
+          "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_pcm.cpp",
+          "sdk": "vendor/ymfm/ymfm_pcm.cpp",
+          "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+          "bytesEqual": true
+        },
+        {
+          "local": "src/ymfm_pcm.h",
+          "sdk": "vendor/ymfm/ymfm_pcm.h",
+          "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+          "bytesEqual": true
+        },
+        {
+          "local": "wasm/ymf262_wasm.cpp",
+          "sdk": "wasm/ymf262_wasm.cpp",
+          "sha256": "68a8cf2c1fd2f45065653ba3b83debd4c01e2fb534446db0141dd0e5e8e822c2",
+          "bytesEqual": true
+        },
+        {
+          "local": "wasm/ymfm_wasm_interface.h",
+          "sdk": "wasm/ymfm_wasm_interface.h",
+          "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+          "bytesEqual": true
+        }
+      ],
+      "recipes": {
+        "legacy": {
+          "sha256": "5341ec01d0a4ea6b9705c05c519beff2567ebd9dfedb9cfbf1eaef8405ca15e1",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API='[\"wasmBinary\"]'",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS='[\"_ymf262_create\",\"_ymf262_destroy\",\"_ymf262_reset\",\"_ymf262_write\",\"_ymf262_read\",\"_ymf262_read_status\",\"_ymf262_get_irq\",\"_ymf262_sample_rate\",\"_ymf262_generate\",\"_ymf262_set_mute_mask\",\"_malloc\",\"_free\"]'",
+            "-sEXPORTED_RUNTIME_METHODS='[\"cwrap\",\"HEAPF32\"]'"
+          ],
+          "exports": [
+            "_ymf262_create",
+            "_ymf262_destroy",
+            "_ymf262_reset",
+            "_ymf262_write",
+            "_ymf262_read",
+            "_ymf262_read_status",
+            "_ymf262_get_irq",
+            "_ymf262_sample_rate",
+            "_ymf262_generate",
+            "_ymf262_set_mute_mask",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32"
+          ],
+          "perlCleanup": false
+        },
+        "sdk": {
+          "sha256": "76a58849104bf14aa492924a7c5e175c17456c5494cbf857a2d3ebb1911aa850",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API='[\"wasmBinary\"]'",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS='[\"_ymf262_create\",\"_ymf262_destroy\",\"_ymf262_reset\",\"_ymf262_write\",\"_ymf262_read\",\"_ymf262_read_status\",\"_ymf262_get_irq\",\"_ymf262_sample_rate\",\"_ymf262_generate\",\"_ymf262_set_mute_mask\",\"_malloc\",\"_free\"]'",
+            "-sEXPORTED_RUNTIME_METHODS='[\"cwrap\",\"HEAPF32\"]'"
+          ],
+          "exports": [
+            "_ymf262_create",
+            "_ymf262_destroy",
+            "_ymf262_reset",
+            "_ymf262_write",
+            "_ymf262_read",
+            "_ymf262_read_status",
+            "_ymf262_get_irq",
+            "_ymf262_sample_rate",
+            "_ymf262_generate",
+            "_ymf262_set_mute_mask",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32"
+          ],
+          "perlCleanup": false
+        }
+      },
+      "flagsAndExportsExactlyEqual": true,
+      "preprocessorMethod": "clang++ -MM only; no compilation/object output",
+      "translationUnitCount": 4,
+      "physicalDependencyCount": 11,
+      "normalizedDependencySetsExactlyEqual": true,
+      "dependencies": {
+        "legacy": [
+          "src/ymfm.h",
+          "src/ymfm_adpcm.cpp",
+          "src/ymfm_adpcm.h",
+          "src/ymfm_fm.h",
+          "src/ymfm_fm.ipp",
+          "src/ymfm_opl.cpp",
+          "src/ymfm_opl.h",
+          "src/ymfm_pcm.cpp",
+          "src/ymfm_pcm.h",
+          "wasm/ymf262_wasm.cpp",
+          "wasm/ymfm_wasm_interface.h"
+        ],
+        "sdk": [
+          "vendor/ymfm/ymfm.h",
+          "vendor/ymfm/ymfm_adpcm.cpp",
+          "vendor/ymfm/ymfm_adpcm.h",
+          "vendor/ymfm/ymfm_fm.h",
+          "vendor/ymfm/ymfm_fm.ipp",
+          "vendor/ymfm/ymfm_opl.cpp",
+          "vendor/ymfm/ymfm_opl.h",
+          "vendor/ymfm/ymfm_pcm.cpp",
+          "vendor/ymfm/ymfm_pcm.h",
+          "wasm/ymf262_wasm.cpp",
+          "wasm/ymfm_wasm_interface.h"
+        ]
+      },
+      "activeCalibrationGuards": [
+        {
+          "report": "docs/issues/analyzer_nes_levels_01.json",
+          "sourceCount": 11,
+          "ymf262AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/analyzer_extra_levels_02.json",
+          "sourceCount": 23,
+          "ymf262AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/analyzer_psg_levels_04.json",
+          "sourceCount": 32,
+          "ymf262AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/soundchip_psg_levels_01.json",
+          "sourceCount": 12,
+          "ymf262AssetsTracked": []
+        }
+      ],
+      "calibrationRefreshRequiredForOnlyYmf262Assets": [],
+      "wholeBundleIntegrityCheck": {
+        "command": "python3 scripts/import_soundchip_sdk.py --check",
+        "passed": true,
+        "output": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)"
+      },
+      "license": "Original ymfm BSD-3-Clause preserved; Tetorica integration retains SDK BSD-3-Clause. No GPL/LGPL decoder enters this recipe.",
+      "recipeDifferences": [
+        "SDK cd ROOT",
+        "SDK EMXX override (default em++)",
+        "src -> vendor/ymfm",
+        "Application shim passes absolute output; old default docs/generated vs SDK dist/wasm"
+      ],
+      "stateSupport": {
+        "nativeSaveLoadExports": false,
+        "publicSaveLoad": false,
+        "note": "Neither recipe/wrapper exports snapshot entry points; internal core save_restore is not exposed."
+      },
+      "chipSemantics": {
+        "model": "YMF262 / OPL3",
+        "notModel": "YM3526 OPL1 or YM3812 OPL2",
+        "operatorWaveforms": "waveform_enable() is always1. newflag0 uses E0 low2bits/four waves, ignores register01 gate; newflag1 uses low3bits/eight waves. Highbits ignored.",
+        "channels": 18,
+        "operatorsPerMelodicChannel": 2,
+        "fourOperatorPairs": 6,
+        "rhythmVoices": 5,
+        "output": "Four independent output buses folded A+C left and B+D right; summed samples clamped to16bit and normalized. newflag0 forces A+B output and ignores C0 output selection.",
+        "readSemantics": "offset&3==0 reads FM status with no fixed0x06; offsets1/2/3 return0xff. Timer A0x40, TimerB0x20,IRQ0x80; no busy status bit.",
+        "newModeAddressing": "0x105 bit0 selects newflag. Compatibility-mode high-address writes alias lowbank except0x105; new mode has full9bit banked addressing. This address/routing switch does not itself reset previously programmed upper-bank voices or four-op pairing; existing register contents keep running.",
+        "sampleRate": "floor(clock/(8 prescale *36 operators)) = floor(clock/288), not OPL1/2 clock/72.",
+        "timerTiming": "TimerA registerff:4 nativeframes=1152 masterclocks; TimerB registerff:16 nativeframes=4608 masterclocks. Same native-frame count but4x OPL1/2 masterclock period.",
+        "csm": "CSM is disabled in OPL3 (register08 bit7 does not enable timer-driven notes)."
+      },
+      "catalogDependencyCoverage": {
+        "catalog": "catalog/chips.json",
+        "chip": "ymf262",
+        "actualPhysicalDependencies": 11,
+        "missingActualDependencies": [],
+        "allCompiledInputsDeclared": true
+      },
+      "externalRepositories": {
+        "tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "worktreeClean": true
+        },
+        "tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "worktreeClean": true
+        }
+      },
+      "scope": "Read-only recipe/source/dependency audit; no repository edits, compilation or source pin changes.",
+      "calibrationGuardChecks": [
+        {
+          "command": "node scripts/generate_analyzer_mixer_defaults.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: 8 Analyzer-specific reference levels"
+        },
+        {
+          "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/web/soundchip_mixer_presets.js"
+        }
+      ],
+      "publicPcmSupport": {
+        "chip": "Existing generateStereo() returns owned arrays; generateStereoInto() writes caller-owned Float32Array buffers synchronously.",
+        "engine": "Existing process() uses stable scratchLeft/scratchRight and chip.generateStereoInto(); processFrames() allocates caller-visible output. No new API added."
+      }
+    }
+  },
+  "builds": {
+    "frozenPairs": {
+      "deployed": {
+        "js": {
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+        },
+        "wasm": {
+          "bytes": 21361,
+          "sha256": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+        }
+      },
+      "legacy": {
+        "js": {
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+        },
+        "wasm": {
+          "bytes": 21361,
+          "sha256": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+        }
+      },
+      "sdk": {
+        "js": {
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+        },
+        "wasm": {
+          "bytes": 21377,
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+        }
+      },
+      "defaultMatchesSdk": true
+    },
+    "defaultReceipt": {
+      "id": "ymf262",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "995c923d1f3a308ac4f0419854ae0e387a7af4cb3cbbdfe012652a449f5e8221",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_ymf262_wasm.sh",
+          "sha256": "76a58849104bf14aa492924a7c5e175c17456c5494cbf857a2d3ebb1911aa850",
+          "size": 801
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/ymfm/chip_state.h",
+          "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+          "size": 521
+        },
+        {
+          "path": "vendor/ymfm/segapsg.cpp",
+          "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
+          "size": 7696
+        },
+        {
+          "path": "vendor/ymfm/segapsg.h",
+          "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
+          "size": 2033
+        },
+        {
+          "path": "vendor/ymfm/ymfm.h",
+          "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
+          "size": 18554
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.cpp",
+          "sha256": "74e5ded129ea7e532112e5b637d0a7bd4e127fd83331f1fac32011723051d4e0",
+          "size": 22040
+        },
+        {
+          "path": "vendor/ymfm/ymfm_adpcm.h",
+          "sha256": "5933691971493b853a9be443f6e6fd74f63869aa21225f66dd89fc20de20914d",
+          "size": 13752
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.h",
+          "sha256": "1b27bfb7fa4963d7c54cb06fd9bf659450362d8ed496c6af7d487b068cac45c9",
+          "size": 17705
+        },
+        {
+          "path": "vendor/ymfm/ymfm_fm.ipp",
+          "sha256": "aaf9e663d706aa4d5df828bb97b71a7ba75aea77ae9636cd07edb3754aa2eae6",
+          "size": 59507
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.cpp",
+          "sha256": "a2113ec915bf55e23169d9524d9db93d6589f9b2aa000daeb495ff839b6282d9",
+          "size": 4435
+        },
+        {
+          "path": "vendor/ymfm/ymfm_misc.h",
+          "sha256": "90739bd270a7b8b035275689e0f61ad4f8e0b9bcfd3f203816f97d54fe539b9d",
+          "size": 3077
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.cpp",
+          "sha256": "6f0c68b4d7126f63231b889e12489732088d129c99aa4aa61a1d2d085bc1f501",
+          "size": 67501
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opl.h",
+          "sha256": "6760e0fd1678439d4eda8bb98e1a8af30b17ba6a00b9f6e7a6c150689e9c42ce",
+          "size": 33768
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.cpp",
+          "sha256": "ecb9262d2294ca241e536cfefb1b8196a565036af0047867761778b48fb86940",
+          "size": 17474
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opm.h",
+          "sha256": "19cf16d26f39c3112e3e9a3a31583253bce39e51420888fa8318094a43ab7196",
+          "size": 12759
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.cpp",
+          "sha256": "0babc16706b0039ea5e515e8672373ad0b567d93b3cdd58d18af664e179888f2",
+          "size": 68238
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opn.h",
+          "sha256": "b918c6eeb7fa2b45ced97c58609baa4b54daedb917c8a73303710661fb786b39",
+          "size": 28892
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.cpp",
+          "sha256": "3c02b56e89fd8f07df0460b0795809cc1cd9d69a748bbc4f27861a9c1df39fde",
+          "size": 15749
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opq.h",
+          "sha256": "d2502d688f98004172b2b74065bd3a6a88dd517341ef14e90e2d8f936b02260b",
+          "size": 11258
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opx.h",
+          "sha256": "8264cafdb86e2e635e99bdc7cca712e5354a93008f50ce63c013a9cf822fe02b",
+          "size": 12535
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.cpp",
+          "sha256": "9df7d0abc85beb49c1f54597b0d05058fd4d06cad970e4bee3fff05fc520d273",
+          "size": 28628
+        },
+        {
+          "path": "vendor/ymfm/ymfm_opz.h",
+          "sha256": "448eaebae814c8c398d708903ca1981a2724dbdbb0a51de949bb0b8a3832d9e6",
+          "size": 14377
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.cpp",
+          "sha256": "3099d770b876dcdcb8a4c15df48fcc3475f22eca5a144b66581bfa7ebbf499ab",
+          "size": 21684
+        },
+        {
+          "path": "vendor/ymfm/ymfm_pcm.h",
+          "sha256": "d738b45f9406da413d29334ec062f217c42811af68ffa599ae4a2dc839cc2200",
+          "size": 12880
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.cpp",
+          "sha256": "73a3028a77f13f3769b7705079659eb8325431a67b8164ded25e12f324f42bfd",
+          "size": 8421
+        },
+        {
+          "path": "vendor/ymfm/ymfm_ssg.h",
+          "sha256": "27966b0887fe98f2d06a96be2776c911107e2f2a13a64f9a349e1ffc19cf7584",
+          "size": 7752
+        },
+        {
+          "path": "wasm/opn_state.h",
+          "sha256": "fbddfeef9d1f8413f97949d5b5602296fcd3f59ae837c1561c5d03e1d17fc8b0",
+          "size": 2974
+        },
+        {
+          "path": "wasm/ymf262_wasm.cpp",
+          "sha256": "68a8cf2c1fd2f45065653ba3b83debd4c01e2fb534446db0141dd0e5e8e822c2",
+          "size": 1917
+        },
+        {
+          "path": "wasm/ymfm_wasm_interface.h",
+          "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f",
+          "size": 1719
+        }
+      ],
+      "outputs": [
+        {
+          "path": "ymf262_wasm.js",
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "size": 14274
+        },
+        {
+          "path": "ymf262_wasm.wasm",
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "size": 21377
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    "existingNineArtifactsPreserved": [
+      {
+        "id": "okim6258",
+        "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2151",
+        "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2203",
+        "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2413",
+        "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2608",
+        "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2610b",
+        "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2612",
+        "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3526",
+        "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3812",
+        "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+        "recordUnchanged": true
+      }
+    ],
+    "sdkFilesUnchanged": 379,
+    "distPackageAssetsEqualTestedDefault": true
+  },
+  "runtime": {
+    "checker": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+      "bytes": 47220,
+      "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+    },
+    "reports": [
+      {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy-sdk-parity.json",
+        "bytes": 2171120,
+        "sha256": "f4c8f1cca07a9fef833e445369e3acaffe3f228f916a94830db803f12a71609f",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy",
+            "javascript": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy/ymf262_wasm.js",
+              "bytes": 14274,
+              "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy/ymf262_wasm.wasm",
+              "bytes": 21361,
+              "sha256": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "ymf262_create",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_generate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_reset",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_write",
+                "kind": "function"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.js",
+              "bytes": 14274,
+              "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.wasm",
+              "bytes": 21377,
+              "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "ymf262_create",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_generate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_reset",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_write",
+                "kind": "function"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/build-info.json",
+              "bytes": 6591,
+              "sha256": "0b2157f0f86191b75a656265752cc0086dd04fde58dce9c4a4baa2fdf5feaccc"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+            "bytes": 47220,
+            "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262.js",
+              "bytes": 10280,
+              "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262.js",
+              "bytes": 10318,
+              "sha256": "931f3eaacb609acb0e6ebd10f5cfcb8149e2afc4a137fa8f84a15f775fc218be"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262audioengine.js",
+              "bytes": 7545,
+              "sha256": "e89a1e1630985db2b2a565a2572a323b8b1ec682cade69645a7ad00c0473dac9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262audioengine.js",
+              "bytes": 7649,
+              "sha256": "4526e911734ae315b7601f2f5edcf6b7548ee817b5ee45a4269664e12e88c1a5"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+              "bytes": 20452,
+              "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          14318180,
+          16000000,
+          32000000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "probeFrames": 257,
+        "method": "Actual generated JS/WASM and unchanged synchronous Ymf262 wrapper/AudioEngine. Exact independent stereo PCM, explicit post-scenario PCM probes, rate/read/status/IRQ hooks, held resampler timing and public reset/replay. Actual VgmPlayer seek rebuilds from zero; no synthetic snapshot/state API, tolerance, mock, Mixer or device.",
+        "wrapperSync": "Byte-identical after removing only deployed ymf262.js/soundchip.js/segapsg.js import cache suffixes; actual hashes retained.",
+        "authoredInput": "Original synthetic OPL3 two-bank programs: eighteen two-op voices, six four-op pairs and four topologies, eight waveforms, compatibility restrictions, four output buses and five rhythm voices. Into buffers and existing Engine scratch reuse are exercised with actual PCM.",
+        "rawScenariosPerClock": 536,
+        "scenarioConfigurations": 1728,
+        "scenarioRenderExecutions": 7236,
+        "resetReplayExecutions": 324,
+        "scenarioBodyOutputStereoFrames": 42799104,
+        "postScenarioProbeOutputStereoFrames": 1859652,
+        "totalOutputStereoFrames": 44658756,
+        "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+        "totalPlayerDeliveredOutputStereoFrames": 646698,
+        "totalGeneratedOutputStereoFrames": 46586694,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "limits": [
+          "Native PCM runs at floor(clock/288). Four clamped core buses are folded A+C to left and B+D to right with an additional signed16 clamp, then normalized. Engine cases test averaging/holding at separate output rates, without optional Sega PSG.",
+          "NEW1 supplies eighteen channels, six four-op pairs and eight waveforms. NEW0 high addresses alias the lower bank when latched except register105, and waveform selection uses low2 bits. The OPL2 register01 gate is ignored in both modes. Switching NEW does not erase upper register contents.",
+          "Actual caller-owned generateStereoInto buffers include offset subarrays, partial counts and sentinel guards. Owned outputs survive Into overwrites and actual capacity growth. Engine source calls use the same preallocated scratch arrays; native source frames are not output frame totals.",
+          "No raw save/load exports or public state API exist for this wrapper/Engine. Internal state bytes are not inspected or claimed equivalent; continuation PCM probes, public reset/replay and VgmPlayer seek replay are compared instead.",
+          "Raw reset preserves existing free-running counters and pending address; public reset recreates the native handle and reapplies the JS mute mask. Both existing paths are exercised without changing them.",
+          "Status has TimerA0x40/TimerB0x20 and IRQ0x80 without fixed0x06. Only bus offset0 modulo4 reads status; others return0xff. Timer minima are4/16 native frames. CSM key-on is disabled in both NEW modes, positively checked with timer IRQ and an ordinary-key audible anchor. Hooks are compared at synchronous chunk boundaries.",
+          "VgmPlayer seeks use the existing replay-from-zero helper. Actual rendered Engine frames include prefetch queues and are counted separately from delivered/discarded player frames.",
+          "No browser, Worklet scheduling, Native backend, physical hardware, Mixer or listening judgement is tested."
+        ],
+        "comparisons": 3456,
+        "caseKindCounts": {
+          "chip": 3216,
+          "engine": 240
+        },
+        "caseManifestCanonicalSha256": "6dd6f4b730270c6bb87af210797dcd44df31d6d2d930a87caff5bd972cac1fd5"
+      },
+      {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed-sdk-parity.json",
+        "bytes": 2171126,
+        "sha256": "52f8a97516884d07e1a5f80c410bcd2d1dd974fffc0bfa7c79b25d561bf0694e",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed",
+            "javascript": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed/ymf262_wasm.js",
+              "bytes": 14274,
+              "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed/ymf262_wasm.wasm",
+              "bytes": 21361,
+              "sha256": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "ymf262_create",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_generate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_reset",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_write",
+                "kind": "function"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.js",
+              "bytes": 14274,
+              "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.wasm",
+              "bytes": 21377,
+              "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "ymf262_create",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_generate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_get_irq",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_read_status",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_reset",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "ymf262_write",
+                "kind": "function"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/build-info.json",
+              "bytes": 6591,
+              "sha256": "0b2157f0f86191b75a656265752cc0086dd04fde58dce9c4a4baa2fdf5feaccc"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+            "bytes": 47220,
+            "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262.js",
+              "bytes": 10280,
+              "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262.js",
+              "bytes": 10318,
+              "sha256": "931f3eaacb609acb0e6ebd10f5cfcb8149e2afc4a137fa8f84a15f775fc218be"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262audioengine.js",
+              "bytes": 7545,
+              "sha256": "e89a1e1630985db2b2a565a2572a323b8b1ec682cade69645a7ad00c0473dac9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262audioengine.js",
+              "bytes": 7649,
+              "sha256": "4526e911734ae315b7601f2f5edcf6b7548ee817b5ee45a4269664e12e88c1a5"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+              "bytes": 20452,
+              "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          14318180,
+          16000000,
+          32000000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "probeFrames": 257,
+        "method": "Actual generated JS/WASM and unchanged synchronous Ymf262 wrapper/AudioEngine. Exact independent stereo PCM, explicit post-scenario PCM probes, rate/read/status/IRQ hooks, held resampler timing and public reset/replay. Actual VgmPlayer seek rebuilds from zero; no synthetic snapshot/state API, tolerance, mock, Mixer or device.",
+        "wrapperSync": "Byte-identical after removing only deployed ymf262.js/soundchip.js/segapsg.js import cache suffixes; actual hashes retained.",
+        "authoredInput": "Original synthetic OPL3 two-bank programs: eighteen two-op voices, six four-op pairs and four topologies, eight waveforms, compatibility restrictions, four output buses and five rhythm voices. Into buffers and existing Engine scratch reuse are exercised with actual PCM.",
+        "rawScenariosPerClock": 536,
+        "scenarioConfigurations": 1728,
+        "scenarioRenderExecutions": 7236,
+        "resetReplayExecutions": 324,
+        "scenarioBodyOutputStereoFrames": 42799104,
+        "postScenarioProbeOutputStereoFrames": 1859652,
+        "totalOutputStereoFrames": 44658756,
+        "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+        "totalPlayerDeliveredOutputStereoFrames": 646698,
+        "totalGeneratedOutputStereoFrames": 46586694,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "limits": [
+          "Native PCM runs at floor(clock/288). Four clamped core buses are folded A+C to left and B+D to right with an additional signed16 clamp, then normalized. Engine cases test averaging/holding at separate output rates, without optional Sega PSG.",
+          "NEW1 supplies eighteen channels, six four-op pairs and eight waveforms. NEW0 high addresses alias the lower bank when latched except register105, and waveform selection uses low2 bits. The OPL2 register01 gate is ignored in both modes. Switching NEW does not erase upper register contents.",
+          "Actual caller-owned generateStereoInto buffers include offset subarrays, partial counts and sentinel guards. Owned outputs survive Into overwrites and actual capacity growth. Engine source calls use the same preallocated scratch arrays; native source frames are not output frame totals.",
+          "No raw save/load exports or public state API exist for this wrapper/Engine. Internal state bytes are not inspected or claimed equivalent; continuation PCM probes, public reset/replay and VgmPlayer seek replay are compared instead.",
+          "Raw reset preserves existing free-running counters and pending address; public reset recreates the native handle and reapplies the JS mute mask. Both existing paths are exercised without changing them.",
+          "Status has TimerA0x40/TimerB0x20 and IRQ0x80 without fixed0x06. Only bus offset0 modulo4 reads status; others return0xff. Timer minima are4/16 native frames. CSM key-on is disabled in both NEW modes, positively checked with timer IRQ and an ordinary-key audible anchor. Hooks are compared at synchronous chunk boundaries.",
+          "VgmPlayer seeks use the existing replay-from-zero helper. Actual rendered Engine frames include prefetch queues and are counted separately from delivered/discarded player frames.",
+          "No browser, Worklet scheduling, Native backend, physical hardware, Mixer or listening judgement is tested."
+        ],
+        "comparisons": 3456,
+        "caseKindCounts": {
+          "chip": 3216,
+          "engine": 240
+        },
+        "caseManifestCanonicalSha256": "6dd6f4b730270c6bb87af210797dcd44df31d6d2d930a87caff5bd972cac1fd5"
+      }
+    ],
+    "caseArraysEqualBetweenReferencePairs": true,
+    "caseManifestCanonicalization": "JSON with sorted keys, compact separators, UTF-8; complete case arrays remain in temporary raw reports and can be regenerated using the checked-in checker.",
+    "scenarioNames": [
+      "two-op/channel0/connection0/feedback0",
+      "two-op/channel0/connection0/feedback1",
+      "two-op/channel0/connection0/feedback2",
+      "two-op/channel0/connection0/feedback3",
+      "two-op/channel0/connection0/feedback4",
+      "two-op/channel0/connection0/feedback5",
+      "two-op/channel0/connection0/feedback6",
+      "two-op/channel0/connection0/feedback7",
+      "two-op/channel0/connection1/feedback0",
+      "two-op/channel0/connection1/feedback1",
+      "two-op/channel0/connection1/feedback2",
+      "two-op/channel0/connection1/feedback3",
+      "two-op/channel0/connection1/feedback4",
+      "two-op/channel0/connection1/feedback5",
+      "two-op/channel0/connection1/feedback6",
+      "two-op/channel0/connection1/feedback7",
+      "two-op/channel1/connection0/feedback0",
+      "two-op/channel1/connection0/feedback1",
+      "two-op/channel1/connection0/feedback2",
+      "two-op/channel1/connection0/feedback3",
+      "two-op/channel1/connection0/feedback4",
+      "two-op/channel1/connection0/feedback5",
+      "two-op/channel1/connection0/feedback6",
+      "two-op/channel1/connection0/feedback7",
+      "two-op/channel1/connection1/feedback0",
+      "two-op/channel1/connection1/feedback1",
+      "two-op/channel1/connection1/feedback2",
+      "two-op/channel1/connection1/feedback3",
+      "two-op/channel1/connection1/feedback4",
+      "two-op/channel1/connection1/feedback5",
+      "two-op/channel1/connection1/feedback6",
+      "two-op/channel1/connection1/feedback7",
+      "two-op/channel2/connection0/feedback0",
+      "two-op/channel2/connection0/feedback1",
+      "two-op/channel2/connection0/feedback2",
+      "two-op/channel2/connection0/feedback3",
+      "two-op/channel2/connection0/feedback4",
+      "two-op/channel2/connection0/feedback5",
+      "two-op/channel2/connection0/feedback6",
+      "two-op/channel2/connection0/feedback7",
+      "two-op/channel2/connection1/feedback0",
+      "two-op/channel2/connection1/feedback1",
+      "two-op/channel2/connection1/feedback2",
+      "two-op/channel2/connection1/feedback3",
+      "two-op/channel2/connection1/feedback4",
+      "two-op/channel2/connection1/feedback5",
+      "two-op/channel2/connection1/feedback6",
+      "two-op/channel2/connection1/feedback7",
+      "two-op/channel3/connection0/feedback0",
+      "two-op/channel3/connection0/feedback1",
+      "two-op/channel3/connection0/feedback2",
+      "two-op/channel3/connection0/feedback3",
+      "two-op/channel3/connection0/feedback4",
+      "two-op/channel3/connection0/feedback5",
+      "two-op/channel3/connection0/feedback6",
+      "two-op/channel3/connection0/feedback7",
+      "two-op/channel3/connection1/feedback0",
+      "two-op/channel3/connection1/feedback1",
+      "two-op/channel3/connection1/feedback2",
+      "two-op/channel3/connection1/feedback3",
+      "two-op/channel3/connection1/feedback4",
+      "two-op/channel3/connection1/feedback5",
+      "two-op/channel3/connection1/feedback6",
+      "two-op/channel3/connection1/feedback7",
+      "two-op/channel4/connection0/feedback0",
+      "two-op/channel4/connection0/feedback1",
+      "two-op/channel4/connection0/feedback2",
+      "two-op/channel4/connection0/feedback3",
+      "two-op/channel4/connection0/feedback4",
+      "two-op/channel4/connection0/feedback5",
+      "two-op/channel4/connection0/feedback6",
+      "two-op/channel4/connection0/feedback7",
+      "two-op/channel4/connection1/feedback0",
+      "two-op/channel4/connection1/feedback1",
+      "two-op/channel4/connection1/feedback2",
+      "two-op/channel4/connection1/feedback3",
+      "two-op/channel4/connection1/feedback4",
+      "two-op/channel4/connection1/feedback5",
+      "two-op/channel4/connection1/feedback6",
+      "two-op/channel4/connection1/feedback7",
+      "two-op/channel5/connection0/feedback0",
+      "two-op/channel5/connection0/feedback1",
+      "two-op/channel5/connection0/feedback2",
+      "two-op/channel5/connection0/feedback3",
+      "two-op/channel5/connection0/feedback4",
+      "two-op/channel5/connection0/feedback5",
+      "two-op/channel5/connection0/feedback6",
+      "two-op/channel5/connection0/feedback7",
+      "two-op/channel5/connection1/feedback0",
+      "two-op/channel5/connection1/feedback1",
+      "two-op/channel5/connection1/feedback2",
+      "two-op/channel5/connection1/feedback3",
+      "two-op/channel5/connection1/feedback4",
+      "two-op/channel5/connection1/feedback5",
+      "two-op/channel5/connection1/feedback6",
+      "two-op/channel5/connection1/feedback7",
+      "two-op/channel6/connection0/feedback0",
+      "two-op/channel6/connection0/feedback1",
+      "two-op/channel6/connection0/feedback2",
+      "two-op/channel6/connection0/feedback3",
+      "two-op/channel6/connection0/feedback4",
+      "two-op/channel6/connection0/feedback5",
+      "two-op/channel6/connection0/feedback6",
+      "two-op/channel6/connection0/feedback7",
+      "two-op/channel6/connection1/feedback0",
+      "two-op/channel6/connection1/feedback1",
+      "two-op/channel6/connection1/feedback2",
+      "two-op/channel6/connection1/feedback3",
+      "two-op/channel6/connection1/feedback4",
+      "two-op/channel6/connection1/feedback5",
+      "two-op/channel6/connection1/feedback6",
+      "two-op/channel6/connection1/feedback7",
+      "two-op/channel7/connection0/feedback0",
+      "two-op/channel7/connection0/feedback1",
+      "two-op/channel7/connection0/feedback2",
+      "two-op/channel7/connection0/feedback3",
+      "two-op/channel7/connection0/feedback4",
+      "two-op/channel7/connection0/feedback5",
+      "two-op/channel7/connection0/feedback6",
+      "two-op/channel7/connection0/feedback7",
+      "two-op/channel7/connection1/feedback0",
+      "two-op/channel7/connection1/feedback1",
+      "two-op/channel7/connection1/feedback2",
+      "two-op/channel7/connection1/feedback3",
+      "two-op/channel7/connection1/feedback4",
+      "two-op/channel7/connection1/feedback5",
+      "two-op/channel7/connection1/feedback6",
+      "two-op/channel7/connection1/feedback7",
+      "two-op/channel8/connection0/feedback0",
+      "two-op/channel8/connection0/feedback1",
+      "two-op/channel8/connection0/feedback2",
+      "two-op/channel8/connection0/feedback3",
+      "two-op/channel8/connection0/feedback4",
+      "two-op/channel8/connection0/feedback5",
+      "two-op/channel8/connection0/feedback6",
+      "two-op/channel8/connection0/feedback7",
+      "two-op/channel8/connection1/feedback0",
+      "two-op/channel8/connection1/feedback1",
+      "two-op/channel8/connection1/feedback2",
+      "two-op/channel8/connection1/feedback3",
+      "two-op/channel8/connection1/feedback4",
+      "two-op/channel8/connection1/feedback5",
+      "two-op/channel8/connection1/feedback6",
+      "two-op/channel8/connection1/feedback7",
+      "two-op/channel9/connection0/feedback0",
+      "two-op/channel9/connection0/feedback1",
+      "two-op/channel9/connection0/feedback2",
+      "two-op/channel9/connection0/feedback3",
+      "two-op/channel9/connection0/feedback4",
+      "two-op/channel9/connection0/feedback5",
+      "two-op/channel9/connection0/feedback6",
+      "two-op/channel9/connection0/feedback7",
+      "two-op/channel9/connection1/feedback0",
+      "two-op/channel9/connection1/feedback1",
+      "two-op/channel9/connection1/feedback2",
+      "two-op/channel9/connection1/feedback3",
+      "two-op/channel9/connection1/feedback4",
+      "two-op/channel9/connection1/feedback5",
+      "two-op/channel9/connection1/feedback6",
+      "two-op/channel9/connection1/feedback7",
+      "two-op/channel10/connection0/feedback0",
+      "two-op/channel10/connection0/feedback1",
+      "two-op/channel10/connection0/feedback2",
+      "two-op/channel10/connection0/feedback3",
+      "two-op/channel10/connection0/feedback4",
+      "two-op/channel10/connection0/feedback5",
+      "two-op/channel10/connection0/feedback6",
+      "two-op/channel10/connection0/feedback7",
+      "two-op/channel10/connection1/feedback0",
+      "two-op/channel10/connection1/feedback1",
+      "two-op/channel10/connection1/feedback2",
+      "two-op/channel10/connection1/feedback3",
+      "two-op/channel10/connection1/feedback4",
+      "two-op/channel10/connection1/feedback5",
+      "two-op/channel10/connection1/feedback6",
+      "two-op/channel10/connection1/feedback7",
+      "two-op/channel11/connection0/feedback0",
+      "two-op/channel11/connection0/feedback1",
+      "two-op/channel11/connection0/feedback2",
+      "two-op/channel11/connection0/feedback3",
+      "two-op/channel11/connection0/feedback4",
+      "two-op/channel11/connection0/feedback5",
+      "two-op/channel11/connection0/feedback6",
+      "two-op/channel11/connection0/feedback7",
+      "two-op/channel11/connection1/feedback0",
+      "two-op/channel11/connection1/feedback1",
+      "two-op/channel11/connection1/feedback2",
+      "two-op/channel11/connection1/feedback3",
+      "two-op/channel11/connection1/feedback4",
+      "two-op/channel11/connection1/feedback5",
+      "two-op/channel11/connection1/feedback6",
+      "two-op/channel11/connection1/feedback7",
+      "two-op/channel12/connection0/feedback0",
+      "two-op/channel12/connection0/feedback1",
+      "two-op/channel12/connection0/feedback2",
+      "two-op/channel12/connection0/feedback3",
+      "two-op/channel12/connection0/feedback4",
+      "two-op/channel12/connection0/feedback5",
+      "two-op/channel12/connection0/feedback6",
+      "two-op/channel12/connection0/feedback7",
+      "two-op/channel12/connection1/feedback0",
+      "two-op/channel12/connection1/feedback1",
+      "two-op/channel12/connection1/feedback2",
+      "two-op/channel12/connection1/feedback3",
+      "two-op/channel12/connection1/feedback4",
+      "two-op/channel12/connection1/feedback5",
+      "two-op/channel12/connection1/feedback6",
+      "two-op/channel12/connection1/feedback7",
+      "two-op/channel13/connection0/feedback0",
+      "two-op/channel13/connection0/feedback1",
+      "two-op/channel13/connection0/feedback2",
+      "two-op/channel13/connection0/feedback3",
+      "two-op/channel13/connection0/feedback4",
+      "two-op/channel13/connection0/feedback5",
+      "two-op/channel13/connection0/feedback6",
+      "two-op/channel13/connection0/feedback7",
+      "two-op/channel13/connection1/feedback0",
+      "two-op/channel13/connection1/feedback1",
+      "two-op/channel13/connection1/feedback2",
+      "two-op/channel13/connection1/feedback3",
+      "two-op/channel13/connection1/feedback4",
+      "two-op/channel13/connection1/feedback5",
+      "two-op/channel13/connection1/feedback6",
+      "two-op/channel13/connection1/feedback7",
+      "two-op/channel14/connection0/feedback0",
+      "two-op/channel14/connection0/feedback1",
+      "two-op/channel14/connection0/feedback2",
+      "two-op/channel14/connection0/feedback3",
+      "two-op/channel14/connection0/feedback4",
+      "two-op/channel14/connection0/feedback5",
+      "two-op/channel14/connection0/feedback6",
+      "two-op/channel14/connection0/feedback7",
+      "two-op/channel14/connection1/feedback0",
+      "two-op/channel14/connection1/feedback1",
+      "two-op/channel14/connection1/feedback2",
+      "two-op/channel14/connection1/feedback3",
+      "two-op/channel14/connection1/feedback4",
+      "two-op/channel14/connection1/feedback5",
+      "two-op/channel14/connection1/feedback6",
+      "two-op/channel14/connection1/feedback7",
+      "two-op/channel15/connection0/feedback0",
+      "two-op/channel15/connection0/feedback1",
+      "two-op/channel15/connection0/feedback2",
+      "two-op/channel15/connection0/feedback3",
+      "two-op/channel15/connection0/feedback4",
+      "two-op/channel15/connection0/feedback5",
+      "two-op/channel15/connection0/feedback6",
+      "two-op/channel15/connection0/feedback7",
+      "two-op/channel15/connection1/feedback0",
+      "two-op/channel15/connection1/feedback1",
+      "two-op/channel15/connection1/feedback2",
+      "two-op/channel15/connection1/feedback3",
+      "two-op/channel15/connection1/feedback4",
+      "two-op/channel15/connection1/feedback5",
+      "two-op/channel15/connection1/feedback6",
+      "two-op/channel15/connection1/feedback7",
+      "two-op/channel16/connection0/feedback0",
+      "two-op/channel16/connection0/feedback1",
+      "two-op/channel16/connection0/feedback2",
+      "two-op/channel16/connection0/feedback3",
+      "two-op/channel16/connection0/feedback4",
+      "two-op/channel16/connection0/feedback5",
+      "two-op/channel16/connection0/feedback6",
+      "two-op/channel16/connection0/feedback7",
+      "two-op/channel16/connection1/feedback0",
+      "two-op/channel16/connection1/feedback1",
+      "two-op/channel16/connection1/feedback2",
+      "two-op/channel16/connection1/feedback3",
+      "two-op/channel16/connection1/feedback4",
+      "two-op/channel16/connection1/feedback5",
+      "two-op/channel16/connection1/feedback6",
+      "two-op/channel16/connection1/feedback7",
+      "two-op/channel17/connection0/feedback0",
+      "two-op/channel17/connection0/feedback1",
+      "two-op/channel17/connection0/feedback2",
+      "two-op/channel17/connection0/feedback3",
+      "two-op/channel17/connection0/feedback4",
+      "two-op/channel17/connection0/feedback5",
+      "two-op/channel17/connection0/feedback6",
+      "two-op/channel17/connection0/feedback7",
+      "two-op/channel17/connection1/feedback0",
+      "two-op/channel17/connection1/feedback1",
+      "two-op/channel17/connection1/feedback2",
+      "two-op/channel17/connection1/feedback3",
+      "two-op/channel17/connection1/feedback4",
+      "two-op/channel17/connection1/feedback5",
+      "two-op/channel17/connection1/feedback6",
+      "two-op/channel17/connection1/feedback7",
+      "four-op/0+3/algorithm0",
+      "four-op/0+3/algorithm1",
+      "four-op/0+3/algorithm2",
+      "four-op/0+3/algorithm3",
+      "four-op/1+4/algorithm0",
+      "four-op/1+4/algorithm1",
+      "four-op/1+4/algorithm2",
+      "four-op/1+4/algorithm3",
+      "four-op/2+5/algorithm0",
+      "four-op/2+5/algorithm1",
+      "four-op/2+5/algorithm2",
+      "four-op/2+5/algorithm3",
+      "four-op/9+12/algorithm0",
+      "four-op/9+12/algorithm1",
+      "four-op/9+12/algorithm2",
+      "four-op/9+12/algorithm3",
+      "four-op/10+13/algorithm0",
+      "four-op/10+13/algorithm1",
+      "four-op/10+13/algorithm2",
+      "four-op/10+13/algorithm3",
+      "four-op/11+14/algorithm0",
+      "four-op/11+14/algorithm1",
+      "four-op/11+14/algorithm2",
+      "four-op/11+14/algorithm3",
+      "waveform/channel0/type0/NEW-one",
+      "waveform/channel0/type1/NEW-one",
+      "waveform/channel0/type2/NEW-one",
+      "waveform/channel0/type3/NEW-one",
+      "waveform/channel0/type4/NEW-one",
+      "waveform/channel0/type5/NEW-one",
+      "waveform/channel0/type6/NEW-one",
+      "waveform/channel0/type7/NEW-one",
+      "waveform/channel1/type0/NEW-one",
+      "waveform/channel1/type1/NEW-one",
+      "waveform/channel1/type2/NEW-one",
+      "waveform/channel1/type3/NEW-one",
+      "waveform/channel1/type4/NEW-one",
+      "waveform/channel1/type5/NEW-one",
+      "waveform/channel1/type6/NEW-one",
+      "waveform/channel1/type7/NEW-one",
+      "waveform/channel2/type0/NEW-one",
+      "waveform/channel2/type1/NEW-one",
+      "waveform/channel2/type2/NEW-one",
+      "waveform/channel2/type3/NEW-one",
+      "waveform/channel2/type4/NEW-one",
+      "waveform/channel2/type5/NEW-one",
+      "waveform/channel2/type6/NEW-one",
+      "waveform/channel2/type7/NEW-one",
+      "waveform/channel3/type0/NEW-one",
+      "waveform/channel3/type1/NEW-one",
+      "waveform/channel3/type2/NEW-one",
+      "waveform/channel3/type3/NEW-one",
+      "waveform/channel3/type4/NEW-one",
+      "waveform/channel3/type5/NEW-one",
+      "waveform/channel3/type6/NEW-one",
+      "waveform/channel3/type7/NEW-one",
+      "waveform/channel4/type0/NEW-one",
+      "waveform/channel4/type1/NEW-one",
+      "waveform/channel4/type2/NEW-one",
+      "waveform/channel4/type3/NEW-one",
+      "waveform/channel4/type4/NEW-one",
+      "waveform/channel4/type5/NEW-one",
+      "waveform/channel4/type6/NEW-one",
+      "waveform/channel4/type7/NEW-one",
+      "waveform/channel5/type0/NEW-one",
+      "waveform/channel5/type1/NEW-one",
+      "waveform/channel5/type2/NEW-one",
+      "waveform/channel5/type3/NEW-one",
+      "waveform/channel5/type4/NEW-one",
+      "waveform/channel5/type5/NEW-one",
+      "waveform/channel5/type6/NEW-one",
+      "waveform/channel5/type7/NEW-one",
+      "waveform/channel6/type0/NEW-one",
+      "waveform/channel6/type1/NEW-one",
+      "waveform/channel6/type2/NEW-one",
+      "waveform/channel6/type3/NEW-one",
+      "waveform/channel6/type4/NEW-one",
+      "waveform/channel6/type5/NEW-one",
+      "waveform/channel6/type6/NEW-one",
+      "waveform/channel6/type7/NEW-one",
+      "waveform/channel7/type0/NEW-one",
+      "waveform/channel7/type1/NEW-one",
+      "waveform/channel7/type2/NEW-one",
+      "waveform/channel7/type3/NEW-one",
+      "waveform/channel7/type4/NEW-one",
+      "waveform/channel7/type5/NEW-one",
+      "waveform/channel7/type6/NEW-one",
+      "waveform/channel7/type7/NEW-one",
+      "waveform/channel8/type0/NEW-one",
+      "waveform/channel8/type1/NEW-one",
+      "waveform/channel8/type2/NEW-one",
+      "waveform/channel8/type3/NEW-one",
+      "waveform/channel8/type4/NEW-one",
+      "waveform/channel8/type5/NEW-one",
+      "waveform/channel8/type6/NEW-one",
+      "waveform/channel8/type7/NEW-one",
+      "waveform/channel9/type0/NEW-one",
+      "waveform/channel9/type1/NEW-one",
+      "waveform/channel9/type2/NEW-one",
+      "waveform/channel9/type3/NEW-one",
+      "waveform/channel9/type4/NEW-one",
+      "waveform/channel9/type5/NEW-one",
+      "waveform/channel9/type6/NEW-one",
+      "waveform/channel9/type7/NEW-one",
+      "waveform/channel10/type0/NEW-one",
+      "waveform/channel10/type1/NEW-one",
+      "waveform/channel10/type2/NEW-one",
+      "waveform/channel10/type3/NEW-one",
+      "waveform/channel10/type4/NEW-one",
+      "waveform/channel10/type5/NEW-one",
+      "waveform/channel10/type6/NEW-one",
+      "waveform/channel10/type7/NEW-one",
+      "waveform/channel11/type0/NEW-one",
+      "waveform/channel11/type1/NEW-one",
+      "waveform/channel11/type2/NEW-one",
+      "waveform/channel11/type3/NEW-one",
+      "waveform/channel11/type4/NEW-one",
+      "waveform/channel11/type5/NEW-one",
+      "waveform/channel11/type6/NEW-one",
+      "waveform/channel11/type7/NEW-one",
+      "waveform/channel12/type0/NEW-one",
+      "waveform/channel12/type1/NEW-one",
+      "waveform/channel12/type2/NEW-one",
+      "waveform/channel12/type3/NEW-one",
+      "waveform/channel12/type4/NEW-one",
+      "waveform/channel12/type5/NEW-one",
+      "waveform/channel12/type6/NEW-one",
+      "waveform/channel12/type7/NEW-one",
+      "waveform/channel13/type0/NEW-one",
+      "waveform/channel13/type1/NEW-one",
+      "waveform/channel13/type2/NEW-one",
+      "waveform/channel13/type3/NEW-one",
+      "waveform/channel13/type4/NEW-one",
+      "waveform/channel13/type5/NEW-one",
+      "waveform/channel13/type6/NEW-one",
+      "waveform/channel13/type7/NEW-one",
+      "waveform/channel14/type0/NEW-one",
+      "waveform/channel14/type1/NEW-one",
+      "waveform/channel14/type2/NEW-one",
+      "waveform/channel14/type3/NEW-one",
+      "waveform/channel14/type4/NEW-one",
+      "waveform/channel14/type5/NEW-one",
+      "waveform/channel14/type6/NEW-one",
+      "waveform/channel14/type7/NEW-one",
+      "waveform/channel15/type0/NEW-one",
+      "waveform/channel15/type1/NEW-one",
+      "waveform/channel15/type2/NEW-one",
+      "waveform/channel15/type3/NEW-one",
+      "waveform/channel15/type4/NEW-one",
+      "waveform/channel15/type5/NEW-one",
+      "waveform/channel15/type6/NEW-one",
+      "waveform/channel15/type7/NEW-one",
+      "waveform/channel16/type0/NEW-one",
+      "waveform/channel16/type1/NEW-one",
+      "waveform/channel16/type2/NEW-one",
+      "waveform/channel16/type3/NEW-one",
+      "waveform/channel16/type4/NEW-one",
+      "waveform/channel16/type5/NEW-one",
+      "waveform/channel16/type6/NEW-one",
+      "waveform/channel16/type7/NEW-one",
+      "waveform/channel17/type0/NEW-one",
+      "waveform/channel17/type1/NEW-one",
+      "waveform/channel17/type2/NEW-one",
+      "waveform/channel17/type3/NEW-one",
+      "waveform/channel17/type4/NEW-one",
+      "waveform/channel17/type5/NEW-one",
+      "waveform/channel17/type6/NEW-one",
+      "waveform/channel17/type7/NEW-one",
+      "stereo/four-buses/mask0",
+      "stereo/four-buses/mask1",
+      "stereo/four-buses/mask2",
+      "stereo/four-buses/mask3",
+      "stereo/four-buses/mask4",
+      "stereo/four-buses/mask5",
+      "stereo/four-buses/mask6",
+      "stereo/four-buses/mask7",
+      "stereo/four-buses/mask8",
+      "stereo/four-buses/mask9",
+      "stereo/four-buses/mask10",
+      "stereo/four-buses/mask11",
+      "stereo/four-buses/mask12",
+      "stereo/four-buses/mask13",
+      "stereo/four-buses/mask14",
+      "stereo/four-buses/mask15",
+      "compatibility/NEW-zero/wave0/high-bank-alias",
+      "compatibility/NEW-zero/wave1/high-bank-alias",
+      "compatibility/NEW-zero/wave2/high-bank-alias",
+      "compatibility/NEW-zero/wave3/high-bank-alias",
+      "compatibility/NEW-zero/wave4/high-bank-alias",
+      "compatibility/NEW-zero/wave5/high-bank-alias",
+      "compatibility/NEW-zero/wave6/high-bank-alias",
+      "compatibility/NEW-zero/wave7/high-bank-alias",
+      "operators/AM-PM/flags0/EGT-KSR",
+      "operators/AM-PM/flags1/EGT-KSR",
+      "operators/AM-PM/flags2/EGT-KSR",
+      "operators/AM-PM/flags3/EGT-KSR",
+      "rhythm/bassDrum/group6",
+      "rhythm/snare/group7",
+      "rhythm/tom/group8",
+      "rhythm/cymbal/group8",
+      "rhythm/hiHat/group7",
+      "rhythm/all-key-bits/mask0/upper-melody",
+      "rhythm/all-key-bits/mask1/upper-melody",
+      "rhythm/all-key-bits/mask2/upper-melody",
+      "rhythm/all-key-bits/mask3/upper-melody",
+      "rhythm/all-key-bits/mask4/upper-melody",
+      "rhythm/all-key-bits/mask5/upper-melody",
+      "rhythm/all-key-bits/mask6/upper-melody",
+      "rhythm/all-key-bits/mask7/upper-melody",
+      "rhythm/all-key-bits/mask8/upper-melody",
+      "rhythm/all-key-bits/mask9/upper-melody",
+      "rhythm/all-key-bits/mask10/upper-melody",
+      "rhythm/all-key-bits/mask11/upper-melody",
+      "rhythm/all-key-bits/mask12/upper-melody",
+      "rhythm/all-key-bits/mask13/upper-melody",
+      "rhythm/all-key-bits/mask14/upper-melody",
+      "rhythm/all-key-bits/mask15/upper-melody",
+      "rhythm/all-key-bits/mask16/upper-melody",
+      "rhythm/all-key-bits/mask17/upper-melody",
+      "rhythm/all-key-bits/mask18/upper-melody",
+      "rhythm/all-key-bits/mask19/upper-melody",
+      "rhythm/all-key-bits/mask20/upper-melody",
+      "rhythm/all-key-bits/mask21/upper-melody",
+      "rhythm/all-key-bits/mask22/upper-melody",
+      "rhythm/all-key-bits/mask23/upper-melody",
+      "rhythm/all-key-bits/mask24/upper-melody",
+      "rhythm/all-key-bits/mask25/upper-melody",
+      "rhythm/all-key-bits/mask26/upper-melody",
+      "rhythm/all-key-bits/mask27/upper-melody",
+      "rhythm/all-key-bits/mask28/upper-melody",
+      "rhythm/all-key-bits/mask29/upper-melody",
+      "rhythm/all-key-bits/mask30/upper-melody",
+      "rhythm/all-key-bits/mask31/upper-melody",
+      "timer/A-B/mask-clear-control1",
+      "timer/A-B/mask-clear-control2",
+      "timer/A-B/mask-clear-control3",
+      "timer/A-B/mask-clear-control33",
+      "timer/A-B/mask-clear-control34",
+      "timer/A-B/mask-clear-control65",
+      "timer/A-B/mask-clear-control67",
+      "timer/A-B/mask-clear-control99",
+      "CSM/unsupported/NEW-0/ordinary-key-anchor",
+      "CSM/unsupported/NEW-1/ordinary-key-anchor",
+      "mixed/two-banks/four-op/NEW-transitions/buses",
+      "mute/all-eighteen-groups/high-bits",
+      "bus/shared-upper-address/pending-data/offset-aliases",
+      "reset/raw-free-running/public-recreation",
+      "engine/master-gain/mute-controls",
+      "cold-key-off/default-silence"
+    ],
+    "samePositiveWrapperChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "stateApiAbsent": true,
+      "rates": {
+        "100000": 347,
+        "14318180": 49715,
+        "16000000": 55555,
+        "32000000": 111111,
+        "100000000": 347222
+      },
+      "intoCallerBuffersAndSentinels": true,
+      "intoDefaultCountAndInvalidBuffers": true,
+      "ownedAndIntoPcmEqual": true,
+      "waveforms": [
+        {
+          "newMode": 0,
+          "waveform": 0,
+          "pcmSha256": "c8dd9c42de4a7853af77a50c7de79a3ec8d19e37cb3882cf02a1965df0389eba"
+        },
+        {
+          "newMode": 0,
+          "waveform": 1,
+          "pcmSha256": "c15bbaf15cf3ac1fcf5472763a1e1ea61c737919487644f84815af84897dd9f5"
+        },
+        {
+          "newMode": 0,
+          "waveform": 2,
+          "pcmSha256": "e356d26fa8dd0343f01f39c3ac907d6d9715d76c697e09a001a46285b1e75d16"
+        },
+        {
+          "newMode": 0,
+          "waveform": 3,
+          "pcmSha256": "7b970fba8627cad5a15ab38678c9b89cbec4ecb65a6bb6c38a9a0cc361bac7ce"
+        },
+        {
+          "newMode": 0,
+          "waveform": 4,
+          "pcmSha256": "c8dd9c42de4a7853af77a50c7de79a3ec8d19e37cb3882cf02a1965df0389eba"
+        },
+        {
+          "newMode": 0,
+          "waveform": 5,
+          "pcmSha256": "c15bbaf15cf3ac1fcf5472763a1e1ea61c737919487644f84815af84897dd9f5"
+        },
+        {
+          "newMode": 0,
+          "waveform": 6,
+          "pcmSha256": "e356d26fa8dd0343f01f39c3ac907d6d9715d76c697e09a001a46285b1e75d16"
+        },
+        {
+          "newMode": 0,
+          "waveform": 7,
+          "pcmSha256": "7b970fba8627cad5a15ab38678c9b89cbec4ecb65a6bb6c38a9a0cc361bac7ce"
+        },
+        {
+          "newMode": 1,
+          "waveform": 0,
+          "pcmSha256": "c8dd9c42de4a7853af77a50c7de79a3ec8d19e37cb3882cf02a1965df0389eba"
+        },
+        {
+          "newMode": 1,
+          "waveform": 1,
+          "pcmSha256": "c15bbaf15cf3ac1fcf5472763a1e1ea61c737919487644f84815af84897dd9f5"
+        },
+        {
+          "newMode": 1,
+          "waveform": 2,
+          "pcmSha256": "e356d26fa8dd0343f01f39c3ac907d6d9715d76c697e09a001a46285b1e75d16"
+        },
+        {
+          "newMode": 1,
+          "waveform": 3,
+          "pcmSha256": "7b970fba8627cad5a15ab38678c9b89cbec4ecb65a6bb6c38a9a0cc361bac7ce"
+        },
+        {
+          "newMode": 1,
+          "waveform": 4,
+          "pcmSha256": "085bd04b32703ce145c4d37c26acda8c9dd798d14a8fdc63111ccc7613e6449f"
+        },
+        {
+          "newMode": 1,
+          "waveform": 5,
+          "pcmSha256": "70c609b7f897d0f8a30d1ad6beacfc025c4c4bf9b3d6f5e9697fb6ab1aa6e2f5"
+        },
+        {
+          "newMode": 1,
+          "waveform": 6,
+          "pcmSha256": "a86aec55c5e5cd4f34ee87cf6aa0ca46efcd21a7987903f548259376d5c4c055"
+        },
+        {
+          "newMode": 1,
+          "waveform": 7,
+          "pcmSha256": "e680adad2dfeb58bf66baf5c341fc2e2daa15162360e38af91c43ceccb71d572"
+        }
+      ],
+      "newModeOneHasEightWaves": true,
+      "compatibilityHasFourWavesWithoutOpl2Gate": true,
+      "upperBankAliasesWhenAddressLatchedInNewZero": true,
+      "upperBankContentsSurviveNewToggle": true,
+      "fourOp": [
+        {
+          "primary": 0,
+          "secondary": 3,
+          "algorithmPcmSha256": [
+            "d722ec55e865632435ee71449399037f9d2e1e1c0fd0b359eaee8086586a1247",
+            "1a019cfadd8e30c6ba24891cc4b3501305598eee39c88739ccfcb3653ecc9a38",
+            "cf8fb7259d6404afc92c603c3e8f0042a32550114dbd04b27c386e51e17918d1",
+            "b57eedfed3f410c935d364a7cb23d09c97fde85419e939b84b006a915aa468f0"
+          ],
+          "bothPartnersMuteWholeVoiceAndResume": true
+        },
+        {
+          "primary": 1,
+          "secondary": 4,
+          "algorithmPcmSha256": [
+            "d722ec55e865632435ee71449399037f9d2e1e1c0fd0b359eaee8086586a1247",
+            "1a019cfadd8e30c6ba24891cc4b3501305598eee39c88739ccfcb3653ecc9a38",
+            "cf8fb7259d6404afc92c603c3e8f0042a32550114dbd04b27c386e51e17918d1",
+            "b57eedfed3f410c935d364a7cb23d09c97fde85419e939b84b006a915aa468f0"
+          ],
+          "bothPartnersMuteWholeVoiceAndResume": true
+        },
+        {
+          "primary": 2,
+          "secondary": 5,
+          "algorithmPcmSha256": [
+            "d722ec55e865632435ee71449399037f9d2e1e1c0fd0b359eaee8086586a1247",
+            "1a019cfadd8e30c6ba24891cc4b3501305598eee39c88739ccfcb3653ecc9a38",
+            "cf8fb7259d6404afc92c603c3e8f0042a32550114dbd04b27c386e51e17918d1",
+            "b57eedfed3f410c935d364a7cb23d09c97fde85419e939b84b006a915aa468f0"
+          ],
+          "bothPartnersMuteWholeVoiceAndResume": true
+        },
+        {
+          "primary": 9,
+          "secondary": 12,
+          "algorithmPcmSha256": [
+            "d722ec55e865632435ee71449399037f9d2e1e1c0fd0b359eaee8086586a1247",
+            "1a019cfadd8e30c6ba24891cc4b3501305598eee39c88739ccfcb3653ecc9a38",
+            "cf8fb7259d6404afc92c603c3e8f0042a32550114dbd04b27c386e51e17918d1",
+            "b57eedfed3f410c935d364a7cb23d09c97fde85419e939b84b006a915aa468f0"
+          ],
+          "bothPartnersMuteWholeVoiceAndResume": true
+        },
+        {
+          "primary": 10,
+          "secondary": 13,
+          "algorithmPcmSha256": [
+            "d722ec55e865632435ee71449399037f9d2e1e1c0fd0b359eaee8086586a1247",
+            "1a019cfadd8e30c6ba24891cc4b3501305598eee39c88739ccfcb3653ecc9a38",
+            "cf8fb7259d6404afc92c603c3e8f0042a32550114dbd04b27c386e51e17918d1",
+            "b57eedfed3f410c935d364a7cb23d09c97fde85419e939b84b006a915aa468f0"
+          ],
+          "bothPartnersMuteWholeVoiceAndResume": true
+        },
+        {
+          "primary": 11,
+          "secondary": 14,
+          "algorithmPcmSha256": [
+            "d722ec55e865632435ee71449399037f9d2e1e1c0fd0b359eaee8086586a1247",
+            "1a019cfadd8e30c6ba24891cc4b3501305598eee39c88739ccfcb3653ecc9a38",
+            "cf8fb7259d6404afc92c603c3e8f0042a32550114dbd04b27c386e51e17918d1",
+            "b57eedfed3f410c935d364a7cb23d09c97fde85419e939b84b006a915aa468f0"
+          ],
+          "bothPartnersMuteWholeVoiceAndResume": true
+        }
+      ],
+      "folds": [
+        {
+          "voices": 1,
+          "framesPerBus": 4096,
+          "renderedBusMasks": [
+            16,
+            32,
+            64,
+            80,
+            128,
+            160,
+            240
+          ],
+          "positiveFoldClampSamples": 0,
+          "negativeFoldClampSamples": 0,
+          "singleBusPcmSha256": "bda341496037e93336c055f5cf8bc2c5a6b07b03690cf862ea5cad75c89f9465",
+          "foldPcmSha256": "a0fd2f965d187ff86072cc438ac3ceff9ce3cb8a201ef2022954f2ea56c3dfa6"
+        },
+        {
+          "voices": 2,
+          "framesPerBus": 4096,
+          "renderedBusMasks": [
+            16,
+            32,
+            64,
+            80,
+            128,
+            160,
+            240
+          ],
+          "positiveFoldClampSamples": 1395,
+          "negativeFoldClampSamples": 1341,
+          "singleBusPcmSha256": "a0fd2f965d187ff86072cc438ac3ceff9ce3cb8a201ef2022954f2ea56c3dfa6",
+          "foldPcmSha256": "12f1a661f9290bedc06355a5586d15d74d76ba8080e6f756a96f9b7fbe8471e4"
+        },
+        {
+          "voices": 18,
+          "framesPerBus": 4096,
+          "renderedBusMasks": [
+            16,
+            80
+          ],
+          "positiveFoldClampSamples": 2014,
+          "negativeFoldClampSamples": 1938,
+          "singleBusPcmSha256": "d29f1f6fe28877a257d53d65c3b8d20c56cccf710af0f22f2c3f9e09b18f420e",
+          "foldPcmSha256": "22245243a996fd47797554f5c693a80a961154336ce37df5b362e48a6a493d2e"
+        }
+      ],
+      "timers": [
+        {
+          "name": "A",
+          "firstIrqFrame": 4,
+          "maskVisibilityOnly": true,
+          "stopAndClear": true
+        },
+        {
+          "name": "B",
+          "firstIrqFrame": 16,
+          "maskVisibilityOnly": true,
+          "stopAndClear": true
+        }
+      ],
+      "csm": [
+        {
+          "newMode": 0,
+          "csmRemainsSilent": true,
+          "timerStillAssertsIrq": true,
+          "ordinaryKeyOnPcmSha256": "ef40c7fcf196ec6ec4ed54f79492d66f7831c9ce42a8617cca7e2f2a5343eeb1"
+        },
+        {
+          "newMode": 1,
+          "csmRemainsSilent": true,
+          "timerStillAssertsIrq": true,
+          "ordinaryKeyOnPcmSha256": "ef40c7fcf196ec6ec4ed54f79492d66f7831c9ce42a8617cca7e2f2a5343eeb1"
+        }
+      ],
+      "rhythmGroups": [
+        {
+          "mask": 16,
+          "physicalGroup": 6,
+          "pcmSha256": "badc9f7f4cca37231f46a834dfea18855f58b610ed75a5b23c242ee393714b72"
+        },
+        {
+          "mask": 8,
+          "physicalGroup": 7,
+          "pcmSha256": "32de3ace9bed0ea896692807984a617bf40f6e1b8bf0729791be4eaa38fffd6e"
+        },
+        {
+          "mask": 4,
+          "physicalGroup": 8,
+          "pcmSha256": "14a9a20f4d0638d2abd9d5d2232d53d84509291dba285195abbeeabc113a13e7"
+        },
+        {
+          "mask": 2,
+          "physicalGroup": 8,
+          "pcmSha256": "3379911c29af9ec4b12bb4010c65c76dadec29f1b6324199882c13a3d9ef1fbd"
+        },
+        {
+          "mask": 1,
+          "physicalGroup": 7,
+          "pcmSha256": "b12a714ed9fb8ae5469ef6847f3c12171087bf63e85e894b43306728bdb4d2e8"
+        }
+      ],
+      "allEighteenMelodyMuteGroups": true,
+      "sharedUpperPendingAddressSurvivesRawReset": true,
+      "rawResetPcmSha256": "1f0df76705d4c7a81308cfaf4739bc37ff7f96abcc14d91a8afaea831e4e38a2",
+      "powerOnPcmSha256": "69fd9cbb6461a70ed104745fbeebd4fca97c9c26b5d55856fdb4cddd8657aaae",
+      "publicResetRecreatesPowerOnRetainsMute": true,
+      "ownedBothSidesSurviveIntoOverwriteAndGrowth": true,
+      "engineChecks": [
+        {
+          "outputRate": 96000,
+          "sourceFrames": 530,
+          "intoCalls": 530,
+          "scratchCapacity": 1,
+          "scratchReused": true,
+          "ownedGenerationNotCalled": true,
+          "outputFrames": 1024,
+          "pcmSha256": "9859aadeec68a621478cc5b0d3f40bb8eb04281ae7b89cd31e3aea9d82ef7947"
+        },
+        {
+          "outputRate": 22050,
+          "sourceFrames": 2308,
+          "intoCalls": 1024,
+          "scratchCapacity": 3,
+          "scratchReused": true,
+          "ownedGenerationNotCalled": true,
+          "outputFrames": 1024,
+          "pcmSha256": "209e5481378ba79f4a0d89b3af7541013d14f0d20ffd357de66bd06b9132c685"
+        }
+      ],
+      "totalOutputStereoFrames": 577428,
+      "frameCountScope": "All direct chip and Engine output frames in bounded positive self-checks. Engine internal native source frames are separately described and not double-counted."
+    },
+    "sameActualVgmPlayerChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "rows": [
+        {
+          "clock": 14318180,
+          "outputRate": 44100,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "3457027a575008adc60d71fe919d3e90b42fe077e59ada1b3b7e4d35ace124b9",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "f6d832593c1afb7b8928c048458956141ad278f29ad0cf8090bf37c0071eba40",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "d8bdd0f20f0847057a4e44ff83c65932471edb005330d913a7d60020c65c48fd"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "4598079419e8722bfac3a4e08c62f7889286af4ce0f922c28fb4b865dae6620b"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "frames": 257,
+              "pcmSha256": "5d1a90304e020246344f89678a4adaa9e1f57ca55632b8a98f3100e56fc65b6c"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "frames": 257,
+              "pcmSha256": "4ed0288c304ef0fe1671be462eca7e96e1a0668c7c88de198f0fe442d48e7db6"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "frames": 257,
+              "pcmSha256": "a5fa9b80bd51ef47154d5e987d93b5ec8429fc87bb27271fbde7fd7d6030b686"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "frames": 257,
+              "pcmSha256": "536a4895476a481e9eba2e776279798710c356a6e1bc8e197d4fbd695311d24f"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 14318180,
+          "outputRate": 48000,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "3457027a575008adc60d71fe919d3e90b42fe077e59ada1b3b7e4d35ace124b9",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7801,
+          "baselinePcmSha256": "254d1c022eca661f9ac66087a4035392973adaa41d386bdfcf4536ce9d093dea",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "42606f4832a3aad084cfd18b2e54ccf5b65d618fad6a0445bbb336fae1928b34"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "1b581c6ea38afef2d9ca9e928f11434b35b71f0969ef9faa10d190f88cdecc87"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 762,
+              "frames": 257,
+              "pcmSha256": "658b085cda59950f9db9181413dc124abe5130d473bb3cc7f70a46f532604917"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1853,
+              "frames": 257,
+              "pcmSha256": "a97d1014f353bef28f845088e3127eb5be61710ff74898874571af4911172ade"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2552,
+              "frames": 257,
+              "pcmSha256": "421551aec250081a8b86412e258f5d5c38b5016fb6119772fc8c67d42cf6533f"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5552,
+              "frames": 257,
+              "pcmSha256": "3b56d81b08924c30526aa98112b6a2f57baa730b70e3a0c5d85a16ea5107b168"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 14318180,
+          "outputRate": 96000,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "3457027a575008adc60d71fe919d3e90b42fe077e59ada1b3b7e4d35ace124b9",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "268edcf59c6e79ce7a5bef7a55351352683d01af4f544a3c67c00222ff7c6109",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "c83bee416827451d9b27439b54ab81d041225181af73bf46a9e068f1b076b673"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "frames": 257,
+              "pcmSha256": "37e1f190f2f7a9bf6b74e0ee18abe5781b6eb183346122231a211295d9893cf0"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "frames": 257,
+              "pcmSha256": "e391708486cb48308e42533d35283df1828e923d0496f3a21bb0ea0f95c1ec80"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "frames": 257,
+              "pcmSha256": "1617719e489073e292f11b28c575d0dd18ca2f9016582c45251cc515dfe67033"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "frames": 257,
+              "pcmSha256": "606a6c63c51fa2f88943c84deb1e787cc9384a7bbb7ccdc3815a161ec82911d5"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "frames": 257,
+              "pcmSha256": "99b6bd18226c1bf8fe9e3d7b89ac85ad83deee942c06e7404fbe0a2e560d1f23"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 16000000,
+          "outputRate": 44100,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "cadeb0847989dd03792a29981197c7175358be4517c572b23e9420424f50008b",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "aaed88e5143c8db2c01a7ac9ea2a8ca98e270652ed3248e16af55053e1566b2d",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "69e5912bcaf4b0f28780632c346999e322a4f2b9613665855b970608d42ba19b"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "26486c4b4b09a7c41bacc73c9dabf4cc6e8327b183dbfc9c9188ad94af4a1450"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "frames": 257,
+              "pcmSha256": "0f2b6be177f4387acd812a5ac9d7bd9b011e1e7a53c455752a284f32591db228"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "frames": 257,
+              "pcmSha256": "499c024a9fc3edefa946f6ed5c92619560a6178b42ad2cf13a20952fe8499880"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "frames": 257,
+              "pcmSha256": "1948fce707a292af65f481044d2c2f31c3c5e6d80ab32a4326206d38dc094098"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "frames": 257,
+              "pcmSha256": "bc515e396acd5d5b7cd4fe11641da9821f3ae28e89fe0fc1ee2ef06a389ab9f0"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 16000000,
+          "outputRate": 48000,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "cadeb0847989dd03792a29981197c7175358be4517c572b23e9420424f50008b",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7801,
+          "baselinePcmSha256": "457a9750da7bec27246b5e984e65dd3e4cee2adda15d55f1115c56590e59921a",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "486d7c5ea78ddae5103b96310b0b1cda016dea29b471af472dc21e2a8f4568f9"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "8db59a643727dc58f61b755acf735d9e1e50dc361766f21b8dba262770add6ef"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 762,
+              "frames": 257,
+              "pcmSha256": "e29821606cc91519299f0d147e06bfe34c5e56eae1892c84a4838bceb1daea7c"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1853,
+              "frames": 257,
+              "pcmSha256": "cc31a15d8611968b9e5b9539a77635c2fd93207c9679c64fa3c348fe7db7e411"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2552,
+              "frames": 257,
+              "pcmSha256": "0ee6da43a14d364c10cdb5e78771c4ab9e377c489cf8d703ac9a3294c62d37f8"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5552,
+              "frames": 257,
+              "pcmSha256": "a5b6105c18c1cdd80eb5e94e066796535a1f6d53387a36736df474908e674f3d"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 16000000,
+          "outputRate": 96000,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "cadeb0847989dd03792a29981197c7175358be4517c572b23e9420424f50008b",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "4d2be8cab00d1a2547584bad029af899412503fd0a157787290d7057dc2fecfc",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "14b24e9fe0a4fd3e9aaa65bde5f87626a2102fda7068f445da342ed615c41cd4"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "frames": 257,
+              "pcmSha256": "5cfd94f31e2e12ddd4daa662851d83c3a7bc52710dd237da35f10a699650c669"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "frames": 257,
+              "pcmSha256": "b56f0fd460d8387f7be3317e13a47033284fd73df25b85ebe53db1b7cc7376c9"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "frames": 257,
+              "pcmSha256": "7330a3c0c7c26de0f0ebb7174e45f587da9e3883fa605946df28ff21f78b04d5"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "frames": 257,
+              "pcmSha256": "838476a2d77a76b5533d07124986bc6bc428e7b215f5812c77b17cf54593f4c1"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "frames": 257,
+              "pcmSha256": "f352126084fe4d0a7322b907a378ee8c29ac500d046085a7b94aaf7d7ef2dfa9"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 32000000,
+          "outputRate": 44100,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "5173f0ba587a5154646d8b850596a7024a92cb2c9e2fb4fd8b086fbe3be8df85",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "15a76b5225c37b8b413588edf006cf34f1d86504bc23d6e7b8c00d72648c9aad",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "e57c6aaad6bc887afc5eed0b1b85d57c54c3e2415d97e2c57f44bed4b0820395"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "156b2e00f83ec6e8bc03062290c50926f71b4497c056d68d182cdb34cc44c2da"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "frames": 257,
+              "pcmSha256": "968c92cbc1c61354f4dfa900b7be3197789edc4ac854eec3d3b3ba0738230c7c"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "frames": 257,
+              "pcmSha256": "82f668f272ffa7e4165781550bd8e155013ba4e60c99854e72269d00178f2f63"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "frames": 257,
+              "pcmSha256": "e317cc47a037b337b39e06444eeea1a104ef3eaf5b4feb5e93e9a8bfab049668"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "frames": 257,
+              "pcmSha256": "4a21312b421b904aee06d40984a79aac8d94f1ee467af50035ce3c2f75c6028b"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 32000000,
+          "outputRate": 48000,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "5173f0ba587a5154646d8b850596a7024a92cb2c9e2fb4fd8b086fbe3be8df85",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7801,
+          "baselinePcmSha256": "e921089224145bfb601e0a23af1a371d0b2f56ad1936840ff505abd631ab44a9",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "69a35ecf5c61ae48cda344ec71152ba164e72c4325004bac77c99a7b32a7b208"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "frames": 257,
+              "pcmSha256": "d4fb04aa7a9a5149cb96a89251b366a4f135729992462c3683b3f42980161f94"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 762,
+              "frames": 257,
+              "pcmSha256": "19cff7ca81057a74117021455754d53df23484bf97628cdefc03d8adbfd011d7"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1853,
+              "frames": 257,
+              "pcmSha256": "ad472d7eec5d5f22387ab65b654d494aae3a8bc172507d3b16033d2f7bd50e72"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2552,
+              "frames": 257,
+              "pcmSha256": "13c2ca767b229f0be5c02f7ddde10f8ad87fbaf857649f64f918c9c77c63bfd8"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5552,
+              "frames": 257,
+              "pcmSha256": "6d675858daab8bbc976109c499c587a09752339e036645651359f9414498fb87"
+            }
+          ],
+          "noStateCheckpoints": true
+        },
+        {
+          "clock": 32000000,
+          "outputRate": 96000,
+          "fixtureBytes": 1625,
+          "fixtureSha256": "5173f0ba587a5154646d8b850596a7024a92cb2c9e2fb4fd8b086fbe3be8df85",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "2ae130eb14044ce0467add5b24bf7160d54fffb185a013758404b6868f243cc9",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "frames": 257,
+              "pcmSha256": "a53a5efc88ff8331af1b8982a35482959f626d9fdf2ff2f6aa66b7b161347607"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "frames": 257,
+              "pcmSha256": "57d5e86815882dcdd1a1974559be07128cb47975b89680ea5dab97ef3629a129"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "frames": 257,
+              "pcmSha256": "62e38a7dc7eb85021d5921add05aee23869716c5fb9593c1ce0730613e75afa5"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "frames": 257,
+              "pcmSha256": "dd27961d30fd9ad6df029b0d150469052fd2eab86351d089a0b6f4651bbc75e8"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "frames": 257,
+              "pcmSha256": "0319faa26b1ad6b8e8b22503cde61390b0907b3aa397957567072f61fc15be66"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "frames": 257,
+              "pcmSha256": "789abb2ef7d25c2e3b5377a67d32b645e1ae0fff3fa29be3859549e68651caf8"
+            }
+          ],
+          "noStateCheckpoints": true
+        }
+      ],
+      "generatedEngineOutputStereoFrames": 386541,
+      "deliveredPlayerOutputStereoFrames": 323349,
+      "requestedPlayerOutputStereoFrames": 323349,
+      "engineRenderExecutions": 252,
+      "playerProcessCalls": 903,
+      "frameCountScope": "Actual Engine processFrames calls include parser render-ahead queues during baseline, reset/replay and all silent seek prefixes. Delivered/requested player frames include the seek-discarded prefix and are a separate view, not added again to generated frame totals."
+    },
+    "freeze": {
+      "path": "/private/tmp/tetorica-ymf262-wasm-sdk/checker-freeze.json",
+      "bytes": 8771,
+      "sha256": "f9857eef4156cd18547c9ba6a2fe24f1ac3c8be632ebbb2e7dea684920143f26",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+          "bytes": 47220,
+          "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+        },
+        "checkerFrozen": true,
+        "deviceOpened": false,
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy-sdk-parity.json",
+            "bytes": 2171120,
+            "sha256": "f4c8f1cca07a9fef833e445369e3acaffe3f228f916a94830db803f12a71609f",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy/ymf262_wasm.js",
+                "bytes": 14274,
+                "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy/ymf262_wasm.wasm",
+                "bytes": 21361,
+                "sha256": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.js",
+                "bytes": 14274,
+                "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.wasm",
+                "bytes": 21377,
+                "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/build-info.json",
+                "bytes": 6591,
+                "sha256": "0b2157f0f86191b75a656265752cc0086dd04fde58dce9c4a4baa2fdf5feaccc"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+                "bytes": 47220,
+                "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262.js",
+                "bytes": 10280,
+                "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262.js",
+                "bytes": 10318,
+                "sha256": "931f3eaacb609acb0e6ebd10f5cfcb8149e2afc4a137fa8f84a15f775fc218be"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262audioengine.js",
+                "bytes": 7545,
+                "sha256": "e89a1e1630985db2b2a565a2572a323b8b1ec682cade69645a7ad00c0473dac9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262audioengine.js",
+                "bytes": 7649,
+                "sha256": "4526e911734ae315b7601f2f5edcf6b7548ee817b5ee45a4269664e12e88c1a5"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+                "bytes": 20452,
+                "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClock": 536,
+              "scenarioConfigurations": 1728,
+              "scenarioRenderExecutions": 7236,
+              "scenarioBodyOutputStereoFrames": 42799104,
+              "postScenarioProbeOutputStereoFrames": 1859652,
+              "totalOutputStereoFrames": 44658756,
+              "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+              "totalPlayerDeliveredOutputStereoFrames": 646698,
+              "totalGeneratedOutputStereoFrames": 46586694,
+              "resetReplayExecutions": 324
+            },
+            "comparisons": 3456,
+            "chipComparisons": 3216,
+            "engineComparisons": 240,
+            "selectedResetReplayConfigurations": 162,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed-sdk-parity.json",
+            "bytes": 2171126,
+            "sha256": "52f8a97516884d07e1a5f80c410bcd2d1dd974fffc0bfa7c79b25d561bf0694e",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed/ymf262_wasm.js",
+                "bytes": 14274,
+                "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed/ymf262_wasm.wasm",
+                "bytes": 21361,
+                "sha256": "8038b36eb950d32a347fea0098f5857afe05875ddbcc83620c22f7653826fc1c"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.js",
+                "bytes": 14274,
+                "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/ymf262_wasm.wasm",
+                "bytes": 21377,
+                "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+              },
+              {
+                "path": "/private/tmp/tetorica-ymf262-wasm-sdk/sdk/build-info.json",
+                "bytes": 6591,
+                "sha256": "0b2157f0f86191b75a656265752cc0086dd04fde58dce9c4a4baa2fdf5feaccc"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+                "bytes": 47220,
+                "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262.js",
+                "bytes": 10280,
+                "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262.js",
+                "bytes": 10318,
+                "sha256": "931f3eaacb609acb0e6ebd10f5cfcb8149e2afc4a137fa8f84a15f775fc218be"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ymf262audioengine.js",
+                "bytes": 7545,
+                "sha256": "e89a1e1630985db2b2a565a2572a323b8b1ec682cade69645a7ad00c0473dac9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ymf262audioengine.js",
+                "bytes": 7649,
+                "sha256": "4526e911734ae315b7601f2f5edcf6b7548ee817b5ee45a4269664e12e88c1a5"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opl_synth.js",
+                "bytes": 20452,
+                "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClock": 536,
+              "scenarioConfigurations": 1728,
+              "scenarioRenderExecutions": 7236,
+              "scenarioBodyOutputStereoFrames": 42799104,
+              "postScenarioProbeOutputStereoFrames": 1859652,
+              "totalOutputStereoFrames": 44658756,
+              "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+              "totalPlayerDeliveredOutputStereoFrames": 646698,
+              "totalGeneratedOutputStereoFrames": 46586694,
+              "resetReplayExecutions": 324
+            },
+            "comparisons": 3456,
+            "chipComparisons": 3216,
+            "engineComparisons": 240,
+            "selectedResetReplayConfigurations": 162,
+            "maximumDifference": 0
+          }
+        ],
+        "scope": "Each report compares actual unchanged synchronous wrappers, raw owned/Into PCM, Engine scratch-buffer PCM, probes, hooks/read/status/IRQ/timing, public reset/replay and real VgmPlayer seek replay. No snapshot API exists, so serialized state equivalence is not claimed. Native source frames and Player delivered frames are not double-counted."
+      }
+    },
+    "independentReview": {
+      "path": "/private/tmp/tetorica-ymf262-wasm-sdk/checker-audit.json",
+      "bytes": 8550,
+      "sha256": "e874cec4260c827e190cadb3cf6ec0db13778852a13c6197f84c5cee95d09f41",
+      "record": {
+        "passed": true,
+        "reviewScope": "Independent read-only review of final YMF262 OPL3 checker,14 input/report hashes and arithmetic main/self/player counter reconstruction. No production or checker source edits by reviewer.",
+        "checker": {
+          "path": "scripts/check_ymf262_wasm_sdk.mjs",
+          "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833",
+          "bytes": 47220
+        },
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy-sdk-parity.json",
+            "sha256": "f4c8f1cca07a9fef833e445369e3acaffe3f228f916a94830db803f12a71609f",
+            "passed": true,
+            "checkerSha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833",
+            "frozenInputHashesVerified": 14,
+            "comparisons": 3456,
+            "chipComparisons": 3216,
+            "engineComparisons": 240,
+            "resetReplayConfigurations": 162,
+            "countersIndependentlyRecomputed": true,
+            "rawScenariosPerClock": 536,
+            "scenarioConfigurations": 1728,
+            "scenarioRenderExecutions": 7236,
+            "resetReplayExecutions": 324,
+            "scenarioBodyOutputStereoFrames": 42799104,
+            "postScenarioProbeOutputStereoFrames": 1859652,
+            "totalOutputStereoFrames": 44658756,
+            "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 46586694,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed-sdk-parity.json",
+            "sha256": "52f8a97516884d07e1a5f80c410bcd2d1dd974fffc0bfa7c79b25d561bf0694e",
+            "passed": true,
+            "checkerSha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833",
+            "frozenInputHashesVerified": 14,
+            "comparisons": 3456,
+            "chipComparisons": 3216,
+            "engineComparisons": 240,
+            "resetReplayConfigurations": 162,
+            "countersIndependentlyRecomputed": true,
+            "rawScenariosPerClock": 536,
+            "scenarioConfigurations": 1728,
+            "scenarioRenderExecutions": 7236,
+            "resetReplayExecutions": 324,
+            "scenarioBodyOutputStereoFrames": 42799104,
+            "postScenarioProbeOutputStereoFrames": 1859652,
+            "totalOutputStereoFrames": 44658756,
+            "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 46586694,
+            "maximumDifference": 0
+          }
+        ],
+        "caseArraysIdenticalBetweenReferencePairs": true,
+        "wrapperChecksIdenticalBetweenReferencePairs": true,
+        "playerChecksIdenticalBetweenReferencePairs": true,
+        "wrapperPositiveFrameDerivation": {
+          "perBuildParts": {
+            "initialVoicePair": 1402,
+            "queryNoAdvancePair": 1402,
+            "ownedIntoStereoReference": 1402,
+            "partialIntoSubarrays": 26,
+            "defaultIntoFrameCount": 34,
+            "waveformsBothModes": 65536,
+            "register01GateIgnored": 4096,
+            "compatibilityUpperAliasAndPhysicalMute": 2103,
+            "newToggleRetainsUpperVoice": 4206,
+            "sixFourOpPairsFourAlgorithmsBothPartnerMutes": 331200,
+            "fourBusFoldsAndClampControls": 65536,
+            "timerExpiryMaskStopClear": 170,
+            "noCsmBothModesWithAudibleKeyAnchor": 3072,
+            "rhythmGroupMuteResume": 15050,
+            "eighteenMelodyMuteResume": 54180,
+            "unknownMuteBits": 1402,
+            "sharedUpperPendingAddress": 1748,
+            "rawResetRetainsUpperLatch": 1402,
+            "rawFreshPublicResetControls": 14021,
+            "retainedMuteAndWarmup": 1213,
+            "ownedIntoOverwriteActualCapacityGrowth": 4131,
+            "engineScratchAndGain": 4096
+          },
+          "perBuild": 577428,
+          "bothBuilds": 1154856
+        },
+        "playerFrameDerivation": {
+          "method": "Twice full7168-sample baseline; each seek prefix plus257 continuation consumes authored waits through the next event boundary. Sum rates over3clocks×2builds; delivered seek-discarded frames are not added twice.",
+          "rows": [
+            {
+              "outputRate": 44100,
+              "baselineOutputFrames": 7168,
+              "seekOutputFrames": [
+                0,
+                1,
+                701,
+                1703,
+                2345,
+                5101
+              ],
+              "generatedPerClockBuild": 30211,
+              "deliveredPerClockBuild": 25729
+            },
+            {
+              "outputRate": 48000,
+              "baselineOutputFrames": 7801,
+              "seekOutputFrames": [
+                0,
+                1,
+                762,
+                1853,
+                2552,
+                5552
+              ],
+              "generatedPerClockBuild": 32876,
+              "deliveredPerClockBuild": 27864
+            },
+            {
+              "outputRate": 96000,
+              "baselineOutputFrames": 15603,
+              "seekOutputFrames": [
+                0,
+                2,
+                1525,
+                3707,
+                5104,
+                11104
+              ],
+              "generatedPerClockBuild": 65760,
+              "deliveredPerClockBuild": 54190
+            }
+          ]
+        },
+        "reviewedInvariants": [
+          "OPL3 uses floor(clock/288), status has no fixed0x06; only offsets0 modulo4 read status. Others return0xff. Timers expire at4/16 native frames and masks hide flags/IRQ while timers continue; unmask exposes expired status, stop+clear remains stable.",
+          "Both NEW modes lack CSM key-on: timer IRQ proves timer execution while PCM remains silent, then ordinary key-on yields sound. OPL1/OPL2 CSM assumptions are excluded.",
+          "Eighteen physical2-op channels,2connections×8feedback, six4-op pairs×4distinct topologies,8waves in NEW1 and4low-bit waves in NEW0 are exercised. Register01 waveform gate is ignored in both modes.",
+          "NEW0 upper address latches alias lower bank except105; direct physical mute proves alias target. Existing upper-bank voice phase/register contents survive NEW off/on without reprogramming.",
+          "All six4-op pairs produce4distinct audible algorithms. Either physical member mutes whole voice; phase/feedback continuation after unmute equals uninterrupted reference.",
+          "Independent A/B/C/D outputs fold A+C left and B+D right. One-voice unclipped exact double, two-voice unclipped single-bus but folded signed16 clamp, and18voice core saturation controls prove both actual positive/negative clamp endpoints.",
+          "Five distinct rhythm voices use physical groups6=bass,7=snare+hiHat,8=tom+cymbal. All18melody mutes and rhythm mutes preserve synthesis progression.",
+          "Owned generation and caller-owned Into have identical asymmetric stereo PCM. Prefix/tail sentinel subarrays, partial/default frame counts, invalid buffers and zero-frame phase preservation are checked. Owned arrays survive Into overwrite and real capacity+1 growth.",
+          "Engine must use Into: replacing owned generateStereo with a throwing function proves it is not called. Scratch array identities/capacity, source counts, remainders, both stereo sides and one-time gain are checked at up/down output rates.",
+          "Shared upper pending address survives generation and raw reset even when NEW resets. Raw reset differs from fresh free-running phase; public reset reproduces power-on PCM and reapplies JS mute.",
+          "Exact real PCM, continuation probes, synchronous hooks/read/status/IRQ and resampler timing compare between fixed builds and chunk layouts. No serialized snapshot API or internal state equivalence is invented.",
+          "Actual two-bank stereo VgmPlayer fixture uses commands5e/5f and clock header5c. Nine clock/rate routes×6seek positions replay from zero without checkpoints and compare both continuation sides exactly.",
+          "Main bodies/probes, bounded positives and actual VgmPlayer Engine prefetch generation are counted separately. Delivered/discarded player frames and internal resampling source frames are not added twice."
+        ],
+        "unresolvedFindings": [],
+        "limits": [
+          "Exact agreement validates these fixed builds, not original hardware accuracy.",
+          "No snapshot state serialization or portability is claimed; exported wrapper lacks that API.",
+          "OPL1/OPL2, optional PSG mixing and physical device scheduling are excluded from this checker.",
+          "Separate browser4route and narrowed OPL3 main UI including4-op/stereo checks cover browser integration; no physical listening judgement."
+        ],
+        "cliAudit": {
+          "path": "/private/tmp/tetorica-ymf262-wasm-sdk/checker-cli-audit.json",
+          "sha256": "a870c47b85a0a77844266793b725b301e13fdf17563efec0daf65377a0f0ab1d",
+          "invalidFormsRejectedBeforeBuildInputAccess": 18,
+          "validHelp": true,
+          "checkerSha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+        },
+        "reviewerRepositoryEdits": false
+      }
+    },
+    "secondIndependentReview": {
+      "path": "/private/tmp/tetorica-ymf262-wasm-sdk/checker-audit-docs.json",
+      "bytes": 7813,
+      "sha256": "9dc43d0818a66d514a108d49fcb822b4824833bbac6eccc09cab55615a9cf85b",
+      "record": {
+        "schemaVersion": 1,
+        "passed": true,
+        "reviewMode": "Independent read-only implementation, completed-report, CLI-evidence and documentation audit; no repository edits or synthesis rerun during final audit. Earlier bounded fold prototype is separate evidence and is not added to checker totals.",
+        "checker": {
+          "path": "scripts/check_ymf262_wasm_sdk.mjs",
+          "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+        },
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-ymf262-wasm-sdk/legacy-sdk-parity.json",
+            "sha256": "f4c8f1cca07a9fef833e445369e3acaffe3f228f916a94830db803f12a71609f",
+            "passed": true,
+            "caseCount": 3456,
+            "kindCounts": {
+              "chip": 3216,
+              "engine": 240
+            },
+            "rawScenariosPerClock": 536,
+            "scenarioConfigurations": 1728,
+            "scenarioRenderExecutions": 7236,
+            "regularReplayConfigurations": 162,
+            "resetReplayExecutions": 324,
+            "scenarioBodyOutputStereoFrames": 42799104,
+            "postScenarioProbeOutputStereoFrames": 1859652,
+            "mainOutputStereoFrames": 44658756,
+            "wrapperOutputStereoFrames": 1154856,
+            "actualPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "playerDeliveredFramesIncludingDiscardedSeekPrefixes": 646698,
+            "totalGeneratedOutputStereoFrames": 46586694,
+            "playerClockRateConfigurationsPerBuild": 9,
+            "seekWindowsPerBuild": 54,
+            "currentInputHashRecordsVerified": 14
+          },
+          {
+            "path": "/private/tmp/tetorica-ymf262-wasm-sdk/deployed-sdk-parity.json",
+            "sha256": "52f8a97516884d07e1a5f80c410bcd2d1dd974fffc0bfa7c79b25d561bf0694e",
+            "passed": true,
+            "caseCount": 3456,
+            "kindCounts": {
+              "chip": 3216,
+              "engine": 240
+            },
+            "rawScenariosPerClock": 536,
+            "scenarioConfigurations": 1728,
+            "scenarioRenderExecutions": 7236,
+            "regularReplayConfigurations": 162,
+            "resetReplayExecutions": 324,
+            "scenarioBodyOutputStereoFrames": 42799104,
+            "postScenarioProbeOutputStereoFrames": 1859652,
+            "mainOutputStereoFrames": 44658756,
+            "wrapperOutputStereoFrames": 1154856,
+            "actualPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "playerDeliveredFramesIncludingDiscardedSeekPrefixes": 646698,
+            "totalGeneratedOutputStereoFrames": 46586694,
+            "playerClockRateConfigurationsPerBuild": 9,
+            "seekWindowsPerBuild": 54,
+            "currentInputHashRecordsVerified": 14
+          }
+        ],
+        "wrapperFrameBreakdownPerBuild": {
+          "initial_phase_query_controls": 2804,
+          "owned_Into_reference": 1402,
+          "partial_and_default_Into_counts": 60,
+          "waveform_modes": 65536,
+          "ignored_OPL2_gate": 4096,
+          "compatibility_alias_and_mute": 2103,
+          "upper_mode_state_retention": 4206,
+          "six_four_op_pairs_four_algorithms_both_partner_mutes": 331200,
+          "one_two_eighteen_voice_bus_folds": 65536,
+          "timer_positives": 170,
+          "unsupported_CSM_with_audible_anchor": 3072,
+          "five_rhythm_mute_groups": 15050,
+          "eighteen_melody_mute_groups": 54180,
+          "ignored_high_mute_bits": 1402,
+          "pending_upper_latch_generation_and_raw_reset": 3150,
+          "raw_and_public_reset_phase": 14021,
+          "retained_mute_after_public_reset": 701,
+          "owned_output_overwrite_and_4096_to_4097_capacity_growth": 4643,
+          "Engine_Into_resampling_and_gain": 4096
+        },
+        "cliEvidenceReviewed": {
+          "path": "/private/tmp/tetorica-ymf262-wasm-sdk/checker-cli-audit.json",
+          "sha256": "a870c47b85a0a77844266793b725b301e13fdf17563efec0daf65377a0f0ab1d",
+          "currentCheckerHashMatches": true,
+          "validHelp": true,
+          "rejectedInvalidForms": 18,
+          "scope": "Reviewed independent CLI agent evidence; did not duplicate CLI execution."
+        },
+        "coverageReview": {
+          "OPL3ModesAndWaveforms": "Eight distinct nonzero outputs with NEW1; four low2-bit waveforms with NEW0; ignored register01 gate. Upper-bank aliasing is tested separately from preserved already-written upper state. Raw upper pending address survives generation and reset with a phase-matched explicit-address reference.",
+          "fourOperatorConnections": "All six physical pairs use four varied nonzero operators; all four algorithm hashes differ for each pair. Both primary and secondary mute the complete voice, then unmute matches a running reference preserving feedback progression.",
+          "outputBusesAndClamp": "A/C and B/D routes, single/double folds and asymmetric stereo are exercised. One additive voice proves unclipped doubling; two aligned voices prove both folded clamp endpoints without negative single-bus clipping; eighteen voices add a saturated mix. The separate temporary probe also confirms two-voice single buses stay below both clamp endpoints.",
+          "IntoOwnershipAndEngine": "Owned and Into outputs match. Offset subarrays, partial/default counts and sentinels exercise caller-buffer bounds; both owned sides survive Into overwrite and actual capacity increase. Engine source instrumentation wraps Into, checks stable scratch identity and forbids the allocating path; source frames are kept separate from output totals.",
+          "timerIrqAndNoCsm": "Actual timer status/IRQ at4/16 native frames, masking/unmasking and stop/clear are checked. Both NEW modes explicitly stay silent with CSM and timer IRQ, then sound with ordinary key-on. OPL2 fixed0x06 and status alias at port2 are not assumed.",
+          "resetAndStateScope": "Public reset recreates the handle and reapplies mute, while raw reset retains free-running phase and address latch.162 selected settings replay on both builds. No native/public snapshot API or serialized-state equivalence is claimed.",
+          "playerSeek": "Actual stereo VgmPlayer parses original two-bank register programs. Nine clock/rate configurations per build have complete reset/replay and54 exact left/right seek windows from zero; checkpoints remain empty.",
+          "frameAccounting": "Recomputed case/replay body and257-frame probe counts agree with both reports. Wrapper frame total independently matches the positive-test call structure. Actual Player Engine output includes render-ahead/seek prefixes; delivered frames and native source frames are not added again.",
+          "documentation": "README, common guide, issue and current SavePoint agree with ten migrated artifact routes, preserved earlier outputs, OPL3 compatibility behavior and no CSM/snapshot. Shared81 tests, four Worklet routes and main-only YMF2624OP/stereo/Keyboard UI are described separately. RemoteCI, publication and physical listening remain unclaimed.",
+          "historicalSavePointTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7"
+        },
+        "documentationInputs": [
+          {
+            "path": "README.md",
+            "sha256": "4f205309a92b83a10d883cc5e9bcdaa4dce314533bddaec5efefb7d475941c60"
+          },
+          {
+            "path": "docs/building_ym2612_wasm.md",
+            "sha256": "97414f34f46a7d4d8144eb28e4ec96511d79c38ffd0c3e20a980996ebfa1ebab"
+          },
+          {
+            "path": "docs/issues/wasm_sdk_ymf262_adoption_01.md",
+            "sha256": "7bc2e8d68a54fb806186c63fab44e6dd71f78affac0e86017b0d0d48e5bbeea3"
+          },
+          {
+            "path": "docs/issues/savePoint.md",
+            "sha256": "e21a812e306494592951f309ee859aadc2d31d1b5b7b40b942ce55ae3767cab2"
+          }
+        ],
+        "pendingRootFinalization": [
+          {
+            "document": "docs/issues/wasm_sdk_ymf262_adoption_01.md",
+            "target": "wasm_sdk_ymf262_adoption_01.json"
+          }
+        ],
+        "materialIssues": [],
+        "limitations": [
+          "This audit is implementation/report consistency review, not physical OPL3 hardware conformance or subjective listening.",
+          "Dedicated checker excludes browser/Worklet scheduling, optional SegaPSG, Native backend and Mixer; independent browser evidence has its own explicit scope.",
+          "Raw serialized state is unavailable; observable continuation, reset/replay and seek replay are compared instead."
+        ]
+      }
+    },
+    "cli": {
+      "path": "/private/tmp/tetorica-ymf262-wasm-sdk/checker-cli-audit.json",
+      "bytes": 3409,
+      "sha256": "a870c47b85a0a77844266793b725b301e13fdf17563efec0daf65377a0f0ab1d",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "scripts/check_ymf262_wasm_sdk.mjs",
+          "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833",
+          "bytes": 47220
+        },
+        "invalidForms": [
+          {
+            "argv": [],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--help",
+              "--out",
+              "/tmp/no"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--wat"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--legacy-dir",
+              "c"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/ymf262_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/ymf262_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/ymf262_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/ymf262_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true
+          }
+        ],
+        "validHelp": true
+      }
+    }
+  },
+  "browserWorklet": {
+    "path": "/private/tmp/tetorica-ymf262-wasm-sdk/playground-summary.json",
+    "bytes": 8526,
+    "sha256": "c03080990b3b531544c34bb3861cc0b7b4883f613ed26aa3ddf3a5d33c4348ce",
+    "record": {
+      "passed": true,
+      "method": "Listening output muted; actual generated WASM in Playground Worklets captured before FX/master. No physical listening judgement.",
+      "totalRoutes": 4,
+      "sources": {
+        "docs/generated/ymf262_wasm.js": {
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "bytes": 14274,
+          "matchesFrozenSdk": true
+        },
+        "docs/generated/ymf262_wasm.wasm": {
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "bytes": 21377,
+          "matchesFrozenSdk": true
+        }
+      },
+      "browsers": [
+        {
+          "engine": "chromium",
+          "path": "/private/tmp/tetorica-ymf262-wasm-sdk/playground-chromium.json",
+          "sha256": "534b1557693b2cab55444e8aa8edcef944caa2ff8be544e08b49291e8245e148",
+          "passed": true,
+          "rows": [
+            {
+              "kind": "ymf262",
+              "role": "extra",
+              "mode": "genesis",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "OPL3 runs in NEW mode with all four-op pairs disabled and both stereo output bits enabled.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "calibration-source",
+                "settings": {
+                  "volume": 0.516785,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "minimum": [
+                  -0.12881775200366974,
+                  -0.12881775200366974
+                ],
+                "maximum": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "rms": [
+                  0.09110231816491791,
+                  0.09110231816491791
+                ],
+                "dc": [
+                  -3.1972624583431752e-06,
+                  -3.1972624583431752e-06
+                ],
+                "acRms": [
+                  0.09110231810881347,
+                  0.09110231810881347
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            },
+            {
+              "kind": "ymf262",
+              "role": "primary",
+              "mode": "ymf262",
+              "accessKind": "ymf262",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "OPL3 runs in NEW mode with all four-op pairs disabled and both stereo output bits enabled.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "ymf262",
+                "settings": {
+                  "volume": 0.516785,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "minimum": [
+                  -0.12881775200366974,
+                  -0.12881775200366974
+                ],
+                "maximum": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "rms": [
+                  0.09110231816491791,
+                  0.09110231816491791
+                ],
+                "dc": [
+                  -3.1972624583431752e-06,
+                  -3.1972624583431752e-06
+                ],
+                "acRms": [
+                  0.09110231810881347,
+                  0.09110231810881347
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            }
+          ]
+        },
+        {
+          "engine": "webkit",
+          "path": "/private/tmp/tetorica-ymf262-wasm-sdk/playground-webkit.json",
+          "sha256": "d24da13237cb7f6a8d9a76ed8f4965ff9a76209ec856ec7cc0a0f4f6af0d4d88",
+          "passed": true,
+          "rows": [
+            {
+              "kind": "ymf262",
+              "role": "extra",
+              "mode": "genesis",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "OPL3 runs in NEW mode with all four-op pairs disabled and both stereo output bits enabled.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "calibration-source",
+                "settings": {
+                  "volume": 0.516785,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "minimum": [
+                  -0.12881775200366974,
+                  -0.12881775200366974
+                ],
+                "maximum": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "rms": [
+                  0.09110219510138184,
+                  0.09110219510138184
+                ],
+                "dc": [
+                  -3.3180112920187335e-06,
+                  -3.3180112920187335e-06
+                ],
+                "acRms": [
+                  0.0911021950409596,
+                  0.0911021950409596
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            },
+            {
+              "kind": "ymf262",
+              "role": "primary",
+              "mode": "ymf262",
+              "accessKind": "ymf262",
+              "frequencyHz": 440,
+              "waveform": "sine",
+              "defaultCalibration": true,
+              "noteInfo": "Physical channel 0, two-operator serial algorithm, only carrier attacks; TL/KSL=0, sine waveform, MUL=1; nearest OPL BLOCK/F-NUM.",
+              "limitations": "OPL3 runs in NEW mode with all four-op pairs disabled and both stereo output bits enabled.",
+              "referencePeak": 1,
+              "decodedReference": null,
+              "mixer": {
+                "id": "ymf262",
+                "settings": {
+                  "volume": 0.516785,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "minimum": [
+                  -0.12881775200366974,
+                  -0.12881775200366974
+                ],
+                "maximum": [
+                  0.12881775200366974,
+                  0.12881775200366974
+                ],
+                "rms": [
+                  0.09110219510138184,
+                  0.09110219510138184
+                ],
+                "dc": [
+                  -3.3180112920187335e-06,
+                  -3.3180112920187335e-06
+                ],
+                "acRms": [
+                  0.0911021950409596,
+                  0.0911021950409596
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              },
+              "measuredAmplitude": 0.12881775200366974,
+              "amplitude": 0.12881775200366974,
+              "expectedAmplitude": 0.12881774536132815,
+              "relativeError": 5.156387095084369e-08
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "browserVoiceKeyboard": {
+    "path": "/private/tmp/tetorica-ymf262-wasm-sdk/voice-summary.json",
+    "bytes": 2304,
+    "sha256": "dbc8d4fb6a9d8ed758d64e349cd5e773bbcd20e1964ddc82112f35f01e24e21d",
+    "record": {
+      "passed": true,
+      "exitCode": 0,
+      "test": {
+        "path": "scripts/check_playground_opl_browser.cjs",
+        "sha256": "0563279e103e9e7c5dcafc20c88afac5afd1c7b3340bb1a37aea7c1df283296b",
+        "unchangedFromHead": true
+      },
+      "harness": {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/run-voice-muted.cjs",
+        "sha256": "34ee72d350de3577c2220ca2f4e29c9ad9106f2ff4523c2d7d5e4c9d416d4371",
+        "changes": [
+          "In-memory final output routed through existing silent zero-gain node; postmaster meters preserved.",
+          "Execution loop restricted to main; existing --chip=ymf262 selects only OPL3."
+        ],
+        "originalApplicationAndTestFilesUnchanged": true
+      },
+      "log": {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/voice-muted.log",
+        "sha256": "d5f26b75cbbe6aa8269ba755a56f1f4aee026c72dd76018a0763924a3de7c2b9"
+      },
+      "testedAssets": {
+        "docs/generated/ymf262_wasm.js": {
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "bytes": 14274,
+          "matchesFrozenSdk": true
+        },
+        "docs/generated/ymf262_wasm.wasm": {
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "bytes": 21377,
+          "matchesFrozenSdk": true
+        }
+      },
+      "listeningOutputMuted": true,
+      "routes": [
+        {
+          "browser": "chromium",
+          "chip": "ymf262",
+          "passed": true,
+          "execution": [
+            "main"
+          ],
+          "panelPitch": 439.9968008144574,
+          "keyboard": true,
+          "fourOp": true
+        },
+        {
+          "browser": "webkit",
+          "chip": "ymf262",
+          "passed": true,
+          "execution": [
+            "main"
+          ],
+          "panelPitch": 439.9656098927863,
+          "keyboard": true,
+          "fourOp": true
+        }
+      ],
+      "scope": "Existing generic OPL voice / Keyboard UI narrowed to YMF262 OPL3 in Chromium and WebKit main mode; no OPL1, OPL2 or Worker coverage claimed.",
+      "assertions": [
+        "DOS PC primary YMF262 only, lazy audio and 18 physical channels",
+        "Sine preset, raw frequency and partial carrier level readback",
+        "Held real PCM at approximately440Hz; release silence, four-operator pair and stereo isolation",
+        "Main program notes and PC/Guitar key note-on/off share device",
+        "Stop clears all melodic gates without residual output",
+        "No missing assets or browser page errors"
+      ]
+    }
+  },
+  "verification": {
+    "python": {
+      "command": "python3 -m unittest discover -s test -p 'test_*sdk*.py' -v",
+      "passed": 55,
+      "log": {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/python-sdk-tests.log",
+        "bytes": 10057,
+        "sha256": "8efda64b639bf2a11b408a5dee30ec6ffeeb3662f5ba06e9c9064e667fa2f7f8"
+      }
+    },
+    "existingOplTests": {
+      "command": "node --test web/opl.test.mjs web/opl_synth.test.mjs web/playground_opl_inspector.test.mjs test/opl-export.test.mjs docs/vgm_analyzer/opl_notes.test.mjs",
+      "passed": 81,
+      "log": {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/opl-tests.log",
+        "bytes": 6980,
+        "sha256": "94a94e070aad9e6561aad72296b44ec49ea9b2aa3f0518b1cd79f34d351923b8"
+      },
+      "scope": "Shared OPL1/2/3 unit/render/parser/Synth/Inspector/export/operator display regressions; no claim of all OPL browser UI routes."
+    },
+    "npm": {
+      "command": "node scripts/check_fm2612_package.mjs",
+      "passed": true,
+      "published": false,
+      "packageVersion": "0.2.28",
+      "files": 803,
+      "wasmEngines": 26,
+      "localSynthReferences": 942,
+      "compressedBytes": 1590294,
+      "unpackedBytes": 5932991,
+      "typeChecks": [
+        "NodeNext",
+        "Bundler",
+        "positive and negative declarations",
+        "browser without Node ambient types"
+      ],
+      "installedYmf262AudiblePcm": true,
+      "log": {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/npm-check.log",
+        "bytes": 1632,
+        "sha256": "220bf88025628e17b36ef777ef51cb7d773fc046a8698fda7ca21587ad59f4f4"
+      }
+    },
+    "analyzerPackage": {
+      "command": "sh scripts/package_itch_vgm_analyzer.sh ymf262-sdk",
+      "passed": true,
+      "localReferences": 753,
+      "log": {
+        "path": "/private/tmp/tetorica-ymf262-wasm-sdk/analyzer-package.log",
+        "bytes": 20568,
+        "sha256": "e6ff82888a7a2916d0ee376d1fef83664858a190bba036840adc174b40abf1be"
+      },
+      "zip": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_ymf262-sdk_itch_vgm_analyzer.zip",
+        "sha256": "16d63e98d40b11bad4b533519fb82b99371ad17b20df2f1ad956d2dd9a485621",
+        "bytes": 1751756,
+        "fileCount": 370,
+        "assets": [
+          {
+            "path": "generated/ymf262_wasm.js",
+            "bytes": 14274,
+            "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+            "testedDefaultMatches": true
+          },
+          {
+            "path": "generated/ymf262_wasm.wasm",
+            "bytes": 21377,
+            "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+            "testedDefaultMatches": true
+          }
+        ]
+      }
+    },
+    "calibration": {
+      "refreshRequired": false,
+      "numericMixerDefaultsChanged": false,
+      "reason": "Active calibration source guards do not track YMF262 generated assets; source audit records all4 guards. Both generated Mixer checks pass; old level records preserved."
+    }
+  },
+  "integrity": {
+    "path": "/private/tmp/tetorica-ymf262-wasm-sdk/final-integrity-audit.json",
+    "bytes": 10405,
+    "sha256": "6a9396bed25341947c6062384a34d414ec3aa78c51ac3a1c2270ae622b4aa119",
+    "record": {
+      "passed": true,
+      "baseCommit": "b20bd5c2fb398b5dc50c5c343f724f5f71cde51d",
+      "previousArtifactsPreserved": [
+        {
+          "id": "okim6258",
+          "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2151",
+          "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2203",
+          "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2413",
+          "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2608",
+          "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2610b",
+          "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2612",
+          "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3526",
+          "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3812",
+          "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+          "recordUnchanged": true
+        }
+      ],
+      "previousGeneratedFilesPreserved": [
+        {
+          "path": "docs/generated/ym2612_wasm.js",
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2612_wasm.wasm",
+          "bytes": 40357,
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.js",
+          "bytes": 35153,
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.wasm",
+          "bytes": 45306,
+          "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.js",
+          "bytes": 36356,
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.wasm",
+          "bytes": 53893,
+          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.js",
+          "bytes": 36296,
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.wasm",
+          "bytes": 51172,
+          "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.js",
+          "bytes": 15584,
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.wasm",
+          "bytes": 31322,
+          "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.js",
+          "bytes": 14797,
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.wasm",
+          "bytes": 20173,
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.js",
+          "bytes": 32911,
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.wasm",
+          "bytes": 33469,
+          "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.js",
+          "bytes": 14274,
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.wasm",
+          "bytes": 18894,
+          "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.js",
+          "bytes": 14274,
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.wasm",
+          "bytes": 19058,
+          "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6",
+          "unchanged": true
+        }
+      ],
+      "unchangedPublicMixerCalibrationAndPinFiles": [
+        {
+          "path": "third_party/soundchip-sdk.json",
+          "sha256": "f195c3929eb1895235e431f496f90314d7419a260a504361a352f080e87a6500",
+          "bytes": 407,
+          "unchanged": true
+        },
+        {
+          "path": "web/ymf262.js",
+          "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3",
+          "bytes": 10280,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/ymf262.js",
+          "sha256": "931f3eaacb609acb0e6ebd10f5cfcb8149e2afc4a137fa8f84a15f775fc218be",
+          "bytes": 10318,
+          "unchanged": true
+        },
+        {
+          "path": "web/ymf262audioengine.js",
+          "sha256": "e89a1e1630985db2b2a565a2572a323b8b1ec682cade69645a7ad00c0473dac9",
+          "bytes": 7545,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/ymf262audioengine.js",
+          "sha256": "4526e911734ae315b7601f2f5edcf6b7548ee817b5ee45a4269664e12e88c1a5",
+          "bytes": 7649,
+          "unchanged": true
+        },
+        {
+          "path": "web/opl_synth.js",
+          "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48",
+          "bytes": 20452,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/opl_synth.js",
+          "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48",
+          "bytes": 20452,
+          "unchanged": true
+        },
+        {
+          "path": "web/soundchip_mixer_presets.js",
+          "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+          "bytes": 2967,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/soundchip_mixer_presets.js",
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+          "bytes": 2986,
+          "unchanged": true
+        },
+        {
+          "path": "docs/vgm_analyzer/playback_mixer.js",
+          "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+          "bytes": 4433,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/calibrate_playground_chip_levels.cjs",
+          "sha256": "b90d85dfdbdb620b1a1512c13029aff1892cb1e0e7d0d0b4f65b43ad211bac97",
+          "bytes": 12107,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/check_playground_opl_browser.cjs",
+          "sha256": "0563279e103e9e7c5dcafc20c88afac5afd1c7b3340bb1a37aea7c1df283296b",
+          "bytes": 9395,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_01.json",
+          "sha256": "d113077b099a2cf45de97bc5d00f4d61e2d25501c3c9ec227ef4908fdf020876",
+          "bytes": 34163,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_02.json",
+          "sha256": "ad4acdb5bd6be083f995754651956e2285e181dcd3eea09a9341bb74543eb37a",
+          "bytes": 35083,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_mixer_levels_validation.json",
+          "sha256": "07227a8aa9b0dbe5aedd33a6028f4db408dc2f60352fae50015f4a3309cd4c47",
+          "bytes": 10372,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_nes_levels_01.json",
+          "sha256": "1cca711e8b58417d7759a48f6b18b2c298224f0497a6078e013469c71378d3af",
+          "bytes": 24645,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_01.json",
+          "sha256": "6a234c9833d6889e704b436f48b50bba75d18ccf2760272df37f869ab6076ab3",
+          "bytes": 20391,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_02.json",
+          "sha256": "0ead909b24b29daa965d0ecc128b211c4d9f44c8158630545c38f8aa6f9f28ef",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_03.json",
+          "sha256": "bae758a548af196859753834b88896308d0d442341e4ae6819dbd7e492f74917",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_04.json",
+          "sha256": "f8f31e9295bd41ac6ed840c5e01de658bba7a6945f4af73373a05357d4cfc42d",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/playground_chip_levels_01.json",
+          "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234",
+          "bytes": 248714,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/soundchip_psg_levels_01.json",
+          "sha256": "2b92f8286b9dee25994972b146f9ee2c145df883434d5971d2a01f620b39d2f6",
+          "bytes": 35365,
+          "unchanged": true
+        }
+      ],
+      "allOldLevelRecordsPreserved": 11,
+      "defaultOutputs": [
+        {
+          "path": "docs/generated/ymf262_wasm.js",
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true
+        },
+        {
+          "path": "docs/generated/ymf262_wasm.wasm",
+          "bytes": 21377,
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true
+        }
+      ],
+      "sdkVerification": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)",
+      "protectedSavePointTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7",
+      "externalRepositories": {
+        "w/tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "clean": true
+        },
+        "w/tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "clean": true
+        }
+      }
+    }
+  },
+  "remaining": {
+    "migratedSdkWasmArtifacts": 10,
+    "remainingSdkDispatcherArtifacts": 17,
+    "nextCandidate": "Y8950 MSX-AUDIO WASM",
+    "remoteCiRun": false,
+    "npmOrApplicationPublished": false,
+    "physicalListeningTested": false,
+    "sdkOrTauriRepositoryEdited": false,
+    "existingOkim6258CatalogNote": "Individual chip_state.h catalog omission remains a future SDK update candidate, covered by full379-file manifest verification. YMF262 catalog covers all11 actual physical dependencies."
+  }
+}
