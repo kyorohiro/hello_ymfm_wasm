@@ -1,15 +1,12 @@
 #!/bin/sh
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
 OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
-cd "$ROOT_DIR"
-em++ -std=c++14 -O2 -Isrc -Ithird_party/mame-okim6258 \
- wasm/okim6258_wasm.cpp third_party/mame-okim6258/okim6258.cpp \
- -sMODULARIZE=1 -sEXPORT_ES6=1 -sINCOMING_MODULE_JS_API='["wasmBinary"]' \
- -sENVIRONMENT=web,worker,node,shell -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ALL=1 \
- -sEXPORTED_FUNCTIONS='["_okim6258_create","_okim6258_destroy","_okim6258_reset","_okim6258_write","_okim6258_generate","_okim6258_save_state","_okim6258_load_state","_malloc","_free"]' \
- -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' -o "$OUT_DIR/okim6258_wasm.js"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
 
-# Keep generated glue free of whitespace-only diff noise.
-perl -pi -e 's/[ \t]+$//' "$OUT_DIR/okim6258_wasm.js"
+# Keep the existing decoder, register/state and synchronous PCM ABI.
+# The immutable recipe also records compiler/input/output hashes.
+exec sh "$SDK_DIR/scripts/build-wasm.sh" okim6258 "$OUT_DIR"

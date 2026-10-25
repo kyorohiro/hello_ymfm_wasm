@@ -1,0 +1,2122 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-25",
+  "scope": "OKIM6258 WASM fixed SDK build; immutable source/pin, public JS APIs, decoder behavior and numeric Mixer defaults retained. All three generated JS/WASM pairs are byte-identical.",
+  "startingPoint": {
+    "sourceCommitBeforeChange": "d21e39073857aae8a7c86f4a2cd8a65aa424e8d5",
+    "startingStatus": "",
+    "legacyRecipeSha256": "c54225f954b677d529bfce565e58a55d629465773ac558aff5389b0c3bc301df",
+    "sdkPin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.1",
+      "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+      "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+      "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+      "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+      "fileCount": 379
+    }
+  },
+  "sourceAudit": {
+    "path": "/private/tmp/tetorica-okim6258-wasm-sdk/source-audit.json",
+    "sha256": "444044c87074a12cdb0302439402cbad34bfa4e8913199568ffc87b93edbce3b",
+    "record": {
+      "readOnly": true,
+      "chip": "okim6258",
+      "pin": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.1",
+        "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+        "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+        "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+        "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+        "fileCount": 379
+      },
+      "manifestMatchesPin": true,
+      "legacyRecipeSource": "git show HEAD:scripts/build_okim6258_wasm.sh",
+      "allSourceLicenseComparisonsEqual": true,
+      "sourceLicenseComparisonCount": 8,
+      "sourceComparisons": [
+        {
+          "local": "src/chip_state.h",
+          "sdk": "vendor/ymfm/chip_state.h",
+          "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-okim6258/LICENSE",
+          "sdk": "vendor/mame-okim6258/LICENSE",
+          "sha256": "ee01db1519dfa17005dd1ef3a1baf7ff77395a08a7299406be4bbfdba1103973",
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-okim6258/README.md",
+          "sdk": "vendor/mame-okim6258/README.md",
+          "sha256": "290ac7774e297daacc17c25c0f15b70eea7b9b8db594468023410e7795f73df0",
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-okim6258/okim6258.cpp",
+          "sdk": "vendor/mame-okim6258/okim6258.cpp",
+          "sha256": "6ae2d4ff48e7d8a985436ba48e53cd92aa9b3edb8f1003a97bf16616506020a0",
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-okim6258/okim6258.h",
+          "sdk": "vendor/mame-okim6258/okim6258.h",
+          "sha256": "99cb4110730a953a932c26c3e1a56019132eade49bfab8bfade9f4fbd242a172",
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-okim6258/upstream/okim6258.cpp",
+          "sdk": "vendor/mame-okim6258/upstream/okim6258.cpp",
+          "sha256": "101b08bc609be97d6d051c2724ca6a2dfd0b71b533ba0094e8d1668fe7670f63",
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-okim6258/upstream/okim6258.h",
+          "sdk": "vendor/mame-okim6258/upstream/okim6258.h",
+          "sha256": "f971312d5699aac54755365e9f699353ee86ec5714cf79ebfc7677279f7a9228",
+          "bytesEqual": true
+        },
+        {
+          "local": "wasm/okim6258_wasm.cpp",
+          "sdk": "wasm/okim6258_wasm.cpp",
+          "sha256": "0110baff438a0fb270b7ef0426c658d560967968bc8fa16008f1d79807f31815",
+          "bytesEqual": true
+        }
+      ],
+      "recipes": {
+        "legacy": {
+          "sha256": "c54225f954b677d529bfce565e58a55d629465773ac558aff5389b0c3bc301df",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-std=c++14",
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API='[\"wasmBinary\"]'",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS='[\"_okim6258_create\",\"_okim6258_destroy\",\"_okim6258_reset\",\"_okim6258_write\",\"_okim6258_generate\",\"_okim6258_save_state\",\"_okim6258_load_state\",\"_malloc\",\"_free\"]'",
+            "-sEXPORTED_RUNTIME_METHODS='[\"cwrap\",\"HEAPF32\"]'"
+          ],
+          "exports": [
+            "_okim6258_create",
+            "_okim6258_destroy",
+            "_okim6258_reset",
+            "_okim6258_write",
+            "_okim6258_generate",
+            "_okim6258_save_state",
+            "_okim6258_load_state",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32"
+          ],
+          "perlCleanup": true
+        },
+        "sdk": {
+          "sha256": "a66e21b3a33ad04d445447a3b68ba1c08f08d2b7826a8514db0b4e8e1a610b05",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-std=c++14",
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API='[\"wasmBinary\"]'",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS='[\"_okim6258_create\",\"_okim6258_destroy\",\"_okim6258_reset\",\"_okim6258_write\",\"_okim6258_generate\",\"_okim6258_save_state\",\"_okim6258_load_state\",\"_malloc\",\"_free\"]'",
+            "-sEXPORTED_RUNTIME_METHODS='[\"cwrap\",\"HEAPF32\"]'"
+          ],
+          "exports": [
+            "_okim6258_create",
+            "_okim6258_destroy",
+            "_okim6258_reset",
+            "_okim6258_write",
+            "_okim6258_generate",
+            "_okim6258_save_state",
+            "_okim6258_load_state",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32"
+          ],
+          "perlCleanup": true
+        }
+      },
+      "flagsAndExportsExactlyEqual": true,
+      "preprocessorMethod": "clang++ -MM only; no compilation/object output",
+      "translationUnitCount": 2,
+      "physicalDependencyCount": 4,
+      "normalizedDependencySetsExactlyEqual": true,
+      "dependencies": {
+        "legacy": [
+          "src/chip_state.h",
+          "third_party/mame-okim6258/okim6258.cpp",
+          "third_party/mame-okim6258/okim6258.h",
+          "wasm/okim6258_wasm.cpp"
+        ],
+        "sdk": [
+          "vendor/mame-okim6258/okim6258.cpp",
+          "vendor/mame-okim6258/okim6258.h",
+          "vendor/ymfm/chip_state.h",
+          "wasm/okim6258_wasm.cpp"
+        ]
+      },
+      "activeCalibrationGuards": [
+        {
+          "report": "docs/issues/analyzer_nes_levels_01.json",
+          "sourceCount": 11,
+          "okim6258AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/analyzer_extra_levels_02.json",
+          "sourceCount": 23,
+          "okim6258AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/analyzer_psg_levels_04.json",
+          "sourceCount": 32,
+          "okim6258AssetsTracked": []
+        },
+        {
+          "report": "docs/issues/soundchip_psg_levels_01.json",
+          "sourceCount": 12,
+          "okim6258AssetsTracked": []
+        }
+      ],
+      "calibrationRefreshRequiredForOnlyOkim6258Assets": [],
+      "wholeBundleIntegrityCheck": {
+        "command": "python3 scripts/import_soundchip_sdk.py --check",
+        "passed": true,
+        "output": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)"
+      },
+      "license": "The compiled standalone OKIM6258 adaptation and preserved MAME reference sources retain Barry Rodewald BSD-3-Clause. Tetorica wrapper/state integration retains SDK licensing; no GPL/LGPL decoder enters this recipe.",
+      "recipeDifferences": [
+        "SDK cd ROOT before default output resolution",
+        "SDK EMXX override (default em++)",
+        "src -> vendor/ymfm and third_party/mame-okim6258 -> vendor/mame-okim6258",
+        "Application shim must pass absolute output path; old default docs/generated vs SDK dist/wasm"
+      ],
+      "nativeTableInitAdaptation": {
+        "appliedToWasm": false,
+        "originalConstructorRetained": true,
+        "reason": "Both compared WASM recipes compile the exact original constructor calling compute_tables(); Native-only constructor thread-safe initialization is not injected."
+      },
+      "externalRepositories": {
+        "tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "worktreeClean": true
+        },
+        "tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "worktreeClean": true
+        }
+      },
+      "scope": "Read-only source/recipe/dependency audit; no repository edits, WASM compilation or source pin changes.",
+      "catalogDependencyCoverage": {
+        "catalog": "catalog/chips.json",
+        "chip": "okim6258",
+        "declaredSourceFiles": [
+          "native/include/tetorica/okim6258.hpp",
+          "native/reference/tauri/native_genesis_extra_okim6258.cpp",
+          "native/reference/tauri/native_genesis_extra_okim6258.h",
+          "vendor/mame-okim6258/okim6258.cpp",
+          "vendor/mame-okim6258/okim6258.h",
+          "vendor/mame-okim6258/upstream/okim6258.cpp",
+          "vendor/mame-okim6258/upstream/okim6258.h",
+          "wasm/okim6258_wasm.cpp"
+        ],
+        "actualCompiledDependencies": [
+          "vendor/mame-okim6258/okim6258.cpp",
+          "vendor/mame-okim6258/okim6258.h",
+          "vendor/ymfm/chip_state.h",
+          "wasm/okim6258_wasm.cpp"
+        ],
+        "missingActualDependencies": [
+          {
+            "path": "vendor/ymfm/chip_state.h",
+            "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+            "bytes": 521,
+            "releaseManifestVerified": true
+          }
+        ],
+        "note": "The OKIM6258 chip catalog omits chip_state.h from sourceFiles. The fixed full-bundle RELEASE-MANIFEST.json and offline379-file importer verification cover it. Per-artifact build-info input hashes follow catalog coverage, so do not claim they independently cover this transitive header. The pinned SDK is not edited in this migration."
+      },
+      "calibrationGuardChecks": [
+        {
+          "command": "node scripts/generate_analyzer_mixer_defaults.mjs --check",
+          "passed": true
+        },
+        {
+          "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+          "passed": true
+        }
+      ]
+    }
+  },
+  "buildReceipt": {
+    "path": "docs/generated/build-info.json",
+    "sha256": "54224df21770e871fd67b285fcd182c0b72a5a3cbd35d5dbe0169d630198a27b",
+    "artifact": {
+      "id": "okim6258",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "02878a241917a4d4365771ba4f3b63f4d4ab035c32aed46249321f86bad33eb6",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_okim6258_wasm.sh",
+          "sha256": "a66e21b3a33ad04d445447a3b68ba1c08f08d2b7826a8514db0b4e8e1a610b05",
+          "size": 823
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-okim6258/okim6258.cpp",
+          "sha256": "6ae2d4ff48e7d8a985436ba48e53cd92aa9b3edb8f1003a97bf16616506020a0",
+          "size": 3508
+        },
+        {
+          "path": "vendor/mame-okim6258/okim6258.h",
+          "sha256": "99cb4110730a953a932c26c3e1a56019132eade49bfab8bfade9f4fbd242a172",
+          "size": 1400
+        },
+        {
+          "path": "vendor/mame-okim6258/upstream/okim6258.cpp",
+          "sha256": "101b08bc609be97d6d051c2724ca6a2dfd0b71b533ba0094e8d1668fe7670f63",
+          "size": 7860
+        },
+        {
+          "path": "vendor/mame-okim6258/upstream/okim6258.h",
+          "sha256": "f971312d5699aac54755365e9f699353ee86ec5714cf79ebfc7677279f7a9228",
+          "size": 2212
+        },
+        {
+          "path": "wasm/okim6258_wasm.cpp",
+          "sha256": "0110baff438a0fb270b7ef0426c658d560967968bc8fa16008f1d79807f31815",
+          "size": 837
+        }
+      ],
+      "outputs": [
+        {
+          "path": "okim6258_wasm.js",
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "size": 14797
+        },
+        {
+          "path": "okim6258_wasm.wasm",
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "size": 20173
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    "previousReceiptSha256": "45d13a2c86922212a91226abfc01d523f771e6b701d9f5e2a01ad3e0917f8d70",
+    "preservedArtifacts": [
+      {
+        "id": "ym2151",
+        "canonicalRecordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968"
+      },
+      {
+        "id": "ym2203",
+        "canonicalRecordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf"
+      },
+      {
+        "id": "ym2608",
+        "canonicalRecordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62"
+      },
+      {
+        "id": "ym2610b",
+        "canonicalRecordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569"
+      },
+      {
+        "id": "ym2612",
+        "canonicalRecordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996"
+      }
+    ],
+    "scopeNote": "Per-artifact inputs follow the immutable SDK catalog, which omits actual dependency vendor/ymfm/chip_state.h for this target. Full379-file verification, explicit tamper rejection, and sourceAudit with the physical dependency/hash cover that header; SDK was not edited."
+  },
+  "frozenBuilds": {
+    "deployed": {
+      "js": {
+        "bytes": 14797,
+        "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+      },
+      "wasm": {
+        "bytes": 20173,
+        "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+      }
+    },
+    "legacy": {
+      "js": {
+        "bytes": 14797,
+        "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+      },
+      "wasm": {
+        "bytes": 20173,
+        "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+      }
+    },
+    "sdk": {
+      "js": {
+        "bytes": 14797,
+        "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+      },
+      "wasm": {
+        "bytes": 20173,
+        "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+      }
+    }
+  },
+  "allThreeGeneratedPairsByteIdentical": true,
+  "runtimeComparisons": [
+    {
+      "path": "/private/tmp/tetorica-okim6258-wasm-sdk/legacy-sdk-parity.json",
+      "sha256": "64bc3314953256b4b0cd42cb887bf59bd66bc2cbdaec78b466687c8ed68d267f",
+      "passed": true,
+      "inputs": {
+        "legacy": {
+          "directory": "/private/tmp/tetorica-okim6258-wasm-sdk/legacy",
+          "javascript": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/legacy/okim6258_wasm.js",
+            "bytes": 14797,
+            "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/legacy/okim6258_wasm.wasm",
+            "bytes": 20173,
+            "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "okim6258_create",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_generate",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_reset",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_write",
+              "kind": "function"
+            }
+          ]
+        },
+        "sdk": {
+          "directory": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk",
+          "javascript": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk/okim6258_wasm.js",
+            "bytes": 14797,
+            "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk/okim6258_wasm.wasm",
+            "bytes": 20173,
+            "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "okim6258_create",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_generate",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_reset",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_write",
+              "kind": "function"
+            }
+          ],
+          "buildInfo": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk/build-info.json",
+            "bytes": 2573,
+            "sha256": "6aa44687b31594c0aa82780cea7f61c7802794715571cdac60820b005480ac13"
+          }
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+          "bytes": 36653,
+          "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b"
+        },
+        "wrappers": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/okim6258audioengine.js",
+            "bytes": 8160,
+            "sha256": "8127100494801bdf63a5f3b454f7d2a07029eaeead69da8bd1c369ddad9b1d2b"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/okim6258audioengine.js",
+            "bytes": 8198,
+            "sha256": "41756fc9949a62982f251972ce7be73020274b0b7bb56d86d0c09c94567c162c"
+          }
+        ],
+        "stateLayoutSources": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/mame-okim6258/okim6258.h",
+            "bytes": 1400,
+            "sha256": "99cb4110730a953a932c26c3e1a56019132eade49bfab8bfade9f4fbd242a172"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/mame-okim6258/okim6258.cpp",
+            "bytes": 3508,
+            "sha256": "6ae2d4ff48e7d8a985436ba48e53cd92aa9b3edb8f1003a97bf16616506020a0"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/src/chip_state.h",
+            "bytes": 521,
+            "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+          }
+        ]
+      },
+      "summary": {
+        "comparisons": 2048,
+        "byKind": {
+          "raw": 1728,
+          "engine": 320
+        },
+        "rawScenarios": 12,
+        "engineScenarios": 5,
+        "scenarioConfigurations": 1024,
+        "renderExecutions": 4300,
+        "totalOutputStereoFrames": 23949880,
+        "wrapperSelfCheckOutputStereoFrames": 1520,
+        "preRestorePerturbationOutputStereoFrames": 2108,
+        "totalGeneratedOutputStereoFrames": 23953508,
+        "checkpointLayoutsSaved": 68,
+        "checkpointConfigurationsReplayed": 34,
+        "ownStateLoads": 68,
+        "ownRawStateLoads": 48,
+        "ownPublicStateLoads": 20,
+        "crossStateLoads": 68,
+        "resetContinuations": 68,
+        "maximumDifference": 0
+      },
+      "casesCanonicalSha256": "a42f0bd346c6879e46545148975b4356f1aa956929789978daf80d6db66e9e02"
+    },
+    {
+      "path": "/private/tmp/tetorica-okim6258-wasm-sdk/deployed-sdk-parity.json",
+      "sha256": "f7c8b19da0bb819a81d22281123d02c62517e8a74304de0446bb9b4088d562db",
+      "passed": true,
+      "inputs": {
+        "legacy": {
+          "directory": "/private/tmp/tetorica-okim6258-wasm-sdk/deployed",
+          "javascript": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/deployed/okim6258_wasm.js",
+            "bytes": 14797,
+            "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/deployed/okim6258_wasm.wasm",
+            "bytes": 20173,
+            "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "okim6258_create",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_generate",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_reset",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_write",
+              "kind": "function"
+            }
+          ]
+        },
+        "sdk": {
+          "directory": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk",
+          "javascript": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk/okim6258_wasm.js",
+            "bytes": 14797,
+            "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+          },
+          "wasm": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk/okim6258_wasm.wasm",
+            "bytes": 20173,
+            "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+          },
+          "exports": [
+            {
+              "name": "__indirect_function_table",
+              "kind": "table"
+            },
+            {
+              "name": "__wasm_call_ctors",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_alloc",
+              "kind": "function"
+            },
+            {
+              "name": "_emscripten_stack_restore",
+              "kind": "function"
+            },
+            {
+              "name": "emscripten_stack_get_current",
+              "kind": "function"
+            },
+            {
+              "name": "free",
+              "kind": "function"
+            },
+            {
+              "name": "malloc",
+              "kind": "function"
+            },
+            {
+              "name": "memory",
+              "kind": "memory"
+            },
+            {
+              "name": "okim6258_create",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_destroy",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_generate",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_load_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_reset",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_save_state",
+              "kind": "function"
+            },
+            {
+              "name": "okim6258_write",
+              "kind": "function"
+            }
+          ],
+          "buildInfo": {
+            "path": "/private/tmp/tetorica-okim6258-wasm-sdk/sdk/build-info.json",
+            "bytes": 2573,
+            "sha256": "6aa44687b31594c0aa82780cea7f61c7802794715571cdac60820b005480ac13"
+          }
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+          "bytes": 36653,
+          "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b"
+        },
+        "wrappers": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/okim6258audioengine.js",
+            "bytes": 8160,
+            "sha256": "8127100494801bdf63a5f3b454f7d2a07029eaeead69da8bd1c369ddad9b1d2b"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/okim6258audioengine.js",
+            "bytes": 8198,
+            "sha256": "41756fc9949a62982f251972ce7be73020274b0b7bb56d86d0c09c94567c162c"
+          }
+        ],
+        "stateLayoutSources": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/mame-okim6258/okim6258.h",
+            "bytes": 1400,
+            "sha256": "99cb4110730a953a932c26c3e1a56019132eade49bfab8bfade9f4fbd242a172"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/mame-okim6258/okim6258.cpp",
+            "bytes": 3508,
+            "sha256": "6ae2d4ff48e7d8a985436ba48e53cd92aa9b3edb8f1003a97bf16616506020a0"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/src/chip_state.h",
+            "bytes": 521,
+            "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+          }
+        ]
+      },
+      "summary": {
+        "comparisons": 2048,
+        "byKind": {
+          "raw": 1728,
+          "engine": 320
+        },
+        "rawScenarios": 12,
+        "engineScenarios": 5,
+        "scenarioConfigurations": 1024,
+        "renderExecutions": 4300,
+        "totalOutputStereoFrames": 23949880,
+        "wrapperSelfCheckOutputStereoFrames": 1520,
+        "preRestorePerturbationOutputStereoFrames": 2108,
+        "totalGeneratedOutputStereoFrames": 23953508,
+        "checkpointLayoutsSaved": 68,
+        "checkpointConfigurationsReplayed": 34,
+        "ownStateLoads": 68,
+        "ownRawStateLoads": 48,
+        "ownPublicStateLoads": 20,
+        "crossStateLoads": 68,
+        "resetContinuations": 68,
+        "maximumDifference": 0
+      },
+      "casesCanonicalSha256": "a42f0bd346c6879e46545148975b4356f1aa956929789978daf80d6db66e9e02"
+    }
+  ],
+  "pairedCaseArraysExactlyEqual": true,
+  "pairedWrapperChecksExactlyEqual": true,
+  "commonRuntimeCoverage": {
+    "clocks": [
+      4000000,
+      8192000,
+      24000000
+    ],
+    "flags": [
+      4,
+      5,
+      6,
+      7,
+      12,
+      13,
+      14,
+      15
+    ],
+    "rates": [
+      8000,
+      44100,
+      96000
+    ],
+    "layouts": {
+      "regular": [
+        256
+      ],
+      "irregular": [
+        1,
+        17,
+        127,
+        509,
+        3,
+        1024,
+        257,
+        4096
+      ]
+    },
+    "checkpointFrame": 2345,
+    "frameCountScope": "Both builds at their configured output rates: complete raw/Engine scenario renders and own/cross/reset continuations. Bounded wrapper self-checks and 31-frame pre-restore perturbations are separately counted; all three contribute to totalGeneratedOutputStereoFrames. Setup writes and zero-frame calls render no frames.",
+    "setup": "Both builds and both API paths receive eight register1 zero writes followed by the actual reset API before each timeline. This only canonicalizes otherwise uninitialized inactive FIFO storage. Active constructor state and audible output are independently checked unchanged; reset is not claimed to clear stored FIFO bytes.",
+    "limits": [
+      "Raw C ABI and AudioEngine both directly generate at the configured output rate. Clock/divider changes alter nibble consumption; the native fractional phase and FIFO continue across chunk boundaries.",
+      "Only supported 4-bit ADPCM is compared. Flags select all divider codes and 10/12-bit output widths. Unsupported 3-bit creation is rejected; no new read/status/IRQ API is introduced.",
+      "States are same-build in-process field bytes. Raw bidirectional restore remains within identical constructor clock/flags/output-rate settings; opaque snapshots remain same-owner and require unchanged JS rate/volume/mute settings.",
+      "Both layouts save selected checkpoints; continuations replay only the regular layout. State observations occur at chunk boundaries and do not mutate playback.",
+      "No Worklet scheduling, browser, Native backend, attached multi-chip mixing, physical device or listening judgement is tested."
+    ],
+    "syntheticInput": {
+      "bytes": 257,
+      "sha256": "32cbd87d3abd08228c9a85aaf3ae0eae502db1467765b61d083cab5c23684a4a"
+    },
+    "scenarioNames": [
+      "FIFO/overflow-drop-new/underflow-hold/later-refill",
+      "FIFO/partial-consumption/queue-wrap/late-write",
+      "clock/divider/bounds/fast-multiple-nibbles/slow-holds",
+      "clock/pending-byte-latch/commit-register11",
+      "clock/zero-hold/full-commit/top2-bit-mask",
+      "control/prequeued-start/playing-rewrite/stop/restart-priority",
+      "divider/all-codes/upper-bits/phase-preserved",
+      "engine/mute/master-volume/clamping/predictor-retained",
+      "pan/four-gates/high-bits-masked",
+      "register/byte-truncation/ignored-addresses",
+      "reset/clock-divider-pan-FIFO/predictor/reprogram",
+      "reset/stopped-zero-output/queued-input-discard",
+      "stream/all-nibbles/low-high/fractional-output-phase"
+    ],
+    "checkpointConfigurations": [
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "stream/all-nibbles/low-high/fractional-output-phase"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "control/prequeued-start/playing-rewrite/stop/restart-priority"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "FIFO/overflow-drop-new/underflow-hold/later-refill"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "FIFO/partial-consumption/queue-wrap/late-write"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "pan/four-gates/high-bits-masked"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "clock/pending-byte-latch/commit-register11"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "divider/all-codes/upper-bits/phase-preserved"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "clock/zero-hold/full-commit/top2-bit-mask"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "reset/clock-divider-pan-FIFO/predictor/reprogram"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "register/byte-truncation/ignored-addresses"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "clock/divider/bounds/fast-multiple-nibbles/slow-holds"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 44100,
+        "name": "reset/stopped-zero-output/queued-input-discard"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "stream/all-nibbles/low-high/fractional-output-phase"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "control/prequeued-start/playing-rewrite/stop/restart-priority"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "FIFO/overflow-drop-new/underflow-hold/later-refill"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "FIFO/partial-consumption/queue-wrap/late-write"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "pan/four-gates/high-bits-masked"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "clock/pending-byte-latch/commit-register11"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "divider/all-codes/upper-bits/phase-preserved"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "clock/zero-hold/full-commit/top2-bit-mask"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "reset/clock-divider-pan-FIFO/predictor/reprogram"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "register/byte-truncation/ignored-addresses"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "clock/divider/bounds/fast-multiple-nibbles/slow-holds"
+      },
+      {
+        "kind": "raw",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 44100,
+        "name": "reset/stopped-zero-output/queued-input-discard"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 48000,
+        "name": "stream/all-nibbles/low-high/fractional-output-phase"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 48000,
+        "name": "clock/pending-byte-latch/commit-register11"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 48000,
+        "name": "divider/all-codes/upper-bits/phase-preserved"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 48000,
+        "name": "reset/clock-divider-pan-FIFO/predictor/reprogram"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 4,
+        "rate": 48000,
+        "name": "engine/mute/master-volume/clamping/predictor-retained"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 48000,
+        "name": "stream/all-nibbles/low-high/fractional-output-phase"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 48000,
+        "name": "clock/pending-byte-latch/commit-register11"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 48000,
+        "name": "divider/all-codes/upper-bits/phase-preserved"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 48000,
+        "name": "reset/clock-divider-pan-FIFO/predictor/reprogram"
+      },
+      {
+        "kind": "engine",
+        "clock": 8192000,
+        "flags": 12,
+        "rate": 48000,
+        "name": "engine/mute/master-volume/clamping/predictor-retained"
+      }
+    ],
+    "wrapperChecksIdenticalAcrossBuilds": true,
+    "wrapperChecks": {
+      "passed": true,
+      "stateBytes": 73,
+      "rawAndEngineInitialStateEqual": true,
+      "primingPreservesActiveStateAndPcm": true,
+      "lowThenHighNibbleVector": [
+        0,
+        0.0029296875,
+        0.017578125,
+        0.015625
+      ],
+      "partialByteAndQueueRestore": true,
+      "underflowHoldsLast": true,
+      "fifoEightBytesOverflowDropsNew": true,
+      "fifoWrapOrderingAndPredictor": true,
+      "fractionalPhasePreservedOnClockDividerEdits": true,
+      "independentDecoderReferencePcmSha256": "01c332b6577a01054179224540f5f3e0c830266800b47449ce989584e49721b3",
+      "divider": [
+        {
+          "code": 0,
+          "pcmSha256": "dce297573fcffd4a49b008e035253a903697495cca6eef9747bdd2908344a044",
+          "fifoCount": 2,
+          "nibblesLeft": 0
+        },
+        {
+          "code": 1,
+          "pcmSha256": "aa5208bcc50783050a5587cdc552e4ef84efa5a659e39089a9a810d4ced3820a",
+          "fifoCount": 0,
+          "nibblesLeft": 1
+        },
+        {
+          "code": 2,
+          "pcmSha256": "d86bc49acc4f1a4aa36a9e29c353cccf9d8ba3e2f8aeca329198f9a9364d6cd1",
+          "fifoCount": 0,
+          "nibblesLeft": 0
+        },
+        {
+          "code": 3,
+          "pcmSha256": "d86bc49acc4f1a4aa36a9e29c353cccf9d8ba3e2f8aeca329198f9a9364d6cd1",
+          "fifoCount": 0,
+          "nibblesLeft": 0
+        }
+      ],
+      "clockPendingAndCommit": true,
+      "clockHighBitsMasked": true,
+      "clamp": [
+        {
+          "bits": 10,
+          "positiveClamp": 0.24951171875,
+          "negativeClamp": -0.25
+        },
+        {
+          "bits": 12,
+          "positiveClamp": 0.99951171875,
+          "negativeClamp": -1
+        }
+      ],
+      "playWhilePlayingPreservesState": true,
+      "stopPrecedenceAndRestartPredictor": true,
+      "resetActiveStateAndInactiveStorage": true,
+      "pan": [
+        {
+          "value": 0,
+          "pcmSha256": "9e8a2fd8bf9c696c5ec312c88f0b25b6a72181274dad4be15b049c07cbb4d08e"
+        },
+        {
+          "value": 1,
+          "pcmSha256": "3a501e48024d78d35d6be8333fe1fb689aa511c952bd34ed58db8797aa607fcb"
+        },
+        {
+          "value": 2,
+          "pcmSha256": "84544e0d9373096d7b924f62946611320327368e309483bbfc6bdde1d57602d2"
+        },
+        {
+          "value": 3,
+          "pcmSha256": "9d908ecfb6b256def8b49a7c504e6c889c4b0e41fe6ce3e01863dd7b61a20aa0"
+        },
+        {
+          "value": 4,
+          "pcmSha256": "9e8a2fd8bf9c696c5ec312c88f0b25b6a72181274dad4be15b049c07cbb4d08e"
+        },
+        {
+          "value": 5,
+          "pcmSha256": "3a501e48024d78d35d6be8333fe1fb689aa511c952bd34ed58db8797aa607fcb"
+        },
+        {
+          "value": 6,
+          "pcmSha256": "84544e0d9373096d7b924f62946611320327368e309483bbfc6bdde1d57602d2"
+        },
+        {
+          "value": 7,
+          "pcmSha256": "9d908ecfb6b256def8b49a7c504e6c889c4b0e41fe6ce3e01863dd7b61a20aa0"
+        }
+      ],
+      "engineGainAndMuteLeaveDecoderUnchanged": true,
+      "opaqueSettingsAndForeignOwnerGuards": true,
+      "ownedPcmSurvivesOverwriteAndGrowth": true,
+      "noReadStatusIrqApi": true,
+      "totalOutputStereoFrames": 760,
+      "frameCountScope": "All C ABI and public Engine output frames rendered by bounded positive self-checks, excluding zero-frame calls and setup writes."
+    }
+  },
+  "checkerAudit": {
+    "path": "/private/tmp/tetorica-okim6258-wasm-sdk/checker-audit.json",
+    "sha256": "285b9ffdeb3171d9a077cdbe1d67d3ccc43c47a201925f7540467644ad237776",
+    "record": {
+      "passed": true,
+      "reviewScope": "Independent read-only review of final checker, exact input/report hash verification, positive controls and recomputed counters. Reviewer did not edit checker or production code.",
+      "checker": {
+        "path": "scripts/check_okim6258_wasm_sdk.mjs",
+        "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b",
+        "bytes": 36653
+      },
+      "reports": [
+        {
+          "path": "/private/tmp/tetorica-okim6258-wasm-sdk/legacy-sdk-parity.json",
+          "sha256": "64bc3314953256b4b0cd42cb887bf59bd66bc2cbdaec78b466687c8ed68d267f",
+          "passed": true,
+          "checkerSha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b",
+          "frozenInputHashesVerified": 11,
+          "comparisons": 2048,
+          "rawComparisons": 1728,
+          "engineComparisons": 320,
+          "rawScenarioCount": 12,
+          "engineScenarioCount": 5,
+          "scenarioConfigurations": 1024,
+          "scenarioRenderExecutions": 4300,
+          "checkpointSavedCaseLayouts": 68,
+          "continuationReplayedConfigurations": 34,
+          "ownStateLoads": 68,
+          "ownRawStateLoads": 48,
+          "ownPublicStateLoads": 20,
+          "crossStateLoads": 68,
+          "resetContinuations": 68,
+          "totalOutputStereoFrames": 23949880,
+          "totalWrapperSelfCheckOutputStereoFrames": 1520,
+          "preRestorePerturbationOutputStereoFrames": 2108,
+          "totalGeneratedOutputStereoFrames": 23953508,
+          "countersIndependentlyRecomputed": true,
+          "maximumDifference": 0
+        },
+        {
+          "path": "/private/tmp/tetorica-okim6258-wasm-sdk/deployed-sdk-parity.json",
+          "sha256": "f7c8b19da0bb819a81d22281123d02c62517e8a74304de0446bb9b4088d562db",
+          "passed": true,
+          "checkerSha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b",
+          "frozenInputHashesVerified": 11,
+          "comparisons": 2048,
+          "rawComparisons": 1728,
+          "engineComparisons": 320,
+          "rawScenarioCount": 12,
+          "engineScenarioCount": 5,
+          "scenarioConfigurations": 1024,
+          "scenarioRenderExecutions": 4300,
+          "checkpointSavedCaseLayouts": 68,
+          "continuationReplayedConfigurations": 34,
+          "ownStateLoads": 68,
+          "ownRawStateLoads": 48,
+          "ownPublicStateLoads": 20,
+          "crossStateLoads": 68,
+          "resetContinuations": 68,
+          "totalOutputStereoFrames": 23949880,
+          "totalWrapperSelfCheckOutputStereoFrames": 1520,
+          "preRestorePerturbationOutputStereoFrames": 2108,
+          "totalGeneratedOutputStereoFrames": 23953508,
+          "countersIndependentlyRecomputed": true,
+          "maximumDifference": 0
+        }
+      ],
+      "caseArraysIdenticalBetweenReferencePairs": true,
+      "wrapperChecksIdenticalBetweenReferencePairs": true,
+      "reviewedInvariants": [
+        "Exact73-byte ChipStateIO field layout checked against unchanged header: FIFO occupies offsets49..56, head/tail/count/nibbles57..72; values are in-process little-endian WASM state, not a portable interchange format.",
+        "Every actor primes only8inactive FIFO storage bytes through actual writes/reset. Active constructor fields match pre/post; fresh unprimed vs primed playback is explicitly equal. No state masking or production reset modification.",
+        "Positive low/high nibble golden vector and separate decoder arithmetic reference; partial-byte restore, FIFO8byte drop-new, wrap ordering and predictor continuity, underrun hold.",
+        "Supported flags exercise4divider codes and10/12-bit predictor clipping. Divider512 alias and3distinct speeds positively checked.",
+        "Clock bytes8..10 remain pending; register11 commits masked30bit clock; nonzero fractional phase survives clock/divider edits. Main pending-clock checkpoint occurs beforecommit.",
+        "Play-while-playing preserves state; stop precedence sets outputzero without consumingqueuednibbles; restart resets predictor/queue, retainsphase. Reset restores active fields while retaining inactive storage.",
+        "All pan gates and ignored high bits verified. Engine master gain/mute applies once without changing decoder progression; public opaque states remain owner/settings restricted.",
+        "Both chunk layouts compare PCM+allstatebytes; selected continuation replays use regular layout. Raw cross-build restores stay within same constructor clock/flags/rate.",
+        "Owned PCM test starts audible, retunes same-buffer contents and forces capacity+1 growth; held output remains unchanged.",
+        "Actual public API has no read/status/IRQ; harness does not invent these production endpoints. Full bundle verification covers catalog-omitted chip_state.h.",
+        "Main output frames, bounded self-check frames and pre-restore perturbation output frames independently recompute."
+      ],
+      "notes": [
+        {
+          "topic": "Uninitialized inactive FIFO storage",
+          "handling": "Existing reset leaves inactive fifo[8] bytes untouched. Test setup canonicalizes these through8zero writes and reset, verifies active state and PCM unchanged, then compares every serialized byte. This is not a production fix or a claim that reset clears FIFO storage."
+        },
+        {
+          "topic": "SDK catalog transitive dependency omission",
+          "handling": "source-audit.json records chip_state.h SHA and absence from per-chip catalog/build-info inputs. Complete379-file RELEASE-MANIFEST verification protects it; pinned SDK unchanged."
+        }
+      ],
+      "unresolvedFindings": [],
+      "limits": [
+        "Exact agreement validates these fixed builds, not physical chip accuracy.",
+        "Only supported4-bit decoder paths; recording/3-bit formats are not introduced.",
+        "Attached OPM multi-chip mixing and Worklet scheduling are separate browser tests, not this raw/Engine checker.",
+        "No physical listening judgement or Native device test performed.",
+        "Opaque states remain private; raw cross-setting/cross-build portability is not a public guarantee."
+      ],
+      "cliAudit": {
+        "path": "/private/tmp/tetorica-okim6258-wasm-sdk/checker-cli-audit.json",
+        "sha256": "4f20ece2697452ed53764b6b88f4efc808eeeee7a65168765ca3bfcfe30be386",
+        "invalidFormsRejectedBeforeFileAccess": 18,
+        "validHelp": true,
+        "checkerSha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b"
+      },
+      "reviewerRepositoryEdits": false
+    }
+  },
+  "checkerCliAudit": {
+    "path": "/private/tmp/tetorica-okim6258-wasm-sdk/checker-cli-audit.json",
+    "sha256": "4f20ece2697452ed53764b6b88f4efc808eeeee7a65168765ca3bfcfe30be386",
+    "record": {
+      "passed": true,
+      "checker": {
+        "path": "scripts/check_okim6258_wasm_sdk.mjs",
+        "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b",
+        "bytes": 36653
+      },
+      "invalidForms": [
+        {
+          "argv": [],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--help",
+            "--out",
+            "/tmp/no"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--wat"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir="
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "--sdk-dir",
+            "b"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--sdk-dir",
+            "b"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out="
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--legacy-dir",
+            "c"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "a"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out",
+            "a/okim6258_wasm.js"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out",
+            "b/okim6258_wasm.js"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out",
+            "a/okim6258_wasm.wasm"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out",
+            "b/okim6258_wasm.wasm"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out",
+            "a/build-info.json"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        },
+        {
+          "argv": [
+            "--legacy-dir",
+            "a",
+            "--sdk-dir",
+            "b",
+            "--out",
+            "b/build-info.json"
+          ],
+          "passed": true,
+          "rejectedBeforeFileAccess": true
+        }
+      ],
+      "validHelp": true
+    }
+  },
+  "checkerFreeze": {
+    "path": "/private/tmp/tetorica-okim6258-wasm-sdk/checker-freeze.json",
+    "sha256": "9f2b90db953223ab5b71c2a2b13ab03ab4e861901604dcfe1a0198796c215a8b",
+    "record": {
+      "passed": true,
+      "checker": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+        "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b"
+      },
+      "reports": [
+        {
+          "name": "legacy-sdk-parity.json",
+          "sha256": "64bc3314953256b4b0cd42cb887bf59bd66bc2cbdaec78b466687c8ed68d267f",
+          "checkedInputRecords": 11,
+          "cases": 2048,
+          "rawComparisons": 1728,
+          "engineComparisons": 320,
+          "configurations": 1024,
+          "mainRenderExecutions": 4300,
+          "mainOutputStereoFrames": 23949880,
+          "wrapperSelfCheckOutputStereoFrames": 1520,
+          "preRestorePerturbationOutputStereoFrames": 2108,
+          "allGeneratedOutputStereoFrames": 23953508,
+          "checkpointSaved": 68,
+          "continuationReplayTested": 34,
+          "ownStateLoads": 68,
+          "ownRawStateLoads": 48,
+          "ownPublicStateLoads": 20,
+          "crossStateLoads": 68,
+          "resetContinuations": 68
+        },
+        {
+          "name": "deployed-sdk-parity.json",
+          "sha256": "f7c8b19da0bb819a81d22281123d02c62517e8a74304de0446bb9b4088d562db",
+          "checkedInputRecords": 11,
+          "cases": 2048,
+          "rawComparisons": 1728,
+          "engineComparisons": 320,
+          "configurations": 1024,
+          "mainRenderExecutions": 4300,
+          "mainOutputStereoFrames": 23949880,
+          "wrapperSelfCheckOutputStereoFrames": 1520,
+          "preRestorePerturbationOutputStereoFrames": 2108,
+          "allGeneratedOutputStereoFrames": 23953508,
+          "checkpointSaved": 68,
+          "continuationReplayTested": 34,
+          "ownStateLoads": 68,
+          "ownRawStateLoads": 48,
+          "ownPublicStateLoads": 20,
+          "crossStateLoads": 68,
+          "resetContinuations": 68
+        }
+      ]
+    }
+  },
+  "browserVerification": {
+    "path": "/private/tmp/tetorica-okim6258-wasm-sdk/playground-summary.json",
+    "sha256": "47596c65ed5ff1b87181d3a83871431003221d5f835b301a7da93eaa22dc7854",
+    "record": {
+      "passed": true,
+      "method": "Listening output muted; actual generated WASM in Playground Worklets captured before FX/master. No physical listening judgement.",
+      "totalRoutes": 4,
+      "sources": {
+        "docs/generated/okim6258_wasm.js": {
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "bytes": 14797,
+          "matchesAllThreeBuildPairs": true
+        },
+        "docs/generated/okim6258_wasm.wasm": {
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "bytes": 20173,
+          "matchesAllThreeBuildPairs": true
+        }
+      },
+      "browsers": [
+        {
+          "engine": "chromium",
+          "path": "/private/tmp/tetorica-okim6258-wasm-sdk/playground-chromium.json",
+          "sha256": "f6593876f17a3c4aef4b4c640a4ad471e30fb073c7a934734d9ba65f29d8008f",
+          "passed": true,
+          "rows": [
+            {
+              "kind": "okim6258",
+              "role": "extra",
+              "mode": "genesis",
+              "frequencyHz": 440,
+              "mixer": {
+                "id": "calibration-source",
+                "settings": {
+                  "volume": 0.128849,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "amplitude": 0.12881754338741302,
+              "expectedAmplitude": 0.12881754272460938,
+              "relativeError": 5.145290193908636e-09,
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12884899973869324,
+                  0.12884899973869324
+                ],
+                "minimum": [
+                  -0.12884899973869324,
+                  -0.12884899973869324
+                ],
+                "maximum": [
+                  0.1287860870361328,
+                  0.1287860870361328
+                ],
+                "rms": [
+                  0.09112373694149459,
+                  0.09112373694149459
+                ],
+                "dc": [
+                  -1.697388576758385e-05,
+                  -1.697388576758385e-05
+                ],
+                "acRms": [
+                  0.09112373536060683,
+                  0.09112373536060683
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            },
+            {
+              "kind": "okim6258",
+              "role": "primary",
+              "mode": "x68000",
+              "frequencyHz": 440,
+              "mixer": {
+                "id": "okim6258",
+                "settings": {
+                  "volume": 0.128849,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "amplitude": 0.12881754338741302,
+              "expectedAmplitude": 0.12881754272460938,
+              "relativeError": 5.145290193908636e-09,
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12884899973869324,
+                  0.12884899973869324
+                ],
+                "minimum": [
+                  -0.12884899973869324,
+                  -0.12884899973869324
+                ],
+                "maximum": [
+                  0.1287860870361328,
+                  0.1287860870361328
+                ],
+                "rms": [
+                  0.09112373694149446,
+                  0.09112373694149446
+                ],
+                "dc": [
+                  -1.697388576758385e-05,
+                  -1.697388576758385e-05
+                ],
+                "acRms": [
+                  0.09112373536060671,
+                  0.09112373536060671
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            }
+          ]
+        },
+        {
+          "engine": "webkit",
+          "path": "/private/tmp/tetorica-okim6258-wasm-sdk/playground-webkit.json",
+          "sha256": "d9b756810c0414b7b0f682d7b5dc744a56ad39eb89af582084385395e61b1199",
+          "passed": true,
+          "rows": [
+            {
+              "kind": "okim6258",
+              "role": "extra",
+              "mode": "genesis",
+              "frequencyHz": 440,
+              "mixer": {
+                "id": "calibration-source",
+                "settings": {
+                  "volume": 0.128849,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "amplitude": 0.12881754338741302,
+              "expectedAmplitude": 0.12881754272460938,
+              "relativeError": 5.145290193908636e-09,
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12884899973869324,
+                  0.12884899973869324
+                ],
+                "minimum": [
+                  -0.12884899973869324,
+                  -0.12884899973869324
+                ],
+                "maximum": [
+                  0.1287860870361328,
+                  0.1287860870361328
+                ],
+                "rms": [
+                  0.09112373694149452,
+                  0.09112373694149452
+                ],
+                "dc": [
+                  -1.697388576758385e-05,
+                  -1.697388576758385e-05
+                ],
+                "acRms": [
+                  0.09112373536060676,
+                  0.09112373536060676
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            },
+            {
+              "kind": "okim6258",
+              "role": "primary",
+              "mode": "x68000",
+              "frequencyHz": 440,
+              "mixer": {
+                "id": "okim6258",
+                "settings": {
+                  "volume": 0.128849,
+                  "pan": 0,
+                  "muted": false,
+                  "solo": true
+                }
+              },
+              "amplitude": 0.12881754338741302,
+              "expectedAmplitude": 0.12881754272460938,
+              "relativeError": 5.145290193908636e-09,
+              "pcm": {
+                "frames": 19200,
+                "sampleRate": 48000,
+                "peak": [
+                  0.12884899973869324,
+                  0.12884899973869324
+                ],
+                "minimum": [
+                  -0.12884899973869324,
+                  -0.12884899973869324
+                ],
+                "maximum": [
+                  0.1287860870361328,
+                  0.1287860870361328
+                ],
+                "rms": [
+                  0.09112373694149446,
+                  0.09112373694149446
+                ],
+                "dc": [
+                  -1.697388576758385e-05,
+                  -1.697388576758385e-05
+                ],
+                "acRms": [
+                  0.09112373536060671,
+                  0.09112373536060671
+                ],
+                "nonzero": [
+                  19200,
+                  19200
+                ],
+                "nonfinite": 0,
+                "overrange": 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "voiceUiVerification": {
+    "path": "/private/tmp/tetorica-okim6258-wasm-sdk/voice-summary.json",
+    "sha256": "4bc890069a8e0f6c99752a937e9502afb7d5c36df2f191471c347eecaa481f39",
+    "record": {
+      "passed": true,
+      "exitCode": 0,
+      "test": {
+        "path": "scripts/check_playground_okim6258_voice_browser.cjs",
+        "sha256": "f6e322518ebbc49a7f9de6f2ea0a4625f52f9466d6f616d976771363e4eba6ba",
+        "unchangedFromHead": true
+      },
+      "harness": {
+        "path": "/private/tmp/tetorica-okim6258-wasm-sdk/run-voice-muted.cjs",
+        "sha256": "3fa0f6fccd4042451998a1b75e5d25cc7c93bc1bffff696afe29edae228939c6",
+        "onlyChange": "In-memory test source insertion routes final output through existing zero-gain silent node using connectOutput(silent); normal postmaster meters retained. No application/test source edits."
+      },
+      "log": {
+        "path": "/private/tmp/tetorica-okim6258-wasm-sdk/voice-muted.log",
+        "sha256": "056a829b412019078c0754f8dfdebed721f37d1ae6dd0c9e0a7a1ea96385f02f"
+      },
+      "listeningOutputMuted": true,
+      "testedAssets": {
+        "docs/generated/okim6258_wasm.js": {
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "bytes": 14797,
+          "matchesFrozenSdk": true
+        },
+        "docs/generated/okim6258_wasm.wasm": {
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "bytes": 20173,
+          "matchesFrozenSdk": true
+        }
+      },
+      "scope": "Existing OKIM6258 voice/file/Keyboard UI regression in Chromium and WebKit main execution; no Worker or Native device test added.",
+      "routes": [
+        {
+          "browser": "chromium",
+          "worker": false,
+          "dividerHz": [
+            659.9264958317784,
+            330.00152497942884,
+            439.9920857958618
+          ],
+          "keyboard": [
+            {
+              "rms": 0.027306606471553994,
+              "peak": 0.03919576480984688,
+              "finite": true,
+              "hz": 439.99520667131657
+            },
+            {
+              "rms": 0.027306606471553994,
+              "peak": 0.03919576480984688,
+              "finite": true,
+              "hz": 439.99520667131657
+            }
+          ],
+          "stage": "passed"
+        },
+        {
+          "browser": "webkit",
+          "worker": false,
+          "dividerHz": [
+            660.0639362149711,
+            329.9954150503665,
+            439.9894709727249
+          ],
+          "keyboard": [
+            {
+              "rms": 0.027310052350709168,
+              "peak": 0.03919576480984688,
+              "finite": true,
+              "hz": 439.9905032071332
+            },
+            {
+              "rms": 0.027310052350709168,
+              "peak": 0.03919576480984688,
+              "finite": true,
+              "hz": 439.9905032071332
+            }
+          ],
+          "stage": "passed"
+        }
+      ],
+      "assertions": [
+        "One shared mono hardware stream, lazy audio preparation and no manufactured sample memory",
+        "Code-side sample upload, full waveform metadata, pan and clock/divider readback",
+        "Divider512/1024/768 real PCM pitch approximately660/330/440Hz",
+        "Native stereo pan and Hold release silence",
+        "Cassette WAV load plus rejected invalid decode preserving old sample",
+        "One-shot sample end and bounded preview have no residual DC/tail",
+        "Keyboard monophonic retrigger and stale-release protection; distinct keys preserve real hardware rate",
+        "Code focus/blur/Stop release and retained sample/settings",
+        "Read-only visible polling, hidden polling stopped",
+        "Audition holds stream/settings against background code while independent OPM progresses; Run/Stop reuse same device"
+      ]
+    }
+  },
+  "calibration": {
+    "remeasurementRequired": false,
+    "reason": "No active calibration receipt tracks changed inputs; generated pair is also unchanged. Measurements, references, programs and Mixer constants are unchanged; both generators --check passed."
+  },
+  "tests": {
+    "pythonSdkSuite": {
+      "command": "python3 -m unittest discover -s test -p 'test_*sdk*.py' -v",
+      "passed": 39,
+      "failed": 0,
+      "explicitCatalogOmittedHeaderTamperRejection": true
+    },
+    "existingOkiSuite": {
+      "command": "node --test web/okim6258.test.mjs web/okim6258synth.test.mjs web/opm_state.test.mjs web/playground_okim6258.test.mjs web/playground_okim6258_inspector.test.mjs test/okim6258-render.test.mjs",
+      "passed": 52,
+      "failed": 0,
+      "logSha256": "f5379feb3265130ca04858b71609d5aa177ab536b3d0fb67338acea064773e3d"
+    },
+    "isolatedNpmPackage": {
+      "command": "node scripts/check_fm2612_package.mjs",
+      "passed": true,
+      "logSha256": "4a2ae736bc093b53671e36ba15898e4802528ac9500e67ffc00fcde7e836afc0",
+      "packageVersion": "0.2.28",
+      "files": 803,
+      "wasmEnginesLoaded": 26,
+      "synthLocalReferences": 942,
+      "compressedBytes": 1590236,
+      "unpackedBytes": 5932934,
+      "checks": [
+        "Installed tarball in offline consumer",
+        "All WASM engines and browser entries",
+        "Raw Synth/sample PCM and low-level API",
+        "Asset URLs and notices",
+        "NodeNext/Bundler/positive-negative/browser types"
+      ],
+      "published": false
+    },
+    "analyzerZip": {
+      "passed": true,
+      "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_okim6258-sdk_itch_vgm_analyzer.zip",
+      "sha256": "81f19cf4af97296c02cc6cf15ce4dfe895af926fa037d883709b15772f7c8e04",
+      "bytes": 1751730,
+      "localReferences": 753,
+      "modulePairMatchesTestedSdk": true
+    }
+  },
+  "integrity": {
+    "path": "/private/tmp/tetorica-okim6258-wasm-sdk/final-integrity-audit.json",
+    "sha256": "8f824cdc846552bff679a78e7cc0d6e83d0ee7935c727c217fe8c138baf21d4f",
+    "record": {
+      "passed": true,
+      "sdkCheck": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)",
+      "unchanged": {
+        "docs/generated/ym2612_wasm.js": {
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+          "unchanged": true
+        },
+        "docs/generated/ym2612_wasm.wasm": {
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+          "unchanged": true
+        },
+        "docs/generated/ym2203_wasm.js": {
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+          "unchanged": true
+        },
+        "docs/generated/ym2203_wasm.wasm": {
+          "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+          "unchanged": true
+        },
+        "docs/generated/ym2608_wasm.js": {
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+          "unchanged": true
+        },
+        "docs/generated/ym2608_wasm.wasm": {
+          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+          "unchanged": true
+        },
+        "docs/generated/ym2610b_wasm.js": {
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879",
+          "unchanged": true
+        },
+        "docs/generated/ym2610b_wasm.wasm": {
+          "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316",
+          "unchanged": true
+        },
+        "docs/generated/ym2151_wasm.js": {
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304",
+          "unchanged": true
+        },
+        "docs/generated/ym2151_wasm.wasm": {
+          "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26",
+          "unchanged": true
+        },
+        "third_party/soundchip-sdk.json": {
+          "sha256": "f195c3929eb1895235e431f496f90314d7419a260a504361a352f080e87a6500",
+          "unchanged": true
+        },
+        "web/okim6258audioengine.js": {
+          "sha256": "8127100494801bdf63a5f3b454f7d2a07029eaeead69da8bd1c369ddad9b1d2b",
+          "unchanged": true
+        },
+        "docs/js/okim6258audioengine.js": {
+          "sha256": "41756fc9949a62982f251972ce7be73020274b0b7bb56d86d0c09c94567c162c",
+          "unchanged": true
+        },
+        "web/okim6258synth.js": {
+          "sha256": "1f788ddec663ad5a8be72823f6d50a69e8e024146f14990dcc01ba7fdcdf8bda",
+          "unchanged": true
+        },
+        "docs/js/okim6258synth.js": {
+          "sha256": "905d5939b453bd7289adafdb574b6fa0a15b0db75c0bcb0a96ad706ce305d8ce",
+          "unchanged": true
+        },
+        "web/soundchip_mixer_presets.js": {
+          "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+          "unchanged": true
+        },
+        "docs/js/soundchip_mixer_presets.js": {
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+          "unchanged": true
+        },
+        "docs/vgm_analyzer/mixer_calibration_data.js": {
+          "sha256": "9d23d0fd6f05ca4deb21028f4cda8a0a09fe4dd9b05e5a46c53834bba88b5bd0",
+          "unchanged": true
+        },
+        "docs/vgm_analyzer/playback_mixer.js": {
+          "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+          "unchanged": true
+        },
+        "scripts/generate_analyzer_mixer_defaults.mjs": {
+          "sha256": "a3bbdea5e5a96c69cd5ba6e3111adf892ac7122d56c07236a8bc36bc2d0cae9f",
+          "unchanged": true
+        },
+        "scripts/generate_soundchip_mixer_presets.mjs": {
+          "sha256": "2c262006627b4478b84734cd30d72bae56c18d5d47c89ac3c7d6a610810d5420",
+          "unchanged": true
+        }
+      },
+      "allExistingCalibrationRecordsUnchanged": true,
+      "priorFiveBuildRecordsUnchanged": true,
+      "allThreePairsMatchDefault": true,
+      "buildArtifacts": [
+        "okim6258",
+        "ym2151",
+        "ym2203",
+        "ym2608",
+        "ym2610b",
+        "ym2612"
+      ],
+      "historicalSavePointTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7",
+      "externalRepositories": {
+        "tetorica-soundchip-native": {
+          "commit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "status": ""
+        },
+        "tetorica-fm2612-playground-tauri": {
+          "commit": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "status": ""
+        }
+      }
+    }
+  },
+  "limits": [
+    "Muted browser PCM capture and UI checks do not establish physical hardware playback or subjective listening quality.",
+    "No remote CI, npm/app publication, version bump, commit or push was performed.",
+    "No production wrapper, SDK or Tauri source change; existing local source copies remain.",
+    "The comparison harness primes only inactive FIFO storage through writes/reset before each timeline. Active state and PCM are confirmed unchanged; public reset is not claimed to zero that storage."
+  ],
+  "nextCandidate": "YM2413 WASM build migration for Master System/MSX;21 SDK artifact targets remain after the six migrated targets."
+}

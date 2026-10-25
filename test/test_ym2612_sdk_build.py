@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
-ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151')
+ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -50,6 +50,11 @@ YM2151_EXPORTS = [
     '_ym2151_sample_rate', '_ym2151_generate', '_ym2151_set_mute_mask',
     '_ym2151_save_state', '_ym2151_load_state', '_malloc', '_free',
 ]
+OKIM6258_EXPORTS = [
+    '_okim6258_create', '_okim6258_destroy', '_okim6258_reset',
+    '_okim6258_write', '_okim6258_generate', '_okim6258_save_state',
+    '_okim6258_load_state', '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -67,7 +72,11 @@ class SdkBuildRouteMixin:
     trim_glue = False
     assertions = True
     vendor_sources = YMFM_SOURCES
-    fm_header = 'vendor/ymfm/ymfm_opn.h'
+    core_header = 'vendor/ymfm/ymfm_opn.h'
+    include_directories = ['vendor/ymfm']
+    support_sources = ['wasm/ymfm_wasm_interface.h', 'vendor/ymfm/ymfm_fm.ipp',
+                       'vendor/ymfm/chip_state.h']
+    extra_tamper_dependencies = ()
 
     @property
     def build_script(self):
@@ -154,9 +163,19 @@ else:
         arguments = compile_call['args']
         self.assertEqual([value for value in arguments if value.endswith('.cpp')], self.sources)
         self.assertEqual([value for value in arguments if value.startswith('-I')],
-                         ['-Ivendor/ymfm'])
+                         ['-I' + name for name in self.include_directories])
         for name in self.sources:
             self.assertTrue((self.sdk / name).is_file())
+        # The wrapper/core headers must resolve with the actual SDK include
+        # search path, including the separate MAME adaptation when selected.
+        manifest = json.loads((self.sdk / 'RELEASE-MANIFEST.json').read_text())
+        for header in (self.core_header, 'vendor/ymfm/chip_state.h'):
+            self.assertTrue(any((self.sdk / directory / Path(header).name).is_file()
+                                for directory in self.include_directories), header)
+            # Full snapshot integrity also covers dependencies omitted by a
+            # recipe's historical catalog-based build-info input list.
+            self.assertEqual(manifest['files'][header]['sha256'],
+                             sha256((self.sdk / header).read_bytes()))
         for flag in ('-std=c++14', '-O2', '-sMODULARIZE=1',
                      '-sEXPORT_ES6=1', '-sENVIRONMENT=web,worker,node,shell',
                      '-sALLOW_MEMORY_GROWTH=1', '-sEXPORT_ALL=1'):
@@ -192,9 +211,8 @@ else:
         recipe = next(entry for entry in inventory['artifacts'] if entry['id'] == self.artifact)
         expected_inputs = sorted(set(recipe['sourceFiles'] + recipe['buildFiles']))
         self.assertEqual([entry['path'] for entry in artifact['sourceFiles']], expected_inputs)
-        for essential in [*self.sources, 'wasm/ymfm_wasm_interface.h',
-                          'vendor/ymfm/chip_state.h', 'vendor/ymfm/ymfm_fm.ipp',
-                          self.fm_header, 'scripts/build-wasm.sh',
+        for essential in [*self.sources, *self.support_sources,
+                          self.core_header, 'scripts/build-wasm.sh',
                           self.build_script.as_posix(), 'scripts/record_wasm_build.mjs']:
             self.assertIn(essential, expected_inputs)
         for entry in artifact['sourceFiles']:
@@ -229,7 +247,8 @@ else:
         self.assertEqual(len(self.calls()), 4)
 
     def test_tampered_sdk_is_rejected_before_compiler_or_output_creation(self):
-        for name in (self.fm_header, 'scripts/record_wasm_build.mjs',
+        for name in (self.core_header, *self.extra_tamper_dependencies,
+                     'scripts/record_wasm_build.mjs',
                      'wasm/' + self.artifact + '_wasm.cpp', self.build_script.as_posix()):
             with self.subTest(name=name):
                 path = self.sdk / name
@@ -309,10 +328,25 @@ class Ym2151SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     trim_glue = True
     assertions = False
     vendor_sources = ['vendor/ymfm/ymfm_opm.cpp']
-    fm_header = 'vendor/ymfm/ymfm_opm.h'
+    core_header = 'vendor/ymfm/ymfm_opm.h'
 
     def test_shared_output_preserves_all_four_existing_build_records(self):
         self.assert_shared_output_preserves(['ym2612', 'ym2203', 'ym2608', 'ym2610b'])
+
+
+class Oki6258SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'okim6258'
+    exports = OKIM6258_EXPORTS
+    trim_glue = True
+    assertions = False
+    vendor_sources = ['vendor/mame-okim6258/okim6258.cpp']
+    core_header = 'vendor/mame-okim6258/okim6258.h'
+    include_directories = ['vendor/ymfm', 'vendor/mame-okim6258']
+    support_sources = []
+    extra_tamper_dependencies = ('vendor/ymfm/chip_state.h',)
+
+    def test_shared_output_preserves_all_five_existing_build_records(self):
+        self.assert_shared_output_preserves(['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151'])
 
 
 if __name__ == '__main__':

@@ -231,16 +231,14 @@ npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 
 - [https://kyorohiro.itch.io](https://kyorohiro.itch.io)
 
-## Building OPN and OPM WASM from the fixed SDK
+## Building WASM from the fixed SDK
 
-Run `sh scripts/build_ym2612_wasm.sh`, `sh scripts/build_ym2203_wasm.sh`,
-`sh scripts/build_ym2608_wasm.sh`, `sh scripts/build_ym2610b_wasm.sh`
-or `sh scripts/build_ym2151_wasm.sh`
-with Emscripten and Python 3 installed.
-YM2610 / YM2610B share one module; YM2151 / YM2164 share another.
-These builds verify and use the complete, pinned
-`tetorica-soundchip-native` source release included in `third_party/`.
-See [build and SDK update instructions](docs/building_ym2612_wasm.md).
+YM2612, YM2203, YM2608, YM2610/B, YM2151/YM2164 and OKIM6258 builds verify
+and use the complete, pinned `tetorica-soundchip-native` source release
+included in `third_party/`.
+With Emscripten and Python 3 installed, run a chip recipe such as
+`sh scripts/build_okim6258_wasm.sh`.
+See the full recipe list and [build and SDK update instructions](docs/building_ym2612_wasm.md).
 
 ## License and Attribution
 
