@@ -38,6 +38,8 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 X68000のFM・ADPCM双方のビルド元が揃った。詳細は[OKIM6258 WASMのSDK移行](wasm_sdk_okim6258_adoption_01.md)を参照。
 続くYM2413 WASMも同じ固定SDKへ切り替えた。既存snapshot APIはないため、reset／再演奏／seekで復帰経路を比較した。
 詳細は[YM2413 WASMのSDK移行](wasm_sdk_ym2413_adoption_01.md)を参照。
+続くYM3526 WASMも同じ固定SDKへ切り替えた。9CHの2OP FM・リズム・timer／IRQ／CSMとreset／再演奏／seekを比較した。
+詳細は[YM3526 WASMのSDK移行](wasm_sdk_ym3526_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1039,8 +1041,26 @@ Python43件、既存YM2413／Synth／Inspector・MSX描画／OPM混合試験37�
 校正値の変更と再測定は不要だった。
 詳細と最終比較結果・hashは[YM2413移行記録](wasm_sdk_ym2413_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計7 artifact。次はOPL系のYM3526用WASMへの展開が候補。
-残り20 artifactは今回一括移行していない。前回のOKIM6258 catalogのchip_state.h追記はSDK更新時の候補として保持する。
+この節はYM2413移行時の記録。続くYM3526移行は次の節に記載する。
+前回のOKIM6258 catalogのchip_state.h追記はSDK更新時の候補として保持する。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — YM3526 WASMの固定SDK参照
+
+`scripts/build_ym3526_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルと取り込み記録、APIとMixer値を保持し、先行7音源の生成記録・出力も維持した。
+通常生成物は比較用SDK出力とbyte一致する。OPL1のsineのみという既存仕様も維持する。
+既存snapshot機能はないため、raw／public reset・再演奏・seekを比較した。
+
+旧再ビルド／配布済み版との各1,494比較・18,759,234出力ステレオフレームで差0。
+重点75設定のpublic reset／再演奏150回と、実VgmPlayerの9構成×6seekを確認した。
+全9CH・5打楽器、timer A/B・IRQ・masked CSM単独発音、OPL2波形registerの無効動作も確認した。
+Python47件、既存OPL／Synth／Inspector／VGM試験81件、両Browser計4経路とYM3526音色／Keyboard UIが成功。
+隔離npm配布物・型・Analyzer ZIPも検証済み。校正値の変更と再測定は不要だった。
+詳細と最終比較結果・hashは[YM3526移行記録](wasm_sdk_ym3526_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計8 artifact。次は同じOPL系のYM3812用WASMへの展開が候補。
+残り19 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

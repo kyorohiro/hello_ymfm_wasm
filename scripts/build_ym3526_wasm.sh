@@ -3,22 +3,13 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
 OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
 
-em++ -std=c++14 -O2 \
-  -Isrc \
-  wasm/ym3526_wasm.cpp \
-  src/ymfm_opl.cpp \
-  src/ymfm_adpcm.cpp \
-  src/ymfm_pcm.cpp \
-  -sMODULARIZE=1 \
-  -sEXPORT_ES6=1 \
-  -sINCOMING_MODULE_JS_API='["wasmBinary"]' \
-  -sENVIRONMENT=web,worker,node,shell \
-  -sALLOW_MEMORY_GROWTH=1 \
-  -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym3526_create","_ym3526_destroy","_ym3526_reset","_ym3526_write","_ym3526_read","_ym3526_read_status","_ym3526_get_irq","_ym3526_sample_rate","_ym3526_set_mute_mask","_ym3526_generate","_malloc","_free"]' \
-  -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' \
-  -o "$OUT_DIR/ym3526_wasm.js"
+# Keep the existing OPL register/reset/synchronous PCM ABI while building
+# the checked, bundled SDK sources without a network dependency.
+exec sh "$SDK_DIR/scripts/build-wasm.sh" ym3526 "$OUT_DIR"
