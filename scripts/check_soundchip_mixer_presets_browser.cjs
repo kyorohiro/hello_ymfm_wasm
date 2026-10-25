@@ -99,7 +99,7 @@ async function checkBrowser(name, browserType, origin) {
           } = await import('/soundchip.js');
           const presetEntry = await import('/soundchip_mixer_presets.js');
           if (presetEntry.SOUNDCHIP_MIXER_PRESETS !== SOUNDCHIP_MIXER_PRESETS) throw new Error('Root and subpath exports differ');
-          const expectedPsgGains = {segapsg:.455420,ay8910:1.100331,nes:1.514209};
+          const expectedPsgGains = {segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
           for (const [kind,expected] of Object.entries(expectedPsgGains)) {
             const actual = SOUNDCHIP_MIXER_PRESETS.calibrated.factoryDefaults.kinds.find(item => item.name === kind)?.volume;
             if (actual !== expected) throw new Error(`${kind}: stale public calibrated gain ${actual}, expected ${expected}`);

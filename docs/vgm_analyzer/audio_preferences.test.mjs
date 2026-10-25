@@ -37,23 +37,27 @@ test('partial saved fields keep contextual calibration dynamic without materiali
  const reopened=createAudioPreferences(disk);
  assert.deepEqual(reopened.getChip('psg',genesis),{...mixerDefaults('psg',genesis),pan:.4});
  assert.deepEqual(reopened.getChip('psg',other),{...mixerDefaults('psg',other),pan:.4});
- assert.notEqual(reopened.getChip('psg',genesis).gain,reopened.getChip('psg',other).gain);
+ assert.equal(reopened.getChip('psg',genesis).gain,reopened.getChip('psg',other).gain);
  assert.deepEqual(reopened.getChip('ym2612',genesis),{...mixerDefaults('ym2612',genesis),muted:true});
  reopened.setMaster(.8);
  assert.equal(Object.hasOwn(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)).chips.psg,'gain'),false);
 });
 
-test('saved absolute gains including zero and legacy unity override calibration once across contexts',()=>{
+test('legacy saved gains convert on read according to source owner without rewriting or compounding',()=>{
  const disk=storage();
  disk.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify({chips:{psg:{gain:1,pan:0,muted:false},nesApu:{gain:0},ym2612:{gain:.6}}}));
- const first=createAudioPreferences(disk);
- assert.equal(first.getChip('psg',{kind:'ym2612'}).gain,1);
+ const original=disk.getItem(AUDIO_PREFERENCES_KEY),first=createAudioPreferences(disk);
+ assert.equal(first.getChip('psg',{kind:'ym2612'}).gain,.35);
  assert.equal(first.getChip('psg',{kind:'ym3812'}).gain,1);
- assert.equal(first.getChip('nesApu').gain,0);assert.equal(first.getChip('ym2612',{kind:'ym2612'}).gain,.6);
+ assert.equal(first.getChip('nesApu').gain,0);assert.equal(first.getChip('ym2612',{kind:'ym2612'}).gain,.6*.9);
+ assert.equal(disk.getItem(AUDIO_PREFERENCES_KEY),original,'Reading defaults must not persist a migration');
  first.setChip('psg',{muted:true});
  for(let index=0;index<3;index++){
   const next=createAudioPreferences(disk);next.setChip('psg',{pan:.2});
-  assert.deepEqual(next.getChip('psg',{kind:'ym2612'}),{gain:1,pan:.2,muted:true});
+  assert.deepEqual(next.getChip('psg',{kind:'ym2612'}),{gain:.35,pan:.2,muted:true});
+  assert.equal(next.getChip('psg',{kind:'ym3812'}).gain,1);
+  assert.equal(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)).chips.psg.gain,1);
+  assert.equal(Object.hasOwn(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)).chips.psg,'gainUnits'),false);
  }
  const last=createAudioPreferences(disk);last.resetMixer();
  assert.deepEqual(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)).chips,{});
@@ -61,15 +65,33 @@ test('saved absolute gains including zero and legacy unity override calibration 
  assert.deepEqual(last.getChip('nesApu'),mixerDefaults('nesApu'));
 });
 
-test('authored former PSG levels remain absolute until Reset selects the new balance',()=>{
+test('former PSG levels retain their effective sound until Reset selects the new balance',()=>{
  const disk=storage(),old={psg:1.840254,ay8910:1.545813,nesApu:1.981272};
  disk.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify({chips:Object.fromEntries(Object.entries(old).map(([id,gain])=>[id,{gain}]))}));
  const prefs=createAudioPreferences(disk),configuration={kind:'ym2612'};
- for(const [id,gain] of Object.entries(old))assert.equal(prefs.getChip(id,configuration).gain,gain);
+ for(const [id,gain] of Object.entries(old))assert.equal(prefs.getChip(id,configuration).gain,id==='psg'?gain*.35:gain);
  prefs.setChip('psg',{pan:.3});
- assert.equal(createAudioPreferences(disk).getChip('psg',configuration).gain,old.psg);
+ assert.equal(createAudioPreferences(disk).getChip('psg',configuration).gain,old.psg*.35);
  prefs.resetMixer();
  const reset=createAudioPreferences(disk);
  for(const id of Object.keys(old))assert.deepEqual(reset.getChip(id,configuration),mixerDefaults(id,configuration));
  assert.deepEqual(JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY)).chips,{});
+});
+
+test('new gain edits use source units in every context while pan-only edits retain other legacy records',()=>{
+ const disk=storage();disk.setItem(AUDIO_PREFERENCES_KEY,JSON.stringify({chips:{psg:{gain:1.3},ym2612:{gain:.8}}}));
+ const prefs=createAudioPreferences(disk),genesis={kind:'ym2612'},standalone={kind:'ym3812'};
+ prefs.setChip('psg',{gain:.35});prefs.setChip('psg',{pan:-.2,muted:true});prefs.setChip('ym2612',{pan:.4});
+ const authored=JSON.parse(disk.getItem(AUDIO_PREFERENCES_KEY));
+ assert.deepEqual(authored.chips.psg,{gain:.35,gainUnits:'source',pan:-.2,muted:true});
+ assert.deepEqual(authored.chips.ym2612,{gain:.8,pan:.4});
+ const reopened=createAudioPreferences(disk);
+ for(const configuration of [genesis,standalone])assert.deepEqual(reopened.getChip('psg',configuration),{gain:.35,pan:-.2,muted:true});
+ assert.equal(reopened.getChip('ym2612',genesis).gain,.8*.9);
+ assert.equal(reopened.getChip('ym2612',standalone).gain,.8);
+ for(const gain of [0,1,2]){
+  reopened.setChip('psg',{gain});
+  const next=createAudioPreferences(disk);
+  assert.equal(next.getChip('psg',genesis).gain,gain);assert.equal(next.getChip('psg',standalone).gain,gain);
+ }
 });

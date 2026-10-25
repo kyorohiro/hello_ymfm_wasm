@@ -1,4 +1,5 @@
 import {mixerDefaults} from './playback_mixer.js';
+import {legacyEngineTrim} from './mixer_defaults.js';
 
 export const AUDIO_PREFERENCES_KEY = 'tetorica-vgm-analyzer.audio.v1';
 export const effectDefaults = () => ({enabled: false, gain: 100, bass: 0, middle: 0, treble: 0, reverb: 0, compressor: 0, noiseGate: 0});
@@ -13,7 +14,10 @@ function validEffect(value) {
 }
 function validChip(value) {
   const next = {}, saved = object(value);
-  if (inRange(saved.gain, 0, 2)) next.gain = saved.gain;
+  if (inRange(saved.gain, 0, 2)) {
+    next.gain = saved.gain;
+    if(saved.gainUnits==='source')next.gainUnits='source';
+  }
   if (inRange(saved.pan, -1, 1)) next.pan = saved.pan;
   if (typeof saved.muted === 'boolean') next.muted = saved.muted;
   return next;
@@ -32,8 +36,18 @@ export function createAudioPreferences(storage = browserStorage()) {
     setEffect(value) {state.effect = validEffect(value); save();},
     getMaster: () => state.master,
     setMaster(value) {if (inRange(value, 0, 3.8)) {state.master = value; save();}},
-    getChip: (id, configuration) => ({...mixerDefaults(id,configuration),...state.chips[id]}),
-    setChip(id, value) {state.chips[id] = {...state.chips[id],...validChip(value)}; save();},
+    getChip(id, configuration) {
+      const {gainUnits,...authored}=state.chips[id]??{};
+      // Older records are renderer-relative and may be shared between tracks
+      // with different source owners. Convert on read without rewriting them.
+      if(Object.hasOwn(authored,'gain')&&gainUnits!=='source')authored.gain*=legacyEngineTrim(id,configuration);
+      return {...mixerDefaults(id,configuration),...authored};
+    },
+    setChip(id, value) {
+      const authored=validChip(value);
+      if(Object.hasOwn(authored,'gain'))authored.gainUnits='source';
+      state.chips[id] = {...state.chips[id],...authored}; save();
+    },
     resetMixer() {state.chips = Object.create(null); state.master = 1; save();},
   };
 }

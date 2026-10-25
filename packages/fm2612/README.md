@@ -293,8 +293,8 @@ for synchronous rendering, as used by the Analyzer.
 
 ### Optional calibrated preset
 
-`SOUNDCHIP_MIXER_PRESETS.calibrated` provides fixed, measured output-level
-defaults for the 22 calibrated chip kinds. Select it when constructing the
+`SOUNDCHIP_MIXER_PRESETS.calibrated` combines measured output levels with a
+fixed listening balance for the 22 calibrated chip kinds. Select it when constructing the
 mixer, then pass that mixer to a browser Worklet endpoint:
 
 ```js
@@ -337,12 +337,25 @@ without a preset, or omitting `mixer` from `createSoundChip()`, keeps the legacy
 defaults described above. Importing or selecting the preset opens no audio
 device. It does not change direct `generateStereo()` output.
 
-Since 0.2.27, the standalone Sega PSG, AY-3-8910 and NES pulse references use
-AC RMS relative to the retained FM reference, reducing the earlier square-wave
-boost. Their fallback volumes are `0.455420`, `1.100331` and `1.514209`.
-The NES value is measured on this package's WASM core; the Analyzer's JavaScript
-NES renderer has a separate measured value. OPN chips retain their existing
-internal FM/SSG/rhythm/ADPCM balance, and the other preset levels are unchanged.
+The shared listening policy uses these standalone fallback volumes:
+
+| Sound chip | Volume |
+| --- | ---: |
+| Sega PSG | `0.35` |
+| AY-3-8910 | `0.85` |
+| NES | `1.16` |
+| Game Boy | `0.36` |
+| HuC6280 | `0.44` |
+
+This preset selects `gainUnits: 'source'`: `volume` is the actual source
+multiplier. Sega PSG volume `0.35` therefore means the same in a standalone
+chip, Playground, and the Analyzer. Genesis outputs replace their legacy
+FM/PSG trims in this mode instead of multiplying them again. A Mixer created
+without this option retains the legacy trims. These listening levels do not
+change raw PCM or the internal FM/SSG/rhythm/ADPCM balance of an OPN chip.
+Other calibrated chip levels retain their measured values. HuC6280 loudness
+depends on the selected waveform; `0.44` is a fixed listening balance, not
+waveform normalization.
 
 Calibration supplies fallback `volume` values, including an engine-specific
 YM2612/Nuked value when a connected endpoint reports that engine. Explicit

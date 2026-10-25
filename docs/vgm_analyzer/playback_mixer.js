@@ -1,7 +1,7 @@
 import {PCMChipMixer, chipMixGains} from '../js/soundchip_mixer.js';
 import {mixerDefaults} from './mixer_defaults.js';
 export {mixerDefaults} from './mixer_defaults.js';
-// Chip output trims, before the existing engine balance, master gain and FX.
+// Absolute chip gains, before engine master gain and FX.
 // Register writes and synthesis keep advancing even when a strip is muted.
 const properties = {
   ym2612: 'ym2612', psg: 'psg', rf5c164: 'pcm', pwm: 'pwm',
@@ -15,13 +15,30 @@ const properties = {
 export class PlaybackMixer extends PCMChipMixer {
   constructor(configuration) { super(); this.configuration = configuration; }
   addSource(id, source, method = 'generateStereo', rate = 44100, downstreamTrim = undefined) {
+    const trim=downstreamTrim??1;
+    if(!Number.isFinite(trim)||trim<=0)throw new RangeError('Invalid Analyzer output trim');
     super.addSource(id, source, method, rate);
-    this.set(id, mixerDefaults(id, this.configuration, downstreamTrim));
+    const strip = this.strips.get(id);
+    strip.downstreamTrim=trim;
+    this.set(id, mixerDefaults(id, this.configuration));
     // A newly connected source starts at its measured level immediately.
     // Do not reset another source's in-flight user gain/pan ramp.
-    const strip = this.strips.get(id);
     [strip.left, strip.right] = chipMixGains(strip.settings);
     strip.remaining = 0;
+  }
+  apply(strip,pcm,frames) {
+    const trim=strip.downstreamTrim??1;
+    if(trim===1)return super.apply(strip,pcm,frames);
+    // Keep the public setting and ramp in source units. Cancel only this
+    // application's legacy downstream engine balance in the same PCM pass.
+    const [left,right]=chipMixGains(strip.settings);
+    for(let i=0;i<frames;i++) {
+      if(strip.remaining) {
+        strip.left+=(left-strip.left)/strip.remaining;
+        strip.right+=(right-strip.right)/strip.remaining;strip.remaining--;
+      }
+      pcm.left[i]*=strip.left/trim;pcm.right[i]*=strip.right/trim;
+    }
   }
   set(id, {gain, ...settings}) { super.set(id, {...settings, ...(gain === undefined ? {} : {volume: gain})}); }
   get(id) { const {volume, ...settings} = super.get(id); return {gain: volume, ...settings}; }

@@ -3,7 +3,7 @@ import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
 import {installPlaygroundWorkbench} from './playground_workbench.js?v=operator-tab-keyboard-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundSoundChipMixer} from './playground_mixer_defaults.js?v=y8950-adpcm-ui-1';
+import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=y8950-adpcm-ui-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
@@ -1824,6 +1824,7 @@ const {
 // Loading saved Mixer files can report an error synchronously. Initialize only
 // after the UI's status handler and editor are available.
 const mixerState = createPlaygroundMixerState({mixer:megaDrive.mixer,files:virtualFiles,
+  legacyPrimaryTrims:playgroundLegacyMixerTrims(selectedMode.id),
   onWrite(path,{created,removed}) {
     // Listing the whole VFS copies binary assets. Slider updates only change
     // this JSON; refresh the file tree/models when its membership changes.

@@ -143,13 +143,21 @@ function dispatchMixerListener(listener, value, change = undefined) {
 }
 
 /** Settings can be prepared before start(). Importing this module opens no audio device. */
-/** @typedef {{factoryDefaults?:{version:number,kinds:Array<{name:string,volume?:number,pan?:number}>},
+/** @typedef {{gainUnits?:'legacy'|'source',factoryDefaults?:{version:number,kinds:Array<{name:string,volume?:number,pan?:number}>},
  * factoryEntries?:{version:number,entries:Array<{id:string,name:string,settings:{volume?:number,pan?:number}}>},
  * factoryEngines?:{version:number,engines:Array<{name:string,engine:string,volume?:number,pan?:number}>}}} SoundChipMixerOptions */
 export class SoundChipMixer {
+  /** @type {'legacy'|'source'} */
+  #gainUnits;
+  /** Source units replace a composite endpoint's legacy chip balance.
+   * Legacy units preserve existing endpoint behavior for generic consumers.
+   * @returns {'legacy'|'source'} */
+  get gainUnits() {return this.#gainUnits;}
   /** Application factory policy is optional and never part of authored exports.
    * @param {SoundChipMixerOptions} [options] */
-  constructor({factoryDefaults, factoryEntries, factoryEngines} = {}) {
+  constructor({gainUnits = 'legacy', factoryDefaults, factoryEntries, factoryEngines} = {}) {
+    if(!['legacy','source'].includes(gainUnits))throw new RangeError('Mixer gainUnits must be legacy or source');
+    this.#gainUnits = gainUnits;
     const factoryKinds = factoryDefaults === undefined ? new Map() : parseDefaults(factoryDefaults);
     const factoryIds = factoryEntries === undefined ? new Map() : parseFactoryEntries(factoryEntries);
     const engineDefaults = factoryEngines === undefined ? new Map() : parseFactoryEngines(factoryEngines);

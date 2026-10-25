@@ -927,7 +927,7 @@ export class MegaSynth {
     this.mixerReleases.push(() => meterNode.port.removeEventListener('message', receiveMixerPeaks));
     for (const name of ['ym2612', ...(psgWasmBinary ? ['segapsg'] : [])]) {
       this.mixerReleases.push(this.mixer.register(name, name, settings => {
-        meterNode.port.postMessage({type: 'mixer-settings', name, gains: chipMixGains(settings)});
+        meterNode.port.postMessage({type: 'mixer-settings', name, gains: chipMixGains(settings), gainUnits: this.mixer.gainUnits});
       }, {setMetering: enabled => meterNode.port.postMessage({type: 'mixer-metering', name, enabled})}));
     }
     if (this.megaCD) {

@@ -11,7 +11,7 @@ import {encodeRf5c164} from '../docs/js/rf5c164_pcm.js';
 import {createPlaybackEngine, createPlaybackPlayer, selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
 import {mixerDefaults} from '../docs/vgm_analyzer/playback_mixer.js';
 import {encodeStereoWav, renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
-import {SOUNDCHIP_MIXER_PRESETS} from '../docs/js/soundchip_mixer_presets.js';
+import {SOUNDCHIP_MIXER_PRESETS, SOUNDCHIP_MIXER_LISTENING_LEVELS} from '../docs/js/soundchip_mixer_presets.js';
 import {makePsgBalanceReference} from './measure_analyzer_psg_balance.mjs';
 import {makeAnalyzerPsgLevelReference} from './measure_analyzer_psg_levels.mjs';
 
@@ -59,13 +59,21 @@ function rfReference() {
     ...[[7, 0xc0], [0, 255], [1, 255], [2, wave.step & 255], [3, wave.step >> 8], [4, 0], [5, 0], [6, 0], [8, 0xfe]].flatMap(([register, value]) => [0xb1, register, value])];
 }
 const genesisClocks = [[0x2c, 7670454], [0x0c, 3579545]];
+function psgListeningReference(id,kind) {
+  const observed=psgLevels.rows.find(row=>row.id===id&&row.frequencyHz===referenceHz&&row.canonical);
+  assert(observed,`${id}: missing historical raw AC-RMS reference`);
+  const gain=SOUNDCHIP_MIXER_LISTENING_LEVELS[kind];
+  assert(Number.isFinite(gain)&&gain>0,`${kind}: missing listening level`);
+  return {rawGain:gain,unityAcRms:observed.rawAcRms,targetMetric:'acRms',
+    expectedTarget:observed.rawAcRms*gain,historicalReferenceGain:psgLevels.defaults[id]};
+}
 const routes = [
   {id: 'genesis-fm', source: 'ym2612', kind: 'ym2612', trim: .9, bytes: vgm(fmReference(), genesisClocks)},
   {id: 'genesis-psg', source: 'psg', kind: 'segapsg', trim: .35, bytes: vgm(psgReference(), genesisClocks),
-    rawGain: psgLevels.defaults.psg, targetMetric: 'acRms', expectedTarget: psgLevels.reference.targetAcRms},
+    ...psgListeningReference('psg','segapsg')},
   {id: 'genesis-rf5c164', source: 'rf5c164', kind: 'rf5c164', trim: 1, bytes: vgm(rfReference(), [...genesisClocks, [0x6c, 12500000]])},
   {id: 'y8950-psg', source: 'psg', kind: 'segapsg', trim: 1, bytes: vgm(psgReference(), [[0x58, 3579545], [0x0c, 3579545]]),
-    rawGain: psgLevels.defaults.psg, targetMetric: 'acRms', expectedTarget: psgLevels.reference.targetAcRms},
+    ...psgListeningReference('psg','segapsg')},
   ...['ym2608-fm', 'ym2608-ssg'].map(section => {
     const reference = makePsgBalanceReference(section, referenceHz);
     const observed = opnaBalance.rows.find(row => row.section === section && row.frequencyHz === referenceHz);
@@ -80,8 +88,7 @@ const routes = [
     const observed = psgLevels.rows.find(row => row.id === id && row.frequencyHz === referenceHz && row.canonical);
     assert.equal(createHash('sha256').update(reference.bytes).digest('hex'), observed.referenceSha256);
     return {id: `standalone-${id}`, source: id, kind: id === 'nesApu' ? 'nes' : id,
-      trim: 1, bytes: reference.bytes, rawGain: psgLevels.defaults[id], unityAcRms: observed.rawAcRms,
-      targetMetric: 'acRms', expectedTarget: psgLevels.reference.targetAcRms};
+      trim: 1, bytes: reference.bytes, ...psgListeningReference(id,id==='nesApu'?'nes':id)};
   }),
 ];
 
@@ -114,8 +121,8 @@ async function render(route, unity = false, controlOnly = false) {
     const configuration = selectPlaybackConfiguration(new Ym2612VGM(route.bytes));
     assert.equal(Boolean(engine.ym2612), route.id.startsWith('genesis-'), `${route.id}: actual source owner`);
     const defaults = engine.playbackMixer.get(route.source);
-    assert.deepEqual(defaults, mixerDefaults(route.source, configuration, route.trim));
-    assert.equal(defaults.gain, Number(((route.rawGain ?? measured.get(route.kind)) / route.trim).toFixed(6)));
+    assert.deepEqual(defaults, mixerDefaults(route.source, configuration));
+    assert.equal(defaults.gain, route.rawGain ?? measured.get(route.kind));
     if (route.kind === 'ym2608') assert.equal(defaults.gain, 1.03357);
     for (const id of engine.playbackMixer.strips.keys()) engine.playbackMixer.set(id, {muted: id !== route.source});
     if (unity) engine.playbackMixer.set(route.source, {gain: 1});
@@ -169,13 +176,14 @@ for (const route of routes) {
     `${route.id}: raw renderer reference changed from the independent measurement`);
   if (route.unityAcRms !== undefined) assert(Math.abs(acRms(unity.pcm, start) / route.unityAcRms - 1) < .005,
     `${route.id}: raw renderer AC RMS changed from the independent measurement`);
-  rows.push({route: route.id, source: route.source, kind: route.kind, downstreamTrim: route.trim,
+  rows.push({route: route.id, source: route.source, kind: route.kind, legacyEngineTrim: route.trim, gainUnits:'source',
     sampleRate: calibrated.rate, frames: calibrated.frames, defaultGain: calibrated.gain, measuredGainRatio: gainRatio,
     maxGainError: error, maxRestartGainError: restartError, unityAmplitude: amplitude(unity.pcm, start), calibratedAmplitude: outputAmplitude,
     unityAcRms: acRms(unity.pcm, start), calibratedAcRms: outputAcRms,
     ...(metric === 'acRms' ? {targetAcRms: expectedTarget} : {targetAmplitude: expectedTarget}), targetMetric: metric,
-    targetKind: metric === 'acRms' ? 'standalone PSG-family AC RMS / unchanged OPNA FM anchor'
+    targetKind: metric === 'acRms' ? 'historical raw AC RMS times selected standalone listening level'
       : route.id === 'ym2608-ssg' ? 'retained OPNA SSG balance' : 'common calibration reference',
+    ...(route.historicalReferenceGain===undefined?{}:{historicalReferenceGain:route.historicalReferenceGain,selectedRawGain:route.rawGain}),
     relativeTargetError, restart: route.kind === 'ym2608' ? 'gain preserved at matching native history' : 'exact', wav: 'exact', wavFrames: calibrated.wavFrames,
     referenceSha256: createHash('sha256').update(route.bytes).digest('hex')});
 }
@@ -188,8 +196,8 @@ const paths = ['docs/vgm_analyzer/playback_mixer.js', 'docs/vgm_analyzer/playbac
   ...['ym2612', 'segapsg', 'rf5c164', 'y8950', 'ym2608', 'ay8910'].map(name => `docs/generated/${name}_wasm.wasm`)];
 const sources = Object.fromEntries(await Promise.all(paths.map(async path => [path, createHash('sha256').update(await readFile(resolve(root, path))).digest('hex')])));
 const report = {schemaVersion: 1, passed: true, referenceHz, warmupSeconds, captureSeconds,
-  method: 'Original single-voice VGM programs through actual Analyzer engines; fresh-core unity/default PCM ratio, fixed peak or PSG-family AC-RMS targets, reset gain and exact PCM16 WAV comparisons.',
-  limits: 'Representative ymfm/PSG/RF/AY/NES routes only; OPNA internal SSG retains its existing renderer balance at gain1.03357. Only standalone Sega PSG, canonical AY flags1 and NES pulse defaults use the steady OPNA FM AC-RMS anchor. No physical output device, perceived-loudness normalization, arbitrary music or polyphony claim. Other chip references are validated separately.',
+  method: 'Original single-voice VGM programs through actual Analyzer engines; fresh-core unity/default PCM ratio, fixed peak or selected PSG-family listening-level targets, reset gain and exact PCM16 WAV comparisons.',
+  limits: 'Representative ymfm/PSG/RF/AY/NES routes only; OPNA internal SSG retains its existing renderer balance at gain1.03357. Standalone Sega PSG, canonical AY flags1 and NES pulse targets use the unchanged raw AC-RMS references times the explicit listening level; they no longer target equal OPNA FM RMS. No physical output device, perceived-loudness normalization, arbitrary music or polyphony claim. Other chip references are validated separately.',
   sources, rows};
 if (process.argv.length > 2) {
   assert.equal(process.argv.length, 4, 'Usage: node scripts/check_analyzer_mixer_levels.mjs [--out report.json]');

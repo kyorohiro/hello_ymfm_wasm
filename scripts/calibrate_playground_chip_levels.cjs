@@ -35,7 +35,7 @@ async function main(){
   const {FM_CALIBRATION_KINDS,buildFmCalibrationReference,buildYm2610bPrimaryCalibrationReference}=await import('./soundchip_calibration_fm.mjs');
   const {PCM_CALIBRATION_KINDS,buildPcmCalibrationReference}=await import('./soundchip_calibration_pcm.mjs');
   const {probeAmplitude,deriveCalibrationGains}=await import('./soundchip_calibration_metrics.mjs');
-  const {buildPlaygroundMixerPolicy}=await import('./generate_playground_mixer_defaults.mjs');
+  const {buildPlaygroundMixerPolicy,playgroundLegacyMixerTrims}=await import('./generate_playground_mixer_defaults.mjs');
   const all=[...FM_CALIBRATION_KINDS,...PCM_CALIBRATION_KINDS];
   if(kinds?.some(k=>!all.includes(k)))throw Error('Unknown requested calibration kind');
   const builder=(kind,hz,chipEngine)=>FM_CALIBRATION_KINDS.includes(kind)?buildFmCalibrationReference(kind,hz,{engine:chipEngine}):buildPcmCalibrationReference(kind,hz);
@@ -44,14 +44,14 @@ async function main(){
   if(verify&&(!baseline?.passed||baseline.verify||!baseline.calibration?.targetAmplitude))throw Error('--verify requires a successful uncalibrated --baseline report');
   const defaultPolicy=verify?buildPlaygroundMixerPolicy(baseline):null;
   const routes=[...selected.map(kind=>({kind,role:'extra',mode:'genesis'})),...(selected.includes('ym2612')?[{kind:'ym2612',chipEngine:'nuked',role:'extra',mode:'genesis'}]:[]),...(!onlyExtra?primary.filter(([,kind])=>selected.includes(kind)).map(([mode,kind,accessKind])=>({kind,role:'primary',mode,accessKind:accessKind??kind})):[])];
-  const report={schemaVersion:1,passed:false,engine,verify,method:'half peak-to-peak; RMS/DC/AC-RMS recorded separately',
+  const report={schemaVersion:1,passed:false,engine,verify,gainUnits:'source',method:'half peak-to-peak; RMS/DC/AC-RMS recorded separately',
     frequencies,rows:[],limits:['Known single-voice waveforms; not perceived loudness or polyphony normalization.',
       'SPC uses an original synthetic single-voice file to measure output units; authored file contents are not normalized.',
       'Measurements use actual Web Worklets/WASM; this runner does not open a Native audio device.']};
   if(process.argv.includes('--resume')){
     if(verify)throw Error('Verification must measure every route afresh');
     const previous=JSON.parse(await fs.readFile(out,'utf8'));
-    if(previous.engine!==engine||previous.verify!==verify||JSON.stringify(previous.frequencies)!==JSON.stringify(frequencies))throw Error('Resume configuration differs');
+    if(previous.engine!==engine||previous.verify!==verify||previous.gainUnits!==report.gainUnits||JSON.stringify(previous.frequencies)!==JSON.stringify(frequencies))throw Error('Resume configuration differs');
     report.rows=previous.rows;
   }
   await fs.mkdir(path.dirname(out),{recursive:true});
@@ -102,7 +102,8 @@ async function main(){
                 ?? defaultPolicy.factoryDefaults.kinds.find(entry=>entry.name===route.kind)?.volume;
             if(!Number.isFinite(gain)||gain<=0)throw Error('Missing default Mixer policy for '+route.kind);
             if(Math.abs(mix.settings.volume-gain)>1e-6)throw Error(`Default Mixer policy mismatch ${route.role}/${route.mode}/${route.kind}: ${mix.settings.volume} vs ${gain}`);
-            const expected=original.amplitude*gain,relativeError=Math.abs(amplitude/expected-1);
+            const oldTrim=route.role==='primary'&&baseline.gainUnits!=='source'?playgroundLegacyMixerTrims(route.mode)[route.kind]??1:1;
+            const expected=original.amplitude/oldTrim*gain,relativeError=Math.abs(amplitude/expected-1);
             const row=report.rows.at(-1);Object.assign(row,{expectedAmplitude:expected,relativeError});
             if(!Number.isFinite(relativeError)||relativeError>.025)throw Error(`Default gain mismatch ${route.role}/${route.mode}/${route.kind}/${frequencyHz}: ${amplitude} vs ${expected}`);
           }

@@ -11,7 +11,7 @@ const isProjectPreset = path => typeof path==='string'&&/^\/mixer\/[^/]+\.json$/
 /** Presets and the current mix are project files. No separate common-default
  * storage or audio polling: only authored Mixer changes schedule a write. */
 export function createPlaygroundMixerState({mixer,files,onWrite=()=>{},onError=()=>{},
-  delayMs=250,setTimer=setTimeout,clearTimer=clearTimeout}) {
+  legacyPrimaryTrims={},delayMs=250,setTimer=setTimeout,clearTimer=clearTimeout}) {
   let applying=false,writing=false,replacing=false,disposed=false,dirty=false,timer=null;
   let blockedPath=null,revision=-1,legacyRevision=-1,legacyAllowed=true,modelJson='';
   let presets=[],presetSignature='';
@@ -24,27 +24,40 @@ export function createPlaygroundMixerState({mixer,files,onWrite=()=>{},onError=(
   };
   function capture() {
     const state=mixer.exportState(),{kinds}=mixer.exportDefaults();
-    return {version:1,...(kinds.length?{kinds}:{}),entries:state.entries};
+    return {version:1,...(mixer.gainUnits==='source'?{gainUnits:'source'}:{}),...(kinds.length?{kinds}:{}),entries:state.entries};
   }
   function parse(text) {
     validateText(text,'Mixer preset');
     const source=JSON.parse(text);
-    if(!source||typeof source!=='object'||Array.isArray(source)||Object.keys(source).some(key=>!['version','kinds','entries'].includes(key)))throw new Error('Invalid Mixer preset');
+    if(!source||typeof source!=='object'||Array.isArray(source)||Object.keys(source).some(key=>!['version','gainUnits','kinds','entries'].includes(key))||
+      (source.gainUnits!==undefined&&source.gainUnits!=='source'))throw new Error('Invalid Mixer preset');
     const validator=new SoundChipMixer();
     validator.configureDefaults({version:source.version,kinds:Object.hasOwn(source,'kinds')?source.kinds:[]});
     validator.restoreState({version:source.version,entries:source.entries});
     const {kinds}=validator.exportDefaults();
-    return {version:1,...(kinds.length?{kinds}:{}),entries:validator.exportState().entries};
+    return {version:1,...(source.gainUnits?{gainUnits:source.gainUnits}:{}),...(kinds.length?{kinds}:{}),entries:validator.exportState().entries};
   }
   function apply(preset) {
     applying=true;
     try {
+      if(mixer.gainUnits==='source'&&preset.gainUnits!=='source') {
+        preset=structuredClone(preset);
+        for(const [id,trim] of Object.entries(legacyPrimaryTrims)) {
+          const record=preset.entries.find(entry=>entry.id===id);
+          if(record?.name!==undefined&&record.name!==id)continue;
+          const common=preset.kinds?.find(kind=>kind.name===id);
+          const volume=record?.settings.volume??common?.volume;
+          if(volume===undefined)continue;
+          if(record)record.settings.volume=volume*trim;
+          else preset.entries.push({id,name:id,settings:{volume:volume*trim}});
+        }
+      }
       mixer.restoreState({version:1,entries:preset.entries},{version:1,kinds:preset.kinds??[]});
     } finally{applying=false;modelJson=JSON.stringify(capture());}
   }
   function occupied(path) {return files.has(path)||files.listDirectories().includes(path);}
   function read(path) {
-    if(path===MIXER_SYSTEM_PRESET_PATH)return {version:1,entries:[]};
+    if(path===MIXER_SYSTEM_PRESET_PATH)return {version:1,gainUnits:'source',entries:[]};
     if(!isProjectPreset(path))throw new Error('Choose a JSON preset from mixer/');
     const file=files.get(path);
     if(!file||file.type!=='text')throw new Error(`Expected a JSON text file: ${path}`);

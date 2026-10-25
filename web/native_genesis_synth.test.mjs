@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {NativeGenesisSynth} from './native_genesis_synth.js';
+import {SoundChipMixer} from './soundchip_mixer.js';
 import {createPlaygroundRuntime} from './playground_runtime.js';
 import {createPlaygroundKeyboardRouting} from '../docs/playground/playground_mode_keyboard.js';
 
@@ -9,14 +10,14 @@ const ticks = async () => {for(let i=0;i<20;i++)await Promise.resolve();};
 function fixture(options={}) {
   let milliseconds=0,session=0;
   const calls=[],errors=[];
-  const status=()=>({session,sampleRate:48000,frame:Math.round(milliseconds*48),ymClock:7670454,psgClock:3579545,running:true});
+  const status=()=>({session,sampleRate:48000,frame:Math.round(milliseconds*48),ymClock:7670454,psgClock:3579545,running:true,...(options.mode?{mode:options.mode,engine:options.mode.includes('nuked')?'nuked':'ymfm'}:{})});
   const invoke=async(command,args)=>{
     calls.push({command,args});
     if(options.invoke){const result=options.invoke(command,args,status);if(result!==undefined)return await result;}
     if(command==='native_genesis_start'){session++;return status();}
     if(['native_genesis_stop','native_genesis_status'].includes(command))return status();
   };
-  const synth=new NativeGenesisSynth({invoke,now:()=>milliseconds,onError:error=>errors.push(error)});
+  const synth=new NativeGenesisSynth({invoke,now:()=>milliseconds,onError:error=>errors.push(error),mixer:options.mixer,mode:options.mode});
   return {synth,calls,errors,status,advance:ms=>{milliseconds+=ms;},commands:()=>calls.filter(call=>call.command==='native_genesis_commands').flatMap(call=>call.args.commands)};
 }
 
@@ -315,4 +316,31 @@ test('automatic register flushing reports additional-chip memory rejection once 
   await ticks();assert.equal(f.synth.state,'ready');assert.equal(f.errors.length,1);assert.equal(f.errors[0].code,'EXTRA_CHIP_MEMORY_LIMIT');
   assert(!f.calls.some(c=>c.command==='native_genesis_stop'));
   reject=false;f.synth.psg.off(0);await f.synth.flush();await f.synth.close();
+});
+
+
+for(const mode of ['genesis','genesis-nuked'])test(`Native ${mode} sends visible source-unit gains without inverse transport scaling`,async t=>{
+  const mixer=new SoundChipMixer({gainUnits:'source'}),f=fixture({mode,mixer});
+  t.after(()=>f.synth.close());await f.synth.start();
+  assert(f.commands().filter(c=>c.type==='mix').every(c=>c.gainUnits==='source'));
+  f.calls.length=0;
+  mixer.set('ym2612',{volume:2,pan:1});mixer.set('segapsg',{volume:.35,pan:-1});
+  f.synth.setMasterVolume(2);f.synth.setListeningVolume(.25);await f.synth.flush();
+  const mix=f.commands().filter(c=>c.type==='mix').at(-1);
+  assert.deepEqual(mix,{type:'mix',frame:0,fmLeft:0,fmRight:2,psgLeft:.35,psgRight:0,master:.5,gainUnits:'source'});
+  assert(f.commands().filter(c=>c.type==='mix').every(c=>['fmLeft','fmRight','psgLeft','psgRight'].every(key=>c[key]>=0&&c[key]<=2)));
+  await f.synth.stopNativeAudio();mixer.set('segapsg',{volume:2,pan:0});await f.synth.flush();
+  assert.equal(f.commands().at(-1).gainUnits,'source');assert.equal(f.commands().at(-1).psgLeft,2);
+  await f.synth.close();f.calls.length=0;await f.synth.start();
+  assert(f.commands().filter(c=>c.type==='mix').every(c=>c.gainUnits==='source'));
+  assert.equal(f.commands().filter(c=>c.type==='mix').at(-1).psgLeft,2);assert.deepEqual(f.errors,[]);
+});
+
+test('Native default and explicit legacy mixers preserve the existing exact mix packet contract',async t=>{
+  for(const mixer of [undefined,new SoundChipMixer({gainUnits:'legacy'})]){
+    const f=fixture({mixer});t.after(()=>f.synth.close());await f.synth.start();f.calls.length=0;
+    f.synth.mixer.set('segapsg',{volume:2,pan:-1});f.synth.setMasterVolume(.8);await f.synth.flush();
+    assert.deepEqual(f.commands().at(-1),{type:'mix',frame:0,fmLeft:1,fmRight:1,psgLeft:2,psgRight:0,master:.8});
+    assert(f.commands().every(c=>!Object.hasOwn(c,'gainUnits')));await f.synth.close();
+  }
 });

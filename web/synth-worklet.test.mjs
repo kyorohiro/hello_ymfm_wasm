@@ -400,6 +400,67 @@ for(const tree of ['web','docs/js'])for(const file of ['ym2612-worklet.js','ym26
 }
 
 for (const file of ['ym2612-worklet.js', 'ym2612-worklet-nuked.js']) {
+  test(`${file}: source-unit Mixer settings replace Genesis trims and meters follow actual output`, () => {
+    const {p, messages} = processor('web', file, 48000);
+    p.ym2612 = chip(48000); p.psg = chip(48000);
+    p.ym2612.value = .5; p.psg.value = .25;
+    assert(Math.abs(render(p,256).left[255] - .5375) < 1e-6, 'Unconfigured output retains legacy FM/PSG trims');
+    for (const name of ['ym2612','segapsg']) p.applyCommand({type:'mixer-settings',name,gains:[1,1],gainUnits:'source'});
+    let out = render(p,256);
+    assert(Math.abs(out.left[255] - .75) < 1e-6);
+    assert(Math.abs(out.right[255] + .75) < 1e-6);
+    p.applyCommand({type:'mixer-settings',name:'ym2612',gains:[0,0],gainUnits:'source'});
+    p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[.35,.35],gainUnits:'source'});
+    out = render(p,256);
+    assert(Math.abs(out.left[255] - .25 * .35) < 1e-6, 'Displayed .35 is applied once');
+    p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[2,0],gainUnits:'source'});
+    out = render(p,256);
+    assert(Math.abs(out.left[255] - .5) < 1e-6, 'The full public 0..2 source range remains usable');
+    assert.equal(out.right[255],0);
+    p.applyCommand({type:'mixer-settings',name:'ym2612',gains:[.5,.5],gainUnits:'source'});
+    p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[.35,.35],gainUnits:'source'});
+    render(p,256);
+    for (const name of ['ym2612','segapsg']) p.applyCommand({type:'mixer-metering',name,enabled:true});
+    render(p,3200);
+    const meter = messages.find(message => message.type === 'mixer-peaks');
+    assert(meter);
+    assert(Math.abs(meter.entries[0].left - .25) < 1e-6);
+    assert(Math.abs(meter.entries[1].left - .0875) < 1e-6);
+    assert(Math.abs(meter.entries[1].right - .0875) < 1e-6);
+  });
+  test(`${file}: changing Mixer units preserves continuous ramps and validates before mutation`, () => {
+    const {p} = processor('web',file,48000);
+    p.ym2612 = chip(48000); p.psg = chip(48000);
+    p.ym2612.value = 0; p.psg.value = .25;
+    render(p,256);
+    p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[.35,.35],gainUnits:'source'});
+    assert(render(p,256).left.every(value => Math.abs(value - .0875) < 1e-6), 'Equivalent source/legacy settings must not jump');
+    p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[1,1],gainUnits:'source'});
+    let out = render(p,256);
+    assert(out.left[0] > .0875 && out.left[0] < .089);
+    assert(Math.abs(out.left[255] - .25) < 1e-6);
+    p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[1,1],gainUnits:'legacy'});
+    out = render(p,256);
+    assert(out.left[0] < .25 && out.left[0] > .248);
+    assert(Math.abs(out.left[255] - .0875) < 1e-6);
+    for (const gainUnits of [null,'',false,0,'other']) {
+      assert.throws(() => p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[1,1],gainUnits}), /Invalid mixer settings/);
+    }
+    for (const gain of [-.01,2.01,NaN,Infinity]) {
+      assert.throws(() => p.applyCommand({type:'mixer-settings',name:'segapsg',gains:[gain,1],gainUnits:'source'}), /Invalid mixer settings/);
+    }
+    assert(Math.abs(render(p,1).left[0] - .0875) < 1e-6, 'Rejected commands leave current output unchanged');
+  });
+  test(`${file}: source-unit commands leave the FM-only route without Genesis attenuation`, () => {
+    const {p} = processor('web',file,48000);
+    p.ym2612 = chip(48000); p.ym2612.value = .5;
+    for (const gainUnits of [undefined,'legacy','source']) {
+      p.applyCommand({type:'mixer-settings',name:'ym2612',gains:[.6,.6],gainUnits});
+      const out = render(p,256);
+      assert(Math.abs(out.left[255] - .3) < 1e-6);
+      assert(Math.abs(out.right[255] + .3) < 1e-6);
+    }
+  });
   test(`${file}: source meters are opt-in, stereo post-trim, low-frequency and stop without PCM messages`, () => {
     const {p, messages} = processor('web', file, 48000);
     p.ym2612 = chip(48000); p.psg = chip(48000);

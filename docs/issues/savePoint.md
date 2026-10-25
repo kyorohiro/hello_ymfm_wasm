@@ -24,6 +24,9 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。WASM SDK移行は引き続き次作業。
+その後、未反映だったPSG・AY・NES・PC Engineの初期値も揃えた。
+Mixerは調整値そのものを表示し、Genesisの既存倍率は接続側で相殺するsource単位へ整理した。
+旧保存設定の読込み時換算と検証は[psg_mixer_balance_02.md](psg_mixer_balance_02.md)を参照。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。

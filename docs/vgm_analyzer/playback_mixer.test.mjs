@@ -76,18 +76,73 @@ test('new strips start at measured levels immediately and late registration pres
  assert.equal(mixer.get('rf5c164').gain,.7);
 });
 
-test('installed source ownership applies Genesis trim compensation and never leaks it to another PSG owner',()=>{
+test('installed source ownership cancels Genesis balance without changing public source-unit gains',()=>{
  const configuration={kind:'ym2612',chips:[{id:'ym2612'},{id:'psg'}]};
  const genesis={ym2612:source(),psg:source(),writeYm2612(){},reset(){},sampleRate:()=>44100};
  const mixer=installPlaybackMixer(genesis,configuration);
- assert.equal(mixer.get('ym2612').gain,Number((.775938/.9).toFixed(6)));
- assert.equal(mixer.get('psg').gain,1.3012);
+ assert.equal(mixer.get('ym2612').gain,.775938);
+ assert.equal(mixer.get('psg').gain,.35);
+ for(const [id,trim] of [['ym2612',.9],['psg',.35]])for(const gain of [0,.35,1,2]){
+  mixer.set(id,{gain});mixer.reset();
+  const pcm=genesis[id].generateStereo(3);
+  for(const sample of pcm.left)assert.ok(Math.abs(sample*trim-Math.fround(.8)*gain)<2e-7,`${id}: ${gain} is an actual source gain`);
+ }
  const unrelated={psg:source(),reset(){},sampleRate:()=>44100};
  const separate=installPlaybackMixer(unrelated,{kind:'ym2612',chips:[{id:'psg'}]});
- assert.equal(separate.get('psg').gain,.45542,'The actual source owner takes precedence over configuration inference');
+ assert.equal(separate.get('psg').gain,.35,'The actual source owner takes precedence over configuration inference');
  const opl={ym3812:source(),psg:source(),reset(){},sampleRate:()=>44100};
  const oplMixer=installPlaybackMixer(opl,{kind:'ym3812',chips:[{id:'ym3812'},{id:'psg'}]});
- assert.equal(oplMixer.get('psg').gain,.45542);
+ assert.equal(oplMixer.get('psg').gain,.35);
+});
+
+test('Genesis normalization preserves borrowed tails, zero-frame calls and ramp segmentation',()=>{
+ const render=sizes=>{
+  const left=new Float32Array(12),right=new Float32Array(12);
+  const source={generateStereoView(){left.fill(1);right.fill(.5);return {left,right};}};
+  const mixer=new PlaybackMixer();mixer.addSource('psg',source,'generateStereoView',1000,.35);
+  mixer.set('psg',{gain:1});
+  return sizes.flatMap(frames=>{
+   const before=mixer.strips.get('psg').remaining,pcm=source.generateStereoView(frames);
+   assert.ok(pcm.left.subarray(frames).every(value=>value===1));
+   assert.ok(pcm.right.subarray(frames).every(value=>value===.5));
+   if(!frames)assert.equal(mixer.strips.get('psg').remaining,before);
+   return [...pcm.left.subarray(0,frames)];
+  });
+ };
+ assert.deepEqual(render([0,8]),render([1,0,2,5]));
+});
+
+test('actual Genesis FM and PSG source gains survive restart, snapshot, seek and WAV export',async()=>{
+ const fmBytes=await readFile(new URL('../../test/fixtures/genesis-pcm.vgm',import.meta.url));
+ const psgBytes=new Uint8Array(await readFile(new URL('../../test/fixtures/psg-tone.vgm',import.meta.url)));
+ // Select the Genesis host for the existing original PSG-only test program.
+ new DataView(psgBytes.buffer).setUint32(0x2c,7670454,true);
+ const read=(player,frames)=>{const left=new Float32Array(frames),right=new Float32Array(frames);player.process(left,right,frames);return {left,right};};
+ for(const id of ['ym2612','psg']){
+  const bytes=id==='psg'?psgBytes:fmBytes;
+  const make=()=>createPlaybackEngine(new Ym2612VGM(bytes),{getFactory:getNodePlaybackFactory});
+  const render=async gain=>{
+   const engine=await make();
+   try{
+    for(const source of engine.playbackMixer.strips.keys())engine.playbackMixer.set(source,{muted:source!==id});
+    engine.playbackMixer.set(id,{gain});
+    const player=createPlaybackPlayer(engine,bytes);player.stop();player.play();
+    const first=read(player,4096);player.stop();player.play();assert.deepEqual(read(player,4096),first,`${id}: restart`);
+    const snapshot=player.saveState(),continuation=read(player,2048);player.loadState(snapshot);
+    assert.deepEqual(read(player,2048),continuation,`${id}: snapshot`);
+    // seekPlayback uses 44.1 kHz VGM wait units; Genesis renders at clock/144.
+    await seekPlayback(player,4096.5*44100/player.sampleRate(),{yieldTask:async()=>{}});player.play();assert.deepEqual(read(player,2048),continuation,`${id}: seek`);
+    player.stop();player.play();const wav=await renderVgmToWav(player,{maxSeconds:882/player.sampleRate(),blockFrames:882});
+    assert.deepEqual(wav.bytes,encodeStereoWav(first.left.subarray(0,882),first.right.subarray(0,882),player.sampleRate()),`${id}: WAV`);
+    return first;
+   }finally{engine.dispose();}
+  };
+  const unity=await render(1);assert.ok(unity.left.some(value=>Math.abs(value)>.001),id+' reference is audible');
+  for(const gain of [0,mixerDefaults(id).gain,.5,2]){
+   const actual=await render(gain);
+   for(const side of ['left','right'])for(let i=0;i<actual[side].length;i++)assert.ok(Math.abs(actual[side][i]-unity[side][i]*gain)<2e-7,`${id}/${gain}/${side}/${i}: absolute source gain`);
+  }
+ }
 });
 
 test('actual Analyzer NES defaults apply without UI setup and survive restart, snapshots, seek and WAV export',async()=>{

@@ -134,7 +134,7 @@ export class NativeGenesisSynth {
       onError:message=>this.emit({type:'live-fx-error',message})});
     this.masterVolume = this.validateVolume(masterVolume); this.listeningVolume = 1;
     this.auditions = new Map(); this.psgAuditions = new Map(); this.psgLevels = new Uint8Array(4).fill(6); this.psgLatch = 0;
-    this.mix = {fmLeft:1,fmRight:1,psgLeft:1,psgRight:1,master:this.masterVolume};
+    this.mix = {fmLeft:1,fmRight:1,psgLeft:1,psgRight:1,master:this.masterVolume,...(mixer.gainUnits === 'source' ? {gainUnits:'source'} : {})};
     this.media = createNativeGenesisMedia(this,{decodeAudio});
     this.fxBeatSeconds = () => .5; this.fx = null;
     const write = (port, register, value) => this.write(port, register, value);

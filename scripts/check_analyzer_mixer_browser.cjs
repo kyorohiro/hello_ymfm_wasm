@@ -81,11 +81,11 @@ const server=http.createServer(async(request,response)=>{
 });
 
 const expected={
-  'genesis-pcm.vgz':{ym2612:.862153,psg:1.3012,rf5c164:.280286},
+  'genesis-pcm.vgz':{ym2612:.775938,psg:.35,rf5c164:.280286},
   'gameboy-tone.vgm':{gameBoyDmg:.36},
-  'nes-tone.vgm':{nesApu:1.512236},
-  'y8950-psg.vgz':{y8950:1.03357,psg:.45542},
-  'ay-tone.vgm':{ay8910:1.100331},
+  'nes-tone.vgm':{nesApu:1.16},
+  'y8950-psg.vgz':{y8950:1.03357,psg:.35},
+  'ay-tone.vgm':{ay8910:.85},
   'ym2608-fm.vgm':{ym2608:1.03357},
   'ym2608-ssg.vgm':{ym2608:1.03357},
 };
@@ -178,7 +178,7 @@ async function checkBrowser(name,type,origin) {
     assert.deepEqual(saved(state)?.chips??{},{});await stop(page);
     // Explicit gain before Play, and a later adjustment, are absolute and saved.
     await load(page,'gameboy-tone.vgm');await chipRange(page,'gameBoyDmg',0,75);
-    assert.deepEqual(saved(await snapshot(page)).chips.gameBoyDmg,{gain:.75});
+    assert.deepEqual(saved(await snapshot(page)).chips.gameBoyDmg,{gain:.75,gainUnits:'source'});
     await play(page);checkValues((await snapshot(page)).mixer,{gameBoyDmg:.75},'pre-Play override');
     await chipRange(page,'gameBoyDmg',0,62);await chipRange(page,'gameBoyDmg',1,-40);
     state=await snapshot(page);checkValues(state.mixer,{gameBoyDmg:.62},'post-Play override');
@@ -188,7 +188,7 @@ async function checkBrowser(name,type,origin) {
     checkValues(state.preferences,{gameBoyDmg:.62},'reloaded explicit gain');
     assert.equal(state.preferences.gameBoyDmg.pan,-.4);await checkSliders(page,{gameBoyDmg:.62});
     await play(page);checkValues((await snapshot(page)).mixer,{gameBoyDmg:.62},'reloaded Play');await stop(page);
-    // Pan-only authorship must leave gain lazy across differing Genesis PSG trim.
+    // Pan-only authorship must leave source-unit factory gains lazy.
     await page.locator('#mixerReset').click();await load(page,'y8950-psg.vgz');
     await chipRange(page,'psg',1,37);state=await snapshot(page);
     assert.deepEqual(saved(state).chips.psg,{pan:.37});
@@ -199,6 +199,29 @@ async function checkBrowser(name,type,origin) {
       await checkSliders(page,expected[filename]);await play(page);state=await snapshot(page);
       checkValues(state.mixer,expected[filename],`${filename} contextual Play`);
       assert.equal(state.mixer.psg.pan,.37);assert.deepEqual(saved(state).chips.psg,{pan:.37});await stop(page);
+    }
+    // Legacy preferences keep their prior effective sound in each source owner.
+    const legacy={effect:(await snapshot(page)).effect,master:1,chips:{ym2612:{gain:.8},psg:{gain:1.3}}};
+    await page.evaluate(({key,value})=>localStorage.setItem(key,value),{key:preferencesKey,value:JSON.stringify(legacy)});
+    await open();
+    for(const filename of ['genesis-pcm.vgz','y8950-psg.vgz','genesis-pcm.vgz']) {
+      const beforeLoad=await snapshot(page);
+      await load(page,filename);state=await snapshot(page);
+      const converted=filename==='genesis-pcm.vgz'?{ym2612:.8*.9,psg:1.3*.35}:{psg:1.3};
+      checkValues(state.preferences,converted,`${filename} legacy gain conversion`);
+      assert.deepEqual(saved(state),legacy,'Legacy conversion on load must not rewrite storage');
+      assert.equal(state.writes.length,beforeLoad.writes.length,`${filename}: legacy load must not persist a migration`);
+      await play(page);checkValues((await snapshot(page)).mixer,converted,`${filename} legacy Play`);await stop(page);
+    }
+    await chipRange(page,'psg',1,22);state=await snapshot(page);
+    assert.deepEqual(saved(state).chips.psg,{gain:1.3,pan:.22},'Pan changes preserve the legacy gain basis');
+    await open();await load(page,'genesis-pcm.vgz');
+    checkValues((await snapshot(page)).preferences,{psg:1.3*.35},'Legacy conversion does not compound after reload');
+    await chipRange(page,'psg',0,35);
+    assert.deepEqual(saved(await snapshot(page)).chips.psg,{gain:.35,pan:.22,gainUnits:'source'});
+    for(const filename of ['y8950-psg.vgz','genesis-pcm.vgz']) {
+      await load(page,filename);checkValues((await snapshot(page)).preferences,{psg:.35},`${filename} source-unit saved gain`);
+      await play(page);checkValues((await snapshot(page)).mixer,{psg:.35},`${filename} source-unit saved Play`);await stop(page);
     }
     // Mixer Reset restores defaults/mute/pan/master, preserving authored FX.
     await chipRange(page,'ym2612',0,50);await chipRange(page,'psg',1,-25);
@@ -225,7 +248,7 @@ async function checkBrowser(name,type,origin) {
     const opnaPcm=await checkOpnaPcm(page);
     assert.deepEqual(errors,[],`${name}: page errors`);
     console.log(JSON.stringify({browser:name,passed:true,root:docs,defaultGains:expected,opnaPcm,
-      checked:['load-without-storage-writes','first-Play-calibration-including-AY','before-and-after-Play-explicit-gain','reload-persistence','pan-only-contextual-PSG','Reset-empty-overrides-master-and-mute','Reset-preserves-FX','real-WASM-AudioWorklet-muted-output','OPNA-FM-and-SSG-actual-borrowed-PCM-gain-and-mute']}));
+      checked:['load-without-storage-writes','first-Play-calibration-including-AY','before-and-after-Play-explicit-gain','reload-persistence','pan-only-lazy-source-gain','legacy-gain-context-conversion-without-storage-writes','pan-retains-legacy-basis','new-source-gain-shared-across-owners','Reset-empty-overrides-master-and-mute','Reset-preserves-FX','real-WASM-AudioWorklet-muted-output','OPNA-FM-and-SSG-actual-borrowed-PCM-gain-and-mute']}));
     await context.close();
   } catch(error) {
     throw new Error(`${name}: ${error.message}`,{cause:error});

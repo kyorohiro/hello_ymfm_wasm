@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MegaSynth } from './megasynth.js';
 import { MegaSynthRecordingManager } from './megasynth_recording.js';
+import { SoundChipMixer } from './soundchip_mixer.js';
 
 function deferred() {
   let resolve;
@@ -130,6 +131,23 @@ test('Mega CD uses the shared mixer, exposes eight-channel PCM commands and rele
   assert.notEqual(synth.pcm, client);
   await synth.close();
 });
+
+for (const gainUnits of ['legacy','source']) {
+  test(`MegaSynth forwards ${gainUnits} Mixer units to both built-in sources and retains them after restart`, async t => {
+    const mixer = new SoundChipMixer({gainUnits});
+    const {synth,nodes} = harness(t,'',{mixer,segaPsgWasmUrl:'/segapsg.wasm'});
+    const commands = () => nodes.filter(node => node.name === 'ym2612-processor').at(-1).commands.filter(command => command.type === 'mixer-settings');
+    await synth.start();
+    assert.deepEqual(new Set(commands().map(command => command.name)),new Set(['ym2612','segapsg']));
+    assert(commands().every(command => command.gainUnits === gainUnits));
+    mixer.set('segapsg',{volume:.35});
+    assert.deepEqual(commands().at(-1),{type:'mixer-settings',name:'segapsg',gains:[.35,.35],gainUnits});
+    await synth.close();
+    await synth.start();
+    assert.deepEqual(commands().filter(command => command.name === 'segapsg').at(-1),{type:'mixer-settings',name:'segapsg',gains:[.35,.35],gainUnits});
+    await synth.close();
+  });
+}
 
 for (const stage of ['pcm-module', 'pcm-fetch', 'pcm-ready']) {
   test(`Mega CD close cancels ${stage} without leaking nodes and permits restart`, async t => {

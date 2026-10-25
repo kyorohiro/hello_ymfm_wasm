@@ -1,0 +1,938 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-25",
+  "passed": true,
+  "gainUnits": "source",
+  "listeningLevels": {
+    "segapsg": 0.35,
+    "ay8910": 0.85,
+    "nes": 1.16,
+    "gameboy": 0.36,
+    "huc6280": 0.44
+  },
+  "method": "Fixed output Mixer policy; raw chip PCM and historical measurement data are unchanged. Actual muted Web PCM and Native cores verify source gain is applied once.",
+  "playground": [
+    {
+      "engine": "chromium",
+      "passed": true,
+      "gainUnits": "source",
+      "captures": 18,
+      "maxRelativeError": 3.9736429924275285e-08,
+      "rows": [
+        {
+          "kind": "ym2612",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.128817830234766,
+          "expectedAmplitude": 0.12881783203125,
+          "relativeError": 1.3945926302660894e-08,
+          "volume": 0.775938
+        },
+        {
+          "kind": "segapsg",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000104308128,
+          "relativeError": 1.0643686376710093e-08,
+          "volume": 0.35
+        },
+        {
+          "kind": "ay8910",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07083333656191826,
+          "expectedAmplitude": 0.07083333386108279,
+          "relativeError": 3.812944160408449e-08,
+          "volume": 0.85
+        },
+        {
+          "kind": "gameboy",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "volume": 0.36
+        },
+        {
+          "kind": "nes",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.0747143067419529,
+          "expectedAmplitude": 0.07471430912613868,
+          "relativeError": 3.191069830599247e-08,
+          "volume": 1.16
+        },
+        {
+          "kind": "huc6280",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07097228989005089,
+          "expectedAmplitude": 0.0709722900390625,
+          "relativeError": 2.099574514247138e-09,
+          "volume": 0.44
+        },
+        {
+          "kind": "ym2612",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.12881769612431526,
+          "expectedAmplitude": 0.12881769845581054,
+          "relativeError": 1.809918437345459e-08,
+          "chipEngine": "nuked",
+          "volume": 0.493869
+        },
+        {
+          "kind": "ym2612",
+          "role": "primary",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.1288178339600563,
+          "expectedAmplitude": 0.12881783203125,
+          "relativeError": 1.4973131179374377e-08,
+          "volume": 0.775938
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000029802322,
+          "relativeError": 0,
+          "volume": 0.35
+        },
+        {
+          "kind": "ym2612",
+          "role": "primary",
+          "mode": "genesis-full-nuked",
+          "frequencyHz": 440,
+          "amplitude": 0.12881795689463615,
+          "expectedAmplitude": 0.12881795601877902,
+          "relativeError": 6.799185214845238e-09,
+          "volume": 0.49387
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "genesis-full-nuked",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000029802322,
+          "relativeError": 0,
+          "volume": 0.35
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "master-system",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000104308128,
+          "relativeError": 1.0643686376710093e-08,
+          "volume": 0.35
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "game-gear",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000104308128,
+          "relativeError": 1.0643686376710093e-08,
+          "volume": 0.35
+        },
+        {
+          "kind": "ay8910",
+          "role": "primary",
+          "mode": "msx",
+          "frequencyHz": 440,
+          "amplitude": 0.07083333656191826,
+          "expectedAmplitude": 0.07083333386108279,
+          "relativeError": 3.812944160408449e-08,
+          "volume": 0.85
+        },
+        {
+          "kind": "ay8910",
+          "role": "primary",
+          "mode": "msx-audio",
+          "frequencyHz": 440,
+          "amplitude": 0.07083333656191826,
+          "expectedAmplitude": 0.07083333386108279,
+          "relativeError": 3.812944160408449e-08,
+          "volume": 0.85
+        },
+        {
+          "kind": "gameboy",
+          "role": "primary",
+          "mode": "gameboy",
+          "frequencyHz": 440,
+          "amplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "volume": 0.36
+        },
+        {
+          "kind": "nes",
+          "role": "primary",
+          "mode": "nes",
+          "frequencyHz": 440,
+          "amplitude": 0.0747143067419529,
+          "expectedAmplitude": 0.07471430912613868,
+          "relativeError": 3.191069830599247e-08,
+          "volume": 1.16
+        },
+        {
+          "kind": "huc6280",
+          "role": "primary",
+          "mode": "pc-engine",
+          "frequencyHz": 440,
+          "amplitude": 0.07097228989005089,
+          "expectedAmplitude": 0.0709722900390625,
+          "relativeError": 2.099574514247138e-09,
+          "volume": 0.44
+        }
+      ]
+    },
+    {
+      "engine": "webkit",
+      "passed": true,
+      "gainUnits": "source",
+      "captures": 18,
+      "maxRelativeError": 3.9736429924275285e-08,
+      "rows": [
+        {
+          "kind": "ym2612",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.128817830234766,
+          "expectedAmplitude": 0.12881783203125,
+          "relativeError": 1.3945926302660894e-08,
+          "volume": 0.775938
+        },
+        {
+          "kind": "segapsg",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000104308128,
+          "relativeError": 1.0643686376710093e-08,
+          "volume": 0.35
+        },
+        {
+          "kind": "ay8910",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07083333656191826,
+          "expectedAmplitude": 0.07083333386108279,
+          "relativeError": 3.812944160408449e-08,
+          "volume": 0.85
+        },
+        {
+          "kind": "gameboy",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "volume": 0.36
+        },
+        {
+          "kind": "nes",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.0747143067419529,
+          "expectedAmplitude": 0.07471430912613868,
+          "relativeError": 3.191069830599247e-08,
+          "volume": 1.16
+        },
+        {
+          "kind": "huc6280",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07097228989005089,
+          "expectedAmplitude": 0.0709722900390625,
+          "relativeError": 2.099574514247138e-09,
+          "volume": 0.44
+        },
+        {
+          "kind": "ym2612",
+          "role": "extra",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.12881769612431526,
+          "expectedAmplitude": 0.12881769845581054,
+          "relativeError": 1.809918437345459e-08,
+          "chipEngine": "nuked",
+          "volume": 0.493869
+        },
+        {
+          "kind": "ym2612",
+          "role": "primary",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.1288178339600563,
+          "expectedAmplitude": 0.12881783203125,
+          "relativeError": 1.4973131179374377e-08,
+          "volume": 0.775938
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "genesis",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000029802322,
+          "relativeError": 0,
+          "volume": 0.35
+        },
+        {
+          "kind": "ym2612",
+          "role": "primary",
+          "mode": "genesis-full-nuked",
+          "frequencyHz": 440,
+          "amplitude": 0.12881795689463615,
+          "expectedAmplitude": 0.12881795601877902,
+          "relativeError": 6.799185214845238e-09,
+          "volume": 0.49387
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "genesis-full-nuked",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000029802322,
+          "relativeError": 0,
+          "volume": 0.35
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "master-system",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000104308128,
+          "relativeError": 1.0643686376710093e-08,
+          "volume": 0.35
+        },
+        {
+          "kind": "segapsg",
+          "role": "primary",
+          "mode": "game-gear",
+          "frequencyHz": 440,
+          "amplitude": 0.07000000029802322,
+          "expectedAmplitude": 0.07000000104308128,
+          "relativeError": 1.0643686376710093e-08,
+          "volume": 0.35
+        },
+        {
+          "kind": "ay8910",
+          "role": "primary",
+          "mode": "msx",
+          "frequencyHz": 440,
+          "amplitude": 0.07083333656191826,
+          "expectedAmplitude": 0.07083333386108279,
+          "relativeError": 3.812944160408449e-08,
+          "volume": 0.85
+        },
+        {
+          "kind": "ay8910",
+          "role": "primary",
+          "mode": "msx-audio",
+          "frequencyHz": 440,
+          "amplitude": 0.07083333656191826,
+          "expectedAmplitude": 0.07083333386108279,
+          "relativeError": 3.812944160408449e-08,
+          "volume": 0.85
+        },
+        {
+          "kind": "gameboy",
+          "role": "primary",
+          "mode": "gameboy",
+          "frequencyHz": 440,
+          "amplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "volume": 0.36
+        },
+        {
+          "kind": "nes",
+          "role": "primary",
+          "mode": "nes",
+          "frequencyHz": 440,
+          "amplitude": 0.0747143067419529,
+          "expectedAmplitude": 0.07471430912613868,
+          "relativeError": 3.191069830599247e-08,
+          "volume": 1.16
+        },
+        {
+          "kind": "huc6280",
+          "role": "primary",
+          "mode": "pc-engine",
+          "frequencyHz": 440,
+          "amplitude": 0.07097228989005089,
+          "expectedAmplitude": 0.0709722900390625,
+          "relativeError": 2.099574514247138e-09,
+          "volume": 0.44
+        }
+      ]
+    }
+  ],
+  "analyzer": {
+    "schemaVersion": 1,
+    "passed": true,
+    "gainUnits": "source",
+    "focusedUnitTests": {
+      "passed": 22,
+      "failed": 0
+    },
+    "offlinePcm": {
+      "report": "/private/tmp/tetorica-mixer-psg-followup/analyzer-source-units-pcm.json",
+      "passed": true,
+      "routes": 8,
+      "maxGainError": 2.8610229518832853e-08,
+      "restart": "gain preserved at matching native history",
+      "wav": "exact PCM16"
+    },
+    "browser": {
+      "command": "node scripts/check_analyzer_mixer_browser.cjs",
+      "chromium": "passed",
+      "webkit": "passed",
+      "defaultGains": {
+        "genesis-pcm.vgz": {
+          "ym2612": 0.775938,
+          "psg": 0.35,
+          "rf5c164": 0.280286
+        },
+        "gameboy-tone.vgm": {
+          "gameBoyDmg": 0.36
+        },
+        "nes-tone.vgm": {
+          "nesApu": 1.16
+        },
+        "y8950-psg.vgz": {
+          "y8950": 1.03357,
+          "psg": 0.35
+        },
+        "ay-tone.vgm": {
+          "ay8910": 0.85
+        },
+        "ym2608-fm.vgm": {
+          "ym2608": 1.03357
+        },
+        "ym2608-ssg.vgm": {
+          "ym2608": 1.03357
+        }
+      },
+      "checks": [
+        "load without storage writes",
+        "first Play calibration including AY",
+        "explicit gain before and after Play",
+        "reload persistence",
+        "pan-only lazy source gain",
+        "legacy gain context conversion without storage writes",
+        "pan retains legacy basis",
+        "new source gain shared across owners",
+        "Reset empties overrides/master/mute",
+        "Reset preserves FX",
+        "real WASM AudioWorklet muted output",
+        "OPNA FM and SSG actual borrowed PCM gain and mute"
+      ],
+      "opnaRatios": {
+        "fm": {
+          "default": 1.0335688717281764,
+          "half": 0.5000005537191732,
+          "muted": 0
+        },
+        "ssg": {
+          "default": 1.0335699456218297,
+          "half": 0.5,
+          "muted": 0
+        }
+      }
+    },
+    "legacyPreferences": {
+      "marker": "gainUnits: source",
+      "readOnlyLoad": true,
+      "genesisFmLegacyMultiplier": 0.9,
+      "genesisPsgLegacyMultiplier": 0.35,
+      "otherOwnerLegacyMultiplier": 1,
+      "panMuteEditsPreserveOriginalBasis": true,
+      "newGainUsesSourceUnits": true,
+      "repeatedConversion": false
+    },
+    "coverage": [
+      "canonical displayed gain equals applied source gain at zero/unity/maximum2",
+      "real Genesis and standalone sources",
+      "lazy contextual legacy preference migration",
+      "pan/mute-only legacy records",
+      "repeated reload",
+      "reset",
+      "seek in VGM ticks",
+      "same-history state restore and exact WAV",
+      "borrowed PCM view tails",
+      "unchanged internal OPNA FM/SSG balance"
+    ],
+    "unchanged": [
+      "generic GenesisAudioEngine default balance",
+      "generic PCMChipMixer semantics",
+      "historical raw calibration JSON"
+    ],
+    "limitations": [
+      "No physical audio output device or listening test.",
+      "HuC6280 listening level0.44 is unit/shared-policy checked; no existing Analyzer browser fixture was used for actual HuC6280 PCM.",
+      "Single-voice representative fixtures do not establish perceived loudness or arbitrary-polyphonic balance."
+    ],
+    "sources": {
+      "docs/vgm_analyzer/mixer_defaults.js": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28",
+      "docs/vgm_analyzer/playback_mixer.js": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+      "docs/vgm_analyzer/audio_preferences.js": "4892291d9036ca44d6d5e3810698b67a98dd34011b250205ba1729b4c82b6bcd",
+      "docs/vgm_analyzer/mixer_defaults.test.mjs": "c172462800d76d4e8d5dba25f7fda9b32dda6a073fe4b198aa99e0d45c3240f3",
+      "docs/vgm_analyzer/playback_mixer.test.mjs": "405fb649287b3c6c996b61436ce24b7ecf0359a1ce0313ac9143273561e6b336",
+      "docs/vgm_analyzer/audio_preferences.test.mjs": "39ef52300b777e1e44b22c3c056bffbf85f72dca6bb62a86359b016d3b087811",
+      "scripts/check_analyzer_mixer_browser.cjs": "b26d7e2ccadc8fe556e70bf567630fba495775872c5ec24119ec5088b571d556",
+      "scripts/check_analyzer_mixer_levels.mjs": "90d0489883aa4314f686d38f9b29084d8b97ab6649dafe355353ef207dc3f85d"
+    },
+    "diffCheck": "passed"
+  },
+  "analyzerPcm": {
+    "schemaVersion": 1,
+    "passed": true,
+    "referenceHz": 440,
+    "warmupSeconds": 0.2,
+    "captureSeconds": 0.4,
+    "method": "Original single-voice VGM programs through actual Analyzer engines; fresh-core unity/default PCM ratio, fixed peak or selected PSG-family listening-level targets, reset gain and exact PCM16 WAV comparisons.",
+    "limits": "Representative ymfm/PSG/RF/AY/NES routes only; OPNA internal SSG retains its existing renderer balance at gain1.03357. Standalone Sega PSG, canonical AY flags1 and NES pulse targets use the unchanged raw AC-RMS references times the explicit listening level; they no longer target equal OPNA FM RMS. No physical output device, perceived-loudness normalization, arbitrary music or polyphony claim. Other chip references are validated separately.",
+    "sources": {
+      "docs/vgm_analyzer/playback_mixer.js": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+      "docs/vgm_analyzer/playback_core.js": "0eda72704fe1e04fe7b32004f2a0aabd06f631fe2c5146e3e7379e179a4af597",
+      "docs/vgm_analyzer/mixer_defaults.js": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28",
+      "docs/vgm_analyzer/mixer_calibration_data.js": "826ba70fee44fc21e6e5ed0211be7eebb389d6c33d3ed69727b79c70fb5a74ee",
+      "docs/js/soundchip_mixer.js": "ac67f6cc7ef48c63a79395d46b0544a895f30b1381b88dde6dd7c0712164baca",
+      "docs/js/soundchip_mixer_presets.js": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+      "docs/js/genesisaudioengine.js": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439",
+      "docs/js/y8950audioengine.js": "efa03c590f62170acf716f9847285d13ea2fc5953f6e0d8bc0806264761e356f",
+      "docs/js/ym2608audioengine.js": "6163cf3c952c976a0e3bd92163a33a646352114314b702fefdd3c9cf0ac26e24",
+      "docs/js/vgmplayer.js": "5932160e421e9c394f9fbf1265ee52037f6cfe462f81f86a225ffa9890ca9783",
+      "docs/js/ay8910audioengine.js": "f4aa1d35f60eab7a00349849118a5b1d14a033833844653b3c513e5f7c1741c2",
+      "docs/js/nesapuaudioengine.js": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947",
+      "docs/js/nesapusynth.js": "60b08e5fa0543773bc15564c6e310e62bb6b43e443d2aabd472923157b3963a1",
+      "docs/issues/analyzer_psg_balance_01.json": "b7d51840ce1499bbd94199fcad76df7b9a5a2cfd4bd5d82a3f3232b8439d0771",
+      "scripts/measure_analyzer_psg_balance.mjs": "248a59e55d14d98bfa0ca537191a94134fc63db4c41c5f47a167b299dca6e2e7",
+      "docs/issues/analyzer_psg_levels_01.json": "6a234c9833d6889e704b436f48b50bba75d18ccf2760272df37f869ab6076ab3",
+      "scripts/measure_analyzer_psg_levels.mjs": "f78406a1fcf151e164868d59bb8dc51bd3be96e68f50738b0efdf7e3ceefbeb1",
+      "docs/generated/ym2612_wasm.wasm": "5184f6440860c438fb424fae60255f666358657571810e51a0f8e147cc8b8b13",
+      "docs/generated/segapsg_wasm.wasm": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+      "docs/generated/rf5c164_wasm.wasm": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+      "docs/generated/y8950_wasm.wasm": "5bbc90a0fb7d56a604e8f8fee986a6e37507aacdb898e808bc2e0b04639070bb",
+      "docs/generated/ym2608_wasm.wasm": "fd5afee961c5f1999a5cea1128dd9dda46822fff4fe68c6830743b18d36fdcfe",
+      "docs/generated/ay8910_wasm.wasm": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+    },
+    "rows": [
+      {
+        "route": "genesis-fm",
+        "source": "ym2612",
+        "kind": "ym2612",
+        "legacyEngineTrim": 0.9,
+        "gainUnits": "source",
+        "sampleRate": 53267,
+        "frames": 31960,
+        "defaultGain": 0.775938,
+        "measuredGainRatio": 0.7759380006753954,
+        "maxGainError": 1.2431159615577947e-08,
+        "maxRestartGainError": 1.2431159615577947e-08,
+        "unityAmplitude": 0.166015625,
+        "calibratedAmplitude": 0.1288178376853466,
+        "unityAcRms": 0.11770845845549353,
+        "calibratedAcRms": 0.09133446587795578,
+        "targetAmplitude": 0.12881777435541153,
+        "targetMetric": "amplitude",
+        "targetKind": "common calibration reference",
+        "relativeTargetError": 4.916241984620484e-07,
+        "restart": "exact",
+        "wav": "exact",
+        "wavFrames": 31960,
+        "referenceSha256": "5d5239c97e6cd54605c665dd60f54d39b842b4877c2b031d964141a26cf0c3af"
+      },
+      {
+        "route": "genesis-psg",
+        "source": "psg",
+        "kind": "segapsg",
+        "legacyEngineTrim": 0.35,
+        "gainUnits": "source",
+        "sampleRate": 53267,
+        "frames": 31960,
+        "defaultGain": 0.35,
+        "measuredGainRatio": 0.3499999962739904,
+        "maxGainError": 7.450580569168253e-10,
+        "maxRestartGainError": 7.450580569168253e-10,
+        "unityAmplitude": 0.20000000298023224,
+        "calibratedAmplitude": 0.07000000029802322,
+        "unityAcRms": 0.1999998424033034,
+        "calibratedAcRms": 0.06999994409611957,
+        "targetAcRms": 0.06999998186947358,
+        "targetMetric": "acRms",
+        "targetKind": "historical raw AC RMS times selected standalone listening level",
+        "historicalReferenceGain": 0.45542,
+        "selectedRawGain": 0.35,
+        "relativeTargetError": 5.396194828755085e-07,
+        "restart": "exact",
+        "wav": "exact",
+        "wavFrames": 31960,
+        "referenceSha256": "ad58742d5cbf8bd9ab5e25f4f85989cf2a254d4a3b42c6c092729470ca8caebc"
+      },
+      {
+        "route": "genesis-rf5c164",
+        "source": "rf5c164",
+        "kind": "rf5c164",
+        "legacyEngineTrim": 1,
+        "gainUnits": "source",
+        "sampleRate": 53267,
+        "frames": 31960,
+        "defaultGain": 0.280286,
+        "measuredGainRatio": 0.2802859950192448,
+        "maxGainError": 6.909370409147186e-09,
+        "maxRestartGainError": 6.909370409147186e-09,
+        "unityAmplitude": 0.4595947265625,
+        "calibratedAmplitude": 0.12881796061992645,
+        "unityAcRms": 0.3251690363802083,
+        "calibratedAcRms": 0.09114032691125339,
+        "targetAmplitude": 0.12881777435541153,
+        "targetMetric": "amplitude",
+        "targetKind": "common calibration reference",
+        "relativeTargetError": 1.4459535251365452e-06,
+        "restart": "exact",
+        "wav": "exact",
+        "wavFrames": 31960,
+        "referenceSha256": "f8918023ac5e48a9ba8accafc5f2580cfac65f789a9c8508e05b3a47b0566eba"
+      },
+      {
+        "route": "y8950-psg",
+        "source": "psg",
+        "kind": "segapsg",
+        "legacyEngineTrim": 1,
+        "gainUnits": "source",
+        "sampleRate": 44100,
+        "frames": 26460,
+        "defaultGain": 0.35,
+        "measuredGainRatio": 0.3499999962743608,
+        "maxGainError": 7.450580569168253e-10,
+        "maxRestartGainError": 7.450580569168253e-10,
+        "unityAmplitude": 0.20000000298023224,
+        "calibratedAmplitude": 0.07000000029802322,
+        "unityAcRms": 0.199999898856904,
+        "calibratedAcRms": 0.06999996385487309,
+        "targetAcRms": 0.06999998186947358,
+        "targetMetric": "acRms",
+        "targetKind": "historical raw AC RMS times selected standalone listening level",
+        "historicalReferenceGain": 0.45542,
+        "selectedRawGain": 0.35,
+        "relativeTargetError": 2.57351502219727e-07,
+        "restart": "exact",
+        "wav": "exact",
+        "wavFrames": 26460,
+        "referenceSha256": "df62db8e96e8e875202e31f6d290acf30ced963c4c110b44f4ee9e38ab54fe15"
+      },
+      {
+        "route": "ym2608-fm",
+        "source": "ym2608",
+        "kind": "ym2608",
+        "legacyEngineTrim": 1,
+        "gainUnits": "source",
+        "sampleRate": 44100,
+        "frames": 26460,
+        "defaultGain": 1.03357,
+        "measuredGainRatio": 1.0335700018323737,
+        "maxGainError": 1.7168745397588836e-08,
+        "maxRestartGainError": 1.7168745397588836e-08,
+        "unityAmplitude": 0.1246337890625,
+        "calibratedAmplitude": 0.12881775200366974,
+        "unityAcRms": 0.08812549554718932,
+        "calibratedAcRms": 0.09108386858557634,
+        "targetAmplitude": 0.12881777435541153,
+        "targetMetric": "amplitude",
+        "targetKind": "common calibration reference",
+        "relativeTargetError": 1.7351442305191256e-07,
+        "restart": "gain preserved at matching native history",
+        "wav": "exact",
+        "wavFrames": 26460,
+        "referenceSha256": "63eab23b0ede4da7330cf23efed17dc455d17cc4edd64c98c005ee581f13518e"
+      },
+      {
+        "route": "ym2608-ssg",
+        "source": "ym2608",
+        "kind": "ym2608",
+        "legacyEngineTrim": 1,
+        "gainUnits": "source",
+        "sampleRate": 44100,
+        "frames": 26460,
+        "defaultGain": 1.03357,
+        "measuredGainRatio": 1.0335700180235743,
+        "maxGainError": 2.4174451773717465e-08,
+        "maxRestartGainError": 2.4174451773717465e-08,
+        "unityAmplitude": 0.1666412353515625,
+        "calibratedAmplitude": 0.1722353845834732,
+        "unityAcRms": 0.16553073488646633,
+        "calibratedAcRms": 0.1710876046236842,
+        "targetAmplitude": 0.17223538162231447,
+        "targetMetric": "amplitude",
+        "targetKind": "retained OPNA SSG balance",
+        "relativeTargetError": 1.7192511192476445e-08,
+        "restart": "gain preserved at matching native history",
+        "wav": "exact",
+        "wavFrames": 26460,
+        "referenceSha256": "9b0dbc2d79a7f307a0d6aec28752d127a4f5014c40d49a55be40e1c3204a4df7"
+      },
+      {
+        "route": "standalone-ay8910",
+        "source": "ay8910",
+        "kind": "ay8910",
+        "legacyEngineTrim": 1,
+        "gainUnits": "source",
+        "sampleRate": 44100,
+        "frames": 26460,
+        "defaultGain": 0.85,
+        "measuredGainRatio": 0.8500000181533126,
+        "maxGainError": 3.3527612769423953e-09,
+        "maxRestartGainError": 3.3527612769423953e-09,
+        "unityAmplitude": 0.08333333395421505,
+        "calibratedAmplitude": 0.07083333469927311,
+        "unityAcRms": 0.08277880568938203,
+        "calibratedAcRms": 0.07036198566187334,
+        "targetAcRms": 0.07036188787913794,
+        "targetMetric": "acRms",
+        "targetKind": "historical raw AC RMS times selected standalone listening level",
+        "historicalReferenceGain": 1.100331,
+        "selectedRawGain": 0.85,
+        "relativeTargetError": 1.3897116513117425e-06,
+        "restart": "exact",
+        "wav": "exact",
+        "wavFrames": 26460,
+        "referenceSha256": "c2c1230605171d84384d5eedec95c70cae8424f8f152f05a04368a8215eccf74"
+      },
+      {
+        "route": "standalone-nesApu",
+        "source": "nesApu",
+        "kind": "nes",
+        "legacyEngineTrim": 1,
+        "gainUnits": "source",
+        "sampleRate": 44100,
+        "frames": 26460,
+        "defaultGain": 1.16,
+        "measuredGainRatio": 1.1599999998551294,
+        "maxGainError": 2.8610229518832853e-08,
+        "maxRestartGainError": 2.8610229518832853e-08,
+        "unityAmplitude": 0.06353759765625,
+        "calibratedAmplitude": 0.07370361313223839,
+        "unityAcRms": 0.06021422930343739,
+        "calibratedAcRms": 0.06984850599157266,
+        "targetAcRms": 0.06986833275821684,
+        "targetMetric": "acRms",
+        "targetKind": "historical raw AC RMS times selected standalone listening level",
+        "historicalReferenceGain": 1.512236,
+        "selectedRawGain": 1.16,
+        "relativeTargetError": 0.00028377328986495254,
+        "restart": "exact",
+        "wav": "exact",
+        "wavFrames": 26460,
+        "referenceSha256": "3f0d7e96c40ddf2edd8d9d80a2211181bd6294b01b9ef4ef239e637a69f61d99"
+      }
+    ]
+  },
+  "packageBrowser": [
+    {
+      "browser": "chromium",
+      "passed": true,
+      "sampleRate": 48000,
+      "rawPcmDifference": 0,
+      "results": [
+        {
+          "name": "ym2612",
+          "factor": 0.775938,
+          "acRms": [
+            0.019252617440194512,
+            0.019252617440194512
+          ]
+        },
+        {
+          "name": "segapsg",
+          "factor": 0.35,
+          "acRms": [
+            0.017499647509478234,
+            0.017499647509478234
+          ]
+        },
+        {
+          "name": "ay8910",
+          "factor": 0.85,
+          "acRms": [
+            0.017598684566141963,
+            0.017598684566141963
+          ]
+        },
+        {
+          "name": "nes",
+          "factor": 1.16,
+          "acRms": [
+            0.017451192447339964,
+            0.017451192447339964
+          ]
+        },
+        {
+          "name": "gameboy",
+          "factor": 0.36,
+          "acRms": [
+            0.011181430882322105,
+            0.011181430882322105
+          ]
+        },
+        {
+          "name": "ym3812",
+          "factor": 1.03357,
+          "acRms": [
+            0.008028521004887794,
+            0.008028521004887794
+          ]
+        }
+      ]
+    },
+    {
+      "browser": "webkit",
+      "passed": true,
+      "sampleRate": 48000,
+      "rawPcmDifference": 0,
+      "results": [
+        {
+          "name": "ym2612",
+          "factor": 0.775938,
+          "acRms": [
+            0.019274859999260537,
+            0.019274859999260537
+          ]
+        },
+        {
+          "name": "segapsg",
+          "factor": 0.35,
+          "acRms": [
+            0.017499397163134825,
+            0.017499397163134825
+          ]
+        },
+        {
+          "name": "ay8910",
+          "factor": 0.85,
+          "acRms": [
+            0.01759961198778485,
+            0.01759961198778485
+          ]
+        },
+        {
+          "name": "nes",
+          "factor": 1.16,
+          "acRms": [
+            0.017451192447339964,
+            0.017451192447339964
+          ]
+        },
+        {
+          "name": "gameboy",
+          "factor": 0.36,
+          "acRms": [
+            0.01118125556376983,
+            0.01118125556376983
+          ]
+        },
+        {
+          "name": "ym3812",
+          "factor": 1.03357,
+          "acRms": [
+            0.008034999776865588,
+            0.008034999776865588
+          ]
+        }
+      ]
+    }
+  ],
+  "packageBuild": {
+    "passed": true,
+    "command": "node scripts/check_fm2612_package.mjs",
+    "installedRuntimeAndTypes": true,
+    "published": false
+  },
+  "native": {
+    "checks": [
+      {
+        "command": "node --test web/native_genesis_synth.test.mjs web/native_genesis_nuked_runtime.test.mjs",
+        "cwd": ".",
+        "passed": 43,
+        "failed": 0
+      },
+      {
+        "command": "cargo test --locked --offline --manifest-path src-tauri/Cargo.toml source_mix -- --quiet",
+        "cwd": "w/tetorica-fm2612-playground-tauri",
+        "passed": 9,
+        "failed": 0,
+        "coverage": "source/legacy IPC limits and units; ymfm and Nuked; 44100/48000/96000 Hz; source gain 2; pan and master; reset and stop; timed queued mute"
+      },
+      {
+        "command": "cargo test --locked --offline --manifest-path src-tauri/Cargo.toml native_genesis::nuked_tests:: -- --quiet",
+        "cwd": "w/tetorica-fm2612-playground-tauri",
+        "passed": 13,
+        "failed": 0
+      },
+      {
+        "command": "cargo test --locked --offline --manifest-path src-tauri/Cargo.toml ipc_command_contract_and_gain_ranges_are_explicit -- --quiet",
+        "cwd": "w/tetorica-fm2612-playground-tauri",
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "sourceHashes": {
+      "web/native_genesis_synth.js": "e4eb0ae93e326bcb36a7365f2f91fc8f941887413e549e82de56ad4ea13fb56d",
+      "web/native_genesis_synth.test.mjs": "48539d8b9692f37446a9deda7da274cb13b9fe8ca4eabd08a8630d81a89f0286",
+      "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis.rs": "d5c754c8f1f6a742e8eb6dffafdbe5f958d258adbd8dca894b170bdf40b24640",
+      "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_core.cpp": "e4b202771f80f98d34b82e3c5c31b034b324e3d179e48dd6052dc3cd8bb121d2",
+      "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_livefx.rs": "450dc1f0badbcc34fe74693423689270f80a8477e1b966d3e843f40b63a4926a",
+      "w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_rf5c164_tests.rs": "62599dd02936a186a67af6ee039cdf7f06febeb9613b74d364e1216221c49069"
+    },
+    "independentReview": "passed"
+  },
+  "sources": {
+    "scripts/generate_playground_mixer_defaults.mjs": "b8e15553d4dd15d8dedc4c65e4e0d25b15adf8818036eb770a9653894dcd5b13",
+    "scripts/generate_soundchip_mixer_presets.mjs": "2c262006627b4478b84734cd30d72bae56c18d5d47c89ac3c7d6a610810d5420",
+    "web/soundchip_mixer.js": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb",
+    "web/soundchip_mixer_presets.js": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+    "web/megasynth.js": "e57f78119321f74a510de9a8632474e78fce3452be65d413b5d5afc05b7bb6c0",
+    "web/ym2612-worklet.js": "50d904caf4c40ddaa72990d75c2f2a500c3a74eec051b36d17e968a1ba7e2a85",
+    "web/ym2612-worklet-nuked.js": "886492ac8aa3d40163a72fca7a99c98d90123547fdcc0af79ea7dd0ed18d527e",
+    "web/native_genesis_synth.js": "e4eb0ae93e326bcb36a7365f2f91fc8f941887413e549e82de56ad4ea13fb56d",
+    "docs/playground/playground_mixer_defaults.js": "957fb1eac305eb73db70d37760cf6c197ce8c50bdb8a1474026209aa1f184c23",
+    "docs/playground/playground_mixer_state.js": "d4f97c48a8274ab5ce28b593e5f51fdf14f06a651382c1ac6f2346ec9d6cf774",
+    "docs/js/soundchip_mixer.js": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb",
+    "docs/js/soundchip_mixer_presets.js": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+  },
+  "limitations": [
+    "No physical listening device was opened.",
+    "Representative signals do not normalize perceived music loudness.",
+    "No npm publish, Web deployment, Tauri bundled frontend import or Examples dependency refresh."
+  ],
+  "unitTests": {
+    "passed": 258,
+    "failed": 0
+  }
+}

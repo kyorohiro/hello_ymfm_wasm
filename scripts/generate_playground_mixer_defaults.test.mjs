@@ -7,7 +7,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {
   PLAYGROUND_CALIBRATION_KINDS,PLAYGROUND_CALIBRATION_PRIMARIES,PLAYGROUND_CALIBRATION_ENGINES,
-  buildPlaygroundMixerDefaults,buildPlaygroundMixerPolicy,renderPlaygroundMixerDefaults,generatePlaygroundMixerDefaults,
+  buildPlaygroundMixerDefaults,buildPlaygroundMixerPolicy,playgroundLegacyMixerTrims,renderPlaygroundMixerDefaults,generatePlaygroundMixerDefaults,
 } from './generate_playground_mixer_defaults.mjs';
 
 function fixture() {
@@ -31,16 +31,43 @@ function fixture() {
 const row = (report,role,mode,kind) => report.calibration.routes.find(route=>route.role===role&&route.mode===mode&&route.kind===kind);
 const entry = (profile,mode,id) => profile.factoryModes[mode].entries.find(entry=>entry.id===id);
 
-test('listening policy changes Game Boy primary and extra defaults without changing measured data or other routes',()=>{
-  const report=fixture(),before=structuredClone(report),raw=buildPlaygroundMixerDefaults(report);
+test('listening policy covers PSG and wavetable primaries and extras while retaining measurements and FM output level',async()=>{
+  const report=JSON.parse(await readFile(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url),'utf8'));
+  const before=structuredClone(report),raw=buildPlaygroundMixerDefaults(report);
   const policy=buildPlaygroundMixerPolicy(report);
-  assert.equal(policy.factoryDefaults.kinds.find(entry=>entry.name==='gameboy').volume,.36);
-  assert.equal(entry(policy,'gameboy','gameboy').settings.volume,.36);
+  const levels={segapsg:.35,ay8910:.85,nes:1.16,gameboy:.36,huc6280:.44};
   const expected=structuredClone(raw);
-  expected.factoryDefaults.kinds.find(entry=>entry.name==='gameboy').volume=.36;
+  for(const [name,volume] of Object.entries(levels))expected.factoryDefaults.kinds.find(entry=>entry.name===name).volume=volume;
+  for(const mode of ['genesis','mega-cd','genesis-full','genesis-full-nuked','genesis-nuked']) {
+    entry(expected,mode,'segapsg').settings.volume=.35;
+    entry(expected,mode,'ym2612').settings.volume=Number((entry(raw,mode,'ym2612').settings.volume*.9).toFixed(6));
+  }
+  for(const mode of ['master-system','game-gear'])entry(expected,mode,'segapsg').settings.volume=.35;
+  for(const mode of ['msx','msx-audio'])entry(expected,mode,'ay8910').settings.volume=.85;
+  entry(expected,'nes','nes').settings.volume=1.16;
   entry(expected,'gameboy','gameboy').settings.volume=.36;
+  entry(expected,'pc-engine','huc6280').settings.volume=.44;
   assert.deepEqual(policy,expected);
   assert.deepEqual(report,before);
+});
+
+test('new source-unit captures never receive the legacy Genesis trim conversion again',()=>{
+  const report=fixture();report.gainUnits='source';
+  for(const capture of report.rows)if(capture.role==='primary') {
+    const trim=playgroundLegacyMixerTrims(capture.mode)[capture.kind]??1;
+    capture.amplitude/=trim;capture.measuredAmplitude/=trim;
+  }
+  for(const route of report.calibration.routes) {
+    route.amplitude=report.rows.find(capture=>capture.role===route.role&&capture.mode===route.mode&&
+      capture.kind===route.kind&&capture.chipEngine===route.chipEngine&&capture.frequencyHz===440).amplitude;
+    route.volume=Number((report.calibration.targetAmplitude/route.amplitude).toFixed(6));
+  }
+  report.calibration.referenceAmplitude=row(report,'primary','genesis','ym2612').amplitude;
+  const raw=buildPlaygroundMixerDefaults(report),policy=buildPlaygroundMixerPolicy(report);
+  for(const mode of ['genesis','mega-cd','genesis-full','genesis-full-nuked','genesis-nuked']) {
+    assert.equal(entry(policy,mode,'ym2612').settings.volume,entry(raw,mode,'ym2612').settings.volume);
+    assert.equal(entry(policy,mode,'segapsg').settings.volume,.35);
+  }
 });
 
 test('a complete 153-capture baseline produces deterministic 440 Hz defaults including SPC',()=>{
@@ -96,7 +123,7 @@ test('composite and legacy modes copy measured constituent gains without nominal
 test('partial, verification, duplicate, silent and incorrectly identified measurements cannot replace System',()=>{
   const changes = [
     report=>{report.passed=false;}, report=>{report.verify=true;}, report=>{delete report.verify;},
-    report=>{report.schemaVersion=2;}, report=>{report.frequencies=[440];},
+    report=>{report.schemaVersion=2;}, report=>{report.gainUnits='invalid';}, report=>{report.frequencies=[440];},
     report=>{report.rows.pop();}, report=>{report.rows[0]=structuredClone(report.rows[1]);},
     report=>{report.rows[0].frequencyHz=110;}, report=>{report.rows[0].kind='unknown';},
     report=>{report.rows[0].mixer.id='wrong-id';}, report=>{report.rows[0].amplitude=0;},
@@ -144,15 +171,18 @@ test('generated module constructs independent application mixers and preserves s
   const directory = await mkdtemp(join(tmpdir(),'playground-mixer-generator-')); t.after(()=>rm(directory,{recursive:true,force:true}));
   await mkdir(join(directory,'playground')); await mkdir(join(directory,'js'));
   await copyFile(new URL('../web/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
-  const modulePath = join(directory,'playground','defaults.mjs'), report = fixture(), profile = buildPlaygroundMixerDefaults(report);
+  const modulePath = join(directory,'playground','defaults.mjs'), report = fixture(), profile = buildPlaygroundMixerPolicy(report);
   await writeFile(modulePath,renderPlaygroundMixerDefaults(report));
   const generated = await import(pathToFileURL(modulePath));
+  assert.equal(generated.createPlaygroundSoundChipMixer().gainUnits,'source');
+  assert.deepEqual(generated.playgroundLegacyMixerTrims('genesis'),{ym2612:.9,segapsg:.35});
+  assert.deepEqual(generated.playgroundLegacyMixerTrims('master-system'),{});
   assert.equal(generated.PLAYGROUND_MIXER_CALIBRATION.targetAmplitude,.04);
   assert(Object.isFrozen(generated.PLAYGROUND_MIXER_CALIBRATION.frequencies));
   const first = generated.createPlaygroundSoundChipMixer('genesis'), second = generated.createPlaygroundSoundChipMixer('genesis');
   first.register('segapsg','segapsg',()=>{}); first.register('extra','segapsg',()=>{});
   assert.equal(first.get('segapsg').volume,entry(profile,'genesis','segapsg').settings.volume);
-  assert.equal(first.get('extra').volume,row(report,'extra','genesis','segapsg').volume);
+  assert.equal(first.get('extra').volume,.35);
   first.set('segapsg',{volume:.1234567});
   assert.equal(first.get('segapsg').volume,.1234567);
   assert.equal(second.get('segapsg').volume,entry(profile,'genesis','segapsg').settings.volume);
@@ -160,12 +190,12 @@ test('generated module constructs independent application mixers and preserves s
   assert.deepEqual(first.exportState(),{version:1,entries:[{id:'segapsg',name:'segapsg',settings:{volume:.1234567}}]});
   const gameboy=generated.createPlaygroundSoundChipMixer('gameboy');
   gameboy.register('gameboy','gameboy',()=>{});gameboy.register('extra','gameboy',()=>{});
-  assert.equal(gameboy.get('gameboy').volume,.36);assert.equal(gameboy.get('extra').volume,.36);
+  assert.equal(gameboy.get('gameboy').volume,entry(profile,'gameboy','gameboy').settings.volume);assert.equal(gameboy.get('extra').volume,.36);
   gameboy.restoreState({version:1,entries:[{id:'gameboy',name:'gameboy',settings:{volume:1}}]},{version:1,kinds:[]});
   assert.equal(gameboy.get('gameboy').volume,1,'saved absolute volume is retained');
   assert.equal(gameboy.get('extra').volume,.36,'unmodified extra uses the listening fallback');
   gameboy.restoreState({version:1,entries:[]},{version:1,kinds:[]});
-  assert.equal(gameboy.get('gameboy').volume,.36,'System fallback is applied once');
+  assert.equal(gameboy.get('gameboy').volume,entry(profile,'gameboy','gameboy').settings.volume,'System fallback is applied once');
   first.restoreState({version:1,entries:[]},{version:1,kinds:[]});
   assert.equal(first.get('segapsg').volume,entry(profile,'genesis','segapsg').settings.volume);
   assert.throws(()=>generated.createPlaygroundSoundChipMixer('missing-mode'),/No Playground Mixer calibration/);

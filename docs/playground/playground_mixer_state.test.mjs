@@ -14,11 +14,11 @@ const file = (path, value) => ({path, data:typeof value === 'string' ? value : J
 const current = f => JSON.parse(f.files.get(MIXER_STATE_PATH).data);
 const mix = (volume = 1, pan = 0, muted = false, solo = false) => ({volume, pan, muted, solo});
 
-function fixture({mixer = new SoundChipMixer(), files = createVirtualFileSystem([]), forbidList = false} = {}) {
+function fixture({mixer = new SoundChipMixer(), files = createVirtualFileSystem([]), forbidList = false,legacyPrimaryTrims={}} = {}) {
   const timers = new Map(), delays = [], errors = [], writes = [];
   let sequence = 0;
   const stateFiles = forbidList ? {...files, list() {throw new Error('Mixer must not clone the asset list');}} : files;
-  const state = createPlaygroundMixerState({mixer, files:stateFiles,
+  const state = createPlaygroundMixerState({mixer, files:stateFiles,legacyPrimaryTrims,
     setTimer(callback, delay) {delays.push(delay); timers.set(++sequence, callback); return sequence;},
     clearTimer(id) {timers.delete(id);},
     onWrite(path, change) {writes.push({path, ...change});},
@@ -590,4 +590,37 @@ test('maximum valid schema survives escaped identifiers and current.json seriali
   t.after(() => restored.state.dispose()); assert.deepEqual(restored.errors, []);
   assert.equal(restored.mixer.exportState().entries.length, 512);
   assert.equal(restored.mixer.get(value.entries[0].id).volume, .6);
+});
+
+test('source-unit presets migrate legacy primary gains once without rewriting files or changing extra outputs',t=>{
+  const mixer=new SoundChipMixer({gainUnits:'source',factoryDefaults:{version:1,kinds:[{name:'segapsg',volume:.35},{name:'ym2612',volume:.775938}]}});
+  const legacy=preset([record('segapsg',{volume:1.3,muted:true}),record('ym2612',{pan:.2},'ym2612')],
+    [{name:'segapsg',volume:.6},{name:'ym2612',volume:.8}]);
+  const files=createVirtualFileSystem([file(MIXER_STATE_PATH,legacy)]);
+  const f=fixture({mixer,files,legacyPrimaryTrims:{segapsg:.35,ym2612:.9}});t.after(()=>f.state.dispose());
+  for(const [id,name] of [['segapsg','segapsg'],['ym2612','ym2612'],['extra','segapsg']])mixer.register(id,name,()=>{});
+  assert.equal(mixer.get('segapsg').volume,1.3*.35);
+  assert.equal(mixer.get('ym2612').volume,.8*.9);
+  assert.equal(mixer.get('extra').volume,.6,'standalone common gain stays in source units');
+  assert.equal(f.writes.length,0);assert.deepEqual(JSON.parse(files.get(MIXER_STATE_PATH).data),legacy);
+  mixer.set('segapsg',{pan:-.2});f.runTimers();
+  const saved=current(f);assert.equal(saved.gainUnits,'source');
+  assert.equal(saved.entries.find(entry=>entry.id==='segapsg').settings.volume,1.3*.35);
+  f.state.selectPreset(MIXER_STATE_PATH);f.state.selectPreset(MIXER_STATE_PATH);
+  assert.equal(mixer.get('segapsg').volume,1.3*.35,'canonical values are never converted twice');
+  f.state.selectPreset(MIXER_SYSTEM_PRESET_PATH);
+  assert.equal(mixer.get('segapsg').volume,.35);assert.equal(mixer.get('ym2612').volume,.775938);
+  assert.deepEqual(current(f),saved,'selecting System does not replace current.json');
+});
+
+test('legacy kind-only presets preserve the primary/extra difference and source presets need no conversion',t=>{
+  const mixer=new SoundChipMixer({gainUnits:'source'});
+  const files=createVirtualFileSystem([file('/mixer/old.json',preset([],[{name:'segapsg',volume:.7}])),
+    file('/mixer/new.json',{...preset([record('segapsg',{volume:.35})]),gainUnits:'source'})]);
+  const f=fixture({mixer,files,legacyPrimaryTrims:{segapsg:.35}});t.after(()=>f.state.dispose());
+  mixer.register('segapsg','segapsg',()=>{});mixer.register('extra','segapsg',()=>{});
+  f.state.selectPreset('/mixer/old.json');
+  assert.equal(mixer.get('segapsg').volume,.7*.35);assert.equal(mixer.get('extra').volume,.7);
+  f.state.selectPreset('/mixer/new.json');assert.equal(mixer.get('segapsg').volume,.35);
+  assert.equal(files.has(MIXER_STATE_PATH),false);
 });

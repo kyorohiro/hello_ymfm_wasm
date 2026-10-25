@@ -74,6 +74,7 @@ import ym2612ModuleFactory from 'tetorica-fm2612/generated/ym2612_wasm.js';
 assert.equal(SOUNDCHIP_MIXER_PRESETS, subpathPresets);
 assert.equal(SOUNDCHIP_MIXER_PRESETS, extensionlessPresets);
 const calibratedPreset = SOUNDCHIP_MIXER_PRESETS.calibrated;
+assert.equal(calibratedPreset.gainUnits,'source');
 function assertDeeplyFrozen(value) {
   if (!value || typeof value !== 'object') return;
   assert.ok(Object.isFrozen(value));
@@ -85,12 +86,13 @@ assert.equal(Object.hasOwn(calibratedPreset, 'factoryEntries'), false, 'npm cali
 assert.throws(() => {calibratedPreset.factoryDefaults.kinds[0].volume = 2;}, TypeError);
 assert.deepEqual(soundChipMixDefaults('gameboy'), {volume:0.28, pan:0, muted:false});
 assert.deepEqual(soundChipMixDefaults('rf5c164'), {volume:1, pan:0, muted:false});
-const publicPsgGains = {segapsg:0.455420, ay8910:1.100331, nes:1.514209};
+const publicPsgGains = {segapsg:.35, ay8910:.85, nes:1.16, gameboy:.36, huc6280:.44};
 for (const [name, volume] of Object.entries(publicPsgGains)) {
   assert.equal(calibratedPreset.factoryDefaults.kinds.find(kind => kind.name === name)?.volume, volume, name + ': public WASM calibration');
   assert.deepEqual(new SoundChipMixer(calibratedPreset).getKindDefault(name), {volume, pan:0});
-  assert.deepEqual(new SoundChipMixer().getKindDefault(name), {volume:1, pan:0}, name + ': legacy Mixer remains unity');
-  assert.deepEqual(soundChipMixDefaults(name), {volume:1, pan:0, muted:false}, name + ': generic defaults remain unchanged');
+  const legacyVolume=name==='gameboy'?.28:1;
+  assert.deepEqual(new SoundChipMixer().getKindDefault(name), {volume:legacyVolume, pan:0}, name + ': legacy Mixer default remains unchanged');
+  assert.deepEqual(soundChipMixDefaults(name), {volume:legacyVolume, pan:0, muted:false}, name + ': generic defaults remain unchanged');
 }
 const legacyMixer = new SoundChipMixer(), calibratedMixer = new SoundChipMixer(calibratedPreset), applied = {};
 legacyMixer.register('rf5c164:33', 'rf5c164', () => {});
@@ -329,7 +331,7 @@ console.log('Installed native/sample package verified: real HuC6280 Client/Workl
 `);
   execFileSync(process.execPath, [join(consumer, 'native-check.mjs')], {cwd: consumer, stdio: 'inherit'});
   await writeFile(join(consumer, 'native-types.mts'), `
-import {createSoundChip} from 'tetorica-fm2612';
+import {createSoundChip,SoundChipMixer,SOUNDCHIP_MIXER_PRESETS} from 'tetorica-fm2612';
 import {Huc6280VoiceInspector} from 'tetorica-fm2612/playground_huc6280_inspector';
 import {Ym2151VoiceInspector} from 'tetorica-fm2612/playground_ym2151_inspector';
 import {Oki6258VoiceInspector} from 'tetorica-fm2612/playground_okim6258_inspector';
@@ -338,6 +340,13 @@ import type {Oki6258Stream} from 'tetorica-fm2612/okim6258synth';
 import {createSampleEdit,renderSampleEdit} from 'tetorica-fm2612/playground_sample_edit';
 import {createSampleInstrument} from 'tetorica-fm2612/playground_sample_instrument';
 declare const stream: Oki6258Stream;
+const sourceMixer=new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
+const sourceUnits:'source'|'legacy'=sourceMixer.gainUnits;
+void sourceUnits;
+// @ts-expect-error A connected Mixer cannot change the meaning of its gains.
+sourceMixer.gainUnits='legacy';
+// @ts-expect-error Only supported gain units are accepted.
+new SoundChipMixer({gainUnits:'invented'});
 new Huc6280VoiceInspector({clock:()=>3579545,sampleRate:48000,dispatch(command,owner,metadata){const method:string=command.method;const id:string|undefined=owner;const preserve:boolean|undefined=metadata?.preserveOwner;void [method,id,preserve];}});
 new Ym2151VoiceInspector({clock:4000000,dispatch(command){const method:string=command.method;void method;},beginAudition(channel,owner){const voice:number=channel;const id:string=owner;void [voice,id];}});
 new Oki6258VoiceInspector(stream,{sampleRate:48000,dispatch(command){const method:string=command.method;void method;}});
