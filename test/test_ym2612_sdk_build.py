@@ -12,7 +12,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
-             'ym2413', 'ym3526')
+             'ym2413', 'ym3526', 'ym3812')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -66,6 +66,12 @@ YM3526_EXPORTS = [
     '_ym3526_create', '_ym3526_destroy', '_ym3526_reset', '_ym3526_write',
     '_ym3526_read', '_ym3526_read_status', '_ym3526_get_irq',
     '_ym3526_sample_rate', '_ym3526_set_mute_mask', '_ym3526_generate',
+    '_malloc', '_free',
+]
+YM3812_EXPORTS = [
+    '_ym3812_create', '_ym3812_destroy', '_ym3812_reset', '_ym3812_write',
+    '_ym3812_read', '_ym3812_read_status', '_ym3812_get_irq',
+    '_ym3812_sample_rate', '_ym3812_set_mute_mask', '_ym3812_generate',
     '_malloc', '_free',
 ]
 YMFM_SOURCES = [
@@ -386,6 +392,23 @@ class Ym3526SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     def test_shared_output_preserves_all_seven_existing_build_records(self):
         self.assert_shared_output_preserves(
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258', 'ym2413'])
+
+
+class Ym3812SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ym3812'
+    exports = YM3812_EXPORTS
+    assertions = False
+    vendor_sources = ['vendor/ymfm/ymfm_opl.cpp', 'vendor/ymfm/ymfm_adpcm.cpp',
+                      'vendor/ymfm/ymfm_pcm.cpp']
+    core_header = 'vendor/ymfm/ymfm_opl.h'
+    support_sources = [*SdkBuildRouteMixin.support_sources, 'vendor/ymfm/ymfm.h',
+                       'vendor/ymfm/ymfm_fm.h', 'vendor/ymfm/ymfm_adpcm.h',
+                       'vendor/ymfm/ymfm_pcm.h']
+
+    def test_shared_output_preserves_all_eight_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526'])
 
 
 if __name__ == '__main__':
