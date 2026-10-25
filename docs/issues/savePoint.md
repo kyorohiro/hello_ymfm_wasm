@@ -34,6 +34,8 @@ Mixerは調整値そのものを表示し、Genesisの既存倍率は接続側�
 その後、itch.io Analyzerの校正ソースhash検証が旧記録で停止する問題を修正した。
 Extra／PSGを実際に再測定した`_02`記録へ切り替え、音量定数を変えずにZIP作成と両ブラウザー検証を完了。
 手順と生成物は[校正記録の更新](analyzer_mixer_calibration_refresh_01.md)を参照。
+その後、Synthで内蔵音色のOP配列を1つずらして読み、OP4へ以前の設定が残るバグを修正した。
+`1OP Basic`のTLは`[127, 127, 127, 2]`へ戻る。記録は[SynthのOP対応修正](synth_preset_operator_mapping_01.md)を参照。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。

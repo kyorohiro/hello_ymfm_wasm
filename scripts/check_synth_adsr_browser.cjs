@@ -18,6 +18,7 @@ const hook = `
 window.__synthAdsrTest = {
   operators: () => structuredClone(operatorStates),
   preset: buildCurrentPresetState,
+  builtins: () => structuredClone(FM_PRESETS),
   voices: () => structuredClone(voices),
   outputHistory: () => outputEnvelopeHistory.slice(),
   fm: () => synth,
@@ -88,6 +89,111 @@ function instrumentation() {
 
 async function states(page) {return page.evaluate(() => window.__synthAdsrTest.operators());}
 async function paints(page) {return page.evaluate(() => window.__synthAdsrPaints);}
+
+// Independent display-order expectations: the public preset arrays are 0-based,
+// while Synth controls and TFI/VGI snapshots use logical operator labels 1..4.
+const operatorDefaults = {dt:0, multi:1, tl:127, rs:0, ar:31, am:false, d1r:0, d2r:0, sl:0, rr:15, ssg:0};
+const operatorLabels = {dt:'DT', multi:'MULTI', tl:'TL', rs:'RS', ar:'AR', am:'AM', d1r:'D1R', d2r:'D2R', sl:'SL', rr:'RR', ssg:'SSG'};
+const oneOperatorBasic = {
+  1:{...operatorDefaults}, 2:{...operatorDefaults}, 3:{...operatorDefaults},
+  4:{...operatorDefaults, tl:2, ar:22, d1r:6, d2r:3, sl:3, rr:13},
+};
+function expectedOperators(preset) {
+  assert(Array.isArray(preset.operators) && preset.operators.length === 4);
+  return Object.fromEntries(preset.operators.map((operator, index) => [index + 1, {...operatorDefaults, ...operator}]));
+}
+
+async function selectPreset(page, id) {
+  await page.locator('#presetSelect').selectOption(id);
+  await page.waitForFunction(id => !document.getElementById('synthFileNewButton').disabled &&
+    document.getElementById('presetSelect').value === id, id);
+}
+
+async function assertOperatorControls(page, expected, label) {
+  assert.deepEqual(await states(page), expected, label + ': logical operator state');
+  const controls = await page.locator('#operatorControls .operator-row').evaluateAll(rows => rows.map(row =>
+    Object.fromEntries(Array.from(row.querySelectorAll('.param-value')).map(value => [value.getAttribute('aria-label'), value.textContent]))));
+  assert.equal(controls.length, 4);
+  for (let operator = 1; operator <= 4; operator++) for (const [field, value] of Object.entries(expected[operator])) {
+    assert.equal(controls[operator - 1][operatorLabels[field]], typeof value === 'boolean' ? value ? 'ON' : 'OFF' : String(value),
+      `${label}: OP${operator}/${field} displayed value`);
+  }
+}
+
+async function setOperatorValues(page, operator, fields) {
+  for (const [label, desired] of Object.entries(fields)) {
+    const control = page.locator('#operatorControls .operator-row').nth(operator - 1).locator(`.param-value[aria-label="${label}"]`);
+    if (typeof desired === 'boolean') {
+      if ((await control.textContent()) !== (desired ? 'ON' : 'OFF')) await control.click();
+    } else {
+      await control.evaluate((value, desired) => {
+        const buttons = value.closest('.param-control').querySelectorAll('.param-button');
+        for (let count = 0; Number(value.textContent) !== desired && count < 128; count++) {
+          buttons[Number(value.textContent) < desired ? 1 : 0].click();
+        }
+        if (Number(value.textContent) !== desired) throw Error('Could not set ' + value.getAttribute('aria-label'));
+      }, desired);
+    }
+  }
+}
+
+async function assertCoreMatchesControls(page, label) {
+  const {preset, core} = await page.evaluate(() => ({preset:window.__synthAdsrTest.preset(), core:window.__synthAdsrTest.fm().getState()}));
+  assert.equal(core.channels.length, 6, label + ': all six real Synth channels');
+  for (let channel = 0; channel < 6; channel++) {
+    assert.deepEqual(core.channels[channel].operators, [1,2,3,4].map(operator => preset.operators[operator]),
+      `${label}: channel ${channel + 1} uses the displayed logical operators`);
+    assert.equal(core.channels[channel].algorithm, preset.algorithm, label + ': algorithm');
+    assert.equal(core.channels[channel].feedback, preset.feedback, label + ': feedback');
+  }
+}
+
+async function checkPresetMappings(page, {core = false} = {}) {
+  const builtins = await page.evaluate(() => window.__synthAdsrTest.builtins());
+  const originalPath = await page.evaluate(() => window.__synthAdsrTest.files().activeTonePath);
+  if (!core) {
+    assert.equal(await page.locator('#presetSelect').inputValue(), 'one-op-basic');
+    await assertOperatorControls(page, oneOperatorBasic, 'Initial 1OP Basic');
+    assert.deepEqual(Object.values(await states(page)).map(operator => operator.tl), [127,127,127,2]);
+    assert.equal((await states(page))[4].rr, 13);
+  }
+  for (const [id, preset] of Object.entries(builtins)) {
+    await selectPreset(page, id);
+    await assertOperatorControls(page, expectedOperators(preset), id);
+    if (core) await assertCoreMatchesControls(page, id);
+  }
+  await selectPreset(page, 'two-op-bell');
+  await selectPreset(page, 'one-op-basic');
+  await assertOperatorControls(page, oneOperatorBasic, 'Bell to 1OP Basic');
+  if (core) {
+    await assertCoreMatchesControls(page, '1OP Basic after preset switching');
+    assert(originalPath, 'Keep the pre-existing edited VFS instrument');
+    await selectPreset(page, 'vfs:' + originalPath);
+    await assertOperatorControls(page, await page.evaluate(() => window.__synthAdsrTest.tone().operators), 'Restored 1-based VFS instrument');
+    await assertCoreMatchesControls(page, 'Restored 1-based VFS instrument');
+  } else {
+    await setOperatorValues(page, 1, {RS:3, SSG:9});
+    await setOperatorValues(page, 4, {TL:37, RS:2, AM:true, RR:4, SSG:12});
+    const edited = await states(page);
+    assert.equal(edited[1].rs, 3); assert.equal(edited[1].ssg, 9);
+    assert.equal(edited[4].tl, 37); assert.equal(edited[4].rs, 2);
+    assert.equal(edited[4].am, true); assert.equal(edited[4].rr, 4); assert.equal(edited[4].ssg, 12);
+    const tonePath = await page.evaluate(() => window.__synthAdsrTest.files().activeTonePath);
+    assert(tonePath, 'Control edits create a real VFS instrument');
+    assert.deepEqual(await page.evaluate(() => window.__synthAdsrTest.tone().operators), edited);
+    await selectPreset(page, 'one-op-basic');
+    await assertOperatorControls(page, oneOperatorBasic, '1OP Basic clears prior operator fields');
+    await selectPreset(page, 'vfs:' + tonePath);
+    await assertOperatorControls(page, edited, '1-based VFS preset preserves every operator');
+    await selectPreset(page, 'one-op-basic');
+    await assertOperatorControls(page, oneOperatorBasic, '1OP Basic after VFS preset');
+    assert.equal(await page.evaluate(() => window.__synthAdsrContexts), 0, 'Preset selection and VFS checks must not initialize audio');
+  }
+  assert.deepEqual(await page.evaluate(() => window.__synthAdsrTest.builtins()), builtins, 'Control edits must not mutate shared preset definitions');
+  console.log(JSON.stringify({phase:core ? 'preset-core-mapping' : 'preset-control-mapping', passed:true, presets:Object.keys(builtins).length,
+    channels:core ? 6 : 0, ...(!core && {initialOneCarrier:true, omittedFieldsReset:true}), oneBasedVfs:true}));
+}
+
 async function seedOperator(page, operator = 4) {
   // Use the existing numeric control handlers to give every stage room to move.
   await page.evaluate(({operator}) => {
@@ -177,6 +283,7 @@ async function checkBrowser(name, type, url) {
     assert.equal(await page.locator('[data-visual-mode="adsr"]').count(), 0, 'Envelope editing belongs in the existing Envelope mode');
     assert.equal(await page.locator('[data-visual-mode="envelope"]').getAttribute('aria-pressed'), 'true',
       'The existing Envelope mode remains selected by default');
+    await checkPresetMappings(page);
     await showEditor(page);
     assert.equal(await page.locator(`${editor} [data-envelope-operator="4"]`).getAttribute('aria-pressed'), 'true');
     assert(await paints(page) > 0, 'The default Envelope displays editable operator curves');
@@ -231,6 +338,7 @@ async function checkBrowser(name, type, url) {
     // the constructor/WASM handshake is asynchronous on the first gesture.
     await page.locator('#keyboard .key').first().click();
     await page.waitForFunction(() => document.getElementById('status').textContent.includes('Audio ready'));
+    await checkPresetMappings(page, {core:true});
     await page.locator(canvas).scrollIntoViewIfNeeded(); await page.waitForTimeout(60);
     await page.evaluate(() => document.activeElement?.blur());
     await page.keyboard.down('a');

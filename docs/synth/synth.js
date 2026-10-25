@@ -357,60 +357,22 @@ let currentPresetB4 = 0xc0;
 let activeHelpId = "";
 let masterVolume = 1;
 
-const operatorStates = {
-  1: {
-    dt: 0,
-    multi: 1,
-    tl: 127,
-    rs: 0,
-    ar: 31,
-    am: false,
-    d1r: 0,
-    d2r: 0,
-    sl: 0,
-    rr: 15,
-    ssg: 0,
-  },
-  2: {
-    dt: 0,
-    multi: 1,
-    tl: 127,
-    rs: 0,
-    ar: 31,
-    am: false,
-    d1r: 0,
-    d2r: 0,
-    sl: 0,
-    rr: 15,
-    ssg: 0,
-  },
-  3: {
-    dt: 0,
-    multi: 1,
-    tl: 127,
-    rs: 0,
-    ar: 31,
-    am: false,
-    d1r: 0,
-    d2r: 0,
-    sl: 0,
-    rr: 15,
-    ssg: 0,
-  },
-  4: {
-    dt: 0,
-    multi: 1,
-    tl: 8,
-    rs: 0,
-    ar: 22,
-    am: false,
-    d1r: 6,
-    d2r: 3,
-    sl: 3,
-    rr: 8,
-    ssg: 0,
-  },
-};
+const DEFAULT_OPERATOR_STATE = Object.freeze({
+  dt: 0,
+  multi: 1,
+  tl: 127,
+  rs: 0,
+  ar: 31,
+  am: false,
+  d1r: 0,
+  d2r: 0,
+  sl: 0,
+  rr: 15,
+  ssg: 0,
+});
+const operatorStates = Object.fromEntries(
+  OPERATOR_NUMBERS.map(operator => [operator, {...DEFAULT_OPERATOR_STATE}])
+);
 
 const commonControls = new Map();
 const operatorControls = new Map();
@@ -1496,13 +1458,17 @@ function applyPresetData(preset, presetName) {
   commonState.lfoEnabled = preset.lfo?.enabled ?? false;
   commonState.lfoFrequency = preset.lfo?.frequency ?? 0;
 
+  // Built-in presets use 0-based arrays; imported TFI/VGI and saved
+  // Synth snapshots use logical operator numbers 1..4.
+  const operators = preset.operators ?? {};
+  const operatorIndexOffset = operators[0] !== undefined ? 0 : 1;
   for (const operator of OPERATOR_NUMBERS) {
     const nextOperator =
-      preset.operators?.[operator] ||
+      operators[operator - 1 + operatorIndexOffset] ??
       {};
 
     operatorStates[operator] = {
-      ...operatorStates[operator],
+      ...DEFAULT_OPERATOR_STATE,
       ...nextOperator,
       am: nextOperator.am ?? false,
     };
