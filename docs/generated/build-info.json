@@ -2,6 +2,70 @@
   "schemaVersion": 1,
   "artifacts": [
     {
+      "id": "ay8910",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "8ccd910f6ff73e782cf617777d4385be402201054ae29cea8ab5f5948eeae0ef",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_ay8910_wasm.sh",
+          "sha256": "5145ad700466a55a57898832eb194ac94dbaf060aa1dbd94ff52ec4a8038bd86",
+          "size": 689
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-ay8910/ay8910.cpp",
+          "sha256": "3ea3efe1b29a554c39a2b1995e9ed3d2588c16d24b085ca1565c3a24f4414646",
+          "size": 4783
+        },
+        {
+          "path": "vendor/mame-ay8910/ay8910.h",
+          "sha256": "e93d1904d2c232f820c23a6df59dfebf309550a6f8b0032e20c51295e7d31e7a",
+          "size": 2431
+        },
+        {
+          "path": "vendor/mame-ay8910/upstream/ay8910.cpp",
+          "sha256": "865e8ea6ff17acf107f00c48f39ee04df48319fc1780aa0ddb635d754fa2d514",
+          "size": 57751
+        },
+        {
+          "path": "vendor/mame-ay8910/upstream/ay8910.h",
+          "sha256": "837b224a5fb0be9dbedd93746518c7d97dd6cb4622d1065afb7466b041cadb51",
+          "size": 10675
+        },
+        {
+          "path": "wasm/ay8910_wasm.cpp",
+          "sha256": "15107f52744c9e67db2daf0bfa052ebb04a63dc92779576e46c4c10b64009ebb",
+          "size": 851
+        }
+      ],
+      "outputs": [
+        {
+          "path": "ay8910_wasm.js",
+          "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b",
+          "size": 12113
+        },
+        {
+          "path": "ay8910_wasm.wasm",
+          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
+          "size": 13549
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "okim6258",
       "format": "emscripten-es-module",
       "sourceFingerprint": "02878a241917a4d4365771ba4f3b63f4d4ab035c32aed46249321f86bad33eb6",

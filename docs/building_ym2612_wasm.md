@@ -20,6 +20,7 @@ download or synchronized edit of another repository is required.
 | YM3812 | `scripts/build_ym3812_wasm.sh` | `ym3812_wasm` |
 | YMF262 | `scripts/build_ymf262_wasm.sh` | `ymf262_wasm` |
 | Y8950 | `scripts/build_y8950_wasm.sh` | `y8950_wasm` |
+| AY-3-8910 / YM2149 | `scripts/build_ay8910_wasm.sh` | `ay8910_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -36,6 +37,7 @@ sh scripts/build_ym3526_wasm.sh
 sh scripts/build_ym3812_wasm.sh
 sh scripts/build_ymf262_wasm.sh
 sh scripts/build_y8950_wasm.sh
+sh scripts/build_ay8910_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -46,11 +48,14 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262` and `Y8950` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950` and `Ay8910` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
 selects YM2164; the default variant is `'ym2151'`. Both retain eight FM channels.
+For the shared AY module, `Ay8910.create({type: 0x10, ...})` selects YM2149;
+the default `type: 0` selects AY-3-8910. Existing normalization flags and the
+YM2149 pin-26 clock-divider flag remain available.
 
 An optional output directory is resolved relative to the caller's working
 directory. The build script itself can be invoked from outside the checkout:
@@ -67,16 +72,21 @@ sh /path/to/checkout/scripts/build_ym3526_wasm.sh ./ym3526-output
 sh /path/to/checkout/scripts/build_ym3812_wasm.sh ./ym3812-output
 sh /path/to/checkout/scripts/build_ymf262_wasm.sh ./ymf262-output
 sh /path/to/checkout/scripts/build_y8950_wasm.sh ./y8950-output
+sh /path/to/checkout/scripts/build_ay8910_wasm.sh ./ay8910-output
 ```
 
-Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipe retains
-C++14, O2, the existing exports and memory growth settings.
-OPN and YM2413 recipes retain their explicit `ASSERTIONS=1`; OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
+O2, the existing exports and memory growth settings. AY uses C++17 and its
+original ten exports without `EXPORT_ALL`; the other recipes above use C++14.
+OPN and YM2413 recipes retain their explicit `ASSERTIONS=1`; AY, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
 YMF262 also retains `generateStereoInto()` for caller-provided output buffers.
 Y8950 retains its sample-memory load/clear APIs and `HEAPU8` runtime support.
+AY retains synchronous register reads and owned stereo buffers. Its core
+integrates native chip ticks directly into the configured output sample rate;
+the existing AudioEngine does not add a JS sample-rate converter.
 
 ## Fixed source and updates
 
@@ -84,8 +94,8 @@ Y8950 retains its sample-memory load/clear APIs and `HEAPU8` runtime support.
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these eleven wrappers, ymfm inputs and the MAME-derived
-OKIM6258 adaptation retain BSD-3-Clause.
+and `vendor/` notices; these twelve wrappers, ymfm inputs and the MAME-derived
+OKIM6258 and AY adaptations retain BSD-3-Clause.
 
 Treat the imported directory as immutable. To update it, obtain a local SDK
 source-release ZIP and explicitly import its expected hash and revision:
@@ -151,6 +161,10 @@ node scripts/check_y8950_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-y8950-build \
   --sdk-dir /path/to/sdk-y8950-build \
   --out /tmp/y8950-comparison.json
+node scripts/check_ay8910_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-ay8910-build \
+  --sdk-dir /path/to/sdk-ay8910-build \
+  --out /tmp/ay8910-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -186,10 +200,16 @@ playback, CPU writes/feed, memory range/resize/clear, source mutes and VGM data
 block replay/seek. It distinguishes native RAM from the JS upload mirror:
 raw reset retains actual RAM, while public reset reuploads that mirror.
 No snapshot, Into or working external-RAM readback API is introduced.
+The AY checker covers AY-3-8910 and YM2149 with all supported type/flag
+combinations, tone/noise/envelope periods, all sixteen envelope shapes,
+register latches, mute phase continuity, reset/replay, owned output buffers
+and VGM AY-command seek. The existing AY API has no snapshot, Into,
+status, IRQ or envelope-monitor hooks. Its DAC tables can produce a DC
+baseline at zero volume, so audible-output checks also require signal variation.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The eleven module recipes above have switched to this build source. Other chip recipes and
+The twelve module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.

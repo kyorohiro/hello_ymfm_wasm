@@ -12,7 +12,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
-             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950')
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -86,6 +86,11 @@ Y8950_EXPORTS = [
     '_y8950_sample_rate', '_y8950_generate', '_y8950_load_memory',
     '_y8950_clear_memory', '_malloc', '_free',
 ]
+AY8910_EXPORTS = [
+    '_ay8910_create', '_ay8910_destroy', '_ay8910_reset', '_ay8910_write',
+    '_ay8910_read', '_ay8910_sample_rate', '_ay8910_set_mute_mask',
+    '_ay8910_generate', '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -100,6 +105,8 @@ def sha256(data):
                      'These shell-route integration tests require POSIX sh and Node')
 class SdkBuildRouteMixin:
     runtime_methods = ['cwrap', 'HEAPF32']
+    language_standard = 'c++14'
+    export_all = True
     trim_glue = False
     assertions = True
     vendor_sources = YMFM_SOURCES
@@ -107,6 +114,7 @@ class SdkBuildRouteMixin:
     include_directories = ['vendor/ymfm']
     support_sources = ['wasm/ymfm_wasm_interface.h', 'vendor/ymfm/ymfm_fm.ipp',
                        'vendor/ymfm/chip_state.h']
+    extra_manifest_headers = ('vendor/ymfm/chip_state.h',)
     extra_tamper_dependencies = ()
 
     @property
@@ -200,17 +208,21 @@ else:
         # The wrapper/core headers must resolve with the actual SDK include
         # search path, including the separate MAME adaptation when selected.
         manifest = json.loads((self.sdk / 'RELEASE-MANIFEST.json').read_text())
-        for header in (self.core_header, 'vendor/ymfm/chip_state.h'):
+        for header in (self.core_header, *self.extra_manifest_headers):
             self.assertTrue(any((self.sdk / directory / Path(header).name).is_file()
                                 for directory in self.include_directories), header)
             # Full snapshot integrity also covers dependencies omitted by a
             # recipe's historical catalog-based build-info input list.
             self.assertEqual(manifest['files'][header]['sha256'],
                              sha256((self.sdk / header).read_bytes()))
-        for flag in ('-std=c++14', '-O2', '-sMODULARIZE=1',
+        for flag in ('-O2', '-sMODULARIZE=1',
                      '-sEXPORT_ES6=1', '-sENVIRONMENT=web,worker,node,shell',
-                     '-sALLOW_MEMORY_GROWTH=1', '-sEXPORT_ALL=1'):
+                     '-sALLOW_MEMORY_GROWTH=1'):
             self.assertIn(flag, arguments)
+        self.assertEqual([value for value in arguments if value.startswith('-std=')],
+                         ['-std=' + self.language_standard])
+        self.assertEqual([value for value in arguments if value.startswith('-sEXPORT_ALL=')],
+                         ['-sEXPORT_ALL=1'] if self.export_all else [])
         self.assertEqual([value for value in arguments if value.startswith('-sASSERTIONS=')],
                          ['-sASSERTIONS=1'] if self.assertions else [])
         for flag, expected in (('-sEXPORTED_FUNCTIONS=', self.exports),
@@ -456,6 +468,24 @@ class Y8950SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         self.assert_shared_output_preserves(
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262'])
+
+
+class Ay8910SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ay8910'
+    exports = AY8910_EXPORTS
+    language_standard = 'c++17'
+    export_all = False
+    assertions = False
+    vendor_sources = ['vendor/mame-ay8910/ay8910.cpp']
+    core_header = 'vendor/mame-ay8910/ay8910.h'
+    include_directories = ['vendor/mame-ay8910']
+    support_sources = []
+    extra_manifest_headers = ()
+
+    def test_shared_output_preserves_all_eleven_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950'])
 
 
 if __name__ == '__main__':

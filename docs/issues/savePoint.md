@@ -46,6 +46,9 @@ X68000のFM・ADPCM双方のビルド元が揃った。詳細は[OKIM6258 WASM�
 詳細は[YMF262 WASMのSDK移行](wasm_sdk_ymf262_adoption_01.md)を参照。
 続くY8950 WASMも同じ固定SDKへ切り替えた。FM・リズム・ADPCM、2MiB RAMとJSミラーのreset差、VGMサンプルブロックのseekを比較した。
 詳細は[Y8950 WASMのSDK移行](wasm_sdk_y8950_adoption_01.md)を参照。
+続くAY-3-8910／YM2149 WASMも同じ固定SDKへ切り替えた。tone・noise・envelopeと全対応type／flag、register読出し、reset／再演奏／seekを比較した。
+JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力がすべてbyte一致した。
+詳細は[AY-3-8910／YM2149 WASMのSDK移行](wasm_sdk_ay8910_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1121,8 +1124,26 @@ Y8950 WAV比較試験の手組み参照側に校正Mixerが抜けていた既存
 隔離npm配布物・型・Analyzer ZIPも検証済み。校正値の変更と再測定は不要だった。
 詳細と最終比較結果・hashは[Y8950移行記録](wasm_sdk_y8950_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計11 artifact。次はAY-3-8910用WASMへの展開が候補。
-残り16 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はY8950移行時の記録。続くAY-3-8910／YM2149移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — AY-3-8910／YM2149 WASMの固定SDK参照
+
+`scripts/build_ay8910_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルと取り込み記録、公開APIとMixer値を保持し、先行11音源の記録・22生成物も維持した。
+AYのC++17・10個の公開C export・EXPORT_ALLなしを保持する。
+配布済み・旧手順再ビルド・SDK・通常出力のJS／WASMはすべてbyte一致した。
+
+旧再ビルド／配布済み版との各8,208比較・37,468,404出力ステレオフレームで差0。
+6つの対応type／flag、3CH tone・noise・全16 envelope shape、register latch／実効mask、mute位相とresetを確認した。
+54構成の実VgmPlayerと各6地点のseek、重点reset／再演奏1,260回も成功。snapshot APIは追加していない。
+Python63件と既存AY／MSX試験45件、両Browserの6 Worklet経路、MSX／AY音色・Keyboard UIを検証済み。
+隔離npm配布物と型、Analyzer ZIPも成功。出力bytesと校正hashが変わらず、再測定や音量変更は不要だった。
+詳細と最終比較結果・hashは[AY移行記録](wasm_sdk_ay8910_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計12 artifact。次はSega PSG用WASMへの展開が候補。
+残り15 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
