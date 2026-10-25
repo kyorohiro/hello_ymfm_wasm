@@ -9,7 +9,7 @@ Last updated: 2026-10-25
 
 ### 現在地
 
-現在は代替Nuked YM2612のSDK移行とローカル検証まで完了した。SDK `0.1.1`の単体ターゲットを追加し、
+現在は代替Nuked YM2612のSDK移行・ローカル検証・5構成CIまで完了した。SDK `0.1.1`の単体ターゲットを追加し、
 TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定SDKへ切り替えた。最終同梱数は379ファイル。
 今回着手時の本体`f22249959...`、Tauri`baec0b9a...`、SDK`affd1059...`はすべてclean。
 直前の成功CI run `40171879716`は今回のNuked移行を含まない。
@@ -19,6 +19,8 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 [Tauri CI run 40175615215](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40175615215)は全5構成の検証・インストーラー生成が成功した。
 対象は`367fd7a851ffadd3a01c3cfb985972112156ca63`、attempt 1。SDKの修正版CI run `40175263453`もNative 5構成＋WASMの全6ジョブ成功。
 通常22音源IDと代替NukedのSDK参照が揃った。機種用補助処理・Rustの所有／予約・Mixer／FXはアプリ側に残る。
+次に着手する作業は、本体のYM2612 WASMビルドを固定SDKソースへ切り替えること。
+下の「次に着手する作業」に範囲と検証方針を記録した。今回は記録のみで、このWASM移行の調査・実装は未着手。
 
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
@@ -889,9 +891,35 @@ node scripts/check_native_extra_stability.mjs --out=native-validation/extra-stab
 先にNATIVE-SOURCES.mdに従ってNode／Rust／C++環境とロック済み依存、音声sidecarを準備する。
 SDK自体をリモートから自動取得する設計には戻さない。
 
-### 次の作業候補と未着手範囲
+### 次に着手する作業 — 本体YM2612 WASMの固定SDK参照
 
-1. 通常22音源と代替NukedのSDK参照切替・ローカル比較・ホスト試験・5構成CIが完了。Nukedの最終pinはSDK `0.1.1`／379ファイル、Tauri成功CIはrun `40175615215`。次は利用するOSのインストーラーで起動・聴音を確認する。
+TauriのNative側に続き、本体のWASMビルドも固定したSDKソースから生成する形へ揃える。
+まずは通常のymfm YM2612だけを対象とする。
+現在の[ビルドスクリプト](../../scripts/build_ym2612_wasm.sh)は、本体の`wasm/ym2612_wasm.cpp`と`src/ymfm_*.cpp`を使っている。
+
+進め方と完了条件：
+
+1. 既存のwrapper・ymfmソース・export・コンパイラー設定を、SDKのWASM用レシピと比較する。
+   Native用wrapperとは生成・状態管理の契約が異なるため、SDKのWASM用wrapperを使う。
+2. SDKは版・元コミット・ZIP／manifestハッシュを固定したソース配布物として本体へ同梱する。
+   別checkout、submodule、ビルド中のリモート取得や、複数リポジトリの同時更新を通常ビルドの条件にしない。
+   現在の基準候補はNativeと同じSDK `0.1.1`／`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`。
+   ソース差・必要機能を確認し、固定配布物を直接編集せず明示的な取り込み手順を使う。
+3. 本体のYM2612 WASMビルドを同梱SDKへ参照切り替えし、既存JS側の公開APIと生成物の読込みを維持する。
+   同期`read()`／`generateStereo()`を保ち、Native IPC向けの非同期契約へ置き換えない。
+4. 旧ビルドとSDKビルドで、発音PCM・status／read・reset・状態保存／復元後の継続PCMを比較する。
+   サンプルレートやblock分割も確認し、コンパイラー差によるWASMバイナリー差と動作差を区別する。
+   既存のBrowser／package側の読込み・同期APIも必要な範囲で確認する。
+5. 使用したSDK・コンパイラー・入力／出力ハッシュと検証結果を記録する。
+   YM2612が成立してから、次の音源群への展開を判断する。
+
+この次作業では27種類のWASMを一括移行しない。JS adapterのパッケージ分離・公開API再設計、
+高速レジスタ演奏の新機能も別作業とする。npmやアプリの公開は、この記録では実行指示されていない。
+今回は次作業の記録のみで、ビルド参照・SDK同梱物・生成WASMは変更していない。
+
+### その他の作業候補と未着手範囲
+
+1. 通常22音源と代替NukedのNative側SDK参照切替・ローカル比較・ホスト試験・5構成CIが完了。Nukedの最終pinはSDK `0.1.1`／379ファイル、Tauri成功CIはrun `40175615215`。利用するOSのインストーラーでの起動・聴音確認は別途残る。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 各成功CIの対象コミットを区別し、必要なOSのインストーラーで起動を確認する。実機の聴音・UI操作は自動試験とは別の確認。現在ステージ済みの差分はない。
 4. 主要22音源IDとNuked別variantのSDK参照が揃った。今回の最終pin・ホスト試験と後続CIはNuked作業記録で確認する。機種用の補助処理とRustの所有・予約・混合はアプリ側に残る。
