@@ -10,7 +10,8 @@ import {opnPitchFromHz} from '../web/soundchip_pitch.js';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
-const option=name=>{const found=process.argv.find(value=>value.startsWith(name+'='));if(found)return found.slice(name.length+1);const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
+const sdk=path.join(project,'vendor/tetorica-soundchip-native');
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
 const out=option('--out'),sanitize=process.argv.includes('--sanitize');let fixture=option('--fixture'),temporary;
 const binary=await fs.readFile(path.join(root,'docs/generated/nuked_opn2_wasm.wasm'));
 let Processor,resolveReady,rejectReady;globalThis.sampleRate=48000;globalThis.currentFrame=0;
@@ -98,17 +99,22 @@ scenario('external six-channel mutes preserve patch, phase, timers and raw DAC',
   for(let ch=0;ch<6;ch++)fm(ch,43+ch*7,ch%8,ch%8);write(0x2a,0xe0);write(0x2b,128);
   for(const [frame,mask]of[[701,9],[1703,32],[2801,63],[3901,0],[5101,21]]){at(frame);add('mute',mask);}
 });
-const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed additional playground_opn_worklet.js with Nuked OPN2 WASM: raw gain 1, no primary Genesis DC subtraction/gain/PSG',
+const report={schemaVersion:1,checker:path.relative(root,fileURLToPath(import.meta.url)),checkerSha256:createHash('sha256').update(await fs.readFile(fileURLToPath(import.meta.url))).digest('hex'),deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed additional playground_opn_worklet.js with Nuked OPN2 WASM: raw gain 1, no primary Genesis DC subtraction/gain/PSG',
   wasmSha256:createHash('sha256').update(binary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,sanitizer:sanitize?'AddressSanitizer + UndefinedBehaviorSanitizer (macOS LeakSanitizer unsupported)':'none',
   limits:'Offline independent Nuked YM2612 only. Ownership/IPC/Mixer/UI are tested separately. Cancellation/Stop/preview policy is modeled using real WASM key/TL/pan controls; every output frame compares PCM, status, IRQ and four reads. External mute keeps the real WASM channels advancing with pan bits cleared; its authored pan/TL remain retained. Reset matches the additional Worklet remainder/held clearing and Nuked reset DAC latch. C++ fixture separately checks independent instances, observational snapshots, FFI layout and zero callback allocations/frees. No physical audio device or cross-platform compiler was used.'};
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-extra-ym2612-nuked-'));fixture=path.join(temporary,'fixture');
-    const include=path.join(project,'native-nuked/snapshot/third_party/nuked-opn2'),provider=path.join(temporary,'nuked.o');
+    const include=path.join(sdk,'vendor/nuked-opn2'),provider=path.join(temporary,'nuked.o');
     const flags=sanitize?['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fwrapv']:['-O2','-fwrapv'];
     if(sanitize){process.env.ASAN_OPTIONS='detect_leaks=0';process.env.UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1';}
     const symbols=['Reset','SetChipType','Clock','Write','SetTestPin','ReadTestPin','ReadIRQPin','Read'];
     execFileSync('clang',['-std=c11',...flags,...symbols.map(s=>`-DOPN2_${s}=tetorica_nuked_OPN2_${s}`),'-I'+include,'-c',path.join(include,'ym3438.c'),'-o',provider],{stdio:'pipe'});
-    execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,...['src/native_genesis_nuked.cpp','src/native_genesis_nuked_ym2612_fixture.cpp'].map(p=>path.join(project,p)),provider,'-o',fixture],{stdio:'pipe'});}
+    const adapter=path.join(sdk,'native/reference/tauri/native_genesis_nuked.cpp'),fixtureSource=path.join(project,'src/native_genesis_nuked_ym2612_fixture.cpp');
+    // The fixture and SDK adapter resolve their quoted ABI headers separately.
+    const inputs=[fixtureSource,path.join(project,'src/native_genesis_ym2612.h'),adapter,path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(include,'ym3438.c'),path.join(include,'ym3438.h')];
+    report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
+    execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,'-I'+path.join(sdk,'wasm'),adapter,fixtureSource,provider,'-o',fixture],{stdio:'pipe'});}
+  report.fixtureSha256=createHash('sha256').update(await fs.readFile(fixture)).digest('hex');
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

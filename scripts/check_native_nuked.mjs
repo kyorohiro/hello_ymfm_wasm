@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const project=path.join(root,'w/tetorica-fm2612-playground-tauri/src-tauri');
 const sdk=path.join(project,'vendor/tetorica-soundchip-native');
-const option=name=>{const i=process.argv.indexOf(name);assert(i<0||process.argv[i+1],`${name} needs a value`);return i<0?null:process.argv[i+1];};
+const option=name=>{const equal=process.argv.find(value=>value.startsWith(name+'=')),index=process.argv.indexOf(name);if(equal===undefined&&index<0)return null;const value=equal===undefined?process.argv[index+1]:equal.slice(name.length+1);assert(value&&!value.startsWith('--'),`${name} requires a value`);return value;};
 const out=option('--out'),sanitize=process.argv.includes('--sanitize');let fixture=option('--fixture'),temporary;
 const [fmBinary,psgBinary]=await Promise.all(['nuked_opn2_wasm.wasm','segapsg_wasm.wasm'].map(name=>fs.readFile(path.join(root,'docs/generated',name))));
 let Processor;globalThis.sampleRate=48000;globalThis.currentFrame=0;
@@ -77,20 +77,24 @@ for(const kind of['FM','DAC','PSG','CSM'])scenario(`Stop remains silent through 
  fm(2,60,7,3,kind!=='CSM');psg(0,127,4);write(0,0x24,255);write(0,0x25,3);at(701);add('stop');at(1703);write(0,0xb2,7);write(0,0x40,31);add('stereo',0x91);at(2801);
  if(kind==='FM')write(0,0x28,0xf2);else if(kind==='DAC'){write(0,0x2b,128);write(0,0x2a,220);}else if(kind==='PSG')add('psg',0x94);else write(0,0x27,0x85);at(3901);add('stop');at(5101);add('reset');
 });
-const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed docs/js/ym2612-worklet-nuked.js and Nuked/PSG WASM; raw reset DC preserved; explicit Native Stop modeled separately with real WASM reset and authored-register replay',wasmSha256:createHash('sha256').update(fmBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,sanitizer:sanitize?'AddressSanitizer + UndefinedBehaviorSanitizer (macOS LeakSanitizer unsupported)':'none',limits:'Offline selected Nuked plus SegaPSG, no device or cross-platform compiler. Native legacy fixed clocks 7,670,454 / 3,579,545 Hz; runtime clock switching is not added. Stop retains the existing Native authored-patch replay policy and suppresses emitted PCM until a voice trigger; natural reset matches Browser raw idle. Status, IRQ and all four read ports are compared after every output frame. Callback C++ new/delete and Nuked C malloc/free are counted; the alternate ymfm API links to fail-fast stubs to prove no hidden ymfm calls. The combined gain transport preserves independent ramps for FM/PSG targets that did not change; overlapping source edits are compared.'};
+const report={schemaVersion:1,checker:path.relative(root,fileURLToPath(import.meta.url)),checkerSha256:createHash('sha256').update(await fs.readFile(fileURLToPath(import.meta.url))).digest('hex'),deviceOpened:false,startedAt:new Date().toISOString(),reference:'Actual deployed docs/js/ym2612-worklet-nuked.js and Nuked/PSG WASM; raw reset DC preserved; explicit Native Stop modeled separately with real WASM reset and authored-register replay',wasmSha256:createHash('sha256').update(fmBinary).digest('hex'),psgWasmSha256:createHash('sha256').update(psgBinary).digest('hex'),rates,cases:[],maximumDifference:0,totalStereoFrames:0,sanitizer:sanitize?'AddressSanitizer + UndefinedBehaviorSanitizer (macOS LeakSanitizer unsupported)':'none',limits:'Offline selected Nuked plus SegaPSG, no device or cross-platform compiler. Native legacy fixed clocks 7,670,454 / 3,579,545 Hz; runtime clock switching is not added. Stop retains the existing Native authored-patch replay policy and suppresses emitted PCM until a voice trigger; natural reset matches Browser raw idle. Status, IRQ and all four read ports are compared after every output frame. Callback C++ new/delete and Nuked C malloc/free are counted; the alternate ymfm API links to fail-fast stubs to prove no hidden ymfm calls. The combined gain transport preserves independent ramps for FM/PSG targets that did not change; overlapping source edits are compared.'};
 try{
  if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-nuked-'));fixture=path.join(temporary,'fixture');
-  const include=path.join(project,'native-nuked/snapshot/third_party/nuked-opn2'),provider=path.join(temporary,'nuked.o'),symbols=['Reset','SetChipType','Clock','Write','SetTestPin','ReadTestPin','ReadIRQPin','Read'];
+  const include=path.join(sdk,'vendor/nuked-opn2'),provider=path.join(temporary,'nuked.o'),symbols=['Reset','SetChipType','Clock','Write','SetTestPin','ReadTestPin','ReadIRQPin','Read'];
   const flags=sanitize?['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fwrapv']:['-O2','-fwrapv'];
   if(sanitize){process.env.ASAN_OPTIONS='detect_leaks=0';process.env.UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1';}
   execFileSync('clang',['-std=c11',...flags,...symbols.map(s=>`-DOPN2_${s}=tetorica_nuked_OPN2_${s}`),'-I'+include,'-c',path.join(include,'ym3438.c'),'-o',provider],{stdio:'pipe'});
-  const files=[...['src/native_genesis_core.cpp','src/native_genesis_nuked.cpp','src/native_genesis_nuked_fixture.cpp'].map(p=>path.join(project,p)),
+  // Machine mixing remains host-owned; the fixed SDK provides the prefixed
+  // Nuked adapter, its included C wrapper/additional API, and one C provider.
+  const files=[path.join(project,'src/native_genesis_core.cpp'),path.join(sdk,'native/reference/tauri/native_genesis_nuked.cpp'),path.join(project,'src/native_genesis_nuked_fixture.cpp'),
    path.join(sdk,'wasm/segapsg_wasm.cpp'),path.join(sdk,'vendor/ymfm/segapsg.cpp')];
-  report.nativeSources=await Promise.all([...files,path.join(include,'ym3438.c')].map(async file=>({file:path.relative(root,file),
+  const inputs=[...files,path.join(include,'ym3438.c'),path.join(include,'ym3438.h'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'vendor/ymfm/segapsg.h'),path.join(sdk,'vendor/ymfm/chip_state.h')];
+  report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),
    sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
   execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_ISOLATED_FIXTURE','-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,
-   '-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),'-I'+path.join(project,'native-genesis'),...files,provider,'-o',fixture],{stdio:'pipe'});
+   '-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),...files,provider,'-o',fixture],{stdio:'pipe'});
  }
+ report.fixtureSha256=createHash('sha256').update(await fs.readFile(fixture)).digest('hex');
  report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
  for(const rate of rates)for(const scenario of scenarios){
   globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame),input=events.map(({frame,op,args})=>`${frame} ${op} ${args.join(' ')}`).join('\n')+'\n';

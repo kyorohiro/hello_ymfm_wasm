@@ -9,6 +9,14 @@ Last updated: 2026-10-25
 
 ### 現在地
 
+現在は代替Nuked YM2612のSDK移行とローカル検証まで完了した。SDK `0.1.1`の単体ターゲットを追加し、
+TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定SDKへ切り替えた。最終同梱数は379ファイル。
+今回着手時の本体`f22249959...`、Tauri`baec0b9a...`、SDK`affd1059...`はすべてclean。
+直前の成功CI run `40171879716`は今回のNuked移行を含まない。
+作業内容・最終pinと検証結果は[native_sdk_nuked_adoption_01.md](native_sdk_nuked_adoption_01.md)を参照する。
+対応ソースZIP全1,801ファイルとSDK379ファイルを含む22件の固定記録は照合済み。
+次はNuked移行を含む新しいTauriの5構成CIで確認する。
+
 `tetorica-soundchip-native`で全22種類のPlayground音源IDの単体Nativeターゲットが揃い、
 最初の利用側としてPlayground TauriのYM2612を固定SDKソースへ切り替えた。
 ユーザーがcommit／pushした`v0.90.2+test`で、5構成すべての試験とインストーラービルドが成功済み。
@@ -147,14 +155,14 @@ CI開始後は結果記録だけを更新し、製品・試験入力は変更し
 作業ルートは `/Users/kyorohiro/development8/wfm/hello_ymfm`。
 `w/`以下はそれぞれ独立したGitリポジトリなので、本体だけのcommitで保存できたと判断しない。
 
-| リポジトリ | ローカルパス | 再開の基準コミット（すべてmain） |
+| リポジトリ | ローカルパス | 直前の成功CI run `40171879716`の基準コミット（すべてmain） |
 | --- | --- | --- |
 | 本体 | `hello_ymfm/` | `8898a75fc4424aca11596d8cd7fb6046d1c3b585` (SNES／SPC移行・ローカル検証までcommit／push済み。CI開始時はclean) |
 | Native SDK | `w/tetorica-soundchip-native/` | `affd1059599f3c7598191c14f5a864b44963d4aa` (`tetorica::spc`) |
 | Playground Tauri | `w/tetorica-fm2612-playground-tauri/` | `8b9e922ad6e9c1f8d33cf5719b05330b58311944` (DX7／SNES／SPCを含む成功CI run `40171879716`の入力) |
 
 本体には次のメモがある。SNES／SPCまでの移行・ローカル検証は上記基準コミットへ保存済み。
-後続の変更はDX7／SNES／SPCの成功CI結果の文書だけ。表はCI入力を固定して示し、最新HEADと記録commitは各リポジトリの`git log -1`／`git status`で確認する。
+その後のDX7／SNES／SPCの成功CI結果も記録済みで、現在は上記Nuked移行を進めている。表は直前の成功CI入力を固定して示し、現在のSDK pinはNuked移行節とTauriの取り込み記録で、最新HEADは各リポジトリの`git log -1`／`git status`で確認する。
 
 - [native_sdk_ym2612_adoption_01.md](native_sdk_ym2612_adoption_01.md)：YM2612移行と5構成のCI結果。
 - [native_sdk_ym2203_adoption_01.md](native_sdk_ym2203_adoption_01.md)：YM2203移行とローカル検証。
@@ -794,7 +802,46 @@ CIの対応ソースZIP SHA-256はmacOS／Linuxが`39cd14b113557665c039d0af39608
 取得したのは検証レポートのみで、インストーラー／対応ソースZIP自体の取得・独立照合・起動、各OSのWASM比較、OS間PCM一致、実機聴音・UI操作は未確認。
 CI開始後の変更は結果記録だけで、製品・試験入力は同じ。完了済みのローカル試験は再実行していない。
 
+### Nuked YM2612移行 — 2026-10-25
+
+通常の22音源IDに加えて、Genesis Nuked／32X Nukedと独立追加YM2612のNukedエンジンを固定SDKへ切り替える。
+SDK `0.1.1`の単体ターゲットを追加するが、Tauriは既存の2 archiveとconsumer → adapter → provider順を維持する。
+全8 OPN2 exportのprefix、初回のglobal chip type選択、選択中音源の自然なDC・PSG混合・gain／ramp、
+独立エンジンの6CHと通常CH3／CSM取消し・Stop／reset、Rustの所有・予約・Mixer／FXを保持する。
+接続cppはinclude位置だけが異なり、`.inc`・共通state header・C wrapper・コア・LICENSE等7組はbyte一致。
+旧9 pin・由来・LGPLライセンスは保持し、syncスクリプトだけで実際のSDK入力が変わらないことを再ビルド手順にも記す。
+選択中222入力・1,363,968フレームと追加198入力・1,216,512フレームの旧／SDK stdoutはbyte一致。
+API profileを区別した合計420入力・2,580,480フレームを実配布WASMへ比較し、独立追加は差0、
+選択中は既存のFloat32 ramp差`2.9802322387695312e-8`を保持する。共有する符号化命令列39件は同じAPI入力ではない。
+旧／SDKのfixture自己試験でStop／再発音・6CH・公開状態とcallback allocation／free 0、
+各providerの8 exportの各1回の定義と非prefix定義0を確認した。
+SDK `0.1.1`・元コミット`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`の379ファイルを取り込み、配布ZIP SHA-256
+`939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b`とmanifestを照合した。
+SDKのソースZIPを独立展開した全24 CTest・18 WAV exampleとJavaScript参照10試験は成功。
+Tauriの`npm test`もPython 22件・Node 31件成功。ツール試験はSDK最終取り込み前の実行で、合成fixtureを使いreceiptに依存しない。
+2本の既定checkerは初回取り込み後のSDK入力から成功し、選択中12入力／追加8入力のハッシュと不正12形式の拒否を確認した。
+実Cargoの2 archive各1 objectはSDK接続cpp／コアCから生成された。10 raw C ABI・16独立C ABI・8 prefix済みexportは各1定義、非prefix定義0。
+6音源入力のSDK解決、実入力監視と旧ソース監視の除去、既存リンク順序も確認した。
+Rust全試験は723成功・0失敗・明示実行用4件ignored。MCPのローカルTCP bindのため初めから制限外で実行し、sandbox内の失敗はない。
+再生ライフサイクルは22 mode・604,032フレーム・88 Run／Stopが成功した。
+既存の追加音源3混合構成・7単独音源、受入れ／16台制限と17台目拒否も成功し、両制限試験のStop後予約予算は0へ戻った。
+再生／混合runnerはともにexit code 0、`deviceOpened: false`。
+この既存混合表に独立追加Nukedは含まれず、Nukedは別のPCM比較・同時リンクfixture・Rust試験と選択中modeの再生試験で確認した。
+これらのホスト試験はSDK `60f06e629395b65f1777e7e28c80be9eefca2381`／378ファイルの初回取り込み後に実行した。
+初回取り込みから最終配布への差は`RELEASE-MANIFEST.json`、`docs/verification.md`、`native/CMakeLists.txt`と新しい試験用`native/tests/nuked_audit.cpp`の4ファイルだけだった。
+実際にTauriが使うコア・接続入力の全バイト列が一致することを`final-import-audit.json`で確認したため、完了済みのホスト試験を再実行していない。
+最終ソースZIPを独立展開した全24 CTest・18 WAV exampleとJavaScript参照10試験は改めて成功し、検証scriptのexit codeは0だった。
+SDKの初回CI run `40174420834`はLinux 2構成で試験専用のallocation macroと標準ヘッダーのinclude順によりコンパイル失敗。
+SDKの監査用shimで標準ヘッダーを先に読む形へ修正済みで、製品音源・接続は変更していない。
+修正コミットのSDK CI run `40175263453`を開始した。このローカル記録時点では成否未確認。
+Tauriガイド確定後の対応ソースZIPと新しいTauri 5構成CIは後続で記録する。commit／pushとTauri CIはこのチェックポイントでは未実施。
+証拠は`/private/tmp/tetorica-sdk-nuked-adoption/`。毎frameのprivate全状態・各OSでのWASM比較・実機聴音は別の確認。
+
 ### 再開手順
+
+Nuked移行のCI前チェックポイントでは、対応ソースZIP全1,801ファイルのSHA-256は
+`1a56f72f99db7f09e71c6bbc588d5430823bd9ae408780f5965cdfc2b295420c`。
+全22件の固定記録・SDK379ファイル・ZIPの照合結果は`/private/tmp/tetorica-sdk-nuked-adoption/sources.json`。
 
 まず現在の差分とHEADを確認する。保存時点のHEADへ無条件に巻き戻さない。
 
@@ -831,10 +878,10 @@ SDK自体をリモートから自動取得する設計には戻さない。
 
 ### 次の作業候補と未着手範囲
 
-1. SNES／SPCまでのSDK参照切替・ローカル比較・ホスト全試験と、DX7を含むrun `40171879716`の全5構成CIが完了した。後続は結果記録のみで、製品・試験入力はCI対象コミットと同じ。最新の記録commitは各リポジトリの`git log -1`で確認する。
+1. 通常22音源と代替NukedのSDK参照切替・ローカル比較・ホスト試験が完了。Nukedの最終pinはSDK `0.1.1`／379ファイル。対応ソースZIPを確定してNuked移行をcommit／pushし、新しいTauri 5構成CIを実行する。直前の成功run `40171879716`は今回のNuked移行を含まない。
 2. Master System／MSXと追加生成YM2413の再生・Stop・再Run、リズム・PSG／AY同時再生を実機でも聴いて確認する。先行するX68000等の実機確認も自動試験とは別。
 3. 各成功CIの対象コミットを区別し、必要なOSのインストーラーで起動を確認する。実機の聴音・UI操作は自動試験とは別の確認。現在ステージ済みの差分はない。
-4. SNES／SPCで通常の22音源IDのSDK参照が揃う。代替Nuked YM2612の別variantの移行は今回の範囲外。機種用の補助処理とRustの所有・予約・混合はアプリ側に残る。
+4. 主要22音源IDとNuked別variantのSDK参照が揃った。今回の最終pin・ホスト試験と後続CIはNuked作業記録で確認する。機種用の補助処理とRustの所有・予約・混合はアプリ側に残る。
 5. 高速レジスタ制御は [別メモ](todo_schedule_register_01.md) にある構想。現時点で着手済みと解釈しない。
 
 ### 一時成果物と記録の置き場所
@@ -926,7 +973,11 @@ SDK自体をリモートから自動取得する設計には戻さない。
   `/private/tmp/tetorica-dx7-snes-spc-ci-40171879716/local-final-sources.json`で全22件の固定記録・SDK374ファイル・ZIPを照合し、
   同ディレクトリの`local-final-source-delta.json`でCI入力との差が`docs/native-sdk-ym2612.md`だけと確認した。
   製品と試験のコンパイル入力はCI対象から変更していない。
-- SDKの元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
+- 最新SDKの元ZIP: `/private/tmp/tetorica-sdk-nuked-adoption/release-fixed/tetorica-soundchip-native-0.1.1-sources.zip`。
+  元コミット`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`、全379ファイル、ZIP SHA-256
+  `939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b`。
+  Tauriの同梱ソースと取り込み記録だけでオフライン照合できる。
+- 先行移行で使ったSDKの旧元ZIP: `w/tetorica-soundchip-native/releases/tetorica-soundchip-native-0.1.0-sources.zip`。
   元ZIPが消えてもTauriの同梱ソースと取り込み記録だけでオフライン照合・ビルドできる。
 - DX7移行の証拠は`/private/tmp/tetorica-sdk-dx7-adoption/`の`parity-summary.json`、`source-audit.json`、`self-tests.json`、`build-assembly-audit.json`。
   通常再生比較とNative Panic修正の確認は分けて記録した。ホストログと再生／混合レポートは上記DX7ローカル検証節を参照する。
