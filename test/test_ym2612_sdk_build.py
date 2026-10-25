@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
-ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258')
+ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258', 'ym2413')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -54,6 +54,12 @@ OKIM6258_EXPORTS = [
     '_okim6258_create', '_okim6258_destroy', '_okim6258_reset',
     '_okim6258_write', '_okim6258_generate', '_okim6258_save_state',
     '_okim6258_load_state', '_malloc', '_free',
+]
+YM2413_EXPORTS = [
+    '_ym2413_create', '_ym2413_destroy', '_ym2413_reset', '_ym2413_write',
+    '_ym2413_read', '_ym2413_read_status', '_ym2413_get_irq',
+    '_ym2413_sample_rate', '_ym2413_generate', '_ym2413_set_mute_mask',
+    '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -347,6 +353,16 @@ class Oki6258SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
 
     def test_shared_output_preserves_all_five_existing_build_records(self):
         self.assert_shared_output_preserves(['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151'])
+
+
+class Ym2413SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ym2413'
+    exports = YM2413_EXPORTS
+    core_header = 'vendor/ymfm/ymfm_opl.h'
+
+    def test_shared_output_preserves_all_six_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258'])
 
 
 if __name__ == '__main__':

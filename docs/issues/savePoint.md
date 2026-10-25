@@ -1,8 +1,8 @@
 # Save Point
 
-Last updated: 2026-10-25
+Last updated: 2026-10-26
 
-## 最新の再開ポイント — 2026-10-25
+## 最新の再開ポイント — 2026-10-26
 
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
@@ -36,6 +36,8 @@ TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定
 詳細は[YM2151／YM2164 WASMのSDK移行](wasm_sdk_ym2151_adoption_01.md)を参照。
 続くOKIM6258 WASMも同じ固定SDKへ切り替えた。旧配布版・再ビルド・SDKのJS／WASMがbyte一致。
 X68000のFM・ADPCM双方のビルド元が揃った。詳細は[OKIM6258 WASMのSDK移行](wasm_sdk_okim6258_adoption_01.md)を参照。
+続くYM2413 WASMも同じ固定SDKへ切り替えた。既存snapshot APIはないため、reset／再演奏／seekで復帰経路を比較した。
+詳細は[YM2413 WASMのSDK移行](wasm_sdk_ym2413_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1020,7 +1022,25 @@ SDK個別catalogにchip_state.hの列挙漏れがあり、全379検証と実依�
 詳細と比較結果・hashは[OKIM6258移行記録](wasm_sdk_okim6258_adoption_01.md)とそのJSONを参照する。
 
 これで通常OPN用4 artifact、OPM／OPP用1、OKIM6258用1の計6 artifactが固定SDK参照になった。
-次はMaster System／MSXのYM2413 WASMへの展開が候補。残り21 artifactは今回一括移行していない。
+この節はOKIM6258移行時の記録。続くYM2413移行は次の節に記載する。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — YM2413 WASMの固定SDK参照
+
+`scripts/build_ym2413_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルと取り込み記録、APIとMixer値を保持し、先行6音源の生成記録・出力も維持した。
+通常生成物は比較用SDK出力とbyte一致する。
+既存WASM／JSにはsnapshot機能がないため、reset再生成／raw reset／再演奏／seekを区別して比較した。
+
+旧再ビルド／配布済み版との各1,284比較・16,133,748出力ステレオフレームで差0。
+重点54設定のpublic reset／再演奏108回と、実VgmPlayerの9構成×6seekを確認した。状態bytes比較は行っていない。
+Python43件、既存YM2413／Synth／Inspector・MSX描画／OPM混合試験37件、両Browser計8経路とMaster System音色／Keyboard UIが成功。
+隔離npm配布物・型・Analyzer ZIPも検証済み。
+校正値の変更と再測定は不要だった。
+詳細と最終比較結果・hashは[YM2413移行記録](wasm_sdk_ym2413_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計7 artifact。次はOPL系のYM3526用WASMへの展開が候補。
+残り20 artifactは今回一括移行していない。前回のOKIM6258 catalogのchip_state.h追記はSDK更新時の候補として保持する。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

@@ -15,6 +15,7 @@ download or synchronized edit of another repository is required.
 | YM2610 / YM2610B | `scripts/build_ym2610b_wasm.sh` | `ym2610b_wasm` |
 | YM2151 / YM2164 | `scripts/build_ym2151_wasm.sh` | `ym2151_wasm` |
 | OKIM6258 | `scripts/build_okim6258_wasm.sh` | `okim6258_wasm` |
+| YM2413 | `scripts/build_ym2413_wasm.sh` | `ym2413_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -26,6 +27,7 @@ sh scripts/build_ym2608_wasm.sh
 sh scripts/build_ym2610b_wasm.sh
 sh scripts/build_ym2151_wasm.sh
 sh scripts/build_okim6258_wasm.sh
+sh scripts/build_ym2413_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -36,7 +38,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151` and `Oki6258AudioEngine` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine` and `Ym2413` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -52,13 +54,14 @@ sh /path/to/checkout/scripts/build_ym2608_wasm.sh ./ym2608-output
 sh /path/to/checkout/scripts/build_ym2610b_wasm.sh ./ym2610b-output
 sh /path/to/checkout/scripts/build_ym2151_wasm.sh ./ym2151-output
 sh /path/to/checkout/scripts/build_okim6258_wasm.sh ./okim6258-output
+sh /path/to/checkout/scripts/build_ym2413_wasm.sh ./ym2413-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipe retains
 C++14, O2, the existing exports and memory growth settings.
-OPN recipes retain their explicit `ASSERTIONS=1`; OPM/OPP and OKIM6258 retain
+OPN and YM2413 recipes retain their explicit `ASSERTIONS=1`; OPM/OPP and OKIM6258 retain
 their existing compiler-default assertion setting.
-The OPN/OPM synchronous `read()` / `generateStereo()` and OKIM6258
+The OPN/OPM/OPLL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
 
 ## Fixed source and updates
@@ -67,7 +70,7 @@ The OPN/OPM synchronous `read()` / `generateStereo()` and OKIM6258
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these six wrappers, ymfm inputs and the MAME-derived
+and `vendor/` notices; these seven wrappers, ymfm inputs and the MAME-derived
 OKIM6258 adaptation retain BSD-3-Clause.
 
 Treat the imported directory as immutable. To update it, obtain a local SDK
@@ -114,11 +117,15 @@ node scripts/check_okim6258_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-okim6258-build \
   --sdk-dir /path/to/sdk-okim6258-build \
   --out /tmp/okim6258-comparison.json
+node scripts/check_ym2413_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-ym2413-build \
+  --sdk-dir /path/to/sdk-ym2413-build \
+  --out /tmp/ym2413-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
 recording compiler. The Node checkers compare actual WASM PCM,
-available read/status/IRQ APIs, reset and state restoration, including multiple clocks and
+available read/status/IRQ APIs, reset and available state restoration, including multiple clocks and
 irregular render blocks. YM2612 also checks internal envelopes; YM2203 checks
 FM/SSG, prescalers, source/channel mutes and engine resampling.
 YM2608 also checks rhythm and ADPCM-B playback, memory transfers and saved
@@ -129,10 +136,13 @@ The YM2151 checker covers OPM and OPP variants, all eight FM channels,
 LFO, noise, timers, mutes, state restoration and engine resampling.
 The OKIM6258 checker compares decoder PCM and serialized state, including
 FIFO/nibble handling, precision, clock/divider changes, pan and engine gain/mute.
+The YM2413 checker covers all nine melody channels, built-in/user instruments,
+rhythm, mutes, engine resampling and reset/replay/seek. Its existing WASM and
+JS APIs have no saved-state facility, so no serialized-state restoration is claimed.
 They open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The six module recipes above have switched to this build source. Other chip recipes and
+The seven module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.
