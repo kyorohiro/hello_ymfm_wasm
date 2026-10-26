@@ -28,6 +28,7 @@
     "build": "npm run build:vgm",
     "test": "node --test test/*.test.mjs",
     "test:analyzer": "node --test web/*.test.mjs docs/vgm_analyzer/*.test.mjs",
+    "test:wasm:sdk": "node scripts/check_wasm_sdk.mjs",
     "test:sbi": "node --test docs/vgm_analyzer/sbi_export.test.mjs docs/vgm_analyzer/sbi_ui.test.mjs docs/vgm_analyzer/sbi_info.test.mjs test/sbi.test.mjs",
     "pack:check": "npm run pack:vgm -- --dry-run",
     "pack": "npm run pack:vgm --",
