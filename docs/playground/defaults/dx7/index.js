@@ -1,15 +1,15 @@
 // Select Mode: DX7. Six operators, 32 algorithms and 16 allocated voices.
 // This original one-carrier preset needs no SysEx file. MIDI notes are 0..127.
+// Full carrier level; use Mixer to balance the chip without rewriting its preset.
 await dx7.setPreset({
   name: 'MODE KEYS', algorithm: 31, feedback: 0,
   operators: {
     1: {
-      coarse: 1, outputLevel: 85,
-      envelope: {rates: [99, 75, 65, 75], levels: [99, 85, 75, 0]},
+      coarse: 1, outputLevel: 99,
+      envelope: {rates: [99, 75, 65, 75], levels: [99, 99, 99, 0]},
     },
   },
 });
-await mixer.set(dx7.id, {volume: 0.5});
 setBpm(120);
 
 liveLoop('dx7-melody', async () => {

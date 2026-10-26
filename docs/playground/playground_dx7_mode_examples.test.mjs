@@ -44,10 +44,10 @@ test('DX7 starter configures an original playable voice without file or OPN depe
   const voice = result.presets[0];
   assert.equal(voice.name, 'MODE KEYS');
   assert.equal(voice.algorithm, 31);
-  assert.equal(voice.operators[1].outputLevel, 85);
-  assert.equal(voice.operators[1].envelope.levels[3], 0);
+  assert.equal(voice.operators[1].outputLevel, 99);
+  assert.deepEqual(voice.operators[1].envelope.levels, [99, 99, 99, 0]);
   for (const operator of [2, 3, 4, 5, 6]) assert.equal(voice.operators[operator].outputLevel, 0);
-  assert.deepEqual(result.mixes, [{volume: 0.5}]);
+  assert.deepEqual(result.mixes, [], 'the starter preserves the selected Mixer preset');
   assert.equal(result.loops.length, 1);
   await result.loops[0].run();
   assert.deepEqual(result.notes.map(({note}) => note), [60, 64, 67, 71, 72, 67, 64, 62]);
@@ -67,7 +67,7 @@ test('DX7 mode selects three runnable examples and retains the independent Genes
   for (const path of paths) {
     const result = await evaluate('.' + path);
     assert.equal(result.presets.length, 1, path);
-    assert.deepEqual(result.mixes, [{volume: 0.5}], path);
+    assert.deepEqual(result.mixes, [], `${path} preserves Mixer settings`);
     for (const loop of result.loops) await loop.run();
     assert.ok(result.notes.length > 0 || result.bindings.length === 1, path);
   }

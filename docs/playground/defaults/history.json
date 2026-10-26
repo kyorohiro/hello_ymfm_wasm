@@ -28,5 +28,8 @@
   ],
   "msx": [
     "// MSX: AY-3-8910 PSG + YM2413 OPLL + Y8950 FM, sharing one mono output.\nsetBpm(120);\nay.setVoice(0, {tone: true, noise: false, volume: 8, envelope: false});\nopll.setVoice(0, {instrument: 3, attenuation: 6, sustain: false}); // OPLL ROM Piano.\nopl.setPreset(0, OPL_PRESETS.bell);\nopl.setOperator(0, 1, {tl: 26}); // Keep the Y8950 bell behind the melody.\n\nliveLoop('msx-three-chips', async () => {\n  const lead = ['C4', 'E4', 'G4', 'B4', 'C5', 'G4', 'E4', 'D4'];\n  for (let step = 0; step < lead.length; step++) {\n    ay.noteOn(0, step < 4 ? 'C3' : 'G2');\n    opll.noteOn(0, lead[step]);\n    opl.noteOn(0, step < 4 ? 'G4' : 'D4');\n    await beat(0.4);\n    ay.keyOff(0);\n    opll.keyOff(0);\n    opl.keyOff(0);\n    await beat(0.1);\n  }\n});\n\n// Open AY-3-8910 / YM2413 / Y8950 to edit their current voices.\n// Keyboard selects the chip and channel. Y8950 uses FM and rhythm here.\n"
+  ],
+  "dx7": [
+    "// Select Mode: DX7. Six operators, 32 algorithms and 16 allocated voices.\n// This original one-carrier preset needs no SysEx file. MIDI notes are 0..127.\nawait dx7.setPreset({\n  name: 'MODE KEYS', algorithm: 31, feedback: 0,\n  operators: {\n    1: {\n      coarse: 1, outputLevel: 85,\n      envelope: {rates: [99, 75, 65, 75], levels: [99, 85, 75, 0]},\n    },\n  },\n});\nawait mixer.set(dx7.id, {volume: 0.5});\nsetBpm(120);\n\nliveLoop('dx7-melody', async () => {\n  for (const note of [60, 64, 67, 71, 72, 67, 64, 62]) {\n    dx7.noteOn(note, 100);\n    await beat(0.4);\n    dx7.noteOff(note);\n    await beat(0.1);\n  }\n});\n\n// Open examples/dx7/dx7-keyboard.js to play from the shared Keyboard.\n// For your own bank: await dx7.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));\n"
   ]
 }

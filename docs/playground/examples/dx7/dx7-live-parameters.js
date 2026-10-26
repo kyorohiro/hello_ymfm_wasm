@@ -8,7 +8,6 @@ await synth.setPreset({
     2: {coarse: 2, outputLevel: 20, envelope: {rates: [99, 99, 99, 75], levels: [99, 99, 99, 0]}},
   },
 });
-await mixer.set(synth.id, {volume: 0.5});
 setBpm(100);
 
 liveLoop('dx7-live-parameters', async () => {

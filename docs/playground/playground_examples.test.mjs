@@ -281,7 +281,7 @@ test('DX7 example awaits its independent instrument and releases each MIDI note'
   const api = {
     async useSoundChip(name) { assert.equal(name, 'dx7'); return dx7; },
     setBpm(bpm) { assert.equal(bpm, 110); },
-    mixer: {async set(id, options) { assert.equal(id, dx7.id); assert.equal(options.volume, 0.5); }},
+    mixer: {async set() { assert.fail('the DX7 example must preserve Mixer settings'); }},
     liveLoop(name, callback) { assert.equal(name, 'dx7-melody'); loop = callback; },
     async beat(beats) { events.push(['beat', beats]); },
   };

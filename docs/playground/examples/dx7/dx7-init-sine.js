@@ -2,7 +2,6 @@
 // MIDI note numbers 0..127; the DX7 allocates its own 16 voices.
 const synth = await useSoundChip('dx7');
 setBpm(110);
-await mixer.set(synth.id, {volume: 0.5});
 
 // To use your own DX7 SysEx, import a .syx file into FILES first:
 // await synth.loadSysex(await file('/presets/my-bank.syx', {type:'arrayBuffer'}));

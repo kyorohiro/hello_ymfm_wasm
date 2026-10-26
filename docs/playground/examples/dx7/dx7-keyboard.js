@@ -14,7 +14,6 @@ await synth.setPreset({
     },
   },
 });
-await mixer.set(synth.id, {volume: 0.5});
 
 // DX7 noteOff releases every voice at that pitch. Keep the latest press ID
 // for each MIDI note so an older release cannot cut off a newer press.

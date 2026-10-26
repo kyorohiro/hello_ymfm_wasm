@@ -96,6 +96,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 最後のDX7／MSFA WASMも固定SDKへ切り替えた。全27 artifact（26 JS／WASM pair＋DX7 standalone）の参照元が揃った。
 旧配布・旧再build・SDK・中央／Web／docs出力がbyte一致し、各360比較で差0。既存JS／型・Mixer値は維持した。
 詳細は[DX7／MSFA WASMのSDK移行](wasm_sdk_dx7_adoption_01.md)を参照。WASM移行の残りはない。
+その後、DX7初期コードのMixer `0.5`上書きと、小音量の初期音色を調整した。
+Mixer指定を初期コード・基本Exampleから除き、ユーザーの選択に従って初期音色の単一キャリアをOP99／EG99へ揃えた。
+System倍率と既存保存データは保持する。詳細は[DX7初期コードとMixer](dx7_starter_mixer_01.md)。
 既存の音量調整では、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1503,6 +1506,18 @@ Analyzer／YM2612SynthにDX7再生経路はなく、そのZIPの追加buildは�
 固定SDKへ切り替えたWASMは全27／27 artifact。WASM移行の残りはない。次は全27件をまとめたビルド／配布確認の手順整理が候補。
 SPCのWebKit初期化中closeは引き続き未解決。SDK原本とTauri、Mixer数値は変更していない。
 commit／push・公開・remote CIは実施していない。
+
+### 完了した作業 — DX7初期コードの音量とMixer保持
+
+着手時の本体は`d3db10b0455a5cc31cd9d3e62bee3dbde76f120c`でclean。全27ビルドのSDK移行後の別作業。
+初期コードとDX7の4基本ExampleにあったMixer `volume:0.5`を削除し、現在選択している設定をRun時にも保持する。
+音量不足には音色側のOP85／EG85・75も影響していた。ユーザーの選択でMODE KEYSをOP99／EG99保持・離鍵releaseへ調整した。
+Mixer Systemの1.038825、共有INIT SINE・SysEx・WASM／Native core、既存保存コード／Mixer値は維持する。
+旧DX7starterをhistoryへ記録し、生成Example bundleを更新。既存保存コードは自動で書き換えず、新規作成・明示的な初期コード選択で新starterを使う。
+Node34件・bundle照合、実配布WASMの44100／48000Hz測定と、Chromium／WebKit×Main／Workerの実Worklet4ケースが成功した。
+System／任意0.73pan−0.2のRun／Example後の保持とSystem復帰、最終音色のRMS>0.06・非clipを確認した。destination前zeroGainで物理聴音はしていない。
+詳細は[作業記録](dx7_starter_mixer_01.md)。証跡は`/private/tmp/tetorica-dx7-mixer01/`。commit／公開・Tauri配布物の取り込みは未実施。
+次の候補は、先に提案した全27ビルドの一括検証。今回まだ着手していない。
 
 ### その他の作業候補と未着手範囲
 

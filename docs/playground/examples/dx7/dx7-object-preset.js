@@ -17,7 +17,6 @@ await synth.setOperators([
   }],
 ]);
 setBpm(110);
-await mixer.set(synth.id, {volume: 0.5});
 
 liveLoop('dx7-object-melody', async () => {
   // Level edits keep other parameters and also affect this patch's release tails.
