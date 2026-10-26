@@ -2,6 +2,7 @@ import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=y8950-adpcm-ui
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();
+const closingContexts = new WeakMap();
 const NATIVE_RATE = 32000;
 /** @typedef {{ready:boolean,loaded:boolean,playing:boolean,paused:boolean,muteMask:number,
  * positionSeconds:number,playbackNativeFrames:number,renderedNativeFrames:number,
@@ -35,6 +36,28 @@ function addModule(context, url) {
     ready.catch(() => entries.delete(url));
   }
   return ready;
+}
+
+function closeOwnedContext(context) {
+  const previous = closingContexts.get(context);
+  if (previous) return previous;
+  let pending = null;
+  const close = () => {
+    if (pending) return pending;
+    if (context.state === 'closed') return Promise.resolve();
+    pending = Promise.resolve(context.close()).then(() => {
+      pending = null;
+      if (context.state !== 'closed') return close();
+    }, error => {pending = null; throw error;});
+    return pending;
+  };
+  // WebKit can complete a previously queued start after close() has resolved.
+  // Keep this context-only listener for late state changes; neither a timer nor
+  // an outstanding asset request should hold up disposal. It captures no player.
+  context.addEventListener('statechange', () => {void close().catch(() => {});});
+  const closing = close();
+  closingContexts.set(context, closing);
+  return closing;
 }
 
 /** Browser SPC file player. SPC700/S-DSP generation runs only in AudioWorklet.
@@ -249,7 +272,7 @@ export class SpcRuntimeSynth {
     this.failure = error; this.controller?.abort(error); this.nodeReady?.reject(error);
     for (const request of this.pending.values()) request.reject(error);
     this.pending.clear(); this.releaseAudio();
-    if (this.audio.ownsAudioContext && this.audioContext?.state !== 'closed') void this.audioContext?.close().catch(() => {});
+    if (this.audio.ownsAudioContext && this.audioContext) void closeOwnedContext(this.audioContext).catch(() => {});
     try {this.options.onError?.(error);} catch (observerError) {console.error('SPC error observer:', observerError);}
   }
   releaseAudio() {
@@ -274,7 +297,7 @@ export class SpcRuntimeSynth {
     this.pending.clear(); this.releaseAudio();
     const context = this.audioContext;
     this.closePromise = (async () => {
-      if (context && this.audio.ownsAudioContext && context.state !== 'closed') await context.close();
+      if (context && this.audio.ownsAudioContext) await closeOwnedContext(context);
     })();
     return this.closePromise;
   }

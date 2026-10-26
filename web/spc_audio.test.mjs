@@ -143,9 +143,9 @@ class MockNode {
 }
 class MockContext extends EventTarget {
   static instances = [];
-  constructor() {super(); this.state = 'suspended'; this.currentTime = 0; this.sampleRate = 48000; this.destination = new MockNode(this); this.moduleGate = null; this.moduleCalls = 0; this.audioWorklet = {addModule: () => {this.moduleCalls++; return this.moduleGate?.promise ?? Promise.resolve();}}; MockContext.instances.push(this);}
+  constructor() {super(); this.state = 'suspended'; this.closeCalls = 0; this.currentTime = 0; this.sampleRate = 48000; this.destination = new MockNode(this); this.moduleGate = null; this.moduleCalls = 0; this.audioWorklet = {addModule: () => {this.moduleCalls++; return this.moduleGate?.promise ?? Promise.resolve();}}; MockContext.instances.push(this);}
   async resume() {this.state = 'running'; this.dispatchEvent(new Event('statechange'));}
-  async close() {this.state = 'closed'; this.dispatchEvent(new Event('statechange'));}
+  async close() {this.closeCalls++; this.state = 'closed'; this.dispatchEvent(new Event('statechange'));}
   createGain() {return new MockNode(this);}
   createChannelSplitter() {return new MockNode(this);}
   createChannelMerger() {return new MockNode(this);}
@@ -230,6 +230,31 @@ test('SPC close aborts pending initialization without creating a late node or cl
   const starting = synth.start(); await tick(); await synth.close();
   await assert.rejects(starting, {name: 'AbortError'}); gate.resolve(); await tick();
   assert.equal(MockWorkletNode.instances.length, count); assert.equal(context.state, 'running');
+  context.state = 'suspended'; context.dispatchEvent(new Event('statechange')); await tick();
+  assert.equal(context.state, 'suspended'); assert.equal(context.closeCalls, 0, 'shared context stays under host control');
+});
+test('SPC owned context stays closed after a late browser start while aborted assets are still pending', {timeout: 3000}, async t => {
+  const fetchGate = deferred(), fetching = deferred(), count = MockWorkletNode.instances.length;
+  const synth = makeHost(t, {wasmBinary: undefined, fetch() {fetching.resolve(); return fetchGate.promise;}});
+  const starting = synth.start(), rejected = assert.rejects(starting, {name: 'AbortError'});
+  await fetching.promise; const context = synth.audioContext;
+  const closing = synth.close(); assert.equal(synth.close(), closing); await closing; await rejected;
+  assert.equal(context.state, 'closed'); assert.equal(context.closeCalls, 1);
+  context.state = 'running'; context.dispatchEvent(new Event('statechange')); await tick();
+  assert.equal(context.state, 'closed'); assert.equal(context.closeCalls, 2);
+  context.dispatchEvent(new Event('statechange')); await synth.close();
+  assert.equal(context.closeCalls, 2, 'closed notifications and repeated disposal do not close again');
+  fetchGate.resolve({ok: true, arrayBuffer: async () => Uint8Array.of(1).buffer}); await tick();
+  assert.equal(MockWorkletNode.instances.length, count); assert.equal(synth.node, null);
+});
+test('SPC context closure coalesces state changes while the browser close promise is pending', async t => {
+  const synth = makeHost(t); await synth.start(); const context = synth.audioContext, gate = deferred();
+  const close = context.close.bind(context); let calls = 0;
+  context.close = () => {calls++; return gate.promise.then(close);};
+  const closing = synth.close();
+  context.dispatchEvent(new Event('statechange')); context.dispatchEvent(new Event('statechange'));
+  assert.equal(calls, 1); gate.resolve(); await closing;
+  assert.equal(context.state, 'closed'); assert.equal(calls, 1);
 });
 test('SPC Stop during initialization fences an older load and does not leave a delayed start', async t => {
   const context = new MockContext(), gate = deferred(); context.moduleGate = gate;
@@ -275,4 +300,7 @@ test('SPC processor failure rejects outstanding requests, releases nodes, and re
   node.commandGate = {type: 'state', ...gate}; const pending = synth.getState(); await tick();
   node.onprocessorerror(); await assert.rejects(pending, /processor failed/);
   assert.deepEqual(errors, ['SPC AudioWorklet processor failed']); assert.equal(node.port.closed, true); assert.equal(synth.audioContext.state, 'closed'); gate.resolve();
+  const context = synth.audioContext;
+  context.state = 'running'; context.dispatchEvent(new Event('statechange')); await tick();
+  assert.equal(context.state, 'closed'); assert.equal(context.closeCalls, 2, 'failure cleanup also fences a late browser start');
 });

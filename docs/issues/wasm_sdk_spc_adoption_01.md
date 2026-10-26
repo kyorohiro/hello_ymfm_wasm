@@ -2,6 +2,9 @@
 
 日付: 2026-10-26
 
+後続修正: この記録で未解決だったWebKit初期化中closeは、[SPC終了処理の修正](spc_webkit_close_01.md)で解決した。
+以下の当時の失敗結果・JSONは、元の検証記録として保持する。
+
 ## 変更内容
 
 `scripts/build_spc_wasm.sh`を同梱SDK `0.1.1`の`spc`ターゲットへ切り替えた。

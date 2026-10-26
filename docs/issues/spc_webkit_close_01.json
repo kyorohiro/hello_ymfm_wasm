@@ -1,0 +1,996 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-26",
+  "initialMainHead": "f0b786294e62081a200f2e419b92f9a39cf1a15f",
+  "scope": "SPC Browser owned-context lifecycle fix and completion of preceding Sega PSG CI checkpoint. No SDK pin/core/Mixer change, commit, push or publication.",
+  "baseline": {
+    "runtimeCommit": "f0b786294e62081a200f2e419b92f9a39cf1a15f",
+    "runtimePath": "docs/js/spc_audio.js",
+    "runtimeSha256": "7d1cd897093fa3099f45751298f76ab74a8c8eed77b3edfd66dd4c3c755024fb",
+    "diagnostic": {
+      "passed": false,
+      "results": [
+        {
+          "browser": "webkit",
+          "outputSampleRate": 44100,
+          "nativeSampleRate": 32000,
+          "peak": 0.3576001524925232,
+          "unmutedPeak": 0.3576001524925232,
+          "restartPeak": 0.3576001524925232,
+          "pausedPositionSeconds": 0.18285714285714286,
+          "snapshotNativeFrames": 5888,
+          "renderAheadFrames": 36.57142857142844,
+          "finalState": {
+            "ready": true,
+            "loaded": true,
+            "playing": true,
+            "paused": false,
+            "muteMask": 0,
+            "sampleRate": 44100,
+            "nativeSampleRate": 32000,
+            "playbackNativeFrames": 2229.1156462585036,
+            "positionSeconds": 0.06965986394557824,
+            "renderedNativeFrames": 2304
+          },
+          "errors": []
+        },
+        {
+          "browser": "webkit",
+          "outputSampleRate": 48000,
+          "nativeSampleRate": 32000,
+          "peak": 0.35760498046875,
+          "unmutedPeak": 0.35760498046875,
+          "restartPeak": 0.35760498046875,
+          "pausedPositionSeconds": 0.184,
+          "snapshotNativeFrames": 6016,
+          "renderAheadFrames": 128,
+          "finalState": {
+            "ready": true,
+            "loaded": true,
+            "playing": true,
+            "paused": false,
+            "muteMask": 0,
+            "sampleRate": 48000,
+            "nativeSampleRate": 32000,
+            "playbackNativeFrames": 2304,
+            "positionSeconds": 0.072,
+            "renderedNativeFrames": 2432
+          },
+          "errors": []
+        }
+      ],
+      "lifecycle": [
+        {
+          "browser": "webkit",
+          "passed": true,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "passed": false,
+          "cancelled": true,
+          "states": {
+            "before": "running",
+            "afterClose": "closed",
+            "afterStart": "closed",
+            "afterWait": "running",
+            "afterSecondClose": "closed"
+          },
+          "contextClosed": true,
+          "noLateNode": true
+        }
+      ]
+    },
+    "method": "Pinned pre-fix runtime served instead of current module; full 44100/48000 playback precedes 20 closure attempts. Each diagnostic samples before/after close, after start rejection and after180ms. Failed contexts were explicitly closed again only after recording failure; their final contextClosed field reflects this diagnostic cleanup.",
+    "reportPath": "/private/tmp/tetorica-spc-close-01/baseline-browser.json",
+    "reportSha256": "cea640e3902267f27a75166602edce568c47dfe340db128e845cde00b6447787"
+  },
+  "fixedBrowser": {
+    "command": "node scripts/check_spc_browser.cjs",
+    "report": {
+      "passed": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "outputSampleRate": 44100,
+          "nativeSampleRate": 32000,
+          "peak": 0.3576001524925232,
+          "unmutedPeak": 0.3576001524925232,
+          "restartPeak": 0.3576001524925232,
+          "pausedPositionSeconds": 0.17995464852607712,
+          "snapshotNativeFrames": 5760,
+          "renderAheadFrames": 1.4512471655325498,
+          "finalState": {
+            "ready": true,
+            "loaded": true,
+            "playing": true,
+            "paused": false,
+            "muteMask": 0,
+            "sampleRate": 44100,
+            "nativeSampleRate": 32000,
+            "playbackNativeFrames": 2229.1156462585036,
+            "positionSeconds": 0.06965986394557824,
+            "renderedNativeFrames": 2304
+          },
+          "errors": []
+        },
+        {
+          "browser": "chromium",
+          "outputSampleRate": 48000,
+          "nativeSampleRate": 32000,
+          "peak": 0.35760498046875,
+          "unmutedPeak": 0.35760498046875,
+          "restartPeak": 0.35760498046875,
+          "pausedPositionSeconds": 0.18666666666666665,
+          "snapshotNativeFrames": 6016,
+          "renderAheadFrames": 42.66666666666697,
+          "finalState": {
+            "ready": true,
+            "loaded": true,
+            "playing": true,
+            "paused": false,
+            "muteMask": 0,
+            "sampleRate": 48000,
+            "nativeSampleRate": 32000,
+            "playbackNativeFrames": 2218.6666666666665,
+            "positionSeconds": 0.06933333333333333,
+            "renderedNativeFrames": 2304
+          },
+          "errors": []
+        },
+        {
+          "browser": "webkit",
+          "outputSampleRate": 44100,
+          "nativeSampleRate": 32000,
+          "peak": 0.3576001524925232,
+          "unmutedPeak": 0.3576001524925232,
+          "restartPeak": 0.3576001524925232,
+          "pausedPositionSeconds": 0.18285714285714286,
+          "snapshotNativeFrames": 5888,
+          "renderAheadFrames": 36.57142857142844,
+          "finalState": {
+            "ready": true,
+            "loaded": true,
+            "playing": true,
+            "paused": false,
+            "muteMask": 0,
+            "sampleRate": 44100,
+            "nativeSampleRate": 32000,
+            "playbackNativeFrames": 2321.9954648526077,
+            "positionSeconds": 0.07256235827664399,
+            "renderedNativeFrames": 2432
+          },
+          "errors": []
+        },
+        {
+          "browser": "webkit",
+          "outputSampleRate": 48000,
+          "nativeSampleRate": 32000,
+          "peak": 0.35760498046875,
+          "unmutedPeak": 0.35760498046875,
+          "restartPeak": 0.35760498046875,
+          "pausedPositionSeconds": 0.184,
+          "snapshotNativeFrames": 6016,
+          "renderAheadFrames": 128,
+          "finalState": {
+            "ready": true,
+            "loaded": true,
+            "playing": true,
+            "paused": false,
+            "muteMask": 0,
+            "sampleRate": 48000,
+            "nativeSampleRate": 32000,
+            "playbackNativeFrames": 2304,
+            "positionSeconds": 0.072,
+            "renderedNativeFrames": 2432
+          },
+          "errors": []
+        }
+      ],
+      "lifecycle": [
+        {
+          "browser": "chromium",
+          "attempt": 0,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 1,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 2,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 3,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 4,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 5,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 6,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 7,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 8,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 9,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 10,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 11,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 12,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 13,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 14,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 15,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 16,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 17,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 18,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "chromium",
+          "attempt": 19,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 0,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 1,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 2,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 3,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 4,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 5,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 6,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 7,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 8,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 9,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 10,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 11,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 12,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 13,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 14,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 15,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 16,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 17,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 18,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        },
+        {
+          "browser": "webkit",
+          "attempt": 19,
+          "cancelled": true,
+          "stateAfterClose": "closed",
+          "finalContextState": "closed",
+          "contextClosed": true,
+          "noLateNode": true
+        }
+      ]
+    },
+    "reportPath": "/private/tmp/tetorica-spc-close-01/fixed-browser.json",
+    "reportSha256": "1465d936665af7494039f237fbaec65197e42e528bcb5457814d5548e682a3d2",
+    "realOutputMuted": true,
+    "assertion": "All40 contexts remain actually closed after180ms, start rejects AbortError, no late SPC node, same repeated close promise. Real playback pause/mute/seek/cancel/stop/restart remains checked at both output rates."
+  },
+  "node": {
+    "spcAudioFile": {
+      "passed": true,
+      "tests": 20
+    },
+    "relatedSuite": {
+      "passed": true,
+      "tests": 128,
+      "command": "node --test web/spc_audio.test.mjs web/playground_spc.test.mjs web/spc.test.mjs web/spc_performance.test.mjs web/spc_events.test.mjs web/spc_observer.test.mjs web/spc_trace.test.mjs web/spc_trace_capture.test.mjs web/playground_snes.test.mjs web/playground_snes_worklet.test.mjs"
+    },
+    "counting": "20 SPC audio tests are included in128; not added twice."
+  },
+  "fmPackage": {
+    "command": "node scripts/check_fm2612_package.mjs",
+    "passed": true,
+    "files": 816,
+    "compressedBytes": 1599189,
+    "unpackedBytes": 5962994,
+    "declaredModules": 328,
+    "installedRuntimeTypesAndAssetsPassed": true,
+    "published": false
+  },
+  "webkitPrimarySourceReview": {
+    "schemaVersion": 1,
+    "scope": "Read-only primary-source analysis; no browser runs or repository edits",
+    "playwrightVersion": "1.63.0",
+    "localWebkitExecutable": "/Users/kyorohiro/Library/Caches/ms-playwright/webkit-2359/pw_run.sh",
+    "webkitUpstreamRevision": "4d05d732e5a84f32675bef4cc135a2e7a9269a87",
+    "primaryReferences": [
+      "https://github.com/microsoft/playwright/blob/v1.63.0/browser_patches/webkit/UPSTREAM_CONFIG.sh",
+      "https://github.com/WebKit/WebKit/blob/4d05d732e5a84f32675bef4cc135a2e7a9269a87/Source/WebCore/Modules/webaudio/AudioContext.cpp",
+      "https://github.com/WebKit/WebKit/blob/4d05d732e5a84f32675bef4cc135a2e7a9269a87/Source/WebCore/Modules/webaudio/BaseAudioContext.cpp",
+      "https://github.com/WebKit/WebKit/blob/4d05d732e5a84f32675bef4cc135a2e7a9269a87/Source/WebCore/Modules/webaudio/DefaultAudioDestinationNode.cpp"
+    ],
+    "sourceFacts": [
+      "AudioContext constructor schedules lazyInitialize in a later task.",
+      "lazyInitialize invokes startRendering when not already Running.",
+      "startRendering checks stopped/user-suspended initially, but the pinned async successful destination completion sets Running without rechecking Closed.",
+      "Explicit resume and implicit lazy auto-start have separate destination callbacks.",
+      "close sets Closed and uninitializes after destination.close completes.",
+      "BaseAudioContext.setState does not treat Closed as terminal.",
+      "First worklet registration invokes workletIsReady then destination.restartRendering; restart does not itself set context state.",
+      "Playwright bootstrap patch does not modify the three inspected Web Audio implementation files."
+    ],
+    "inference": "A pending implicit auto-start completion can overwrite Closed even after explicit resume promise completed. This is a plausible engine race, not an execution-proven attribution.",
+    "designComparison": {
+      "deferResume": "Can lose transient user activation and does not itself remove constructor implicit startup.",
+      "awaitModuleInClose": "May indefinitely delay close if asset/module operation never settles.",
+      "ownedStateChangeCleanup": "Preserves immediate resume and prompt first close; can re-close only owned contexts if engine later reports non-closed. Should avoid polling, shared contexts, and capturing the entire synth. Requires real late-state evidence and regression tests."
+    },
+    "files": [
+      {
+        "path": "/private/tmp/spc-audit-pw-AudioContext.cpp",
+        "bytes": 26686,
+        "sha256": "41bc423f23d52abea43e2aa7406e04c4261028705ae590b986b160192fd8d0c5"
+      },
+      {
+        "path": "/private/tmp/spc-audit-pw-BaseAudioContext.cpp",
+        "bytes": 36295,
+        "sha256": "20da19c781255e9052242040b0ff3f69d159fe4a02b50ef216bd836a17ac3772"
+      },
+      {
+        "path": "/private/tmp/spc-audit-pw-DefaultAudioDestinationNode.cpp",
+        "bytes": 10532,
+        "sha256": "b25564c74de6fc4d9b63fd3facaecc685ff13d92f0e732f9783e7838cc3d1140"
+      },
+      {
+        "path": "/private/tmp/spc-audit-pw-webkit-bootstrap.diff",
+        "bytes": 941663,
+        "sha256": "fea735011093a46032cc9b3da9e67ecab28821a6a8e20da071d3c962d4d5e1ff"
+      },
+      {
+        "path": "/private/tmp/spc-audit-webkit-UPSTREAM_CONFIG.sh",
+        "bytes": 126,
+        "sha256": "dc2ff9ad58889b89b927152c851cd43bddcfb4b34306469c70c12056590d26dc"
+      }
+    ]
+  },
+  "precedingCi": {
+    "runs": [
+      {
+        "id": 40286728456,
+        "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40286728456",
+        "head_sha": "f0b786294e62081a200f2e419b92f9a39cf1a15f",
+        "run_attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-26T07:35:34Z",
+        "updated_at": "2026-10-26T07:39:45Z"
+      },
+      {
+        "id": 40286698097,
+        "html_url": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40286698097",
+        "head_sha": "0e9379bf7e6ae2951ad0e3d8ea2db24cfca55415",
+        "run_attempt": 1,
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-26T07:35:17Z",
+        "updated_at": "2026-10-26T07:38:12Z"
+      }
+    ],
+    "includesSpcFix": false,
+    "mainChecks": {
+      "guardTests": 81,
+      "artifacts": 27,
+      "outputs": 53,
+      "exactComparisons": 39982
+    },
+    "sdkChecks": {
+      "nativeConfigurations": [
+        "Windows x86_64",
+        "Linux x86_64",
+        "Linux arm64",
+        "macOS x86_64",
+        "macOS arm64"
+      ],
+      "auditTestsPerNativeJob": 51,
+      "cTestsPerNativeJob": 24,
+      "wasmArtifact": "YM2612",
+      "sourceReleaseAndArchiveVerified": true
+    }
+  },
+  "invariants": {
+    "fixedSdkTrees": [
+      {
+        "path": "third_party/tetorica-soundchip-native",
+        "files": 379,
+        "unchanged": true
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/src-tauri/vendor/tetorica-soundchip-native",
+        "files": 379,
+        "unchanged": true
+      }
+    ],
+    "generatedFilesUnchanged": 54,
+    "webAndDocsEquivalentAfterExistingWebsiteUrlTransforms": true,
+    "savePointHistoricalTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7",
+    "tauriPreexistingCollectors": [
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/scripts/sync_native_genesis.py",
+        "sha256": "976064f20a9ef7cdb815e44a45fc5cc37726cea96bda07ff8965617a24cf8787",
+        "unchangedInThisTask": true
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/scripts/sync_native_game_gear.py",
+        "sha256": "f95d699746cc41b0141cc24e1c765d32ca5bb51a4bac830895c8909367334c00",
+        "unchangedInThisTask": true
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/scripts/sync_native_master_system.py",
+        "sha256": "4cdbdc81d00b90e7154e12d8f4082c2ca2f708d128fad1441efeb7476c30667c",
+        "unchangedInThisTask": true
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "path": "web/spc_audio.js",
+      "bytes": 15183,
+      "sha256": "e83ba0abf31059f14f91732cd76ea087e91fa37d89ac6fd057126056e376815e"
+    },
+    {
+      "path": "web/spc_audio.test.mjs",
+      "bytes": 22349,
+      "sha256": "37b95c947c28201291f15f2347023c716b28777784e1155f72898558dbdc3c2e"
+    },
+    {
+      "path": "docs/js/spc_audio.js",
+      "bytes": 15252,
+      "sha256": "cbd7382fb55a1eaec657fe4972402965794cb26a87614975f75e9912a06631d2"
+    },
+    {
+      "path": "scripts/check_spc_browser.cjs",
+      "bytes": 11684,
+      "sha256": "62245a8f1ed08a1bcb78130984d137b21028a412b6ae8976cf375b5bf54e0ca8"
+    }
+  ]
+}

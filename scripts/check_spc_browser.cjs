@@ -27,7 +27,8 @@ async function playbackCase(page, rate) {
     const {SpcRuntimeSynth} = await import('/js/spc_audio.js');
     const bytes = new Uint8Array(await (await fetch('/fixture.spc')).arrayBuffer());
     const context = new AudioContext({sampleRate: rate}), errors = [];
-    const player = new SpcRuntimeSynth({audioContext: context, outputNode: context.destination,
+    const output = context.createGain(); output.gain.value = 0; output.connect(context.destination);
+    const player = new SpcRuntimeSynth({audioContext: context, outputNode: output,
       workletUrl: '/js/spc-worklet.js', wasmUrl: '/generated/spc_wasm.wasm', onError: error => errors.push(error.message)});
     let analyser, sink, detach;
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -87,6 +88,7 @@ async function playbackCase(page, rate) {
         renderAheadFrames: snapshot.nativeFrames - snapshot.playbackNativeFrames, finalState: state, errors};
     } finally {
       detach?.(); analyser?.disconnect(); sink?.disconnect(); await player.close();
+      output.disconnect();
       insist(context.state !== 'closed', 'a supplied AudioContext belongs to the host');
       await context.close();
     }
@@ -99,18 +101,21 @@ async function closeDuringInitialization(page) {
     const player = new SpcRuntimeSynth({workletUrl: '/js/spc-worklet.js', wasmUrl: '/delayed-spc.wasm',
       fetch(url, options) {began(); return fetch(url, options);}});
     const starting = player.start().then(() => null, error => error); await fetching; const context = player.audioContext;
-    await player.close(); let cancelled = false;
+    const closing = player.close();
+    if (player.close() !== closing) throw new Error('Repeated close must reuse its promise');
+    await closing; const stateAfterClose = context.state; let cancelled = false;
     const error = await starting; if (error?.name === 'AbortError') cancelled = true; else if (error) throw error;
     await new Promise(resolve => setTimeout(resolve, 180));
-    if (!cancelled || player.node !== null || context.state !== 'closed') throw new Error('Closing initialization leaked the node or context');
-    return {cancelled, contextClosed: context.state === 'closed', noLateNode: player.node === null};
+    const result = {cancelled, stateAfterClose, finalContextState: context.state, contextClosed: context.state === 'closed', noLateNode: player.node === null};
+    if (!cancelled || player.node !== null || context.state !== 'closed') throw new Error('Closing initialization leaked the node or context: ' + JSON.stringify(result));
+    return result;
   });
 }
 (async () => {
   const {createSyntheticSpc} = await import(pathToFileURL(path.join(root, 'web/spc_test_fixture.mjs')));
   fixture = createSyntheticSpc();
   await new Promise((resolve, reject) => {server.once('error', reject); server.listen(0, '127.0.0.1', resolve);});
-  const results = [];
+  const results = [], lifecycle = [];
   try {
     const engines = process.argv.includes('--chromium') ? [[chromium, 'chromium']] : process.argv.includes('--webkit') ? [[webkit, 'webkit']] : [[chromium, 'chromium'], [webkit, 'webkit']];
     for (const [engine, browserName] of engines) {
@@ -124,14 +129,19 @@ async function closeDuringInitialization(page) {
           const result = await playbackCase(page, rate); results.push({browser: browserName, ...result});
           console.log(JSON.stringify({passed: true, browser: browserName, ...result}));
         }
-        const initialization = await closeDuringInitialization(page);
+        // WebKit's queued constructor start can complete after close resolves.
+        // Repeat after full playback: an isolated first context often misses it.
+        for (let attempt = 0; attempt < 20; attempt++) {
+          const initialization = await closeDuringInitialization(page);
+          lifecycle.push({browser: browserName, attempt, ...initialization});
+        }
         // The intentionally aborted WASM request is not an application error.
         const unexpectedConsoleErrors = consoleErrors.filter(message => !/aborted|cancelled|ERR_ABORTED/i.test(message));
         assert.deepEqual(errors, []); assert.deepEqual(unexpectedConsoleErrors, []);
-        console.log(JSON.stringify({passed: true, browser: browserName, initialization}));
+        console.log(JSON.stringify({passed: true, browser: browserName, initializationCases: lifecycle.filter(result => result.browser === browserName).length}));
       } finally {await browser.close();}
     }
-    await fs.writeFile(logPath, JSON.stringify({passed: true, results}, null, 2));
-    console.log(JSON.stringify({passed: true, cases: results.length, logPath}));
+    await fs.writeFile(logPath, JSON.stringify({passed: true, results, lifecycle}, null, 2));
+    console.log(JSON.stringify({passed: true, cases: results.length, initializationCases: lifecycle.length, logPath}));
   } finally {await new Promise(resolve => server.close(resolve));}
 })().catch(error => {console.error(error); server.close(); process.exitCode = 1;});
