@@ -66,6 +66,70 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "huc6280",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "65858bbf15e8b65de8b9728889a7514925960a64994d1222acf0f76694624712",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_huc6280_wasm.sh",
+          "sha256": "87a9ac5829a9eb139c50b5970bfb949ee71ab33908e5e76f4e9a21d2c516bd3d",
+          "size": 656
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-huc6280/huc6280.cpp",
+          "sha256": "5693c83943957e2ee0ee1bd5045503034363fed282764f99acb907293222f26f",
+          "size": 6895
+        },
+        {
+          "path": "vendor/mame-huc6280/huc6280.h",
+          "sha256": "6b1464fc6d56390e56f99bf072d7300126cc91cd317bacc78b43be4d552af2b6",
+          "size": 1056
+        },
+        {
+          "path": "vendor/mame-huc6280/upstream/c6280.cpp",
+          "sha256": "192eeee545d8f438000f68e3867a26df7cd7b26efd9985d14f4dd7b53d61c8fc",
+          "size": 9640
+        },
+        {
+          "path": "vendor/mame-huc6280/upstream/c6280.h",
+          "sha256": "167fd885f209efdbdbe9375f7a39fce6f2545006bc5b4e06673824865162dfe5",
+          "size": 1238
+        },
+        {
+          "path": "wasm/huc6280_wasm.cpp",
+          "sha256": "89d1de8929f13e520a33f6993ebc56d46684d67e8ab6a6314346895574ff7765",
+          "size": 467
+        }
+      ],
+      "outputs": [
+        {
+          "path": "huc6280_wasm.js",
+          "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f",
+          "size": 13612
+        },
+        {
+          "path": "huc6280_wasm.wasm",
+          "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073",
+          "size": 8935
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "okim6258",
       "format": "emscripten-es-module",
       "sourceFingerprint": "02878a241917a4d4365771ba4f3b63f4d4ab035c32aed46249321f86bad33eb6",

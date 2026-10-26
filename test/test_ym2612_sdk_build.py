@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
-             'segapsg', 'rf5c164', 'pwm32x')
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -113,6 +113,10 @@ PWM32X_EXPORTS = [
     '_pwm32x_fifo_count', '_pwm32x_fifo_get', '_pwm32x_fifo_set',
     '_pwm32x_state_size', '_pwm32x_save_state', '_pwm32x_load_state',
     '_malloc', '_free',
+]
+HUC6280_EXPORTS = [
+    '_huc6280_create', '_huc6280_destroy', '_huc6280_reset', '_huc6280_mute',
+    '_huc6280_write', '_huc6280_generate', '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -567,6 +571,23 @@ class Pwm32xSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164'])
+
+
+class Huc6280SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'huc6280'
+    exports = HUC6280_EXPORTS
+    assertions = False
+    vendor_sources = ['vendor/mame-huc6280/huc6280.cpp']
+    core_header = 'vendor/mame-huc6280/huc6280.h'
+    include_directories = ['vendor/mame-huc6280']
+    support_sources = []
+    extra_manifest_headers = ()
+
+    def test_shared_output_preserves_all_fifteen_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x'])
 
 
 if __name__ == '__main__':

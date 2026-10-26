@@ -234,7 +234,7 @@ npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 ## Building WASM from the fixed SDK
 
 YM2612, YM2203, YM2608, YM2610/B, YM2151/YM2164, OKIM6258, YM2413,
-YM3526, YM3812, YMF262, Y8950, AY-3-8910/YM2149, Sega PSG, RF5C164 and 32X PWM builds verify
+YM3526, YM3812, YMF262, Y8950, AY-3-8910/YM2149, Sega PSG, RF5C164, 32X PWM and HuC6280 builds verify
 and use the complete, pinned `tetorica-soundchip-native` source release
 included in `third_party/`.
 With Emscripten and Python 3 installed, run a chip recipe such as

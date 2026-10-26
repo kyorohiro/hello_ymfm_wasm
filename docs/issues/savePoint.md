@@ -58,6 +58,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続く32X PWM WASMも同じ固定SDKへ切り替えた。FIFO／timer・DAC／duty・状態復元とborrowed PCMを比較した。
 配布用PWM sourceも固定SDKのstandalone recipeへ揃え、source単体で再buildした生成物の一致を確認した。
 詳細は[32X PWM WASMのSDK移行](wasm_sdk_pwm32x_adoption_01.md)を参照。
+続くHuC6280 WASMも同じ固定SDKへ切り替えた。PC Engineと追加音源のビルド元を統一した。
+既存の6CH・wave RAM・DDA・noise・LFOとowned PCMを維持し、snapshot APIは追加していない。
+詳細は[HuC6280 WASMのSDK移行](wasm_sdk_huc6280_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1214,8 +1217,27 @@ WAV比較の手組み参照に校正Mixerが抜けていた既存試験だけを
 source単体の実buildとJS／WASM一致、改変拒否、最終npm／Analyzer ZIPの収録も確認済み。
 詳細と最終結果・hashは[PWM移行記録](wasm_sdk_pwm32x_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計15 artifact。次はPC EngineのHuC6280用WASMへの展開が候補。
-残り12 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節は32X PWM移行時の記録。続くHuC6280移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — HuC6280 WASMの固定SDK参照
+
+`scripts/build_huc6280_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルとpin、公開API／Mixer値を保持し、先行15音源の記録・30生成物も維持した。
+C++14／O2・EXPORT_ALL・8 C exportとcwrap／F32を維持する。
+配布済み・旧手順再ビルド・SDK・通常出力のJS／WASMはすべてbyte一致した。
+
+旧再ビルド／配布済み版との各828比較・1,650,420主比較フレームで差0。
+6CH・wave RAM・DDA・noise・LFO、host mute／低clock時の保持sampleとowned出力を確認した。
+snapshotはなく、reset／再演奏252回と実VgmPlayerのB9／DDA stream・先頭からのseekを比較した。
+両Browserで主／追加Workletの計4経路と6CH voice UI・波形編集・Guitar／PC Keyboard・Stopが成功した。
+Python79件・既存HuC6280関連試験63件とnpm／Analyzer ZIPの検証が成功した。
+詳細と最終結果・hashは[HuC6280移行記録](wasm_sdk_huc6280_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計16 artifact。次はGame Boy APU用WASMへの展開が候補。
+`scripts/build_gameboy_apu_wasm.sh`を対象に、2 pulse／wave／noise・frame sequencer・register／wave RAM・reset／PCMと既存state APIの有無を確認してから移行する。
+残り11 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
