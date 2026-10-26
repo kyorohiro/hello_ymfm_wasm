@@ -81,6 +81,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くYM3438 WASMも固定SDKへ切り替えた。旧再ビルド／配布済み版との各450比較でPCM・read／status／IRQ差0。
 今回は生成WASMのhashが異なるため、SDKソースの配置だけを旧構成へ戻す再ビルドで差を切り分けた。
 詳細は[YM3438 WASMのSDK移行](wasm_sdk_ym3438_adoption_01.md)を参照。
+続くYMF276 WASMも固定SDKへ切り替えた。旧再ビルド／配布済み版との各462比較でPCM・read／status／IRQ差0。
+固有の14-bit FM／DAC shiftと既存direct Synthを維持し、DACの正の対照2,048通りも確認した。
+詳細は[YMF276 WASMのSDK移行](wasm_sdk_ymf276_adoption_01.md)を参照。
 既存の音量調整では、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1377,11 +1380,31 @@ FM npm・install済みdirect SynthとAnalyzer ZIPを検証し、21項目の資�
 校正66 source hash・3 generator checksが成功し、未測定YM3438のunity fallbackを保持した。
 詳細は[YM3438移行](wasm_sdk_ym3438_adoption_01.md)と[検証JSON](wasm_sdk_ym3438_adoption_01.json)。証拠は`/private/tmp/tetorica-ym3438-wasm-sdk/`。
 
-固定SDKへ切り替えたWASMは計22／27 artifact。次の移行候補はYMF276。
-残り5は`nuked_opn2`／`ymf276`／`ymf278b`／`ymf288`／`dx7`。
+この節はYM3438移行時の記録。続くYMF276移行は次の節に記載する。
+
+### 完了した作業 — YMF276 WASMの固定SDK参照
+
+`scripts/build_ymf276_wasm.sh`もSDK `0.1.1`の`ymf276`ターゲットを使う。
+着手時の本体は`64946c842d0365873f578dd088088b73691dd50a`でclean。編集前に57入力を記録し、固定379ファイルとpin、先行22生成記録・他50生成ファイルを保持した。
+C++14／O2・OPN_VARIANT=ymf276、11 C export・runtime 2項目・incoming 2項目を維持した。SSG flag／明示ASSERTIONS／EXPORT_ALL／Perl cleanupは追加していない。
+本体の共有build_opn_variant_wasm.sh、YM3438のSDK shim、YMF288レシピは変更していない。
+生成JSは一致する。SDKと旧再ビルドのWASM差はSDKの11入力とrecipeの4パスだけを旧配置へ戻す一時buildで切り分け、旧再ビルドbytesを再現した。
+配布済み版と旧再ビルドのcode section差は原因未確定として残し、両方を別々の基準で比較した。
+旧再ビルド／配布済みの各462比較・6,668,340生成ステレオフレームでPCM／read／status／IRQ・続行probe差0。
+各120 warm reset／再設定を含む1,044実行。resetは一部counterとDAC設定を保持するため、新規インスタンス一致は仮定しない。
+固有の14-bit FM経路・DAC右shiftを維持し、DAC data／ninth-bit／panの2,048通りを正の期待値と照合した。YM3438 coreへの誤接続も負の対照で拒否した。
+chipに保存状態／native mute／borrowed APIはなく、sampleRate(clock)は計算のみ。実direct SynthのJS model・callbackも確認した。
+Python107件・既存Node58件、Checker CLIの67実行が成功した。67 closure／78 freeze記録は両比較の前後で再照合した。
+BrowserはChromium／WebKitでpublic wrapper／direct SynthとSoundChipMixer・meter、AudioBufferSourceによる出力を検証した。最初の接続前から最終zero Gainを使った。
+YMF276のRuntimeSynth／合成Worklet／Analyzer再生／Playground modeは追加していない。
+FM npm・install済みdirect SynthとAnalyzer ZIPを検証し、21項目の資産・noticeを照合した。Analyzer ZIPは従来どおりwrapperのみで、YMF276生成pair／named Synthを含まない。
+校正66 source hash・3 generator checksが成功し、未測定YMF276のunity fallbackを保持した。
+詳細は[YMF276移行](wasm_sdk_ymf276_adoption_01.md)と[検証JSON](wasm_sdk_ymf276_adoption_01.json)。証拠は`/private/tmp/tetorica-ymf276-wasm-sdk/`。
+
+固定SDKへ切り替えたWASMは計23／27 artifact。次の移行候補はYMF288。
+残り4は`nuked_opn2`／`ymf278b`／`ymf288`／`dx7`。
 SPCのWebKit初期化中closeは引き続き未解決。SDK原本とTauri、Mixer数値は変更していない。
 commit／push・公開・remote CIは実施していない。
-npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
 

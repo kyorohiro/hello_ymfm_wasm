@@ -15,7 +15,7 @@ SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
-             'spc', 'segapcm', 'k051649', 'ym3438')
+             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -25,7 +25,7 @@ YM2612_EXPORTS = [
     '_ym2612_generate_with_internal_envelope', '_ym2612_save_state',
     '_ym2612_load_state', '_malloc', '_free',
 ]
-YM3438_EXPORTS = [
+OPN_VARIANT_EXPORTS = [
     '_opn_create', '_opn_destroy', '_opn_reset', '_opn_write', '_opn_read',
     '_opn_read_status', '_opn_get_irq', '_opn_sample_rate', '_opn_generate',
     '_malloc', '_free',
@@ -801,13 +801,11 @@ class K051649SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
              'spc', 'segapcm'])
 
 
-class Ym3438SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
-    artifact = 'ym3438'
-    exports = YM3438_EXPORTS
+class OpnVariantSdkBuildRouteMixin(SdkBuildRouteMixin):
+    exports = OPN_VARIANT_EXPORTS
     incoming_module_api = ['wasmBinary', 'locateFile']
     export_all = False
     assertions = False
-    compile_definitions = ['-DOPN_VARIANT=ym3438']
     wrapper_source = 'wasm/opn_variant_wasm.cpp'
     quoted_header_directories = ('wasm',)
     vendor_sources = ['vendor/ymfm/ymfm_opn.cpp', 'vendor/ymfm/ymfm_adpcm.cpp',
@@ -821,12 +819,29 @@ class Ym3438SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
                                  'LICENSE', 'LICENSES.md', 'vendor/ymfm/LICENSE')
     verify_quoted_header_dependencies = True
 
+
+class Ym3438SdkBuildTests(OpnVariantSdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ym3438'
+    compile_definitions = ['-DOPN_VARIANT=ym3438']
+
     def test_shared_output_preserves_all_twenty_one_existing_build_records(self):
         self.assert_shared_output_preserves(
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc', 'segapcm', 'k051649'])
+
+
+class Ymf276SdkBuildTests(OpnVariantSdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ymf276'
+    compile_definitions = ['-DOPN_VARIANT=ymf276']
+
+    def test_shared_output_preserves_all_twenty_two_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
+             'spc', 'segapcm', 'k051649', 'ym3438'])
 
 
 if __name__ == '__main__':

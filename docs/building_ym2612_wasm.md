@@ -31,6 +31,7 @@ download or synchronized edit of another repository is required.
 | Sega PCM (315-5218) | `scripts/build_segapcm_wasm.sh` | `segapcm_wasm` |
 | K051649 (SCC) | `scripts/build_k051649_wasm.sh` | `k051649_wasm` |
 | YM3438 | `scripts/build_ym3438_wasm.sh` | `ym3438_wasm` |
+| YMF276 | `scripts/build_ymf276_wasm.sh` | `ymf276_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -58,6 +59,7 @@ sh scripts/build_spc_wasm.sh
 sh scripts/build_segapcm_wasm.sh
 sh scripts/build_k051649_wasm.sh
 sh scripts/build_ym3438_wasm.sh
+sh scripts/build_ymf276_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -68,7 +70,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `SegaPcm`, `K051649` and `Ym3438` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `SegaPcm`, `K051649`, `Ym3438` and `Ymf276` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -103,12 +105,13 @@ sh /path/to/checkout/scripts/build_spc_wasm.sh ./spc-output
 sh /path/to/checkout/scripts/build_segapcm_wasm.sh ./segapcm-output
 sh /path/to/checkout/scripts/build_k051649_wasm.sh ./scc-output
 sh /path/to/checkout/scripts/build_ym3438_wasm.sh ./ym3438-output
+sh /path/to/checkout/scripts/build_ymf276_wasm.sh ./ymf276-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
 O2, the existing exports and memory growth settings. AY, Game Boy, NES, Sega PCM and K051649 use C++17
 without `EXPORT_ALL`, retaining ten, eleven, eighteen, thirteen and nine exports respectively; the other recipes above use C++14.
-YM2612, YM2203, YM2608, YM2610B, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, YM3438, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+YM2612, YM2203, YM2608, YM2610B, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, YM3438, YMF276, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -185,15 +188,19 @@ Its recipe exposes `cwrap` / `HEAPF32`, with no Perl cleanup or state/read API.
 Reset/reprogram and post-scenario continuation are compared instead of snapshot
 restoration. Analyzer MSX compositions use the existing engine and replay seek;
 this build migration does not add an SCC Playground mode.
-YM3438 uses the SDK's shared OPN-variant recipe with `OPN_VARIANT=ym3438`
-and no SSG flag. C++14/O2, 11 C exports, `cwrap` / `HEAPF32`, incoming
-`wasmBinary` / `locateFile` and no Perl cleanup are retained. Its `OpnVariant`
+YM3438 and YMF276 use the SDK's shared OPN-variant recipe with
+`OPN_VARIANT=ym3438` and `OPN_VARIANT=ymf276` respectively, without an SSG flag.
+C++14/O2, 11 C exports, `cwrap` / `HEAPF32`, incoming
+`wasmBinary` / `locateFile` and no Perl cleanup are retained. Their `OpnVariant`
 binding has bus `read()` / status / IRQ and owned PCM, with no native state,
 mute or borrowed-output API. `sampleRate(clock)` calculates a rate and does not
 change synthesis state. Warm reset retains some counters and DAC settings;
 comparisons use matched reset histories rather than assuming a new instance.
-The public `YM3438Synth` uses direct transport, without a RuntimeSynth or synthesis
-Worklet. The main application's shared variant recipe for YMF276/YMF288 remains unchanged.
+The public `YM3438Synth` and `YMF276Synth` use direct transport, without a
+RuntimeSynth or synthesis Worklet. YMF276 retains its distinct 14-bit FM path
+and DAC right shift; sharing the wrapper does not make its output identical to
+YM3438. The application's shared variant recipe and remaining YMF288 route
+remain unchanged.
 
 ## Fixed source and updates
 
@@ -201,10 +208,10 @@ Worklet. The main application's shared variant recipe for YMF276/YMF288 remains 
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these twenty wrappers, ymfm inputs and the MAME-derived
+and `vendor/` notices; these twenty-one wrappers, ymfm inputs and the MAME-derived
 OKIM6258, AY, RF5C164, PWM, HuC6280, Game Boy, Sega PCM and K051649 adaptations retain BSD-3-Clause.
 NES/FDS retains its Apache-2.0 JSNES and MIT FDS licenses, authors and provenance;
-these terms are separate from the twenty BSD-3-Clause module recipes.
+these terms are separate from the twenty-one BSD-3-Clause module recipes.
 SNES SPC700/S-DSP retains snes_spc's LGPL-2.1-or-later terms and complete
 corresponding modified source; its license is not applied to other chip cores.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
@@ -318,6 +325,10 @@ node scripts/check_ym3438_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-ym3438-build \
   --sdk-dir /path/to/sdk-ym3438-build \
   --out /tmp/ym3438-comparison.json
+node scripts/check_ymf276_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-ymf276-build \
+  --sdk-dir /path/to/sdk-ymf276-build \
+  --out /tmp/ymf276-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -415,10 +426,14 @@ The YM3438 checker compares all six FM channels, algorithms/operators, LFO,
 channel-3 special mode, timers/CSM, CMOS DAC, bus/status/IRQ, continuation probes
 and matched warm resets. It exercises the supported direct Synth transport and
 buffer ownership without inventing a state facade, Player or UI playback route.
+The YMF276 checker covers the same bus and direct-Synth contract, plus its
+distinct FM/DAC scaling and latch behavior. Positive DAC controls check all
+256 data codes, both ninth-bit values and all four stereo routes. Rate queries
+remain calculations, and reset comparisons use matched warm histories.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The twenty-two module recipes above have switched to this build source. Other chip recipes and
+The twenty-three module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.
