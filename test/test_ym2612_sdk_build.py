@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
-             'segapsg')
+             'segapsg', 'rf5c164')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -97,6 +97,13 @@ SEGAPSG_EXPORTS = [
     '_segapsg_set_mute_mask', '_segapsg_set_stereo', '_segapsg_sample_rate',
     '_segapsg_generate', '_segapsg_save_state', '_segapsg_load_state',
     '_malloc', '_free',
+]
+RF5C164_EXPORTS = [
+    '_rf5c164_create', '_rf5c164_destroy', '_rf5c164_reset', '_rf5c164_write',
+    '_rf5c164_sample_rate', '_rf5c164_generate', '_rf5c164_clear_memory',
+    '_rf5c164_write_memory', '_rf5c164_read_memory', '_rf5c164_read',
+    '_rf5c164_load', '_rf5c164_bank', '_rf5c164_save_state',
+    '_rf5c164_load_state', '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -506,6 +513,25 @@ class SegaPsgSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         self.assert_shared_output_preserves(
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910'])
+
+
+class Rf5c164SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'rf5c164'
+    exports = RF5C164_EXPORTS
+    runtime_methods = ['cwrap', 'HEAPF32', 'HEAPU8']
+    vendor_sources = ['vendor/mame-rf5c164/rf5c164.cpp']
+    core_header = 'vendor/mame-rf5c164/rf5c164.h'
+    include_directories = ['vendor/ymfm', 'vendor/mame-rf5c164']
+    # This pinned historical catalog omits the real chip_state.h dependency;
+    # full-manifest checks and the explicit corruption case still protect it.
+    support_sources = []
+    extra_tamper_dependencies = ('vendor/ymfm/chip_state.h',)
+
+    def test_shared_output_preserves_all_thirteen_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg'])
 
 
 if __name__ == '__main__':

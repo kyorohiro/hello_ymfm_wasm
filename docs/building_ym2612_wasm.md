@@ -22,6 +22,7 @@ download or synchronized edit of another repository is required.
 | Y8950 | `scripts/build_y8950_wasm.sh` | `y8950_wasm` |
 | AY-3-8910 / YM2149 | `scripts/build_ay8910_wasm.sh` | `ay8910_wasm` |
 | Sega PSG | `scripts/build_segapsg_wasm.sh` | `segapsg_wasm` |
+| RF5C164 | `scripts/build_rf5c164_wasm.sh` | `rf5c164_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -40,6 +41,7 @@ sh scripts/build_ymf262_wasm.sh
 sh scripts/build_y8950_wasm.sh
 sh scripts/build_ay8910_wasm.sh
 sh scripts/build_segapsg_wasm.sh
+sh scripts/build_rf5c164_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -50,7 +52,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910` and `SegaPSG` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG` and `Rf5c164` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -76,12 +78,13 @@ sh /path/to/checkout/scripts/build_ymf262_wasm.sh ./ymf262-output
 sh /path/to/checkout/scripts/build_y8950_wasm.sh ./y8950-output
 sh /path/to/checkout/scripts/build_ay8910_wasm.sh ./ay8910-output
 sh /path/to/checkout/scripts/build_segapsg_wasm.sh ./segapsg-output
+sh /path/to/checkout/scripts/build_rf5c164_wasm.sh ./rf5c164-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
 O2, the existing exports and memory growth settings. AY uses C++17 and its
 original ten exports without `EXPORT_ALL`; the other recipes above use C++14.
-OPN, YM2413 and Sega PSG recipes retain their explicit `ASSERTIONS=1`; AY, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+OPN, YM2413, Sega PSG and RF5C164 recipes retain their explicit `ASSERTIONS=1`; AY, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -94,6 +97,11 @@ Sega PSG retains its byte-write, Game Gear stereo, opaque same-instance state,
 owned PCM and borrowed PCM-view APIs. The same module serves Genesis-family
 PSG instances, Game Gear, Master System and standalone/additional sources.
 Its tick accumulator produces PCM at the configured output rate.
+RF5C164 retains its eight voices, absolute and banked sample-RAM APIs, bus
+address reads, owned stereo output and opaque same-instance state. Its core
+holds the latest clock/384 sample at the configured output rate. Reset clears
+voice/control/phase state and retains the 64 KiB RAM; state restoration includes
+RAM and the held stereo sample. `HEAPU8` remains available for sample uploads.
 
 ## Fixed source and updates
 
@@ -101,8 +109,8 @@ Its tick accumulator produces PCM at the configured output rate.
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these thirteen wrappers, ymfm inputs and the MAME-derived
-OKIM6258 and AY adaptations retain BSD-3-Clause.
+and `vendor/` notices; these fourteen wrappers, ymfm inputs and the MAME-derived
+OKIM6258, AY and RF5C164 adaptations retain BSD-3-Clause.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
 their location under `vendor/ymfm/` does not make them ymfm-originated code.
 
@@ -178,6 +186,10 @@ node scripts/check_segapsg_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-segapsg-build \
   --sdk-dir /path/to/sdk-segapsg-build \
   --out /tmp/segapsg-comparison.json
+node scripts/check_rf5c164_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-rf5c164-build \
+  --sdk-dir /path/to/sdk-rf5c164-build \
+  --out /tmp/rf5c164-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -227,10 +239,15 @@ owned output and borrowed-view buffer reuse. Reset restores stereo routing to
 Existing VGM playback handles `0x50` PSG writes but skips `0x4f` stereo commands;
 the migration preserves that behavior and tests Game Gear routing through the
 direct chip/Worklet API.
+The RF5C164 checker covers all eight voices, sign-magnitude samples, loop
+markers, step/envelope/pan/control writes, sample RAM bounds and bank-OR window
+access. It compares actual bus address reads and native state including RAM,
+same-instance opaque continuation, reset and existing VGM memory commands and
+seek. The public API has owned PCM only; no borrowed/Into or IRQ API is added.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The thirteen module recipes above have switched to this build source. Other chip recipes and
+The fourteen module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.

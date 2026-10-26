@@ -1,0 +1,3583 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-26",
+  "scope": "RF5C164 WASM uses the immutable bundled SDK for Mega CD, additional chips and Analyzer/CLI/npm. Existing eight voices, sign-magnitude samples,64KiB absolute/bank-OR RAM, bus address reads, opaque same-instance state and owned PCM retained. No runtime API or numeric Mixer changes.",
+  "startingPoint": {
+    "sourceCommitBeforeChange": "70998f67e4820020ad78175cb3a97997ed4cfee6",
+    "startingStatus": "",
+    "legacyRecipeSha256": "de177379d3ae8be6b015f0465e435c8436f98867003ffd7e2f86ec940d38a63d",
+    "sdkPin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.1",
+      "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+      "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+      "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+      "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+      "fileCount": 379
+    }
+  },
+  "sourceAudit": {
+    "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/source-audit.json",
+    "bytes": 13306,
+    "sha256": "9c03b590a92d72007253693d6ddd8c1944fe92e821143cac1616d4aeed81d177",
+    "record": {
+      "readOnly": true,
+      "chip": "rf5c164",
+      "baseHead": "70998f67e4820020ad78175cb3a97997ed4cfee6",
+      "pin": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.1",
+        "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+        "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+        "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+        "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+        "fileCount": 379
+      },
+      "manifestMatchesPin": true,
+      "legacyRecipeSource": "git show 70998f67e4820020ad78175cb3a97997ed4cfee6:scripts/build_rf5c164_wasm.sh",
+      "allSourceLicenseComparisonsEqual": true,
+      "sourceLicenseComparisonCount": 8,
+      "sourceComparisons": [
+        {
+          "local": "src/chip_state.h",
+          "sdk": "vendor/ymfm/chip_state.h",
+          "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+          "bytes": 521,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-rf5c164/rf5c164.cpp",
+          "sdk": "vendor/mame-rf5c164/rf5c164.cpp",
+          "sha256": "9e8867bbbc74c60cf92f1300da9c01d59c0e820f69fd2a4461dfd08e3f6b8aea",
+          "bytes": 3136,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-rf5c164/rf5c164.h",
+          "sdk": "vendor/mame-rf5c164/rf5c164.h",
+          "sha256": "438829c9b8706a78c3ac71551f44a02a3bad0431bc1ec17df1e2b1ee7d91483d",
+          "bytes": 1754,
+          "bytesEqual": true
+        },
+        {
+          "local": "wasm/rf5c164_wasm.cpp",
+          "sdk": "wasm/rf5c164_wasm.cpp",
+          "sha256": "09351371671187946edc2b7cfb9bcb6093136ba59f220add9f54b79c1e69a055",
+          "bytes": 1531,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-rf5c164/LICENSE",
+          "sdk": "vendor/mame-rf5c164/LICENSE",
+          "sha256": "0a2b34be38b92350c6503001de126a201bcd297203b839ac1dfc6ebd005dd853",
+          "bytes": 1529,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-rf5c164/README.md",
+          "sdk": "vendor/mame-rf5c164/README.md",
+          "sha256": "3be506399ecf8d36c6724c82673436c7e122d82c84c1263114f1628ac1282af6",
+          "bytes": 797,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-rf5c164/upstream/rf5c68.cpp",
+          "sdk": "vendor/mame-rf5c164/upstream/rf5c68.cpp",
+          "sha256": "71e94d93dd9fdbbcf2c396c62ab2aa50d948bfcc2be688391f2f58268522aea9",
+          "bytes": 8152,
+          "bytesEqual": true
+        },
+        {
+          "local": "LICENSE",
+          "sdk": "vendor/ymfm/LICENSE",
+          "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+          "bytes": 1519,
+          "bytesEqual": true
+        }
+      ],
+      "recipes": {
+        "legacy": {
+          "sha256": "de177379d3ae8be6b015f0465e435c8436f98867003ffd7e2f86ec940d38a63d",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sASSERTIONS=1",
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API=[\"wasmBinary\"]",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS=[\"_rf5c164_create\",\"_rf5c164_destroy\",\"_rf5c164_reset\",\"_rf5c164_write\",\"_rf5c164_sample_rate\",\"_rf5c164_generate\",\"_rf5c164_clear_memory\",\"_rf5c164_write_memory\",\"_rf5c164_read_memory\",\"_rf5c164_read\",\"_rf5c164_load\",\"_rf5c164_bank\",\"_rf5c164_save_state\",\"_rf5c164_load_state\",\"_malloc\",\"_free\"]",
+            "-sEXPORTED_RUNTIME_METHODS=[\"cwrap\",\"HEAPF32\",\"HEAPU8\"]"
+          ],
+          "exports": [
+            "_rf5c164_create",
+            "_rf5c164_destroy",
+            "_rf5c164_reset",
+            "_rf5c164_write",
+            "_rf5c164_sample_rate",
+            "_rf5c164_generate",
+            "_rf5c164_clear_memory",
+            "_rf5c164_write_memory",
+            "_rf5c164_read_memory",
+            "_rf5c164_read",
+            "_rf5c164_load",
+            "_rf5c164_bank",
+            "_rf5c164_save_state",
+            "_rf5c164_load_state",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32",
+            "HEAPU8"
+          ],
+          "assertionsFlag": true,
+          "exportAll": true,
+          "perlCleanup": false
+        },
+        "sdk": {
+          "sha256": "58ca1a118995ea01b57ac665021d6c7f7ff8ee700ba0539e8e7cc3ebab85457e",
+          "standard": [
+            "-std=c++14"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sASSERTIONS=1",
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API=[\"wasmBinary\"]",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORT_ALL=1",
+            "-sEXPORTED_FUNCTIONS=[\"_rf5c164_create\",\"_rf5c164_destroy\",\"_rf5c164_reset\",\"_rf5c164_write\",\"_rf5c164_sample_rate\",\"_rf5c164_generate\",\"_rf5c164_clear_memory\",\"_rf5c164_write_memory\",\"_rf5c164_read_memory\",\"_rf5c164_read\",\"_rf5c164_load\",\"_rf5c164_bank\",\"_rf5c164_save_state\",\"_rf5c164_load_state\",\"_malloc\",\"_free\"]",
+            "-sEXPORTED_RUNTIME_METHODS=[\"cwrap\",\"HEAPF32\",\"HEAPU8\"]"
+          ],
+          "exports": [
+            "_rf5c164_create",
+            "_rf5c164_destroy",
+            "_rf5c164_reset",
+            "_rf5c164_write",
+            "_rf5c164_sample_rate",
+            "_rf5c164_generate",
+            "_rf5c164_clear_memory",
+            "_rf5c164_write_memory",
+            "_rf5c164_read_memory",
+            "_rf5c164_read",
+            "_rf5c164_load",
+            "_rf5c164_bank",
+            "_rf5c164_save_state",
+            "_rf5c164_load_state",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32",
+            "HEAPU8"
+          ],
+          "assertionsFlag": true,
+          "exportAll": true,
+          "perlCleanup": false
+        }
+      },
+      "flagsAndExportsExactlyEqual": true,
+      "preprocessorMethod": "clang++ -MM -std=c++14 only; no objects generated",
+      "translationUnitCount": 2,
+      "physicalDependencyCount": 4,
+      "normalizedDependencySetsExactlyEqual": true,
+      "dependencies": {
+        "legacy": [
+          "src/chip_state.h",
+          "third_party/mame-rf5c164/rf5c164.cpp",
+          "third_party/mame-rf5c164/rf5c164.h",
+          "wasm/rf5c164_wasm.cpp"
+        ],
+        "sdk": [
+          "vendor/mame-rf5c164/rf5c164.cpp",
+          "vendor/mame-rf5c164/rf5c164.h",
+          "vendor/ymfm/chip_state.h",
+          "wasm/rf5c164_wasm.cpp"
+        ]
+      },
+      "catalogDependencyCoverage": {
+        "actualPhysicalDependencies": 4,
+        "missingActualDependencies": [
+          "vendor/ymfm/chip_state.h"
+        ],
+        "allCompiledInputsDeclared": false,
+        "note": "RF per-chip sourceFiles omits shared chip_state.h; whole379-file manifest and importer cover the exact header. Immutable SDK is not edited.",
+        "sharedHeaderSha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+      },
+      "activeCalibrationGuards": [
+        {
+          "report": "docs/issues/analyzer_nes_levels_01.json",
+          "sourceCount": 11,
+          "rf5c164AssetsTracked": [],
+          "changedTrackedAssets": []
+        },
+        {
+          "report": "docs/issues/analyzer_extra_levels_02.json",
+          "sourceCount": 23,
+          "rf5c164AssetsTracked": [],
+          "changedTrackedAssets": []
+        },
+        {
+          "report": "docs/issues/analyzer_psg_levels_04.json",
+          "sourceCount": 32,
+          "rf5c164AssetsTracked": [],
+          "changedTrackedAssets": []
+        },
+        {
+          "report": "docs/issues/soundchip_psg_levels_01.json",
+          "sourceCount": 12,
+          "rf5c164AssetsTracked": [],
+          "changedTrackedAssets": []
+        }
+      ],
+      "calibrationGuardChecks": [
+        {
+          "command": "node scripts/generate_analyzer_mixer_defaults.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: 8 Analyzer-specific reference levels"
+        },
+        {
+          "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/web/soundchip_mixer_presets.js"
+        },
+        {
+          "command": "node scripts/generate_playground_mixer_defaults.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/docs/playground/playground_mixer_defaults.js; target amplitude 0.12881777435541153"
+        }
+      ],
+      "calibrationFinalDecision": {
+        "defaultBuildStable": true,
+        "fingerprints": {
+          "js": {
+            "bytes": 35162,
+            "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+            "deployedLegacySdkDefaultByteEqual": true
+          },
+          "wasm": {
+            "bytes": 27583,
+            "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+            "deployedLegacySdkDefaultByteEqual": true
+          }
+        },
+        "actualTrackedSourcesChanged": false,
+        "remeasureRequired": false,
+        "reason": "Root stable default fingerprints confirm all four generated pairs byte-identical; tracked hashes and numeric calibration/default values unchanged.",
+        "activeReportsAndGeneratorsPreserved": true,
+        "activeRfHashGuards": [],
+        "baselineNote": "RF numeric references live in the shared Playground baseline; active per-renderer hash-guard reports contain no RF-specific sources. Historical analyzer_mixer_levels_validation.json records the same current RF WASM hash, but is not an active generator input."
+      },
+      "wholeBundleIntegrityCheck": {
+        "command": "python3 scripts/import_soundchip_sdk.py --check",
+        "passed": true,
+        "output": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)"
+      },
+      "license": "MAME RF5C164 adaptation and retained upstream file: BSD-3-Clause, Olivier Galibert/Aaron Giles. Source, README provenance and LICENSE byte-identical. Tetorica wrapper/state integration uses repository BSD-3-Clause as declared in SDK catalog; license files retained. No GPL source introduced.",
+      "recipeDifferences": [
+        "SDK cdROOT",
+        "EMXX override defaults em++",
+        "src -> vendor/ymfm; third_party/mame-rf5c164 -> vendor/mame-rf5c164",
+        "Main shim preserves absolute app output; SDK defaults dist/wasm"
+      ],
+      "chipSemantics": {
+        "outputRate": "sample_rate returns configured host rate. Internal tick clock/384 using64-bit phase, sample-and-hold. Reset phase=rate*384 makes first output evaluate sample0. Writes do not force prior output or discard held left/right.",
+        "memory": "64KiB RAM initialized zero. reset preserves RAM; clearMemory zeroes RAM without resetting voices/phase/held outputs. Absolute load bounds checks whole range; public empty load returns without access. Raw CPU writeMemory uint16(bank OR offset); public window offset bounded0..FFF. readMemory is absolute uint16 address. loadBankedMemory absolute data block uses current bank OR offset, then normal range checks.",
+        "registers": "Eight channels, channel bank selected by controlbit6. Same controlbit7 globally enables ticks, RAMbank selection ifbit6clear. Channel-enable register8 active-low; disabled voices rewind addr to start<<19. Start register changes addr only when voice disabled.",
+        "formatPanLoop": "Sign-magnitude encodedPCM:bit7 positive, low7 magnitude, FF loop marker. Loop marker reloads loopStart<<11, secondFF leaves address there without advance. Step16-bit fixed11fraction, RAMread wraps16-bit. Pan low4left/high4right, multiplied envelope and integer >>5 pervoice; summed and clamped16-bit before /32768.",
+        "readBus": "Native read offsets repeat0..15 mapping8channels address byte via addr>>11/19; not saved register echo or IRQ status. Registers outside0..8 ignored.",
+        "state": "Save/load serialized state has rate/clock/channelbank/globalenable/RAMbank/phase/held outputs, all8channel fields and65536RAM bytes. Native exactsize check, no portablefile/version promise. Public state opaque frozen WeakMap same-instance token; foreign/fake reject. Output buffers not state.",
+        "pcmApi": "Owned generateStereo copies survive latergeneration/growth/disposal; no borrowedView/Into/reserve APIs on wrapper. No general post-dispose control guards added. Public read/write/memory methods preserve current bounded and unbounded behavior.",
+        "resetHold": "Globalenableoff silences on nextnative tick, not immediate outputframe if holdphase pending. Channeloff rewinds address immediately but heldPCM remains until nexttick. Stop/UI may add dedicated outputgate; do not infer raw immediate silence."
+      },
+      "consumers": [
+        "MegaCDprimaryPCM in normal/NukedGenesis-backed Worklets via separate RFmodule",
+        "Playground useSoundChip/createSoundChip extraRF endpoint and npmoutputWorklet",
+        "ActualGenesisAudioEngine optionalMegaCDPCM and VgmPlayer RAM blocks/read/loop samples",
+        "MegaCD shared sampler/Keyboard instrument path and Inspector"
+      ],
+      "stateSupport": {
+        "nativeSaveLoadExports": true,
+        "publicOpaqueSameInstanceSaveLoad": true,
+        "ramAndHeldOutputsIncluded": true,
+        "rawStateBytes": 65660
+      },
+      "externalRepositories": {
+        "tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "worktreeClean": true
+        },
+        "tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "worktreeClean": true
+        }
+      },
+      "scope": "Read-only source/dependency/license/recipe/state audit; no SDK/Tauri/publicAPI/calibrationnumeric changes."
+    }
+  },
+  "builds": {
+    "frozenPairs": {
+      "deployed": {
+        "js": {
+          "bytes": 35162,
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+        },
+        "wasm": {
+          "bytes": 27583,
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+        }
+      },
+      "legacy": {
+        "js": {
+          "bytes": 35162,
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+        },
+        "wasm": {
+          "bytes": 27583,
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+        }
+      },
+      "sdk": {
+        "js": {
+          "bytes": 35162,
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+        },
+        "wasm": {
+          "bytes": 27583,
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+        }
+      },
+      "defaultMatchesSdk": true
+    },
+    "allThreePairsAndDefaultByteIdentical": true,
+    "defaultReceipt": {
+      "id": "rf5c164",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "e42d5e922402facea35563f03bb1c7fd9b60ec789bb7d079d38cc631ca55a96c",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_rf5c164_wasm.sh",
+          "sha256": "58ca1a118995ea01b57ac665021d6c7f7ff8ee700ba0539e8e7cc3ebab85457e",
+          "size": 962
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-rf5c164/rf5c164.cpp",
+          "sha256": "9e8867bbbc74c60cf92f1300da9c01d59c0e820f69fd2a4461dfd08e3f6b8aea",
+          "size": 3136
+        },
+        {
+          "path": "vendor/mame-rf5c164/rf5c164.h",
+          "sha256": "438829c9b8706a78c3ac71551f44a02a3bad0431bc1ec17df1e2b1ee7d91483d",
+          "size": 1754
+        },
+        {
+          "path": "vendor/mame-rf5c164/upstream/rf5c68.cpp",
+          "sha256": "71e94d93dd9fdbbcf2c396c62ab2aa50d948bfcc2be688391f2f58268522aea9",
+          "size": 8152
+        },
+        {
+          "path": "wasm/rf5c164_wasm.cpp",
+          "sha256": "09351371671187946edc2b7cfb9bcb6093136ba59f220add9f54b79c1e69a055",
+          "size": 1531
+        }
+      ],
+      "outputs": [
+        {
+          "path": "rf5c164_wasm.js",
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+          "size": 35162
+        },
+        {
+          "path": "rf5c164_wasm.wasm",
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+          "size": 27583
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    "existingThirteenArtifactsPreserved": [
+      {
+        "id": "ay8910",
+        "recordSha256": "e811fe97294a0043972a0cb5c4c16782dd467ef47de7c8895412151036f9b1ee",
+        "recordUnchanged": true
+      },
+      {
+        "id": "okim6258",
+        "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+        "recordUnchanged": true
+      },
+      {
+        "id": "segapsg",
+        "recordSha256": "78faa719d3c7a9e42ed95c407cd1caf65964a464d15219740cf1c000ba6e40d3",
+        "recordUnchanged": true
+      },
+      {
+        "id": "y8950",
+        "recordSha256": "0c9f0c5715b83f661ee4398458d30b053c6d4d3b0ebc74deff85beafe3472866",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2151",
+        "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2203",
+        "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2413",
+        "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2608",
+        "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2610b",
+        "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2612",
+        "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3526",
+        "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3812",
+        "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ymf262",
+        "recordSha256": "f7d26b834504dc82013673c2d26daffc5acdc6bd8f2305e83789fc8903e956c0",
+        "recordUnchanged": true
+      }
+    ],
+    "sdkFilesUnchanged": 379,
+    "distPackageAssetsEqualTestedDefault": true
+  },
+  "runtime": {
+    "checker": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+      "bytes": 41001,
+      "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+    },
+    "reports": [
+      {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy-sdk-parity.json",
+        "bytes": 723652,
+        "sha256": "be4f729d0b350a34b0f55516e98478fa6d27bd42d1db7fc1f69ceb10e78db836",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy",
+            "javascript": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy/rf5c164_wasm.js",
+              "bytes": 35162,
+              "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy/rf5c164_wasm.wasm",
+              "bytes": 27583,
+              "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_base",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_end",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_free",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_init",
+                "kind": "function"
+              },
+              {
+                "name": "fflush",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "rf5c164_bank",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_create",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_generate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_reset",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write_memory",
+                "kind": "function"
+              },
+              {
+                "name": "strerror",
+                "kind": "function"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.js",
+              "bytes": 35162,
+              "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.wasm",
+              "bytes": 27583,
+              "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_base",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_end",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_free",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_init",
+                "kind": "function"
+              },
+              {
+                "name": "fflush",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "rf5c164_bank",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_create",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_generate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_reset",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write_memory",
+                "kind": "function"
+              },
+              {
+                "name": "strerror",
+                "kind": "function"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/build-info.json",
+              "bytes": 2368,
+              "sha256": "ef5e5f9c02474c0cce62c35d06e071e2a937696e4f1c6a604b46296eed76c581"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+            "bytes": 41001,
+            "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/rf5c164.js",
+              "bytes": 10188,
+              "sha256": "feeda7db22bf3b3be39aafabd51547d37661c69cacb6a72607bb8ad599a76e67"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/rf5c164.js",
+              "bytes": 10226,
+              "sha256": "3d3e41ecec0123939832c3a201be39c812be053d807312341a540ebeb28ac5e0"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/genesisaudioengine.js",
+              "bytes": 14608,
+              "sha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/genesisaudioengine.js",
+              "bytes": 14809,
+              "sha256": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612.js",
+              "bytes": 22574,
+              "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/segapsg.js",
+              "bytes": 10113,
+              "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/pwm32x.js",
+              "bytes": 6836,
+              "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+              "bytes": 4213,
+              "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+              "bytes": 34902,
+              "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.wasm",
+              "bytes": 40357,
+              "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.js",
+              "bytes": 33978,
+              "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.wasm",
+              "bytes": 27286,
+              "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          100000,
+          12500000,
+          100000000
+        ],
+        "outputRates": [
+          8000,
+          44100,
+          96000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "checkpointFrame": 613,
+        "probeFrames": 127,
+        "method": "Actual generated JS/WASM through unchanged Rf5c164 wrapper, exact owned stereo PCM and complete65,660-byte native state including64KiB RAM. Actual GenesisAudioEngine with current real YM2612/PSG WASM, existing gains and VgmPlayer opaque/checkpoint/seek. No mock, tolerance, Mixer or audio device.",
+        "limits": [
+          "RF5C164 produces the configured output rate using its integer clock/(rate*384) phase accumulator and held native samples. All8voices, native signed-magnitude zeros, FF marker/loop, integer envelope and pan nibbles and both clamp endpoints are tested independently.",
+          "Public read() is current channel address bus readback, not a control-register mirror or status/IRQ interface. Public window writes have4KiB validation; raw offsets and banked loads use the existing OR combination. Absolute readMemory() is tested only at valid0..65535 offsets; its native narrow argument does not provide a public JavaScript out-of-range guarantee.",
+          "Complete raw state includes configured rate/clock, control/channel banks, all channel addresses and controls, fractional phase/held output and RAM. Cross-build loading is bounded to these exact trusted states with the same configuration. No arbitrary same-sized malformed state fuzzing: current loader validates only pointer and size. Public opaque snapshots remain same-instance/same-build tokens.",
+          "Raw and public Rf5c164.reset() retain RAM, reset controls/held output, and place the phase so the next output ticks immediately. clearMemory() clears RAM only and may retain held output until the next native tick. Existing GenesisAudioEngine.reset() also clears PCM RAM; it is tested separately.",
+          "Only owned generateStereo() is provided by this wrapper; no borrowed or Into API is invented. Actual returned arrays survive later writes, PCM capacity growth, real WASM heap growth and disposal. State guards after disposal are tested without calling unsafe general methods on handle0.",
+          "Actual Genesis Engine mixes FM0.9 + PSG0.35 + PCM1 using direct configured-rate calls. Idle FM baseline is included. Selected regular Engine cases replay complete opaque state, while raw bidirectional state restores are RF-only. Active FM reset-to-power-on equality is intentionally not asserted because YM2612 reset retains free-running timing.",
+          "Real VgmPlayer exercises b1 registers, c2 window writes and C1 banked RAM blocks, actual checkpoint/seek and same-instance opaque Player state. Sample data is original synthetic bytes. JSON contains state/RAM hashes, not repeated full RAM dumps.",
+          "No Browser/Worklet scheduling, Native backend, physical hardware or listening judgement is tested."
+        ],
+        "scenarioBodyOutputStereoFrames": 4634334,
+        "postScenarioProbeOutputStereoFrames": 301752,
+        "ownStateLoads": 234,
+        "crossStateLoads": 144,
+        "resetReplayExecutions": 342,
+        "maximumDifference": 0,
+        "totalWrapperSelfCheckOutputStereoFrames": 16178,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+        "totalPlayerDeliveredOutputStereoFrames": 373260,
+        "rawScenariosPerClockRate": 41,
+        "scenarioConfigurations": 414,
+        "scenarioRenderExecutions": 2376,
+        "totalOutputStereoFrames": 4936086,
+        "totalGeneratedOutputStereoFrames": 5422424,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "comparisons": 828,
+        "caseKindCounts": {
+          "chip": 738,
+          "engine": 90
+        },
+        "caseManifestCanonicalSha256": "fc0783de6196102eea964ad2125b82f431657cc56677efbf9feb70059730e978"
+      },
+      {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed-sdk-parity.json",
+        "bytes": 723658,
+        "sha256": "1397e20e127e2a8b6bf5ba9b7325fe19bfb28079f0499a442b56e113dce6058b",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed",
+            "javascript": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed/rf5c164_wasm.js",
+              "bytes": 35162,
+              "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed/rf5c164_wasm.wasm",
+              "bytes": 27583,
+              "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_base",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_end",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_free",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_init",
+                "kind": "function"
+              },
+              {
+                "name": "fflush",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "rf5c164_bank",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_create",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_generate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_reset",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write_memory",
+                "kind": "function"
+              },
+              {
+                "name": "strerror",
+                "kind": "function"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.js",
+              "bytes": 35162,
+              "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.wasm",
+              "bytes": 27583,
+              "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_base",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_end",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_free",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_init",
+                "kind": "function"
+              },
+              {
+                "name": "fflush",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              },
+              {
+                "name": "rf5c164_bank",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_clear_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_create",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_generate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_read_memory",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_reset",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write",
+                "kind": "function"
+              },
+              {
+                "name": "rf5c164_write_memory",
+                "kind": "function"
+              },
+              {
+                "name": "strerror",
+                "kind": "function"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/build-info.json",
+              "bytes": 2368,
+              "sha256": "ef5e5f9c02474c0cce62c35d06e071e2a937696e4f1c6a604b46296eed76c581"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+            "bytes": 41001,
+            "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/rf5c164.js",
+              "bytes": 10188,
+              "sha256": "feeda7db22bf3b3be39aafabd51547d37661c69cacb6a72607bb8ad599a76e67"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/rf5c164.js",
+              "bytes": 10226,
+              "sha256": "3d3e41ecec0123939832c3a201be39c812be053d807312341a540ebeb28ac5e0"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/genesisaudioengine.js",
+              "bytes": 14608,
+              "sha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/genesisaudioengine.js",
+              "bytes": 14809,
+              "sha256": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612.js",
+              "bytes": 22574,
+              "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/segapsg.js",
+              "bytes": 10113,
+              "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/pwm32x.js",
+              "bytes": 6836,
+              "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+              "bytes": 4213,
+              "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+              "bytes": 34902,
+              "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.wasm",
+              "bytes": 40357,
+              "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.js",
+              "bytes": 33978,
+              "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.wasm",
+              "bytes": 27286,
+              "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          100000,
+          12500000,
+          100000000
+        ],
+        "outputRates": [
+          8000,
+          44100,
+          96000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "checkpointFrame": 613,
+        "probeFrames": 127,
+        "method": "Actual generated JS/WASM through unchanged Rf5c164 wrapper, exact owned stereo PCM and complete65,660-byte native state including64KiB RAM. Actual GenesisAudioEngine with current real YM2612/PSG WASM, existing gains and VgmPlayer opaque/checkpoint/seek. No mock, tolerance, Mixer or audio device.",
+        "limits": [
+          "RF5C164 produces the configured output rate using its integer clock/(rate*384) phase accumulator and held native samples. All8voices, native signed-magnitude zeros, FF marker/loop, integer envelope and pan nibbles and both clamp endpoints are tested independently.",
+          "Public read() is current channel address bus readback, not a control-register mirror or status/IRQ interface. Public window writes have4KiB validation; raw offsets and banked loads use the existing OR combination. Absolute readMemory() is tested only at valid0..65535 offsets; its native narrow argument does not provide a public JavaScript out-of-range guarantee.",
+          "Complete raw state includes configured rate/clock, control/channel banks, all channel addresses and controls, fractional phase/held output and RAM. Cross-build loading is bounded to these exact trusted states with the same configuration. No arbitrary same-sized malformed state fuzzing: current loader validates only pointer and size. Public opaque snapshots remain same-instance/same-build tokens.",
+          "Raw and public Rf5c164.reset() retain RAM, reset controls/held output, and place the phase so the next output ticks immediately. clearMemory() clears RAM only and may retain held output until the next native tick. Existing GenesisAudioEngine.reset() also clears PCM RAM; it is tested separately.",
+          "Only owned generateStereo() is provided by this wrapper; no borrowed or Into API is invented. Actual returned arrays survive later writes, PCM capacity growth, real WASM heap growth and disposal. State guards after disposal are tested without calling unsafe general methods on handle0.",
+          "Actual Genesis Engine mixes FM0.9 + PSG0.35 + PCM1 using direct configured-rate calls. Idle FM baseline is included. Selected regular Engine cases replay complete opaque state, while raw bidirectional state restores are RF-only. Active FM reset-to-power-on equality is intentionally not asserted because YM2612 reset retains free-running timing.",
+          "Real VgmPlayer exercises b1 registers, c2 window writes and C1 banked RAM blocks, actual checkpoint/seek and same-instance opaque Player state. Sample data is original synthetic bytes. JSON contains state/RAM hashes, not repeated full RAM dumps.",
+          "No Browser/Worklet scheduling, Native backend, physical hardware or listening judgement is tested."
+        ],
+        "scenarioBodyOutputStereoFrames": 4634334,
+        "postScenarioProbeOutputStereoFrames": 301752,
+        "ownStateLoads": 234,
+        "crossStateLoads": 144,
+        "resetReplayExecutions": 342,
+        "maximumDifference": 0,
+        "totalWrapperSelfCheckOutputStereoFrames": 16178,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+        "totalPlayerDeliveredOutputStereoFrames": 373260,
+        "rawScenariosPerClockRate": 41,
+        "scenarioConfigurations": 414,
+        "scenarioRenderExecutions": 2376,
+        "totalOutputStereoFrames": 4936086,
+        "totalGeneratedOutputStereoFrames": 5422424,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "comparisons": 828,
+        "caseKindCounts": {
+          "chip": 738,
+          "engine": 90
+        },
+        "caseManifestCanonicalSha256": "fc0783de6196102eea964ad2125b82f431657cc56677efbf9feb70059730e978"
+      }
+    ],
+    "caseArraysEqualBetweenReferencePairs": true,
+    "caseManifestCanonicalization": "JSON with sorted keys, compact separators, UTF-8. Full case arrays can be regenerated using the checked-in checker; full state/RAM bytes are compared then hashed rather than retained in reports.",
+    "scenarioNames": [
+      "voice/channel0/volume-pan-step-start",
+      "voice/channel1/volume-pan-step-start",
+      "voice/channel2/volume-pan-step-start",
+      "voice/channel3/volume-pan-step-start",
+      "voice/channel4/volume-pan-step-start",
+      "voice/channel5/volume-pan-step-start",
+      "voice/channel6/volume-pan-step-start",
+      "voice/channel7/volume-pan-step-start",
+      "delta/channel0/step0",
+      "delta/channel7/step0",
+      "delta/channel0/step1",
+      "delta/channel7/step1",
+      "delta/channel0/step17",
+      "delta/channel7/step17",
+      "delta/channel0/step1024",
+      "delta/channel7/step1024",
+      "delta/channel0/step2048",
+      "delta/channel7/step2048",
+      "delta/channel0/step4095",
+      "delta/channel7/step4095",
+      "delta/channel0/step65535",
+      "delta/channel7/step65535",
+      "volume/value0",
+      "volume/value1",
+      "volume/value64",
+      "volume/value128",
+      "volume/value255",
+      "pan/mask0",
+      "pan/mask1",
+      "pan/mask15",
+      "pan/mask16",
+      "pan/mask128",
+      "pan/mask240",
+      "pan/mask255",
+      "pan/mask90",
+      "signed-magnitude/zero-extremes-marker-loop",
+      "RAM/bank-window/OR-offset/boundary",
+      "global-disable/held-output/re-enable",
+      "reset/retained-RAM/clear-and-reupload",
+      "mixed/eight-voices/banks-and-pan",
+      "cold/reset-disabled-silence",
+      "engine/mixed-FM-PCM/gain-mute"
+    ],
+    "samePositiveWrapperChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "stateBytes": 65660,
+      "ramBytes": 65536,
+      "ramOffset": 124,
+      "fullMemoryReadbackSha256": "d56393d2106c09e0560761e9efdf176f3d6fe29877b2613f1e7d41690a39ee65",
+      "absoluteReadAllValidOffsets": true,
+      "allSixteenWindowBanks": true,
+      "channelBankDoesNotChangeWindowBank": true,
+      "bankedLoadUsesOrNotAddition": true,
+      "rawWindowAlsoOrsOffset": true,
+      "publicAndRawResetRetainRam": true,
+      "rangeValidationObservational": true,
+      "opaqueStatesSameInstanceOnly": true,
+      "invalidNativeStateLengthsRejected": true,
+      "stateRestoresRamAndHeldOutputs": true,
+      "signedMagnitudePcmSha256": "483e910ccd467166d23bb88926e5eced8462b0e1ad36a58ba6df1c3c70309a77",
+      "doubleFfSilencesRetainsEnable": true,
+      "panRows": [
+        {
+          "pan": 0,
+          "pcmSha256": "5d89f056865052bcb89c910d2d62872e029fb273c3db03f8968a52a41593c1b5"
+        },
+        {
+          "pan": 1,
+          "pcmSha256": "c999a9dc43a5064c23426071967385bf53abf0df20fc56b7fe9bea256043b9dd"
+        },
+        {
+          "pan": 15,
+          "pcmSha256": "2247ad7443d2fc7492802df93abb7a6c9fc2681256274514bc272bb9dcadbbad"
+        },
+        {
+          "pan": 16,
+          "pcmSha256": "ab740d66dc1380bd392db3d4196ee65466ef6aff214286fda8b7af45d968fd78"
+        },
+        {
+          "pan": 128,
+          "pcmSha256": "110cea7313f77af00e40accd135530ca0cf75661b74cdd8154e4bc0411426737"
+        },
+        {
+          "pan": 240,
+          "pcmSha256": "81b705f2aa4a6adbd09adea24ae97906d07626a252d2f8f1b9e1cec4b2ee8d9f"
+        },
+        {
+          "pan": 255,
+          "pcmSha256": "483e910ccd467166d23bb88926e5eced8462b0e1ad36a58ba6df1c3c70309a77"
+        },
+        {
+          "pan": 90,
+          "pcmSha256": "0f9be1948b35dbf25f9e66928a2af5ce7181c8f543e54343c78b0c2134ed2ec7"
+        }
+      ],
+      "volumeRows": [
+        {
+          "volume": 0,
+          "pcmSha256": "5d89f056865052bcb89c910d2d62872e029fb273c3db03f8968a52a41593c1b5"
+        },
+        {
+          "volume": 1,
+          "pcmSha256": "1a039eb7a186fb20e9966804badeac1dbdda7d2cb1fab614b8d3843c70dea4c0"
+        },
+        {
+          "volume": 64,
+          "pcmSha256": "d833b29498c45e391ee8ff1fb0237a82ba4b55bf376861e16d303b3318ce9418"
+        },
+        {
+          "volume": 128,
+          "pcmSha256": "e39f5f5cf5b66e257695fbfb8733dedb1dc2a4b1d982c6576e95af19aa7908a3"
+        },
+        {
+          "volume": 255,
+          "pcmSha256": "483e910ccd467166d23bb88926e5eced8462b0e1ad36a58ba6df1c3c70309a77"
+        }
+      ],
+      "bothActualClampEndpoints": true,
+      "startWriteAndGlobalEnableSemantics": true,
+      "positions": [
+        {
+          "clock": 100000,
+          "rate": 96000,
+          "step": 2048,
+          "frames": 500,
+          "ticks": "2",
+          "phase": "13136000",
+          "address": 4096,
+          "lastHeld": 0.007293701171875
+        },
+        {
+          "clock": 12500000,
+          "rate": 44100,
+          "step": 17,
+          "frames": 257,
+          "ticks": "189",
+          "phase": "28832800",
+          "address": 3213,
+          "lastHeld": 0.007293701171875
+        },
+        {
+          "clock": 100000000,
+          "rate": 8000,
+          "step": 17,
+          "frames": 129,
+          "ticks": "4167",
+          "phase": "102048000",
+          "address": 70839,
+          "lastHeld": 0.127655029296875
+        }
+      ],
+      "ramClearHeldPrefixFrames": 368,
+      "ownedSurvivesOverwriteCapacityHeapAndDispose": true,
+      "genesis": {
+        "outputRate": 48000,
+        "initialSourceFrames": 1024,
+        "initialSourceCalls": 1,
+        "pcmGain": 1,
+        "idleFmAndPsgIncluded": true,
+        "resetClearsRam": true,
+        "stateRestoresRam": true,
+        "activeFmSamePhasePositive": true
+      },
+      "totalOutputStereoFrames": 8089,
+      "frameCountScope": "All direct RF and actual Genesis Engine output frames in bounded positives; internal common FM/PSG/RF source calls are not counted again. RAM/state/read/control operations render no PCM."
+    },
+    "sameActualVgmPlayerChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "rows": [
+        {
+          "clock": 100000,
+          "outputRate": 8000,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "d2ffe2e4c810582be89f42454b9e9bc94c7b4d8bebaf28023d524ed4d93df5d2",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 1300,
+          "baselinePcmSha256": "63b094b326a701c62e683dfe30e2c8c6f05fa565c5025cfb7d0f909c50a64750",
+          "capturedCheckpoints": 3,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "61bb3d9458244f179c194d45644a3edf39d5fd3adcdfeca88349a4ca893da688"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "61bb3d9458244f179c194d45644a3edf39d5fd3adcdfeca88349a4ca893da688"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 127,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "33e61dd846b3fd585103e29825c654558725b9389a070639c1a7ba8b8a214324"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 308,
+              "restoredCheckpointFrame": 256,
+              "pcmSha256": "5c4ae7efb589ad837782eb911acc6bde5b8e48835e5330b1383597b2fa7d7548"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 425,
+              "restoredCheckpointFrame": 336,
+              "pcmSha256": "65e454ceb37a0ef30716e6ffc3a12bc91bb06604f10b7f88663171aefebff2ed"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 925,
+              "restoredCheckpointFrame": 768,
+              "pcmSha256": "1fad9f544b0a1f1f9ca790fee16e404a332ee194ffe2e0ff14369e540da6996a"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 100000,
+          "outputRate": 44100,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "96168b8b636b770f3cde3c0ee1d0dbd6a00bb17781f95adc076bdc9103503af7",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "1ac79737d9d194221195b89c34348d84972fc799b2af78e8074ab1359e77db00",
+          "capturedCheckpoints": 5,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "be23373c8bd0c9f97b85faddfbec4c8ba1d68d274dbb67fc7dcfd117d1a346dc"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "ff4d766de0ee90bbe246e9bfb5421eb7f1a210dd44e56bacf7ca053d367656b6"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "restoredCheckpointFrame": 654,
+              "pcmSha256": "cc0ed8c9acef4357f928122582f0f061bc29f2258a3027a0a941321ef1d9db65"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "restoredCheckpointFrame": 1681,
+              "pcmSha256": "3d2b1317edd908dc0aa4aac171247f4b2efb75b91cef013876e9a772390b6392"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "restoredCheckpointFrame": 2304,
+              "pcmSha256": "3053aaade5d358cfb49df6a13b991684611dee9fc95ceb02aae8866f4c6d8704"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "8986948c77e00114c28b6ae90a5686188110a6036714d228e4f2ba7d4416c60e"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 100000,
+          "outputRate": 96000,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "8325027db0553e8d574cad40c1101e3bc363c838f3a5e0edaf0322872ed83f67",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "03211eec9de7691960e1a21e80cd06197a778c2cbfa6bb29925a1df1082b8845",
+          "capturedCheckpoints": 6,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "572748a27c6e8046ec22ac2c9ee2c3067d9123300cfdf26a876550f6c0bd0fa1"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "572748a27c6e8046ec22ac2c9ee2c3067d9123300cfdf26a876550f6c0bd0fa1"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "edd994ea44337faa36843a77707ac7ee3ee4a1d3a6bdf79ce66459a6f4119c46"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "restoredCheckpointFrame": 2816,
+              "pcmSha256": "c1e3923c2630aaac8885e60a9604efbcb78c5fb984b7cf5ba93262f94da4a44f"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "f55c008dc53e362322f9b8583c708807105016be4d62856ca35337161cc39602"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "restoredCheckpointFrame": 10752,
+              "pcmSha256": "04a620b7f4f5cc52287dce48f22dc345a05298b68236af847923afb814816396"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 12500000,
+          "outputRate": 8000,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "73c52bf4ea3ec39ffb5ac1a9710797eb5877ec8464b3911a402892fcb6946c1a",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 1300,
+          "baselinePcmSha256": "c1d8edcda35911fbb5491daff0d0bd740bc04f7d4f2d446a1ca67e76a7b41ba9",
+          "capturedCheckpoints": 3,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "0d78fe18702f0f67e1f735b69c02c0dd088dc4bb0c413af7059f4d3bfbc2c3b1"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "0d78fe18702f0f67e1f735b69c02c0dd088dc4bb0c413af7059f4d3bfbc2c3b1"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 127,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "a5d283b783b822b36cddaca3cc5ed489c62300d73b2dc35099c10f1f545e0d2a"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 308,
+              "restoredCheckpointFrame": 256,
+              "pcmSha256": "c5141ba551e5dca80193988d2d59d807356a4cbf77fa8772b1f3d7d02affc718"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 425,
+              "restoredCheckpointFrame": 336,
+              "pcmSha256": "3ce54adf9e18a23a1a033c90ef09eaf65ee3cbcc3d62a408abc641aebca0fbcf"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 925,
+              "restoredCheckpointFrame": 768,
+              "pcmSha256": "931d27bcd00bb614a7e71c0c8fa1d99616624742f763ac8f7a81ec147bec30ac"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 12500000,
+          "outputRate": 44100,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "5718877d2d91bfd1e107ee065a596428453af151a429c71ffc4cc1bf765660b8",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "89792aec217f4b6149b93df24fec5889da087d9d1b6b4d495dfb998f4cb2cc7a",
+          "capturedCheckpoints": 5,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "e3c6327af52bfb629ec6ba87287cd780b5e2a378145292d265b464e19fd948d3"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "7f8f079614e8841cf510d93a5ce0af703ff781259184fc11ec37e662101a1bdd"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "restoredCheckpointFrame": 654,
+              "pcmSha256": "aaa017502777994a0af42c9fa0e2462f662953a6ab77c8adbd9019fd436e3339"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "restoredCheckpointFrame": 1681,
+              "pcmSha256": "3c349fec2ddf8335a11ad20d240e8a7ddc651cef64f36f76ee9e414c96c84002"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "restoredCheckpointFrame": 2304,
+              "pcmSha256": "55af22c57a6ba749a134988b156ca6196fddaf3f5253363cb0b5beb86eb3203e"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "3c5aab98709be46af47a0ba17cda59de54c5012a6bb3d18bf9b2350f26d62587"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 12500000,
+          "outputRate": 96000,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "393fb52bfd70cb1a893b0a6e0d3ea44182fab41202239f77700aec7fff463f3b",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "6f7dcf990b8b9d7e0b2438940202381c0284317b3fac77d4892a9f92d5781c3a",
+          "capturedCheckpoints": 6,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "e33a1bfc6be399925f9bc88629781dc66a0ebd1b1653a459aacb62d8e6a1dd20"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "25e020de74808707565402b56a0eef00acca55c17d59f93d30586b6323c57971"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "11cdb927829682af0156b57a5871e00a37472f70deaf9fe913f832789e7f24bd"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "restoredCheckpointFrame": 2816,
+              "pcmSha256": "3cc135f96c4db9719824e3384c6623773d4deafb62fe75e51191b51c73a22a28"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "1e051a534a20ed154f9dda452a50e91f7f3730df12085d07df8dec9fca39ab5a"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "restoredCheckpointFrame": 10752,
+              "pcmSha256": "18009b75ec13997d5731814de5354b564348b8992153e3accae20283b45e18e7"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 100000000,
+          "outputRate": 8000,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "0d4cc4810b19fc1123aeb06d7efbb93ea2fa5ff13d55f3a466a30724fbde4845",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 1300,
+          "baselinePcmSha256": "b68a302f138a96d0359c7c1c73b1fdeda53bbdba8e967ecf02dcafa59c7e5626",
+          "capturedCheckpoints": 3,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "e83e5943638545906f41c5e4643c19c698c45a4eec49724c8a1cfb2908f65e5c"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "e83e5943638545906f41c5e4643c19c698c45a4eec49724c8a1cfb2908f65e5c"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 127,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "a0ef5176ef5d43dadcbd2561a44a6b7f2a00eb49208341fd79be26a38a8d7606"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 308,
+              "restoredCheckpointFrame": 256,
+              "pcmSha256": "b65f48634ef373b527385af45cd4a65bc1534d189d1675ace1e69e9d9b1f3e2d"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 425,
+              "restoredCheckpointFrame": 336,
+              "pcmSha256": "f0e3f4267435de3b33df0ec743638259883f61b3bb3577b934fca60d7ffb6048"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 925,
+              "restoredCheckpointFrame": 768,
+              "pcmSha256": "c9691610e8787f8b8c5212ca6bd52b3a67059f1efbd7e615b9ef63c8107db6af"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 100000000,
+          "outputRate": 44100,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "99084a8e3af74f59a5e04b50ef082248dfb69ee74f5a00e93e4d066bc1daebc4",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "baselinePcmSha256": "31c872b44b93844d7fbc60f84ca98389dce0c66e97da37a428229fce15e93acb",
+          "capturedCheckpoints": 5,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "8312fc8751a0b65bec7f2f5d44528552a752c7dbbb08df38346134219845d9ce"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "aaf18599f48688b522e8b0c11dc8fbbe9b645736efe969acee6c4e37bc63453a"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "restoredCheckpointFrame": 654,
+              "pcmSha256": "9c235451b8fafb9a9f01c7432503d78cc1333e8ceeba553acea1db9153a83005"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "restoredCheckpointFrame": 1681,
+              "pcmSha256": "48f66eb0da0011c6e56f67fa689fac0cb9f443ee41bc093d86fd99910764329b"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "restoredCheckpointFrame": 2304,
+              "pcmSha256": "cbea0b4eb4204c2b3edc921c467bee11eef3b9867e10255f22be10615788ba94"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "23a8b7baaddfe613987d0afc6dc6aeaeeeeba03d37cd719be03918e2ff557124"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        },
+        {
+          "clock": 100000000,
+          "outputRate": 96000,
+          "fixtureBytes": 1474,
+          "fixtureSha256": "fd2be2bbd25ea05a31958b4220e85efda7eeff6fb6f1715446e5781d3efbb0e4",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "baselinePcmSha256": "6122348f8dcb7f9fca22434c6e03c1a83b6a1edb79c4e90e9e7623b1b748960f",
+          "capturedCheckpoints": 6,
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "417d6ea7596023ea9909cb1e61b4de2bf00ad16294b89b8745e698c7b32d52ea"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "c303256e18a07cd30688eae18055fdbf8b7103d5915df54326e0d1f3ba134d57"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "2fc402ae30d4e2fbb1f8dd1687dc59b982eb7e97a3817340f17c0e18af69ea1c"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "restoredCheckpointFrame": 2816,
+              "pcmSha256": "c384fc2f62552695992349d8a53f9c9ececb619c5d5252a8a595f388bfac97c1"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "1ca4094017e8bc6628c742b242a601db1a461d46eb9262a3fde71371829c5cc8"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "restoredCheckpointFrame": 10752,
+              "pcmSha256": "d241402a4496ef871e5ff3d45ee1f79adf572dcd6871219f3a862b71235c8b03"
+            }
+          ],
+          "opaquePlayerStateRestore": true,
+          "commands": [
+            "0xb1-register",
+            "0xc2-window-write",
+            "0x67/0xc1-banked-RAM"
+          ],
+          "bankOrAndLastRamPageVerified": true
+        }
+      ],
+      "positiveCheckpointRestores": 30,
+      "generatedEngineOutputStereoFrames": 235080,
+      "deliveredPlayerOutputStereoFrames": 186630,
+      "requestedPlayerOutputStereoFrames": 186630,
+      "engineRenderExecutions": 210,
+      "playerProcessCalls": 891,
+      "frameCountScope": "Actual Genesis Engine generation includes baseline/reset replay, checkpoint-or-zero seek prefixes and opaque Player replay. Source FM/PSG/RF frames and requested/delivered Player frames are not added again. Reset clears PCM RAM; authored data blocks or snapshots restore it."
+    },
+    "freeze": {
+      "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/checker-freeze.json",
+      "bytes": 12454,
+      "sha256": "509e1414aa7562e0027fddc643c668a671bb02dd6d239fff390521195ea3415a",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+          "bytes": 41001,
+          "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+        },
+        "checkerFrozen": true,
+        "deviceOpened": false,
+        "caseArraysAndWrapperAndPlayerChecksIdenticalBetweenReferencePairs": true,
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy-sdk-parity.json",
+            "bytes": 723652,
+            "sha256": "be4f729d0b350a34b0f55516e98478fa6d27bd42d1db7fc1f69ceb10e78db836",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy/rf5c164_wasm.js",
+                "bytes": 35162,
+                "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy/rf5c164_wasm.wasm",
+                "bytes": 27583,
+                "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.js",
+                "bytes": 35162,
+                "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.wasm",
+                "bytes": 27583,
+                "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/build-info.json",
+                "bytes": 2368,
+                "sha256": "ef5e5f9c02474c0cce62c35d06e071e2a937696e4f1c6a604b46296eed76c581"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+                "bytes": 41001,
+                "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/rf5c164.js",
+                "bytes": 10188,
+                "sha256": "feeda7db22bf3b3be39aafabd51547d37661c69cacb6a72607bb8ad599a76e67"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/rf5c164.js",
+                "bytes": 10226,
+                "sha256": "3d3e41ecec0123939832c3a201be39c812be053d807312341a540ebeb28ac5e0"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/genesisaudioengine.js",
+                "bytes": 14608,
+                "sha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/genesisaudioengine.js",
+                "bytes": 14809,
+                "sha256": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612.js",
+                "bytes": 22574,
+                "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/segapsg.js",
+                "bytes": 10113,
+                "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/pwm32x.js",
+                "bytes": 6836,
+                "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+                "bytes": 4213,
+                "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+                "bytes": 34902,
+                "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.wasm",
+                "bytes": 40357,
+                "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.js",
+                "bytes": 33978,
+                "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.wasm",
+                "bytes": 27286,
+                "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClockRate": 41,
+              "scenarioConfigurations": 414,
+              "scenarioRenderExecutions": 2376,
+              "scenarioBodyOutputStereoFrames": 4634334,
+              "postScenarioProbeOutputStereoFrames": 301752,
+              "totalOutputStereoFrames": 4936086,
+              "totalWrapperSelfCheckOutputStereoFrames": 16178,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+              "totalPlayerDeliveredOutputStereoFrames": 373260,
+              "totalGeneratedOutputStereoFrames": 5422424,
+              "ownStateLoads": 234,
+              "crossStateLoads": 144,
+              "resetReplayExecutions": 342
+            },
+            "comparisons": 828,
+            "chipComparisons": 738,
+            "engineComparisons": 90,
+            "checkpointSavedRows": 234,
+            "actualContinuationReplayRows": 117,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed-sdk-parity.json",
+            "bytes": 723658,
+            "sha256": "1397e20e127e2a8b6bf5ba9b7325fe19bfb28079f0499a442b56e113dce6058b",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed/rf5c164_wasm.js",
+                "bytes": 35162,
+                "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed/rf5c164_wasm.wasm",
+                "bytes": 27583,
+                "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.js",
+                "bytes": 35162,
+                "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/rf5c164_wasm.wasm",
+                "bytes": 27583,
+                "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+              },
+              {
+                "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sdk/build-info.json",
+                "bytes": 2368,
+                "sha256": "ef5e5f9c02474c0cce62c35d06e071e2a937696e4f1c6a604b46296eed76c581"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+                "bytes": 41001,
+                "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/rf5c164.js",
+                "bytes": 10188,
+                "sha256": "feeda7db22bf3b3be39aafabd51547d37661c69cacb6a72607bb8ad599a76e67"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/rf5c164.js",
+                "bytes": 10226,
+                "sha256": "3d3e41ecec0123939832c3a201be39c812be053d807312341a540ebeb28ac5e0"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/genesisaudioengine.js",
+                "bytes": 14608,
+                "sha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/genesisaudioengine.js",
+                "bytes": 14809,
+                "sha256": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612.js",
+                "bytes": 22574,
+                "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/segapsg.js",
+                "bytes": 10113,
+                "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/pwm32x.js",
+                "bytes": 6836,
+                "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+                "bytes": 4213,
+                "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.js",
+                "bytes": 34902,
+                "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/ym2612_wasm.wasm",
+                "bytes": 40357,
+                "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.js",
+                "bytes": 33978,
+                "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/segapsg_wasm.wasm",
+                "bytes": 27286,
+                "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClockRate": 41,
+              "scenarioConfigurations": 414,
+              "scenarioRenderExecutions": 2376,
+              "scenarioBodyOutputStereoFrames": 4634334,
+              "postScenarioProbeOutputStereoFrames": 301752,
+              "totalOutputStereoFrames": 4936086,
+              "totalWrapperSelfCheckOutputStereoFrames": 16178,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+              "totalPlayerDeliveredOutputStereoFrames": 373260,
+              "totalGeneratedOutputStereoFrames": 5422424,
+              "ownStateLoads": 234,
+              "crossStateLoads": 144,
+              "resetReplayExecutions": 342
+            },
+            "comparisons": 828,
+            "chipComparisons": 738,
+            "engineComparisons": 90,
+            "checkpointSavedRows": 234,
+            "actualContinuationReplayRows": 117,
+            "maximumDifference": 0
+          }
+        ],
+        "scope": "Actual owned RF5C164 PCM and complete65,660-byte raw RAM/control/resampler state. Same-instance opaque continuation restores and bidirectional trusted raw restores only for matching configurations. Actual Genesis Engine includes real FM/PSG and direct PCM1 integration; real Player b1/c2/C1 fixtures checkpoint/seek/replay RAM. Public/raw RF reset retain RAM; Engine reset clears it. No status/IRQ/Into/borrowed API invented; native raw readMemory is onlycalledatvalid16-bitoffsets. ActiveFM reset-to-power-on equality is excluded. Engine internal source frames and Player delivered frames are not added twice."
+      }
+    },
+    "independentImplementationReview": {
+      "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/checker-implementation-audit.json",
+      "bytes": 6083,
+      "sha256": "98f82f4895d4ff34123b3b08f99c05c3aca8eaa96485905596b9a83ce8c9ea19",
+      "record": {
+        "schemaVersion": 1,
+        "passed": true,
+        "reviewMode": "Independent read-only source, final reports and frozen input audit. No synthesis rerun or product edits performed by reviewer.",
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+          "bytes": 41001,
+          "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+        },
+        "freeze": {
+          "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/checker-freeze.json",
+          "bytes": 12454,
+          "sha256": "509e1414aa7562e0027fddc643c668a671bb02dd6d239fff390521195ea3415a"
+        },
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/legacy-sdk-parity.json",
+            "bytes": 723652,
+            "sha256": "be4f729d0b350a34b0f55516e98478fa6d27bd42d1db7fc1f69ceb10e78db836",
+            "verifiedCurrentInputRecords": 21,
+            "comparisons": 828,
+            "chipComparisons": 738,
+            "engineComparisons": 90,
+            "rawScenariosPerClockRate": 41,
+            "scenarioConfigurations": 414,
+            "scenarioRenderExecutions": 2376,
+            "bodyFramesRecomputed": 4634334,
+            "probeFramesRecomputed": 301752,
+            "ownStateLoads": 234,
+            "crossStateLoads": 144,
+            "resetReplayExecutions": 342,
+            "playerGeneratedFrames": 470160,
+            "playerDeliveredFramesRecomputed": 373260,
+            "totalGeneratedFramesRecomputed": 5422424,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/deployed-sdk-parity.json",
+            "bytes": 723658,
+            "sha256": "1397e20e127e2a8b6bf5ba9b7325fe19bfb28079f0499a442b56e113dce6058b",
+            "verifiedCurrentInputRecords": 21,
+            "comparisons": 828,
+            "chipComparisons": 738,
+            "engineComparisons": 90,
+            "rawScenariosPerClockRate": 41,
+            "scenarioConfigurations": 414,
+            "scenarioRenderExecutions": 2376,
+            "bodyFramesRecomputed": 4634334,
+            "probeFramesRecomputed": 301752,
+            "ownStateLoads": 234,
+            "crossStateLoads": 144,
+            "resetReplayExecutions": 342,
+            "playerGeneratedFrames": 470160,
+            "playerDeliveredFramesRecomputed": 373260,
+            "totalGeneratedFramesRecomputed": 5422424,
+            "maximumDifference": 0
+          }
+        ],
+        "caseWrapperPlayerArraysIdenticalAcrossReferencePairs": true,
+        "coverageReview": {
+          "nativeState": "Complete 65,660-byte state is compared, including 64KiB RAM, controls, all eight voice addresses, fractional resampling phase and held stereo outputs. Trusted raw cross-build restores use matching configurations only.",
+          "ownership": "Raw snapshots are copied after allocation using the current heap. Public state tokens remain same-instance. Actual generateStereo returned arrays survive subsequent generation, actual output capacity growth, actual WASM heap growth and disposal; no borrowed or Into API is invented.",
+          "ramAndBus": "All 65,536 valid absolute read addresses, 16 CPU banks, independent channel/window bank, 4KiB write bounds, OR versus addition, last RAM byte and invalid native lengths are positively checked. Bus reads independently derive channel-address bytes from state, not register echoes.",
+          "synthesisPositives": "Signed-magnitude zeros/sign/extremes, immediate FF loop and double FF enabled silence, independent pan nibbles and envelope scaling, eight-voice positive/negative clamp endpoints, enabled/disabled start behavior, global disable address freeze/resume and independent integer tick/phase/held-output formulas agree with core.",
+          "resetAndClear": "Raw/public chip reset retain RAM and evaluate the first native tick at next output. clearMemory leaves control/phase/held sample unchanged until next tick. Genesis reset clears PCM RAM separately.",
+          "actualEngine": "Real GenesisAudioEngine uses real current YM2612 and Sega PSG with direct RF output at configured rate. Initial PCM source frames/calls are instrumented; baseline includes observed idle FM/PSG. Opaque Engine continuation restores complete state. Active FM positive starts from identical saved PCM phase. Active FM reset-to-power-on equality is excluded.",
+          "player": "Original synthetic VGM exercises 0xb1 registers, 0xc2 CPU-window patch, 0x67/0xc1 RAM blocks including OR bank destination and last RAM page. Disable/program/re-enable makes authored new start addresses take effect. Nine clock/rate configurations each check baseline, reset replay, six actual checkpoint/zero-replay seeks, and same-instance opaque Player continuation. Positive checkpoint restores occur 30 times per build.",
+          "accounting": "Main continuation body starts at frame613 and includes fresh127-frame probes. Separate bounded selfchecks are 8089 frames per build. Player generated Engine frames are measured independently; delivered/requested Player frames and internal source frames are not added again."
+        },
+        "wrapperFrameBreakdownPerBuild": {
+          "signedMagnitude": 24,
+          "doubleFf": 17,
+          "eightPanNibbles": 192,
+          "fiveEnvelopeLevels": 120,
+          "eightVoiceClamp": 24,
+          "enabledStart": 17,
+          "exactTickPair": 206,
+          "globalDisable": 127,
+          "globalResumePair": 254,
+          "threeClockPhaseReferences": 886,
+          "clearHeldPrefixAndNextTick": 370,
+          "ownershipPrelude": 103,
+          "ownedOriginal": 17,
+          "sameCapacityOverwrite": 17,
+          "actualCapacityGrowth": 128,
+          "actualHeapGrowthRender": 17,
+          "engineAndDirectReference": 2048,
+          "engineOpaqueAndMixedContinuations": 3505,
+          "ownedAfterDisposal": 17
+        },
+        "materialIssues": [],
+        "limitations": [
+          "Current raw state loader validates pointer and byte length; arbitrary same-sized malformed states were not fuzzed.",
+          "Out-of-range public readMemory ABI truncation is not promised or tested.",
+          "No general post-dispose control API safety claim, borrowed/Into API, hardware equivalence, Browser scheduling, Native backend, listening, remote CI or publication is inferred from this checker.",
+          "Individual immutable SDK RF catalog omits shared chip_state.h. Full379-file manifest, importer corruption case and source audit dependency hash protect the actual header; SDK original remains unchanged."
+        ]
+      }
+    },
+    "documentationReview": {
+      "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/checker-docs-audit.json",
+      "bytes": 6343,
+      "sha256": "f10a973f6f9bcb53743982db49e745619578add9985be192c8df7233254d3a44",
+      "record": {
+        "schemaVersion": 1,
+        "passed": true,
+        "reviewMode": "Independent read-only review of final documentation against frozen real-WASM reports, source/dependency audit, actual Browser summaries and on-disk assets.",
+        "documentationInputs": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/README.md",
+            "bytes": 21553,
+            "sha256": "40f4196f7beaf6d920f9a7fcd2d58f2fa54b27b0f9989691b89c6f8a1594b324"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/building_ym2612_wasm.md",
+            "bytes": 13831,
+            "sha256": "8b16de48a734cf7a0c8dfd4700206c3f8042b71c6e950e6d683f92047dcc6ce2"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/issues/wasm_sdk_rf5c164_adoption_01.md",
+            "bytes": 6097,
+            "sha256": "192e9d0051e8724612db50d5131b404930deca34201d7c947a4b7b6c98407754"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/issues/savePoint.md",
+            "bytes": 177088,
+            "sha256": "366972354df1e4f10b1021ba2ec1047cfe69bd1d4347a880df22a714bc9c7aa3"
+          }
+        ],
+        "implementationAudit": {
+          "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/checker-implementation-audit.json",
+          "bytes": 6083,
+          "sha256": "98f82f4895d4ff34123b3b08f99c05c3aca8eaa96485905596b9a83ce8c9ea19"
+        },
+        "evidenceInputs": [
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/checker-freeze.json",
+            "bytes": 12454,
+            "sha256": "509e1414aa7562e0027fddc643c668a671bb02dd6d239fff390521195ea3415a"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/source-audit.json",
+            "bytes": 13306,
+            "sha256": "9c03b590a92d72007253693d6ddd8c1944fe92e821143cac1616d4aeed81d177"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/python-sdk-tests.log",
+            "bytes": 13075,
+            "sha256": "e5b6c0b1bcdcaa4641b47e51729a03c992da0fe83f7f5323431f3c96cb035532"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/rf-megacd-tests.log",
+            "bytes": 5536,
+            "sha256": "6e1a7095abfc982053908f280266c11ab806c798696567fafa392654d15591c8"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/npm-check.log",
+            "bytes": 1637,
+            "sha256": "20352aff25d7c6df39fea256d5d695f22e0474e09e52684ad57484f85b6ace48"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/analyzer-package.log",
+            "bytes": 20571,
+            "sha256": "40f3e3333e0427c0c2991fd93bd104c477d496b475d5fb6fecef5d2766a2763a"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/playground-summary.json",
+            "bytes": 5291,
+            "sha256": "951a638edeafb890a63f2311da22778146a614fe2c5fd66e0b9d32f8155abf10"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/voice-summary.json",
+            "bytes": 5187,
+            "sha256": "ac68014d636cc3b8fcf6a61bb2313e3e16b005347493bdcba0bb5555a3a9a796"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/final-integrity-audit.json",
+            "bytes": 12569,
+            "sha256": "b9299e6d042eb6f57eb4359b0f1b59c544ab7ad715bfaae9d1eabe105f741374"
+          },
+          {
+            "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/zip-audit.json",
+            "bytes": 653,
+            "sha256": "078e938535c600b801bd4e896c3a80ce025f57bc263a84724a53bfcd2bf2ec7a"
+          }
+        ],
+        "scopeVerified": {
+          "fixedSource": "Same immutable0.1.1 SDK e4b7d7e/379files. Sixteen C exports and cwrap/HEAPF32/HEAPU8 remain; shim verifies before output. Two translation units and four actual physical dependencies match old sources. Individual RF catalog omits chip_state.h; docs explicitly distinguish full manifest protection.",
+          "generatedIdentity": "Deployed, old-recipe rebuild, SDK and current default RF JS/WASM bytes are identical. Prior13 build entries and26 generated outputs remain unchanged. Public API/Mixer/calibration/pin guard files match final integrity hashes.",
+          "runtimeNumbers": "Both pairs828 comparisons=738raw+90actualGenesisEngine,414configurations,2376renders; own234/raw cross144/reset342. Main4634334+301752=4936086; self16178; Player generated470160; sum5422424 per reference pair. Delivered Player373260 and internal source frames excluded from sum.",
+          "stateAndReset": "Docs correctly distinguish raw/public chip reset retaining RAM, RAM-only clear with held-sample prefix and Genesis reset clearing RAM. State contains full RAM/control/phase/held outputs, trusted raw cross only; opaque token is same-instance. Owned-only API and active-FM reset timing limitation retained.",
+          "browserWorklets": "Four actual Chromium/WebKit centered 440Hz captures: additional RF inGenesis and primaryRF inMegaCD. Gain0.280286; amplitude0.12881797552108765. This does not imply Native/Worker/general stereo routing coverage.",
+          "browserUi": "Both browsers WebAudio/main only. Actual index plus original two PCM examples, sampler synthetic WAV/file/saved asset/8voices/steal/Keyboard/release/focus/Stop and existing oscillator getUserMedia mock lifecycle pass. Physical microphone and listening are excluded. Temporary in-memory harness filters original three MegaCD files plus index around the pre-existing7vs4 discovery assertion; shared examples and Worker excluded, original helper/application unchanged. Final zero-gain destination is installed before first output while source/Mixer/monitor remain normal.",
+          "packaging": "Isolated npm803files/26engines/942references and types/runtime; Analyzer753localreferences/370ZIPfiles with exact RF assets. No publish or remote CI completion claim.",
+          "roadmap": "Fourteen WASM artifact recipes migrated; thirteen remaining. 32X PWM stated as candidate only.",
+          "protectedHistoryTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7"
+        },
+        "pendingRootFinalization": {
+          "expectedNewEvidenceJsonLink": "docs/issues/wasm_sdk_rf5c164_adoption_01.json",
+          "reason": "Root assembles permanent evidence JSON after this independent review artifact; this is the only unresolved link in the new issue."
+        },
+        "materialIssues": [],
+        "limitations": [
+          "No extra runtime, Browser, Native, hardware or remoteCI execution performed by this reviewer. Runtime evidence is audited from frozen reports and recorded actual captures.",
+          "Current source exports/reset semantics are preserved; no portable arbitrary-state format or ABI truncation guarantee introduced."
+        ]
+      }
+    },
+    "cli": {
+      "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/checker-cli-audit.json",
+      "bytes": 4811,
+      "sha256": "ebaea14d1cae816ec3391ef9eb77c5be73db7494ec09d0994a5a295b2b0ca5d4",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "scripts/check_rf5c164_wasm_sdk.mjs",
+          "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e",
+          "bytes": 41001
+        },
+        "invalidForms": [
+          {
+            "argv": [],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--help",
+              "--out",
+              "/private/tmp/tetorica-rf5c164-wasm-sdk/cli-guard-inputs/help-no-write.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--wat"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--legacy-dir",
+              "c"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/rf5c164_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/rf5c164_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/rf5c164_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/rf5c164_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          }
+        ],
+        "validHelp": true,
+        "noFileWritesForInvalidArgumentsOrHelp": true,
+        "protectedSyntheticInputFiles": {
+          "a/build-info.json": "c98a3c74f501c78c817fea501f27b24228e7791eeadbcf17cb06ab3426e82271",
+          "a/rf5c164_wasm.js": "2c61d2075bbb247b3e7eead64e6f05d95b77d64fc5a9ce8eaefcd9df996942f6",
+          "a/rf5c164_wasm.wasm": "6776603369bab50e4d7feed7344aaffafb762e44f3000004e32156aa2edb0e85",
+          "b/build-info.json": "b77ed95187885a9bead1d1f15ab6e3a8013b2bdebcf6a896a387c054e893e315",
+          "b/rf5c164_wasm.js": "699c963aeaec8dfe2b694a206670562f8d765291833d94ec9c26bd7c160667ed",
+          "b/rf5c164_wasm.wasm": "5be38d3fefd6501af784865814ded702b683aeefcbbe23f1d83ad2d65d73dfdd"
+        },
+        "scope": "Arguments parsed and rejected before build input access. Synthetic protected input files and full guard output directory remain byte-identical; no matrix rerun."
+      }
+    }
+  },
+  "browserWorklet": {
+    "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/playground-summary.json",
+    "bytes": 5291,
+    "sha256": "951a638edeafb890a63f2311da22778146a614fe2c5fd66e0b9d32f8155abf10",
+    "record": {
+      "passed": true,
+      "actualAudioWorkletRoutes": 4,
+      "sourceReports": [
+        {
+          "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/playground-chromium.json",
+          "bytes": 3983,
+          "sha256": "5cf40ecdd7995fbf8f3d85fccc44ca6b1a9bc02b87f94dc7bcac7aa4a8ef025c"
+        },
+        {
+          "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/playground-webkit.json",
+          "bytes": 3977,
+          "sha256": "99beaa2e5141adda2e4ff856a2ac7d022a9a35e07dffe712540e21e60fd82c30"
+        }
+      ],
+      "rows": [
+        {
+          "browser": "chromium",
+          "role": "extra",
+          "mode": "genesis",
+          "kind": "rf5c164",
+          "frequencyHz": 440,
+          "sourceGain": 0.280286,
+          "measuredAmplitude": 0.12881797552108765,
+          "expectedAmplitude": 0.12881796752929686,
+          "relativeError": 6.203941071980523e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "minimum": [
+              -0.12881797552108765,
+              -0.12881797552108765
+            ],
+            "maximum": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "rms": [
+              0.09112301462791955,
+              0.09112301462791955
+            ],
+            "dc": [
+              -3.057093116998052e-05,
+              -3.057093116998052e-05
+            ],
+            "acRms": [
+              0.09112300949978665,
+              0.09112300949978665
+            ],
+            "nonzero": [
+              18680,
+              18680
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        },
+        {
+          "browser": "chromium",
+          "role": "primary",
+          "mode": "mega-cd",
+          "kind": "rf5c164",
+          "frequencyHz": 440,
+          "sourceGain": 0.280286,
+          "measuredAmplitude": 0.12881797552108765,
+          "expectedAmplitude": 0.12881796752929686,
+          "relativeError": 6.203941071980523e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "minimum": [
+              -0.12881797552108765,
+              -0.12881797552108765
+            ],
+            "maximum": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "rms": [
+              0.09112265857620756,
+              0.09112265857620756
+            ],
+            "dc": [
+              -2.8605374924760934e-05,
+              -2.8605374924760934e-05
+            ],
+            "acRms": [
+              0.09112265408628427,
+              0.09112265408628427
+            ],
+            "nonzero": [
+              18680,
+              18680
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        },
+        {
+          "browser": "webkit",
+          "role": "extra",
+          "mode": "genesis",
+          "kind": "rf5c164",
+          "frequencyHz": 440,
+          "sourceGain": 0.280286,
+          "measuredAmplitude": 0.12881797552108765,
+          "expectedAmplitude": 0.12881796752929686,
+          "relativeError": 6.203941071980523e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "minimum": [
+              -0.12881797552108765,
+              -0.12881797552108765
+            ],
+            "maximum": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "rms": [
+              0.09112301462791955,
+              0.09112301462791955
+            ],
+            "dc": [
+              -3.057093116998052e-05,
+              -3.057093116998052e-05
+            ],
+            "acRms": [
+              0.09112300949978665,
+              0.09112300949978665
+            ],
+            "nonzero": [
+              18680,
+              18680
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        },
+        {
+          "browser": "webkit",
+          "role": "primary",
+          "mode": "mega-cd",
+          "kind": "rf5c164",
+          "frequencyHz": 440,
+          "sourceGain": 0.280286,
+          "measuredAmplitude": 0.12881797552108765,
+          "expectedAmplitude": 0.12881796752929686,
+          "relativeError": 6.203941071980523e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "minimum": [
+              -0.12881797552108765,
+              -0.12881797552108765
+            ],
+            "maximum": [
+              0.12881797552108765,
+              0.12881797552108765
+            ],
+            "rms": [
+              0.09112323480719693,
+              0.09112323480719693
+            ],
+            "dc": [
+              -3.20646995290493e-05,
+              -3.20646995290493e-05
+            ],
+            "acRms": [
+              0.09112322916568853,
+              0.09112322916568853
+            ],
+            "nonzero": [
+              18682,
+              18682
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        }
+      ],
+      "maxRelativeError": 6.203941071980523e-08,
+      "physicalOutputMuted": true,
+      "method": "Existing calibration runner --verify at440Hz; listening gain0 while capture observes pre-master PCM. Actual additionalRF/genesis and primaryRF/mega-cd Worklets in Chromium/WebKit.",
+      "preservedSourceGain": 0.280286,
+      "limits": [
+        "Centered synthetic one-voice sample references only; no stereo-pan stress or physical listening claim.",
+        "No Native, Audify or Worker paths; no numeric Mixer tuning. All four build pairs byte-identical; existing calibration/default records preserved."
+      ]
+    }
+  },
+  "browserSamplerKeyboard": {
+    "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/voice-summary.json",
+    "bytes": 5187,
+    "sha256": "ac68014d636cc3b8fcf6a61bb2313e3e16b005347493bdcba0bb5555a3a9a796",
+    "record": {
+      "passed": true,
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "execution": [
+        "main"
+      ],
+      "sourceLog": {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/sampler-muted.log",
+        "bytes": 2055,
+        "sha256": "1b29a4d67e84de6c6d2e60fb60d5c83e746f93b4a2824964aa5049c5dda08276"
+      },
+      "temporaryHarness": {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/run-sampler-main-muted.cjs",
+        "bytes": 1757,
+        "sha256": "bfdf8ea9e6dbcd7c9cd1bf46ba730560b7efbb297aa6404535bb4133480dd4dd"
+      },
+      "originalScript": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_playground_megacd_browser.cjs",
+        "bytes": 32162,
+        "sha256": "9fd2ce6a31b02132793b55844df1c55f6f732525d8df29e02ba84f7b81120867"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "example": "/index.js",
+          "voices": true,
+          "stop": true
+        },
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "example": "/examples/mega-cd/megacd-pcm-loop.js",
+          "voices": true,
+          "stop": true
+        },
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "example": "/examples/mega-cd/megacd-fm-pcm.js",
+          "voices": true,
+          "stop": true
+        },
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "samplerFile": true,
+          "sharedKeyboard": true,
+          "savedAssetRestore": true,
+          "polyphony": 8,
+          "voiceSteal": true,
+          "pitch": true,
+          "keyRelease": true,
+          "editorSuppressesKeys": true,
+          "editorFocusRelease": true,
+          "heldStop": true,
+          "blurRelease": true,
+          "cancel": true
+        },
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "samplerMicrophone": true,
+          "tracksClosed": true,
+          "stopClosesDialog": true,
+          "recordingCancel": true,
+          "recordingStop": true,
+          "latePermissionCleanup": true
+        },
+        {
+          "browser": "chromium",
+          "megaCD": true,
+          "types": true,
+          "main": true,
+          "worker": false,
+          "passed": true
+        },
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "example": "/index.js",
+          "voices": true,
+          "stop": true
+        },
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "example": "/examples/mega-cd/megacd-pcm-loop.js",
+          "voices": true,
+          "stop": true
+        },
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "example": "/examples/mega-cd/megacd-fm-pcm.js",
+          "voices": true,
+          "stop": true
+        },
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "samplerFile": true,
+          "sharedKeyboard": true,
+          "savedAssetRestore": true,
+          "polyphony": 8,
+          "voiceSteal": true,
+          "pitch": true,
+          "keyRelease": true,
+          "editorSuppressesKeys": true,
+          "editorFocusRelease": true,
+          "heldStop": true,
+          "blurRelease": true,
+          "cancel": true
+        },
+        {
+          "browser": "webkit",
+          "execution": "main",
+          "samplerMicrophone": true,
+          "tracksClosed": true,
+          "stopClosesDialog": true,
+          "recordingCancel": true,
+          "recordingStop": true,
+          "latePermissionCleanup": true
+        },
+        {
+          "browser": "webkit",
+          "megaCD": true,
+          "types": true,
+          "main": true,
+          "worker": false,
+          "passed": true
+        }
+      ],
+      "physicalOutputMuted": true,
+      "muteMethod": "In-memory accessor wraps audio.ensureRouting before first audio creation, installs final zeroGain outputNode connected to destination. Source, Mixer, master and monitor gains remain unchanged.",
+      "coverage": [
+        "Actual MegaCD primary FM/PSG/RF composition and Monaco public PCM/input/sampler type assertions.",
+        "Original bounded current index.js plus /examples/mega-cd/megacd-pcm-loop.js and megacd-fm-pcm.js, actual audible finite PCM and Stop.",
+        "Synthetic3s440Hz16kHzPCM16WAV selected through existing audio-input editor; current megacd-sampler.js runs unchanged. File-save restore, Inspector waveform/endguard32, semitone pitch, shared Keyboard,8voices and ninth-note steal, stale-owner keyup, Code focus suppression/release, blurrelease and heldStop.",
+        "Existing oscillator-backed getUserMedia mock only; sample use/audiblePCM, track closure, recordingCancel/Stop, inputDialogStop and delayed-permission cleanup. No physical microphone."
+      ],
+      "adaptations": [
+        "Main-only loops selected in memory and final report worker:false.",
+        "Existing test hardcodes4 discovered files; current mode offers7 including shared cross-mode examples. Harness filters MODE_EXAMPLE_FILES to /examples/mega-cd/ only, recovering original3 MegaCD files plusindex, and preserves originalcount/type/audio assertions.",
+        "Generated screenshots stored only in task temp folder. Original test/application files unchanged."
+      ],
+      "limits": [
+        "Other shared examples, Worker, Native, Audify, performance/quality-only recordings and physical audio judgement not tested.",
+        "No separate RF operator-editor routing case or new pan harness run; sampler Keyboard coverage uses existing displayed keys.",
+        "No product behavior or gain changed; actual source gain0.280286 from separate Worklet captures, not historical RF gain33."
+      ]
+    }
+  },
+  "verification": {
+    "python": {
+      "command": "python3 -m unittest discover -s test -p 'test_*sdk*.py' -v",
+      "passed": 71,
+      "log": {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/python-sdk-tests.log",
+        "bytes": 13075,
+        "sha256": "e5b6c0b1bcdcaa4641b47e51729a03c992da0fe83f7f5323431f3c96cb035532"
+      }
+    },
+    "existingRfMegaCdTests": {
+      "command": "node --test docs/playground/rf5c164_audio.test.mjs docs/playground/rf5c164_vgm_export.test.mjs docs/playground/megacd_pcm_loop.test.mjs docs/playground/megacd_sampler.test.mjs web/playground_rf5c164.test.mjs web/playground_rf5c164_keyboard.test.mjs web/playground_megacd_default.test.mjs web/genesis_state.test.mjs docs/vgm_analyzer/rf5c164_monitor.test.mjs docs/vgm_analyzer/rf5c164_samples.test.mjs",
+      "passed": 53,
+      "log": {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/rf-megacd-tests.log",
+        "bytes": 5536,
+        "sha256": "6e1a7095abfc982053908f280266c11ab806c798696567fafa392654d15591c8"
+      }
+    },
+    "npm": {
+      "command": "node scripts/check_fm2612_package.mjs",
+      "passed": true,
+      "published": false,
+      "packageVersion": "0.2.28",
+      "files": 803,
+      "wasmEngines": 26,
+      "localSynthReferences": 942,
+      "compressedBytes": 1590276,
+      "unpackedBytes": 5933007,
+      "typeChecks": [
+        "NodeNext",
+        "Bundler",
+        "positive and negative declarations",
+        "browser without Node ambient types"
+      ],
+      "log": {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/npm-check.log",
+        "bytes": 1637,
+        "sha256": "20352aff25d7c6df39fea256d5d695f22e0474e09e52684ad57484f85b6ace48"
+      }
+    },
+    "analyzerPackage": {
+      "command": "sh scripts/package_itch_vgm_analyzer.sh rf5c164-sdk",
+      "passed": true,
+      "localReferences": 753,
+      "log": {
+        "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/analyzer-package.log",
+        "bytes": 20571,
+        "sha256": "40f3e3333e0427c0c2991fd93bd104c477d496b475d5fb6fecef5d2766a2763a"
+      },
+      "zip": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_rf5c164-sdk_itch_vgm_analyzer.zip",
+        "sha256": "bebd73f675e7cd84a18d3b6d2b6d38c8908119a0215c395e8525d10f1657d1ce",
+        "bytes": 1751765,
+        "fileCount": 370,
+        "assets": [
+          {
+            "path": "generated/rf5c164_wasm.js",
+            "bytes": 35162,
+            "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+            "testedDefaultMatches": true
+          },
+          {
+            "path": "generated/rf5c164_wasm.wasm",
+            "bytes": 27583,
+            "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+            "testedDefaultMatches": true
+          }
+        ]
+      }
+    },
+    "calibration": {
+      "refreshRequired": false,
+      "numericMixerDefaultsChanged": false,
+      "currentPlaygroundRfMixerGain": 0.280286,
+      "reason": "All generated RF JS/WASM and public wrappers are byte-identical. Source audit lists active guards/default generators and unchanged baseline hashes. Historical calibration captures and numeric defaults remain unchanged."
+    }
+  },
+  "integrity": {
+    "path": "/private/tmp/tetorica-rf5c164-wasm-sdk/final-integrity-audit.json",
+    "bytes": 12569,
+    "sha256": "b9299e6d042eb6f57eb4359b0f1b59c544ab7ad715bfaae9d1eabe105f741374",
+    "record": {
+      "passed": true,
+      "baseCommit": "70998f67e4820020ad78175cb3a97997ed4cfee6",
+      "previousArtifactsPreserved": [
+        {
+          "id": "ay8910",
+          "recordSha256": "e811fe97294a0043972a0cb5c4c16782dd467ef47de7c8895412151036f9b1ee",
+          "recordUnchanged": true
+        },
+        {
+          "id": "okim6258",
+          "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+          "recordUnchanged": true
+        },
+        {
+          "id": "segapsg",
+          "recordSha256": "78faa719d3c7a9e42ed95c407cd1caf65964a464d15219740cf1c000ba6e40d3",
+          "recordUnchanged": true
+        },
+        {
+          "id": "y8950",
+          "recordSha256": "0c9f0c5715b83f661ee4398458d30b053c6d4d3b0ebc74deff85beafe3472866",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2151",
+          "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2203",
+          "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2413",
+          "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2608",
+          "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2610b",
+          "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2612",
+          "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3526",
+          "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3812",
+          "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ymf262",
+          "recordSha256": "f7d26b834504dc82013673c2d26daffc5acdc6bd8f2305e83789fc8903e956c0",
+          "recordUnchanged": true
+        }
+      ],
+      "previousGeneratedFilesPreserved": [
+        {
+          "path": "docs/generated/ay8910_wasm.js",
+          "bytes": 12113,
+          "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ay8910_wasm.wasm",
+          "bytes": 13549,
+          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.js",
+          "bytes": 14797,
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.wasm",
+          "bytes": 20173,
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/segapsg_wasm.js",
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/segapsg_wasm.wasm",
+          "bytes": 27286,
+          "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/y8950_wasm.js",
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/y8950_wasm.wasm",
+          "bytes": 22425,
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.js",
+          "bytes": 15584,
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.wasm",
+          "bytes": 31322,
+          "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.js",
+          "bytes": 35153,
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.wasm",
+          "bytes": 45306,
+          "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.js",
+          "bytes": 32911,
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.wasm",
+          "bytes": 33469,
+          "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.js",
+          "bytes": 36356,
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.wasm",
+          "bytes": 53893,
+          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.js",
+          "bytes": 36296,
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.wasm",
+          "bytes": 51172,
+          "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2612_wasm.js",
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2612_wasm.wasm",
+          "bytes": 40357,
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.js",
+          "bytes": 14274,
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.wasm",
+          "bytes": 18894,
+          "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.js",
+          "bytes": 14274,
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.wasm",
+          "bytes": 19058,
+          "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ymf262_wasm.js",
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ymf262_wasm.wasm",
+          "bytes": 21377,
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "unchanged": true
+        }
+      ],
+      "unchangedPublicMixerCalibrationAndPinFiles": [
+        {
+          "path": "third_party/soundchip-sdk.json",
+          "sha256": "f195c3929eb1895235e431f496f90314d7419a260a504361a352f080e87a6500",
+          "bytes": 407,
+          "unchanged": true
+        },
+        {
+          "path": "web/rf5c164.js",
+          "sha256": "feeda7db22bf3b3be39aafabd51547d37661c69cacb6a72607bb8ad599a76e67",
+          "bytes": 10188,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/rf5c164.js",
+          "sha256": "3d3e41ecec0123939832c3a201be39c812be053d807312341a540ebeb28ac5e0",
+          "bytes": 10226,
+          "unchanged": true
+        },
+        {
+          "path": "web/genesisaudioengine.js",
+          "sha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9",
+          "bytes": 14608,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/genesisaudioengine.js",
+          "sha256": "161eb80e8b9a4fea1588b103fe93c519553a45a97142946830d6bb2acbb26439",
+          "bytes": 14809,
+          "unchanged": true
+        },
+        {
+          "path": "web/rf5c164synth.js",
+          "sha256": "824cd3a389fd70bc362b745a52ee7301ac2745f2ec8a02a12c3e79f8417fcfea",
+          "bytes": 4816,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/rf5c164synth.js",
+          "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a",
+          "bytes": 4836,
+          "unchanged": true
+        },
+        {
+          "path": "web/soundchip_mixer_presets.js",
+          "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+          "bytes": 2967,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/soundchip_mixer_presets.js",
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+          "bytes": 2986,
+          "unchanged": true
+        },
+        {
+          "path": "docs/vgm_analyzer/playback_mixer.js",
+          "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+          "bytes": 4433,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/calibrate_playground_chip_levels.cjs",
+          "sha256": "b90d85dfdbdb620b1a1512c13029aff1892cb1e0e7d0d0b4f65b43ad211bac97",
+          "bytes": 12107,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/check_playground_megacd_browser.cjs",
+          "sha256": "9fd2ce6a31b02132793b55844df1c55f6f732525d8df29e02ba84f7b81120867",
+          "bytes": 32162,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_01.json",
+          "sha256": "d113077b099a2cf45de97bc5d00f4d61e2d25501c3c9ec227ef4908fdf020876",
+          "bytes": 34163,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_02.json",
+          "sha256": "ad4acdb5bd6be083f995754651956e2285e181dcd3eea09a9341bb74543eb37a",
+          "bytes": 35083,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_mixer_levels_validation.json",
+          "sha256": "07227a8aa9b0dbe5aedd33a6028f4db408dc2f60352fae50015f4a3309cd4c47",
+          "bytes": 10372,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_nes_levels_01.json",
+          "sha256": "1cca711e8b58417d7759a48f6b18b2c298224f0497a6078e013469c71378d3af",
+          "bytes": 24645,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_01.json",
+          "sha256": "6a234c9833d6889e704b436f48b50bba75d18ccf2760272df37f869ab6076ab3",
+          "bytes": 20391,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_02.json",
+          "sha256": "0ead909b24b29daa965d0ecc128b211c4d9f44c8158630545c38f8aa6f9f28ef",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_03.json",
+          "sha256": "bae758a548af196859753834b88896308d0d442341e4ae6819dbd7e492f74917",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_04.json",
+          "sha256": "f8f31e9295bd41ac6ed840c5e01de658bba7a6945f4af73373a05357d4cfc42d",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/playground_chip_levels_01.json",
+          "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234",
+          "bytes": 248714,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/soundchip_psg_levels_01.json",
+          "sha256": "2b92f8286b9dee25994972b146f9ee2c145df883434d5971d2a01f620b39d2f6",
+          "bytes": 35365,
+          "unchanged": true
+        }
+      ],
+      "allOldLevelRecordsPreserved": 11,
+      "defaultOutputs": [
+        {
+          "path": "docs/generated/rf5c164_wasm.js",
+          "bytes": 35162,
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true
+        },
+        {
+          "path": "docs/generated/rf5c164_wasm.wasm",
+          "bytes": 27583,
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true
+        }
+      ],
+      "sdkVerification": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)",
+      "protectedSavePointTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7",
+      "externalRepositories": {
+        "w/tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "clean": true
+        },
+        "w/tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "clean": true
+        }
+      }
+    }
+  },
+  "remaining": {
+    "migratedSdkWasmArtifacts": 14,
+    "remainingSdkDispatcherArtifacts": 13,
+    "nextCandidate": "32X PWM WASM",
+    "remoteCiRun": false,
+    "npmOrApplicationPublished": false,
+    "nativeBackendTestedThisTask": false,
+    "physicalListeningTested": false,
+    "sdkOrTauriRepositoryEdited": false,
+    "browserExecution": "Web Audio/main only for UI; final destination zero gain. Synthetic uploaded WAV and existing oscillator-backed mock microphone; no hardware microphone or listening judgement.",
+    "chipVsEngineReset": "Raw/public chip reset retains64KiB RAM. Existing GenesisAudioEngine reset additionally clears RAM. clearMemory alone retains current held sample until the next native tick.",
+    "stateCompatibility": "Public opaque states remain same-instance/same-build. Raw state byte cross-load is limited to trusted compared builds; native loader checks pointer and exact length.",
+    "fmReset": "Existing YM2612 reset retains free-running timing; active FM mixing is tested from identical saved phase and through opaque continuation.",
+    "catalogNote": "RF5C164 and the prior OKIM6258 individual catalog input lists omit shared vendor/ymfm/chip_state.h. Its pinned bytes are included and verified by the complete379-file manifest, plus explicit corruption rejection. Fixed SDK/pin remain unchanged; individual catalog coverage is a future SDK update."
+  }
+}

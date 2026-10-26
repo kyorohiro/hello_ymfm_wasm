@@ -130,6 +130,65 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "rf5c164",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "e42d5e922402facea35563f03bb1c7fd9b60ec789bb7d079d38cc631ca55a96c",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_rf5c164_wasm.sh",
+          "sha256": "58ca1a118995ea01b57ac665021d6c7f7ff8ee700ba0539e8e7cc3ebab85457e",
+          "size": 962
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-rf5c164/rf5c164.cpp",
+          "sha256": "9e8867bbbc74c60cf92f1300da9c01d59c0e820f69fd2a4461dfd08e3f6b8aea",
+          "size": 3136
+        },
+        {
+          "path": "vendor/mame-rf5c164/rf5c164.h",
+          "sha256": "438829c9b8706a78c3ac71551f44a02a3bad0431bc1ec17df1e2b1ee7d91483d",
+          "size": 1754
+        },
+        {
+          "path": "vendor/mame-rf5c164/upstream/rf5c68.cpp",
+          "sha256": "71e94d93dd9fdbbcf2c396c62ab2aa50d948bfcc2be688391f2f58268522aea9",
+          "size": 8152
+        },
+        {
+          "path": "wasm/rf5c164_wasm.cpp",
+          "sha256": "09351371671187946edc2b7cfb9bcb6093136ba59f220add9f54b79c1e69a055",
+          "size": 1531
+        }
+      ],
+      "outputs": [
+        {
+          "path": "rf5c164_wasm.js",
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+          "size": 35162
+        },
+        {
+          "path": "rf5c164_wasm.wasm",
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+          "size": 27583
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "segapsg",
       "format": "emscripten-es-module",
       "sourceFingerprint": "bede9f226fcfbab287c64dcb6759c1bbc774a8279a4dee56ec34ceb89c0384e9",

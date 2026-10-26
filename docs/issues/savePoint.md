@@ -52,6 +52,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くSega PSG WASMも同じ固定SDKへ切り替えた。Genesis系・Game Gear・Master System・追加PSGで共有するartifactのビルド元を統一した。
 3 tone／noise・Game Gear stereo、状態保存／復元とowned／borrowed PCMを比較し、生成物は旧版とbyte一致した。
 詳細は[Sega PSG WASMのSDK移行](wasm_sdk_segapsg_adoption_01.md)を参照。
+続くRF5C164 WASMも同じ固定SDKへ切り替えた。Mega CDと追加PCMのビルド元を統一した。
+8 voice、64 KiB RAM・bank OR、bus読出しと状態復元を比較し、生成JS／WASMは旧版とbyte一致した。
+詳細は[RF5C164 WASMのSDK移行](wasm_sdk_rf5c164_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1165,8 +1168,30 @@ Python67件と既存PSG／Genesis試験52件、両Browserの10 Worklet経路、S
 隔離npm配布物と型、Analyzer ZIPも成功。出力bytesと校正hashが変わらず、再測定や音量変更は不要だった。
 詳細と最終比較結果・hashは[PSG移行記録](wasm_sdk_segapsg_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計13 artifact。次はRF5C164用WASMへの展開が候補。
-残り14 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はSega PSG移行時の記録。続くRF5C164移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — RF5C164 WASMの固定SDK参照
+
+`scripts/build_rf5c164_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルと取り込み記録、公開APIとMixer値を保持し、先行13音源の記録・26生成物も維持した。
+C++14／O2・ASSERTIONS／EXPORT_ALL・16 C exportとHEAPU8を維持する。
+配布済み・旧手順再ビルド・SDK・通常出力のJS／WASMはすべてbyte一致した。
+
+旧再ビルド／配布済み版との各828比較でPCM・bus読出し・RAMを含むstate差0。
+8 voice、sign-magnitude・loop marker・左右pan、64 KiB境界と16 window bankのORを確認した。
+chipのresetはRAMを保持し、GenesisAudioEngineのresetは追加でRAMをclearする既存の違いを維持する。
+public同一instance復元234回・raw状態の相互復元144回・reset／再演奏342回も成功。
+実GenesisAudioEngineの混合と、実VgmPlayerのRAM転送／checkpoint／seekを確認した。
+Python71件・既存RF／Mega CD試験53件、両Browserの主PCM／追加RFの4 Worklet経路が成功。
+元のMega CD exampleとサンプラーのファイル入力・mock mic・8 voice Keyboard／Stopも、両Browserのmainで確認した。
+隔離npm配布物と型、Analyzer ZIPも成功。出力bytesと校正hashが変わらず、再測定や音量変更は不要だった。
+詳細と最終結果・hashは[RF移行記録](wasm_sdk_rf5c164_adoption_01.md)とそのJSONを参照する。
+個別catalogのchip_state.h列挙漏れは固定SDKに残し、全manifest検証と改変拒否試験で保護する。
+
+固定SDKへ切り替えたWASMは計14 artifact。次は32X PWM用WASMへの展開が候補。
+残り13 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲
