@@ -242,6 +242,10 @@ included in `third_party/`.
 With Emscripten and Python 3 installed, run a chip recipe such as
 `sh scripts/build_okim6258_wasm.sh` or `sh scripts/build_dx7_wasm.sh`.
 See the full recipe list and [build and SDK update instructions](docs/building_ym2612_wasm.md).
+Run `npm run test:wasm:sdk` to rebuild all 27 artifacts in an isolated temporary
+directory and verify receipts, the WASM ABI and exact PCM against the committed
+builds. The same command runs in the WASM SDK CI workflow; it needs no sibling
+checkout or npm dependencies.
 
 ## License and Attribution
 

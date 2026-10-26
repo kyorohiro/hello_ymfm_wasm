@@ -5,6 +5,71 @@ The builds listed below use the complete local SDK source release at
 build recipes, provenance and component licenses. No SDK checkout, submodule,
 download or synchronized edit of another repository is required.
 
+## Verify all 27 builds
+
+With Node.js 22 or later, Python 3, Emscripten, `sh` and Perl installed, run:
+
+```sh
+npm run test:wasm:sdk
+# Equivalent, without npm or installed npm dependencies:
+node scripts/check_wasm_sdk.mjs
+```
+
+This invokes the SDK's existing `build-wasm.sh all` in a fresh directory outside
+the checkout. It does not rebuild in `docs/generated/` or update runtime copies.
+The command requires exactly 27 receipts and 53 outputs: 26 generated JS/WASM
+pairs and DX7's standalone `msfa.wasm`. It verifies each receipt's source list,
+source fingerprint and actual pinned source bytes, output sizes/hashes, WASM
+imports/exports and the three deployed DX7 copies. Missing, duplicate or extra
+artifacts fail validation before generated JavaScript is imported.
+
+After building, all 27 existing per-core checkers compare real PCM and API
+behavior against snapshots of the committed `docs/generated/` builds. The
+runner rechecks the reference, candidate and repository inputs afterward.
+The DX7 checker needs only checked-in SDK/runtime inputs; a separate DX7 source
+checkout is not required. Receipt validation is mandatory in the aggregate
+command, even though individual comparison tools retain their optional receipts.
+
+Results are retained in the printed temporary directory: `summary.json`,
+`logs/build.log`, per-core logs, `reports/<artifact>.json`, both sets of outputs
+and their receipts. A failure returns a nonzero exit code, records its phase
+and any failing artifact, and lists the remaining comparisons. Existing work
+directories are refused, including empty directories; input overlap and paths
+inside or containing the checkout are also refused. To choose the directory,
+pass a new path whose parent already exists:
+
+```sh
+npm run test:wasm:sdk -- --work-dir /tmp/tetorica-wasm-check
+```
+
+For comparison of an already built complete SDK output, skip compilation with:
+
+```sh
+node scripts/check_wasm_sdk.mjs \
+  --sdk-dir /path/to/complete-sdk-build \
+  --work-dir /tmp/tetorica-wasm-recheck
+```
+
+`--reference-dir` selects another complete reference directory. Both supplied
+builds must have receipts matching the currently pinned SDK; this command does
+not accept historical receipts with different source identities. Inputs are
+copied into the fresh work directory before comparison, and neither original
+input directory is changed. `EMXX`/`EMCC` still select the SDK compilers.
+
+The [WASM SDK workflow](../.github/workflows/wasm-sdk.yml) uses Ubuntu 24.04,
+Node 22, Python 3.12 and Emscripten 6.0.6. It first runs the receipt/path/DX7
+checkout tests, then the same full command, and retains diagnostics for seven
+days even on failure. This is separate from the recording-compiler build-route
+tests already run by the VGM workflow.
+
+These checks exercise synchronous Node/WASM generation. Existing mixed-engine
+fixtures use committed partner-chip binaries and replace one core at a time;
+they are not a simultaneous test of all rebuilt cores in a browser. DX7 counts
+mono output frames, while the other reports retain their own stereo frame
+counters. The runner totals comparisons without combining those frame units.
+It does not build npm/itch.io archives, run Native/Tauri, open an audio device,
+dispatch remote CI or publish anything.
+
 ## Build
 
 | Chip(s) | Build script | Output module basename |
