@@ -32,8 +32,10 @@ command, even though individual comparison tools retain their optional receipts.
 
 Results are retained in the printed temporary directory: `summary.json`,
 `logs/build.log`, per-core logs, `reports/<artifact>.json`, both sets of outputs
-and their receipts. A failure returns a nonzero exit code, records its phase
-and any failing artifact, and lists the remaining comparisons. Existing work
+and their receipts. Once the work directory is created, a failure returns a
+nonzero exit code, records its phase and any failing artifact, and lists the
+remaining comparisons. Invalid arguments and unsafe paths are refused before
+creating output. Existing work
 directories are refused, including empty directories; input overlap and paths
 inside or containing the checkout are also refused. To choose the directory,
 pass a new path whose parent already exists:
@@ -600,5 +602,6 @@ can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
 All 27 module recipes now use the fixed SDK: 26 ES-module pairs and one DX7
-standalone WASM. Local `src/`, `wasm/`, `third_party/` and optional DX7 source
-checkouts remain reference inputs; ordinary SDK builds do not depend on them.
+standalone WASM. Older application-local `src/`, `wasm/` and per-core
+`third_party/` copies remain available for reference; builds use the pinned
+SDK snapshot. An external DX7 source checkout is optional.

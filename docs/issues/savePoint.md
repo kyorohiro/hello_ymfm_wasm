@@ -99,6 +99,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 その後、DX7初期コードのMixer `0.5`上書きと、小音量の初期音色を調整した。
 Mixer指定を初期コード・基本Exampleから除き、ユーザーの選択に従って初期音色の単一キャリアをOP99／EG99へ揃えた。
 System倍率と既存保存データは保持する。詳細は[DX7初期コードとMixer](dx7_starter_mixer_01.md)。
+続いて全27 WASMビルドの一括検証を追加した。`npm run test:wasm:sdk`で、一時領域へ全生成・receipt必須照合・既存PCM／API比較を行う。
+実build27件・53出力・39,982比較が成功し、生成物は配布版とbyte一致。別checkout・npm installなしのarchiveでも再比較が成功した。
+同じコマンドを使うCI設定を追加した。詳細は[全27 WASMの一括検証](wasm_sdk_batch_validation_01.md)。
 既存の音量調整では、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1517,7 +1520,23 @@ Mixer Systemの1.038825、共有INIT SINE・SysEx・WASM／Native core、既存�
 Node34件・bundle照合、実配布WASMの44100／48000Hz測定と、Chromium／WebKit×Main／Workerの実Worklet4ケースが成功した。
 System／任意0.73pan−0.2のRun／Example後の保持とSystem復帰、最終音色のRMS>0.06・非clipを確認した。destination前zeroGainで物理聴音はしていない。
 詳細は[作業記録](dx7_starter_mixer_01.md)。証跡は`/private/tmp/tetorica-dx7-mixer01/`。commit／公開・Tauri配布物の取り込みは未実施。
-次の候補は、先に提案した全27ビルドの一括検証。今回まだ着手していない。
+この節はDX7音量調整時の記録。続く全27ビルドの一括検証は次の節に記載する。
+
+### 完了した作業 — 全27 WASMビルドの一括検証
+
+`npm run test:wasm:sdk`／`node scripts/check_wasm_sdk.mjs`を追加した。既存SDKのall recipeでcheckout外の新しい領域へ生成し、全27checkerを呼ぶ。
+着手時は本体`3fedff04324d7946daf56f01a4a34146465898c1`でclean。SDK0.1.1／379ファイル・pinと、既存runtime／API／生成物・Mixerは変更していない。
+共有inventory validatorで27件・53出力・固有164source/build入力、sourcefingerprint／実hash／sizeとWASM ABIを必須検証する。
+既存／checkout内／入力重複／alias／TMPDIRを拒否し、失敗phase・artifact・未実行一覧、ログ／reportを残す。POSIXtimeoutは子process群も停止する。
+DX7checkerの旧w/必須依存を除き、実SDK32入力・license・runtime／ABI／receipt guardは保持した。
+新しい3試験fileは55＋14＋12＝81件成功。実Emscripten6.0.6-gitで全27ビルド（64.762秒）と合計39,982比較（70.106秒）が成功し、53ファイルは配布版とbyte一致した。
+実行前後で1,952repository入力・元参照・参照コピー・再build候補の不変を確認した。音源別frameの単位は維持し、mono／stereoを合計しない。
+git archive d98c245fc7316c7eafb7872c546458d6ec847f8eの3,444fileを、.git／w／node_modulesなしで展開した。
+そこから--sdk-dirで同じ再build済み出力を再利用し、27件・39,982比較が再成功した。compilerの2回目実行や固有coverageの倍加はしていない。
+Ubuntu24.04／Node22／Python3.12／Emscripten6.0.6のWASM SDK workflowを追加し、3試験と同じ一括コマンド、失敗時も7日保持の診断artifactを設定した。
+remoteCIの手動起動・結果確認、npm／itch.io作成・公開、Native／Tauri・Browser音声実行は行っていない。SPCのWebKitclose問題も未解決のまま別扱い。
+詳細は[作業記録](wasm_sdk_batch_validation_01.md)と[検証JSON](wasm_sdk_batch_validation_01.json)。証拠は`/private/tmp/tetorica-wasm-sdk-all-rpl7z7np/`。
+次は新workflowをremoteCIでも確認する候補。個別音源のSDK移行は残っていない。
 
 ### その他の作業候補と未着手範囲
 
