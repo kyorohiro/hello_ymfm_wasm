@@ -4,7 +4,7 @@ This directory contains the `tetorica-msfa-dx7-wasm@0.3.1` npm release payload,
 including live operator level/frequency editing and `setFeedback`.
 All 25 original package files still match the release tarball byte for byte.
 The engine is now rebuilt from the included fixed `tetorica-soundchip-native`
-SDK `0.1.1` (`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`) using
+SDK `0.1.2` (`53b33a15f5c4b919b185cb912016eccfbbb6d3a6`) using
 `sh scripts/build_dx7_wasm.sh` at the application root. The SDK-built standalone
 `msfa.wasm` matches the deployed release bytes: SHA-256
 `f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f`.

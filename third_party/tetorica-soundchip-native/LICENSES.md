@@ -36,6 +36,13 @@ Apache-2.0, [FDS](vendor/tetorica-nes/LICENSE-FDS) uses MIT, and
 retain their LGPL terms. Use the catalog's complete file list when selecting a
 chip and its adapters.
 
+[Tetorica Sega PSG](vendor/tetorica_sega_psg/README.md) is original Tetorica code
+under its own [BSD-3-Clause notice](vendor/tetorica_sega_psg/LICENSE), separate
+from ymfm. Its README credits the [SMS Power! SN76489 hardware documentation](https://www.smspower.org/Development/SN76489)
+by Maxim and research contributors. The shared serialization helper
+`vendor/ymfm/chip_state.h` is also original Tetorica code under [LICENSE](LICENSE);
+its historical location does not assign Aaron Giles authorship to that helper.
+
 The [MSM5205](vendor/libvgm-msm5205/LICENSE) and
 [OKIM6295](vendor/mame-okim6295/LICENSE) JavaScript references retain their BSD
 copyright notices and adaptation records. They are unchanged copies of the

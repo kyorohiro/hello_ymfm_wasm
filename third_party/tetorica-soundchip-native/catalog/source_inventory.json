@@ -10,8 +10,6 @@
       "id": "ymfm",
       "sourceFiles": [
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -50,16 +48,6 @@
           "path": "vendor/ymfm/chip_state.h",
           "originPath": "src/chip_state.h",
           "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
-        },
-        {
-          "path": "vendor/ymfm/segapsg.cpp",
-          "originPath": "src/segapsg.cpp",
-          "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612"
-        },
-        {
-          "path": "vendor/ymfm/segapsg.h",
-          "originPath": "src/segapsg.h",
-          "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7"
         },
         {
           "path": "vendor/ymfm/ymfm.h",
@@ -175,6 +163,54 @@
           "path": "vendor/ymfm/LICENSE",
           "originPath": "LICENSE",
           "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+        }
+      ]
+    },
+    {
+      "id": "tetorica-sega-psg",
+      "sourceFiles": [
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica_sega_psg/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/hello_ymfm_wasm"
+      ],
+      "sourceVersion": [
+        "Tetorica original implementation imported from 0fff93d46ab3e9227ecffcacdf96f3ca115e6f72; original hashes retained below",
+        "Working-tree relocation and explicit BSD headers; synthesis and API unchanged"
+      ],
+      "references": [
+        {
+          "url": "https://www.smspower.org/Development/SN76489",
+          "role": "hardware-documentation",
+          "authors": "Maxim and SMS Power! research contributors"
+        }
+      ],
+      "files": [
+        {
+          "path": "vendor/tetorica_sega_psg/segapsg.cpp",
+          "originPath": "src/segapsg.cpp",
+          "sha256": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e",
+          "originalSha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
+          "amendmentNote": "Relocated from vendor/ymfm; copyright and SPDX header only; synthesis and API unchanged."
+        },
+        {
+          "path": "vendor/tetorica_sega_psg/segapsg.h",
+          "originPath": "src/segapsg.h",
+          "sha256": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e",
+          "originalSha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
+          "amendmentNote": "Relocated from vendor/ymfm; copyright and SPDX header only; synthesis and API unchanged."
+        },
+        {
+          "path": "vendor/tetorica_sega_psg/LICENSE",
+          "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+        },
+        {
+          "path": "vendor/tetorica_sega_psg/README.md",
+          "sha256": "9536875b83eac226b00d6e183a1040db9903a0a118b093183a7edd02a7c2e38e"
         }
       ]
     },
@@ -1915,34 +1951,12 @@
       "sourceFiles": [
         "wasm/segapsg_wasm.cpp",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
-        "vendor/ymfm/ymfm.h",
-        "vendor/ymfm/ymfm_adpcm.cpp",
-        "vendor/ymfm/ymfm_adpcm.h",
-        "vendor/ymfm/ymfm_fm.h",
-        "vendor/ymfm/ymfm_fm.ipp",
-        "vendor/ymfm/ymfm_misc.cpp",
-        "vendor/ymfm/ymfm_misc.h",
-        "vendor/ymfm/ymfm_opl.cpp",
-        "vendor/ymfm/ymfm_opl.h",
-        "vendor/ymfm/ymfm_opm.cpp",
-        "vendor/ymfm/ymfm_opm.h",
-        "vendor/ymfm/ymfm_opn.cpp",
-        "vendor/ymfm/ymfm_opn.h",
-        "vendor/ymfm/ymfm_opq.cpp",
-        "vendor/ymfm/ymfm_opq.h",
-        "vendor/ymfm/ymfm_opx.h",
-        "vendor/ymfm/ymfm_opz.cpp",
-        "vendor/ymfm/ymfm_opz.h",
-        "vendor/ymfm/ymfm_pcm.cpp",
-        "vendor/ymfm/ymfm_pcm.h",
-        "vendor/ymfm/ymfm_ssg.cpp",
-        "vendor/ymfm/ymfm_ssg.h"
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h"
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_segapsg_wasm.sh",
       "format": "emscripten-es-module",
@@ -2029,8 +2043,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2056,7 +2070,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_y8950_wasm.sh",
       "format": "emscripten-es-module",
@@ -2089,8 +2104,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2116,7 +2131,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym2151_wasm.sh",
       "format": "emscripten-es-module",
@@ -2149,8 +2165,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2176,7 +2192,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym2203_wasm.sh",
       "format": "emscripten-es-module",
@@ -2209,8 +2226,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2236,7 +2253,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym2413_wasm.sh",
       "format": "emscripten-es-module",
@@ -2269,8 +2287,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2296,7 +2314,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym2608_wasm.sh",
       "format": "emscripten-es-module",
@@ -2330,8 +2349,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2357,7 +2376,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym2610b_wasm.sh",
       "format": "emscripten-es-module",
@@ -2390,8 +2410,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2417,7 +2437,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym2612_wasm.sh",
       "format": "emscripten-es-module",
@@ -2450,8 +2471,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2477,7 +2498,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym3438_wasm.sh",
       "format": "emscripten-es-module",
@@ -2511,8 +2533,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2538,7 +2560,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym3526_wasm.sh",
       "format": "emscripten-es-module",
@@ -2571,8 +2594,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2598,7 +2621,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ym3812_wasm.sh",
       "format": "emscripten-es-module",
@@ -2631,8 +2655,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2658,7 +2682,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ymf262_wasm.sh",
       "format": "emscripten-es-module",
@@ -2691,8 +2716,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2718,7 +2743,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ymf276_wasm.sh",
       "format": "emscripten-es-module",
@@ -2752,8 +2778,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2779,7 +2805,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ymf278b_wasm.sh",
       "format": "emscripten-es-module",
@@ -2812,8 +2839,8 @@
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -2839,7 +2866,8 @@
       ],
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "buildScript": "scripts/build_ymf288_wasm.sh",
       "format": "emscripten-es-module",

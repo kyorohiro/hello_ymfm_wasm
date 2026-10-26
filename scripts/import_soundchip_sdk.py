@@ -93,13 +93,17 @@ REQUIRED = {
         'snes_spc/dsp.cpp', 'snes_spc/dsp.h', 'snes_spc/spc.cpp',
         'snes_spc/spc.h')),
     'vendor/ymfm/LICENSE',
-    'vendor/ymfm/segapsg.cpp', 'vendor/ymfm/segapsg.h',
     'vendor/ymfm/chip_state.h', 'vendor/ymfm/ymfm.h',
     'vendor/ymfm/ymfm_fm.h', 'vendor/ymfm/ymfm_fm.ipp',
     *('vendor/ymfm/ymfm_' + chip + extension
       for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
       for extension in ('.cpp', '.h')),
     'vendor/ymfm/ymfm_opx.h',
+}
+LEGACY_SEGA_PSG = {'vendor/ymfm/segapsg.cpp', 'vendor/ymfm/segapsg.h'}
+SEPARATED_SEGA_PSG = {
+    'vendor/tetorica_sega_psg/segapsg.cpp', 'vendor/tetorica_sega_psg/segapsg.h',
+    'vendor/tetorica_sega_psg/LICENSE', 'vendor/tetorica_sega_psg/README.md',
 }
 
 
@@ -143,6 +147,12 @@ def manifest_records(raw):
     files = manifest.get('files')
     require(isinstance(files, dict) and REQUIRED <= set(files) and MANIFEST not in files,
             'SDK source release is incomplete')
+    # An update still verifies the previous immutable snapshot before replacing
+    # it. Accept complete historical or separated PSG inputs, never a mixture.
+    names = set(files)
+    require((LEGACY_SEGA_PSG <= names and not SEPARATED_SEGA_PSG & names)
+            or (SEPARATED_SEGA_PSG <= names and not LEGACY_SEGA_PSG & names),
+            'SDK source release is incomplete or mixes Sega PSG layouts')
     for name, record in files.items():
         relative(name)
         require(isinstance(record, dict) and type(record.get('size')) is int

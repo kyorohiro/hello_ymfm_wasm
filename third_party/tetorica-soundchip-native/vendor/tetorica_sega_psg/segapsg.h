@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, kyorohiro
+// See LICENSE and README.md in this directory.
+
 #include "chip_state.h"
 #ifndef SEGAPSG_H
 #define SEGAPSG_H

@@ -87,10 +87,10 @@ const report={schemaVersion:1,deviceOpened:false,startedAt:new Date().toISOStrin
 try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-game-gear-'));fixture=path.join(temporary,'fixture');
     const files=[path.join(project,'src/native_genesis_game_gear.cpp'),path.join(project,'src/native_genesis_game_gear_fixture.cpp'),
-      path.join(sdk,'vendor/ymfm/segapsg.cpp')];
+      path.join(sdk,'vendor/tetorica_sega_psg/segapsg.cpp')];
     report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
       sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
-    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),...files,'-o',fixture],{stdio:'pipe'});}
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/tetorica_sega_psg'),'-I'+path.join(sdk,'vendor/ymfm'),...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){
     globalThis.sampleRate=rate;const events=scenario.events.slice().sort((a,b)=>a.frame-b.frame);

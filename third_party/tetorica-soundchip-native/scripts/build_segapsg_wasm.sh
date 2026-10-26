@@ -10,9 +10,9 @@ mkdir -p "$OUT_DIR"
 
 # Keep runtime checks while optimizing the audio-thread synthesis hot path.
 "${EMXX:-em++}" -std=c++14 -O2 -sASSERTIONS=1 \
-  -Ivendor/ymfm \
+  -Ivendor/tetorica_sega_psg -Ivendor/ymfm \
   wasm/segapsg_wasm.cpp \
-  vendor/ymfm/segapsg.cpp \
+  vendor/tetorica_sega_psg/segapsg.cpp \
   -sMODULARIZE=1 \
   -sEXPORT_ES6=1 \
   -sINCOMING_MODULE_JS_API='["wasmBinary"]' \

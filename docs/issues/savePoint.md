@@ -9,6 +9,16 @@ Last updated: 2026-10-26
 
 ### 現在地
 
+SDK `0.1.2`を準備し、本体とTauriへ同じ正式sourceZIPを取り込んだ。各381ファイル。
+SDK sourcecommitは`53b33a15f5c4b919b185cb912016eccfbbb6d3a6`、ZIP SHA256は
+`752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72`。
+Sega PSGの分離先`vendor/tetorica_sega_psg/`と専用BSD noticeが固定SDKにも反映された。
+独立展開で19 library／CTest24件／WAV18本／JS10項目成功。WASM27件を実再buildし53出力は旧版とbyte一致、
+新receiptの全入力hash検証後にcentral build-infoを更新し、39,982比較が成功した。音声bytes・Mixer値は維持。
+Tauriは`fe391fb...`へcommit／push済み。Cargo726成功＋4ignored、22mode、追加混合／制限／Stop予算0とsourceZIP照合が成功。
+SDKのCI `40297659488`とTauri5構成CI `40297874215`を開始済み。完了結果と本体CIは後続で記録する。
+詳細は[sdk_012_adoption_01.md](sdk_012_adoption_01.md)。SDKのタグ／GitHub Releaseやnpm公開は行っていない。
+
 SPC初期化中closeのWebKit問題を修正した。`close()`直後はclosedでも、その後runningへ戻る動きを
 旧runtimeの20反復中19回確認。owned AudioContextにだけstatechangeで再closeする処理を追加した。
 共有context・音声生成・WASM・Mixer値は維持し、pollingやasset完了待ちは追加していない。
@@ -16,13 +26,12 @@ SPC初期化中closeのWebKit問題を修正した。`close()`直後はclosedで
 詳細は[spc_webkit_close_01.md](spc_webkit_close_01.md)。旧SPC移行記録の失敗証跡は保持し、この後続修正で解決した。
 本体`f0b78629...`の全27 WASM CI run `40286728456`は81試験・53出力・39,982比較が成功。
 SDK `0e9379bf...`のrun `40286698097`もNative5構成・WASM全6job成功。これらのCIは今回のSPC修正前のcommitが対象。
-今回SPC修正は未commit／未公開。Tauriの既存collector3本の未commit差分はそのまま保持している。
+SPC修正は本体`2c0b40e0...`へ、Tauriのcollector3本は`44e2a591...`へユーザーがcommit済み。
 
 Sega PSGの原本分離を実施した。本体は`third_party/tetorica_sega_psg/`、SDK原本は
 `vendor/tetorica_sega_psg/`へ移し、BSD-3-Clause・kyorohiroの著作権表示とSMS Powerの資料参照を追加した。
 確認した履歴・公式MAMEソースの範囲では、MAME特有のコード／コメントのコピーは見つからなかった。
-ユーザー選択により**固定SDK 0.1.1は今回更新しない**。本体・Tauriの各379ファイル、pin、生成物は維持している。
-新配置を取り込むには次回SDK release／importが必要。SDKのversionはまだ0.1.1で、分離をcommit／pushしたが新しいSDK版は公開していない。
+分離当初のユーザー選択では固定SDK 0.1.1の各379ファイルを保持した。その後、上記0.1.2への明示的な更新を実施した。
 新SDK原本の実WASM build・7,074比較は差0、Native fixture・109固定SDK試験・npm配布物検証・3種itch ZIPも成功。
 旧本体パスは互換includeで残し、Tauriの将来用collectorと配布用source／notice収録先を修正した。
 詳細と再開用記録は[segapsg_provenance_layout_01.md](segapsg_provenance_layout_01.md)を参照。

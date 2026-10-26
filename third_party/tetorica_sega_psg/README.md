@@ -35,9 +35,10 @@ The authoritative SDK also provides this core in `vendor/tetorica_sega_psg`,
 with a standalone WASM recipe and the `tetorica::segapsg` Native target:
 [tetorica-soundchip-native](https://github.com/kyorohiro/tetorica-soundchip-native).
 
-The application's pinned SDK 0.1.1 retains its original source layout until a
-subsequent SDK release is imported. Its existing WASM/Native build paths and
-generated runtime files are unchanged by this source reorganization.
+The application pins SDK 0.1.2, including the separated `vendor/tetorica_sega_psg/`
+layout and notices. The standalone WASM recipe and Native build include this
+directory along with the shared helper directory. Rebuilt runtime bytes remain
+identical to the preceding release.
 
 ## Provenance review
 

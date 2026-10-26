@@ -332,9 +332,9 @@ unchanged. There is no register/status API, native snapshot API or Emscripten
 
 ## Fixed source and updates
 
-`third_party/soundchip-sdk.json` records SDK `0.1.1`, source commit
-`e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
-SHA-256 and the complete 379-file snapshot. This is the same source release
+`third_party/soundchip-sdk.json` records SDK `0.1.2`, source commit
+`53b33a15f5c4b919b185cb912016eccfbbb6d3a6`, archive SHA-256, release-manifest
+SHA-256 and the complete 381-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
 and `vendor/` notices; these twenty-three wrappers, ymfm inputs and the MAME-derived
 OKIM6258, AY, RF5C164, PWM, HuC6280, Game Boy, Sega PCM and K051649 adaptations retain BSD-3-Clause.
@@ -347,8 +347,9 @@ complete modified source and provenance. The original Tetorica wrapper/recipe
 BSD notice is included separately; the 23 BSD module recipes remain distinct.
 DX7 separately retains Apache-2.0 for the MSFA core and Tetorica adapter, with
 the existing package LICENSE, COPYING, THIRD_PARTY_NOTICES and upstream revision.
-The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
-their location under `vendor/ymfm/` does not make them ymfm-originated code.
+The original Tetorica Sega PSG core is separate in `vendor/tetorica_sega_psg/`,
+with its own BSD-3-Clause notice and SMS Power! reference. Its shared state helper
+remains in `vendor/ymfm/chip_state.h`; neither is ymfm-originated code.
 
 Treat the imported directory as immutable. To update it, obtain a local SDK
 source-release ZIP and explicitly import its expected hash and revision:

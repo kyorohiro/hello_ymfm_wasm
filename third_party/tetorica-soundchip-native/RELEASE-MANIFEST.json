@@ -13,8 +13,8 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "98733f32c66f576dbf561bc7a024117f414986d720062826bd2e6a7c57c06673",
-      "size": 18288
+      "sha256": "038953b78adc64fba67ab02291ea7b1b52cc05fc16c41897b0245e46dd1d4af5",
+      "size": 18759
     },
     "CMakeLists.txt": {
       "sha256": "1aada8db32262df5523abb3ac804ae1d342731386f86d02c20fb65b7499edbdf",
@@ -29,48 +29,48 @@
       "size": 1517
     },
     "LICENSES.md": {
-      "sha256": "343beefe00e24fd877aeb9f7f84373dc1c99f2005af098a8b0c14c02d0f799de",
-      "size": 3774
+      "sha256": "d9855abf089afd1ccb402aa75fa48462bafba50694caa4457dfd967bcae4f989",
+      "size": 4292
     },
     "README.md": {
-      "sha256": "c75d265cc2a09ff4986d6315f122956aec77d5c7478f6393e601a0187f7b5645",
-      "size": 23114
+      "sha256": "66e8d72f8fe9e09b7001f79107a00f821e80812a6a7a055cca318d11b76a4d9e",
+      "size": 23447
     },
     "catalog/chips.json": {
-      "sha256": "379c9b80e27199543236d020cf4b692a54988dcbb9f50346704e52cc445c8ef0",
-      "size": 86721
+      "sha256": "16e70dbfaa72418a99d8966031e389580793ab02a2217f8a80c5c85716f66023",
+      "size": 87485
     },
     "catalog/native_inventory.json": {
-      "sha256": "98620dc9e5dd1f463ad929f4b13e9026f8956f942ec83367a72d7fa24ea553da",
-      "size": 42668
+      "sha256": "3bd0b8e4b0df63d6c4e964c364e3b94bc81bd71f1e713c91496208446b4c1ac5",
+      "size": 43099
     },
     "catalog/source_inventory.json": {
-      "sha256": "8bcf40201941ace79c571c9d69cfcf9b88ef8075804232bdc0adc3a22c131626",
-      "size": 114652
+      "sha256": "81da8789b8cf1489146175d50adbbb90704f494a5e725f0a228b2b61e2b0a7af",
+      "size": 116451
     },
     "docs/architecture.md": {
       "sha256": "ac7b4ac21d2626c0b0bb17df995921aed0b23108bab968e7c57a8a6592ec922b",
       "size": 20757
     },
     "docs/chip-differences.md": {
-      "sha256": "6935e3f09cfa6df617f9876a0796e1f460185f6507b7de28b9cd60926d08b283",
-      "size": 43035
+      "sha256": "872f365025c2349e91ee002e491e623cfb542bd8379fd1350bddee6616f44bde",
+      "size": 43939
     },
     "docs/releases.md": {
-      "sha256": "bb04e4eaa91784cffa1395a639f9069bbaade13e971dbc8652e292d55e8124c8",
-      "size": 17327
+      "sha256": "01c3888b081c6531566012db5ce55505d8ff4e467e629031e7a019d104d139d1",
+      "size": 17984
     },
     "docs/research.md": {
       "sha256": "a7a491f75a30d0bb57639d245fe2744b82b703076486e792ddbd090cd3bc672c",
       "size": 12695
     },
     "docs/verification.md": {
-      "sha256": "9fd126007329b84dcbe0ad60e327fc47e14eb47e14a5335370b0a91ad7c9c94d",
-      "size": 90761
+      "sha256": "80832f4f195713a6d15d87cd14335287e044e0c4d957f2bcef92b16585b40f67",
+      "size": 90909
     },
     "native/CMakeLists.txt": {
-      "sha256": "87a2a3c0550266ad33756557f1fd10efd31e5b86d449132f6f18c559ab8af8fb",
-      "size": 33086
+      "sha256": "79cb36cd7cd4cb250558d7a680d7fd6d464ab9ff9c72eb68fdd700f453044260",
+      "size": 33151
     },
     "native/README.md": {
       "sha256": "ee767d850c7f8fa11f67bf69b2f7539da4023c7d0c53b7314de1377bc91d1515",
@@ -661,8 +661,8 @@
       "size": 912
     },
     "scripts/build_segapsg_wasm.sh": {
-      "sha256": "c05c0671cf33a1dab94b5ae5877b4202d60e0497ef353f8076e6ef8143c1bb7b",
-      "size": 851
+      "sha256": "9fb197e92a6993bb43c24aa75f16209f5e5a6144a6821cfb58340b742db2dc3f",
+      "size": 891
     },
     "scripts/build_spc_wasm.sh": {
       "sha256": "3eed01347f67aaae3690db3050fdfcff104fe209f621826870c651e732b57577",
@@ -745,11 +745,11 @@
       "size": 10185
     },
     "sdk.json": {
-      "sha256": "559e183ad480da9dd4f5685a798d54656b2297b1ec6cb3747889d9c835b60125",
+      "sha256": "e9d07955da2d2baaf0922c488789843c120a40ce7d176381045b3aa3d6562b8e",
       "size": 285
     },
     "tests/README.md": {
-      "sha256": "be8f3266c8a9ac4809690aa0e4630d37a8160e6f148ef132a8c4802536f7be6e",
+      "sha256": "974c2d46b15afbc4ceb038f1c4c26096ca70e01d382728d89819840117aeacae",
       "size": 16221
     },
     "tests/check_standalone_release.py": {
@@ -1292,6 +1292,22 @@
       "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
       "size": 2163
     },
+    "vendor/tetorica_sega_psg/LICENSE": {
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "size": 1517
+    },
+    "vendor/tetorica_sega_psg/README.md": {
+      "sha256": "9536875b83eac226b00d6e183a1040db9903a0a118b093183a7edd02a7c2e38e",
+      "size": 1912
+    },
+    "vendor/tetorica_sega_psg/segapsg.cpp": {
+      "sha256": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e",
+      "size": 7819
+    },
+    "vendor/tetorica_sega_psg/segapsg.h": {
+      "sha256": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e",
+      "size": 2156
+    },
     "vendor/ymfm/LICENSE": {
       "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
       "size": 1519
@@ -1299,14 +1315,6 @@
     "vendor/ymfm/chip_state.h": {
       "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
       "size": 521
-    },
-    "vendor/ymfm/segapsg.cpp": {
-      "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612",
-      "size": 7696
-    },
-    "vendor/ymfm/segapsg.h": {
-      "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7",
-      "size": 2033
     },
     "vendor/ymfm/ymfm.h": {
       "sha256": "f5ab6fed63c8669abab8403e0e93132e1dad0ae4d8e4954e7836ab9e5b228405",
@@ -1516,5 +1524,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.1"
+  "version": "0.1.2"
 }

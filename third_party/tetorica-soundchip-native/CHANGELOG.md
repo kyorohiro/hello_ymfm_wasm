@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 — Independent Sega PSG component
+
+- Separate the original Tetorica Sega PSG implementation into `vendor/tetorica_sega_psg/`, with its own BSD-3-Clause license, copyright/SPDX headers and SMS Power! hardware-documentation credit. Update Native/WASM build paths and component provenance without changing synthesis, APIs or the imported reference binaries. Existing fixed application SDK snapshots remain unchanged until consumers explicitly adopt this release.
+
 ## 0.1.1 — Standalone Native targets
 
 - Add the alternative `tetorica::nuked_ym2612` target and public `<tetorica/nuked_ym2612.hpp>` exposing both existing synchronous raw `tetorica_nuked_*` and Native `native_nuked_ym2612_*` ABIs. Preserve vendor, Browser bridge, Native wrapper and policy bytes. Compile the core as C and wrapper as C++, with eight C-provider symbol prefixes and the thread dependency for one-time process-global YM2612 selection. The alternative engine retains LGPL-2.1-or-later terms and adds no chip identifier.

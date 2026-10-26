@@ -39,6 +39,10 @@ The default Native build includes `tetorica_genesis_wav <output.wav>`, `tetorica
 
 Publishing a new SDK release does not update a consumer's pinned version. Normal builds and CI do not need to fetch sound-chip sources from GitHub, npm or an adjacent checkout. Consumers supply their compilers and other development tools.
 
+### Migrating Sega PSG from 0.1.1 to 0.1.2
+
+The Tetorica Sega PSG core now lives in `vendor/tetorica_sega_psg/` instead of `vendor/ymfm/`. CMake consumers keep using `tetorica::segapsg` and `<tetorica/segapsg.hpp>` without API changes. Consumers compiling sources directly must update the `segapsg.cpp` path and add `vendor/tetorica_sega_psg/` to their include paths, while retaining `vendor/ymfm/` for the shared Tetorica `chip_state.h` helper. Preserve the new component's `LICENSE` and SMS Power! documentation credit in its `README.md`. The change adds license annotations and reorganizes source paths; synthesis and state serialization are unchanged.
+
 ## Incorporating application changes
 
 1. Develop and verify a change in the `tetorica-fm2612` source repository or Playground Tauri, then select the revision to import.

@@ -89,12 +89,12 @@ try{
   const adapter=path.join(sdk,'native/reference/tauri/native_genesis_nuked.cpp'),auditShim=path.join(sdk,'native/tests/nuked_audit.cpp');
   // Parse libstdc++ stdlib forwards before the allocation-audit macros.
   const files=[path.join(project,'src/native_genesis_core.cpp'),auditShim,path.join(project,'src/native_genesis_nuked_fixture.cpp'),
-   path.join(sdk,'wasm/segapsg_wasm.cpp'),path.join(sdk,'vendor/ymfm/segapsg.cpp')];
-  const inputs=[...files,adapter,path.join(include,'ym3438.c'),path.join(include,'ym3438.h'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'vendor/ymfm/segapsg.h'),path.join(sdk,'vendor/ymfm/chip_state.h')];
+   path.join(sdk,'wasm/segapsg_wasm.cpp'),path.join(sdk,'vendor/tetorica_sega_psg/segapsg.cpp')];
+  const inputs=[...files,adapter,path.join(include,'ym3438.c'),path.join(include,'ym3438.h'),path.join(sdk,'wasm/nuked_opn2_wasm.c'),path.join(sdk,'native/reference/tauri/native_genesis_nuked_ym2612.inc'),path.join(sdk,'native/reference/tauri/native_genesis_ym2612.h'),path.join(sdk,'vendor/tetorica_sega_psg/segapsg.h'),path.join(sdk,'vendor/ymfm/chip_state.h')];
   report.nativeSources=await Promise.all(inputs.map(async file=>({file:path.relative(root,file),
    sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
   execFileSync('clang++',['-std=c++14',...flags,'-DTETORICA_NUKED_ISOLATED_FIXTURE','-DTETORICA_NUKED_AUDIT_ALLOCATIONS','-I'+include,
-   '-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),...files,provider,'-o',fixture],{stdio:'pipe'});
+   '-I'+path.join(sdk,'vendor/tetorica_sega_psg'),'-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),...files,provider,'-o',fixture],{stdio:'pipe'});
  }
  report.fixtureSha256=createHash('sha256').update(await fs.readFile(fixture)).digest('hex');
  report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, kyorohiro
+// See LICENSE and README.md in this directory.
+
 #include "segapsg.h"
 
 #include <array>

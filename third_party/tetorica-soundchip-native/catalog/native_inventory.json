@@ -280,7 +280,10 @@
         "native/reference/tauri/native_genesis_psg.h",
         "native/reference/tauri/native_genesis_game_gear.cpp",
         "native/reference/tauri/native_genesis_game_gear.h",
-        "native/include/tetorica/segapsg.hpp"
+        "native/include/tetorica/segapsg.hpp",
+        "vendor/ymfm/chip_state.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h"
       ],
       "status": "verified",
       "target": "tetorica_native_segapsg",
@@ -289,13 +292,16 @@
         "tetorica.segapsg.self_test"
       ],
       "licenseStatus": "declared",
-      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+      "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them. The independent Sega PSG core is separately identified under vendor/tetorica_sega_psg with explicit BSD-3-Clause headers and hardware-documentation credit.",
       "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
-      "declaredFileLicenses": {},
+      "declaredFileLicenses": {
+        "vendor/tetorica_sega_psg/segapsg.cpp": "BSD-3-Clause",
+        "vendor/tetorica_sega_psg/segapsg.h": "BSD-3-Clause"
+      },
       "defaultLicensedFiles": [
         "native/reference/tauri/native_genesis_psg.h",
         "native/reference/tauri/native_genesis_game_gear.cpp",

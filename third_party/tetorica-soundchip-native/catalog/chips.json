@@ -49,15 +49,16 @@
       "id": "ym3438",
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "sourceFiles": [
         "wasm/opn_variant_wasm.cpp",
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -91,15 +92,16 @@
       "id": "ymf276",
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "sourceFiles": [
         "wasm/opn_variant_wasm.cpp",
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -133,15 +135,16 @@
       "id": "ymf278b",
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "sourceFiles": [
         "wasm/ymf278b_wasm.cpp",
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -175,15 +178,16 @@
       "id": "ymf288",
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/ymfm/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "sourceFiles": [
         "wasm/opn_variant_wasm.cpp",
         "wasm/opn_state.h",
         "wasm/ymfm_wasm_interface.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -752,14 +756,17 @@
       "id": "segapsg",
       "licenseFiles": [
         "LICENSE",
-        "vendor/ymfm/LICENSE"
+        "vendor/tetorica_sega_psg/LICENSE"
       ],
       "native": {
         "buildFiles": [
           "CMakeLists.txt",
           "native/CMakeLists.txt"
         ],
-        "declaredFileLicenses": {},
+        "declaredFileLicenses": {
+          "vendor/tetorica_sega_psg/segapsg.cpp": "BSD-3-Clause",
+          "vendor/tetorica_sega_psg/segapsg.h": "BSD-3-Clause"
+        },
         "defaultLicensedFiles": [
           "native/reference/tauri/native_genesis_psg.h",
           "native/reference/tauri/native_genesis_game_gear.cpp",
@@ -769,15 +776,18 @@
         "id": "segapsg",
         "licenseFiles": [
           "LICENSE",
-          "vendor/ymfm/LICENSE"
+          "vendor/tetorica_sega_psg/LICENSE"
         ],
-        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them.",
+        "licenseNote": "Original Tetorica integration code and headers use BSD-3-Clause under the repository LICENSE, including original files without a file-level declaration. Existing explicit file licenses and third-party copyright notices are retained; the repository default does not replace them. The independent Sega PSG core is separately identified under vendor/tetorica_sega_psg with explicit BSD-3-Clause headers and hardware-documentation credit.",
         "licenseStatus": "declared",
         "sourceFiles": [
           "native/reference/tauri/native_genesis_psg.h",
           "native/reference/tauri/native_genesis_game_gear.cpp",
           "native/reference/tauri/native_genesis_game_gear.h",
-          "native/include/tetorica/segapsg.hpp"
+          "native/include/tetorica/segapsg.hpp",
+          "vendor/ymfm/chip_state.h",
+          "vendor/tetorica_sega_psg/segapsg.cpp",
+          "vendor/tetorica_sega_psg/segapsg.h"
         ],
         "status": "verified",
         "target": "tetorica_native_segapsg",
@@ -792,31 +802,9 @@
         "native/reference/tauri/native_genesis_game_gear.cpp",
         "native/reference/tauri/native_genesis_game_gear.h",
         "native/reference/tauri/native_genesis_psg.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
-        "vendor/ymfm/ymfm.h",
-        "vendor/ymfm/ymfm_adpcm.cpp",
-        "vendor/ymfm/ymfm_adpcm.h",
-        "vendor/ymfm/ymfm_fm.h",
-        "vendor/ymfm/ymfm_fm.ipp",
-        "vendor/ymfm/ymfm_misc.cpp",
-        "vendor/ymfm/ymfm_misc.h",
-        "vendor/ymfm/ymfm_opl.cpp",
-        "vendor/ymfm/ymfm_opl.h",
-        "vendor/ymfm/ymfm_opm.cpp",
-        "vendor/ymfm/ymfm_opm.h",
-        "vendor/ymfm/ymfm_opn.cpp",
-        "vendor/ymfm/ymfm_opn.h",
-        "vendor/ymfm/ymfm_opq.cpp",
-        "vendor/ymfm/ymfm_opq.h",
-        "vendor/ymfm/ymfm_opx.h",
-        "vendor/ymfm/ymfm_opz.cpp",
-        "vendor/ymfm/ymfm_opz.h",
-        "vendor/ymfm/ymfm_pcm.cpp",
-        "vendor/ymfm/ymfm_pcm.h",
-        "vendor/ymfm/ymfm_ssg.cpp",
-        "vendor/ymfm/ymfm_ssg.h",
         "wasm/segapsg_wasm.cpp"
       ],
       "wasm": {
@@ -985,6 +973,7 @@
       "id": "y8950",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1039,9 +1028,9 @@
         "native/reference/tauri/native_genesis_opl.h",
         "native/reference/tauri/native_genesis_y8950_memory.h",
         "native/src/ymfm_opl_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1083,6 +1072,7 @@
       "id": "ym2151",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1123,9 +1113,9 @@
         "native/reference/tauri/native_genesis_ym2151.cpp",
         "native/reference/tauri/native_genesis_ym2151.h",
         "native/src/ymfm_opm_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1167,6 +1157,7 @@
       "id": "ym2203",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1207,9 +1198,9 @@
         "native/reference/tauri/native_genesis_ym2203.cpp",
         "native/reference/tauri/native_genesis_ym2203.h",
         "native/src/ymfm_opn_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1251,6 +1242,7 @@
       "id": "ym2413",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1294,9 +1286,9 @@
         "native/reference/tauri/native_genesis_ym2413.cpp",
         "native/reference/tauri/native_genesis_ym2413.h",
         "native/src/ymfm_opl_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1338,6 +1330,7 @@
       "id": "ym2608",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1378,9 +1371,9 @@
         "native/reference/tauri/native_genesis_ym2608.cpp",
         "native/reference/tauri/native_genesis_ym2608.h",
         "native/src/ymfm_opn_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1422,6 +1415,7 @@
       "id": "ym2610",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1462,9 +1456,9 @@
         "native/reference/tauri/native_genesis_ym2610b.cpp",
         "native/reference/tauri/native_genesis_ym2610b.h",
         "native/src/ymfm_opn_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1506,6 +1500,7 @@
       "id": "ym2610b",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1546,9 +1541,9 @@
         "native/reference/tauri/native_genesis_ym2610b.cpp",
         "native/reference/tauri/native_genesis_ym2610b.h",
         "native/src/ymfm_opn_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1595,6 +1590,7 @@
       "licenseFiles": [
         "LICENSE",
         "vendor/nuked-opn2/LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1674,9 +1670,9 @@
         "native/src/ymfm_opn_provider.cpp",
         "vendor/nuked-opn2/ym3438.c",
         "vendor/nuked-opn2/ym3438.h",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1724,6 +1720,7 @@
       "id": "ym3526",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1777,9 +1774,9 @@
         "native/reference/tauri/native_genesis_opl.h",
         "native/reference/tauri/native_genesis_y8950_memory.h",
         "native/src/ymfm_opl_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1821,6 +1818,7 @@
       "id": "ym3812",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1874,9 +1872,9 @@
         "native/reference/tauri/native_genesis_opl.h",
         "native/reference/tauri/native_genesis_y8950_memory.h",
         "native/src/ymfm_opl_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",
@@ -1918,6 +1916,7 @@
       "id": "ymf262",
       "licenseFiles": [
         "LICENSE",
+        "vendor/tetorica_sega_psg/LICENSE",
         "vendor/ymfm/LICENSE"
       ],
       "native": {
@@ -1971,9 +1970,9 @@
         "native/reference/tauri/native_genesis_opl.h",
         "native/reference/tauri/native_genesis_y8950_memory.h",
         "native/src/ymfm_opl_provider.cpp",
+        "vendor/tetorica_sega_psg/segapsg.cpp",
+        "vendor/tetorica_sega_psg/segapsg.h",
         "vendor/ymfm/chip_state.h",
-        "vendor/ymfm/segapsg.cpp",
-        "vendor/ymfm/segapsg.h",
         "vendor/ymfm/ymfm.h",
         "vendor/ymfm/ymfm_adpcm.cpp",
         "vendor/ymfm/ymfm_adpcm.h",

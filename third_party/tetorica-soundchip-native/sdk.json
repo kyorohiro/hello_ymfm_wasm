@@ -1,6 +1,6 @@
 {
   "name": "tetorica-soundchip-native",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "stage": "bootstrap",
   "description": "Self-contained sound-chip source collection and Native/WASM build recipes",
   "catalog": "catalog/chips.json",

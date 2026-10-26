@@ -20,6 +20,8 @@ The source catalog covers 22 chip API identifiers:
 
 Additional WASM recipes cover YM3438, YMF276, YMF288, YMF278B, Sega PCM, and K051649. YM2612 also includes the optional Nuked-OPN2 engine.
 
+[Tetorica Sega PSG](vendor/tetorica_sega_psg/README.md) is an original BSD-3-Clause implementation, maintained separately from upstream ymfm. Its component directory includes the license, source provenance and credit to Maxim and the contributors to [SMS Power! SN76489 documentation](https://www.smspower.org/Development/SN76489).
+
 The collection also includes the VGM Analyzer's **MSM5205 and OKIM6295 JavaScript reference implementations**, plus separately pinned upstream C/C++ source references under [libvgm-msm5205](vendor/libvgm-msm5205/) and [mame-okim6295](vendor/mame-okim6295/). SDK Native/WASM integrations for these two engines are not yet provided.
 
 The upstream references include files explicitly marked BSD-3-Clause. libvgm support files without an explicit license declaration are omitted, following the [upstream licensing status](https://github.com/ValleyBell/libvgm/issues/129). The component READMEs and snapshot manifests describe the omissions and framework dependencies. These reference-only files are separate from the self-contained build targets and runnable JavaScript engines.
@@ -207,8 +209,8 @@ To create and verify archives locally:
 python3 scripts/check_sdk.py
 python3 scripts/package_release.py --out-dir releases --wasm-dir build/verified-wasm
 python3 tests/check_standalone_release.py \
-  --source-zip releases/tetorica-soundchip-native-0.1.1-sources.zip \
-  --wasm-zip releases/tetorica-soundchip-native-0.1.1-wasm.zip
+  --source-zip releases/tetorica-soundchip-native-0.1.2-sources.zip \
+  --wasm-zip releases/tetorica-soundchip-native-0.1.2-wasm.zip
 ```
 
 The source ZIP includes sources, build recipes, licenses, provenance, and tests. The WASM ZIP includes compiled artifacts and the exact matching source ZIP. Both carry per-file SHA-256 manifests. Omit `--wasm-dir` to create only the source archive. See [release packaging and integration](docs/releases.md).

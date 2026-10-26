@@ -94,7 +94,7 @@ endif()
 
 add_library(tetorica_native_segapsg STATIC
   reference/tauri/native_genesis_game_gear.cpp
-  "${TETORICA_SDK_ROOT}/vendor/ymfm/segapsg.cpp"
+  "${TETORICA_SDK_ROOT}/vendor/tetorica_sega_psg/segapsg.cpp"
 )
 add_library(tetorica::segapsg ALIAS tetorica_native_segapsg)
 target_compile_features(tetorica_native_segapsg PUBLIC cxx_std_14)
@@ -103,6 +103,7 @@ target_include_directories(tetorica_native_segapsg
     "${CMAKE_CURRENT_LIST_DIR}/include"
     "${CMAKE_CURRENT_LIST_DIR}/reference/tauri"
   PRIVATE
+    "${TETORICA_SDK_ROOT}/vendor/tetorica_sega_psg"
     "${TETORICA_SDK_ROOT}/vendor/ymfm"
 )
 if(MSVC)

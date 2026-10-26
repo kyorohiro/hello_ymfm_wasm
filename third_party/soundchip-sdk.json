@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "name": "tetorica-soundchip-native",
-  "version": "0.1.1",
-  "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
-  "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
-  "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
-  "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
-  "fileCount": 379
+  "version": "0.1.2",
+  "sourceCommit": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+  "archiveName": "tetorica-soundchip-native-0.1.2-sources.zip",
+  "archiveSha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72",
+  "manifestSha256": "a79387194dd58628988abbf19938175c084246e11cee9d65647881b4bd65d8cf",
+  "fileCount": 381
 }

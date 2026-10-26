@@ -108,10 +108,10 @@ try{
   if(!fixture){temporary=await fs.mkdtemp(path.join(os.tmpdir(),'native-master-system-'));fixture=path.join(temporary,'fixture');
     const files=[path.join(project,'src/native_genesis_master_system.cpp'),path.join(project,'src/native_genesis_master_system_fixture.cpp'),
       path.join(sdk,'native/src/ymfm_opl_provider.cpp'),path.join(sdk,'vendor/ymfm/ymfm_pcm.cpp'),
-      path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp'),path.join(sdk,'vendor/ymfm/segapsg.cpp')];
+      path.join(sdk,'vendor/ymfm/ymfm_adpcm.cpp'),path.join(sdk,'vendor/tetorica_sega_psg/segapsg.cpp')];
     report.nativeSources=await Promise.all(files.map(async file=>({file:path.relative(root,file),
       sha256:createHash('sha256').update(await fs.readFile(file)).digest('hex')})));
-    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
+    execFileSync('clang++',['-std=c++14','-O2','-I'+path.join(sdk,'vendor/tetorica_sega_psg'),'-I'+path.join(sdk,'vendor/ymfm'),'-I'+path.join(sdk,'wasm'),
       '-I'+path.join(project,'native-genesis'),...files,'-o',fixture],{stdio:'pipe'});}
   report.selfTest=execFileSync(fixture,['--self-test'],{encoding:'utf8'}).trim();
   for(const rate of rates)for(const scenario of scenarios){

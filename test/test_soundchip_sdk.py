@@ -26,8 +26,9 @@ class SoundchipSdkTests(unittest.TestCase):
         self.root = self.work / 'standalone app'
         self.root.mkdir()
 
-    def archive(self, *, version='0.1.0', alter=None, alter_payload=None):
-        payload = {name: ('pinned SDK source: ' + name).encode() for name in sdk.REQUIRED}
+    def archive(self, *, version='0.1.0', layout='legacy', alter=None, alter_payload=None):
+        psg = sdk.LEGACY_SEGA_PSG if layout == 'legacy' else sdk.SEPARATED_SEGA_PSG
+        payload = {name: ('pinned SDK source: ' + name).encode() for name in sdk.REQUIRED | psg}
         payload['sdk.json'] = json.dumps({'name': sdk.NAME, 'version': version}).encode()
         # Preserve every release member, not only the minimum YM2612 inputs.
         payload['other-chip/core.cpp'] = b'additional SDK source\x00\xff\n'
@@ -61,7 +62,7 @@ class SoundchipSdkTests(unittest.TestCase):
         initial = self.install()
         self.assertEqual(sdk.check_installed(self.root), initial)
         self.assertEqual(initial['sourceCommit'], 'a' * 40)
-        self.assertEqual(initial['fileCount'], len(sdk.REQUIRED) + 3)
+        self.assertEqual(initial['fileCount'], len(sdk.REQUIRED | sdk.LEGACY_SEGA_PSG) + 3)
         snapshot = self.root / sdk.SNAPSHOT
         self.assertEqual((snapshot / 'other-chip/core.cpp').read_bytes(),
                          b'additional SDK source\x00\xff\n')
@@ -82,6 +83,46 @@ class SoundchipSdkTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'source release is incomplete'):
                     sdk.import_archive(path, checksum, 'a' * 40, self.root)
                 self.assertFalse((self.root / sdk.SNAPSHOT).exists())
+
+    def test_explicit_update_replaces_legacy_psg_layout_with_separate_component(self):
+        initial = self.install(version='0.1.1')
+        updated = self.install(version='0.1.2', layout='separated')
+        self.assertNotEqual(initial['archiveSha256'], updated['archiveSha256'])
+        self.assertEqual(updated['version'], '0.1.2')
+        snapshot = self.root / sdk.SNAPSHOT
+        for name in sdk.LEGACY_SEGA_PSG:
+            self.assertFalse((snapshot / name).exists())
+        for name in sdk.SEPARATED_SEGA_PSG:
+            self.assertTrue((snapshot / name).is_file())
+        self.assertEqual(sdk.check_installed(self.root), updated)
+
+    def test_incomplete_or_mixed_psg_layout_cannot_replace_verified_previous_sdk(self):
+        initial = self.install(version='0.1.1')
+        for layout, names in [('legacy', sdk.LEGACY_SEGA_PSG), ('separated', sdk.SEPARATED_SEGA_PSG)]:
+            for missing in sorted(names):
+                with self.subTest(layout=layout, missing=missing):
+                    path, checksum = self.archive(version='0.1.2', layout=layout,
+                        alter_payload=lambda payload, name=missing: payload.pop(name))
+                    with self.assertRaisesRegex(ValueError, 'source release is incomplete'):
+                        sdk.import_archive(path, checksum, 'b' * 40, self.root)
+                    self.assertEqual(sdk.check_installed(self.root), initial)
+            other = sdk.SEPARATED_SEGA_PSG if layout == 'legacy' else sdk.LEGACY_SEGA_PSG
+            for extra in [set(other), {sorted(other)[0]}]:
+                with self.subTest(layout=layout, extra=extra):
+                    path, checksum = self.archive(version='0.1.2', layout=layout,
+                        alter_payload=lambda payload, names=extra: payload.update({name: b'mixed layout' for name in names}))
+                    with self.assertRaisesRegex(ValueError, 'mixes Sega PSG layouts'):
+                        sdk.import_archive(path, checksum, 'b' * 40, self.root)
+                    self.assertEqual(sdk.check_installed(self.root), initial)
+
+    def test_separated_update_still_rejects_modified_legacy_source(self):
+        self.install(version='0.1.1')
+        path = self.root / sdk.SNAPSHOT / 'vendor/ymfm/segapsg.cpp'
+        path.write_bytes(path.read_bytes() + b'local modification')
+        archive, checksum = self.archive(version='0.1.2', layout='separated')
+        with self.assertRaisesRegex(ValueError, 'content hash/size mismatch'):
+            sdk.import_archive(archive, checksum, 'b' * 40, self.root)
+        self.assertTrue(path.read_bytes().endswith(b'local modification'))
 
     def test_cli_checks_copy_without_original_archive_or_sdk_checkout(self):
         self.install()

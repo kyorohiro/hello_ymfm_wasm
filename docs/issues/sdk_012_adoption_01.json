@@ -1,0 +1,518 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-26",
+  "status": "local-validation-passed-ci-running",
+  "initialHeads": {
+    "main": "2c0b40e0c53c8899fdb3a6de92434d6f1ee17c42",
+    "sdk": "0e9379bf7e6ae2951ad0e3d8ea2db24cfca55415",
+    "tauri": "44e2a5918296cb13331a6d1bdda1c77896864d89"
+  },
+  "sdkRelease": {
+    "version": "0.1.2",
+    "sourceCommit": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+    "sourceArchive": "/private/tmp/tetorica-sdk-012-adoption/release/tetorica-soundchip-native-0.1.2-sources.zip",
+    "archiveSha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72",
+    "archiveSize": 1007976,
+    "manifestSha256": "a79387194dd58628988abbf19938175c084246e11cee9d65647881b4bd65d8cf",
+    "fileCount": 380,
+    "zipEntries": 381,
+    "reproducibility": {
+      "byteIdentical": true,
+      "secondArchive": "/private/tmp/tetorica-sdk-012-adoption/reproducibility/tetorica-soundchip-native-0.1.2-sources.zip",
+      "sha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72"
+    }
+  },
+  "sdkStandalone": {
+    "passed": true,
+    "sdkVersion": "0.1.2",
+    "sourceCommit": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+    "sourceArchiveSha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72",
+    "platform": "macOS-15.7.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "nativeLibraries": [
+      "native/libtetorica_native_ay8910.a",
+      "native/libtetorica_native_dx7.a",
+      "native/libtetorica_native_gameboy.a",
+      "native/libtetorica_native_huc6280.a",
+      "native/libtetorica_native_nes.a",
+      "native/libtetorica_native_nuked_ym2612.a",
+      "native/libtetorica_native_okim6258.a",
+      "native/libtetorica_native_opl.a",
+      "native/libtetorica_native_pwm.a",
+      "native/libtetorica_native_rf5c164.a",
+      "native/libtetorica_native_segapsg.a",
+      "native/libtetorica_native_snes.a",
+      "native/libtetorica_native_spc.a",
+      "native/libtetorica_native_ym2151.a",
+      "native/libtetorica_native_ym2203.a",
+      "native/libtetorica_native_ym2413.a",
+      "native/libtetorica_native_ym2608.a",
+      "native/libtetorica_native_ym2610.a",
+      "native/libtetorica_native_ym2612.a"
+    ],
+    "ctest": {
+      "passed": 24,
+      "failed": 0
+    },
+    "wavExamples": {
+      "Genesis": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.103973388671875,
+          0.103973388671875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "Master System": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.034637451171875,
+          0.034637451171875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "MSX": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.069732666015625,
+          0.069732666015625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "PC-98 YM2203": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.26116943359375,
+          0.26116943359375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "PC-98 YM2608": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.23565673828125,
+          0.251068115234375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "NeoGeo": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.24139404296875,
+          0.24072265625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "X68000": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.207305908203125,
+          0.202850341796875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "Mega-CD": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.14703369140625,
+          0.1412353515625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "DOS PC OPL": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.05706787109375,
+          0.05706787109375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "MSX-AUDIO": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.05645751953125,
+          0.05645751953125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "Game Boy": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.449981689453125,
+          0.449981689453125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "PC Engine": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.118988037109375,
+          0.14617919921875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "NES with FDS": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.264556884765625,
+          0.264556884765625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "32X": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.257293701171875,
+          0.264068603515625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "DX7": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.182952880859375,
+          0.182952880859375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "SNES": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.195953369140625,
+          0.21356201171875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "SPC": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.183135986328125,
+          0.183135986328125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      "Nuked Genesis": {
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.152984619140625,
+          0.152984619140625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      }
+    },
+    "javascriptChecks": [
+      "msm5205:finite-stereo-and-chunk-continuity",
+      "msm5205:muting-keeps-decoder-progression",
+      "msm5205:reset-clears-queued-data-and-restores-determinism",
+      "msm5205:external-vclk-decodes-only-on-rising-edges",
+      "okim6295:finite-stereo-and-chunk-continuity",
+      "okim6295:muting-keeps-decoder-progression",
+      "okim6295:sample-command-four-voices-stop-and-end",
+      "okim6295:reset-stops-voices-retains-rom-and-restores-determinism",
+      "javascript-reference-attachments:mix-gain-reset-and-dispose",
+      "synthetic-render-example:standalone-pcm16-stereo-wave-files"
+    ],
+    "archiveOnlySourceBuild": true,
+    "compilerSourceAndIncludeAuditPassed": true,
+    "log": "/private/tmp/tetorica-sdk-012-adoption/standalone.log",
+    "logSha256": "01a15c42930453d3d80ed8014f5ea0eb28d4e621defff9f8568de3acf8ec9e07",
+    "limits": [
+      "Local macOS arm64 validation only; five-platform CI is separate.",
+      "WASM source recipes audited but not compiled by this run."
+    ]
+  },
+  "previousPins": {
+    "main": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.1",
+      "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+      "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+      "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+      "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+      "fileCount": 379
+    },
+    "tauri": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.1",
+      "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+      "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+      "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+      "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+      "fileCount": 379
+    }
+  },
+  "currentPin": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.2",
+    "sourceCommit": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+    "archiveName": "tetorica-soundchip-native-0.1.2-sources.zip",
+    "archiveSha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72",
+    "manifestSha256": "a79387194dd58628988abbf19938175c084246e11cee9d65647881b4bd65d8cf",
+    "fileCount": 381
+  },
+  "bothConsumerPinsEqual": true,
+  "main": {
+    "tests": {
+      "importer": 19,
+      "buildRoutes": 109,
+      "batchGuards": 81
+    },
+    "wasm": {
+      "actuallyRebuiltArtifacts": 27,
+      "outputsByteIdenticalToPrevious": 53,
+      "receiptUpdatedAfterRebuildAndByteComparison": true,
+      "sourceInputCount": 164,
+      "all27Parity": {
+        "passed": true,
+        "comparisons": 39982,
+        "repositoryInputsUnchanged": true,
+        "report": "/private/tmp/tetorica-sdk-012-adoption/parity/summary.json",
+        "sha256": "132538be32bf7dfd910889e4440324261761c2789a518481888bb866249967a6"
+      },
+      "originalReceiptVerifiedBeforeImport": {
+        "report": "/private/tmp/tetorica-sdk-012-adoption/legacy-wasm-verification.json",
+        "sha256": "c393ad6e9dc77b3c02fc8e967965272fdf7d25b3b0d9f41ae4fcead8951bdbe6"
+      },
+      "rebuiltReceiptVerifiedAgainstCurrentSdk": {
+        "report": "/private/tmp/tetorica-sdk-012-adoption/rebuilt-verification.json",
+        "sha256": "39203b02d125278f861573c1afdee5be10b1723980812c8d05ecd80295a20d29"
+      },
+      "buildReuse": "One real all27 compiler run, then validated outputs reused for the all27 comparison. Committed binaries stayed byte-identical; committed receipt records actual new compilation."
+    },
+    "nativeComparisons": {
+      "game-gear": {
+        "cases": 69,
+        "totalStereoFrames": 454656,
+        "maximumDifference": 0,
+        "report": "/private/tmp/tetorica-sdk-012-adoption/game-gear.json",
+        "sha256": "ce6f517b849bfc3ecc9b71fddf5b434791161ec546aec43f5278187c7bde1d99"
+      },
+      "master-system": {
+        "cases": 63,
+        "totalStereoFrames": 387072,
+        "maximumDifference": 0,
+        "report": "/private/tmp/tetorica-sdk-012-adoption/master-system.json",
+        "sha256": "3fffee6337956f701534e68a3521a8f303515cbcae108683ee958e57c9ebc2a3"
+      },
+      "nuked": {
+        "cases": 222,
+        "totalStereoFrames": 1363968,
+        "maximumDifference": 2.9802322387695312e-08,
+        "report": "/private/tmp/tetorica-sdk-012-adoption/nuked.json",
+        "sha256": "048126af8569969ddc9f14400e21c1aea482b05c1f48d1394f40d4a6ba473027"
+      }
+    },
+    "fmPackage": {
+      "passed": true,
+      "files": 816,
+      "compressedBytes": 1599186,
+      "unpackedBytes": 5963098,
+      "published": false
+    }
+  },
+  "tauri": {
+    "schemaVersion": 1,
+    "status": "passed",
+    "deviceOpened": false,
+    "sdkPin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.2",
+      "sourceCommit": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+      "archiveName": "tetorica-soundchip-native-0.1.2-sources.zip",
+      "archiveSha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72",
+      "manifestSha256": "a79387194dd58628988abbf19938175c084246e11cee9d65647881b4bd65d8cf",
+      "fileCount": 381
+    },
+    "tests": {
+      "python": 22,
+      "node": 31,
+      "cargo": {
+        "passed": 726,
+        "failed": 0,
+        "ignored": 4
+      },
+      "genesisWasmPcm": {
+        "cases": 6,
+        "stereoFrames": 49152,
+        "maximumDifference": 3.725290298461914e-09
+      },
+      "nativeLifecycle": {
+        "constructorCount": 88,
+        "events": 14648,
+        "futureEventsDiscardedByStop": 1456,
+        "modes": 22,
+        "ownerCancellations": 88,
+        "reclaimedBankGuards": 88,
+        "reclaimedCommandGuards": 7168,
+        "renderSeconds": 0.6300087460000001,
+        "renderedFrames": 604032,
+        "runStopTransitions": 88,
+        "simulatedSeconds": 12.583999999999993
+      },
+      "nativeExtra": {
+        "scenes": 3,
+        "soloSources": 7,
+        "slots": {
+          "futureGuardReclaimed": true,
+          "monotonicReplacement": 17,
+          "passed": true,
+          "rejectedSeventeenth": true,
+          "reservationBytes": 27828592,
+          "reservedBytesAfterStop": 0,
+          "retiringSlotRejectedBeforeDrain": true,
+          "slots": 16
+        },
+        "admission": {
+          "customPayloadBudgetBytes": 8388608,
+          "default64MiBPolicyProbe": {
+            "creationAndWriteRolledBack": true,
+            "recoveredAfterPermitDrop": true,
+            "reservationOnly": true,
+            "saturatedReservationBytes": 67108864
+          },
+          "instanceBudgetRejection": "Additional Native sound-chip memory budget exceeded (5570560 bytes)",
+          "passed": true,
+          "payloadRollbackAttempts": 4,
+          "reservedBytesAfterRejection": 3518776,
+          "reservedBytesAfterStop": 0
+        }
+      },
+      "sources": {
+        "status": "passed",
+        "archive": "native-source-bundle/application-sources.zip",
+        "sha256": "9725ea4856b6485f43c5475c8a17118acf18819a2b80c48c0cacc78b8c7086f5",
+        "files": 1803,
+        "applicationVersion": "0.91.1",
+        "frontendArchiveSha256": "16d0e446afb9f5c5c91fc648bce73b8a554af71a3237625fab75b6b30cb5a493"
+      },
+      "unchangedProductSourceFiles": 268
+    },
+    "evidence": {
+      "tauri-genesis-core.json": "bd050088dbfbf3066364757d22c4699d3224b96b5b187f97eac398fa09a7af02",
+      "tauri-stability.json": "0d1c0bbcca6402cd75b31f44750872ef65b072f1e6058186a39b2afc6d75012f",
+      "tauri-extra-stability.json": "1360ec01b9bbe344f535bbc4054d1824e58b02975ab7ec98052c5986de6a76f9",
+      "tauri-sources.json": "db3f1cf30378b1a20ea9667acae35a75723fc4fb022cde8476cd2754ceb80083",
+      "tauri-sdk-source-audit.json": "54b25b78784f0430226967d80ab681007090edaf77a888f4d03cc294526735fa"
+    },
+    "notes": [
+      "Local macOS ARM64 offline validation only; does not replace listening, UI checks or the pending five-platform CI.",
+      "No commits, pushes or CI dispatch were performed by this worker."
+    ]
+  },
+  "ci": {
+    "sdk": {
+      "runId": 40297659488,
+      "headSha": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+      "url": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40297659488",
+      "status": "awaiting-final-audit"
+    },
+    "tauri": {
+      "runId": 40297874215,
+      "headSha": "fe391fb543280a8a3cc2f11c319268c3d538d24e",
+      "url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40297874215",
+      "status": "awaiting-final-audit"
+    },
+    "main": {
+      "status": "pending-adoption-commit"
+    }
+  },
+  "mainInputs": [
+    {
+      "path": "scripts/import_soundchip_sdk.py",
+      "sha256": "f376d23715a787419d20be01c409d2b1b9e01b7a5216dc012f174f928408fb7e",
+      "bytes": 14756
+    },
+    {
+      "path": "test/test_soundchip_sdk.py",
+      "sha256": "30b0bcc736a89c774e12c94ecb896b4f752998d9f5a670c024210b14a1fecd6b",
+      "bytes": 16391
+    },
+    {
+      "path": "test/test_ym2612_sdk_build.py",
+      "sha256": "8a0c664a46224549a1fb77efadc5e5422ef4b7b820bb2e9f86dd821c83c516f7",
+      "bytes": 56068
+    },
+    {
+      "path": "scripts/check_native_game_gear.mjs",
+      "sha256": "7dc52d385df5f000e83ccb1da105efa6f6e983cdaecae6644978d605b38fbae3",
+      "bytes": 11334
+    },
+    {
+      "path": "scripts/check_native_master_system.mjs",
+      "sha256": "5d2df94c2622bc9fa6db39672cc7e99a79b3d8eb528b4051f007cea2a14956b2",
+      "bytes": 14106
+    },
+    {
+      "path": "scripts/check_native_nuked.mjs",
+      "sha256": "99cd8256698c7deb5f966ac7ba3c9b1ce344eeda7c57d5e755abb2ce5da5576d",
+      "bytes": 17353
+    },
+    {
+      "path": "docs/generated/build-info.json",
+      "sha256": "42abde93f93aac61d282eb402f0b0450b01edbc1ee5d37da068452cd5c3b4398",
+      "bytes": 130921
+    },
+    {
+      "path": "docs/building_ym2612_wasm.md",
+      "sha256": "43a4eba11169ac1d9a0c41edf073ab18c3f3527f681be5f12c97dcfb8b243948",
+      "bytes": 36660
+    },
+    {
+      "path": "third_party/tetorica_sega_psg/README.md",
+      "sha256": "c7a6e3651756914cf3a0751608004c106182a3efce3549a8cc3eee7753c15cfd",
+      "bytes": 2602
+    },
+    {
+      "path": "web/msfa_dx7/README.vendor.md",
+      "sha256": "2b6426a8c8c5129d17ace8182d4d2a7fd0b18b492286213c484aa34d3067d662",
+      "bytes": 2489
+    },
+    {
+      "path": "docs/js/msfa_dx7/README.vendor.md",
+      "sha256": "2b6426a8c8c5129d17ace8182d4d2a7fd0b18b492286213c484aa34d3067d662",
+      "bytes": 2489
+    }
+  ],
+  "publishedSdkTagOrRelease": false,
+  "evidenceDirectory": "/private/tmp/tetorica-sdk-012-adoption"
+}

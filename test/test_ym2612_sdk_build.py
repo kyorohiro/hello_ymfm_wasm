@@ -649,8 +649,9 @@ class Ay8910SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
 class SegaPsgSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     artifact = 'segapsg'
     exports = SEGAPSG_EXPORTS
-    vendor_sources = ['vendor/ymfm/segapsg.cpp']
-    core_header = 'vendor/ymfm/segapsg.h'
+    vendor_sources = ['vendor/tetorica_sega_psg/segapsg.cpp']
+    core_header = 'vendor/tetorica_sega_psg/segapsg.h'
+    include_directories = ['vendor/tetorica_sega_psg', 'vendor/ymfm']
     support_sources = ['vendor/ymfm/chip_state.h']
 
     def test_shared_output_preserves_all_twelve_existing_build_records(self):
