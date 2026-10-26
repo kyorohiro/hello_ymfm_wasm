@@ -49,3 +49,6 @@ node scripts/check_wasm_sdk.mjs
 結果・入力hash・ビルドと比較の記録は[JSON](wonderswan_wasm_ci_01.json)を参照。
 GitHub上の再実行には修正をcommit／pushする必要がある。
 この作業でcommit／push／workflow dispatchは行っていない。
+
+後続確認：ユーザーが修正を`23f1328260d38a67aad74894fe914b54a6578c81`へcommit／pushし、
+[run 40379809938](https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40379809938)が成功したことを確認した。

@@ -1,0 +1,459 @@
+{
+  "schemaVersion": 1,
+  "recordedDate": "2026-10-27",
+  "passed": true,
+  "scope": "Prepare SDK 0.1.4 sources and standalone Native/WASM builds; no application fixed-pin/backend migration or publication.",
+  "origin": {
+    "applicationCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+    "sdkBaseCommit": "303f0450ed3c2fc286fecb29f6d51768d3efd0f6",
+    "upstreamMameCommit": "d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2"
+  },
+  "collection": {
+    "version": "0.1.4",
+    "chipIds": 23,
+    "wasmRecipes": 28,
+    "javascriptReferences": 2,
+    "importedFileRecords": 286,
+    "originalVendorFilesByteIdentical": 6,
+    "wasmWrapperByteIdentical": true
+  },
+  "pythonTests": {
+    "pass": 67,
+    "fail": 0
+  },
+  "native": {
+    "sourceZipIsolation": true,
+    "libraries": [
+      "tetorica_native_ay8910",
+      "tetorica_native_dx7",
+      "tetorica_native_gameboy",
+      "tetorica_native_huc6280",
+      "tetorica_native_nes",
+      "tetorica_native_nuked_ym2612",
+      "tetorica_native_okim6258",
+      "tetorica_native_opl",
+      "tetorica_native_pwm",
+      "tetorica_native_rf5c164",
+      "tetorica_native_segapsg",
+      "tetorica_native_snes",
+      "tetorica_native_spc",
+      "tetorica_native_wonderswan",
+      "tetorica_native_ym2151",
+      "tetorica_native_ym2203",
+      "tetorica_native_ym2413",
+      "tetorica_native_ym2608",
+      "tetorica_native_ym2610",
+      "tetorica_native_ym2612"
+    ],
+    "ctestPass": 25,
+    "ctestFail": 0,
+    "fixtureExecutables": 24,
+    "wonderSwanChecks": 71515,
+    "hotBlocks": 2048,
+    "trackedCppNewAllocations": 0,
+    "directMallocTracked": false,
+    "asanUbsanPassed": true,
+    "consumerColinkWithSegaPsgPassed": true,
+    "examples": [
+      {
+        "name": "Genesis",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.103973388671875,
+          0.103973388671875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Master System",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.034637451171875,
+          0.034637451171875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "MSX",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.069732666015625,
+          0.069732666015625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "PC-98 YM2203",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.26116943359375,
+          0.26116943359375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "PC-98 YM2608",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.23565673828125,
+          0.251068115234375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "NeoGeo",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.24139404296875,
+          0.24072265625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "X68000",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.207305908203125,
+          0.202850341796875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Mega-CD",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.14703369140625,
+          0.1412353515625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "DOS PC OPL",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.05706787109375,
+          0.05706787109375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "MSX-AUDIO",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.05645751953125,
+          0.05645751953125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Game Boy",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.449981689453125,
+          0.449981689453125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "PC Engine",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.118988037109375,
+          0.14617919921875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "NES with FDS",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.264556884765625,
+          0.264556884765625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "32X",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.257293701171875,
+          0.264068603515625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "DX7",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.182952880859375,
+          0.182952880859375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "SNES",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.195953369140625,
+          0.21356201171875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "SPC",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.183135986328125,
+          0.183135986328125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Nuked Genesis",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.152984619140625,
+          0.152984619140625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "WonderSwan",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.121307373046875,
+          0.14984130859375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      }
+    ]
+  },
+  "wasm": {
+    "wonderSwan": {
+      "importedAndArchiveRebuiltSmokes": [
+        {
+          "passed": true,
+          "artifact": "wonderswan",
+          "renderedFrames": 52228,
+          "checks": [
+            "C-ABI-exports-null-and-configuration-guards",
+            "synchronous-registers-and-16384-byte-RAM-boundaries",
+            "cold-reset-clears-RAM-gates-and-output",
+            "four-physical-waves-and-independent-stereo",
+            "raw-DAC-sum-and-packed-waveform-order",
+            "eight-noise-types-stereo-levels-and-LFSR-reset",
+            "channel-3-positive-negative-sweep-timing-and-wrap",
+            "channel-2-direct-voice-PCM-byte-half-full-and-pan",
+            "host-mute-silence-and-phase-continuation",
+            "bounded-partition-exact-stereo-register-and-RAM-continuation",
+            "integer-clock-cadence-at-44100-48000-96000-Hz"
+          ],
+          "outputPolicy": "raw unipolar headphone PCM, original /1024 gain; no speaker adapter"
+        },
+        {
+          "passed": true,
+          "artifact": "wonderswan",
+          "renderedFrames": 52228,
+          "checks": [
+            "C-ABI-exports-null-and-configuration-guards",
+            "synchronous-registers-and-16384-byte-RAM-boundaries",
+            "cold-reset-clears-RAM-gates-and-output",
+            "four-physical-waves-and-independent-stereo",
+            "raw-DAC-sum-and-packed-waveform-order",
+            "eight-noise-types-stereo-levels-and-LFSR-reset",
+            "channel-3-positive-negative-sweep-timing-and-wrap",
+            "channel-2-direct-voice-PCM-byte-half-full-and-pan",
+            "host-mute-silence-and-phase-continuation",
+            "bounded-partition-exact-stereo-register-and-RAM-continuation",
+            "integer-clock-cadence-at-44100-48000-96000-Hz"
+          ],
+          "outputPolicy": "raw unipolar headphone PCM, original /1024 gain; no speaker adapter"
+        }
+      ],
+      "outputsByteIdenticalToApplication": [
+        {
+          "path": "wonderswan_wasm.js",
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899",
+          "size": 11356
+        },
+        {
+          "path": "wonderswan_wasm.wasm",
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+          "size": 10321
+        }
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "artifacts": [
+          {
+            "id": "wonderswan",
+            "format": "emscripten-es-module",
+            "sourceFingerprint": "76016ead3da38e7a99d41c0a2bd827b307fd0d08e127d732a6bd141a1233d8bf",
+            "sourceFiles": [
+              {
+                "path": "scripts/build-wasm.sh",
+                "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+                "size": 1664
+              },
+              {
+                "path": "scripts/build_wonderswan_wasm.sh",
+                "sha256": "e1f78911e0ce5795dd0963782f53a7a41e4f749c456a7fa93289ef286793f8d7",
+                "size": 849
+              },
+              {
+                "path": "scripts/record_wasm_build.mjs",
+                "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+                "size": 1891
+              },
+              {
+                "path": "vendor/mame-wonderswan/upstream/wswansound.cpp",
+                "sha256": "4c1c9ae39968c0dfc8230519d06439c403e387fa2b250c1dbb06b0663845bc20",
+                "size": 15337
+              },
+              {
+                "path": "vendor/mame-wonderswan/upstream/wswansound.h",
+                "sha256": "a4edef627dbc3fd47def5bdc0f2ebeeb25f1ba63396f5952796df3c3ff81bef3",
+                "size": 2726
+              },
+              {
+                "path": "vendor/mame-wonderswan/wonderswan.cpp",
+                "sha256": "fcd143482371f07d335ce3f9ef4fabb4febf6125c46888adcb02e4a400e24294",
+                "size": 8452
+              },
+              {
+                "path": "vendor/mame-wonderswan/wonderswan.h",
+                "sha256": "38ca485de40fc60d858b1a7d70bc2037c52d9a04e4e28e851b69945c957f6b40",
+                "size": 2134
+              },
+              {
+                "path": "wasm/wonderswan_wasm.cpp",
+                "sha256": "7f5de6a81470494b3e1b6f8f290e12ad1c9856b3024582e0618120b8d4e046cf",
+                "size": 1218
+              }
+            ],
+            "outputs": [
+              {
+                "path": "wonderswan_wasm.js",
+                "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899",
+                "size": 11356
+              },
+              {
+                "path": "wonderswan_wasm.wasm",
+                "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+                "size": 10321
+              }
+            ],
+            "compiler": {
+              "command": "em++",
+              "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+            },
+            "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+          }
+        ]
+      }
+    },
+    "ym2612": {
+      "archiveAbiSmokePassed": true,
+      "rebuiltFromExtractedSource": true,
+      "rebuiltAbiSmokePassed": true
+    },
+    "remaining26ArtifactsRebuiltThisTask": false
+  },
+  "artifacts": {
+    "source": {
+      "path": "/private/tmp/ws-sdk-014-releases/tetorica-soundchip-native-0.1.4-sources.zip",
+      "sha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+      "bytes": 1051025,
+      "files": 395
+    },
+    "wonderSwanWasm": {
+      "path": "/private/tmp/ws-sdk-014-releases/tetorica-soundchip-native-0.1.4-wasm.zip",
+      "sha256": "35887ba7847882ee4f974a5165391183f30cba97cfaefeb1000939c657798631",
+      "bytes": 1108129
+    },
+    "finalSourceOnlyChangeAfterNativeBuild": [
+      "docs/verification.md"
+    ],
+    "finalArchiveAuditAndSmokesPassed": true
+  },
+  "fixedApplicationSdks": {
+    "main": {
+      "path": "third_party/soundchip-sdk.json",
+      "sha256": "d913e0b7b77a98f9ef4f8014e9ae8c4f91adcbd74f9b04bc732a5fdf4d720b24",
+      "version": "0.1.2"
+    },
+    "tauri": {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/soundchip-sdk.json",
+      "sha256": "d913e0b7b77a98f9ef4f8014e9ae8c4f91adcbd74f9b04bc732a5fdf4d720b24",
+      "version": "0.1.2"
+    }
+  },
+  "ci": {
+    "applicationFixRun": {
+      "id": 40379809938,
+      "commit": "23f1328260d38a67aad74894fe914b54a6578c81",
+      "conclusion": "success",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40379809938"
+    },
+    "newSdkMatrix": {
+      "nativePlatforms": 5,
+      "wasmArtifacts": [
+        "ym2612",
+        "wonderswan"
+      ]
+    },
+    "newSdkRemoteJobsRun": false
+  },
+  "published": false,
+  "committedOrPushed": false,
+  "limitations": [
+    "Local macOS validation; SDK 0.1.4 Windows/Linux/other Mac CI not run.",
+    "Raw preliminary headphone synthesis only; no hardware/listening/deadline benchmark.",
+    "No Tauri Native Audio integration, DMA, Hyper Voice, CPU/BIOS/ROM or save state."
+  ],
+  "rawCoreOutputOrApplicationMixerChanged": false,
+  "newWavExampleOutputPolicy": {
+    "dcHighPassHz": 20,
+    "gain": 0.7,
+    "fadeInMs": 5,
+    "fadeOutMs": 20
+  }
+}
