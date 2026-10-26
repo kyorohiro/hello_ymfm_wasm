@@ -236,13 +236,13 @@ npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 YM2612, YM2203, YM2608, YM2610/B, YM2151/YM2164, OKIM6258, YM2413,
 YM3526, YM3812, YMF262, Y8950, AY-3-8910/YM2149, Sega PSG, RF5C164, 32X PWM,
 HuC6280, Game Boy APU, NES APU/FDS, SNES SPC700/S-DSP, Sega PCM, K051649,
-YM3438, YMF276, YMF288, YMF278B, the optional Nuked OPN2 build and DX7 verify
+YM3438, YMF276, YMF288, YMF278B, WonderSwan, the optional Nuked OPN2 build and DX7 verify
 and use the complete, pinned `tetorica-soundchip-native` source release
 included in `third_party/`.
 With Emscripten and Python 3 installed, run a chip recipe such as
 `sh scripts/build_okim6258_wasm.sh` or `sh scripts/build_dx7_wasm.sh`.
 See the full recipe list and [build and SDK update instructions](docs/building_ym2612_wasm.md).
-Run `npm run test:wasm:sdk` to rebuild all 27 artifacts in an isolated temporary
+Run `npm run test:wasm:sdk` to rebuild all 28 artifacts in an isolated temporary
 directory and verify receipts, the WASM ABI and exact PCM against the committed
 builds. The same command runs in the WASM SDK CI workflow; it needs no sibling
 checkout or npm dependencies.

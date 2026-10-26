@@ -43,6 +43,15 @@ by Maxim and research contributors. The shared serialization helper
 `vendor/ymfm/chip_state.h` is also original Tetorica code under [LICENSE](LICENSE);
 its historical location does not assign Aaron Giles authorship to that helper.
 
+[WonderSwan](vendor/mame-wonderswan/README.md) uses a standalone adaptation of
+Wilbert Pol's MAME sound device under the component's
+[BSD-3-Clause license](vendor/mame-wonderswan/LICENSE). The pinned upstream
+`wswansound.cpp` and `.h`, their copyright declarations, and the adaptation's
+notices are included. MAME's project-wide license is not substituted for these
+explicit per-file terms. The SDK public forwarder, fixture, and WAV host use
+the repository's BSD-3-Clause default. No MAME framework, ROM, or game audio is
+required by this target.
+
 The [MSM5205](vendor/libvgm-msm5205/LICENSE) and
 [OKIM6295](vendor/mame-okim6295/LICENSE) JavaScript references retain their BSD
 copyright notices and adaptation records. They are unchanged copies of the

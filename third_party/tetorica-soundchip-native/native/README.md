@@ -1,7 +1,7 @@
 # Native sources
 
-This directory contains the existing chip-level C++/C ABI wrappers as bootstrap
-references, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
+This directory contains existing chip-level C++/C ABI wrappers as bootstrap
+references and the SDK's raw WonderSwan C++ target, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
 QuickJS, UI, or audio-device code. Existing applications still use their current
 sources. Collecting them here does not yet switch those consumers to this SDK.
 
@@ -12,6 +12,8 @@ carry the recorded template-ownership amendments below.
 `reference/SOURCES.json` records the original and packaged byte hashes.
 The vendor cores have one canonical copy in `../vendor/`; they are not copied
 again under `native/`.
+WonderSwan uses that shared core directly through a public C++ forwarder;
+it is not an imported Tauri adapter or a Playground Native Audio backend.
 
 [Per-chip differences](../docs/chip-differences.md) distinguish upstream
 adaptations, SDK relocation, and existing Native/WASM API or rendering
@@ -30,10 +32,10 @@ translation-unit constraints.
 Requirements: CMake 3.20 or newer, a C++17 compiler and a C compiler (C11 or newer for Nuked).
 
 The independently buildable Native components are **ymfm YM2612, YM2151,
-YM2413, YM2203, YM2608 and YM2610/YM2610B, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback and YM3526/YM3812/YMF262/Y8950**.
-These twenty-two chip IDs, including the alternative Nuked YM2612 engine, use nineteen static libraries; YM2610/YM2610B share one
+YM2413, YM2203, YM2608 and YM2610/YM2610B, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback, WonderSwan and YM3526/YM3812/YMF262/Y8950**.
+These twenty-three chip IDs and the alternative Nuked YM2612 engine use twenty static libraries; YM2610/YM2610B share one
 library, and four OPL-family chips share another. Constructors explicitly select
-the per-handle variant/kind. Twenty-four aliases/headers include generic OPL and the alternative Nuked engine:
+the per-handle variant/kind. Twenty-five aliases/headers include generic OPL and the alternative Nuked engine:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -44,7 +46,7 @@ ctest --test-dir build -C Release --output-on-failure
 The same targets can be configured directly with `cmake -S native -B
 build/native`. Neither build downloads dependencies.
 
-| CMake target | Static library target | Public C++ header | Existing C ABI |
+| CMake target | Static library target | Public C++ header | Public API |
 | --- | --- | --- | --- |
 | `tetorica::ym2612` | `tetorica_native_ym2612` | `<tetorica/ym2612.hpp>` | `native_ym2612_*`, `NativeYm2612State` |
 | `tetorica::nuked_ym2612` | `tetorica_native_nuked_ym2612` | `<tetorica/nuked_ym2612.hpp>` | `native_nuked_ym2612_*`, `tetorica_nuked_*`, `NativeYm2612State` |
@@ -65,10 +67,12 @@ build/native`. Neither build downloads dependencies.
 | `tetorica::dx7` | `tetorica_native_dx7` | `<tetorica/dx7.hpp>` | `native_dx7_*`; no public state snapshot |
 | `tetorica::snes` | `tetorica_native_snes` | `<tetorica/snes.hpp>` | `native_snes_*`, `NativeSnesState` |
 | `tetorica::spc` | `tetorica_native_spc` | `<tetorica/spc.hpp>` | `native_spc_*`, `NativeSpcState`, `NativeSpcEvent` |
+| `tetorica::wonderswan` | `tetorica_native_wonderswan` | `<tetorica/wonderswan.hpp>` | Raw C++ `WonderSwan` class; no Tauri C ABI |
 
-The exported names and observational state layouts remain unchanged. These
-headers expose the current reference C ABI to C++ hosts; they are not yet a new
-versioned, portable C-only SDK header.
+The imported adapters' exported names and observational state layouts remain
+unchanged. Their headers expose the current reference C ABI to C++ hosts; they
+are not yet a new versioned, portable C-only SDK header. WonderSwan instead
+exposes its existing raw C++ class, with no new C ABI or state structure.
 
 The YM2612 fixture exercises two independent instances, all six FM channels, DAC, timers,
 status/IRQ, clock changes, observational snapshots, cancellation, retained Stop,
@@ -102,7 +106,7 @@ clock/divider guards, pan, repeat, retained Stop/reset and observation.
 The RF5C164 fixture covers both profiles, eight voices, sign-magnitude PCM,
 loop markers, RAM/bank access, clock conversion, reset retention and the
 additional profile's immediate source cancellation and observation.
-Twenty-three fixture executables supply twenty-four CTest tests, with assertions enabled
+Twenty-four fixture executables supply twenty-five CTest tests, with assertions enabled
 in Release builds. The SNES executable supplies two entries.
 The three OPL-family fixtures exercise primary controls/PCM, additional source
 ownership/held output, and Y8950 writable-page memory separately. The shared OPL
@@ -145,8 +149,14 @@ latched-error recovery, bounded incremental seek, cached mute, pause/resume,
 independent instances, non-advancing analysis and bounded observer/overflow
 semantics. Tested callback paths reject allocation/free; original SPC bytes
 and replacement-handle handoff remain host responsibilities.
+The WonderSwan fixture covers four wave channels, independent stereo levels,
+all eight noise tap modes, signed sweep and wrap, all sixteen direct voice
+routing/level combinations, register/RAM boundaries, mute progression, cold
+reset, independent instances and exact render-block partitioning. The tested
+render/control paths reject C++ allocation/free. Its raw headphone comparisons
+exclude the WAV example's DC filter, gain and fades.
 See the [verification record](../docs/verification.md)
-for completed checks and platform results. These targets cover all 22 cataloged Playground chip IDs and the alternative Nuked YM2612 engine. Separate Analyzer-only chip references remain outside this standalone target set.
+for completed checks and platform results. These targets cover all 23 cataloged Playground chip IDs and the alternative Nuked YM2612 engine. Separate Analyzer-only chip references remain outside this standalone target set.
 
 `src/ymfm_opn_provider.cpp` includes the unchanged shared ymfm provider and explicitly instantiates the Native OPN engine/channel/operator templates. The adapter declares those templates `extern`; optimized providers must emit their callable definitions even when the provider's own calls are inlined. This incorporates the Tauri link fix without changing DSP behavior or the exported ABI. The provider's origin and include relocation are recorded in the source inventories.
 
@@ -1428,6 +1438,105 @@ loads, starts and samples it; a bounded observer verifies CPU-driven note
 writes. Pitch uses the fixed 32 kHz DSP rate and echo writes are disabled.
 No Nintendo IPL bytes, game music, ROM, external file or audio device is used.
 
+## Embed WonderSwan
+
+Link `tetorica::wonderswan` and include `<tetorica/wonderswan.hpp>`. This
+forwarder exposes the standalone C++ `tetorica::WonderSwan` class (an alias of
+the original global `WonderSwan`) from the single shared
+`vendor/mame-wonderswan/` core. CMake compiles that core once; the WASM C bridge
+is a separate build recipe, not part of this Native library. No Tauri wrapper,
+application scheduler, Mixer, speaker adapter or audio device is linked.
+
+```cmake
+target_link_libraries(your_application PRIVATE tetorica::wonderswan)
+```
+
+```cpp
+#include <tetorica/wonderswan.hpp>
+
+int main() {
+    // Validate caller-supplied settings before construction.
+    constexpr unsigned clock = 3072000, rate = 48000;
+    if (!tetorica::WonderSwan::validConfiguration(clock, rate)) return 1;
+    tetorica::WonderSwan chip(clock, rate);
+    for (unsigned i = 0; i < 16; ++i) {
+        const unsigned a = 2 * i < 16 ? 2 * i : 31 - 2 * i;
+        const unsigned b = 2 * i + 1 < 16 ? 2 * i + 1 : 30 - 2 * i;
+        chip.writeMemory(i, static_cast<unsigned char>(a | (b << 4)));
+    }
+    chip.writeRegister(0x80, 0x26); // F = 1830: about 440.37 Hz
+    chip.writeRegister(0x81, 0x07);
+    chip.writeRegister(0x88, 0x99); // CH1 left/right levels
+    chip.writeRegister(0x91, 0x08); // Headphone output enabled
+    chip.writeRegister(0x90, 0x01); // CH1 enabled
+    float left[512], right[512];
+    chip.generate(left, right, 512);
+    // Apply your explicit speaker/DC policy before audio output.
+}
+```
+
+The clock range is 128–100,000,000 Hz; output rates are 8,000–384,000 Hz. Both
+are fixed per instance. The constructor falls back to 3,072,000 Hz / 44,100 Hz
+if either setting is invalid; it does not report an error. Validate first when
+silent fallback is inappropriate. Register access, RAM access, mute and
+generation use fixed owned storage and allocate no memory after construction.
+The host serializes all access and supplies two separate output buffers, each
+holding at least `frames` floats. A null output pointer makes generation a
+no-op without advancing the chip; buffer bounds remain the caller's duty.
+
+The four channels each fetch 32 unsigned 4-bit samples from owned 16 KiB RAM.
+The current bank begins at `value * 64` from register `0x8f`; each channel uses
+16 packed bytes, with the even sample in the low nibble. The byte RAM API
+accepts `0x0000..0x3fff`, returning zero or ignoring writes outside the range.
+I/O accepts absolute byte addresses `0x80..0x9f`, not MAME word offsets.
+
+| Registers | Function |
+| --- | --- |
+| `0x80..0x87` | Four little-endian 11-bit frequencies; `period = 2048 - F` |
+| `0x88..0x8b` | Independent 4-bit left/right volumes; `0x89` also holds CH2 voice PCM |
+| `0x8c..0x8d` | CH3 signed sweep step and interval |
+| `0x8e`, `0x92..0x93` | CH4 noise taps, reset/enable and readable shift register |
+| `0x8f` | Waveform bank selector |
+| `0x90` | Four gates, CH2 voice mode, CH3 sweep and CH4 noise mode |
+| `0x91` | Output control; headphone-enable bit 3 affects synthesis |
+| `0x94` | Voice-mode left/right routing and half/full level |
+
+The engine retains `floor(clock / 128)` native updates per second, converted
+to the output rate by integer-phase sample and hold. At the default clock the
+wavetable fundamental is `clock / (32 * period)`; other clocks use the effective
+clock `128 * floor(clock / 128)`. Ordered writes and the same total output frame
+count produce identical PCM regardless of render-block partitioning. The host
+must split buffers at scheduled write positions; the core supplies no timeline.
+
+Output retains the raw headphone DAC sum divided by 1024. It is **unipolar and
+contains DC**: one full-volume wave spans `0..225/1024`, with at most `900/1024`
+from four wave channels. There is no automatic centering, high-pass filter,
+normalization, output interpolation or hidden gain. A speaker host should choose
+and document its own DC/output policy; raw Native/WASM comparisons must use the
+same unmodified signal. `mute(channel, true)` masks output while synthesis
+continues. Clearing gate bits in `0x90` is an ordinary register write, not an
+immediate callback-level Stop: previously held PCM can remain until the next
+native update. `reset()` cold-clears registers, RAM, mutes, phase and held PCM,
+and disables headphone output; it retains the constructor's clock and rate.
+
+This target preserves the pinned MAME model, whose upstream marks emulation
+preliminary. Headphones are always connected; the internal mono speaker,
+HyperVoice, DMA, CPU, cartridge/BIOS, interrupt behavior, system-volume gain and
+save/load states are absent. Voice mode requires host-scheduled byte writes
+and both CH2-enable and voice-enable bits. The [component guide](../vendor/mame-wonderswan/README.md)
+records further retained hardware differences. The SDK target alone does not
+add a WonderSwan Tauri Native Audio backend to Playground.
+That component README is retained byte-for-byte from the reference Web checkout;
+its `web/`, npm and first-stage fixed-SDK instructions describe that original
+checkout. Use this guide and the root README for this SDK's CMake targets and
+WASM build recipes.
+
+`examples/wonderswan_wav.cpp` is a complete offline host using only generated
+waveforms and PCM bytes. It demonstrates stereo wave phrases, four-channel
+mixing, sweep, noise and direct voice data with an explicit 20 Hz first-order DC
+blocker, fixed 0.7 gain and 5 ms fade-in / 20 ms fade-out at note boundaries.
+It requires no device, ROM, game data or external assets.
+
 ## Offline WAV examples
 
 `examples/sega32x_wav.cpp` links `tetorica::pwm`, `tetorica::ym2612` and
@@ -1509,11 +1618,16 @@ Its original SPC700 timer-driven program plays a stereo melody and chord
 through the DSP using three original BRR loops; the host does not schedule
 raw DSP notes. A bounded observer confirms CPU writes, with fixed gain/fades
 and no IPL, game data, external file or audio device.
+`examples/wonderswan_wav.cpp` links only `tetorica::wonderswan` in
+`tetorica_wonderswan_wav`. It generates its own four-channel waves and host-fed
+voice bytes, with stereo phrases, sweep and noise. The host's speaker preparation
+and headroom are explicit; they do not change the raw core's unipolar `/1024`
+headphone output or establish a calibrated Mixer default.
 From the SDK root:
 
 ```sh
 cmake -S . -B build/native -DCMAKE_BUILD_TYPE=Release
-cmake --build build/native --config Release --target tetorica_32x_wav tetorica_genesis_wav tetorica_master_system_wav tetorica_msx_wav tetorica_pc98_ym2203_wav tetorica_pc98_ym2608_wav tetorica_neogeo_wav tetorica_x68000_wav tetorica_megacd_wav tetorica_dos_opl_wav tetorica_msx_audio_wav tetorica_gameboy_wav tetorica_pcengine_wav tetorica_nes_fds_wav tetorica_dx7_wav tetorica_snes_wav tetorica_spc_wav
+cmake --build build/native --config Release --target tetorica_wonderswan_wav tetorica_32x_wav tetorica_genesis_wav tetorica_master_system_wav tetorica_msx_wav tetorica_pc98_ym2203_wav tetorica_pc98_ym2608_wav tetorica_neogeo_wav tetorica_x68000_wav tetorica_megacd_wav tetorica_dos_opl_wav tetorica_msx_audio_wav tetorica_gameboy_wav tetorica_pcengine_wav tetorica_nes_fds_wav tetorica_dx7_wav tetorica_snes_wav tetorica_spc_wav
 # Single-configuration generators:
 ./build/native/native/tetorica_32x_wav "32x demo.wav"
 ./build/native/native/tetorica_genesis_wav "genesis demo.wav"
@@ -1532,6 +1646,7 @@ cmake --build build/native --config Release --target tetorica_32x_wav tetorica_g
 ./build/native/native/tetorica_dx7_wav "dx7 demo.wav"
 ./build/native/native/tetorica_snes_wav "snes demo.wav"
 ./build/native/native/tetorica_spc_wav "spc demo.wav"
+./build/native/native/tetorica_wonderswan_wav "wonderswan demo.wav"
 # Visual Studio on Windows:
 ./build/native/native/Release/tetorica_32x_wav.exe "32x demo.wav"
 ./build/native/native/Release/tetorica_genesis_wav.exe "genesis demo.wav"
@@ -1550,6 +1665,7 @@ cmake --build build/native --config Release --target tetorica_32x_wav tetorica_g
 ./build/native/native/Release/tetorica_dx7_wav.exe "dx7 demo.wav"
 ./build/native/native/Release/tetorica_snes_wav.exe "snes demo.wav"
 ./build/native/native/Release/tetorica_spc_wav.exe "spc demo.wav"
+./build/native/native/Release/tetorica_wonderswan_wav.exe "wonderswan demo.wav"
 ```
 
 The one required argument selects the output WAV; the parent directory must
@@ -1586,9 +1702,10 @@ controlled separately by `TETORICA_NATIVE_BUILD_TESTS`.
 | DX7 | `native_genesis_dx7.cpp`, generated Native MSFA tree | Standalone six-operator/16-slot target and fixture; original-voice WAV host |
 | 32X PWM | `native_genesis_pwm.cpp`, shared `pwm32x_core.h` | Standalone PWM target, primary/additional-tag fixtures and 32X WAV host |
 | SNES S-DSP | `native_genesis_snes.cpp`, accurate `SPC_DSP.cpp` | Standalone eight-voice target, instrument/timeline CTest entries and original-BRR WAV host; no SPC700 CPU |
+| WonderSwan | Shared `vendor/mame-wonderswan/wonderswan.cpp` and public C++ forwarder | Standalone raw four-channel headphone target, fixture and original-data WAV host; no Tauri C ABI |
 | SPC700 file player | `native_genesis_spc.cpp`, accurate `SPC_DSP.cpp`, `SNES_SPC.cpp`, `SNES_SPC_misc.cpp`, `SNES_SPC_state.cpp` | Standalone player target and fixture; original CPU-program/BRR WAV host |
 
-The grouped rows cover 22 public components. Component origins and notices are
+The grouped rows cover 23 public components. Component origins and notices are
 kept with the shared vendor inventory; these adapters do not replace the
 per-component notices. The Native DX7 snapshot has six host portability/API
 variants under `reference/overrides/msfa/`. Unchanged MSFA files are shared from

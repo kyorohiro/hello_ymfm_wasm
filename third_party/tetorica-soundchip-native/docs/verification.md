@@ -1,5 +1,17 @@
 # Verification record
 
+## SDK 0.1.4 preparation — WonderSwan, 2026-10-27
+
+Local macOS validation extracted the source ZIP outside the checkouts, built all **20 Native libraries**, passed **25 CTest entries** from 24 fixture executables, and rendered/checked **19 stereo WAV examples**. Source inventories cover 23 chip IDs, 28 WASM recipes, two JavaScript references and 286 imported-file records. The 67 Python release/audit tests passed, including missing WonderSwan fixture/example checks for single- and multi-configuration CMake layouts.
+
+The new `tetorica::wonderswan` target uses the original imported C++ class and unchanged raw headphone DAC output. Its fixture passed 71,515 checks, including register/RAM boundaries, all four voices, Noise, Sweep, Voice PCM, mute/reset and partitioned generation. Across 2,048 hot blocks, tracked C++ `new`/`new[]` allocations were zero; direct `malloc` was not instrumented. A separate ASan/UBSan run and a consumer co-linking WonderSwan with Sega PSG also passed. The original three-second, 48 kHz PCM16 example has nonzero, distinct stereo output below clipping; only that example applies its documented DC filter, gain and fades.
+
+Emscripten 6.0.6 built the WonderSwan JS/WASM pair byte-identically to the imported reference. The pair released in the local test archive and the pair independently rebuilt from the extracted source ZIP each passed the Node ABI smoke: 52,228 stereo frames covering synchronous reads, all 16 KiB RAM, four channels, packed waves, eight noise modes, positive/negative Sweep, direct PCM, mute phase and exact partition continuation at three output rates. No npm dependency, adjacent checkout, browser or audio device was required.
+
+The CI configuration now requires five Native jobs and separate YM2612/WonderSwan WASM jobs. These new 0.1.4 jobs and a tagged release have not been run/published by this local validation. The application's existing fixed SDK remains 0.1.2; this result does not add a Tauri Native Audio backend or change its Mixer values. Earlier runs below retain their original version and scope.
+
+## Earlier recorded results
+
 Local verification was performed on macOS on 2026-10-24 and 2026-10-25 using installed development tools. The results below cover standalone Native targets for all 22 Playground chip IDs in their stated configurations. Alternative engines, additional WASM artifacts and Analyzer reference sources retain their separately recorded status.
 
 The [Verify SDK workflow](../.github/workflows/verify-sdk.yml) passed all six jobs in [run 40079785622](https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40079785622) at commit `175d20e1e2ca7397a267f3c8e3cd403669b9c989`: Windows MSVC, Linux GCC x64/ARM64, macOS Clang Intel/Apple Silicon source-archive builds, and Ubuntu YM2612 WASM build/archive rebuild. That linked run covers YM2612 only. The subsequent chip sections, including the SPC player below, record local results; they do not establish remote platform coverage for those later additions.

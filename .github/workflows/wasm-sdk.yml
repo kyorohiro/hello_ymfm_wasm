@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   wasm-sdk:
-    name: All 27 WASM builds
+    name: All 28 WASM builds
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -31,7 +31,7 @@ jobs:
         with:
           version: '6.0.6'
       - name: Test receipt validation, runner guards and standalone DX7 checks
-        run: node --test test/wasm_sdk_inventory.test.mjs test/check_wasm_sdk.test.mjs test/check_dx7_wasm_sdk_cli.test.mjs
+        run: node --test test/wasm_sdk_inventory.test.mjs test/check_wasm_sdk.test.mjs test/check_dx7_wasm_sdk_cli.test.mjs test/wonderswan_sdk_receipt.test.mjs
       - name: Build all fixed SDK cores and compare with the committed runtimes
         run: node scripts/check_wasm_sdk.mjs --work-dir "$RUNNER_TEMP/wasm-sdk"
       - name: Retain build logs, receipts and parity reports

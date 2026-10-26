@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "notes": [
-    "Reference C++/C ABI sources and standalone targets are included for all 22 public chip IDs; each verificationScope records supported APIs and tested configurations.",
-    "Standalone CMake targets build eighteen static libraries covering all twenty-two chip IDs: YM2612, YM2203, YM2608, YM2610/YM2610B, YM2151, YM2413, Sega PSG, AY-3-8910, OKIM6258, RF5C164, the shared YM3526/YM3812/YMF262/Y8950 OPL family, Game Boy, HuC6280, NES with optional FDS, 32X PWM, DX7, SNES S-DSP and the SPC700/SPC-file player. A nineteenth standalone library builds the alternative Nuked YM2612 engine; the twenty-two chip identifiers remain unchanged.",
+    "Reference C++/C ABI adapters and the raw WonderSwan C++ target are included for all 23 public chip IDs; each verificationScope records supported APIs and tested configurations.",
+    "Standalone CMake targets build twenty static libraries covering all twenty-three chip IDs: YM2612, YM2203, YM2608, YM2610/YM2610B, YM2151, YM2413, Sega PSG, AY-3-8910, OKIM6258, RF5C164, the shared YM3526/YM3812/YMF262/Y8950 OPL family, Game Boy, HuC6280, NES with optional FDS, 32X PWM, DX7, SNES S-DSP, the SPC700/SPC-file player and WonderSwan. The alternative Nuked YM2612 engine adds a separate library but no chip identifier.",
     "Vendor component origins and license files are recorded by the shared source inventory, rather than copied again here."
   ],
   "chips": [
@@ -818,6 +818,37 @@
         "native/reference/tauri/native_genesis_ay8910.h",
         "native/include/tetorica/ay8910.hpp"
       ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "wonderswan",
+      "sourceFiles": [
+        "native/include/tetorica/wonderswan.hpp",
+        "vendor/mame-wonderswan/wonderswan.cpp",
+        "vendor/mame-wonderswan/wonderswan.h"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_wonderswan",
+      "verificationScope": "SDK-owned raw C++ WonderSwan class using the pinned MAME adaptation directly, not a Tauri C ABI adapter. Four 32-point 4-bit waves, owned copied 16 KiB RAM, stereo headphone levels, CH2 host-written voice bytes, CH3 sweep, CH4 noise, mute progression, cold reset and fixed constructor clock/output rate. Retains raw unipolar /1024 PCM and integer-phase sample-and-hold conversion from floor(clock/128) native updates. Native fixture checks register/RAM boundaries, all voices, stereo, all eight noise tap modes, sweep, voice routing, independent instances, render partitioning and allocation-free tested paths. The offline WAV host alone applies an explicit speaker DC blocker, gain and fades. No mono-speaker output, DMA, HyperVoice, CPU/ROM, scheduler, portable save state or Playground Native Audio backend integration.",
+      "tests": [
+        "tetorica.wonderswan.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "The shared MAME adaptation and retained upstream files declare BSD-3-Clause with their original copyright notices. The SDK public forwarder, build integration, fixture and WAV host use the repository BSD-3-Clause default; no project-wide MAME license is inferred for other code.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-wonderswan/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/include/tetorica/wonderswan.hpp": "BSD-3-Clause",
+        "vendor/mame-wonderswan/wonderswan.cpp": "BSD-3-Clause",
+        "vendor/mame-wonderswan/wonderswan.h": "BSD-3-Clause"
+      },
+      "defaultLicensedFiles": [],
       "buildFiles": [
         "CMakeLists.txt",
         "native/CMakeLists.txt"

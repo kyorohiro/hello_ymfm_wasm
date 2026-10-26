@@ -619,6 +619,70 @@
       ]
     },
     {
+      "id": "mame-wonderswan",
+      "sourceFiles": [
+        "vendor/mame-wonderswan/wonderswan.cpp",
+        "vendor/mame-wonderswan/wonderswan.h",
+        "vendor/mame-wonderswan/upstream/wswansound.cpp",
+        "vendor/mame-wonderswan/upstream/wswansound.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-wonderswan/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/blob/d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2/src/mame/shared/wswansound.cpp",
+        "https://github.com/kyorohiro/hello_ymfm_wasm"
+      ],
+      "sourceVersion": [
+        "MAME d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2; upstream files retained byte-for-byte",
+        "Tetorica standalone adaptation imported from hello_ymfm_wasm 23f1328260d38a67aad74894fe914b54a6578c81; per-file SHA256 identifies the source snapshot"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-wonderswan/wonderswan.cpp",
+          "originPath": "third_party/mame-wonderswan/wonderswan.cpp",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "fcd143482371f07d335ce3f9ef4fabb4febf6125c46888adcb02e4a400e24294"
+        },
+        {
+          "path": "vendor/mame-wonderswan/wonderswan.h",
+          "originPath": "third_party/mame-wonderswan/wonderswan.h",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "38ca485de40fc60d858b1a7d70bc2037c52d9a04e4e28e851b69945c957f6b40"
+        },
+        {
+          "path": "vendor/mame-wonderswan/LICENSE",
+          "originPath": "third_party/mame-wonderswan/LICENSE",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "28c9517f09fd60cf3b5152646b49bd12bcb5491624e5e4c93d8839b981ff01e9"
+        },
+        {
+          "path": "vendor/mame-wonderswan/README.md",
+          "originPath": "third_party/mame-wonderswan/README.md",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "0633ec8b530b0c3bad13401638649d549f833cc97cedc6c9d0263ae60607220d"
+        },
+        {
+          "path": "vendor/mame-wonderswan/upstream/wswansound.cpp",
+          "originPath": "third_party/mame-wonderswan/upstream/wswansound.cpp",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "4c1c9ae39968c0dfc8230519d06439c403e387fa2b250c1dbb06b0663845bc20"
+        },
+        {
+          "path": "vendor/mame-wonderswan/upstream/wswansound.h",
+          "originPath": "third_party/mame-wonderswan/upstream/wswansound.h",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "a4edef627dbc3fd47def5bdc0f2ebeeb25f1ba63396f5952796df3c3ff81bef3"
+        }
+      ]
+    },
+    {
       "id": "nuked-opn2",
       "sourceFiles": [
         "vendor/nuked-opn2/ym3438.c",
@@ -1106,6 +1170,7 @@
         "wasm/segapcm_wasm.cpp",
         "wasm/segapsg_wasm.cpp",
         "wasm/spc_wasm.cpp",
+        "wasm/wonderswan_wasm.cpp",
         "wasm/y8950_wasm.cpp",
         "wasm/ym2151_wasm.cpp",
         "wasm/ym2203_wasm.cpp",
@@ -1265,6 +1330,22 @@
           "path": "wasm/ymfm_wasm_interface.h",
           "originPath": "wasm/ymfm_wasm_interface.h",
           "sha256": "533cb78ac8b79d48768abc5703ed03c814da22fa81358b2b65af1bbd2fe3735f"
+        },
+        {
+          "path": "wasm/wonderswan_wasm.cpp",
+          "originPath": "wasm/wonderswan_wasm.cpp",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "7f5de6a81470494b3e1b6f8f290e12ad1c9856b3024582e0618120b8d4e046cf"
+        },
+        {
+          "path": "scripts/build_wonderswan_wasm.sh",
+          "originPath": "scripts/build_wonderswan_wasm.sh",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "e1f78911e0ce5795dd0963782f53a7a41e4f749c456a7fa93289ef286793f8d7",
+          "originalSha256": "1a9d1e769c1333627c06451a53d638db7f90d5b7a0e26f9eb88887677ef6cb46",
+          "amendmentNote": "SDK-local vendor paths and dist/wasm default; compilation flags and C ABI retained. Uses the shared SDK build receipt instead of the standalone receipt."
         }
       ]
     },
@@ -2030,6 +2111,47 @@
       "buildFiles": [
         "scripts/build-wasm.sh",
         "scripts/build_spc_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "wonderswan",
+      "chipIds": [
+        "wonderswan"
+      ],
+      "sourceFiles": [
+        "wasm/wonderswan_wasm.cpp",
+        "vendor/mame-wonderswan/wonderswan.cpp",
+        "vendor/mame-wonderswan/wonderswan.h",
+        "vendor/mame-wonderswan/upstream/wswansound.cpp",
+        "vendor/mame-wonderswan/upstream/wswansound.h"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-wonderswan/LICENSE"
+      ],
+      "buildScript": "scripts/build_wonderswan_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [
+        {
+          "path": "dist/wasm/wonderswan_wasm.js",
+          "originPath": "docs/generated/wonderswan_wasm.js",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        {
+          "path": "dist/wasm/wonderswan_wasm.wasm",
+          "originPath": "docs/generated/wonderswan_wasm.wasm",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        }
+      ],
+      "provenanceStatus": "imported-reference-binary; local source snapshot retained, not claimed byte-reproducible",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_wonderswan_wasm.sh",
         "scripts/record_wasm_build.mjs"
       ]
     },

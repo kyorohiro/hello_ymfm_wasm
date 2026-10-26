@@ -417,7 +417,7 @@ huc6280_wasm.js
 huc6280_wasm.wasm
 wonderswan_wasm.js
 wonderswan_wasm.wasm
-wonderswan_build-info.json
+build-info.json
 okim6258_wasm.js
 okim6258_wasm.wasm
 rf5c164_wasm.js

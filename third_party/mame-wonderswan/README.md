@@ -114,9 +114,11 @@ sh scripts/build_wonderswan_wasm.sh
 sh scripts/build_wonderswan_wasm.sh /absolute/output/directory
 ```
 
-`EMXX` can select an installed Emscripten C++ compiler. This first-stage build
-uses this directory directly and does not alter or extend the pinned
-`third_party/tetorica-soundchip-native` SDK snapshot.
+`EMXX` can select an installed Emscripten C++ compiler. The build first verifies
+the complete fixed SDK snapshot, then delegates to its offline WonderSwan recipe
+in `third_party/tetorica-soundchip-native`. This directory is retained as the
+original adaptation and provenance reference; the current build uses the
+byte-identical adaptation included in SDK 0.1.4.
 
 The synchronous JavaScript wrapper is [web/wonderswan.js](../../web/wonderswan.js).
 From the repository root, run the native/WASM checks and optional browser checks:
@@ -127,11 +129,25 @@ npm run test:wonderswan:browser
 ```
 
 The browser check uses Chromium and WebKit in both Window and DedicatedWorker
-contexts, without creating an audio device. These checks do not implement or
-verify a Playground Mode or Tauri audio backend.
+contexts, without creating an audio device. These checks verify the raw core;
+Playground Mode and Tauri audio backend integration have separate checks.
 
-The output also contains `wonderswan_build-info.json`, a separate build receipt
-with the compiler version, upstream revision, and SHA-256/size of each source,
-license, recipe, and generated artifact. Its paths are checkout-independent and
-it contains no build timestamp. The fixed SDK's central `build-info.json` and
-27-artifact inventory remain unchanged.
+The output's central `build-info.json` now records WonderSwan alongside the
+other 27 SDK artifacts, with the compiler version and SHA-256/size of every
+cataloged recipe input and generated output. The native/WASM check verifies
+these inputs against the fixed SDK release manifest before loading the module.
+The full SDK pin also covers license and provenance files.
+
+For comparison with an archived standalone build, preserve its original
+`wonderswan_build-info.json` and all eight recorded source inputs. The checker
+keeps the original full source/receipt audit when explicitly given that tree:
+
+```sh
+node scripts/check_wonderswan_core.mjs --wasm-dir /archive/docs/generated --source-root /archive
+node scripts/check_wonderswan_wasm_sdk.mjs --legacy-dir /archive/docs/generated --sdk-dir /new-build
+```
+
+The second command compares the actual old/new WASM ABI, stereo PCM, registers,
+wave RAM, chunk partitioning, reset replay, all noise types, sweep and voice PCM.
+It also reuses the raw-core check's independent DAC, LFSR, sweep and pitch
+expectations. It does not open an audio device or alter output gain.

@@ -4,12 +4,12 @@
     {
       "id": "ay8910",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "8ccd910f6ff73e782cf617777d4385be402201054ae29cea8ab5f5948eeae0ef",
+      "sourceFingerprint": "84cde17397275440fc8939b5dab37b88cb14f42207d8a4e0f3de99d453146ce6",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ay8910_wasm.sh",
@@ -68,12 +68,12 @@
     {
       "id": "dx7",
       "format": "standalone-wasm",
-      "sourceFingerprint": "62cceee387d5dd67a6784fd92969fd216133a10dd5da7c1866c3ec0b4d0f9f95",
+      "sourceFingerprint": "9a5c557839af5ac7d799a6791604e6e9d0ec4a8b25edb35cf0881ee7f64f594c",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_dx7_wasm.sh",
@@ -262,12 +262,12 @@
     {
       "id": "gameboy_apu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "a2cede68ef04bd35eb6831b7db89b37f8909bf5581ddb240ccae207c0d2430e2",
+      "sourceFingerprint": "7b75a6cc28baa7e511fe5ff63627766510c87857885f40ee9a037b554ba73429",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_gameboy_apu_wasm.sh",
@@ -326,12 +326,12 @@
     {
       "id": "huc6280",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "65858bbf15e8b65de8b9728889a7514925960a64994d1222acf0f76694624712",
+      "sourceFingerprint": "9b3ad6d6c600e18452350bd7bb45469da7c2cd1c72fe71f689bc8a6759f3c67a",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_huc6280_wasm.sh",
@@ -390,12 +390,12 @@
     {
       "id": "k051649",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "bf4f8f1203869b0b90effb75d0a1d032eb4f1f0b480183981af73af8e73f6a22",
+      "sourceFingerprint": "288c2f6d7a200578c8470c0c9aa87716f6962ff8aee9abeeb0b7886fb132045c",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_k051649_wasm.sh",
@@ -454,12 +454,12 @@
     {
       "id": "nesapu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "c6a668de97db77fe10bd109e927632e773d4700f5812ab8e9561abcdd71e826b",
+      "sourceFingerprint": "09beb99952d49a1d0c3e0321fc6aa6f6758adde77665ad83eecac3af7554437b",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_nesapu_wasm.sh",
@@ -508,12 +508,12 @@
     {
       "id": "nuked_opn2",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "7067fa594293f337f0f04a5e6514b6f4d8c2f6e5c125099a7a9a85b23556efb7",
+      "sourceFingerprint": "d5624ee34f7400051d307de52e613147b5efa31e650ace76c100f3466f714e8b",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_nuked_opn2_wasm.sh",
@@ -562,12 +562,12 @@
     {
       "id": "okim6258",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "02878a241917a4d4365771ba4f3b63f4d4ab035c32aed46249321f86bad33eb6",
+      "sourceFingerprint": "c40a0205fb3b49bf5c0f78c680525ee67da59ea00c13fb010b7b277febcee000",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_okim6258_wasm.sh",
@@ -626,12 +626,12 @@
     {
       "id": "pwm32x",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "ceda285a5e29f09417616f930b2d85ee2dd59ea85e6292aa81a0a5ba9d17717d",
+      "sourceFingerprint": "329e47cac179aa79c0c4eb63b575a887e8a0fb1dc757d6c9afdc5e807e6b565c",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_pwm32x_wasm.sh",
@@ -685,12 +685,12 @@
     {
       "id": "rf5c164",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "e42d5e922402facea35563f03bb1c7fd9b60ec789bb7d079d38cc631ca55a96c",
+      "sourceFingerprint": "7fcd394d13f979e60db4a194cbf22f9f1d948a899e4d9694c993ee98882a03ea",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_rf5c164_wasm.sh",
@@ -744,12 +744,12 @@
     {
       "id": "segapcm",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "68d0bd018e8fd7f3cdcf67753c907738735128e54efc755449a8de0adcca6e2e",
+      "sourceFingerprint": "f8c5f5dae0fff1d5031984f34239d4b214fccfb9f6459e6b9f327cedb14245ee",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_segapcm_wasm.sh",
@@ -808,12 +808,12 @@
     {
       "id": "segapsg",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "3c6c86414f69005afdcc85ef72e927b5abf8d5ff8b3f6136449a4d5713d295d8",
+      "sourceFingerprint": "8d6cebfcb559ecddc17fa9ec59d878ba04e4d35cf13fd52148f0279e410f20cc",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_segapsg_wasm.sh",
@@ -867,12 +867,12 @@
     {
       "id": "spc",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "da93df08b48b634ed657a139ea9d28ef82336c22289f6e8dc040340e067b9580",
+      "sourceFingerprint": "a968ccd3098973abf089e6211d2d2131daca1b1d215451a37cc876c0cd09a768",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_spc_wasm.sh",
@@ -994,14 +994,78 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
-      "id": "y8950",
+      "id": "wonderswan",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "e8d5819d23ee81c766584b656706175759673291146223bfcae4e5ab95c80216",
+      "sourceFingerprint": "76016ead3da38e7a99d41c0a2bd827b307fd0d08e127d732a6bd141a1233d8bf",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
+        },
+        {
+          "path": "scripts/build_wonderswan_wasm.sh",
+          "sha256": "e1f78911e0ce5795dd0963782f53a7a41e4f749c456a7fa93289ef286793f8d7",
+          "size": 849
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-wonderswan/upstream/wswansound.cpp",
+          "sha256": "4c1c9ae39968c0dfc8230519d06439c403e387fa2b250c1dbb06b0663845bc20",
+          "size": 15337
+        },
+        {
+          "path": "vendor/mame-wonderswan/upstream/wswansound.h",
+          "sha256": "a4edef627dbc3fd47def5bdc0f2ebeeb25f1ba63396f5952796df3c3ff81bef3",
+          "size": 2726
+        },
+        {
+          "path": "vendor/mame-wonderswan/wonderswan.cpp",
+          "sha256": "fcd143482371f07d335ce3f9ef4fabb4febf6125c46888adcb02e4a400e24294",
+          "size": 8452
+        },
+        {
+          "path": "vendor/mame-wonderswan/wonderswan.h",
+          "sha256": "38ca485de40fc60d858b1a7d70bc2037c52d9a04e4e28e851b69945c957f6b40",
+          "size": 2134
+        },
+        {
+          "path": "wasm/wonderswan_wasm.cpp",
+          "sha256": "7f5de6a81470494b3e1b6f8f290e12ad1c9856b3024582e0618120b8d4e046cf",
+          "size": 1218
+        }
+      ],
+      "outputs": [
+        {
+          "path": "wonderswan_wasm.js",
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899",
+          "size": 11356
+        },
+        {
+          "path": "wonderswan_wasm.wasm",
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+          "size": 10321
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
+      "id": "y8950",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "931b44322a6c9c59c7c00c1ca92e51faf9ae0f881e05a8cba6a056f2a64a6ca2",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_y8950_wasm.sh",
@@ -1175,12 +1239,12 @@
     {
       "id": "ym2151",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "dbcaff677d18f8988725a02c46484e21c08043cf3580a9aad330e0d11f21f4a8",
+      "sourceFingerprint": "9959e5fa5ffce827d89d724d087b6badb49ccb7d0256e72f6756cc8c9ae4bfd7",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym2151_wasm.sh",
@@ -1354,12 +1418,12 @@
     {
       "id": "ym2203",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "1cb6bd9c3333ce4b9bcf9028d9b2c6b7e9d5ef285edc2dd6b4f1df395d89f011",
+      "sourceFingerprint": "b2b979d5c27b3617f6a99ed0abb230983d265215be9e74532410df5eb903081e",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym2203_wasm.sh",
@@ -1533,12 +1597,12 @@
     {
       "id": "ym2413",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "8b84c83411afc9c7bcc498568281a5f5f3ee54982b2bc42a963273985538a3fd",
+      "sourceFingerprint": "3ea15afc3665bf8eec864925c1313d1499d56c4f274a0300746db7161547323d",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym2413_wasm.sh",
@@ -1712,12 +1776,12 @@
     {
       "id": "ym2608",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "928403d50334d6ea7ed62320ae950a5a3fe981dbf65e51825563f9a4286834fc",
+      "sourceFingerprint": "804d1abbf1d3b411de2de48cca17c08250bff9938483e0b7f57eeb235f3e9a73",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym2608_wasm.sh",
@@ -1891,12 +1955,12 @@
     {
       "id": "ym2610b",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "bd7e91a07e8b5d3d4b38c26c5175c270c2debe411161c42819bc36b765dba222",
+      "sourceFingerprint": "db2d0abd7aaecc4184cd47674906838e7279cd6e490d5f0f93dc176ff5bdd3b7",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym2610b_wasm.sh",
@@ -2070,12 +2134,12 @@
     {
       "id": "ym2612",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "2ce85f5ae0ba19a3250d98265f4150455620a3638f0d7a7df7e9dc037fbef419",
+      "sourceFingerprint": "6abb683e6f9443ec511168c6e0291af370f767a4a033fe7b219a044b50dcf259",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym2612_wasm.sh",
@@ -2249,12 +2313,12 @@
     {
       "id": "ym3438",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "80214bd461960dccb1957664ddd71cac08bfe6fbc21e8ed822d458c9aad276df",
+      "sourceFingerprint": "192d487ae407e4595300e30c72389bdb758768055a6aba073a6db2fedad9412e",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_opn_variant_wasm.sh",
@@ -2433,12 +2497,12 @@
     {
       "id": "ym3526",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "9d9c01acb0f6a7bd6e2ab1c4f780a8391c8fe188868b23604efa68e284161669",
+      "sourceFingerprint": "33cd022d42a9f7aa04afd8cbed22a8944a9c953e26cf7a18f3bb7f139b3352c8",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym3526_wasm.sh",
@@ -2612,12 +2676,12 @@
     {
       "id": "ym3812",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "288bc80ca2a8e64b57bad0398888f77bed87c0e6aab8d903ba933fa3008b4ea2",
+      "sourceFingerprint": "cc7cf6c5b05629c4dab073265c14fdd6a5e344a4d046d6c73a1140b20c09d7cd",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ym3812_wasm.sh",
@@ -2791,12 +2855,12 @@
     {
       "id": "ymf262",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "67e49cf7ec3ce0c6be66034c1861025b6bb6ebd99a2613d2e4919e93275a0192",
+      "sourceFingerprint": "b6f18eba11ea970e0f9df45ca13bfbf89e596909b4b9af370e27168da89a0d71",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ymf262_wasm.sh",
@@ -2970,12 +3034,12 @@
     {
       "id": "ymf276",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "ea8ac66777b90d59b7bdbc4a4abf09301a93db541f11e1a62902b958ef6889ab",
+      "sourceFingerprint": "5d6d337a05e3a9edc4adc7e16e555f4903b52876a46d4cca4fea632542054121",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_opn_variant_wasm.sh",
@@ -3154,12 +3218,12 @@
     {
       "id": "ymf278b",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "8a1f92ef4eb8e514566d2f6107cf5b1442207d6e4550ea2c05ded816b4831204",
+      "sourceFingerprint": "fa824156507da287d8b1e32db4c1ab558173529c916c5a846459dad0efe32d85",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_ymf278b_wasm.sh",
@@ -3333,12 +3397,12 @@
     {
       "id": "ymf288",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "bbca2926d15326d50ed1b2f24aaa2c7c40cff0e72d6a2f275217900f3423033d",
+      "sourceFingerprint": "925ca4a4b896037c4f4db841d2863d8e628556f18f730af8767996911da5dd1e",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
-          "size": 1653
+          "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
+          "size": 1664
         },
         {
           "path": "scripts/build_opn_variant_wasm.sh",

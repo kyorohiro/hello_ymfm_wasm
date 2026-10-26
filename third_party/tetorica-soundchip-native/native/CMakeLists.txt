@@ -472,7 +472,27 @@ foreach(flag IN ITEMS -fwrapv -fno-strict-aliasing -ffp-contract=off)
   endif()
 endforeach()
 
+# Self-contained raw WonderSwan C++ core. This target intentionally provides no
+# Tauri ABI or speaker DSP: the public facade forwards the exact vendor header.
+# Its source-relative include keeps vendor headers out of other consumers' paths.
+add_library(tetorica_native_wonderswan STATIC
+  "${TETORICA_SDK_ROOT}/vendor/mame-wonderswan/wonderswan.cpp"
+)
+add_library(tetorica::wonderswan ALIAS tetorica_native_wonderswan)
+target_compile_features(tetorica_native_wonderswan PUBLIC cxx_std_14)
+target_include_directories(tetorica_native_wonderswan PUBLIC
+  "${CMAKE_CURRENT_LIST_DIR}/include"
+)
+if(MSVC)
+  target_compile_options(tetorica_native_wonderswan PRIVATE /EHsc)
+endif()
+
 if(TETORICA_NATIVE_BUILD_EXAMPLES)
+  add_executable(tetorica_wonderswan_wav examples/wonderswan_wav.cpp)
+  target_link_libraries(tetorica_wonderswan_wav PRIVATE tetorica::wonderswan)
+  if(MSVC)
+    target_compile_options(tetorica_wonderswan_wav PRIVATE /EHsc)
+  endif()
   add_executable(tetorica_nuked_genesis_wav examples/nuked_genesis_wav.cpp)
   target_link_libraries(tetorica_nuked_genesis_wav PRIVATE tetorica::nuked_ym2612 tetorica::segapsg)
   if(MSVC)
@@ -566,6 +586,16 @@ if(TETORICA_NATIVE_BUILD_EXAMPLES)
 endif()
 
 if(TETORICA_NATIVE_BUILD_TESTS)
+  add_executable(tetorica_wonderswan_fixture tests/wonderswan_fixture.cpp)
+  target_link_libraries(tetorica_wonderswan_fixture PRIVATE tetorica::wonderswan)
+  if(MSVC)
+    target_compile_options(tetorica_wonderswan_fixture PRIVATE /UNDEBUG /EHsc)
+  else()
+    target_compile_options(tetorica_wonderswan_fixture PRIVATE -UNDEBUG)
+  endif()
+  add_test(NAME tetorica.wonderswan.self_test
+    COMMAND tetorica_wonderswan_fixture --self-test)
+
   # Instrument only a test copy of the wrapper. Its symbols satisfy the
   # fixture before the production archive is searched, so the archive supplies
   # only its C provider. Production libraries never reference audit hooks.

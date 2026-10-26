@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHIP_IDS = frozenset((
     "ym2612", "ym2203", "ym2610", "ym2610b", "rf5c164", "ym2608",
     "gameboy", "segapsg", "ym2151", "pwm", "nes", "dx7", "snes", "spc",
-    "huc6280", "okim6258", "ym3526", "ym3812", "y8950", "ymf262", "ym2413", "ay8910",
+    "huc6280", "okim6258", "ym3526", "ym3812", "y8950", "ymf262", "ym2413", "ay8910", "wonderswan",
 ))
 JAVASCRIPT_REFERENCE_IDS = frozenset(("msm5205", "okim6295"))
 UPSTREAM_REFERENCE_IDS = frozenset((
@@ -129,7 +129,7 @@ def check_collection(root=ROOT):
     catalog = read_json(root / "catalog/chips.json")
     ids = [chip["id"] for chip in catalog["chips"]]
     if len(ids) != len(set(ids)) or set(ids) != CHIP_IDS:
-        raise ValueError("catalog/chips.json must describe all 22 Playground chip IDs exactly once")
+        raise ValueError("catalog/chips.json must describe all 23 Playground chip IDs exactly once")
     if set(chip["id"] for chip in native["chips"]) != CHIP_IDS:
         raise ValueError("native_inventory.json is missing a Playground chip")
     count = 0

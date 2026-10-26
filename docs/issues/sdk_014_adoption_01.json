@@ -1,0 +1,925 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "status": "complete-local-validation-consumer-ci-pending",
+  "initialHeads": {
+    "main": "731cd6ea7903948098f015fd81bba39ace53bed1",
+    "sdk": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+    "tauri": "6e9c2b8"
+  },
+  "sdk": {
+    "pin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.4",
+      "sourceCommit": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+      "archiveName": "tetorica-soundchip-native-0.1.4-sources.zip",
+      "archiveSha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+      "manifestSha256": "61354b939961eea8c2c058ca08c682fb1fdc48cf58373a45da2b468455227924",
+      "fileCount": 395
+    },
+    "release": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.4",
+    "bothConsumerPinsIdentical": true,
+    "offlineChecksPassed": true,
+    "archiveChecksumVerified": true,
+    "sdkRepositoryChanged": false,
+    "payloadDelta": {
+      "schemaVersion": 1,
+      "oldPin": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.2",
+        "sourceCommit": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+        "archiveName": "tetorica-soundchip-native-0.1.2-sources.zip",
+        "archiveSha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72",
+        "manifestSha256": "a79387194dd58628988abbf19938175c084246e11cee9d65647881b4bd65d8cf",
+        "fileCount": 381
+      },
+      "newPin": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.4",
+        "sourceCommit": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+        "archiveName": "tetorica-soundchip-native-0.1.4-sources.zip",
+        "archiveSha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+        "manifestSha256": "61354b939961eea8c2c058ca08c682fb1fdc48cf58373a45da2b468455227924",
+        "fileCount": 395
+      },
+      "unchangedImportedFiles": 360,
+      "changedImportedFiles": [
+        ".github/workflows/verify-sdk.yml",
+        "CHANGELOG.md",
+        "CMakeLists.txt",
+        "LICENSES.md",
+        "README.md",
+        "catalog/chips.json",
+        "catalog/native_inventory.json",
+        "catalog/source_inventory.json",
+        "docs/chip-differences.md",
+        "docs/releases.md",
+        "docs/verification.md",
+        "native/CMakeLists.txt",
+        "native/README.md",
+        "scripts/build-wasm.sh",
+        "scripts/refresh_catalog.py",
+        "scripts/sdk_common.py",
+        "sdk.json",
+        "tests/README.md",
+        "tests/check_standalone_release.py",
+        "tests/test_standalone_release.py"
+      ],
+      "addedImportedFiles": [
+        "native/examples/wonderswan_wav.cpp",
+        "native/include/tetorica/wonderswan.hpp",
+        "native/tests/wonderswan_fixture.cpp",
+        "scripts/build_wonderswan_wasm.sh",
+        "scripts/publish_release.py",
+        "tests/test_publish_release.py",
+        "tests/wonderswan_wasm_smoke.mjs",
+        "vendor/mame-wonderswan/LICENSE",
+        "vendor/mame-wonderswan/README.md",
+        "vendor/mame-wonderswan/upstream/wswansound.cpp",
+        "vendor/mame-wonderswan/upstream/wswansound.h",
+        "vendor/mame-wonderswan/wonderswan.cpp",
+        "vendor/mame-wonderswan/wonderswan.h",
+        "wasm/wonderswan_wasm.cpp"
+      ],
+      "removedImportedFiles": [],
+      "appBuildRsChanged": false,
+      "applicationNativeSourceChanged": false
+    }
+  },
+  "legacy": {
+    "root": "/private/tmp/tetorica-sdk-014-adoption/legacy-root",
+    "version": "0.1.2",
+    "artifacts": 27,
+    "outputs": 53,
+    "verifiedUniqueSourceInputs": 164,
+    "standaloneWonderSwanReceiptAndEightInputsRetained": true
+  },
+  "wasm": {
+    "compiledArtifacts": 28,
+    "outputs": 55,
+    "uniqueSourceInputs": 170,
+    "compiledDirectory": "/private/tmp/tetorica-sdk-014-adoption/rebuilt",
+    "allOutputsByteIdenticalToFrozenLegacy": true,
+    "outputFiles": [
+      {
+        "path": "ay8910_wasm.js",
+        "bytes": 12113,
+        "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+      },
+      {
+        "path": "ay8910_wasm.wasm",
+        "bytes": 13549,
+        "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+      },
+      {
+        "path": "msfa.wasm",
+        "bytes": 32084,
+        "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f"
+      },
+      {
+        "path": "gameboy_apu_wasm.js",
+        "bytes": 11497,
+        "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+      },
+      {
+        "path": "gameboy_apu_wasm.wasm",
+        "bytes": 13782,
+        "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+      },
+      {
+        "path": "huc6280_wasm.js",
+        "bytes": 13612,
+        "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f"
+      },
+      {
+        "path": "huc6280_wasm.wasm",
+        "bytes": 8935,
+        "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+      },
+      {
+        "path": "k051649_wasm.js",
+        "bytes": 11133,
+        "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7"
+      },
+      {
+        "path": "k051649_wasm.wasm",
+        "bytes": 9399,
+        "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c"
+      },
+      {
+        "path": "nesapu_wasm.js",
+        "bytes": 16041,
+        "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+      },
+      {
+        "path": "nesapu_wasm.wasm",
+        "bytes": 30410,
+        "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+      },
+      {
+        "path": "nuked_opn2_wasm.js",
+        "bytes": 32804,
+        "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+      },
+      {
+        "path": "nuked_opn2_wasm.wasm",
+        "bytes": 21071,
+        "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1"
+      },
+      {
+        "path": "okim6258_wasm.js",
+        "bytes": 14797,
+        "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+      },
+      {
+        "path": "okim6258_wasm.wasm",
+        "bytes": 20173,
+        "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+      },
+      {
+        "path": "pwm32x_wasm.js",
+        "bytes": 12398,
+        "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+      },
+      {
+        "path": "pwm32x_wasm.wasm",
+        "bytes": 10636,
+        "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c"
+      },
+      {
+        "path": "rf5c164_wasm.js",
+        "bytes": 35162,
+        "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+      },
+      {
+        "path": "rf5c164_wasm.wasm",
+        "bytes": 27583,
+        "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+      },
+      {
+        "path": "segapcm_wasm.js",
+        "bytes": 12513,
+        "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5"
+      },
+      {
+        "path": "segapcm_wasm.wasm",
+        "bytes": 13966,
+        "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f"
+      },
+      {
+        "path": "segapsg_wasm.js",
+        "bytes": 33978,
+        "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+      },
+      {
+        "path": "segapsg_wasm.wasm",
+        "bytes": 27286,
+        "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+      },
+      {
+        "path": "spc_wasm.js",
+        "bytes": 41458,
+        "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699"
+      },
+      {
+        "path": "spc_wasm.wasm",
+        "bytes": 63074,
+        "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408"
+      },
+      {
+        "path": "wonderswan_wasm.js",
+        "bytes": 11356,
+        "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+      },
+      {
+        "path": "wonderswan_wasm.wasm",
+        "bytes": 10321,
+        "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+      },
+      {
+        "path": "y8950_wasm.js",
+        "bytes": 15461,
+        "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+      },
+      {
+        "path": "y8950_wasm.wasm",
+        "bytes": 22425,
+        "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+      },
+      {
+        "path": "ym2151_wasm.js",
+        "bytes": 15584,
+        "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+      },
+      {
+        "path": "ym2151_wasm.wasm",
+        "bytes": 31322,
+        "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26"
+      },
+      {
+        "path": "ym2203_wasm.js",
+        "bytes": 35153,
+        "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e"
+      },
+      {
+        "path": "ym2203_wasm.wasm",
+        "bytes": 45306,
+        "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13"
+      },
+      {
+        "path": "ym2413_wasm.js",
+        "bytes": 32911,
+        "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+      },
+      {
+        "path": "ym2413_wasm.wasm",
+        "bytes": 33469,
+        "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04"
+      },
+      {
+        "path": "ym2608_wasm.js",
+        "bytes": 36356,
+        "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+      },
+      {
+        "path": "ym2608_wasm.wasm",
+        "bytes": 53893,
+        "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f"
+      },
+      {
+        "path": "ym2610b_wasm.js",
+        "bytes": 36296,
+        "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879"
+      },
+      {
+        "path": "ym2610b_wasm.wasm",
+        "bytes": 51172,
+        "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316"
+      },
+      {
+        "path": "ym2612_wasm.js",
+        "bytes": 34902,
+        "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+      },
+      {
+        "path": "ym2612_wasm.wasm",
+        "bytes": 40357,
+        "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+      },
+      {
+        "path": "ym3438_wasm.js",
+        "bytes": 11466,
+        "sha256": "023cf6770e2cd0b9983f7a6793d55cc21c2de47750a19458567b6ccb11c3f81e"
+      },
+      {
+        "path": "ym3438_wasm.wasm",
+        "bytes": 18778,
+        "sha256": "a6c49e22d9b5ff703a7f4da6df877e067dd494dc3e4354987e23151297b1d984"
+      },
+      {
+        "path": "ym3526_wasm.js",
+        "bytes": 14274,
+        "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+      },
+      {
+        "path": "ym3526_wasm.wasm",
+        "bytes": 18894,
+        "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11"
+      },
+      {
+        "path": "ym3812_wasm.js",
+        "bytes": 14274,
+        "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+      },
+      {
+        "path": "ym3812_wasm.wasm",
+        "bytes": 19058,
+        "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6"
+      },
+      {
+        "path": "ymf262_wasm.js",
+        "bytes": 14274,
+        "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+      },
+      {
+        "path": "ymf262_wasm.wasm",
+        "bytes": 21377,
+        "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+      },
+      {
+        "path": "ymf276_wasm.js",
+        "bytes": 11466,
+        "sha256": "76bef5969998cf45fe3d1452592b5bc74f9f1c363740a9b011f8d5462ddd096c"
+      },
+      {
+        "path": "ymf276_wasm.wasm",
+        "bytes": 18813,
+        "sha256": "c5c06bc94d0dec355c9acea7c408bb85c82b169666fdc47cc9bc7f0f6033bc01"
+      },
+      {
+        "path": "ymf278b_wasm.js",
+        "bytes": 15707,
+        "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48"
+      },
+      {
+        "path": "ymf278b_wasm.wasm",
+        "bytes": 26827,
+        "sha256": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30"
+      },
+      {
+        "path": "ymf288_wasm.js",
+        "bytes": 11466,
+        "sha256": "9e98de8c8649cce49f8a8dcb12bbd0679f0f591a0d1c0c16a1c4c82ce263dd86"
+      },
+      {
+        "path": "ymf288_wasm.wasm",
+        "bytes": 23819,
+        "sha256": "34b4211983b0af5bc7479809d949693164b34e2a94e01db1a77abe545d6f4f23"
+      }
+    ],
+    "realNewReceiptCopiedAfterHashVerification": true,
+    "centralReceipt": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/generated/build-info.json",
+      "bytes": 133476,
+      "sha256": "36a424a59ea65d0880b681ab382b8ec70c717845aa9349003e3dd16d0acfba59"
+    },
+    "standaloneReceiptRemoved": true,
+    "finalBatch": {
+      "path": "/private/tmp/tetorica-sdk-014-adoption/parity-final/summary.json",
+      "passed": true,
+      "totalComparisons": 40360,
+      "repositoryInputsUnchanged": true,
+      "reusedValidatedBuild": true,
+      "artifacts": [
+        {
+          "id": "ay8910",
+          "comparisons": 8208,
+          "maximumDifference": 0
+        },
+        {
+          "id": "dx7",
+          "comparisons": 360,
+          "maximumDifference": 0
+        },
+        {
+          "id": "gameboy_apu",
+          "comparisons": 876,
+          "maximumDifference": 0
+        },
+        {
+          "id": "huc6280",
+          "comparisons": 828,
+          "maximumDifference": 0
+        },
+        {
+          "id": "k051649",
+          "comparisons": 774,
+          "maximumDifference": 0
+        },
+        {
+          "id": "nesapu",
+          "comparisons": 912,
+          "maximumDifference": 0
+        },
+        {
+          "id": "nuked_opn2",
+          "comparisons": 462,
+          "maximumDifference": 0
+        },
+        {
+          "id": "okim6258",
+          "comparisons": 2048,
+          "maximumDifference": 0
+        },
+        {
+          "id": "pwm32x",
+          "comparisons": 864,
+          "maximumDifference": 0
+        },
+        {
+          "id": "rf5c164",
+          "comparisons": 828,
+          "maximumDifference": 0
+        },
+        {
+          "id": "segapcm",
+          "comparisons": 612,
+          "maximumDifference": 0
+        },
+        {
+          "id": "segapsg",
+          "comparisons": 7074,
+          "maximumDifference": 0
+        },
+        {
+          "id": "spc",
+          "comparisons": 80,
+          "maximumDifference": 0
+        },
+        {
+          "id": "wonderswan",
+          "comparisons": 378,
+          "maximumDifference": 0
+        },
+        {
+          "id": "y8950",
+          "comparisons": 1794,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2151",
+          "comparisons": 1408,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2203",
+          "comparisons": 432,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2413",
+          "comparisons": 1284,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2608",
+          "comparisons": 586,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2610b",
+          "comparisons": 1108,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym2612",
+          "comparisons": 444,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym3438",
+          "comparisons": 450,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym3526",
+          "comparisons": 1494,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ym3812",
+          "comparisons": 1848,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf262",
+          "comparisons": 3456,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf276",
+          "comparisons": 462,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf278b",
+          "comparisons": 684,
+          "maximumDifference": 0
+        },
+        {
+          "id": "ymf288",
+          "comparisons": 606,
+          "maximumDifference": 0
+        }
+      ]
+    }
+  },
+  "wonderSwan": {
+    "oldVsSdk": {
+      "passed": true,
+      "cases": 378,
+      "stereoFrames": 6193152,
+      "maximumDifference": 0,
+      "report": "/private/tmp/tetorica-sdk-014-adoption/wonderswan-parity-final-guarded.json"
+    },
+    "nativeVsSdk": {
+      "passed": true,
+      "cases": 126,
+      "stereoFrames": 3096576,
+      "independentChecks": 24,
+      "nativeCAbi": {
+        "status": "pass",
+        "checks": 1091,
+        "renderBlocks": 2048,
+        "trackedCppNewAllocations": 0,
+        "directMallocTracked": false
+      },
+      "report": "/private/tmp/tetorica-sdk-014-adoption/wonderswan-core-sdk.json"
+    }
+  },
+  "tests": {
+    "importer": 19,
+    "offlineBuildRoutes": 113,
+    "receiptAndCli": 95,
+    "failures": 0
+  },
+  "mixer": {
+    "changed": false,
+    "baselineHashes": {
+      "web/soundchip_mixer_presets.js": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+      "docs/js/soundchip_mixer_presets.js": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+      "docs/vgm_analyzer/playback_mixer.js": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd"
+    }
+  },
+  "npm": {
+    "packedInstallRuntimeAssetAndTypeChecksPassed": true,
+    "files": 833,
+    "compressedBytes": 1626805,
+    "unpackedBytes": 6060038,
+    "published": false,
+    "versionChanged": false
+  },
+  "playground": {
+    "archive": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_sdk-014-dev_itch_playground.zip",
+      "sha256": "fd73d44799dfe7819dba99967331bb3a0d0fab4d545fae8e6ee20fc6b1a0cc54",
+      "files": 919,
+      "bytes": 36578029,
+      "centralReceipt": true
+    },
+    "importedApplicationFiles": 918,
+    "ignoredZipMetadata": [
+      "samples/.DS_Store"
+    ],
+    "assetReferencesChecked": 1027,
+    "browsers": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            },
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "dc": -0.0002714395523071289,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": -0.00013196468353271484,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.42728019720624,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.0010479241609573364,
+              "rms": 0.10120385802897046,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 543.1701050341017
+            },
+            {
+              "mean": 0.0010479241609573364,
+              "rms": 0.10120385802897046,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 543.1701050341017
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "dc": -0.0002499818801879883,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": -0.00022208690643310547,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.54269752593774,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "tauri": {
+    "pythonTests": 22,
+    "nodeTests": 31,
+    "rustTestsPassed": 726,
+    "rustTestsIgnored": 4,
+    "rustTestsFailed": 0,
+    "primary": {
+      "passed": true,
+      "totals": {
+        "constructorCount": 88,
+        "events": 14648,
+        "futureEventsDiscardedByStop": 1456,
+        "modes": 22,
+        "ownerCancellations": 88,
+        "reclaimedBankGuards": 88,
+        "reclaimedCommandGuards": 7168,
+        "renderSeconds": 0.6633528140000001,
+        "renderedFrames": 604032,
+        "runStopTransitions": 88,
+        "simulatedSeconds": 12.583999999999993
+      },
+      "deviceOpened": false
+    },
+    "extra": {
+      "passed": true,
+      "mixtures": 3,
+      "soloSources": 7,
+      "admission": {
+        "customPayloadBudgetBytes": 8388608,
+        "default64MiBPolicyProbe": {
+          "creationAndWriteRolledBack": true,
+          "recoveredAfterPermitDrop": true,
+          "reservationOnly": true,
+          "saturatedReservationBytes": 67108864
+        },
+        "instanceBudgetRejection": "Additional Native sound-chip memory budget exceeded (5570560 bytes)",
+        "passed": true,
+        "payloadRollbackAttempts": 4,
+        "reservedBytesAfterRejection": 3518776,
+        "reservedBytesAfterStop": 0
+      },
+      "slots": {
+        "futureGuardReclaimed": true,
+        "monotonicReplacement": 17,
+        "passed": true,
+        "rejectedSeventeenth": true,
+        "reservationBytes": 27828592,
+        "reservedBytesAfterStop": 0,
+        "retiringSlotRejectedBeforeDrain": true,
+        "slots": 16
+      },
+      "deviceOpened": false
+    },
+    "genesisVsWasm": {
+      "status": "passed",
+      "cases": 6,
+      "totalStereoFrames": 49152,
+      "maximumDifference": 3.725290298461914e-09
+    },
+    "sourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "3933ab31e95fac188bc2acb67776b10d658a067ffa2f3f5258cf563a0e0b973a",
+      "files": 1851,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "fd73d44799dfe7819dba99967331bb3a0d0fab4d545fae8e6ee20fc6b1a0cc54"
+    },
+    "sourcePinCount": 22,
+    "nativeWonderSwanAudioEnabled": false
+  },
+  "consumerChangesCommitted": false,
+  "consumerCiDispatched": false,
+  "limitations": [
+    "Local macOS adoption validation; consumer Windows/Linux/Intel Mac CI and installer execution pending.",
+    "Automated PCM/API and muted browser capture; no physical listening, hardware-accuracy or callback deadline benchmark.",
+    "Frame counters retain their different scopes and are not summed.",
+    "WonderSwan Tauri Native Audio adapter remains a separate next task."
+  ],
+  "next": [
+    "Commit/push consumer changes and confirm main28-artifact and Tauri5-platform CI.",
+    "Connect WonderSwan primary/additional Native Audio adapters using the fixedSDKcore."
+  ]
+}

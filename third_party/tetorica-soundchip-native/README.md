@@ -10,11 +10,11 @@ Commercial projects can select cores under **BSD-3-Clause, MIT, and Apache-2.0**
 
 ## Supported sources and build status
 
-The source catalog covers 22 chip API identifiers:
+The source catalog covers 23 chip API identifiers:
 
 - **Yamaha FM:** YM2612, YM2203, YM2608, YM2610, YM2610B, YM2151, YM2413, YM3526, YM3812, Y8950, and YMF262.
 - **PSG:** Sega PSG and AY-3-8910.
-- **Console audio:** Game Boy, NES with optional FDS, SNES S-DSP, SPC700/S-DSP playback, and PC Engine HuC6280.
+- **Console audio:** Game Boy, NES with optional FDS, SNES S-DSP, SPC700/S-DSP playback, PC Engine HuC6280, and WonderSwan.
 - **PCM and ADPCM:** RF5C164, OKIM6258, and Sega 32X PWM.
 - **FM synthesizer:** MSFA-based DX7.
 
@@ -28,15 +28,15 @@ The upstream references include files explicitly marked BSD-3-Clause. libvgm sup
 
 | Deliverable | Current status |
 | --- | --- |
-| Standalone native CMake targets | **YM2612, YM2151, YM2413, YM2203, YM2608, YM2610/YM2610B and YM3526/YM3812/YMF262/Y8950 using ymfm, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP and SPC700/S-DSP playback**, with the alternative Nuked YM2612 engine: twenty-two chip IDs in nineteen static libraries, with offline test fixtures |
+| Standalone native CMake targets | **YM2612, YM2151, YM2413, YM2203, YM2608, YM2610/YM2610B and YM3526/YM3812/YMF262/Y8950 using ymfm, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback and WonderSwan**, with the alternative Nuked YM2612 engine: twenty-three chip IDs in twenty static libraries, with offline test fixtures |
 | Other native adapters | Analyzer-only MSM5205/OKIM6295 are not ported; Nuked is an alternative YM2612 engine, not an additional chip ID |
-| WASM build recipes | 27 artifacts; independent builds verified for YM2612 and DX7 |
+| WASM build recipes | 28 artifacts; the source inventory and verification records identify completed builds |
 | Initial compiled WASM archive | YM2612, with its matching source archive embedded |
 | JavaScript references | MSM5205 and OKIM6295; runnable ES modules, with no Native/WASM port yet |
 
 Source availability does not imply that every adapter is ready to link unchanged. The [chip differences](docs/chip-differences.md) document records required combinations and SDK amendments, including the applied Game Boy friend declaration for state observation and gate-only Stop. See the [machine-readable catalog](catalog/chips.json) and [verification record](docs/verification.md) for details.
 
-[Verify SDK](.github/workflows/verify-sdk.yml) runs on pushes, pull requests, and manual dispatch. Its Native matrix is configured for Windows x64, Linux x64/ARM64, and macOS Intel/Apple Silicon. Each job builds nineteen static libraries covering the twenty-two Native chip IDs in Release mode from an independently extracted source ZIP, runs twenty-four CTest tests from twenty-three fixture executables, renders eighteen offline WAV examples, and checks the JavaScript references. A separate Ubuntu job compiles YM2612 WASM, verifies the matching source archive and synchronous ABI, and rebuilds from the extracted archive. See the [verification record](docs/verification.md) for completed runs; the earlier YM2612-only matrix does not establish coverage for subsequently added targets.
+[Verify SDK](.github/workflows/verify-sdk.yml) runs on pushes, pull requests, and manual dispatch. Its Native matrix is configured for Windows x64, Linux x64/ARM64, and macOS Intel/Apple Silicon. Each job builds twenty static libraries covering the twenty-three Native chip IDs in Release mode from an independently extracted source ZIP, runs twenty-five CTest tests from twenty-four fixture executables, renders nineteen offline WAV examples, and checks the JavaScript references. Two Ubuntu WASM jobs compile YM2612 and WonderSwan, verify their matching source archives and synchronous ABIs, and rebuild from the extracted archives. See the [verification record](docs/verification.md) for completed runs; the earlier YM2612-only matrix does not establish coverage for subsequently added targets.
 
 ## Build the native libraries
 
@@ -70,11 +70,12 @@ target_link_libraries(your_application PRIVATE tetorica::ym2612)
 # For the sixteen-slot six-operator synthesizer, select tetorica::dx7.
 # For eight S-DSP BRR voices without an SPC700 CPU, select tetorica::snes.
 # For SPC700/S-DSP file playback, select tetorica::spc.
+# For raw WonderSwan headphone synthesis, select tetorica::wonderswan.
 ```
 
 Include the matching `<tetorica/<chip>.hpp>` header and link its CMake alias. The [native guide](native/README.md) lists all targets and existing ABIs, including compatibility names `native_game_gear_*`, `native_extra_okim6258_*` and the two RF5C164 profiles. YM2610/YM2610B share one library and retain `native_ym2610b_*`; the constructor selects the immutable four/six-FM variant explicitly.
 
-The OPL family also shares one library: `tetorica::opl`, `tetorica::ym3526`, `tetorica::ym3812`, `tetorica::ymf262` and `tetorica::y8950` use `<tetorica/opl.hpp>` or the matching chip forwarder. **The alias/header does not select the chip.** Pass kind 0/1/2/3 to `native_opl_create()` or `native_extra_opl_create()` for YM3526/YM3812/YMF262/Y8950. Each handle constructs one selected core/profile. These twenty-four aliases/headers cover twenty-two chip IDs in nineteen static libraries.
+The OPL family also shares one library: `tetorica::opl`, `tetorica::ym3526`, `tetorica::ym3812`, `tetorica::ymf262` and `tetorica::y8950` use `<tetorica/opl.hpp>` or the matching chip forwarder. **The alias/header does not select the chip.** Pass kind 0/1/2/3 to `native_opl_create()` or `native_extra_opl_create()` for YM3526/YM3812/YMF262/Y8950. Each handle constructs one selected core/profile. These twenty-five aliases/headers cover twenty-three chip IDs in twenty static libraries.
 
 The targets provide their chip-level FM, SSG/PSG, rhythm and sample controls independently. Encoded samples remain a host responsibility: OPNA owns fixed ROM/RAM, primary OPNB owns dense ROM banks, additional OPNB borrows immutable pages, OKIM6258 borrows sample bytes, RF5C164 owns 64 KiB PCM RAM, Y8950 borrows writable ADPCM RAM pages, and NES owns 64 KiB of copied DMC RAM. Follow the native guide's validation, synchronization and buffer/page lifetime contracts; no application scheduler or ownership queue is included.
 
@@ -91,6 +92,8 @@ The targets provide their chip-level FM, SSG/PSG, rhythm and sample controls ind
 `tetorica::snes` and `<tetorica/snes.hpp>` expose the unchanged `native_snes_*` ABI: eight stereo S-DSP BRR voices, ADSR/GAIN, noise, pitch modulation and echo, with owned 64 KiB sample RAM and 32 kHz synthesis interpolated to 8–384 kHz output. RAM uploads copy immediately; a separate timeline API borrows validated immutable initial RAM, DSP registers and clocked events. Stop retains RAM/authored settings and clears active voices; retained echo RAM can still sound. Reset clears RAM and the DSP. This target links only the accurate DSP, without an SPC700 CPU, IPL or file player. The [Native SNES guide](native/README.md#embed-snes-s-dsp) describes tuning, echo RAM, pointer lifetimes and host scheduling. The original wrapper, included ABI header and core retain LGPL-2.1-or-later terms; the new forwarder/integration use the SDK BSD default.
 
 `tetorica::spc` and `<tetorica/spc.hpp>` expose the unchanged `native_spc_*` player ABI: SPC700 execution with the accurate S-DSP, copied SPC loading, pause/resume, eight-source mute, observational snapshots and a bounded DSP-write observer. Fixed 32 kHz synthesis uses 128-frame source blocks and interpolation to 8–384 kHz output. Create/load/seek/destroy on control before publishing a prepared handle to the callback; the host owns synchronized handoff and retains original file bytes for Stop-to-start or absolute seeking. Pause freezes output without rewinding; mute can retain cached PCM and echo. No full Nintendo IPL, metadata-driven ending/fade or portable save state is supplied. The [Native SPC guide](native/README.md#embed-spc700-file-playback) describes limits and lifetimes. Retain the core/wrapper/included-header LGPL-2.1-or-later terms separately from the public forwarder's BSD default.
+
+`tetorica::wonderswan` and `<tetorica/wonderswan.hpp>` expose the raw C++ `WonderSwan` class: four 32-point, 4-bit waves in owned 16 KiB RAM, independent stereo levels, sweep, noise and host-written unsigned voice bytes. Clock and output rate are fixed at construction. Rendering retains the pinned MAME headphone path, including unipolar PCM and `/1024` scaling; it adds no hidden gain or speaker DC filter. The [Native WonderSwan guide](native/README.md#embed-wonderswan) describes the register map, timing and explicit host output policy. This SDK target does not add WonderSwan to Playground's Tauri Native Audio backend.
 
 This YM2612 example configures a simple voice and generates a stereo buffer:
 
@@ -131,7 +134,7 @@ In a real-time application, create and configure the chip before the audio callb
 
 ## Render sound-chip WAV examples
 
-The default build produces eighteen offline examples using the actual SDK libraries. `tetorica_32x_wav` auditions original PWM PCM/percussion on the left and then the right before adding YM2612 and Sega PSG. It retains the 23,011,361 Hz Native clock, cycle 960 and exact FIFO-tick timing. `tetorica_nuked_genesis_wav` renders the same original notes through the alternative Nuked YM2612 engine and Sega PSG. `tetorica_genesis_wav` combines a YM2612 melody with PSG tones and short noise percussion. `tetorica_master_system_wav` combines YM2413's built-in piano and rhythm voices with Sega PSG tones. `tetorica_msx_wav` combines AY tones, noise and a hardware envelope with an OPLL flute melody. `tetorica_pc98_ym2203_wav` uses all three FM channels and three SSG voices, including noise and envelope, within one YM2203. `tetorica_pc98_ym2608_wav` combines OPNA FM/SSG with original synthetic ADPCM-A percussion and an ADPCM-B pluck, uploading both ROM and RAM data. `tetorica_neogeo_wav` uses the four-FM YM2610 variant, three SSG voices and original synthetic ADPCM-A/B ROM samples. `tetorica_x68000_wav` combines YM2151 FM at 4 MHz with an OKIM6258 percussion sample at 8 MHz/divider 512. `tetorica_megacd_wav` combines YM2612, Sega PSG and the primary RF5C164 with an original looping PCM waveform. `tetorica_dos_opl_wav` renders OPL, OPL2 and OPL3 in three one-second sections, including rhythm and OPL3 four-operator/stereo controls. `tetorica_msx_audio_wav` combines Y8950 FM and original ADPCM-B with AY and OPLL. `tetorica_gameboy_wav` demonstrates both pulses, an original wave-RAM triangle and noise, with deliberate left/right routing at the 4,194,304 Hz DMG clock. `tetorica_pcengine_wav` uses original triangle/sine/pulse waves, host-fed 5-bit DDA and both noise sources, separating left/right phrases at the 3,579,545 Hz HuC6280 clock. `tetorica_nes_fds_wav` uses both pulses, triangle, noise and original copied DMC bits, then an original FDS wave, then all six sources at the 1,789,773 Hz NTSC clock. Its mono signal is written to both stereo channels. `tetorica_dx7_wav` uses three original 155-byte voices with all six operators: algorithm 1 and a live timbre edit, algorithm 5 FM pairs, then an algorithm 32 chord with explicit note release. Its mono output is duplicated to stereo. `tetorica_snes_wav` copies original 64-sample sine/triangle/pulse BRR loops into owned RAM, auditions a sine left and an ADSR triangle right, then plays an eight-voice stereo chord with ADSR/direct GAIN and explicit KOFF releases. It uses the fixed 32 kHz DSP rate for pitch and disables echo writes. `tetorica_spc_wav` builds a complete original SPC file in memory. Its SPC700 program configures the DSP, polls timer 0 to schedule a stereo melody and three-voice chord, and releases the notes; original BRR samples, fixed gain/fades and a bounded DSP-write observer require no IPL or external assets. They demonstrate SPC700 playback, SNES S-DSP, DX7, 32X, Genesis, FM-enabled Master System, MSX/MSX-AUDIO, two PC-98, NeoGeo, X68000, Mega-CD, DOS PC, Game Boy, PC Engine and NES with FDS sound configurations. Each writes three seconds of 48 kHz stereo PCM16. No audio device, external ROM, asset or npm dependency is needed. The generated sample data is not copied from hardware or game ROMs.
+The default build produces nineteen offline examples using the actual SDK libraries. `tetorica_32x_wav` auditions original PWM PCM/percussion on the left and then the right before adding YM2612 and Sega PSG. It retains the 23,011,361 Hz Native clock, cycle 960 and exact FIFO-tick timing. `tetorica_nuked_genesis_wav` renders the same original notes through the alternative Nuked YM2612 engine and Sega PSG. `tetorica_genesis_wav` combines a YM2612 melody with PSG tones and short noise percussion. `tetorica_master_system_wav` combines YM2413's built-in piano and rhythm voices with Sega PSG tones. `tetorica_msx_wav` combines AY tones, noise and a hardware envelope with an OPLL flute melody. `tetorica_pc98_ym2203_wav` uses all three FM channels and three SSG voices, including noise and envelope, within one YM2203. `tetorica_pc98_ym2608_wav` combines OPNA FM/SSG with original synthetic ADPCM-A percussion and an ADPCM-B pluck, uploading both ROM and RAM data. `tetorica_neogeo_wav` uses the four-FM YM2610 variant, three SSG voices and original synthetic ADPCM-A/B ROM samples. `tetorica_x68000_wav` combines YM2151 FM at 4 MHz with an OKIM6258 percussion sample at 8 MHz/divider 512. `tetorica_megacd_wav` combines YM2612, Sega PSG and the primary RF5C164 with an original looping PCM waveform. `tetorica_dos_opl_wav` renders OPL, OPL2 and OPL3 in three one-second sections, including rhythm and OPL3 four-operator/stereo controls. `tetorica_msx_audio_wav` combines Y8950 FM and original ADPCM-B with AY and OPLL. `tetorica_gameboy_wav` demonstrates both pulses, an original wave-RAM triangle and noise, with deliberate left/right routing at the 4,194,304 Hz DMG clock. `tetorica_pcengine_wav` uses original triangle/sine/pulse waves, host-fed 5-bit DDA and both noise sources, separating left/right phrases at the 3,579,545 Hz HuC6280 clock. `tetorica_nes_fds_wav` uses both pulses, triangle, noise and original copied DMC bits, then an original FDS wave, then all six sources at the 1,789,773 Hz NTSC clock. Its mono signal is written to both stereo channels. `tetorica_dx7_wav` uses three original 155-byte voices with all six operators: algorithm 1 and a live timbre edit, algorithm 5 FM pairs, then an algorithm 32 chord with explicit note release. Its mono output is duplicated to stereo. `tetorica_snes_wav` copies original 64-sample sine/triangle/pulse BRR loops into owned RAM, auditions a sine left and an ADSR triangle right, then plays an eight-voice stereo chord with ADSR/direct GAIN and explicit KOFF releases. It uses the fixed 32 kHz DSP rate for pitch and disables echo writes. `tetorica_spc_wav` builds a complete original SPC file in memory. Its SPC700 program configures the DSP, polls timer 0 to schedule a stereo melody and three-voice chord, and releases the notes; original BRR samples, fixed gain/fades and a bounded DSP-write observer require no IPL or external assets. `tetorica_wonderswan_wav` renders original four-channel waveforms, stereo phrases, sweep, noise and host-written voice bytes at the 3,072,000 Hz clock. Its speaker preparation is explicit in the example; the SDK core retains raw unipolar headphone PCM. They demonstrate WonderSwan, SPC700 playback, SNES S-DSP, DX7, 32X, Genesis, FM-enabled Master System, MSX/MSX-AUDIO, two PC-98, NeoGeo, X68000, Mega-CD, DOS PC, Game Boy, PC Engine and NES with FDS sound configurations. Each writes three seconds of 48 kHz stereo PCM16. No audio device, external ROM, asset or npm dependency is needed. The generated sample data is not copied from hardware or game ROMs.
 
 ```sh
 # After the root CMake build above, with a single-configuration generator:
@@ -153,6 +156,7 @@ The default build produces eighteen offline examples using the actual SDK librar
 ./build/native/native/tetorica_dx7_wav "dx7 demo.wav"
 ./build/native/native/tetorica_snes_wav "snes demo.wav"
 ./build/native/native/tetorica_spc_wav "spc demo.wav"
+./build/native/native/tetorica_wonderswan_wav "wonderswan demo.wav"
 # With Visual Studio on Windows:
 ./build/native/native/Release/tetorica_32x_wav.exe "32x demo.wav"
 ./build/native/native/Release/tetorica_genesis_wav.exe "genesis demo.wav"
@@ -172,6 +176,7 @@ The default build produces eighteen offline examples using the actual SDK librar
 ./build/native/native/Release/tetorica_dx7_wav.exe "dx7 demo.wav"
 ./build/native/native/Release/tetorica_snes_wav.exe "snes demo.wav"
 ./build/native/native/Release/tetorica_spc_wav.exe "spc demo.wav"
+./build/native/native/Release/tetorica_wonderswan_wav.exe "wonderswan demo.wav"
 ```
 
 Each executable's single required argument selects the output file; its parent directory must exist. All use fixed example gains, with MIDI notes for DX7 and chip-clock pitch conversion for the register-based chips. Sega PSG stereo `0xff` retains Genesis/Master System mono output on both channels; AY, OPLL, YM2203, NES/FDS and DX7 output is also mono on both channels. These are sound configurations, not whole-console emulators or measurements of a motherboard's analog mix. Set `-DTETORICA_NATIVE_BUILD_EXAMPLES=OFF` to omit them when embedding the libraries.
@@ -209,11 +214,13 @@ To create and verify archives locally:
 python3 scripts/check_sdk.py
 python3 scripts/package_release.py --out-dir releases --wasm-dir build/verified-wasm
 python3 tests/check_standalone_release.py \
-  --source-zip releases/tetorica-soundchip-native-0.1.2-sources.zip \
-  --wasm-zip releases/tetorica-soundchip-native-0.1.2-wasm.zip
+  --source-zip releases/tetorica-soundchip-native-0.1.4-sources.zip \
+  --wasm-zip releases/tetorica-soundchip-native-0.1.4-wasm.zip
 ```
 
 The source ZIP includes sources, build recipes, licenses, provenance, and tests. The WASM ZIP includes compiled artifacts and the exact matching source ZIP. Both carry per-file SHA-256 manifests. Omit `--wasm-dir` to create only the source archive. See [release packaging and integration](docs/releases.md).
+
+Starting with 0.1.3, maintainers can [publish a GitHub Release by pushing a version tag](docs/releases.md#publish-with-a-git-tag). GitHub Actions runs all five Native checks and both YM2612/WonderSwan WASM checks, then creates and attaches the source ZIP and `SHA256SUMS`. No local archive preparation or GitHub CLI is required.
 
 For JavaScript Synth helpers, AudioWorklet integration, and higher-level APIs, see [tetorica-fm2612](https://www.npmjs.com/package/tetorica-fm2612).
 

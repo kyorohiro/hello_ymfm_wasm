@@ -5,8 +5,8 @@ The Python checker uses only the standard library. Native compilation needs CMak
 ```sh
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 tests/check_standalone_release.py \
-  --source-zip releases/tetorica-soundchip-native-0.1.2-sources.zip \
-  --wasm-zip releases/tetorica-soundchip-native-0.1.2-wasm.zip \
+  --source-zip releases/tetorica-soundchip-native-0.1.3-sources.zip \
+  --wasm-zip releases/tetorica-soundchip-native-0.1.3-wasm.zip \
   --work-dir build/standalone-check \
   --build-wasm ym2612
 ```

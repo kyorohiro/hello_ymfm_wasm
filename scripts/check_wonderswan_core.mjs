@@ -10,14 +10,15 @@ import {tmpdir, endianness} from 'node:os';
 import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {WonderSwan, WONDERSWAN_CLOCK} from '../web/wonderswan.js';
+import {loadWasmSdkInventory} from './wasm_sdk_inventory.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const usage = 'node scripts/check_wonderswan_core.mjs [--wasm-dir DIR] [--fixture FILE] [--out REPORT.json] [--wav-dir DIR]';
+const usage = 'node scripts/check_wonderswan_core.mjs [--wasm-dir DIR] [--source-root DIR] [--fixture FILE] [--out REPORT.json] [--wav-dir DIR]';
 function argumentsFor(argv) {
   const result = {};
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--help' && argv.length === 1) return null;
-    assert(['--wasm-dir','--fixture','--out','--wav-dir'].includes(argv[i]), `Unknown argument: ${argv[i]}\n${usage}`);
+    assert(['--wasm-dir','--source-root','--fixture','--out','--wav-dir'].includes(argv[i]), `Unknown argument: ${argv[i]}\n${usage}`);
     assert(!Object.hasOwn(result, argv[i]), `Duplicate argument: ${argv[i]}`);
     assert(argv[i + 1] && !argv[i + 1].startsWith('--'), `${argv[i]} needs a path`);
     result[argv[i]] = resolve(argv[++i]);
@@ -44,7 +45,7 @@ function apply(chip, [op, a, b]) {
   else if (op === 'r') chip.reset();
   else throw new Error(`Unknown fixture operation ${op}`);
 }
-function render(chip, scene, layout = [128], api = 'owned') {
+export function render(chip, scene, layout = [128], api = 'owned') {
   const left = new Float32Array(scene.frames), right = new Float32Array(scene.frames);
   const events = scene.events.slice().sort((a, b) => a.frame - b.frame);
   let position = 0, next = 0, block = 0;
@@ -81,10 +82,10 @@ function nativeRender(fixture, scene, clock, rate) {
   for (let i = 0; i < scene.frames; i++) { left[i] = bytes.readFloatLE(i * 8); right[i] = bytes.readFloatLE(i * 8 + 4); }
   return {left, right, registers:new Uint8Array(bytes.subarray(scene.frames * 8, scene.frames * 8 + 32)), memory:new Uint8Array(bytes.subarray(scene.frames * 8 + 32))};
 }
-function equalPcm(actual, expected, label) {
+export function equalPcm(actual, expected, label) {
   for (const field of ['left','right','registers','memory']) assert.deepEqual(actual[field], expected[field], `${label}: ${field}`);
 }
-function metrics({left, right}) {
+export function metrics({left, right}) {
   let peak = 0, mean = 0, variance = 0;
   for (const side of [left, right]) {
     let sum = 0, squares = 0;
@@ -104,7 +105,7 @@ function frequency(samples, rate) {
   assert(crossings.length > 4, 'Need several audible periods');
   return rate * (crossings.length - 1) / (crossings.at(-1) - crossings[0]);
 }
-function scenes() {
+export function scenes() {
   const result = [];
   const scene = (name, commands, {frames = 4096, silent = false} = {}) => {
     const events = [], at = (frame, list) => list.forEach(command => events.push({frame, command}));
@@ -152,7 +153,7 @@ function scenes() {
   return result;
 }
 
-async function specifiedChecks(create) {
+export async function specifiedChecks(create) {
   const exact = (actual, expected, label) => assert.deepEqual(Array.from(actual), expected.map(value => value / 1024), label);
   const atNativeRate = () => create({sampleRate:24000});
   const report = {reference:'Independent specified MAME baseline expectations; hardware deviations are listed in README.', checks:0};
@@ -241,7 +242,7 @@ async function specifiedChecks(create) {
   return report;
 }
 
-async function wrapperChecks(create, module) {
+export async function wrapperChecks(create, module) {
   const a = await create(), b = await create();
   try {
     const setup = [...voiceEvents(0), ['w',0x90,1]]; setup.forEach(command => apply(a, command));
@@ -317,29 +318,83 @@ async function listeningFiles(create, directory) {
   return files;
 }
 
+const standaloneInputs = Object.freeze([
+  'third_party/mame-wonderswan/wonderswan.cpp','third_party/mame-wonderswan/wonderswan.h',
+  'third_party/mame-wonderswan/README.md','third_party/mame-wonderswan/LICENSE',
+  'third_party/mame-wonderswan/upstream/wswansound.cpp','third_party/mame-wonderswan/upstream/wswansound.h',
+  'wasm/wonderswan_wasm.cpp','scripts/build_wonderswan_wasm.sh',
+].sort());
+const outputNames = ['wonderswan_wasm.js','wonderswan_wasm.wasm'];
+
+/** Audit before loading generated JavaScript. A frozen standalone source tree
+ * remains supported with --source-root; its original eight-input audit is kept.
+ * SDK builds bind their complete recipe inventory to the fixed release manifest.
+ * Parity copies may opt out of source reads after the batch inventory audit.
+ */
+export async function verifyWonderSwanBuildReceipt(directory, {sourceRoot = root, verifySources = true} = {}) {
+  assert.equal(typeof verifySources,'boolean');
+  let common;
+  try { common = JSON.parse(await readFile(join(directory,'build-info.json'),'utf8')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const entries = common?.artifacts?.filter(entry => entry.id === 'wonderswan') ?? [];
+  let receipt, receiptBytes, receiptPath, sources, sourceDirectory, coreDirectory, wrapperPath;
+  if (entries.length) {
+    assert.equal(common.schemaVersion,1,'SDK receipt schema');
+    assert.equal(entries.length,1,'Exactly one WonderSwan SDK receipt');
+    receipt = entries[0]; receiptPath = join(directory,'build-info.json');
+    receiptBytes = await readFile(receiptPath);
+    assert.equal(receipt.format,'emscripten-es-module','WonderSwan SDK format');
+    assert(Array.isArray(receipt.sourceFiles),'WonderSwan SDK sources');
+    assert.equal(sha256(JSON.stringify(receipt.sourceFiles)),receipt.sourceFingerprint,'WonderSwan source fingerprint');
+    if (verifySources) {
+      const inventory = await loadWasmSdkInventory({root:sourceRoot});
+      const artifact = inventory.artifacts.find(entry => entry.id === 'wonderswan');
+      assert(artifact,'WonderSwan must be in the fixed SDK catalog');
+      const manifest = JSON.parse(await readFile(join(inventory.sdkRoot,'RELEASE-MANIFEST.json'),'utf8'));
+      const expected = artifact.sourcePaths.map(path => ({path,...manifest.files[path]}));
+      // Manifest keys and build-recorder keys use the same path/hash/size data.
+      assert.deepEqual(receipt.sourceFiles,expected,'complete pinned SDK build input inventory');
+      sourceDirectory = inventory.sdkRoot;
+    }
+    sources = receipt.sourceFiles;
+    coreDirectory = join(sourceRoot,'third_party/tetorica-soundchip-native/vendor/mame-wonderswan');
+    wrapperPath = join(sourceRoot,'third_party/tetorica-soundchip-native/wasm/wonderswan_wasm.cpp');
+  } else {
+    receiptPath = join(directory,'wonderswan_build-info.json');
+    receiptBytes = await readFile(receiptPath); receipt = JSON.parse(receiptBytes);
+    assert.equal(receipt.schemaVersion,1); assert.equal(receipt.artifact,'wonderswan');
+    assert.deepEqual(receipt.upstream,{repository:'https://github.com/mamedev/mame',
+      revision:'d0f1c15a0f6df2dd51a754cb46e6175b7079c8f2',license:'BSD-3-Clause'});
+    assert.deepEqual(receipt.inputs.map(input => input.path).sort(),standaloneInputs,'complete standalone build input inventory');
+    sources = receipt.inputs.map(({path,bytes,sha256}) => ({path,size:bytes,sha256}));
+    sourceDirectory = sourceRoot;
+    coreDirectory = join(sourceRoot,'third_party/mame-wonderswan');
+    wrapperPath = join(sourceRoot,'wasm/wonderswan_wasm.cpp');
+  }
+  if (verifySources) for (const record of sources) {
+    const bytes = await readFile(join(sourceDirectory,record.path));
+    assert.equal(bytes.length,record.size,record.path+' receipt size');
+    assert.equal(sha256(bytes),record.sha256,record.path+' receipt SHA');
+  }
+  assert.deepEqual(receipt.outputs.map(output => output.path).sort(),outputNames,'complete WonderSwan output inventory');
+  for (const record of receipt.outputs) {
+    const bytes = await readFile(join(directory,record.path));
+    assert.equal(bytes.length,record.size ?? record.bytes,record.path+' receipt size');
+    assert.equal(sha256(bytes),record.sha256,record.path+' receipt SHA');
+  }
+  return {scope:entries.length ? 'pinned-sdk' : 'frozen-standalone',path:receiptPath,
+    sha256:sha256(receiptBytes),sourceInputsVerified:verifySources,receipt,coreDirectory,wrapperPath};
+}
+
 async function main() {
   const args = argumentsFor(process.argv.slice(2)); if (!args) { console.log(usage); return; }
   assert.equal(endianness(),'LE','Native fixture binary format currently requires a little-endian host');
+  const sourceRoot = args['--source-root'] ?? root;
   const wasmDirectory = args['--wasm-dir'] ?? join(root,'docs/generated');
   const wasmPath = join(wasmDirectory,'wonderswan_wasm.wasm'), jsPath = join(wasmDirectory,'wonderswan_wasm.js');
+  const audit = await verifyWonderSwanBuildReceipt(wasmDirectory,{sourceRoot});
+  const {coreDirectory,wrapperPath} = audit;
   const binary = await readFile(wasmPath), {default:factory} = await import(pathToFileURL(jsPath).href);
-  const receiptPath = join(wasmDirectory,'wonderswan_build-info.json');
-  const receiptBytes = await readFile(receiptPath), receipt = JSON.parse(receiptBytes);
-  assert.equal(receipt.schemaVersion,1); assert.equal(receipt.artifact,'wonderswan');
-  const expectedInputs = ['third_party/mame-wonderswan/wonderswan.cpp','third_party/mame-wonderswan/wonderswan.h',
-    'third_party/mame-wonderswan/README.md','third_party/mame-wonderswan/LICENSE',
-    'third_party/mame-wonderswan/upstream/wswansound.cpp','third_party/mame-wonderswan/upstream/wswansound.h',
-    'wasm/wonderswan_wasm.cpp','scripts/build_wonderswan_wasm.sh'];
-  assert.deepEqual(receipt.inputs.map(input => input.path).sort(),expectedInputs.sort(),'complete build input inventory');
-  for (const record of receipt.inputs) {
-    const bytes = await readFile(join(root,record.path));
-    assert.equal(bytes.length,record.bytes,record.path+' receipt size'); assert.equal(sha256(bytes),record.sha256,record.path+' receipt SHA');
-  }
-  assert.deepEqual(receipt.outputs.map(output => output.path).sort(),['wonderswan_wasm.js','wonderswan_wasm.wasm']);
-  for (const record of receipt.outputs) {
-    const bytes = await readFile(join(wasmDirectory,record.path));
-    assert.equal(bytes.length,record.bytes,record.path+' receipt size'); assert.equal(sha256(bytes),record.sha256,record.path+' receipt SHA');
-  }
   const module = await factory({wasmBinary:binary});
   const create = options => WonderSwan.create({...options,moduleFactory:() => module});
   const temporary = await mkdtemp(join(tmpdir(),'tetorica-wonderswan-'));
@@ -347,18 +402,18 @@ async function main() {
     method:'Real native C++ and WASM through synchronous JS; exact stereo PCM, complete 32-byte register window and 16 KiB wave RAM. Separate fixed-value DAC, LFSR, sweep and pitch expectations.',
     limits:['MAME-derived preliminary headphone sound path, not hardware validation or whole-machine emulation.',
       'Raw unipolar output scale; no normalization, Mixer gain, DC filter, real-time scheduling or listening judgment.',
-      'Hyper Voice, CPU, DMA, BIOS, ROM and VGM playback are outside this first stage. Fixed SDK and Playground modes are unchanged.'],
+      'Hyper Voice, CPU, DMA, BIOS, ROM and VGM playback are outside this raw-core verification.'],
     sources:[],cases:[],totalComparedStereoFrames:0,maximumDifference:0,
-    buildReceipt:{sha256:sha256(receiptBytes),...receipt}};
+    buildReceipt:audit};
   try {
     const fixture = args['--fixture'] ?? join(temporary,process.platform === 'win32' ? 'fixture.exe' : 'fixture');
     if (!args['--fixture']) execFileSync(process.env.CXX || 'clang++', ['-std=c++14','-O2','-Wall','-Wextra','-Werror','-pedantic',
-      '-I'+join(root,'third_party/mame-wonderswan'),join(root,'test/helpers/wonderswan_core_fixture.cpp'),
-      join(root,'third_party/mame-wonderswan/wonderswan.cpp'),'-o',fixture], {stdio:'pipe'});
+      '-I'+coreDirectory,join(root,'test/helpers/wonderswan_core_fixture.cpp'),
+      join(coreDirectory,'wonderswan.cpp'),'-o',fixture], {stdio:'pipe'});
     const selftest = join(temporary,process.platform === 'win32' ? 'selftest.exe' : 'selftest');
     execFileSync(process.env.CXX || 'clang++', ['-std=c++14','-O2','-Wall','-Wextra','-Werror','-pedantic',
-      '-I'+join(root,'third_party/mame-wonderswan'),join(root,'test/helpers/wonderswan_core_selftest.cpp'),
-      join(root,'third_party/mame-wonderswan/wonderswan.cpp'),join(root,'wasm/wonderswan_wasm.cpp'),'-o',selftest],{stdio:'pipe'});
+      '-I'+coreDirectory,join(root,'test/helpers/wonderswan_core_selftest.cpp'),
+      join(coreDirectory,'wonderswan.cpp'),wrapperPath,'-o',selftest],{stdio:'pipe'});
     report.nativeSelfTest = JSON.parse(execFileSync(selftest,[],{encoding:'utf8',timeout:30000}));
     report.specifiedChecks = await specifiedChecks(create); report.wrapperChecks = await wrapperChecks(create,module);
     for (const rate of report.rates) for (const clock of [WONDERSWAN_CLOCK,4000001]) for (const scene of scenes()) {
@@ -375,10 +430,12 @@ async function main() {
       const m = metrics(expected); report.cases.push({name:scene.name,clock,rate,frames:scene.frames,...m,
         pcmSha256:sha256(Buffer.concat([Buffer.from(expected.left.buffer),Buffer.from(expected.right.buffer)])),maximumDifference:0});
     }
-    const files = ['third_party/mame-wonderswan/wonderswan.h','third_party/mame-wonderswan/wonderswan.cpp','wasm/wonderswan_wasm.cpp',
-      'web/wonderswan.js','scripts/build_wonderswan_wasm.sh','scripts/check_wonderswan_core.mjs',
+    const files = ['web/wonderswan.js','scripts/build_wonderswan_wasm.sh','scripts/check_wonderswan_core.mjs',
       'test/helpers/wonderswan_core_fixture.cpp','test/helpers/wonderswan_core_selftest.cpp'];
     for (const path of files) { const bytes = await readFile(join(root,path)); report.sources.push({path,bytes:bytes.length,sha256:sha256(bytes)}); }
+    for (const path of [join(coreDirectory,'wonderswan.h'),join(coreDirectory,'wonderswan.cpp'),wrapperPath]) {
+      const bytes = await readFile(path); report.sources.push({path,bytes:bytes.length,sha256:sha256(bytes)});
+    }
     report.outputs = [];
     for (const path of [jsPath,wasmPath]) { const bytes = await readFile(path); report.outputs.push({path,bytes:bytes.length,sha256:sha256(bytes)}); }
     if (args['--wav-dir']) report.listeningFiles = await listeningFiles(create,args['--wav-dir']);
@@ -388,4 +445,6 @@ async function main() {
       specifiedChecks:report.specifiedChecks.checks,maximumDifference:0,...(args['--out'] ? {report:args['--out']} : {})},null,2));
   } finally { await rm(temporary,{recursive:true,force:true}); }
 }
-main().catch(error => { console.error(error.stack ?? error); process.exitCode = 1; });
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(error => { console.error(error.stack ?? error); process.exitCode = 1; });
+}

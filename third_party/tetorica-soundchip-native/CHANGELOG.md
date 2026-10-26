@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.4 — WonderSwan source and standalone builds
+
+- Include the BSD-3-Clause WonderSwan adaptation and pinned MAME source, preserving the imported source and license bytes. Add the `tetorica::wonderswan` Native library and `<tetorica/wonderswan.hpp>` raw C++ API, four wavetable voices, stereo volume, Noise, Sweep, Voice PCM and owned 16 KiB RAM. Keep the unipolar headphone DAC output unchanged; CPU, DMA, Hyper Voice and Tauri backend integration are outside this SDK target.
+- Add the WonderSwan WASM recipe and common build receipts as the twenty-eighth artifact. The SDK build produces the same JS/WASM bytes as the imported reference with Emscripten 6.0.6. Add a standalone synchronous Node ABI smoke for released and independently rebuilt artifacts.
+- Add a real-core Native fixture and an original three-second stereo WAV example. Source-archive verification now requires twenty libraries, twenty-five CTest entries, twenty-four fixture executables and nineteen WAV examples. Extend the WASM CI to separate YM2612 and WonderSwan jobs; tagged source publication waits for both and all five Native jobs.
+
+## 0.1.3 — Automatic GitHub Releases
+
+- Publish a source ZIP and `SHA256SUMS` automatically when a matching version tag is pushed, after all five Native validation jobs and the YM2612 WASM job succeed. Use the workflow's built-in token and the GitHub REST API; maintainers only need Git to push the tag.
+- Keep the previously pinned 0.1.2 source archive unchanged. This release adds publishing automation and documentation without changing sound-chip cores or APIs.
+
 ## 0.1.2 — Independent Sega PSG component
 
 - Separate the original Tetorica Sega PSG implementation into `vendor/tetorica_sega_psg/`, with its own BSD-3-Clause license, copyright/SPDX headers and SMS Power! hardware-documentation credit. Update Native/WASM build paths and component provenance without changing synthesis, APIs or the imported reference binaries. Existing fixed application SDK snapshots remain unchanged until consumers explicitly adopt this release.

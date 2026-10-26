@@ -16,7 +16,7 @@ ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288', 'ymf278b',
-             'nuked_opn2', 'dx7')
+             'nuked_opn2', 'dx7', 'wonderswan')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -138,6 +138,12 @@ RF5C164_EXPORTS = [
     '_rf5c164_write_memory', '_rf5c164_read_memory', '_rf5c164_read',
     '_rf5c164_load', '_rf5c164_bank', '_rf5c164_save_state',
     '_rf5c164_load_state', '_malloc', '_free',
+]
+WONDERSWAN_EXPORTS = [
+    '_wonderswan_create', '_wonderswan_destroy', '_wonderswan_reset',
+    '_wonderswan_write', '_wonderswan_read', '_wonderswan_write_memory',
+    '_wonderswan_read_memory', '_wonderswan_mute', '_wonderswan_generate',
+    '_malloc', '_free',
 ]
 PWM32X_EXPORTS = [
     '_pwm32x_create', '_pwm32x_destroy', '_pwm32x_reset', '_pwm32x_write',
@@ -473,7 +479,8 @@ else:
         previous_outputs = {
             name: (output / name).read_bytes()
             for artifact in previous_artifacts
-            for name in (artifact + '_wasm.js', artifact + '_wasm.wasm')
+            for name in (['msfa.wasm'] if artifact == 'dx7'
+                         else [artifact + '_wasm.js', artifact + '_wasm.wasm'])
         }
         # Rebuilding one chip replaces only its own entry and cannot alter
         # other chips' records or outputs in the shared default directory.
@@ -953,6 +960,28 @@ class NukedOpn2SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         self.assert_shared_output_preserves(list(ARTIFACTS[:ARTIFACTS.index(self.artifact)]))
 
 
+class WonderSwanSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'wonderswan'
+    exports = WONDERSWAN_EXPORTS
+    export_all = False
+    assertions = False
+    vendor_sources = ['vendor/mame-wonderswan/wonderswan.cpp']
+    core_header = 'vendor/mame-wonderswan/wonderswan.h'
+    include_directories = ['vendor/mame-wonderswan']
+    support_sources = []
+    extra_manifest_headers = ()
+    extra_tamper_dependencies = (
+        *vendor_sources, 'vendor/mame-wonderswan/LICENSE',
+        'vendor/mame-wonderswan/README.md',
+        'vendor/mame-wonderswan/upstream/wswansound.cpp',
+        'vendor/mame-wonderswan/upstream/wswansound.h', 'LICENSE', 'LICENSES.md',
+    )
+    verify_quoted_header_dependencies = True
+
+    def test_shared_output_preserves_all_twenty_seven_existing_build_records(self):
+        self.assert_shared_output_preserves(list(ARTIFACTS[:ARTIFACTS.index(self.artifact)]))
+
+
 class Dx7SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
     """The existing DX7 JS host consumes a standalone module, not ES glue."""
 
@@ -1107,7 +1136,8 @@ class Dx7SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
             result = self.build()
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             info = json.loads((output / 'build-info.json').read_text())
-            self.assertEqual([entry['id'] for entry in info['artifacts']], sorted(ARTIFACTS))
+            self.assertEqual([entry['id'] for entry in info['artifacts']],
+                             sorted([*previous_artifacts, self.artifact]))
             for previous in previous_records:
                 self.assertEqual(next(entry for entry in info['artifacts']
                                       if entry['id'] == previous['id']), previous)

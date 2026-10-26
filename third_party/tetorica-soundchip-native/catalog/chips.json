@@ -970,6 +970,62 @@
       }
     },
     {
+      "id": "wonderswan",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/mame-wonderswan/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "declaredFileLicenses": {
+          "native/include/tetorica/wonderswan.hpp": "BSD-3-Clause",
+          "vendor/mame-wonderswan/wonderswan.cpp": "BSD-3-Clause",
+          "vendor/mame-wonderswan/wonderswan.h": "BSD-3-Clause"
+        },
+        "defaultLicensedFiles": [],
+        "id": "wonderswan",
+        "licenseFiles": [
+          "LICENSE",
+          "vendor/mame-wonderswan/LICENSE"
+        ],
+        "licenseNote": "The shared MAME adaptation and retained upstream files declare BSD-3-Clause with their original copyright notices. The SDK public forwarder, build integration, fixture and WAV host use the repository BSD-3-Clause default; no project-wide MAME license is inferred for other code.",
+        "licenseStatus": "declared",
+        "sourceFiles": [
+          "native/include/tetorica/wonderswan.hpp",
+          "vendor/mame-wonderswan/wonderswan.cpp",
+          "vendor/mame-wonderswan/wonderswan.h"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_wonderswan",
+        "tests": [
+          "tetorica.wonderswan.self_test"
+        ],
+        "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+        "verificationScope": "SDK-owned raw C++ WonderSwan class using the pinned MAME adaptation directly, not a Tauri C ABI adapter. Four 32-point 4-bit waves, owned copied 16 KiB RAM, stereo headphone levels, CH2 host-written voice bytes, CH3 sweep, CH4 noise, mute progression, cold reset and fixed constructor clock/output rate. Retains raw unipolar /1024 PCM and integer-phase sample-and-hold conversion from floor(clock/128) native updates. Native fixture checks register/RAM boundaries, all voices, stereo, all eight noise tap modes, sweep, voice routing, independent instances, render partitioning and allocation-free tested paths. The offline WAV host alone applies an explicit speaker DC blocker, gain and fades. No mono-speaker output, DMA, HyperVoice, CPU/ROM, scheduler, portable save state or Playground Native Audio backend integration."
+      },
+      "sourceFiles": [
+        "native/include/tetorica/wonderswan.hpp",
+        "vendor/mame-wonderswan/upstream/wswansound.cpp",
+        "vendor/mame-wonderswan/upstream/wswansound.h",
+        "vendor/mame-wonderswan/wonderswan.cpp",
+        "vendor/mame-wonderswan/wonderswan.h",
+        "wasm/wonderswan_wasm.cpp"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_wonderswan_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "wonderswan"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
       "id": "y8950",
       "licenseFiles": [
         "LICENSE",
@@ -2051,10 +2107,10 @@
     }
   ],
   "notes": [
-    "Source collection is complete for these 22 Playground IDs; each Native verificationScope records its supported API and tested configurations.",
+    "Source collection is complete for these 23 Playground IDs; each Native verificationScope records its supported API and tested configurations.",
     "A WASM recipe is not a claim of runtime verification; release build-info and tests report the verified scope.",
     "snes (DSP/RAM access) and spc (SPC CPU/file player) share the SNES-SPC sources but remain separate APIs.",
-    "JavaScript references are separate from the 22 Playground IDs and 27 WASM recipes; their Native/WASM ports are not implemented.",
+    "JavaScript references are separate from the 23 Playground IDs and 28 WASM recipes; their Native/WASM ports are not implemented.",
     "Pinned upstream source references preserve original C/C++ implementations and dependencies; they are not additional SDK Native/WASM targets."
   ],
   "schemaVersion": 1,

@@ -32,16 +32,6 @@ async function outputFixture(t) {
   return {base, directory, receipt, save};
 }
 
-async function standaloneFixture(t) {
-  const fixture = await outputFixture(t);
-  const standaloneReceipt = JSON.parse(await readFile(path.join(deployed, 'wonderswan_build-info.json'), 'utf8'));
-  await Promise.all(['wonderswan_wasm.js', 'wonderswan_wasm.wasm'].map(name =>
-    copyFile(path.join(deployed, name), path.join(fixture.directory, name))));
-  const saveStandalone = () => writeFile(path.join(fixture.directory, 'wonderswan_build-info.json'), JSON.stringify(standaloneReceipt));
-  await saveStandalone();
-  return {...fixture, standaloneReceipt, saveStandalone};
-}
-
 async function sdkFixture(t, {sources = false} = {}) {
   const base = await temporary(t);
   const sdkRoot = path.join(base, 'third_party/tetorica-soundchip-native');
@@ -75,20 +65,20 @@ async function sdkFixture(t, {sources = false} = {}) {
   return {root: base, sdkRoot, editCatalog};
 }
 
-test('loads the fixed 27-artifact inventory and freezes the validated recipe set', () => {
-  assert.equal(inventory.artifacts.length, 27);
+test('loads the fixed 28-artifact inventory and freezes the validated recipe set', () => {
+  assert.equal(inventory.artifacts.length, 28);
   assert.deepEqual(inventory.artifacts.map(artifact => artifact.id), WASM_SDK_ARTIFACT_IDS);
-  assert.equal(inventory.artifacts.flatMap(artifact => artifact.outputs).length, 53);
+  assert.equal(inventory.artifacts.flatMap(artifact => artifact.outputs).length, 55);
   assert.deepEqual(inventory.artifacts.find(artifact => artifact.id === 'dx7').outputs, ['msfa.wasm']);
   assert.equal(inventory.artifacts.find(artifact => artifact.id === 'nuked_opn2').compilerCommand, 'emcc');
   assert.throws(() => inventory.artifacts[0].sourcePaths.push('forged.cpp'), TypeError);
 });
 
 test('validates all actual receipts, pinned sources and WASM ABI descriptors without Emscripten', async () => {
-  const summary = await verifyWasmBuildDirectory({root, directory: deployed, inventory, allowStandaloneArtifacts: true});
-  assert.equal(summary.artifactCount, 27);
-  assert.equal(summary.outputCount, 53);
-  assert.equal(summary.verifiedSourceCount, 164);
+  const summary = await verifyWasmBuildDirectory({root, directory: deployed, inventory});
+  assert.equal(summary.artifactCount, 28);
+  assert.equal(summary.outputCount, 55);
+  assert.equal(summary.verifiedSourceCount, new Set(inventory.artifacts.flatMap(artifact => artifact.sourcePaths)).size);
   assert.equal(summary.sourcesVerified, true);
   const dx7 = summary.artifacts.find(artifact => artifact.id === 'dx7');
   assert.deepEqual(dx7.wasm.imports, []);
@@ -101,7 +91,7 @@ test('validates all actual receipts, pinned sources and WASM ABI descriptors wit
 test('accepts an isolated copied build directory and explicitly skipped source I/O', async t => {
   const fixture = await outputFixture(t);
   const summary = await verifyWasmBuildDirectory({...fixture, inventory, verifySources: false});
-  assert.equal(summary.outputCount, 53);
+  assert.equal(summary.outputCount, 55);
   assert.equal(summary.verifiedSourceCount, 0);
   assert.equal(summary.sourcesVerified, false);
 });
@@ -114,91 +104,61 @@ test('accepts EMXX/EMCC wrapper paths while preserving compiler metadata', async
   assert.equal(summary.artifacts[0].compiler.command, '/opt/custom/emxx-wrapper');
 });
 
-test('rejects standalone outputs by default and permits only explicitly verified coexistence', async t => {
-  const fixture = await standaloneFixture(t);
-  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /missing or extra/);
-  const summary = await verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true});
-  assert.equal(summary.artifactCount, 27);
-  assert.equal(summary.outputCount, 53);
-  assert.equal(summary.verifiedSourceCount, 164);
-  assert.deepEqual(summary.standaloneArtifacts, [{id: 'wonderswan', receipt: 'wonderswan_build-info.json',
-    outputs: fixture.standaloneReceipt.outputs}]);
-});
-
-test('allowing standalone coexistence still accepts an SDK-only build', async t => {
+test('requires WonderSwan in the central SDK receipt even if an old standalone receipt is present', async t => {
   const fixture = await outputFixture(t);
-  const summary = await verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true});
-  assert.equal(summary.artifactCount, 27);
-  assert.equal(summary.outputCount, 53);
-  assert.equal(summary.standaloneArtifacts, undefined);
+  const record = fixture.receipt.artifacts.find(artifact => artifact.id === 'wonderswan');
+  fixture.receipt.artifacts = fixture.receipt.artifacts.filter(artifact => artifact.id !== 'wonderswan');
+  await fixture.save();
+  await writeFile(path.join(fixture.directory, 'wonderswan_build-info.json'), JSON.stringify({
+    schemaVersion: 1, artifact: 'wonderswan',
+    outputs: record.outputs.map(({path, size, sha256}) => ({path, bytes: size, sha256})),
+  }));
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /exactly 28 artifacts/);
 });
 
-test('rejects unknown JS/WASM even when known standalone coexistence is allowed', async t => {
-  const fixture = await standaloneFixture(t);
-  await writeFile(path.join(fixture.directory, 'rogue.js'), 'throw new Error("must not execute");');
-  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true}), /missing or extra/);
-});
-
-test('requires the standalone receipt and both standalone output files', async t => {
-  for (const name of ['wonderswan_build-info.json', 'wonderswan_wasm.js', 'wonderswan_wasm.wasm']) {
-    const fixture = await standaloneFixture(t);
+test('requires both WonderSwan output files in every SDK build', async t => {
+  for (const name of ['wonderswan_wasm.js', 'wonderswan_wasm.wasm']) {
+    const fixture = await outputFixture(t);
     await rm(path.join(fixture.directory, name));
-    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true}), /ENOENT|missing or extra/);
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /missing or extra/);
   }
 });
 
-const standaloneReceiptMutations = [
-  ['wrong schema', receipt => { receipt.schemaVersion = 2; }, /Invalid standalone artifact receipt: wonderswan/],
-  ['wrong artifact', receipt => { receipt.artifact = 'unrecognized'; }, /Invalid standalone artifact receipt: wonderswan/],
-  ['missing output', receipt => { receipt.outputs.pop(); }, /Invalid standalone output list: wonderswan/],
-  ['renamed output', receipt => { receipt.outputs[0].path = 'forged_wasm.js'; }, /Unexpected standalone output: wonderswan|Invalid standalone output list: wonderswan/],
-];
-
-for (const [name, mutate, expected] of standaloneReceiptMutations) {
-  test(`rejects standalone receipt ${name}`, async t => {
-    const fixture = await standaloneFixture(t);
-    mutate(fixture.standaloneReceipt);
-    await fixture.saveStandalone();
-    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true}), expected);
-  });
-}
-
-test('rejects standalone output byte changes with unchanged size', async t => {
-  const fixture = await standaloneFixture(t);
+test('rejects WonderSwan output byte changes with unchanged size', async t => {
+  const fixture = await outputFixture(t);
   const target = path.join(fixture.directory, 'wonderswan_wasm.wasm');
   const bytes = await readFile(target);
   bytes[bytes.length - 1] ^= 1;
   await writeFile(target, bytes);
-  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true}),
-    /Standalone output hash\/size mismatch: wonderswan_wasm.wasm/);
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}),
+    /Output hash\/size mismatch: wonderswan_wasm.wasm/);
 });
 
-test('rejects a valid empty standalone WASM despite a self-consistent output receipt', async t => {
-  const fixture = await standaloneFixture(t);
-  const bytes = Buffer.from([0, 97, 115, 109, 1, 0, 0, 0]);
+test('rejects another valid sound-chip WASM substituted for WonderSwan despite matching output metadata', async t => {
+  const fixture = await outputFixture(t);
+  const bytes = await readFile(path.join(fixture.directory, 'ay8910_wasm.wasm'));
   await writeFile(path.join(fixture.directory, 'wonderswan_wasm.wasm'), bytes);
-  Object.assign(fixture.standaloneReceipt.outputs.find(output => output.path === 'wonderswan_wasm.wasm'),
-    {bytes: bytes.length, sha256: sha256(bytes)});
-  await fixture.saveStandalone();
-  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true}),
-    /Standalone WASM output has no WonderSwan ABI: wonderswan_wasm.wasm/);
+  Object.assign(fixture.receipt.artifacts.find(artifact => artifact.id === 'wonderswan').outputs.find(output => output.path === 'wonderswan_wasm.wasm'),
+    {size: bytes.length, sha256: sha256(bytes)});
+  await fixture.save();
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}),
+    /WASM output has no WonderSwan ABI: wonderswan_wasm.wasm/);
 });
 
-test('rejects standalone outputs and receipts symlinked outside the verified directory', async t => {
-  for (const name of ['wonderswan_wasm.wasm', 'wonderswan_build-info.json']) {
-    const fixture = await standaloneFixture(t);
-    const outside = path.join(fixture.base, name);
-    await copyFile(path.join(fixture.directory, name), outside);
-    await rm(path.join(fixture.directory, name));
-    await symlink(outside, path.join(fixture.directory, name));
-    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, allowStandaloneArtifacts: true}), /escapes its directory/);
-  }
+test('rejects WonderSwan output symlinked outside the verified directory', async t => {
+  const fixture = await outputFixture(t);
+  const name = 'wonderswan_wasm.wasm';
+  const outside = path.join(fixture.base, name);
+  await copyFile(path.join(fixture.directory, name), outside);
+  await rm(path.join(fixture.directory, name));
+  await symlink(outside, path.join(fixture.directory, name));
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /escapes its directory/);
 });
 
 const receiptMutations = [
   ['wrong schema', receipt => { receipt.schemaVersion = 2; }, /schema 1/],
-  ['missing artifact', receipt => { receipt.artifacts.pop(); }, /exactly 27/],
-  ['extra artifact', receipt => { receipt.artifacts.push(structuredClone(receipt.artifacts[0])); }, /exactly 27/],
+  ['missing artifact', receipt => { receipt.artifacts.pop(); }, /exactly 28/],
+  ['extra artifact', receipt => { receipt.artifacts.push(structuredClone(receipt.artifacts[0])); }, /exactly 28/],
   ['duplicate artifact', receipt => { receipt.artifacts[1] = structuredClone(receipt.artifacts[0]); }, /exactly once/],
   ['unknown artifact', receipt => { receipt.artifacts[0].id = 'unknown'; }, /exactly once/],
   ['wrong format', receipt => { receipt.artifacts[0].format = 'standalone-wasm'; }, /format mismatch/],
@@ -304,8 +264,8 @@ test('verifies source bytes against the pinned snapshot and can explicitly skip 
   const local = await loadWasmSdkInventory(fixture);
   const target = path.join(fixture.sdkRoot, 'scripts/build-wasm.sh');
   await writeFile(target, '# tampered SDK source\n');
-  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local, allowStandaloneArtifacts: true}), /SDK source hash\/size mismatch/);
-  const skipped = await verifyWasmBuildDirectory({directory: deployed, inventory: local, verifySources: false, allowStandaloneArtifacts: true});
+  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local}), /SDK source hash\/size mismatch/);
+  const skipped = await verifyWasmBuildDirectory({directory: deployed, inventory: local, verifySources: false});
   assert.equal(skipped.sourcesVerified, false);
 });
 
@@ -317,7 +277,7 @@ test('rejects source symlinks escaping the SDK even if external bytes have the p
   await copyFile(path.join(sdk, name), outside);
   await rm(path.join(fixture.sdkRoot, name));
   await symlink(outside, path.join(fixture.sdkRoot, name));
-  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local, allowStandaloneArtifacts: true}), /escapes its directory/);
+  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local}), /escapes its directory/);
 });
 
 test('rejects a source catalog that differs from the manifest', async t => {
@@ -333,9 +293,9 @@ test('rejects a manifest that differs from the pin', async t => {
 });
 
 const catalogMutations = [
-  ['missing build', catalog => catalog.artifacts.pop(), /exactly 27/],
-  ['duplicate build', catalog => { catalog.artifacts[0] = structuredClone(catalog.artifacts[1]); }, /supported 27/],
-  ['unknown build', catalog => { catalog.artifacts[0].id = 'unexpected'; }, /supported 27/],
+  ['missing build', catalog => catalog.artifacts.pop(), /exactly 28/],
+  ['duplicate build', catalog => { catalog.artifacts[0] = structuredClone(catalog.artifacts[1]); }, /supported 28/],
+  ['unknown build', catalog => { catalog.artifacts[0].id = 'unexpected'; }, /supported 28/],
   ['unsafe build script', catalog => { catalog.artifacts[0].buildScript = '../build.sh'; }, /Unexpected build script/],
   ['wrong standalone format', catalog => { catalog.artifacts.find(a => a.id === 'dx7').format = 'emscripten-es-module'; }, /Unexpected artifact format/],
   ['unsafe source path', catalog => { catalog.artifacts[0].sourceFiles[0] = '../outside.cpp'; }, /Unsafe .* source files/],
@@ -360,9 +320,4 @@ test('rejects caller-forged inventory objects', async () => {
 test('rejects non-boolean source verification switches', async () => {
   await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory, verifySources: 'false'}),
     /verifySources must be boolean/);
-});
-
-test('rejects non-boolean standalone coexistence switches', async () => {
-  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory, allowStandaloneArtifacts: 'true'}),
-    /allowStandaloneArtifacts must be boolean/);
 });

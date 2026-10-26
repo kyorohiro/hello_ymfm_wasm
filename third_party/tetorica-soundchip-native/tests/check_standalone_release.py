@@ -26,8 +26,8 @@ class AuditError(RuntimeError):
     pass
 
 
-REQUIRED_CHIPS = frozenset("ym2612 ym2203 ym2610 ym2610b rf5c164 ym2608 gameboy segapsg ym2151 pwm nes dx7 snes spc huc6280 okim6258 ym3526 ym3812 y8950 ymf262 ym2413 ay8910".split())
-REQUIRED_ARTIFACTS = frozenset("ay8910 gameboy_apu huc6280 k051649 nesapu nuked_opn2 okim6258 pwm32x rf5c164 segapcm segapsg spc y8950 ym2151 ym2203 ym2413 ym2608 ym2610b ym2612 ym3438 ym3526 ym3812 ymf262 ymf276 ymf278b ymf288 dx7".split())
+REQUIRED_CHIPS = frozenset("ym2612 ym2203 ym2610 ym2610b rf5c164 ym2608 gameboy segapsg ym2151 pwm nes dx7 snes spc huc6280 okim6258 ym3526 ym3812 y8950 ymf262 ym2413 ay8910 wonderswan".split())
+REQUIRED_ARTIFACTS = frozenset("ay8910 gameboy_apu huc6280 k051649 nesapu nuked_opn2 okim6258 pwm32x rf5c164 segapcm segapsg spc y8950 ym2151 ym2203 ym2413 ym2608 ym2610b ym2612 ym3438 ym3526 ym3812 ymf262 ymf276 ymf278b ymf288 dx7 wonderswan".split())
 REQUIRED_JAVASCRIPT_REFERENCES = frozenset(("msm5205", "okim6295"))
 REQUIRED_NATIVE_FIXTURES = frozenset(("tetorica_ym2612_fixture", "tetorica_ym2151_fixture",
                                       "tetorica_segapsg_fixture", "tetorica_ym2413_fixture", "tetorica_ay8910_fixture",
@@ -35,7 +35,7 @@ REQUIRED_NATIVE_FIXTURES = frozenset(("tetorica_ym2612_fixture", "tetorica_ym215
                                       "tetorica_okim6258_fixture", "tetorica_rf5c164_fixture",
                                       "tetorica_opl_fixture", "tetorica_extra_opl_fixture", "tetorica_y8950_memory_fixture",
                                       "tetorica_gameboy_fixture", "tetorica_huc6280_fixture", "tetorica_nes_fixture",
-                                      "tetorica_pwm_fixture", "tetorica_extra_pwm_fixture", "tetorica_dx7_fixture", "tetorica_snes_fixture", "tetorica_spc_fixture", "tetorica_nuked_ym2612_fixture", "tetorica_nuked_colink_fixture"))
+                                      "tetorica_pwm_fixture", "tetorica_extra_pwm_fixture", "tetorica_dx7_fixture", "tetorica_snes_fixture", "tetorica_spc_fixture", "tetorica_nuked_ym2612_fixture", "tetorica_nuked_colink_fixture", "tetorica_wonderswan_fixture"))
 REQUIRED_NATIVE_EXAMPLES = {"tetorica_genesis_wav": "Genesis", "tetorica_master_system_wav": "Master System",
                             "tetorica_msx_wav": "MSX", "tetorica_pc98_ym2203_wav": "PC-98 YM2203",
                             "tetorica_pc98_ym2608_wav": "PC-98 YM2608", "tetorica_neogeo_wav": "NeoGeo",
@@ -43,7 +43,7 @@ REQUIRED_NATIVE_EXAMPLES = {"tetorica_genesis_wav": "Genesis", "tetorica_master_
                             "tetorica_dos_opl_wav": "DOS PC OPL", "tetorica_msx_audio_wav": "MSX-AUDIO",
                             "tetorica_gameboy_wav": "Game Boy", "tetorica_pcengine_wav": "PC Engine",
                             "tetorica_nes_fds_wav": "NES with FDS", "tetorica_32x_wav": "32X",
-                            "tetorica_dx7_wav": "DX7", "tetorica_snes_wav": "SNES", "tetorica_spc_wav": "SPC", "tetorica_nuked_genesis_wav": "Nuked Genesis"}
+                            "tetorica_dx7_wav": "DX7", "tetorica_snes_wav": "SNES", "tetorica_spc_wav": "SPC", "tetorica_nuked_genesis_wav": "Nuked Genesis", "tetorica_wonderswan_wav": "WonderSwan"}
 REQUIRED_NATIVE_EXECUTABLES = REQUIRED_NATIVE_FIXTURES | frozenset(REQUIRED_NATIVE_EXAMPLES)
 REQUIRED_UPSTREAM_REFERENCES = frozenset((
     "libvgm-msm5205-upstream", "libvgm-okim6295-upstream", "mame-okim6295-upstream",
@@ -531,7 +531,7 @@ def main():
     parser.add_argument("--wasm-zip", type=Path)
     parser.add_argument("--work-dir", type=Path)
     parser.add_argument("--audit-only", action="store_true")
-    parser.add_argument("--wasm-smoke", action="store_true", help="Run the released YM2612 Node ABI smoke even with --audit-only")
+    parser.add_argument("--wasm-smoke", action="store_true", help="Run supported released Node ABI smokes (YM2612/WonderSwan) even with --audit-only")
     parser.add_argument("--javascript-smoke", action="store_true", help="Run the two JavaScript reference smokes with Node.js 22+, even with --audit-only")
     parser.add_argument("--build-wasm", metavar="ARTIFACT", help="Also rebuild one WASM artifact using installed Emscripten")
     args = parser.parse_args()
@@ -559,13 +559,19 @@ def main():
         command(["node", root / "tests/javascript_reference_smoke.mjs", root / "reference/javascript"], root, environment)
     if args.wasm_zip and (not args.audit_only or args.wasm_smoke):
         require(shutil.which("node"), "WASM ABI smoke requires Node.js")
-        command(["node", root / "tests/wasm_smoke.mjs", wasm / "wasm"], root, environment)
+        selected = set(wasm_manifest["artifacts"])
+        if "ym2612" in selected or "wonderswan" not in selected:
+            command(["node", root / "tests/wasm_smoke.mjs", wasm / "wasm"], root, environment)
+        if "wonderswan" in selected:
+            command(["node", root / "tests/wonderswan_wasm_smoke.mjs", wasm / "wasm"], root, environment)
     if args.build_wasm:
         require(shutil.which("em++"), "--build-wasm requires installed Emscripten")
         command(["sh", root / "scripts/build-wasm.sh", args.build_wasm, work / "rebuilt-wasm"], root, environment)
         require(any((work / "rebuilt-wasm").rglob("*.wasm")), "WASM build produced no WASM artifact")
         if args.build_wasm in ("ym2612", "all"):
             command(["node", root / "tests/wasm_smoke.mjs", work / "rebuilt-wasm"], root, environment)
+        if args.build_wasm in ("wonderswan", "all"):
+            command(["node", root / "tests/wonderswan_wasm_smoke.mjs", work / "rebuilt-wasm"], root, environment)
     print(f"PASS: {len(catalog['chips'])} chips, {len(inventory['artifacts'])} WASM artifacts and {len(catalog['javascriptReferences'])} JavaScript references; standalone release at {root}")
 
 
