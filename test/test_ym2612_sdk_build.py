@@ -15,7 +15,7 @@ SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
-             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288')
+             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288', 'ymf278b')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -87,6 +87,13 @@ YMF262_EXPORTS = [
     '_ymf262_read', '_ymf262_read_status', '_ymf262_get_irq',
     '_ymf262_sample_rate', '_ymf262_generate', '_ymf262_set_mute_mask',
     '_malloc', '_free',
+]
+YMF278B_EXPORTS = [
+    '_ymf278b_create', '_ymf278b_destroy', '_ymf278b_reset', '_ymf278b_write',
+    '_ymf278b_read', '_ymf278b_read_status', '_ymf278b_get_irq',
+    '_ymf278b_sample_rate', '_ymf278b_set_fm_mute_mask',
+    '_ymf278b_set_pcm_mute_mask', '_ymf278b_generate', '_ymf278b_load_memory',
+    '_ymf278b_clear_memory', '_malloc', '_free',
 ]
 Y8950_EXPORTS = [
     '_y8950_set_mute_mask', '_y8950_create', '_y8950_destroy', '_y8950_reset',
@@ -854,6 +861,31 @@ class Ymf288SdkBuildTests(OpnVariantSdkBuildRouteMixin, unittest.TestCase):
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276'])
+
+
+class Ymf278bSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ymf278b'
+    exports = YMF278B_EXPORTS
+    assertions = False
+    runtime_methods = ['cwrap', 'HEAPF32', 'HEAPU8']
+    vendor_sources = ['vendor/ymfm/ymfm_opl.cpp', 'vendor/ymfm/ymfm_adpcm.cpp',
+                      'vendor/ymfm/ymfm_pcm.cpp']
+    core_header = 'vendor/ymfm/ymfm_opl.h'
+    quoted_header_directories = ('wasm',)
+    support_sources = ['wasm/ymfm_wasm_interface.h', 'vendor/ymfm/ymfm.h',
+                       'vendor/ymfm/ymfm_fm.h', 'vendor/ymfm/ymfm_fm.ipp',
+                       'vendor/ymfm/ymfm_adpcm.h', 'vendor/ymfm/ymfm_pcm.h']
+    extra_manifest_headers = tuple(support_sources[1:])
+    extra_tamper_dependencies = (*vendor_sources, *support_sources,
+                                 'LICENSE', 'LICENSES.md', 'vendor/ymfm/LICENSE')
+    verify_quoted_header_dependencies = True
+
+    def test_shared_output_preserves_all_twenty_four_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
+             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288'])
 
 
 if __name__ == '__main__':

@@ -87,6 +87,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くYMF288 WASMも固定SDKへ切り替えた。旧再ビルド／配布済み版との各606比較でPCM・read／status／IRQ差0。
 既存のFM 6CH／SSG・再構築reset・500 kHz native出力を維持した。
 詳細は[YMF288 WASMのSDK移行](wasm_sdk_ymf288_adoption_01.md)を参照。
+続くYMF278B WASMも固定SDKへ切り替えた。FM 18CH／PCM 24CH、4 MiBメモリーと既存Analyzer／VGM経路を維持した。
+各684比較で差0。Analyzer再測定18行は旧値・PCM hashと完全一致し、実測03記録へ更新した。
+詳細は[YMF278B WASMのSDK移行](wasm_sdk_ymf278b_adoption_01.md)を参照。
 既存の音量調整では、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1426,8 +1429,30 @@ Chromium／WebKitで実direct Synth6FM／3SSG・混合とMixer／meterを確認�
 Analyzer ZIPは従来wrapperのみでYMF288生成pair／named Synthを含まない。校正66source hash・3generator checksとunity fallbackを維持した。
 詳細は[YMF288移行](wasm_sdk_ymf288_adoption_01.md)と[検証JSON](wasm_sdk_ymf288_adoption_01.json)。証拠は`/private/tmp/tetorica-ymf288-wasm-sdk/`。
 
-固定SDKへ切り替えたWASMは計24／27 artifact。次の移行候補はYMF278B。
-残り3は`nuked_opn2`／`ymf278b`／`dx7`。
+この節はYMF288移行時の記録。続くYMF278B移行は次の節に記載する。
+
+### 完了した作業 — YMF278B WASMの固定SDK参照
+
+`scripts/build_ymf278b_wasm.sh`もSDK `0.1.1`の`ymf278b`ターゲットを使う。
+着手時の本体は`a74a893c783056e5f371b52fd09700414ccb1139`でclean。編集前56記録、先行24receipt・他50生成JS／WASMを照合した。
+379ファイルの固定SDK・pin、他レシピ・公開API・音源処理・Mixer数値は維持した。
+C++14／O2・EXPORT_ALL、15 C export・runtime3項目・incoming wasmBinary、4翻訳単位＋7headerの11入力を保持した。
+配布済み版と旧再ビルドのJS／WASMはbyte一致。SDK11入力を旧配置へ置きrecipe4パスだけ戻す一時buildで両方のbytesを再現した。4buildにcompiler警告はない。
+各684比較・7,447,780生成ステレオフレームでPCM／read／status／IRQ／hook・続行probe差0。public reset再演奏140回を含む1,508実行。
+18FM／24PCM、4OP pair、8／12／16-bit sample、4 MiB load／busRAM、DO2混合・独立mute、Engine rate変換・VGM seek/replayを確認した。
+native rateはclock/768の計算。public resetはchip再生成＋JS upload mirror／mute再適用で、native bus RAMへの変更はmirrorへ反映しない。
+raw resetはRAM・counter／address／FMfractionを保持し、FM callbackがtimer／IRQをresetする。保存状態／borrowed／Into APIは追加していない。
+Analyzerを実測し直した18行は旧02とsources以外全項目・PCM hashが同じだった。実測03へ保存しgenerator／生成commentを03参照へ更新した。
+Analyzer値1.465915とpackage unity fallbackを含む全数値は維持した。旧02を保存し、hashだけの更新はしていない。
+Python115件・Node最終106件・CLI69実行成功。既存WAV試験の手組み比較engineにMixerが欠けていたため、旧WASMで同じ失敗を再現後、比較側に既存Mixerを追加した試験だけの修正を含む。
+Chromium／WebKitでpublic factory／Engineの18FM・24PCMとMixer／meter、実AnalyzerのFM／PCM／混合／PSG4例を確認した。最初のdestination接続前からfinalzeroGainを設けた。
+Analyzer既存出力Workletはtransportで、合成は主スレッドEngine。chip合成WorkletやNative経路を新設したものではない。
+FM npm・実installとAnalyzer ZIP、資産／notice23項目を検証。Analyzerは生成pair・wrapper・Engine／VgmPlayerを含み、OPLSynthは含まない既存構成。
+active66sourceguards・3generatorchecksとruntime／数値関連27ファイルの不変を確認した。
+詳細は[YMF278B移行](wasm_sdk_ymf278b_adoption_01.md)と[検証JSON](wasm_sdk_ymf278b_adoption_01.json)。証拠は`/private/tmp/tetorica-ymf278b-wasm-sdk/`。
+
+固定SDKへ切り替えたWASMは計25／27 artifact。次の移行候補はNuked OPN2。
+残り2は`nuked_opn2`／`dx7`。
 SPCのWebKit初期化中closeは引き続き未解決。SDK原本とTauri、Mixer数値は変更していない。
 commit／push・公開・remote CIは実施していない。
 

@@ -33,6 +33,7 @@ download or synchronized edit of another repository is required.
 | YM3438 | `scripts/build_ym3438_wasm.sh` | `ym3438_wasm` |
 | YMF276 | `scripts/build_ymf276_wasm.sh` | `ymf276_wasm` |
 | YMF288 | `scripts/build_ymf288_wasm.sh` | `ymf288_wasm` |
+| YMF278B | `scripts/build_ymf278b_wasm.sh` | `ymf278b_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -62,6 +63,7 @@ sh scripts/build_k051649_wasm.sh
 sh scripts/build_ym3438_wasm.sh
 sh scripts/build_ymf276_wasm.sh
 sh scripts/build_ymf288_wasm.sh
+sh scripts/build_ymf278b_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -72,7 +74,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `SegaPcm`, `K051649`, `Ym3438`, `Ymf276` and `Ymf288` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `SegaPcm`, `K051649`, `Ym3438`, `Ymf276`, `Ymf288` and `Ymf278b` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -109,12 +111,13 @@ sh /path/to/checkout/scripts/build_k051649_wasm.sh ./scc-output
 sh /path/to/checkout/scripts/build_ym3438_wasm.sh ./ym3438-output
 sh /path/to/checkout/scripts/build_ymf276_wasm.sh ./ymf276-output
 sh /path/to/checkout/scripts/build_ymf288_wasm.sh ./ymf288-output
+sh /path/to/checkout/scripts/build_ymf278b_wasm.sh ./ymf278b-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
 O2, the existing exports and memory growth settings. AY, Game Boy, NES, Sega PCM and K051649 use C++17
 without `EXPORT_ALL`, retaining ten, eleven, eighteen, thirteen and nine exports respectively; the other recipes above use C++14.
-YM2612, YM2203, YM2608, YM2610B, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, YM3438, YMF276, YMF288, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+YM2612, YM2203, YM2608, YM2610B, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, YM3438, YMF276, YMF288, YMF278B, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -212,6 +215,15 @@ cold output. The low-level reset enables three FM channels; `YMF288Synth.reset()
 enables all six using register `0x29`. The Synth is FM-only; the binding exposes
 no rhythm ROM upload or native snapshot API. The application's shared variant
 recipe remains available unchanged for comparison builds.
+YMF278B retains C++14/O2, `EXPORT_ALL`, 15 C exports, `cwrap` / `HEAPF32` /
+`HEAPU8` and the incoming `wasmBinary` option. It mixes 18 FM channels and
+24 PCM voices through DO2, with native output at `floor(clock / 768)`.
+The sample-memory API retains its 4 MiB limit, partial loads and clear operation.
+Native RAM bus writes do not update the JS upload mirror. Public reset recreates
+the chip and reloads that mirror and both mute masks; raw native reset has a
+different retained-history contract. No native snapshot or borrowed/Into API is
+added. The existing AudioEngine keeps its rate conversion and optional PSG;
+Analyzer/VGM playback and seeking continue through the existing replay path.
 
 ## Fixed source and updates
 
@@ -219,10 +231,10 @@ recipe remains available unchanged for comparison builds.
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these twenty-two wrappers, ymfm inputs and the MAME-derived
+and `vendor/` notices; these twenty-three wrappers, ymfm inputs and the MAME-derived
 OKIM6258, AY, RF5C164, PWM, HuC6280, Game Boy, Sega PCM and K051649 adaptations retain BSD-3-Clause.
 NES/FDS retains its Apache-2.0 JSNES and MIT FDS licenses, authors and provenance;
-these terms are separate from the twenty-two BSD-3-Clause module recipes.
+these terms are separate from the twenty-three BSD-3-Clause module recipes.
 SNES SPC700/S-DSP retains snes_spc's LGPL-2.1-or-later terms and complete
 corresponding modified source; its license is not applied to other chip cores.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
@@ -344,6 +356,10 @@ node scripts/check_ymf288_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-ymf288-build \
   --sdk-dir /path/to/sdk-ymf288-build \
   --out /tmp/ymf288-comparison.json
+node scripts/check_ymf278b_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-ymf278b-build \
+  --sdk-dir /path/to/sdk-ymf278b-build \
+  --out /tmp/ymf278b-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -450,10 +466,14 @@ path, bus/status/IRQ and direct Synth, using the variant's fixed output-rate
 contract and reconstructed-reset behavior. Rhythm register handling uses the
 existing interface's default external reads; no authentic rhythm ROM playback
 or new upload API is claimed.
+The YMF278B checker covers both FM and PCM, uploaded synthetic sample data,
+memory bus access, independent mute masks, read/status/IRQ hooks, reset,
+AudioEngine rate conversion and real Player replay/seek. Its sample data is
+authored for the checks; no external copyrighted wave ROM is distributed.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The twenty-four module recipes above have switched to this build source. Other chip recipes and
+The twenty-five module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.
