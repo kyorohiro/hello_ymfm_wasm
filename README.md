@@ -236,7 +236,7 @@ npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 YM2612, YM2203, YM2608, YM2610/B, YM2151/YM2164, OKIM6258, YM2413,
 YM3526, YM3812, YMF262, Y8950, AY-3-8910/YM2149, Sega PSG, RF5C164, 32X PWM,
 HuC6280, Game Boy APU, NES APU/FDS, SNES SPC700/S-DSP, Sega PCM, K051649,
-YM3438, YMF276, YMF288 and YMF278B builds verify
+YM3438, YMF276, YMF288, YMF278B and the optional Nuked OPN2 build verify
 and use the complete, pinned `tetorica-soundchip-native` source release
 included in `third_party/`.
 With Emscripten and Python 3 installed, run a chip recipe such as
@@ -341,13 +341,14 @@ by Alexey Khokholov (Nuke.YKT), via [kyorohiro/Nuked-OPN2](https://github.com/ky
 you can switch to with `?engine=nuked` on the Playground, Synth, and VGM
 Analyzer pages, alongside the default ymfm-based engine.
 
-Unlike the rest of this repository, `third_party/nuked-opn2/` (and the
-`nuked_opn2_wasm.wasm` build produced from it) is licensed under the
-**GNU Lesser General Public License v2.1 or later**, not BSD 3-Clause. See
-`third_party/nuked-opn2/LICENSE` and `third_party/nuked-opn2/README.md` for
-details. It is not included in the packaged release/embed builds
-(`scripts/package_*.sh`), so anyone embedding only the default ymfm build is
-unaffected.
+The Nuked core retains **GNU Lesser General Public License v2.1 or later**
+terms. See `third_party/nuked-opn2/LICENSE` and its README for the pinned source
+and provenance. Distributions offering this alternate engine include its
+separate WASM module, complete modified source and standalone rebuild recipe
+under `sources/`; see `sources/Nuked-OPN2.md` and `licenses/nuked-opn2/`.
+The original Tetorica wrapper/build recipe's BSD-3-Clause notice is included
+separately as `sources/LICENSE.tetorica`. The default ymfm core retains its
+BSD-3-Clause terms.
 
 ### Sonic Pi sample assets (`docs/playground/samples/sonic-pi/`)
 

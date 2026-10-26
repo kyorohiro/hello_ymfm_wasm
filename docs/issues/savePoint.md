@@ -90,6 +90,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くYMF278B WASMも固定SDKへ切り替えた。FM 18CH／PCM 24CH、4 MiBメモリーと既存Analyzer／VGM経路を維持した。
 各684比較で差0。Analyzer再測定18行は旧値・PCM hashと完全一致し、実測03記録へ更新した。
 詳細は[YMF278B WASMのSDK移行](wasm_sdk_ymf278b_adoption_01.md)を参照。
+続くNuked OPN2 WASMも固定SDKへ切り替えた。旧版／SDK／対応ソース単独buildの生成JS／WASMがbyte一致し、各462比較で差0。
+配布ソースをSDK由来のstandalone recipeへ揃え、coreのLGPLとwrapper／recipeのBSD表記を保持した。
+詳細は[Nuked OPN2 WASMのSDK移行](wasm_sdk_nuked_opn2_adoption_01.md)を参照。
 既存の音量調整では、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1451,8 +1454,28 @@ FM npm・実installとAnalyzer ZIP、資産／notice23項目を検証。Analyzer
 active66sourceguards・3generatorchecksとruntime／数値関連27ファイルの不変を確認した。
 詳細は[YMF278B移行](wasm_sdk_ymf278b_adoption_01.md)と[検証JSON](wasm_sdk_ymf278b_adoption_01.json)。証拠は`/private/tmp/tetorica-ymf278b-wasm-sdk/`。
 
-固定SDKへ切り替えたWASMは計25／27 artifact。次の移行候補はNuked OPN2。
-残り2は`nuked_opn2`／`dx7`。
+この節はYMF278B移行時の記録。続くNuked OPN2移行は次の節に記載する。
+
+### 完了した作業 — Nuked OPN2 WASMの固定SDK参照
+
+`scripts/build_nuked_opn2_wasm.sh`もSDK `0.1.1`の`nuked_opn2`ターゲットを使う。
+着手時の本体は`b9a4cf604e08850d0da43d58cdf74b1292b66b96`でclean。編集前66記録、先行25receipt・全52生成JS／WASMを保持した。
+379ファイルの固定SDK・pin、公開API・音源処理・Mixer値・過去の測定記録は維持した。
+C11／O2・ASSERTIONS1／EXPORT_ALL、12 C export・cwrap／HEAPF32・incoming wasmBinary。CはEMCC、既存C++はEMXXで選択する。
+2翻訳単位＋headerの3入力は旧／SDK byte一致。旧配布・旧再build・SDK・通常・対応ソース単独buildの生成pairがすべてbyte一致し、4buildにcompiler警告はない。
+各462比較・6,662,684生成ステレオフレームでPCM／read／status／IRQ／hook・probe差0。reset再演奏120回を含む1,044実行。
+各bus byte writeで24internalclock、1PCMframeも24clock合計×11の既存経路。coldidle792/32768のladder/DCやpan残差を消していない。
+2048通りのDAC／ninth-bit／pan、6FM、timer／CSM、writeclock、owned／borrowed／zero-envelope、複数handleを確認した。
+このWASMにnative state／mute exportやlowlevelIntoはない。実Synth／SegaPSG付きGenesisEngine／Playerでcheckpoint0からのreset／replayfallbackを確認した。
+source helperをSDKmanifestで検証した入力＋2pathだけ移すstandalone recipeへ変更。coreのLGPL／provenanceと、SDKoriginalwrapper／recipeのBSD noticeをsources/LICENSE.tetoricaへ同梱した。
+FM npmの重複sourcecopyを除き、full／Analyzer／Synth／Playgroundで共通helperを使う。READMEの古い配布除外記述も訂正した。
+notice補完前の証拠をpre-notice/へ保存し、最終helper入力で再freeze／実WASM再比較・独立監査した。コンパイル入力と音声処理は変わっていない。
+Python120件・Node193件・CLI70実行成功。active66sourceguards・3generatorchecksを維持した。既存4route×3周波数×2browserの24captureも旧primary0.9単位換算後相対差1e-6以内で一致し、値を書き換えていない。
+Chromium／WebKitで実6CH／Mixer・各Playground12captureとPCkey、実Analyzer?engine=nukedのPCM・gain／mute／resetを確認した。最初のdestination接続前からzero Gainを使った。
+最終FM npm805ファイル・26WASM・942参照と型／実install、Analyzer378／Synth190ファイルのpair・対応source・license68項目を検証した。
+詳細は[Nuked OPN2移行](wasm_sdk_nuked_opn2_adoption_01.md)と[検証JSON](wasm_sdk_nuked_opn2_adoption_01.json)。証拠は`/private/tmp/tetorica-nuked-opn2-wasm-sdk/`。
+
+固定SDKへ切り替えたWASMは計26／27 artifact。残りは`dx7`。次はDX7。
 SPCのWebKit初期化中closeは引き続き未解決。SDK原本とTauri、Mixer数値は変更していない。
 commit／push・公開・remote CIは実施していない。
 

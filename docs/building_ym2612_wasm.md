@@ -34,6 +34,7 @@ download or synchronized edit of another repository is required.
 | YMF276 | `scripts/build_ymf276_wasm.sh` | `ymf276_wasm` |
 | YMF288 | `scripts/build_ymf288_wasm.sh` | `ymf288_wasm` |
 | YMF278B | `scripts/build_ymf278b_wasm.sh` | `ymf278b_wasm` |
+| YM2612 (Nuked OPN2) | `scripts/build_nuked_opn2_wasm.sh` | `nuked_opn2_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -64,6 +65,7 @@ sh scripts/build_ym3438_wasm.sh
 sh scripts/build_ymf276_wasm.sh
 sh scripts/build_ymf288_wasm.sh
 sh scripts/build_ymf278b_wasm.sh
+sh scripts/build_nuked_opn2_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -112,12 +114,15 @@ sh /path/to/checkout/scripts/build_ym3438_wasm.sh ./ym3438-output
 sh /path/to/checkout/scripts/build_ymf276_wasm.sh ./ymf276-output
 sh /path/to/checkout/scripts/build_ymf288_wasm.sh ./ymf288-output
 sh /path/to/checkout/scripts/build_ymf278b_wasm.sh ./ymf278b-output
+sh /path/to/checkout/scripts/build_nuked_opn2_wasm.sh ./nuked-output
 ```
 
-Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
+Set `EMXX` to select an installed Emscripten C++ compiler; Nuked uses `EMCC` for C.
+The SDK recipes retain
 O2, the existing exports and memory growth settings. AY, Game Boy, NES, Sega PCM and K051649 use C++17
-without `EXPORT_ALL`, retaining ten, eleven, eighteen, thirteen and nine exports respectively; the other recipes above use C++14.
-YM2612, YM2203, YM2608, YM2610B, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, YM3438, YMF276, YMF288, YMF278B, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+without `EXPORT_ALL`, retaining ten, eleven, eighteen, thirteen and nine exports respectively.
+Nuked uses C11; the other recipes above use C++14.
+YM2612, YM2203, YM2608, YM2610B, YM2413, Sega PSG, RF5C164, SPC and Nuked recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, YM3438, YMF276, YMF288, YMF278B, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -224,6 +229,17 @@ the chip and reloads that mirror and both mute masks; raw native reset has a
 different retained-history contract. No native snapshot or borrowed/Into API is
 added. The existing AudioEngine keeps its rate conversion and optional PSG;
 Analyzer/VGM playback and seeking continue through the existing replay path.
+Nuked OPN2 retains C11/O2, assertions, `EXPORT_ALL`, 12 C exports,
+`cwrap` / `HEAPF32` and the incoming `wasmBinary` option. The existing `Ym2612`
+wrapper loads its separate module without a new API. Native snapshots and
+native mute exports are absent; internal-envelope output remains a zero-filled
+compatibility interface. Each bus write advances 24 internal clocks; each PCM
+frame sums another 24 clocks and scales by 11. Its YM2612 ladder/DC behavior
+is preserved, so inactive output is not assumed to be exactly zero.
+Distribution source bundles use verified SDK inputs with only two source paths
+relocated to `third_party/nuked-opn2`. They rebuild without the SDK dispatcher
+or Python importer. See `sources/Nuked-OPN2.md`, the core's LGPL notice and
+`sources/LICENSE.tetorica` for the original wrapper/build recipe's BSD notice.
 
 ## Fixed source and updates
 
@@ -237,6 +253,9 @@ NES/FDS retains its Apache-2.0 JSNES and MIT FDS licenses, authors and provenanc
 these terms are separate from the twenty-three BSD-3-Clause module recipes.
 SNES SPC700/S-DSP retains snes_spc's LGPL-2.1-or-later terms and complete
 corresponding modified source; its license is not applied to other chip cores.
+The optional Nuked OPN2 module separately retains LGPL-2.1-or-later core terms,
+complete modified source and provenance. The original Tetorica wrapper/recipe
+BSD notice is included separately; the 23 BSD module recipes remain distinct.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
 their location under `vendor/ymfm/` does not make them ymfm-originated code.
 
@@ -360,6 +379,10 @@ node scripts/check_ymf278b_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-ymf278b-build \
   --sdk-dir /path/to/sdk-ymf278b-build \
   --out /tmp/ymf278b-comparison.json
+node scripts/check_nuked_opn2_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-nuked-build \
+  --sdk-dir /path/to/sdk-nuked-build \
+  --out /tmp/nuked-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -470,10 +493,15 @@ The YMF278B checker covers both FM and PCM, uploaded synthetic sample data,
 memory bus access, independent mute masks, read/status/IRQ hooks, reset,
 AudioEngine rate conversion and real Player replay/seek. Its sample data is
 authored for the checks; no external copyrighted wave ROM is distributed.
+The Nuked checker compares six-channel FM, DAC, bus/status/IRQ, write-driven
+clock advancement, reset, owned/borrowed PCM and the zero-filled envelope
+interface through the existing `Ym2612` wrapper. It also exercises the actual
+Synth and Genesis/PSG Player replay path without assuming native snapshots or
+ymfm's output scale. Standalone source rebuilds are verified separately.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The twenty-five module recipes above have switched to this build source. Other chip recipes and
-the optional Nuked build continue using their existing inputs. Local `src/`
-and `wasm/` copies remain available for those recipes and comparison builds.
+The twenty-six module recipes above have switched to this build source. DX7
+continues using its existing inputs. Local `src/`, `wasm/` and `third_party/`
+reference copies remain available for comparison builds.

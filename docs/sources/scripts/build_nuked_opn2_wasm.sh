@@ -3,12 +3,13 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
+cd "$ROOT_DIR"
+OUT_DIR="${1:-$ROOT_DIR/dist/wasm}"
 
 mkdir -p "$OUT_DIR"
 
 # Keep runtime checks while optimizing the audio-thread synthesis hot path.
-emcc -std=c11 -O2 -sASSERTIONS=1 \
+"${EMCC:-emcc}" -std=c11 -O2 -sASSERTIONS=1 \
   -Ithird_party/nuked-opn2 \
   wasm/nuked_opn2_wasm.c \
   third_party/nuked-opn2/ym3438.c \

@@ -409,17 +409,7 @@ cp "${ROOT_DIR}/third_party/mame-segapcm/LICENSE" "${ROOT_DIR}/third_party/mame-
 mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
 cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
 
-for file in ${NUKED_LICENSE_FILES}; do
-  src="${NUKED_LICENSE_DIR}/${file}"
-  dst="${STAGE_DIR}/licenses/nuked-opn2/${file}"
-
-  if [ ! -f "${src}" ]; then
-    echo "error: missing Nuked license file: ${src}" >&2
-    exit 1
-  fi
-
-  cp "${src}" "${dst}"
-done
+node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
@@ -460,6 +450,7 @@ This package includes two YM2612 engine options:
   - Included license files:
     - ./licenses/nuked-opn2/LICENSE
     - ./licenses/nuked-opn2/README.md
+  - Corresponding source and rebuild recipe: ./sources/Nuked-OPN2.md
 
 Use ?engine=nuked only if you want the optional Nuked-OPN2 backend.
 EOF

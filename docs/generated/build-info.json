@@ -312,6 +312,60 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "nuked_opn2",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "7067fa594293f337f0f04a5e6514b6f4d8c2f6e5c125099a7a9a85b23556efb7",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_nuked_opn2_wasm.sh",
+          "sha256": "660cf46f1ad9fc17aacb83e8a897a95abe31b85024d23f430e7214009e5452c9",
+          "size": 862
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/nuked-opn2/ym3438.c",
+          "sha256": "8fa385546f0f2d1c975d097002af00cd729ae2ae097c068e9c883ce08ddf3a76",
+          "size": 39696
+        },
+        {
+          "path": "vendor/nuked-opn2/ym3438.h",
+          "sha256": "8e60e35f77049d0e600ad1a47bfc3dfc8b832483e614104473a83c1f33cd7189",
+          "size": 5196
+        },
+        {
+          "path": "wasm/nuked_opn2_wasm.c",
+          "sha256": "85cb336960d5bfbff1265268f732a48a426ecb943810e0165a1bbb1750839115",
+          "size": 4618
+        }
+      ],
+      "outputs": [
+        {
+          "path": "nuked_opn2_wasm.js",
+          "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a",
+          "size": 32804
+        },
+        {
+          "path": "nuked_opn2_wasm.wasm",
+          "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1",
+          "size": 21071
+        }
+      ],
+      "compiler": {
+        "command": "emcc",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "okim6258",
       "format": "emscripten-es-module",
       "sourceFingerprint": "02878a241917a4d4365771ba4f3b63f4d4ab035c32aed46249321f86bad33eb6",

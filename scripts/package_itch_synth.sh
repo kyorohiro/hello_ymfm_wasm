@@ -255,9 +255,7 @@ cp "${ROOT_DIR}/third_party/mame-32x-pwm/LICENSE" "${ROOT_DIR}/third_party/mame-
 mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
 
-for file in ${NUKED_LICENSE_FILES}; do
-  cp "${NUKED_LICENSE_DIR}/${file}" "${STAGE_DIR}/licenses/nuked-opn2/${file}"
-done
+node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
@@ -280,6 +278,7 @@ This package includes two YM2612 engine options:
   - Included license files:
     - ./licenses/nuked-opn2/LICENSE
     - ./licenses/nuked-opn2/README.md
+  - Corresponding source and rebuild recipe: ./sources/Nuked-OPN2.md
 EOF
 
 perl -0pi -e 's#import "\\./synth\\.js";#import "./synth.js";#g' "${STAGE_DIR}/index.html"

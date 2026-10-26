@@ -3,21 +3,12 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
 OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
 
-# Keep runtime checks while optimizing the audio-thread synthesis hot path.
-emcc -std=c11 -O2 -sASSERTIONS=1 \
-  -Ithird_party/nuked-opn2 \
-  wasm/nuked_opn2_wasm.c \
-  third_party/nuked-opn2/ym3438.c \
-  -sMODULARIZE=1 \
-  -sEXPORT_ES6=1 \
-  -sINCOMING_MODULE_JS_API='["wasmBinary"]' \
-  -sENVIRONMENT=web,worker,shell,node \
-  -sALLOW_MEMORY_GROWTH=1 \
-  -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_ym2612_create","_ym2612_destroy","_ym2612_reset","_ym2612_write","_ym2612_read","_ym2612_read_status","_ym2612_get_irq","_ym2612_sample_rate","_ym2612_generate","_ym2612_generate_with_internal_envelope","_malloc","_free"]' \
-  -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' \
-  -o "$OUT_DIR/nuked_opn2_wasm.js"
+# Keep the separate Nuked C11 core and its existing YM2612-compatible exports.
+exec sh "$SDK_DIR/scripts/build-wasm.sh" nuked_opn2 "$OUT_DIR"

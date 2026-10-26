@@ -15,7 +15,8 @@ SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
-             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288', 'ymf278b')
+             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288', 'ymf278b',
+             'nuked_opn2')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -29,6 +30,12 @@ OPN_VARIANT_EXPORTS = [
     '_opn_create', '_opn_destroy', '_opn_reset', '_opn_write', '_opn_read',
     '_opn_read_status', '_opn_get_irq', '_opn_sample_rate', '_opn_generate',
     '_malloc', '_free',
+]
+NUKED_OPN2_EXPORTS = [
+    '_ym2612_create', '_ym2612_destroy', '_ym2612_reset', '_ym2612_write',
+    '_ym2612_read', '_ym2612_read_status', '_ym2612_get_irq',
+    '_ym2612_sample_rate', '_ym2612_generate',
+    '_ym2612_generate_with_internal_envelope', '_malloc', '_free',
 ]
 YM2203_EXPORTS = [
     '_ym2203_create', '_ym2203_destroy', '_ym2203_reset', '_ym2203_write',
@@ -185,6 +192,8 @@ class SdkBuildRouteMixin:
     runtime_methods = ['cwrap', 'HEAPF32']
     incoming_module_api = ['wasmBinary']
     language_standard = 'c++14'
+    compiler_variable = 'EMXX'
+    environments = 'web,worker,node,shell'
     export_all = True
     trim_glue = False
     assertions = True
@@ -243,7 +252,8 @@ from pathlib import Path
 import sys
 args = sys.argv[1:]
 with open(os.environ['SDK_FAKE_COMPILER_LOG'], 'a') as log:
-    log.write(json.dumps({'cwd': os.getcwd(), 'args': args}) + '\\n')
+    log.write(json.dumps({'cwd': os.getcwd(), 'args': args,
+                         'compiler': Path(sys.argv[0]).name}) + '\\n')
 if args == ['--version']:
     print('Fake Emscripten SDK build-route test 1.0')
 else:
@@ -252,12 +262,17 @@ else:
     output.with_suffix('.wasm').write_bytes(b'\\x00asm\\x01\\x00\\x00\\x00')
 ''')
         compiler.chmod(0o755)
+        c_compiler = compiler.with_name('fake emcc')
+        shutil.copyfile(compiler, c_compiler)
+        c_compiler.chmod(0o755)
         self.log = self.work / 'compiler calls.jsonl'
         self.environment = {**os.environ, 'PATH': str(tools), 'EMXX': str(compiler),
+                            'EMCC': str(c_compiler),
                             'SDK_FAKE_COMPILER_LOG': str(self.log),
                             'PYTHONDONTWRITEBYTECODE': '1'}
         self.assertIsNone(shutil.which('git', path=self.environment['PATH']))
         self.assertIsNone(shutil.which('em++', path=self.environment['PATH']))
+        self.assertIsNone(shutil.which('emcc', path=self.environment['PATH']))
         self.assertEqual({path.name for path in self.checkout.iterdir()},
                          {'scripts', 'third_party'})
         for old_source in ('src', 'wasm', 'w', '.git', 'node_modules'):
@@ -286,8 +301,12 @@ else:
         self.assertEqual(compile_call['cwd'], str(self.sdk))
         self.assertEqual(version_call['cwd'], str(self.sdk))
         self.assertEqual(version_call['args'], ['--version'])
+        expected_compiler = Path(self.environment[self.compiler_variable]).name
+        self.assertEqual(compile_call['compiler'], expected_compiler)
+        self.assertEqual(version_call['compiler'], expected_compiler)
         arguments = compile_call['args']
-        self.assertEqual([value for value in arguments if value.endswith('.cpp')], self.sources)
+        self.assertEqual([value for value in arguments
+                          if Path(value).suffix in ('.c', '.cc', '.cpp')], self.sources)
         self.assertEqual([value for value in arguments if value.startswith('-I')],
                          ['-I' + name for name in self.include_directories])
         for name in self.sources:
@@ -334,7 +353,7 @@ else:
                                      sha256((self.sdk / dependency).read_bytes()))
                     pending.append(dependency)
         for flag in ('-O2', '-sMODULARIZE=1',
-                     '-sEXPORT_ES6=1', '-sENVIRONMENT=web,worker,node,shell',
+                     '-sEXPORT_ES6=1', '-sENVIRONMENT=' + self.environments,
                      '-sALLOW_MEMORY_GROWTH=1'):
             self.assertIn(flag, arguments)
         self.assertEqual([value for value in arguments if value.startswith('-std=')],
@@ -374,7 +393,7 @@ else:
         self.assertEqual(artifact['id'], self.artifact)
         self.assertEqual(artifact['format'], 'emscripten-es-module')
         self.assertEqual(artifact['compiler'], {
-            'command': self.environment['EMXX'],
+            'command': self.environment[self.compiler_variable],
             'version': 'Fake Emscripten SDK build-route test 1.0'})
         inventory = json.loads((self.sdk / 'catalog/source_inventory.json').read_text())
         recipe = next(entry for entry in inventory['artifacts'] if entry['id'] == self.artifact)
@@ -886,6 +905,38 @@ class Ymf278bSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288'])
+
+
+class NukedOpn2SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'nuked_opn2'
+    exports = NUKED_OPN2_EXPORTS
+    language_standard = 'c11'
+    compiler_variable = 'EMCC'
+    environments = 'web,worker,shell,node'
+    wrapper_source = 'wasm/nuked_opn2_wasm.c'
+    vendor_sources = ['vendor/nuked-opn2/ym3438.c']
+    core_header = 'vendor/nuked-opn2/ym3438.h'
+    include_directories = ['vendor/nuked-opn2']
+    support_sources = []
+    extra_manifest_headers = ()
+    extra_tamper_dependencies = (*vendor_sources, 'vendor/nuked-opn2/LICENSE',
+                                 'vendor/nuked-opn2/README.md', 'LICENSE',
+                                 'LICENSES.md')
+    verify_quoted_header_dependencies = True
+
+    def test_c_recipe_and_receipt_use_emcc_when_emxx_is_unavailable(self):
+        self.environment['EMXX'] = str(self.work / 'unavailable C++ compiler')
+        result = self.build('C compiler output')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        compile_call, version_call = self.calls()
+        self.assertEqual(compile_call['compiler'], 'fake emcc')
+        self.assertIn('-std=c11', compile_call['args'])
+        self.assertEqual(version_call['compiler'], 'fake emcc')
+        info = json.loads((self.caller / 'C compiler output' / 'build-info.json').read_text())
+        self.assertEqual(info['artifacts'][0]['compiler']['command'], self.environment['EMCC'])
+
+    def test_shared_output_preserves_all_twenty_five_existing_build_records(self):
+        self.assert_shared_output_preserves(list(ARTIFACTS[:-1]))
 
 
 if __name__ == '__main__':

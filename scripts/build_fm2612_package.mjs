@@ -47,13 +47,8 @@ for (const [name, paths] of Object.entries(defaults)) {
   await writeFile(join(stage, name), source);
 }
 
-// Include the vendored Nuked core, wrapper and build script beside its LGPL notice.
-for (const name of ['third_party/nuked-opn2', 'wasm/nuked_opn2_wasm.c', 'scripts/build_nuked_opn2_wasm.sh']) {
-  const target = join(stage, 'sources', name);
-  await mkdir(join(target, '..'), {recursive: true});
-  await cp(join(root, name), target, {recursive: true});
-}
-await writeFile(join(stage, 'sources/README.md'), '# Nuked-OPN2 source\n\nFrom this directory, run `sh scripts/build_nuked_opn2_wasm.sh` with Emscripten installed. The wrapper and vendored core are included; see third_party/nuked-opn2/README.md for provenance and LICENSE for terms.\n');
+// copy_full_web_runtime includes the verified SDK source and standalone Nuked recipe.
+await writeFile(join(stage, 'sources/README.md'), '# Nuked-OPN2 source\n\nSee [Nuked-OPN2.md](Nuked-OPN2.md) for the fixed SDK sources, provenance and license. From this directory, rebuild with `sh scripts/build_nuked_opn2_wasm.sh ../generated` and Emscripten installed. No SDK checkout or Python importer is required.\n');
 
 // Fail early for missing relative JS dependencies, including Worker/Worklet imports.
 for (const name of (await readdir(stage)).filter(n => n.endsWith('.js'))) {
