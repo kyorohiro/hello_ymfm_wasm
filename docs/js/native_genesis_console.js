@@ -2,10 +2,10 @@
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
 import {GAMEBOY_APU_CLOCK} from './gameboyapu.js?v=audio-stability-2';
 import {Huc6280Synth,HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
-import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=y8950-adpcm-ui-1';
-import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=y8950-adpcm-ui-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=y8950-adpcm-ui-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=wonderswan-mode-2';
+import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=wonderswan-mode-2';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
 
 const integer=(v,max,name)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`Invalid Native ${name}`);return v;};
 const bytes=(values,length,max,name)=>{if(!Array.isArray(values)||values.length!==length||values.some(v=>!Number.isInteger(v)||v<0||v>max))throw new Error(`Native console returned invalid ${name}`);return values;};

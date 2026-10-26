@@ -1,5 +1,5 @@
-import {OKIM6258_DIVIDERS,oki6258Rate} from './okim6258synth.js?v=y8950-adpcm-ui-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {OKIM6258_DIVIDERS,oki6258Rate} from './okim6258synth.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
 
 const bool=(value,label)=>{if(typeof value!=='boolean')throw new TypeError(`${label} must be boolean`);return value;};
 function object(value,keys,label){if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError(`${label} must be an object`);for(const key of Object.keys(value))if(!keys.includes(key))throw new TypeError(`Unknown ${label} field: ${key}`);}
@@ -9,8 +9,8 @@ const channel=value=>{if(value!==0)throw new RangeError('OKIM6258 has one channe
 /** Applied single-stream state. Reads never decode memory, write, or advance audio. */
 export class Oki6258VoiceInspector {
   /**
-   * @param {import('./okim6258synth.js?v=y8950-adpcm-ui-1').Oki6258Stream} stream
-   * @param {Omit<import('./playground_native_voice_inspector.js?v=y8950-adpcm-ui-1').NativeVoiceInspectorOptions, 'clock'>} [options]
+   * @param {import('./okim6258synth.js?v=wonderswan-mode-2').Oki6258Stream} stream
+   * @param {Omit<import('./playground_native_voice_inspector.js?v=wonderswan-mode-2').NativeVoiceInspectorOptions, 'clock'>} [options]
    */
   constructor(stream,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.stream=stream;this.sampleRate=sampleRate;this.dispatch=dispatch;

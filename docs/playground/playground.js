@@ -1,20 +1,20 @@
-import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=atari-st-mode-3';
+import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=wonderswan-mode-2';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=operator-tab-keyboard-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=wonderswan-mode-2';
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=atari-st-mode-3';
+import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=wonderswan-mode-2';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=atari-st-mode-3';
+import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=wonderswan-mode-2';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=atari-st-mode-3';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=wonderswan-mode-2';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=atari-st-mode-3';
-import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=atari-st-mode-3';
-import {reconcileModeProject} from './playground_mode_starters.js?v=atari-st-mode-3';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=wonderswan-mode-2';
+import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-mode-2';
+import {reconcileModeProject} from './playground_mode_starters.js?v=wonderswan-mode-2';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
@@ -44,10 +44,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=y8950-adpcm-ui-1";
+} from "../js/megasynth.js?v=wonderswan-mode-2";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=atari-st-mode-3";
+} from "../js/tetorica_synth.js?v=wonderswan-mode-2";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -59,10 +59,10 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js?v=y8950-adpcm-ui-1";
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=y8950-adpcm-ui-1";
-import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=audio-numeric-bindings-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=atari-st-mode-3";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=atari-st-mode-3";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=wonderswan-mode-2";
+import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=wonderswan-mode-2";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=wonderswan-mode-2";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=wonderswan-mode-2";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -93,12 +93,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=atari-st-mode-3";
+} from "../js/playground_runtime.js?v=wonderswan-mode-2";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=y8950-adpcm-ui-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=y8950-adpcm-ui-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=wonderswan-mode-2";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";
@@ -286,7 +286,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const soundChipMixer = createPlaygroundSoundChipMixer(selectedMode.id);
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=y8950-adpcm-ui-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=wonderswan-mode-2')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     mixer:soundChipMixer,
@@ -1786,7 +1786,7 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
-    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'mixer'].flatMap(name => [
+    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'mixer'].flatMap(name => [
       [`${name}Tab`, document.getElementById(`${name}Tab`)],
       [`${name}Panel`, document.getElementById(`${name}Panel`)],
     ])),
@@ -1806,7 +1806,7 @@ const ui =
       audioMonitor.setVisible(showAudio);
       if (extraFmEditor) extraFmEditor.setVisible(primary === 'operator');
       else operatorTab?.setVisible(primary === "operator");
-      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].includes(primary) ? primary : null);
+      chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].includes(primary) ? primary : null);
       mixerPanel?.setVisible(tool === 'mixer');
       operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary === 'operator' && extraFmEditor?.isExtraSelected() ? 'extra-fm' : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
@@ -2004,7 +2004,7 @@ mixerPanel = createPlaygroundMixer({
 if(useNativeGenesis)additionalChipTabAvailability=createPlaygroundAdditionalChipTabAvailability({getInspector:()=>runtime.chipInspector,kinds:['ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','snes','huc6280','dx7','pwm'],primaryKinds:selectedMode.chipTabs,onAvailability:(kind,available)=>ui.setChipTabAvailable(kind,available)});
 chipTabs = createPlaygroundChipTabs({
   eventDrivenAdditionalKinds:useNativeGenesis?['ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','snes','huc6280','dx7','pwm']:[],
-  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].map(name => [name, document.getElementById(`${name}Panel`)])),
+  roots: Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].map(name => [name, document.getElementById(`${name}Panel`)])),
   getInspector: () => runtime.chipInspector,
   listFiles: () => virtualFiles.list().filter(file => !isCheckpointVirtualPath(file.path)),
   readFile: path => virtualFiles.get(path),

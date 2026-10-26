@@ -1,6 +1,6 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-mode-2';
 /** Shared main-thread / Worker facade; register writes and memory transfers share one ordered port. */
-import {YM2608Synth,YM2608AdpcmSynth} from './ym2608synth.js?v=y8950-adpcm-ui-1';
+import {YM2608Synth,YM2608AdpcmSynth} from './ym2608synth.js?v=wonderswan-mode-2';
 import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-ui-1';
 import {readSamplePCM} from './adpcm_b_sample.js';
 

@@ -47,6 +47,9 @@ test('listening policy covers PSG and wavetable primaries and extras while retai
   entry(expected,'nes','nes').settings.volume=1.16;
   entry(expected,'gameboy','gameboy').settings.volume=.36;
   entry(expected,'pc-engine','huc6280').settings.volume=.44;
+  expected.factoryDefaults.kinds.push({name:'wonderswan',volume:1});
+  expected.factoryModes.wonderswan={version:1,entries:[{id:'wonderswan',name:'wonderswan',settings:{volume:1}}]};
+  expected.calibration.unmeasuredKinds=['wonderswan'];
   assert.deepEqual(policy,expected);
   assert.deepEqual(report,before);
 });

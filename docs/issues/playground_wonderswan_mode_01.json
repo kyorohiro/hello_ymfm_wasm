@@ -1,0 +1,764 @@
+{
+  "schemaVersion": 1,
+  "recordedDate": "2026-10-27",
+  "passed": true,
+  "scope": "WonderSwan Playground primary and additional Browser/Tauri Web Audio; not the Tauri Native Audio backend.",
+  "core": {
+    "rawWasmSha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+    "unchangedFromStandaloneStage": true,
+    "fixedSdkVersion": "0.1.2",
+    "sdkUpdated": false
+  },
+  "mixer": {
+    "defaultVolume": 1,
+    "measured": false,
+    "policyUnmeasuredKind": "wonderswan",
+    "existingCalibratedGainsChanged": false
+  },
+  "speakerRegression": {
+    "method": "Real WASM, previous speaker policy reproduced over an identical second instance; first 32 frames of starter chord.",
+    "sampleRate": 48000,
+    "stepPeakBefore": 0.294189453125,
+    "stepPeakAfter": 0.0390625,
+    "rawPcmMaximumDifference": 0,
+    "steadyPcmMatchesPreviousCenteringExactly": true,
+    "constantMidpointStartupPeakAt44100And48000": 0,
+    "normalHardKeyOffPreserved": true
+  },
+  "gateOwnershipRegression": {
+    "before": "Chromium Main primary: allNotesOff in one of two liveLoops silenced both CH0 and CH1.",
+    "after": "Main and Worker, primary and independent additional chips release the caller gate while retaining its sibling.",
+    "mainAdditionalKindsTested": [
+      "useSoundChip",
+      "createSoundChip"
+    ],
+    "retiredCallerFinallyResetBlocked": true
+  },
+  "relatedNodeTests": {
+    "tests": 437,
+    "pass": 437,
+    "fail": 0
+  },
+  "allModeTypes": {
+    "passed": true
+  },
+  "browsers": {
+    "docsLayout": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            },
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "dc": 0.00021886825561523438,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": 0.00021886825561523438,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            },
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "dc": 0.00012767314910888672,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": 0.00021457672119140625,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.6047516198704,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      }
+    ],
+    "flatPackage": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.0023067742586135864,
+              "rms": 0.10249269186605069,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 555.8701827615422
+            },
+            {
+              "mean": 0.0023067742586135864,
+              "rms": 0.10249269186605069,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 555.8701827615422
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.4874459744069,
+            "dc": 7.245317101478577e-05,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": 2.0384788513183594e-05,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            },
+            {
+              "mean": 0.0018192082643508911,
+              "rms": 0.10474963474910104,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 548.9250184886083
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "dc": -9.97781753540039e-05,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": 9.870529174804688e-05,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.63647490820074,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      }
+    ],
+    "pitchToleranceHz": 1,
+    "physicalOutputMuted": true
+  },
+  "npmPackage": {
+    "builtAndInstalled": true,
+    "runtimeAndTypesPassed": true,
+    "compressedBytes": 1626509,
+    "unpackedBytes": 6059097,
+    "files": 833,
+    "published": false
+  },
+  "itchArtifact": {
+    "path": "release/hello_ymfm_wasm_wonderswan-dev_itch_playground.zip",
+    "sha256": "1bb95a493cbb645a05e9670199cceaaeff1f7d380d9a608e30771cd579000905",
+    "filesImportedIntoTauri": 918,
+    "published": false
+  },
+  "tauri": {
+    "frontendVerified": true,
+    "pythonTests": 22,
+    "nodeTests": 31,
+    "nativeSourceChecks": {
+      "schemaVersion": 1,
+      "deviceOpened": false,
+      "networkUsed": false,
+      "platform": "darwin",
+      "snapshots": [
+        {
+          "script": "sync_native_dx7.py",
+          "status": "passed",
+          "summary": "Native DX7 snapshot verified (32 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_game_gear.py",
+          "status": "passed",
+          "summary": "Native Game Gear snapshot verified (7 files, 3 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_gameboy.py",
+          "status": "passed",
+          "summary": "Native Game Boy source verified (5 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis.py",
+          "status": "passed",
+          "summary": "Native Genesis snapshot verified (16 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_fx.py",
+          "status": "passed",
+          "summary": "Native FX snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_livefx.py",
+          "status": "passed",
+          "summary": "Native LiveFX snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_noise.py",
+          "status": "passed",
+          "summary": "Native noise snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_huc6280.py",
+          "status": "passed",
+          "summary": "Native HuC6280 verified (6 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_master_system.py",
+          "status": "passed",
+          "summary": "Native Master System snapshot verified (12 files, 9 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_megacd.py",
+          "status": "passed",
+          "summary": "Native RF5C164 snapshot verified (6 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msx.py",
+          "status": "passed",
+          "summary": "Native MSX snapshot verified (10 files, 5 shared OPLL sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msx_audio.py",
+          "status": "passed",
+          "summary": "Native MSX Audio snapshot verified (7 files, 6 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_nes.py",
+          "status": "passed",
+          "summary": "Native NES verified (15 pinned reference files, 2 C++ mirrors)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_nuked.py",
+          "status": "passed",
+          "summary": "Native Nuked snapshot verified (9 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_opl.py",
+          "status": "passed",
+          "summary": "Native DOS OPL snapshot verified (11 files, 4 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_pwm.py",
+          "status": "passed",
+          "summary": "Native PWM source verified (3 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_snes.py",
+          "status": "passed",
+          "summary": "Native SNES verified (34 exact source files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_x68000.py",
+          "status": "passed",
+          "summary": "Native X68000 snapshot verified (11 files, 5 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2203.py",
+          "status": "passed",
+          "summary": "Native YM2203 snapshot verified (9 files, 9 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2608.py",
+          "status": "passed",
+          "summary": "Native YM2608 snapshot verified (4 files, 11 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2610b.py",
+          "status": "passed",
+          "summary": "Native YM2610B snapshot verified (3 files, 11 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "import_soundchip_sdk.py",
+          "status": "passed",
+          "summary": "SDK 0.1.2: 381 pinned files verified offline (archive SHA256 752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72)",
+          "error": ""
+        }
+      ],
+      "sourceBundle": {
+        "status": "passed",
+        "archive": "native-source-bundle/application-sources.zip",
+        "sha256": "97720e903b951fa4622bbbda24819c2ced982f961146162fc21e1e048c8059c5",
+        "files": 1837,
+        "applicationVersion": "0.91.1",
+        "frontendArchiveSha256": "1bb95a493cbb645a05e9670199cceaaeff1f7d380d9a608e30771cd579000905"
+      },
+      "status": "passed",
+      "elapsedSeconds": 2.65
+    },
+    "cargoBuildRun": false,
+    "installerLaunched": false
+  },
+  "sourceFiles": [
+    {
+      "path": "web/wonderswansynth.js",
+      "sha256": "c7afc6f77e61a9bf837492e52f2efb00eddbf46b0899147f3fc013cad4fe88ae"
+    },
+    {
+      "path": "web/playground_wonderswan.js",
+      "sha256": "d54a3e1f94c6d53664a354780609b02f12fdbf7e921ba24a610035babe6743dc"
+    },
+    {
+      "path": "web/playground_wonderswan_worklet.js",
+      "sha256": "bc1ece60c099312bf001b0cd1a637b547985a45f9508b824a1b71ab41e18533f"
+    },
+    {
+      "path": "web/playground_wonderswan_inspector.js",
+      "sha256": "72b28320834fe15c40703bd28e12eb14be808ef87b6a7b76621405d10a231ec4"
+    },
+    {
+      "path": "web/playground_wonderswan_audio.js",
+      "sha256": "c2e12dbad40017a69e1a6ac337900ee74ff577af049bc827f6efb6bbbb40bce4"
+    },
+    {
+      "path": "web/playground_runtime.js",
+      "sha256": "6b4b25fc941b3801f15a43eef499f79239d917fd4996f2f8ff7f7f87f9ef55bc"
+    },
+    {
+      "path": "web/playground_performance_processor.js",
+      "sha256": "505a21b24585b7884b1955959427c1ff485d015cb3d098d63b14826d06ba2677"
+    },
+    {
+      "path": "web/native_runtime_synth.js",
+      "sha256": "c4728f8a2c2c9e6ced86fd4ae2d98bef68abce7fdd068bc7408eb8778b7ed19e"
+    },
+    {
+      "path": "docs/playground/playground_wonderswan_voice_panel.js",
+      "sha256": "750bc108961d5e7ff44cc1ba6d3fe107a1480a43e7efcb849fea40ed9968c8fd"
+    },
+    {
+      "path": "docs/playground/playground_mode.js",
+      "sha256": "d2277cd2374bbe80fa16edab8871ea84e445412383e65d07947f278fcca256bc"
+    },
+    {
+      "path": "docs/playground/playground_mixer_defaults.js",
+      "sha256": "df950083cef47d8a6c774e11f05b1d35321f783b8c5518254973674d6018a65c"
+    },
+    {
+      "path": "scripts/check_playground_wonderswan_browser.cjs",
+      "sha256": "607287e38ebdc701fd74de167bb909206d3fdc92ca5817a76be53080be7d7c86"
+    }
+  ],
+  "limitations": [
+    "No physical hardware or listening validation.",
+    "No real-time deadline or end-to-end latency benchmark.",
+    "Raw MAME core remains preliminary and unipolar; speaker centering applies only to the Playground output.",
+    "No Tauri Native backend, sound DMA, Hyper Voice, CPU/BIOS/ROM, VGM playback or save-state support."
+  ]
+}

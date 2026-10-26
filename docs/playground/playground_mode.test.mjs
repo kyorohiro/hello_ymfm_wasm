@@ -20,6 +20,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['pc98-26','ym2203',4000000,false],
     ['pc98','ym2608',8000000,false], ['neogeo','ym2610',8000000,false],
     ['neogeo-b','ym2610b',8000000,false],
+    ['wonderswan','wonderswan',3072000,false],
     ['gameboy','gameboy',4194304,false],
     ['nes','nes',1789773,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
@@ -95,11 +96,11 @@ test('modes select native chips, clocks and console expansions', () => {
       assert.match(options.workletUrl,/playground_segapsg_worklet\.js\?/);
       continue;
     }
-    if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
-      assert.deepEqual(mode.chipTabs, mode.chip === 'nes' ? ['nes'] : mode.chip === 'x68000' ? ['ym2151','okim6258'] : mode.chip === 'huc6280' ? ['huc6280'] : ['snes']);
+    if (['nes','snes','x68000','huc6280','wonderswan'].includes(mode.chip)) {
+      assert.deepEqual(mode.chipTabs, mode.chip === 'nes' ? ['nes'] : mode.chip === 'x68000' ? ['ym2151','okim6258'] : mode.chip === 'huc6280' ? ['huc6280'] : mode.chip === 'wonderswan' ? ['wonderswan'] : ['snes']);
       assert.equal(mode.fmChannels,0);
       assert.equal(options.fds,mode.chip==='nes');
-      const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
+      const wasm = {wonderswan:'wonderswan',snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
       assert.equal(options.wasmUrl,wasm?`https://example.com/app/generated/${wasm}_wasm.wasm`:undefined);
       assert.match(options.workletUrl,/playground_\w+_worklet\.js\?/);
       if (mode.chip==='x68000') assert.equal(options.extraOki.wasmUrl,'https://example.com/app/generated/okim6258_wasm.wasm');
@@ -135,10 +136,10 @@ test('every visible mode and the legacy Nuked mode have their own starter catalo
 });
 
 test('mode voice editors load the new processors after a cached website upgrade', () => {
-  for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js']]) {
+  for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'y8950-adpcm-ui-1', `${id} cannot reuse its pre-mode processor URL`);
+    assert.equal(url.searchParams.get('v'), 'wonderswan-mode-2', `${id} cannot reuse its pre-mode processor URL`);
   }
 });
 

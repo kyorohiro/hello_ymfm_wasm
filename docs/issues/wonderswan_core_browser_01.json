@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "deviceOpened": false,
+  "audioContextCreated": false,
+  "wasmSha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+  "clock": 3072000,
+  "rates": [
+    44100,
+    48000
+  ],
+  "sources": [
+    {
+      "path": "scripts/check_wonderswan_core_browser.cjs",
+      "bytes": 13760,
+      "sha256": "847e7753f383290ed903b0ca65b4783d77615a7bab8fce82d09bf18947fa8535"
+    },
+    {
+      "path": "web/wonderswan.js",
+      "bytes": 7520,
+      "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+    },
+    {
+      "path": "docs/generated/wonderswan_wasm.js",
+      "bytes": 11356,
+      "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+    }
+  ],
+  "method": "Exact Float32 PCM and register/RAM comparison: real Node WASM reference versus browser Window and DedicatedWorker, with independent positive controls.",
+  "limits": [
+    "Standalone synchronous core and wrapper only; no Playground Mode, AudioWorklet scheduling, real-time deadlines, physical audio, listening judgment or hardware-accuracy claim."
+  ],
+  "engines": [
+    {
+      "name": "chromium",
+      "realm": "Window",
+      "passed": true,
+      "scenes": 12,
+      "stereoFrames": 18432,
+      "sampleComparisons": 36864,
+      "maximumDifference": 0,
+      "registerRamSnapshots": 156,
+      "pcmSha256": [
+        {
+          "rate": 44100,
+          "mode": "four-waves",
+          "left": "5e33455e6386d6db787d75defbbe0020beb0dc17afea44a45d9795306783d8a0",
+          "right": "e24d84a989b12009305e5295fab93e025daafa7f616ad827098ace47e411e095"
+        },
+        {
+          "rate": 44100,
+          "mode": "noise",
+          "left": "482e6b71ebfff8d7be66cdb18ed876f1fdab6ab3442014e9e45c058286427fc8",
+          "right": "311c71fd76f23c5e7c1b8d038f7f29dcf78233113a3c3d9e057c2288f4d7599b"
+        },
+        {
+          "rate": 44100,
+          "mode": "sweep",
+          "left": "c0460b03d9d11207f1c27d91093db5623b78ee1c1ac63df8ba14dffb53d22d2c",
+          "right": "8dfd77cbb6741a5072e7ec5e16e7ec06809047de8ae32c72e37166d8e18f77fc"
+        },
+        {
+          "rate": 44100,
+          "mode": "pcm",
+          "left": "cacb0b8c522da26ab63afe9f709a01650e0a9bf32693724a849d1375046a6e70",
+          "right": "e1baceb803096a9ae24f264acb0e2eca8c0c9ea6c45f9bf16893565af16c9b30"
+        },
+        {
+          "rate": 44100,
+          "mode": "mute",
+          "left": "6fe44aa4c4e00b426ae66905f0a6acad51da14cbbcce53dfda7b33bf35752de8",
+          "right": "5acfad4cecf3ec95627e7cac7a04f38fbf6903a1c754643bc7066d599f5c4a0f"
+        },
+        {
+          "rate": 44100,
+          "mode": "reset",
+          "left": "74867fc9a1dd0c90acf6f8d084de4cbf9b1a36036cfccb4deefa4eb35e734070",
+          "right": "fc302fcded1fe6efd912e5808efd99d9b0f9c17a448f39543bf60d3e44c6ce02"
+        },
+        {
+          "rate": 48000,
+          "mode": "four-waves",
+          "left": "60e0c9af63b5d1515cfd3137615db6c5f2a8d11e8566ad0bdcb0568950028c9b",
+          "right": "66342e00e5b2ddc0b1e5498e12960c92d1e47c76b26c86f864332ea742080a45"
+        },
+        {
+          "rate": 48000,
+          "mode": "noise",
+          "left": "42cbc291b50f8ded15f8855de2ff1326907e0add8a34e53015af03b9218cffc8",
+          "right": "9ec4ff9cc5d9357d3a146de77783e95a8ebe58687d03f648a66169e618b36953"
+        },
+        {
+          "rate": 48000,
+          "mode": "sweep",
+          "left": "ac40fc3817fe4ccc2657e85ab34a91730c3656c024f4ce3f0677009bdb293724",
+          "right": "aa4ac86c7a7f8b34eec8be23b17c1384c7f0b563e0a8ae59fb7b6df57975ad20"
+        },
+        {
+          "rate": 48000,
+          "mode": "pcm",
+          "left": "8e2582b47887b0ae5ef462992e14e406ca9a2e2a298051d6b5ba32cee2bc9995",
+          "right": "666bf35b43ba061f76e30867e652ca55df378e2bf9d6c2c19b253557bdd7729b"
+        },
+        {
+          "rate": 48000,
+          "mode": "mute",
+          "left": "ea35b961a6f10d7b7a1e33fd325dc0de96780cfed742f9c3b7f3bd47c2846f09",
+          "right": "5ae7e14895495c9ef17ef1d0c615903bcd80e47a3af54c8c7402bd738418624b"
+        },
+        {
+          "rate": 48000,
+          "mode": "reset",
+          "left": "fca37196a09333e47b05b35ee6042dc9adb9b717e9e73b9b223223204f152811",
+          "right": "6d579ad3264ef76254246f4a3be9f88e238b167ef513f9d323516c6d2e5e9d83"
+        }
+      ]
+    },
+    {
+      "name": "chromium",
+      "realm": "DedicatedWorker",
+      "passed": true,
+      "scenes": 12,
+      "stereoFrames": 18432,
+      "sampleComparisons": 36864,
+      "maximumDifference": 0,
+      "registerRamSnapshots": 156,
+      "pcmSha256": [
+        {
+          "rate": 44100,
+          "mode": "four-waves",
+          "left": "5e33455e6386d6db787d75defbbe0020beb0dc17afea44a45d9795306783d8a0",
+          "right": "e24d84a989b12009305e5295fab93e025daafa7f616ad827098ace47e411e095"
+        },
+        {
+          "rate": 44100,
+          "mode": "noise",
+          "left": "482e6b71ebfff8d7be66cdb18ed876f1fdab6ab3442014e9e45c058286427fc8",
+          "right": "311c71fd76f23c5e7c1b8d038f7f29dcf78233113a3c3d9e057c2288f4d7599b"
+        },
+        {
+          "rate": 44100,
+          "mode": "sweep",
+          "left": "c0460b03d9d11207f1c27d91093db5623b78ee1c1ac63df8ba14dffb53d22d2c",
+          "right": "8dfd77cbb6741a5072e7ec5e16e7ec06809047de8ae32c72e37166d8e18f77fc"
+        },
+        {
+          "rate": 44100,
+          "mode": "pcm",
+          "left": "cacb0b8c522da26ab63afe9f709a01650e0a9bf32693724a849d1375046a6e70",
+          "right": "e1baceb803096a9ae24f264acb0e2eca8c0c9ea6c45f9bf16893565af16c9b30"
+        },
+        {
+          "rate": 44100,
+          "mode": "mute",
+          "left": "6fe44aa4c4e00b426ae66905f0a6acad51da14cbbcce53dfda7b33bf35752de8",
+          "right": "5acfad4cecf3ec95627e7cac7a04f38fbf6903a1c754643bc7066d599f5c4a0f"
+        },
+        {
+          "rate": 44100,
+          "mode": "reset",
+          "left": "74867fc9a1dd0c90acf6f8d084de4cbf9b1a36036cfccb4deefa4eb35e734070",
+          "right": "fc302fcded1fe6efd912e5808efd99d9b0f9c17a448f39543bf60d3e44c6ce02"
+        },
+        {
+          "rate": 48000,
+          "mode": "four-waves",
+          "left": "60e0c9af63b5d1515cfd3137615db6c5f2a8d11e8566ad0bdcb0568950028c9b",
+          "right": "66342e00e5b2ddc0b1e5498e12960c92d1e47c76b26c86f864332ea742080a45"
+        },
+        {
+          "rate": 48000,
+          "mode": "noise",
+          "left": "42cbc291b50f8ded15f8855de2ff1326907e0add8a34e53015af03b9218cffc8",
+          "right": "9ec4ff9cc5d9357d3a146de77783e95a8ebe58687d03f648a66169e618b36953"
+        },
+        {
+          "rate": 48000,
+          "mode": "sweep",
+          "left": "ac40fc3817fe4ccc2657e85ab34a91730c3656c024f4ce3f0677009bdb293724",
+          "right": "aa4ac86c7a7f8b34eec8be23b17c1384c7f0b563e0a8ae59fb7b6df57975ad20"
+        },
+        {
+          "rate": 48000,
+          "mode": "pcm",
+          "left": "8e2582b47887b0ae5ef462992e14e406ca9a2e2a298051d6b5ba32cee2bc9995",
+          "right": "666bf35b43ba061f76e30867e652ca55df378e2bf9d6c2c19b253557bdd7729b"
+        },
+        {
+          "rate": 48000,
+          "mode": "mute",
+          "left": "ea35b961a6f10d7b7a1e33fd325dc0de96780cfed742f9c3b7f3bd47c2846f09",
+          "right": "5ae7e14895495c9ef17ef1d0c615903bcd80e47a3af54c8c7402bd738418624b"
+        },
+        {
+          "rate": 48000,
+          "mode": "reset",
+          "left": "fca37196a09333e47b05b35ee6042dc9adb9b717e9e73b9b223223204f152811",
+          "right": "6d579ad3264ef76254246f4a3be9f88e238b167ef513f9d323516c6d2e5e9d83"
+        }
+      ]
+    },
+    {
+      "name": "webkit",
+      "realm": "Window",
+      "passed": true,
+      "scenes": 12,
+      "stereoFrames": 18432,
+      "sampleComparisons": 36864,
+      "maximumDifference": 0,
+      "registerRamSnapshots": 156,
+      "pcmSha256": [
+        {
+          "rate": 44100,
+          "mode": "four-waves",
+          "left": "5e33455e6386d6db787d75defbbe0020beb0dc17afea44a45d9795306783d8a0",
+          "right": "e24d84a989b12009305e5295fab93e025daafa7f616ad827098ace47e411e095"
+        },
+        {
+          "rate": 44100,
+          "mode": "noise",
+          "left": "482e6b71ebfff8d7be66cdb18ed876f1fdab6ab3442014e9e45c058286427fc8",
+          "right": "311c71fd76f23c5e7c1b8d038f7f29dcf78233113a3c3d9e057c2288f4d7599b"
+        },
+        {
+          "rate": 44100,
+          "mode": "sweep",
+          "left": "c0460b03d9d11207f1c27d91093db5623b78ee1c1ac63df8ba14dffb53d22d2c",
+          "right": "8dfd77cbb6741a5072e7ec5e16e7ec06809047de8ae32c72e37166d8e18f77fc"
+        },
+        {
+          "rate": 44100,
+          "mode": "pcm",
+          "left": "cacb0b8c522da26ab63afe9f709a01650e0a9bf32693724a849d1375046a6e70",
+          "right": "e1baceb803096a9ae24f264acb0e2eca8c0c9ea6c45f9bf16893565af16c9b30"
+        },
+        {
+          "rate": 44100,
+          "mode": "mute",
+          "left": "6fe44aa4c4e00b426ae66905f0a6acad51da14cbbcce53dfda7b33bf35752de8",
+          "right": "5acfad4cecf3ec95627e7cac7a04f38fbf6903a1c754643bc7066d599f5c4a0f"
+        },
+        {
+          "rate": 44100,
+          "mode": "reset",
+          "left": "74867fc9a1dd0c90acf6f8d084de4cbf9b1a36036cfccb4deefa4eb35e734070",
+          "right": "fc302fcded1fe6efd912e5808efd99d9b0f9c17a448f39543bf60d3e44c6ce02"
+        },
+        {
+          "rate": 48000,
+          "mode": "four-waves",
+          "left": "60e0c9af63b5d1515cfd3137615db6c5f2a8d11e8566ad0bdcb0568950028c9b",
+          "right": "66342e00e5b2ddc0b1e5498e12960c92d1e47c76b26c86f864332ea742080a45"
+        },
+        {
+          "rate": 48000,
+          "mode": "noise",
+          "left": "42cbc291b50f8ded15f8855de2ff1326907e0add8a34e53015af03b9218cffc8",
+          "right": "9ec4ff9cc5d9357d3a146de77783e95a8ebe58687d03f648a66169e618b36953"
+        },
+        {
+          "rate": 48000,
+          "mode": "sweep",
+          "left": "ac40fc3817fe4ccc2657e85ab34a91730c3656c024f4ce3f0677009bdb293724",
+          "right": "aa4ac86c7a7f8b34eec8be23b17c1384c7f0b563e0a8ae59fb7b6df57975ad20"
+        },
+        {
+          "rate": 48000,
+          "mode": "pcm",
+          "left": "8e2582b47887b0ae5ef462992e14e406ca9a2e2a298051d6b5ba32cee2bc9995",
+          "right": "666bf35b43ba061f76e30867e652ca55df378e2bf9d6c2c19b253557bdd7729b"
+        },
+        {
+          "rate": 48000,
+          "mode": "mute",
+          "left": "ea35b961a6f10d7b7a1e33fd325dc0de96780cfed742f9c3b7f3bd47c2846f09",
+          "right": "5ae7e14895495c9ef17ef1d0c615903bcd80e47a3af54c8c7402bd738418624b"
+        },
+        {
+          "rate": 48000,
+          "mode": "reset",
+          "left": "fca37196a09333e47b05b35ee6042dc9adb9b717e9e73b9b223223204f152811",
+          "right": "6d579ad3264ef76254246f4a3be9f88e238b167ef513f9d323516c6d2e5e9d83"
+        }
+      ]
+    },
+    {
+      "name": "webkit",
+      "realm": "DedicatedWorker",
+      "passed": true,
+      "scenes": 12,
+      "stereoFrames": 18432,
+      "sampleComparisons": 36864,
+      "maximumDifference": 0,
+      "registerRamSnapshots": 156,
+      "pcmSha256": [
+        {
+          "rate": 44100,
+          "mode": "four-waves",
+          "left": "5e33455e6386d6db787d75defbbe0020beb0dc17afea44a45d9795306783d8a0",
+          "right": "e24d84a989b12009305e5295fab93e025daafa7f616ad827098ace47e411e095"
+        },
+        {
+          "rate": 44100,
+          "mode": "noise",
+          "left": "482e6b71ebfff8d7be66cdb18ed876f1fdab6ab3442014e9e45c058286427fc8",
+          "right": "311c71fd76f23c5e7c1b8d038f7f29dcf78233113a3c3d9e057c2288f4d7599b"
+        },
+        {
+          "rate": 44100,
+          "mode": "sweep",
+          "left": "c0460b03d9d11207f1c27d91093db5623b78ee1c1ac63df8ba14dffb53d22d2c",
+          "right": "8dfd77cbb6741a5072e7ec5e16e7ec06809047de8ae32c72e37166d8e18f77fc"
+        },
+        {
+          "rate": 44100,
+          "mode": "pcm",
+          "left": "cacb0b8c522da26ab63afe9f709a01650e0a9bf32693724a849d1375046a6e70",
+          "right": "e1baceb803096a9ae24f264acb0e2eca8c0c9ea6c45f9bf16893565af16c9b30"
+        },
+        {
+          "rate": 44100,
+          "mode": "mute",
+          "left": "6fe44aa4c4e00b426ae66905f0a6acad51da14cbbcce53dfda7b33bf35752de8",
+          "right": "5acfad4cecf3ec95627e7cac7a04f38fbf6903a1c754643bc7066d599f5c4a0f"
+        },
+        {
+          "rate": 44100,
+          "mode": "reset",
+          "left": "74867fc9a1dd0c90acf6f8d084de4cbf9b1a36036cfccb4deefa4eb35e734070",
+          "right": "fc302fcded1fe6efd912e5808efd99d9b0f9c17a448f39543bf60d3e44c6ce02"
+        },
+        {
+          "rate": 48000,
+          "mode": "four-waves",
+          "left": "60e0c9af63b5d1515cfd3137615db6c5f2a8d11e8566ad0bdcb0568950028c9b",
+          "right": "66342e00e5b2ddc0b1e5498e12960c92d1e47c76b26c86f864332ea742080a45"
+        },
+        {
+          "rate": 48000,
+          "mode": "noise",
+          "left": "42cbc291b50f8ded15f8855de2ff1326907e0add8a34e53015af03b9218cffc8",
+          "right": "9ec4ff9cc5d9357d3a146de77783e95a8ebe58687d03f648a66169e618b36953"
+        },
+        {
+          "rate": 48000,
+          "mode": "sweep",
+          "left": "ac40fc3817fe4ccc2657e85ab34a91730c3656c024f4ce3f0677009bdb293724",
+          "right": "aa4ac86c7a7f8b34eec8be23b17c1384c7f0b563e0a8ae59fb7b6df57975ad20"
+        },
+        {
+          "rate": 48000,
+          "mode": "pcm",
+          "left": "8e2582b47887b0ae5ef462992e14e406ca9a2e2a298051d6b5ba32cee2bc9995",
+          "right": "666bf35b43ba061f76e30867e652ca55df378e2bf9d6c2c19b253557bdd7729b"
+        },
+        {
+          "rate": 48000,
+          "mode": "mute",
+          "left": "ea35b961a6f10d7b7a1e33fd325dc0de96780cfed742f9c3b7f3bd47c2846f09",
+          "right": "5ae7e14895495c9ef17ef1d0c615903bcd80e47a3af54c8c7402bd738418624b"
+        },
+        {
+          "rate": 48000,
+          "mode": "reset",
+          "left": "fca37196a09333e47b05b35ee6042dc9adb9b717e9e73b9b223223204f152811",
+          "right": "6d579ad3264ef76254246f4a3be9f88e238b167ef513f9d323516c6d2e5e9d83"
+        }
+      ]
+    }
+  ]
+}

@@ -56,6 +56,12 @@ chip_pcm_renderer.js
 wav.js
 audio_decode.js
 huc6280audioengine.js
+wonderswan.js
+wonderswansynth.js
+playground_wonderswan.js
+playground_wonderswan_audio.js
+playground_wonderswan_worklet.js
+playground_wonderswan_inspector.js
 okim6258audioengine.js
 okim6295audioengine.js
 bitcrusher-worklet.js
@@ -412,3 +418,6 @@ perl -0pi -e 's#\./generated/spc_wasm#../generated/spc_wasm#g' \
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"
+
+# Standalone WonderSwan assets use the same deployed generated directory.
+perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/playground_wonderswan_audio.js" "${DOCS_JS_DIR}/playground_wonderswan_worklet.js"

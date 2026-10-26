@@ -21,7 +21,10 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
   "targetReduced": true,
   "measuredExtraRoutes": 22,
   "measuredEngineRoutes": 1,
-  "measuredPrimaryRoutes": 28
+  "measuredPrimaryRoutes": 28,
+  "unmeasuredKinds": [
+    "wonderswan"
+  ]
 });
 export const PLAYGROUND_MIXER_LISTENING_LEVELS = freeze({
   "segapsg": 0.35,
@@ -120,6 +123,10 @@ const factoryDefaults = freeze({
     {
       "name": "ymf262",
       "volume": 0.516785
+    },
+    {
+      "name": "wonderswan",
+      "volume": 1
     }
   ]
 });
@@ -511,6 +518,18 @@ const factoryModes = freeze({
         "name": "ymf262",
         "settings": {
           "volume": 0.516785
+        }
+      }
+    ]
+  },
+  "wonderswan": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "wonderswan",
+        "name": "wonderswan",
+        "settings": {
+          "volume": 1
         }
       }
     ]

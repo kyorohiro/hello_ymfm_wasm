@@ -74,7 +74,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }
 
-for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
+for (const chip of ['nes','snes','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
   const device = harness(t, chip); const {synth,nodes} = device;
   assert.equal(nodes.length, 0); assert.equal(device.fetches.length, 0); assert.equal(device.moduleLoads.length, 0);
   assert.equal(synth.fm, null); assert.equal(synth.psg, null); assert.equal(synth.isReady(), false);
@@ -139,6 +139,30 @@ test('PCE state handoff preserves initialized waveform, volume and clock without
   assert.equal(synth.pce._getState().registers[3][4],19);
 });
 
+test('WonderSwan Worker handoff and Stop retain wave RAM, clock and special modes without replaying writes',async t=>{
+  const {synth,nodes}=harness(t,'wonderswan');await synth.start();
+  assert.equal(synth.ws._getState().initialized,true);assert.equal(synth.ws,synth.primaryApis.ws);
+  const wave=Array.from({length:32},(_,index)=>(index*3)&15);
+  synth.ws.writeRegister(0x8f,8);synth.ws.setWaveform(2,wave);synth.ws.setVolume(2,11,7);
+  synth.ws.setSweep({enabled:true,step:-3,time:12});synth.ws.setNoise({enabled:true,type:6});
+  synth.ws.setVoiceMode(true);synth.ws.writeVoice(140);await synth.ws.setClock(4000000);
+  synth.ws.noteOn(2,'A4');synth.ws.keyOn(1);synth.ws.noteOn(3,'C4');
+  const before=synth.ws._getState(),channel=new MessageChannel(),messages=[];
+  channel.port1.onmessage=({data})=>messages.push(data);channel.port1.start();
+  const worker=createNativePrimaryClient('wonderswan',channel.port2,{clock:before.clock,state:before});
+  t.after(()=>{worker.dispose();channel.port1.close();});
+  await immediate();assert.deepEqual(messages,[],'adopting authored state must not reset or replay registers or RAM');
+  assert.deepEqual(worker._getState(),before);assert.equal(worker.clock,4000000);
+  const borrowed=borrowNativeApi(worker,'wonderswan');
+  for(const name of ['dispose','transport','_getState','_adoptState','_stopVoices'])assert.equal(borrowed[name],undefined);
+  await synth.stopAllNative();
+  assert(nodes[0].messages.some(message=>message.method==='stopVoices'&&message.id!==undefined),'Stop awaits the device acknowledgement');
+  const stopped=synth.ws._getState(),expected=structuredClone(before);expected.registers[16]&=0xf0;
+  assert.deepEqual(stopped,expected,'Stop releases gates while retaining wave bank, all wave RAM, stereo levels, sweep/noise/PCM modes and pitch');
+  assert.equal(synth.ws,synth.primaryApis.ws);assert.equal(synth.ws.clock,4000000);
+  worker.noteOn(0,'E4');await until(()=>messages.length>0);assert(!messages.some(message=>message.method==='reset'));
+});
+
 test('NES Worker handoff adopts FDS and pulse configuration without resetting the primary chip', async t => {
   const {synth} = harness(t,'nes'); await synth.start();
   synth.nes.pulse.setVoice(1,{duty:.25,volume:6});
@@ -154,7 +178,7 @@ test('NES Worker handoff adopts FDS and pulse configuration without resetting th
   assert(!messages.some(data => data.method === 'reset'));
 });
 
-for (const chip of ['nes','snes','huc6280','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
+for (const chip of ['nes','snes','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
   const {synth,nodes,gate,reached} = harness(t,chip,{stage:'ready'});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'});
   await until(reached); if (chip === 'x68000') assert.equal(synth.primaryEndpoints.length,1,'OPM ready before second device');
@@ -258,6 +282,17 @@ test('OPL fatal primary failure releases resources and permits restart',async t=
   const {synth,nodes}=harness(t,'ym3812');await synth.start();const previous=synth.opl;nodes[0].onprocessorerror();
   assert.equal(synth.state,'error');assert.equal(synth.opl,null);assert.equal(synth.isReady(),false);assert(synth.mixer.list().every(row=>!row.connected));assert.throws(()=>previous.noteOn(0,69),/disposed/i);
   await synth.start();assert(synth.isReady());assert.equal(nodes.length,2);
+});
+
+test('WonderSwan fatal primary failure releases its route and old client, then permits restart',async t=>{
+  const {synth,nodes}=harness(t,'wonderswan');await synth.start();const previous=synth.ws;
+  previous.noteOn(0,'A4');nodes[0].onprocessorerror();
+  assert.equal(synth.state,'error');assert.equal(synth.isReady(),false);assert.equal(synth.ws,null);
+  assert.equal(synth.primaryEndpoints.length,0);assert.deepEqual(synth.primaryApis,{});
+  assert(synth.mixer.list().every(row=>!row.connected));assert(nodes[0].port.closed);assert.equal(nodes[0].connections.length,0);
+  assert.throws(()=>previous.noteOn(0,'A4'),/disposed/i);
+  await synth.start();assert(synth.isReady());assert.equal(nodes.length,2);assert.notEqual(synth.ws,previous);
+  assert.equal(synth.ws._getState().initialized,true);assert.deepEqual(synth.primaryEndpoints.map(endpoint=>endpoint.name),['wonderswan']);
 });
 
 test('Master System explicitly adds one borrowed OPLL endpoint beside its mono Sega PSG and retains both after Stop',async t=>{

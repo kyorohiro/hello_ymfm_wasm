@@ -2,27 +2,27 @@ import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
 import {createPerformanceSender} from './playground_performance_sender.js?v=y8950-adpcm-ui-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNesClient} from './playground_nes.js?v=y8950-adpcm-ui-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=y8950-adpcm-ui-1';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {createNesClient} from './playground_nes.js?v=wonderswan-mode-2';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=wonderswan-mode-2';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=y8950-adpcm-ui-1';
-import {OPL_CHIPS} from './playground_opl.js?v=y8950-adpcm-ui-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=wonderswan-mode-2';
+import {OPL_CHIPS} from './playground_opl.js?v=wonderswan-mode-2';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=audio-numeric-bindings-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {createYm2151Client} from './playground_ym2151.js?v=y8950-adpcm-ui-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
+import {createYm2151Client} from './playground_ym2151.js?v=wonderswan-mode-2';
+import {createSegaPsgClient} from './playground_segapsg.js?v=wonderswan-mode-2';
 import {resolvePlaySeconds,resolvePlayDuration} from './playground_duration.js?v=shared-beat-clock-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
 import {createCycle} from './playground_music.js?v=audio-stability-2';
-import {createOpnClient} from './playground_opn.js?v=y8950-adpcm-ui-1';
-import {createSoundChipRegistry} from './playground_soundchips.js?v=native-modes-3';
+import {createOpnClient} from './playground_opn.js?v=wonderswan-mode-2';
+import {createSoundChipRegistry} from './playground_soundchips.js?v=wonderswan-mode-2';
 import {validateSoundChipOptions} from './playground_soundchip_options.js?v=y8950-adpcm-ui-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
-import {createGameboyClient} from './playground_gameboy.js?v=y8950-adpcm-ui-1';
-import {createYm2608Client} from './playground_ym2608.js?v=y8950-adpcm-ui-1';
-import {createRf5c164Client} from './playground_rf5c164.js?v=y8950-adpcm-ui-1';
+import {createGameboyClient} from './playground_gameboy.js?v=wonderswan-mode-2';
+import {createYm2608Client} from './playground_ym2608.js?v=wonderswan-mode-2';
+import {createRf5c164Client} from './playground_rf5c164.js?v=wonderswan-mode-2';
 import {createNativeSampleController} from './native_sample.js?v=audio-stability-2';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeNoiseOwnership} from './native_genesis_noise.js';
@@ -35,7 +35,7 @@ import {serializeLogError} from './playground_log.js';
  */
 import {createNativeNoiseController, controlNativeNoise} from './native_noise.js';
 import {createWorkerDac} from './playground_worker_dac.js';
-import {createWorkerChip} from './playground_worker_chip.js?v=y8950-adpcm-ui-1';
+import {createWorkerChip} from './playground_worker_chip.js?v=wonderswan-mode-2';
 import {createMidiApi, createMidiRack} from './playground_midi.js?v=audio-numeric-bindings-1';
 import { hzToBlockFnum } from "./pitch.js";
 import {createDeadlineScheduler,createBeatClock,createSecondsTimeline,runTween} from './playground_clock.js?v=spc-song-timing-1';
@@ -380,7 +380,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   run.resetSampleClock = () => clock.resetSampleClock();
   const commandProxy = (command) => (...args) => postCommand(command, args);
   const requestProxy = (command) => (...args) => request(command, args, run.currentLoop);
-  const nativePrimary = ['nes','snes','x68000','huc6280','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
+  const nativePrimary = ['nes','snes','x68000','huc6280','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
     || capabilities.chip === 'gameboy' && capabilities.backend === 'native-genesis';
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const nativeBase = createNativeWorkerApis(nativeConnections,performanceTransport,(name,state)=>postMessage({type:'native-observer',name,state}),{
@@ -787,7 +787,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       const pcm=name === 'spc' ? createSpcClient(port, response, {
         captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},
         invokeEvent:(callback,event)=>executeWithWorkerGuards(()=>callback(event)),isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,
-      }) : ['pwm','snes'].includes(name)&&response.native || ['huc6280','okim6258','gameboy','nes','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? createOpnClient(name, port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'ym2151' ? createYm2151Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'segapsg' ? createSegaPsgClient(port,response) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : createRf5c164Client(port,source=>request('pcm.decode',[source],run.currentLoop),{...response,captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped});
+      }) : ['pwm','snes'].includes(name)&&response.native || ['wonderswan','huc6280','okim6258','gameboy','nes','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : name === 'snes' ? createSnesClient(port, response) : name === 'dx7' ? createDx7Client(port, response) : name === 'nes' ? createNesClient(port, response) : name === 'pwm' ? createPWM32XClient(port) : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? createOpnClient(name, port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'ym2151' ? createYm2151Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped}) : name === 'segapsg' ? createSegaPsgClient(port,response) : name === 'gameboy' ? createGameboyClient(port) : name === 'ym2608' ? createYm2608Client(port,response,{captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped,decodeAudio:source=>request('pcm.decode',[source],run.currentLoop)}) : createRf5c164Client(port,source=>request('pcm.decode',[source],run.currentLoop),{...response,captureContext:()=>run.currentLoop,restoreContext:loop=>{run.currentLoop=loop;},isStopped:loop=>run.stopped||token!==run.token||loop?.stopped});
       if(run.stopped || token!==run.token){pcm.dispose();throw new Error('Run stopped');}
       Object.defineProperty(pcm, 'id', {value: mixerId, enumerable: true});
       if(Number.isSafeInteger(response.instance)&&response.instance>0)pcmInstances.set(pcm,response.instance);

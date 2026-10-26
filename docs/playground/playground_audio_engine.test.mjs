@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {PLAYGROUND_MODES} from './playground_mode.js';
 import {supportsPlaygroundAudioEngineMode,resolvePlaygroundAudioEngine} from './playground_audio_engine.js';
 
-test('Native supports the existing standard modes and keeps Atari ST on Web Audio',()=>{
-  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,21);
+test('Native supports the existing standard modes and keeps Atari ST and WonderSwan on Web Audio',()=>{
+  assert.equal(PLAYGROUND_MODES.filter(mode=>!['atari-st','wonderswan'].includes(mode.id)).length,21);
   for(const mode of PLAYGROUND_MODES){
-    const native=mode.id!=='atari-st';
+    const native=!['atari-st','wonderswan'].includes(mode.id);
     assert.equal(supportsPlaygroundAudioEngineMode('webaudio',mode.id),true,mode.id);
     assert.equal(supportsPlaygroundAudioEngineMode('native',mode.id),native,mode.id);
     assert.equal(resolvePlaygroundAudioEngine({search:'?audioEngine=native',desktop:true,modeId:mode.id}).engine,native?'native':'webaudio');
@@ -19,6 +19,13 @@ test('Atari ST cannot select Native even in a desktop URL',()=>{
   assert.equal(supportsPlaygroundAudioEngineMode('webaudio','atari-st'),true);
   assert.equal(supportsPlaygroundAudioEngineMode('native','atari-st'),false);
   assert.deepEqual(resolvePlaygroundAudioEngine({search:'?mode=atari-st&audioEngine=native',desktop:true,modeId:'atari-st'}),
+    {requested:'native',engine:'webaudio',available:false});
+});
+
+test('WonderSwan cannot select Native even in a desktop URL',()=>{
+  assert.equal(supportsPlaygroundAudioEngineMode('webaudio','wonderswan'),true);
+  assert.equal(supportsPlaygroundAudioEngineMode('native','wonderswan'),false);
+  assert.deepEqual(resolvePlaygroundAudioEngine({search:'?mode=wonderswan&audioEngine=native',desktop:true,modeId:'wonderswan'}),
     {requested:'native',engine:'webaudio',available:false});
 });
 

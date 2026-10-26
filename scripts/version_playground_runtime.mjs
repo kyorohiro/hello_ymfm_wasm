@@ -272,8 +272,16 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>atariFiles.has(match[1]))){atariFiles.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const wonderswanVersion='wonderswan-mode-2';
+const wonderswanFiles=new Set(['wonderswan.js','wonderswansynth.js','playground_wonderswan.js','playground_wonderswan_audio.js','playground_wonderswan_worklet.js','playground_wonderswan_inspector.js','playground_wonderswan_voice_panel.js','playground_keyboard_channels.js','playground_performance_processor.js','playground_native_primary.js','native_runtime_synth.js','tetorica_synth.js','playground_soundchips.js','playground_runtime.js','playground_logic_worker.js','playground_chip_clock.js','playground.js','playground_ui.js','playground_mode.js','playground_mode_examples.js','playground_examples.js','playground_mode_keyboard.js','playground_mode_project.js','playground_mode_starters.js','playground_declarations.js','playground_monaco.js','playground_monaco_completion.js','playground_chip_tabs.js','playground_operator_keyboard.js','playground_workbench.js','playground_audio_engine.js','playground_mixer_defaults.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(wonderswanFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>wonderswanFiles.has(match[1]))){wonderswanFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...wonderswanFiles,
   ...atariFiles,
   ...nativeDesktopFiles,
   ...ym2203NativeFiles,
@@ -330,6 +338,7 @@ for(const currentDirectory of [directory,join(directory,'../playground')])for(co
       (_match,quote,path)=>quote+path+'?v='+nesVersion+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/pwm32x_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v='+pwmVersion+quote);
-  if(next!==source){await writeFile(path,next);changed++;}
+  const final=next.replace(/(['"])((?:\.\.?\/)+generated\/wonderswan_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,(_match,quote,path)=>quote+path+'?v='+wonderswanVersion+quote);
+  if(final!==source){await writeFile(path,final);changed++;}
 }
 console.log('Versioned Playground browser runtime references in '+changed+' modules ('+version+').');

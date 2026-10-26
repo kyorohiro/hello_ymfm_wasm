@@ -142,6 +142,11 @@ export function buildPlaygroundMixerPolicy(report) {
       entry.settings.volume=MIXER_LISTENING_LEVELS[entry.name];
     }
   }
+  // New sources begin at explicit unity. Keep the complete historical
+  // measurement set intact rather than fabricating a calibration capture.
+  profile.factoryDefaults.kinds.push({name:'wonderswan',volume:1});
+  profile.factoryModes.wonderswan={version:1,entries:[{id:'wonderswan',name:'wonderswan',settings:{volume:1}}]};
+  profile.calibration.unmeasuredKinds=['wonderswan'];
   return profile;
 }
 

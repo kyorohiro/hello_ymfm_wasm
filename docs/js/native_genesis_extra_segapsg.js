@@ -1,5 +1,5 @@
-import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-ui-1';
-import {createNativeGenesisSegaPsg} from './native_genesis_segapsg.js?v=y8950-adpcm-ui-1';
+import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
+import {createNativeGenesisSegaPsg} from './native_genesis_segapsg.js?v=wonderswan-mode-2';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-ui-1';
 
 export const EXTRA_PSG_CLOCK_HELD_ERROR='Release the manually held additional PSG voices before changing the clock';

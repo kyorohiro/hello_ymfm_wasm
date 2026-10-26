@@ -40,16 +40,16 @@ try {
   const nativeModules = ['native_runtime_synth', 'playground_runtime', 'playground_logic_worker',
     'playground_keyboard', 'playground_sample_edit', 'playground_sample_instrument',
     'playground_chip_inspector', 'playground_chip_inspector_state', 'playground_native_voice_inspector',
-    ...['huc6280','ym2151','okim6258','ym2413','ay8910'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
-    'huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
+    ...['wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
+    'wonderswan','wonderswansynth','huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
     'playground_opl','playground_opl_audio','playground_opl_worklet','playground_opl_inspector'];
   for (const name of nativeModules) for (const extension of ['js','d.ts']) {
     assert.ok(packedPaths.has(name + '.' + extension), `Native voice/sample package payload missing ${name}.${extension}`);
   }
-  for (const chip of ['huc6280','ym2151','okim6258','ym2413','ay8910']) for (const extension of ['js','wasm']) {
+  for (const chip of ['wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910']) for (const extension of ['js','wasm']) {
     assert.ok(packedPaths.has(`generated/${chip}_wasm.${extension}`), `Native voice WASM payload missing ${chip}.${extension}`);
   }
-  for (const chip of ['huc6280','okim6258','ay8910']) for (const file of ['LICENSE','README.md']) {
+  for (const chip of ['wonderswan','huc6280','okim6258','ay8910']) for (const file of ['LICENSE','README.md']) {
     assert.ok(packedPaths.has(`licenses/mame-${chip}/${file}`), `Native voice license payload missing ${chip}/${file}`);
   }
   const consumer = join(scratch, 'consumer');

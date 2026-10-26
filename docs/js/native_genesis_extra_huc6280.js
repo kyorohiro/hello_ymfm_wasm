@@ -1,8 +1,8 @@
 import {Huc6280Synth,HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
-import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=y8950-adpcm-ui-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=y8950-adpcm-ui-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-ui-1';
+import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=wonderswan-mode-2';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-ui-1';
 
 export const EXTRA_HUC6280_CLOCK_HELD_ERROR='Release the manually held additional HuC6280 voices before changing the clock';

@@ -42,6 +42,7 @@ playground_snes_voice_panel.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
+playground_wonderswan_voice_panel.js
 playground_dx7_voice_panel.js
 playground_opl_voice_panel.js
 playground_y8950_adpcm_panel.js
@@ -107,6 +108,7 @@ tetorica-playground-nes.d.ts
 tetorica-playground-snes.d.ts
 tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
+tetorica-playground-wonderswan.d.ts
 tetorica-playground-ym3526.d.ts
 tetorica-playground-ym3812.d.ts
 tetorica-playground-y8950.d.ts
@@ -234,6 +236,12 @@ playground_huc6280_audio.js
 playground_huc6280_worklet.js
 huc6280synth.js
 huc6280audioengine.js
+wonderswan.js
+wonderswansynth.js
+playground_wonderswan.js
+playground_wonderswan_audio.js
+playground_wonderswan_worklet.js
+playground_wonderswan_inspector.js
 playground_okim6258.js
 playground_okim6258_audio.js
 playground_okim6258_worklet.js
@@ -407,6 +415,9 @@ gameboy_apu_wasm.js
 gameboy_apu_wasm.wasm
 huc6280_wasm.js
 huc6280_wasm.wasm
+wonderswan_wasm.js
+wonderswan_wasm.wasm
+wonderswan_build-info.json
 okim6258_wasm.js
 okim6258_wasm.wasm
 rf5c164_wasm.js
@@ -555,7 +566,7 @@ mkdir -p "${STAGE_DIR}/licenses/mame-rf5c164"
 mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
 cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
 cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-rf5c164/README.md" "${STAGE_DIR}/licenses/mame-rf5c164/"
-for chip in mame-huc6280 mame-okim6258 mame-ay8910; do
+for chip in mame-huc6280 mame-okim6258 mame-ay8910 mame-wonderswan; do
   mkdir -p "${STAGE_DIR}/licenses/${chip}"
   cp "${ROOT_DIR}/third_party/${chip}/LICENSE" "${ROOT_DIR}/third_party/${chip}/README.md" "${STAGE_DIR}/licenses/${chip}/"
 done
@@ -597,6 +608,7 @@ See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.
 
 Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 
+WonderSwan sound: MAME adaptation by Wilbert Pol and kyorohiro, BSD-3-Clause. See licenses/mame-wonderswan/.
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
 AY-3-8910 / YM2149 PSG (MSX / Atari ST): MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.

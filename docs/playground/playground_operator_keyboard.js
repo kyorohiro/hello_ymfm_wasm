@@ -10,7 +10,7 @@ import {
 } from "../synth/synth_keyboard.js?v=audio-numeric-bindings-1";
 
 let keyboardSequence = 0;
-const EDITOR_TABS = new Set(['extra-fm', 'segapsg', 'rf5c164', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
+const EDITOR_TABS = new Set(['extra-fm', 'segapsg', 'rf5c164', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
 
 export function createPlaygroundOperatorKeyboard({
   root,

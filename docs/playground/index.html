@@ -2002,6 +2002,7 @@
             <button id="ym2151Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym2151Panel" hidden>YM2151</button>
             <button id="okim6258Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="okim6258Panel" hidden>OKIM6258</button>
             <button id="huc6280Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="huc6280Panel" hidden>HuC6280</button>
+            <button id="wonderswanTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="wonderswanPanel" hidden>WonderSwan</button>
             <button id="dx7Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="dx7Panel" hidden>DX7</button>
             <button id="ym3812Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym3812Panel" hidden>YM3812</button>
             <button id="ym3526Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym3526Panel" hidden>YM3526</button>
@@ -2177,6 +2178,7 @@
             <p data-native-helper="x68000" hidden>Open <strong>OKIM6258</strong> for the loaded ADPCM sample, decoded waveform, divider and stereo routing. Load an audio file from the Cassette, then use <strong>Hold to play</strong> or <strong>Use Keyboard</strong> to trigger it. Every Keyboard key plays the same sample at the selected rate.</p>
             <p data-native-helper="x68000" hidden>Open <strong>YM2151</strong> for channel and operator settings. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> previews a sound and <strong>Use Keyboard</strong> connects the Guitar. The operator display uses logical M1 / M2 / C1 / C2 order.</p>
             <p data-native-helper="huc6280" hidden>Open <strong>HuC6280</strong> to view and draw 32-sample, five-bit waveforms, adjust each channel’s volume and stereo balance, and try the sound with <strong>Hold to play</strong> or the shared Guitar Keyboard. <strong>Prepare audio</strong> works without Run. Noise is on CH5/CH6; LFO uses CH2 to modulate CH1. DDA is direct sample output, so switch to wavetable mode for note audition.</p>
+            <p data-native-helper="wonderswan" hidden>Open <strong>WonderSwan</strong> to draw 32-sample, four-bit waveforms and adjust four channels’ left/right volume. Try the sound with <strong>Hold to play</strong> or the shared Guitar Keyboard. CH2 supports Voice PCM, CH3 Sweep and CH4 Noise. <code>ws.noteOn(0, "C4")</code> plays a channel; <code>ws.keyOff(0)</code> releases it.</p>
             <p data-native-helper="huc6280" hidden><code>pce.setWaveform(0, wave)</code> loads 32 samples in <code>0..31</code>. Use <code>pce.setVolume(0, 20)</code>, <code>pce.noteOn(0, "C4")</code> and <code>pce.keyOff(0)</code>. Channels are <code>0..5</code>; noise is available on <code>4</code> and <code>5</code>.</p>
             <p data-native-helper="ym3812" hidden><code>opl</code> is the primary OPL2 instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3812</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
             <p data-native-helper="ym3526" hidden><code>opl</code> is the primary OPL instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3526</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
@@ -2421,6 +2423,7 @@
           <section id="ym2151Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym2151Tab" hidden></section>
           <section id="okim6258Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="okim6258Tab" hidden></section>
           <section id="huc6280Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="huc6280Tab" hidden></section>
+          <section id="wonderswanPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="wonderswanTab" hidden></section>
           <section id="dx7Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="dx7Tab" hidden></section>
           <section id="ym3812Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym3812Tab" hidden></section>
           <section id="ym3526Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym3526Tab" hidden></section>
@@ -2482,7 +2485,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=atari-st-mode-3').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=wonderswan-mode-2').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

@@ -1,6 +1,6 @@
 /** Register transports: Synth stays on the caller thread, chip runs in AudioWorklet. */
 export class ChipWorkletTransport {
-  /** @param {import("./soundchip_worklet.js?v=y8950-adpcm-ui-1").WorkletSoundChip | MessagePort} endpoint */
+  /** @param {import("./soundchip_worklet.js?v=wonderswan-mode-2").WorkletSoundChip | MessagePort} endpoint */
   constructor(endpoint) {
     this.endpoint = endpoint?.execution === 'worklet' ? endpoint : null;
     this.port = endpoint?.port ?? endpoint;

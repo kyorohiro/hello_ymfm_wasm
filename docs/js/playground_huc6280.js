@@ -1,4 +1,4 @@
-import {attachChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {attachChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
 import {Huc6280Synth, HUC6280_CLOCK} from './huc6280synth.js?v=audio-stability-2';
 
 /** Immediate, ordered register commands shared by Main and Worker runtimes.

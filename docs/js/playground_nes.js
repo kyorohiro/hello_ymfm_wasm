@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-mode-2';
 import {NesApuSynth} from './nesapusynth.js?v=nes-wasm-1';
 import {NES_APU_CLOCK} from './nesapu.js?v=nes-wasm-1';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */

@@ -1,4 +1,4 @@
-import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=wonderswan-mode-2';
 
 // Modes describe an authoring environment. Chip IDs remain the runtime/API IDs.
 const definitions = [
@@ -12,6 +12,7 @@ const definitions = [
   {id:'pc98', label:'PC-98 (YM2608 / OPNA)', chip:'ym2608'},
   {id:'neogeo', label:'Neo Geo', chip:'ym2610'},
   {id:'neogeo-b', label:'Neo Geo (YM2610B)', chip:'ym2610b'},
+  {id:'wonderswan', label:'WonderSwan', chip:'wonderswan', engine:'wavetable', fmChannels:0, clock:3072000, chipTabs:['wonderswan'], details:'4 channels · 32 × 4-bit waveforms · Stereo · Noise / Sweep / PCM'},
   {id:'gameboy', label:'Game Boy', chip:'gameboy', engine:'apu', fmChannels:0, chipTabs:['gameboy']},
   {id:'nes', label:'NES + FDS', chip:'nes', engine:'apu', fmChannels:0, chipTabs:['nes']},
   {id:'snes', label:'SNES', chip:'snes', engine:'dsp', fmChannels:0, chipTabs:['snes'], details:'S-DSP · 32,000 Hz · 8 voices'},
@@ -66,7 +67,7 @@ export function resolvePlaygroundMode(search = '') {
   const chip = (params.get('chip') || 'ym2612').toLowerCase();
   const legacy = {ym2612:params.get('engine') === 'nuked' ? 'genesis-nuked' : 'genesis',
     ym2203:'pc98-26', ym2608:'pc98', ym2610:'neogeo', ym2610b:'neogeo-b', gameboy:'gameboy',
-    nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine',dx7:'dx7',
+    wonderswan:'wonderswan',nes:'nes',snes:'snes',x68000:'x68000',huc6280:'pc-engine',dx7:'dx7',
     ym3812:'ym3812',ym3526:'ym3526',y8950:'msx-audio',ymf262:'ymf262',msx:'msx','msx-audio':'msx-audio'};
   if (!legacy[chip]) throw new Error(`Unsupported Playground chip: ${chip}`);
   return getPlaygroundMode(legacy[chip]);
@@ -92,13 +93,13 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.engine === 'msx') return {
     chip:mode.chip,clock:mode.clock,segaPsgWasmUrl:null,megaCD:false,mega32X:false,
-    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-3',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
-    opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
-    ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
+    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=wonderswan-mode-2',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
+    opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=wonderswan-mode-2',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
+    ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=wonderswan-mode-2',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
   };
   if (mode.engine === 'opl') return {
     chip:mode.chip, clock:mode.clock,
-    workletUrl:new URL('./playground_opl_worklet.js?v=y8950-adpcm-ui-1', base).href,
+    workletUrl:new URL('./playground_opl_worklet.js?v=wonderswan-mode-2', base).href,
     wasmUrl:new URL(`${mode.chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
@@ -107,7 +108,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   };
   if (mode.chip === 'ay8910') return {
     chip:mode.chip, clock:mode.clock, type:0x10, flags:1,
-    workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-3',base).href,
+    workletUrl:new URL('./playground_ay8910_worklet.js?v=wonderswan-mode-2',base).href,
     wasmUrl:new URL('ay8910_wasm.wasm',generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
@@ -115,27 +116,27 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
     chip:mode.chip, clock:mode.clock, stereoEnabled:mode.stereoEnabled,
     ym2413:mode.ym2413 === true,
     ...(mode.ym2413 ? {opllOptions:{
-      workletUrl:new URL('./playground_ym2413_worklet.js?v=y8950-adpcm-ui-1',base).href,
+      workletUrl:new URL('./playground_ym2413_worklet.js?v=wonderswan-mode-2',base).href,
       wasmUrl:new URL('ym2413_wasm.wasm',generated).href,
     }} : {}),
-    workletUrl:new URL('./playground_segapsg_worklet.js?v=y8950-adpcm-ui-1', base).href,
+    workletUrl:new URL('./playground_segapsg_worklet.js?v=wonderswan-mode-2', base).href,
     wasmUrl:new URL('segapsg_wasm.wasm?v=audio-numeric-bindings-1', generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
-  if (['nes','snes','x68000','huc6280'].includes(mode.chip)) {
+  if (['nes','snes','x68000','huc6280','wonderswan'].includes(mode.chip)) {
     // Keep complete relative filenames so the website versioner can invalidate
     // each processor together with the modules it imports.
-    const worklet = {nes:'./playground_nes_worklet.js?v=y8950-adpcm-ui-1',snes:'./playground_snes_worklet.js?v=y8950-adpcm-ui-1',x68000:'./playground_ym2151_worklet.js?v=y8950-adpcm-ui-1',huc6280:'./playground_huc6280_worklet.js?v=y8950-adpcm-ui-1'}[mode.chip];
-    const wasm = {snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
+    const worklet = {wonderswan:'./playground_wonderswan_worklet.js?v=wonderswan-mode-2',nes:'./playground_nes_worklet.js?v=wonderswan-mode-2',snes:'./playground_snes_worklet.js?v=wonderswan-mode-2',x68000:'./playground_ym2151_worklet.js?v=wonderswan-mode-2',huc6280:'./playground_huc6280_worklet.js?v=wonderswan-mode-2'}[mode.chip];
+    const wasm = {wonderswan:'wonderswan',snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
     return {chip:mode.chip,clock:mode.clock,fds:mode.chip === 'nes',
       workletUrl:new URL(worklet,base).href,
       ...(wasm?{wasmUrl:new URL(`${wasm}_wasm.wasm`,generated).href}:{}),
-      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('./playground_okim6258_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
+      ...(mode.chip === 'x68000'?{extraOki:{workletUrl:new URL('./playground_okim6258_worklet.js?v=wonderswan-mode-2',base).href,wasmUrl:new URL('okim6258_wasm.wasm',generated).href}}:{}),
       segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   }
   if (mode.chip === 'gameboy') return {
     chip:mode.chip,
-    workletUrl:new URL('./playground_gameboy_worklet.js?v=y8950-adpcm-ui-1', base).href,
+    workletUrl:new URL('./playground_gameboy_worklet.js?v=wonderswan-mode-2', base).href,
     wasmUrl:new URL('gameboy_apu_wasm.wasm', generated).href,
     segaPsgWasmUrl:null,
     megaCD:false,
@@ -144,10 +145,10 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const nuked = mode.engine === 'nuked';
   const chip = mode.chip === 'ym2610' ? 'ym2610b' : mode.chip;
   const wasm = nuked ? 'nuked_opn2' : chip;
-  const worklets = {ym2612:'./ym2612-worklet.js?v=y8950-adpcm-ui-1',ym2203:'./ym2203-worklet.js?v=y8950-adpcm-ui-1',ym2608:'./ym2608-worklet.js?v=y8950-adpcm-ui-1',ym2610b:'./ym2610b-worklet.js?v=y8950-adpcm-ui-1'};
+  const worklets = {ym2612:'./ym2612-worklet.js?v=wonderswan-mode-2',ym2203:'./ym2203-worklet.js?v=wonderswan-mode-2',ym2608:'./ym2608-worklet.js?v=wonderswan-mode-2',ym2610b:'./ym2610b-worklet.js?v=wonderswan-mode-2'};
   return {
     chip:mode.chip,
-    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=y8950-adpcm-ui-1' : worklets[chip], base).href,
+    workletUrl:new URL(nuked ? './ym2612-worklet-nuked.js?v=wonderswan-mode-2' : worklets[chip], base).href,
     ym2612WasmUrl:new URL(`${wasm}_wasm.wasm`, generated).href,
     wasmUrl:mode.chip === 'ym2612' ? undefined : new URL(`${chip}_wasm.wasm`, generated).href,
     segaPsgWasmUrl:mode.chip === 'ym2612' ? new URL('segapsg_wasm.wasm?v=audio-numeric-bindings-1', generated).href : null,

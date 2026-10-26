@@ -28,7 +28,7 @@ function fixture(inspector, options = {}) {
     fire(name) { for (const callback of listeners.get(name) ?? []) callback(); },
     listenerCount(name) { return listeners.get(name)?.size ?? 0; },
   };
-  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','snes','ym2151','okim6258','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
+  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','snes','ym2151','okim6258','wonderswan','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
   const tabs = createPlaygroundChipTabs({roots, getInspector: () => inspector, pollMs: 100000, ...options});
   return {doc, roots, tabs};
 }
@@ -327,4 +327,18 @@ test('additional YM2151 panels fence same-ID replacements and refresh from event
   t.mock.timers.tick(1000);await flush();assert.equal(reads,1,'additional Native OPM adds no periodic status reads');
   token=2;for(const fn of listeners)fn();await flush();const next=control(roots.ym2151,'ym2151-op-0-tl');assert.notEqual(next,old);old.value='7';await old.fire('change');assert.deepEqual(calls,[]);next.value='23';await next.fire('change');assert.equal(calls.at(-1)[0],'same');assert.equal(calls.at(-1)[1],'setOperator');
   pending=true;const reading=tabs.refresh();await flush();const finish=pending;token=3;pending=null;for(const fn of listeners)fn();await flush();finish(state(99));await reading;assert.equal(control(roots.ym2151,'ym2151-op-0-tl').value,'11','late old snapshot cannot replace new-instance values');tabs.dispose();
+});
+
+
+test('WonderSwan tab prepares only its primary chip and shares the selected physical voice with Keyboard',async()=>{
+  let prepared=false,reads=0;const calls=[],targets=[];
+  const snapshot={kind:'wonderswan',clock:3072000,voiceMode:false,sweep:{enabled:false,step:0,time:0},noise:{enabled:false,type:0},registers:[],channels:Array.from({length:4},(_,channel)=>({channel,frequency:440,frequencyRegister:1830,pan:{left:10,right:10},waveform:Array(32).fill(8),waveformKnown:true}))};
+  const inspector={list:()=>prepared?[{id:'wonderswan',kind:'wonderswan'}]:[],read:async()=>{reads++;return snapshot;},invoke:async(...args)=>calls.push(args)};
+  const{tabs,roots}=fixture(inspector,{ensureAudioReady:async()=>{prepared=true;},onKeyboardTargetChange:target=>targets.push(target)});
+  tabs.setVisible('wonderswan');await flush();assert.equal(reads,0);assert.equal(prepared,false);
+  await walk(roots.wonderswan).find(node=>node.dataset.chipAction==='prepare').fire('click');assert(reads>0);assert.deepEqual(calls,[]);
+  await walk(roots.wonderswan).find(node=>node.dataset.chipChannel==='3').fire('click');
+  await walk(roots.wonderswan).find(node=>node.dataset.chipAction==='ws-keyboard').fire('click');
+  tabs.setVisible(null);const target=targets.at(-1);target.noteOn({id:'press',midi:69});await flush();assert.deepEqual(calls.at(-1).slice(0,2),['wonderswan','auditionOn']);assert.equal(calls.at(-1)[2][0],3);
+  target.noteOff({id:'press'});await flush();assert.equal(calls.at(-1)[1],'auditionOff');tabs.dispose();
 });

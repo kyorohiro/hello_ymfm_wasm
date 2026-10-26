@@ -1,13 +1,37 @@
 # Save Point
 
-Last updated: 2026-10-26
+Last updated: 2026-10-27
 
-## 最新の再開ポイント — 2026-10-26
+## 最新の再開ポイント — 2026-10-27
 
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
 ### 現在地
+
+WonderSwanをPlaygroundへ接続した。Mode `wonderswan`、主音源`ws`、追加生成、4CH Keyboard、波形描画／音程／左右音量／Noise／Sweepのタブ、
+初期コード・3 Example・型／補完・Main／Workerを用意した。BrowserとTauriのWeb Audio対応であり、Tauri Native backendは次段階。
+共有gateレジスターのmask merge、手動試聴と演奏の所有・clock予約、Stop／state handoff／processor異常からの再起動を確認した。
+rawコアは維持し、スピーカー出力側にDC補正を置く。Mixerは未校正を明記したunity 1.0で、既存の校正値は変更しない。
+初回波形出力前の補正による余分なパルスも修正した。初期コード先頭の最大段差は0.294189→0.0390625、raw PCM差0。
+複数loopの`allNotesOff()`とMain追加音源の所有・終了済みcallerも修正。関連437件、全Mode型、npm配布物の生成・インストール・実行・型が成功。
+通常docs／最終flat ZIPのChromium・WebKit、Tauri Python22／Node31件・frontend918ファイル・Native固定22記録／SDK381ファイル・対応ソースを照合した。
+ZIPは`release/hello_ymfm_wasm_wonderswan-dev_itch_playground.zip`、SHA256 `1bb95a493cbb645a05e9670199cceaaeff1f7d380d9a608e30771cd579000905`。
+詳細と最終成果物は[playground_wonderswan_mode_01.md](playground_wonderswan_mode_01.md)とJSONを参照。
+固定SDK 0.1.2と既存27 artifactは維持。次はSDK原本への集約・新版の固定取り込み・Tauri Native backend接続。
+今回の変更は未commit／未公開。npm／SDK／itch.io公開やtag作成はしていない。
+
+### 直前の作業記録
+
+WonderSwanの最初の段階として、MAME BSD-3-Clause音源を単体C++へ切り出し、同じ原本からWASMを生成した。
+4CH波形・Noise・Sweep・Voice PCM・16KiB RAM・同期read/write/PCM APIを用意。
+Native/WASM126構成・3,096,576ステレオフレームでPCM／全レジスター／RAM一致。24項目の別期待値も成功。
+C ABI境界／allocation selftest1,091 checks、ASan＋UBSan、Chromium／WebKitのWindow・DedicatedWorkerも成功。
+これは単体Nativeコアの検証で、Playground Mode／Tauri Native backendの接続は次段階。
+raw出力はMAME準拠のunipolar PCMなので、接続時のDC方針を検証する。
+固定SDK0.1.2と既存27種WASM inventory・Mixerは変更しない。npm／SDK公開・commitはしていない。
+次は高級API・Worklet・Mode／Keyboard／Inspector、SDK集約を順に進める。
+詳細は[wonderswan_core_01.md](wonderswan_core_01.md)、Native/WASM・BrowserのJSONを参照。
 
 Atari ST初期コードの発音／消音時のプチ音について、normalized DACの固定バイアスとhard muteの段差を実WASMで再現した。
 新YM2149 speaker profileだけ、その基準値をクロック変換前に補正する。raw PCM／既存AY／Native／Mixer値／index.jsは維持。

@@ -6,7 +6,7 @@ import {selectPlaygroundDeclarations} from './playground_declarations.js';
 const source = await readFile(new URL('./tetorica-playground-globals.d.ts', import.meta.url), 'utf8');
 test('Genesis declarations keep existing convenience APIs and MIDI channel constants', () => {
   const selected = selectPlaygroundDeclarations(source, 'ym2612');
-  assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm|adpcmA|adpcmB|gameboy|nes|snes|opm|pce|dx7|opl|opll|ay|OPL_PRESETS|OPLL_INSTRUMENTS|OPLL_USER_PRESETS): [^\n]+\n/gm, ''));
+  assert.equal(selected, source.replace(/^declare const (?:ssg|rhythm|adpcm|adpcmA|adpcmB|ws|gameboy|nes|snes|opm|pce|dx7|opl|opll|ay|OPL_PRESETS|OPLL_INSTRUMENTS|OPLL_USER_PRESETS): [^\n]+\n/gm, ''));
 });
 
 test('Mega-CD keeps Genesis FM, PSG, DAC and MIDI channel conveniences', () => {
@@ -47,10 +47,10 @@ test('Game Boy globals expose its native APU and shared helpers without FM short
   assert.match(selected, /type PlaygroundCreatedOPN</);
 });
 
-for (const [chip, globals] of [['nes',['nes']],['snes',['snes']],['x68000',['opm','adpcm']],['huc6280',['pce']],['dx7',['dx7']],['atari-st',['ay']]]) {
+for (const [chip, globals] of [['wonderswan',['ws']],['nes',['nes']],['snes',['snes']],['x68000',['opm','adpcm']],['huc6280',['pce']],['dx7',['dx7']],['atari-st',['ay']]]) {
   test(`${chip} exposes only native primary globals and shared helpers`, () => {
     const selected = selectPlaygroundDeclarations(source, chip);
-    for (const name of ['gameboy','nes','snes','opm','pce','adpcm','dx7','ay','opll','opl']) {
+    for (const name of ['ws','gameboy','nes','snes','opm','pce','adpcm','dx7','ay','opll','opl']) {
       assert.equal(new RegExp(`^declare const ${name}:`, 'm').test(selected), globals.includes(name), name);
     }
     assert.doesNotMatch(selected, /^declare const (?:fm|FM_PRESETS|midi|CH\d+|OP\d+|psg|PSG\d+|dac|ssg|rhythm|adpcm[AB]):/m);

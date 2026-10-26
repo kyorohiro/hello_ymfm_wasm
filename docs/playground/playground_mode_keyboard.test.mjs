@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlaygroundModeKeyboard,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js';
 
-for (const [chip,id] of [['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['msx','ym2413'],['msx-audio','y8950'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(chip => [chip,chip])]) {
+for (const [chip,id] of [['wonderswan','wonderswan'],['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['msx','ym2413'],['msx-audio','y8950'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(chip => [chip,chip])]) {
   test(`${chip} keyboard borrows only the mode's primary instrument`, async () => {
     const calls = [], inspector = {list:() => [{id:'extra-1',kind:id},{id}],invoke:(...args) => {calls.push(args);return Promise.resolve(true);}};
     const target = createPlaygroundModeKeyboard({chip,getInspector:() => inspector});
@@ -19,6 +19,7 @@ for (const [chip,id] of [['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x
 }
 test('multi-chip environments expose physical primary IDs before preparation',() => {
   const ids = (mode,capabilities) => playgroundPrimaryKeyboardChips(mode,capabilities).map(({id,kind}) => [id,kind]);
+  assert.deepEqual(ids({chip:'wonderswan'}),[['wonderswan','wonderswan']]);
   assert.deepEqual(ids({chip:'msx'}),[['ym2413','ym2413'],['ay8910','ay8910']]);
   assert.deepEqual(ids({chip:'msx-audio'}),[['y8950','y8950'],['ym2413','ym2413'],['ay8910','ay8910']]);
   assert.deepEqual(ids({chip:'segapsg',ym2413:true}),[['segapsg','segapsg'],['ym2413','ym2413']]);

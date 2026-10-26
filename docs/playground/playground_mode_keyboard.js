@@ -1,9 +1,10 @@
-import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=y8950-adpcm-ui-1';
+import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=wonderswan-mode-2';
 
 /** The mode's primary instrument is playable before a script binds Keyboard.
  * Resolve its admin endpoint after audio preparation; never create a second chip.
  */
 const TARGETS = {
+  wonderswan: ['wonderswan', 'WonderSwan · CH1'],
   gameboy: ['gameboy', 'Game Boy · Pulse 1'],
   nes: ['nes', 'NES + FDS · Pulse 1'],
   snes: ['snes', 'SNES · Voice 1'],
@@ -32,7 +33,7 @@ export function playgroundPrimaryKeyboardChips(mode,capabilities = {}) {
     {id:'ay8910',kind:'ay8910',label:'AY-3-8910 (primary)'},
   ];
   if (chip === 'x68000') return [{id:'ym2151',kind:'ym2151',label:'YM2151 (primary)'},{id:'okim6258',kind:'okim6258',label:'OKIM6258 (primary)'}];
-  const entries = [{id:chip,kind:chip,label:`${({gameboy:'Game Boy',nes:'NES + FDS',huc6280:'HuC6280'})[chip] ?? chip.toUpperCase()} (primary)`,...(chip === 'nes' ? {fdsEnabled:true} : {})}];
+  const entries = [{id:chip,kind:chip,label:`${({gameboy:'Game Boy',nes:'NES + FDS',huc6280:'HuC6280',wonderswan:'WonderSwan'})[chip] ?? chip.toUpperCase()} (primary)`,...(chip === 'nes' ? {fdsEnabled:true} : {})}];
   if (mode.ym2413) entries.push({id:'ym2413',kind:'ym2413',label:'YM2413 OPLL (primary)'});
   if (chip === 'ym2612') {
     if (capabilities.psg) entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)'});

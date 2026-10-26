@@ -1,6 +1,6 @@
 import {copyY8950AdpcmMemory} from './y8950_adpcm.js?v=y8950-adpcm-ui-1';
 import {validateY8950AdpcmPreview} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
 import {Ym3526} from './ym3526.js?v=audio-stability-2';
 import {Ym3812} from './ym3812.js?v=audio-stability-2';
 import {Y8950} from './y8950.js?v=audio-stability-2';
@@ -9,9 +9,9 @@ import ym3526Factory from '../generated/ym3526_wasm.js';
 import ym3812Factory from '../generated/ym3812_wasm.js';
 import y8950Factory from '../generated/y8950_wasm.js';
 import ymf262Factory from '../generated/ymf262_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=y8950-adpcm-ui-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=y8950-adpcm-ui-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-mode-2';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=wonderswan-mode-2';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=wonderswan-mode-2';
 const PROFILES={ym3526:[Ym3526,ym3526Factory],ym3812:[Ym3812,ym3812Factory],y8950:[Y8950,y8950Factory],ymf262:[Ymf262,ymf262Factory]};
 const SLOTS=[0,1,2,8,9,10,16,17,18], PAIRS=[0,1,2,9,10,11];
 class Processor extends AudioWorkletProcessor {

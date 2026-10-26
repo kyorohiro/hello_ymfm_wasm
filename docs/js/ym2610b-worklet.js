@@ -1,6 +1,6 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=y8950-adpcm-ui-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=wonderswan-mode-2';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {createChipPortReceiver} from "./playground_chip_port.js?v=audio-stability-2";

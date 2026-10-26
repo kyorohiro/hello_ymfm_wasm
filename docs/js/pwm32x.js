@@ -2,7 +2,7 @@
 // copyright-holders:David Haywood
 // FIFO, routing and timer behavior adapted from MAME mega32x.cpp.
 // See third_party/mame-32x-pwm/README.md for provenance and differences.
-/** @typedef {{clock?: number, sampleRate?: number, gain?: number, outputMode?: 'dac'|'duty', implementation?: 'wasm'|'js', moduleFactory?: import('./soundchip.js?v=y8950-adpcm-ui-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=y8950-adpcm-ui-1').WasmModuleOptions, assetBaseUrl?: string|URL, signal?: AbortSignal}} PWM32XOptions */
+/** @typedef {{clock?: number, sampleRate?: number, gain?: number, outputMode?: 'dac'|'duty', implementation?: 'wasm'|'js', moduleFactory?: import('./soundchip.js?v=wonderswan-mode-2').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-mode-2').WasmModuleOptions, assetBaseUrl?: string|URL, signal?: AbortSignal}} PWM32XOptions */
 export const PWM32X_CLOCK = 23011361;
 const outputSample = (value, scale, gain) => value === null ? 0 : ((value & 4095) / scale - 1) * gain;
 export class PWM32X {

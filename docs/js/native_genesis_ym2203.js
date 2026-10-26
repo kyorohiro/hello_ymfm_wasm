@@ -1,9 +1,9 @@
 /** PC-98 YM2203 authoring shares the Web FM/SSG helpers; Native renders mono. */
-import {YM2203Synth} from './ym2203synth.js?v=y8950-adpcm-ui-1';
+import {YM2203Synth} from './ym2203synth.js?v=wonderswan-mode-2';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=y8950-adpcm-ui-1';
-import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-ui-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
 
 const CLOCK=4000000;
 const abort=()=>new DOMException('Native YM2203 operation was cancelled','AbortError');

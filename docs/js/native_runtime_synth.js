@@ -1,30 +1,32 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=atari-st-mode-3';
-import {createAy8910Client} from './playground_ay8910.js?v=y8950-adpcm-ui-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=wonderswan-mode-2';
+import {createAy8910Client} from './playground_ay8910.js?v=wonderswan-mode-2';
 import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=y8950-adpcm-ui-1';
-import {createNesAudio} from './playground_nes_audio.js?v=y8950-adpcm-ui-1';
-import {createNesClient} from './playground_nes.js?v=y8950-adpcm-ui-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=y8950-adpcm-ui-1';
+import {createNesAudio} from './playground_nes_audio.js?v=wonderswan-mode-2';
+import {createNesClient} from './playground_nes.js?v=wonderswan-mode-2';
+import {createSnesAudio} from './playground_snes_audio.js?v=wonderswan-mode-2';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=y8950-adpcm-ui-1';
-import {createYm2151Client} from './playground_ym2151.js?v=y8950-adpcm-ui-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=y8950-adpcm-ui-1';
-import {createOki6258Client} from './playground_okim6258.js?v=y8950-adpcm-ui-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=y8950-adpcm-ui-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=y8950-adpcm-ui-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=y8950-adpcm-ui-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=audio-numeric-bindings-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=y8950-adpcm-ui-1';
-import {createYm2413Client} from './playground_ym2413.js?v=y8950-adpcm-ui-1';
-import {createOplAudio} from './playground_opl_audio.js?v=y8950-adpcm-ui-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=y8950-adpcm-ui-1';
-import {createDx7Audio} from './playground_dx7_audio.js?v=y8950-adpcm-ui-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=wonderswan-mode-2';
+import {createYm2151Client} from './playground_ym2151.js?v=wonderswan-mode-2';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=wonderswan-mode-2';
+import {createOki6258Client} from './playground_okim6258.js?v=wonderswan-mode-2';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=wonderswan-mode-2';
+import {createHuc6280Client} from './playground_huc6280.js?v=wonderswan-mode-2';
+import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=wonderswan-mode-2';
+import {createWonderSwanClient} from './playground_wonderswan.js?v=wonderswan-mode-2';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=wonderswan-mode-2';
+import {createSegaPsgClient} from './playground_segapsg.js?v=wonderswan-mode-2';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=wonderswan-mode-2';
+import {createYm2413Client} from './playground_ym2413.js?v=wonderswan-mode-2';
+import {createOplAudio} from './playground_opl_audio.js?v=wonderswan-mode-2';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=wonderswan-mode-2';
+import {createDx7Audio} from './playground_dx7_audio.js?v=wonderswan-mode-2';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
 
-const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segapsg', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'msx', 'msx-audio']);
+const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'wonderswan', 'segapsg', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'msx', 'msx-audio']);
 
-/** @typedef {Pick<import('./megasynth.js?v=y8950-adpcm-ui-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
- * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number, stereoEnabled?:boolean, fds?:boolean,
+/** @typedef {Pick<import('./megasynth.js?v=wonderswan-mode-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+ * chip?:'nes'|'snes'|'x68000'|'huc6280'|'wonderswan'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * type?:0|16, flags?:number,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * ayOptions?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL},
@@ -62,6 +64,7 @@ export class NativeRuntimeSynth {
     /** @type {ReturnType<typeof createYm2151Client>|null} */ this.opm = null;
     /** @type {ReturnType<typeof createOki6258Client>|null} */ this.adpcm = null;
     /** @type {ReturnType<typeof createHuc6280Client>|null} */ this.pce = null;
+    this.ws = null;
     /** @type {ReturnType<typeof createDx7Client>|null} */ this.dx7 = null;
     /** @type {ReturnType<typeof createOplClient>|null} */ this.opl = null;
     /** @type {ReturnType<typeof createYm2413Client>|null} */ this.opll = null;
@@ -135,7 +138,7 @@ export class NativeRuntimeSynth {
 
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
-    const {nes, snes, opm, adpcm, pce, psg, dx7, opl, opll, ay} = this.primaryApis;
+    const {nes, snes, opm, adpcm, pce, ws, psg, dx7, opl, opll, ay} = this.primaryApis;
     const pending=[],track=result=>{if(result?.then)pending.push(Promise.resolve(result));};
     if (nes?._stopVoices) track(nes._stopVoices());
     else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
@@ -154,6 +157,8 @@ export class NativeRuntimeSynth {
     else adpcm?.stop();
     if (pce?._stopVoices) track(pce._stopVoices());
     else pce?.allNotesOff();
+    if (ws?._stopVoices) track(ws._stopVoices());
+    else ws?.allNotesOff();
     if (psg?._stopVoices) track(psg._stopVoices());
     else psg?.allNotesOff();
     if(dx7)track(dx7._stopVoices());
@@ -232,6 +237,14 @@ export class NativeRuntimeSynth {
     } else if (this.chip === 'huc6280') {
       const endpoint = await this.#addPrimary('huc6280', 'pce', createHuc6280Audio, device => createHuc6280Client(device.port, {clock:device.clock}), options, signal);
       endpoint.client.initialize();
+    } else if (this.chip === 'wonderswan') {
+      const endpoint = await this.#addPrimary('wonderswan', 'ws', createWonderSwanAudio, device => createWonderSwanClient(device.port, {clock:device.clock}), {
+        ...options,onError:() => {
+          if(this.initializationController?.signal!==signal||signal.aborted)return;
+          this.#releasePrimaries();this.readyPromise=null;this.state='error';
+        },
+      }, signal);
+      endpoint.client.initialize();
     } else if(this.chip==='ym2413'){
       await this.#addOpll(options,signal);
     } else if (OPL_CHIPS.includes(this.chip)) {
@@ -272,8 +285,8 @@ export class NativeRuntimeSynth {
     const endpoint = {...device, name, globalName, client:null, release:null};
     this.primaryEndpoints.push(endpoint);
     endpoint.client = createClient(device);
-    if(OPL_CHIPS.includes(name)||name==='ym2413'||name==='ay8910'){
-      const observer=({data})=>{if(!['opl-state','opll-state','ay-state'].includes(data?.type))return;endpoint.client._adoptState(data.state);for(const listener of this.listeners)listener({type:'native-state',name:globalName,state:data.state});};
+    if(OPL_CHIPS.includes(name)||name==='ym2413'||name==='ay8910'||name==='wonderswan'){
+      const observer=({data})=>{if(!['opl-state','opll-state','ay-state','wonderswan-state'].includes(data?.type))return;endpoint.client._adoptState(data.state);for(const listener of this.listeners)listener({type:'native-state',name:globalName,state:data.state});};
       endpoint.node.port.addEventListener?.('message',observer);endpoint.node.port.start?.();
       endpoint.detachObserver=()=>endpoint.node.port.removeEventListener?.('message',observer);
     }

@@ -655,7 +655,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -683,6 +683,7 @@ type PlaygroundSelectedFm = {
   ym2608: YM2608FMApi;
   ym2610: YM2610FMApi;
   ym2610b: YM2610BFMApi;
+  wonderswan: never;
   gameboy: never;
   nes: never;
   snes: never;
@@ -710,6 +711,8 @@ declare const snes: PlaygroundPrimarySnes;
 declare const opm: PlaygroundPrimaryOpm;
 /** Primary PC Engine six-channel wavetable PSG. */
 declare const pce: PlaygroundPrimaryHuc6280;
+/** Primary WonderSwan four-channel wavetable instrument. */
+declare const ws: PlaygroundPrimaryWonderSwan;
 /** Primary MSFA DX7: six operators, 32 algorithms and 16 allocated voices. */
 declare const dx7: PlaygroundPrimaryDx7;
 /** Primary OPL family FM instrument, with physical zero-based channels. */
@@ -1169,7 +1172,8 @@ type PlaygroundAPIBase = {
 type PlaygroundFmConvenienceName = 'fm' | 'midi' | 'presets' | 'tfiToPreset' | 'vgiToPreset'
   | 'play' | 'write' | 'scheduleWritesSamples' | 'noteToBlockFnum' | 'hzToBlockFnum' | 'noteLerp'
   | 'setDacLookahead' | 'getDacLookahead';
-type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'gameboy' ? {gameboy: PlaygroundPrimaryGameboy}
+type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'wonderswan' ? {ws:PlaygroundPrimaryWonderSwan}
+  : TetoricaSelectedChip extends 'gameboy' ? {gameboy: PlaygroundPrimaryGameboy}
   : TetoricaSelectedChip extends 'atari-st' ? {ay:PlaygroundPrimaryAy8910}
   : TetoricaSelectedChip extends 'msx' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
   : TetoricaSelectedChip extends 'msx-audio' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;opl:PlaygroundPrimaryOpl<'y8950'>;OPL_PRESETS:PlaygroundOplPresets<'y8950'>;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
@@ -1819,6 +1823,7 @@ type PlaygroundSoundChipMap = {
   dx7: TetoricaSelectedChip extends 'dx7' ? PlaygroundPrimaryDx7 : PlaygroundDx7;
   snes: TetoricaSelectedChip extends 'snes' ? PlaygroundPrimarySnes : PlaygroundSnes;
   spc: PlaygroundSpc;
+  wonderswan: TetoricaSelectedChip extends 'wonderswan' ? PlaygroundPrimaryWonderSwan : PlaygroundWonderSwan;
   huc6280: TetoricaSelectedChip extends 'huc6280' ? PlaygroundPrimaryHuc6280 : PlaygroundHuc6280;
   okim6258: TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOki6258 : PlaygroundOki6258;
   ym3526: TetoricaSelectedChip extends 'ym3526' ? PlaygroundPrimaryOpl<'ym3526'> : PlaygroundOpl<'ym3526'>;
@@ -2231,3 +2236,35 @@ interface PlaygroundOki6258 {
 type PlaygroundPrimaryOki6258 = Omit<PlaygroundOki6258, 'dispose'> & PlaygroundChipClock & {readonly id:string};
 /** Native: independent one-stream ADPCM at 8,000,000 Hz. Samples are allocated on upload (maximum 16 MiB). Shares the 16-instance / 64 MiB additional rack. Keyboard retriggers the sample at the configured divider; it does not retune MIDI notes. */
 declare function createSoundChip(name:'okim6258', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundOki6258 & PlaygroundChipClock & {readonly id:string}>;
+
+/** WonderSwan physical channels are zero-based: CH2 voice PCM, CH3 sweep, CH4 noise. */
+type PlaygroundWonderSwanChannel = 0|1|2|3;
+interface PlaygroundWonderSwan {
+  readonly chip:'wonderswan';
+  initialize():void;
+  reset():void;
+  /** Absolute sound register address 0x80..0x9f. */
+  writeRegister(register:number,value:number):void;
+  writeMemory(address:number,value:number):void;
+  loadMemory(bytes:Uint8Array,offset?:number):void;
+  /** Exactly 32 integers within 0..15, stored in the channel's packed wave RAM. */
+  setWaveform(channel:PlaygroundWonderSwanChannel,samples:number[]|Uint8Array):void;
+  setFrequency(channel:PlaygroundWonderSwanChannel,hz:number):number;
+  setNote(channel:PlaygroundWonderSwanChannel,note:string|number):number;
+  /** Independent four-bit left/right output levels. */
+  setVolume(channel:PlaygroundWonderSwanChannel,left:number,right?:number):void;
+  setPan(channel:PlaygroundWonderSwanChannel,left:number,right?:number):void;
+  keyOn(channel:PlaygroundWonderSwanChannel):void;
+  keyOff(channel:PlaygroundWonderSwanChannel):void;
+  noteOn(channel:PlaygroundWonderSwanChannel,note:string|number):void;
+  allNotesOff():void;
+  setNoise(options:{enabled:boolean;type?:0|1|2|3|4|5|6|7;reset?:boolean}):void;
+  setSweep(options:{enabled:boolean;step?:number;time?:number}):void;
+  /** CH2 becomes a direct eight-bit PCM DAC; send timed samples from code. */
+  setVoiceMode(enabled:boolean):void;
+  writeVoice(sample:number):void;
+  dispose():void;
+}
+type PlaygroundPrimaryWonderSwan = Omit<PlaygroundWonderSwan,'dispose'> & PlaygroundChipClock & {readonly id:string};
+/** Web Audio only. Native WonderSwan is not yet connected to the Playground backend. */
+declare function createSoundChip(name:'wonderswan',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundWonderSwan & PlaygroundChipClock & {readonly id:string}>;

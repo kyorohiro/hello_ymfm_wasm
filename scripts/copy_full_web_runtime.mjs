@@ -15,7 +15,7 @@ await copyOpnaRhythm(stage, nested ? 'js' : '.');
 const jsDir = nested ? join(stage,'js') : stage;
 mkdirSync(jsDir,{recursive:true});
 mkdirSync(join(stage,'generated'),{recursive:true});
-const chips = 'ay8910 gameboy_apu huc6280 k051649 nesapu pwm32x nuked_opn2 okim6258 rf5c164 segapcm segapsg spc y8950 ym2151 ym2203 ym2413 ym2608 ym2610b ym2612 ym3438 ym3526 ym3812 ymf262 ymf276 ymf278b ymf288'.split(' ');
+const chips = 'ay8910 gameboy_apu huc6280 wonderswan k051649 nesapu pwm32x nuked_opn2 okim6258 rf5c164 segapcm segapsg spc y8950 ym2151 ym2203 ym2413 ym2608 ym2610b ym2612 ym3438 ym3526 ym3812 ymf262 ymf276 ymf278b ymf288'.split(' ');
 for (const chip of chips) for (const ext of ['js','wasm']) {
   const name = `${chip}_wasm.${ext}`;
   const source = join(root,'docs/generated',name);
@@ -26,7 +26,7 @@ const modules = readdirSync(join(root,'web')).filter(n=>n.endsWith('.js') && !n.
 for (const name of modules) {
   let source=readFileSync(join(root,'web',name),'utf8');
   // Match the established docs/js layout for module-relative generated assets.
-  if (nested && (name.includes('worklet') || ['playground_nes_audio.js','playground_pwm_audio.js','vgm_runtime.js','spc_audio.js','playground_spc_audio.js','playground_snes_audio.js','playground_rf5c164_audio.js','playground_ym2608_audio.js','playground_gameboy_audio.js','playground_opl_audio.js','playground_ym2413_audio.js','playground_ay8910_audio.js'].includes(name)))
+  if (nested && (name.includes('worklet') || ['playground_nes_audio.js','playground_pwm_audio.js','vgm_runtime.js','spc_audio.js','playground_spc_audio.js','playground_snes_audio.js','playground_rf5c164_audio.js','playground_ym2608_audio.js','playground_gameboy_audio.js','playground_opl_audio.js','playground_ym2413_audio.js','playground_ay8910_audio.js','playground_wonderswan_audio.js'].includes(name)))
     source=source.replaceAll('./generated/', '../generated/');
   if (name === 'nesapu.js') source=source.replace('../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
   if(name==='pwm32x_wasm.js'){
@@ -60,7 +60,7 @@ const dx7Version = JSON.parse(readFileSync(join(root,'web/msfa_dx7/package.json'
 for (const name of ['jsnes','fixnes-fds']) cpSync(join(root,'third_party',name),join(stage,'licenses',name),{recursive:true});
 copyFileSync(join(root,'web/native_audio_effect.wasm'),join(jsDir,'native_audio_effect.wasm'));
 copyFileSync(join(root,'web/soundchip.md'),join(jsDir,'soundchip.md'));
-const notices = ['nuked-opn2', 'mame-ay8910','mame-gameboy','mame-huc6280','mame-k051649','mame-okim6258','mame-okim6295','libvgm-msm5205','mame-rf5c164','mame-segapcm','mame-32x-pwm'];
+const notices = ['nuked-opn2', 'mame-ay8910','mame-gameboy','mame-huc6280','mame-wonderswan','mame-k051649','mame-okim6258','mame-okim6295','libvgm-msm5205','mame-rf5c164','mame-segapcm','mame-32x-pwm'];
 for (const name of notices.filter(name=>name!=='nuked-opn2')) {
   const dir=join(stage,'licenses',name); mkdirSync(dir,{recursive:true});
   for (const file of ['LICENSE','README.md']) copyFileSync(join(root,'third_party',name,file),join(dir,file));

@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-mode-2';
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
 /** Same immediate, ordered port writes for both raw and high-level APIs. */
 /** @param {MessagePort} port */

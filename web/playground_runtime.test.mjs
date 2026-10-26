@@ -17,6 +17,7 @@ import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {createSnesClient} from './playground_snes.js';
 import {SnesSynth} from './snessynth.js';
+import {WonderSwanSynth} from './wonderswansynth.js';
 import {createRf5c164Client, createRf5c164Control} from './playground_rf5c164.js';
 
 function deferred() {
@@ -1784,4 +1785,49 @@ test('Main rejects invalid engine selectors and selectors for another chip befor
   `await createSoundChip('rf5c164',{engine:'nuked'});`,
  ])await assert.rejects(runtime.playSource(code),/engine|supports/);
  assert.equal(created,0);
+});
+
+test('Main WonderSwan allNotesOff releases its loop gates while retaining a sibling loop and its retirement owner',async t=>{
+  const {runtime,megaDrive}=setup(t,{chip:'wonderswan',fmChannels:0,psg:false,dac:false}),writes=[],registers=new Uint8Array(32);
+  const raw=new WonderSwanSynth({transport:{reset(){registers.fill(0);},writeMemory(){},writeRegister(address,value,channel,controlMask){
+    writes.push({address,value,channel,controlMask});registers[address-128]=address===0x90?(registers[16]&~(controlMask??255))|(value&(controlMask??255)):value;
+  }}});raw.initialize();megaDrive.fm=null;megaDrive.ws=raw;
+  megaDrive.primaryEndpoints=[{name:'wonderswan',globalName:'ws',client:raw}];megaDrive.stopAllNative=()=>raw.allNotesOff();
+  await runtime.playSource(`
+    liveLoop('old',async()=>{ws.noteOn(0,'C4');await sleep(.01);ws.allNotesOff();context.attempted=true;await sleep(60);});
+    liveLoop('new',async()=>{ws.noteOn(1,'E4');await sleep(60);});
+    context.stopOld=()=>stopLoop('old');context.stopNew=()=>stopLoop('new');
+  `);
+  await until(()=>registers[16]===3);megaDrive.audioContext.currentTime=.1;await new Promise(resolve=>setTimeout(resolve,25));
+  assert.equal(runtime.context.attempted,true);assert.equal(registers[16],2,'an older loop releases CH1 while retaining the sibling CH2');
+  const before=writes.length;runtime.context.stopOld();assert.equal(registers[16],2);assert.equal(writes.length,before,'already released owner has no retirement gate');
+  runtime.context.stopNew();assert.equal(registers[16],0,'sibling retirement still owns and releases CH2');
+});
+
+for(const allocation of ['useSoundChip','createSoundChip'])test(`Main WonderSwan ${allocation} extra retains sibling loop gates and releases each retiring owner`,async t=>{
+  const devices=[];
+  const factory=async()=>{
+    const registers=new Uint8Array(32),entry={registers,disposed:false};devices.push(entry);
+    const port={start(){},close(){},postMessage(command){
+      if(command.method==='reset')registers.fill(0);
+      else if(command.method==='writeRegister'){const[address,value]=command.args,mask=command.controlMask??255;registers[address-128]=address===0x90?(registers[16]&~mask)|(value&mask):value;}
+      if(command.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:command.id,value:true}}));
+    }};
+    return{port,clock:3072000,node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){}},dispose(){entry.disposed=true;}};
+  };
+  const createRuntime=await runtimeWithOpnAudio(factory,'createWonderSwanAudio');
+  const {runtime,megaDrive}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  await runtime.playSource(`
+    const extra=await ${allocation}('wonderswan');
+    liveLoop('old',async()=>{extra.noteOn(0,'C4');await sleep(.01);extra.allNotesOff();context.attempted=true;try{await sleep(60);}finally{extra.reset();context.retiredResetAttempted=true;}});
+    liveLoop('new',async()=>{extra.noteOn(1,'E4');await sleep(60);});
+    context.stopOld=()=>stopLoop('old');context.stopNew=()=>stopLoop('new');
+  `);
+  assert.equal(devices.length,1);await until(()=>devices[0].registers[16]===3);
+  megaDrive.audioContext.currentTime=.1;await new Promise(resolve=>setTimeout(resolve,25));
+  assert.equal(runtime.context.attempted,true);assert.equal(devices[0].registers[16],2,'allNotesOff keeps the sibling extra voice');
+  runtime.context.stopOld();await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(runtime.context.retiredResetAttempted,true);assert.equal(devices[0].registers[16],2,'retired finally cannot reset the shared extra voice');
+  runtime.context.stopNew();assert.equal(devices[0].registers[16],0,'retiring the sibling releases its extra voice');
+  await runtime.finalize();assert(devices.every(device=>device.disposed),'extra endpoints are disposed');
 });

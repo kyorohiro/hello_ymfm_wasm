@@ -28,6 +28,7 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
     const pairs=[0,1,2,9,10,11],mask=effectiveFourOpMask??registers?.[0x104]??0,rhythm=rhythmEnabled??!!((registers?.[0xbd]??0)&32);
     return [...numbered('',kind==='ymf262'?18:9,'FM').filter(({id})=>{const ch=Number(id),pair=pairs.indexOf(ch-3);return !(kind==='ymf262'&&newMode===false&&ch>=9)&&!(kind==='ymf262'&&pair>=0&&(mask&(1<<pair)))&&!(rhythm&&ch>=6&&ch<=8);}),...(rhythm&&rhythmVoices?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[]),...(kind==='y8950'?[{id:'adpcm',label:'ADPCM sample'}]:[])];
   }
+  if(kind==='wonderswan')return native(['Wave 1','Wave 2 / Voice PCM','Wave 3 / Sweep','Wave 4 / Noise']);
   if(kind==='huc6280')return numbered('',6,'Wave');
   if(kind==='rf5c164')return numbered('',8,'PCM');
   if(kind==='okim6258')return native(['ADPCM sample']);
@@ -47,6 +48,7 @@ export function keyboardChannelHint(kind,channel='0') {
   if(kind==='okim6258'||kind==='y8950'&&channel==='adpcm'||/^rhythm:|^adpcm-a:|^adpcm-b:/.test(channel)||kind==='nes'&&channel==='4')return 'Triggers the configured sample at its current playback rate; MIDI pitch does not retune this sample voice.';
   if(kind==='segapsg'&&channel==='3'||kind==='gameboy'&&channel==='3'||kind==='nes'&&channel==='3')return 'Triggers the current noise settings; MIDI pitch does not retune the noise generator.';
   if(kind==='dx7')return 'Plays the selected six-operator voice with up to 16 allocated notes.';
+  if(kind==='wonderswan')return 'Plays this channel’s current waveform. CH2 Voice PCM uses its current byte; CH3 retains Sweep and CH4 retains Noise settings.';
   if(kind==='huc6280'&&(channel==='4'||channel==='5'))return 'Uses the channel’s current waveform or noise settings. Noise playback keeps its configured rate.';
   return 'Plays this channel’s current instrument. Configure its voice or load a sample before using Keyboard.';
 }

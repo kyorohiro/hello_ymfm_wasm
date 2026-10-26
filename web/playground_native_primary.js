@@ -4,6 +4,7 @@ import {createNesClient} from './playground_nes.js';
 import {createSnesClient} from './playground_snes.js';
 import {createYm2151Client} from './playground_ym2151.js';
 import {createHuc6280Client} from './playground_huc6280.js';
+import {createWonderSwanClient} from './playground_wonderswan.js';
 import {createSegaPsgClient} from './playground_segapsg.js';
 import {createOki6258Client} from './playground_okim6258.js';
 import {createYm2413Client} from './playground_ym2413.js';
@@ -62,6 +63,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
     : name === 'snes' ? createSnesClient(port, options,lifecycle)
     : name === 'ym2151' ? createYm2151Client(port)
     : name === 'segapsg' ? createSegaPsgClient(port, options)
+    : name === 'wonderswan' ? createWonderSwanClient(port, options,lifecycle)
     : name === 'huc6280' ? createHuc6280Client(port, options,lifecycle)
     : name === 'okim6258' ? createOki6258Client(port, options,lifecycle)
     : name === 'dx7' ? createDx7Client(port, {...options,...options.state},lifecycle)
@@ -69,7 +71,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
   if(name==='pwm'){client._stopVoices=()=>client.stopVoices();if(options.clock!==undefined)client._adoptClock(options.clock);}
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state && name!=='nes') client._adoptState?.(options.state);
-  else if (name === 'huc6280' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();
+  else if (name === 'wonderswan' || name === 'huc6280' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();
   return client;
 }
 

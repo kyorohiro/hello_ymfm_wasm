@@ -1,8 +1,8 @@
 /** Independent Native 32X PWM. Only controls and applied snapshots cross this
  * endpoint; FIFO playback and output-frame reservations stay on the callback. */
-import {readPwmInspector} from './playground_chip_inspector_state.js?v=audio-numeric-bindings-1';
-import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
-import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=y8950-adpcm-ui-1';
+import {readPwmInspector} from './playground_chip_inspector_state.js?v=wonderswan-mode-2';
+import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-ui-1';
 
 export const EXTRA_PWM_ADMISSION_ERRORS=Object.freeze([
