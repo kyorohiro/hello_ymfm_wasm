@@ -15,7 +15,7 @@ SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
-             'spc', 'segapcm', 'k051649')
+             'spc', 'segapcm', 'k051649', 'ym3438')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -24,6 +24,11 @@ YM2612_EXPORTS = [
     '_ym2612_sample_rate', '_ym2612_generate',
     '_ym2612_generate_with_internal_envelope', '_ym2612_save_state',
     '_ym2612_load_state', '_malloc', '_free',
+]
+YM3438_EXPORTS = [
+    '_opn_create', '_opn_destroy', '_opn_reset', '_opn_write', '_opn_read',
+    '_opn_read_status', '_opn_get_irq', '_opn_sample_rate', '_opn_generate',
+    '_malloc', '_free',
 ]
 YM2203_EXPORTS = [
     '_ym2203_create', '_ym2203_destroy', '_ym2203_reset', '_ym2203_write',
@@ -182,6 +187,8 @@ class SdkBuildRouteMixin:
     quoted_header_directories = ()
     floating_point_flags = []
     additional_behavior_flags = []
+    compile_definitions = []
+    wrapper_source = None
     support_sources = ['wasm/ymfm_wasm_interface.h', 'vendor/ymfm/ymfm_fm.ipp',
                        'vendor/ymfm/chip_state.h']
     extra_manifest_headers = ('vendor/ymfm/chip_state.h',)
@@ -195,7 +202,8 @@ class SdkBuildRouteMixin:
 
     @property
     def sources(self):
-        return ['wasm/' + self.artifact + '_wasm.cpp', *self.vendor_sources]
+        wrapper = self.wrapper_source or 'wasm/' + self.artifact + '_wasm.cpp'
+        return [wrapper, *self.vendor_sources]
 
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='tetorica sdk build ')
@@ -324,6 +332,8 @@ else:
             self.assertIn(flag, arguments)
         self.assertEqual([value for value in arguments if value.startswith('-std=')],
                          ['-std=' + self.language_standard])
+        self.assertEqual([value for value in arguments if value.startswith('-D')],
+                         self.compile_definitions)
         self.assertEqual([value for value in arguments if value.startswith('-ffp-contract=')],
                          self.floating_point_flags)
         self.assertEqual([value for value in arguments
@@ -401,7 +411,7 @@ else:
     def test_tampered_sdk_is_rejected_before_compiler_or_output_creation(self):
         for name in (self.core_header, *self.extra_tamper_dependencies,
                      'scripts/record_wasm_build.mjs',
-                     'wasm/' + self.artifact + '_wasm.cpp', self.build_script.as_posix()):
+                     self.sources[0], self.build_script.as_posix()):
             with self.subTest(name=name):
                 path = self.sdk / name
                 original = path.read_bytes()
@@ -789,6 +799,34 @@ class K051649SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc', 'segapcm'])
+
+
+class Ym3438SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ym3438'
+    exports = YM3438_EXPORTS
+    incoming_module_api = ['wasmBinary', 'locateFile']
+    export_all = False
+    assertions = False
+    compile_definitions = ['-DOPN_VARIANT=ym3438']
+    wrapper_source = 'wasm/opn_variant_wasm.cpp'
+    quoted_header_directories = ('wasm',)
+    vendor_sources = ['vendor/ymfm/ymfm_opn.cpp', 'vendor/ymfm/ymfm_adpcm.cpp',
+                      'vendor/ymfm/ymfm_ssg.cpp']
+    support_sources = ['wasm/ymfm_wasm_interface.h', 'vendor/ymfm/ymfm.h',
+                       'vendor/ymfm/ymfm_fm.h', 'vendor/ymfm/ymfm_fm.ipp',
+                       'vendor/ymfm/ymfm_adpcm.h', 'vendor/ymfm/ymfm_ssg.h',
+                       'scripts/build_opn_variant_wasm.sh']
+    extra_manifest_headers = tuple(support_sources[:6])
+    extra_tamper_dependencies = (*vendor_sources, *support_sources,
+                                 'LICENSE', 'LICENSES.md', 'vendor/ymfm/LICENSE')
+    verify_quoted_header_dependencies = True
+
+    def test_shared_output_preserves_all_twenty_one_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
+             'spc', 'segapcm', 'k051649'])
 
 
 if __name__ == '__main__':
