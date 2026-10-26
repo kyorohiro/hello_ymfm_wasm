@@ -15,7 +15,7 @@ SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
-             'spc')
+             'spc', 'segapcm')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -145,6 +145,12 @@ SPC_EXPORTS = [
     '_spc_observer_drain', '_spc_observer_lost', '_spc_observer_registers_ptr',
     '_spc_load_timeline', '_spc_restart_timeline', '_spc_timeline_total_frames',
     '_malloc', '_free',
+]
+SEGAPCM_EXPORTS = [
+    '_segapcm_create', '_segapcm_destroy', '_segapcm_reset', '_segapcm_write',
+    '_segapcm_load_memory', '_segapcm_clear_memory', '_segapcm_sample_rate',
+    '_segapcm_set_mute_mask', '_segapcm_generate', '_segapcm_save_state',
+    '_segapcm_load_state', '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -726,6 +732,31 @@ class SpcSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu'])
+
+
+class SegaPcmSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'segapcm'
+    exports = SEGAPCM_EXPORTS
+    runtime_methods = ['cwrap', 'HEAPF32', 'HEAPU8']
+    language_standard = 'c++17'
+    export_all = False
+    assertions = False
+    trim_glue = True
+    vendor_sources = ['vendor/mame-segapcm/segapcm.cpp']
+    core_header = 'vendor/mame-segapcm/segapcm.h'
+    include_directories = ['vendor/ymfm', 'vendor/mame-segapcm']
+    # The historical catalog omits this actual nested header dependency;
+    # full-manifest checks and explicit corruption still protect it.
+    support_sources = []
+    extra_tamper_dependencies = ('vendor/ymfm/chip_state.h',)
+    verify_quoted_header_dependencies = True
+
+    def test_shared_output_preserves_all_nineteen_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
+             'spc'])
 
 
 if __name__ == '__main__':

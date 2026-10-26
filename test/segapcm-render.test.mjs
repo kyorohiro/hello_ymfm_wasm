@@ -4,7 +4,9 @@ import {readSource,renderSource} from '../cli/index.js';
 import {getNodePlaybackFactory} from '../cli/render.js';
 import {SegaPcmAudioEngine} from '../docs/js/segapcmaudioengine.js';
 import {Ym2151AudioEngine} from '../docs/js/ym2151audioengine.js';
-import {createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
+import {createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
+import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
+import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 const fixture=name=>new URL(`./fixtures/segapcm-${name}.vgz`,import.meta.url);
 test('Sega PCM embedded banks and OPM/PSG compositions match Browser engines and reset',async()=>{
@@ -19,6 +21,9 @@ test('Sega PCM embedded banks and OPM/PSG compositions match Browser engines and
       ?await Ym2151AudioEngine.create({...common,ym2151ModuleFactory:await getNodePlaybackFactory('ym2151'),ym2151Clock:3579545,segaPcmModuleFactory:pcmFactory,segaPcmClock:4000000,segaPcmBankShift:8,segaPcmBankMask:4})
       :await SegaPcmAudioEngine.create({...common,moduleFactory:pcmFactory,clock:4000000,bankShift:8,bankMask:4});
     try {
+      // Match the calibrated source mixer installed by CLI/Analyzer creation.
+      // Keep the independently assembled engines as the rendering reference.
+      installPlaybackMixer(e,selectPlaybackConfiguration(new Ym2612VGM(source)));
       const p=createPlaybackPlayer(e,source);
       for(let run=0;run<2;run++){p.reset();p.play();assert.deepEqual(result.bytes,(await renderVgmToWav(p,{maxSeconds:.05})).bytes);}
     }finally{e.dispose();}

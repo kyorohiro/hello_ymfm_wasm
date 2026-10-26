@@ -430,6 +430,70 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "segapcm",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "68d0bd018e8fd7f3cdcf67753c907738735128e54efc755449a8de0adcca6e2e",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_segapcm_wasm.sh",
+          "sha256": "5a2b76ae2bf42240aae0c1821ab26b90aca2e3ed5267b2c6fbe8a7d2d9ca5161",
+          "size": 912
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-segapcm/segapcm.cpp",
+          "sha256": "21e3979427656710d8539c124c7dfb3df3c4ce1e422f58ea30a4a2310db9fa40",
+          "size": 5451
+        },
+        {
+          "path": "vendor/mame-segapcm/segapcm.h",
+          "sha256": "8f54c9a2c3c80a935829da4b2b09a9562c782f133fef5e492d7bd1c77bccfcf6",
+          "size": 2702
+        },
+        {
+          "path": "vendor/mame-segapcm/upstream/segapcm.cpp",
+          "sha256": "fb3f2d9497d5381f9ebf16ac3c6c8ed6c094eb3273526053075b6c44859c13ee",
+          "size": 10261
+        },
+        {
+          "path": "vendor/mame-segapcm/upstream/segapcm.h",
+          "sha256": "7965d82e6b857fb00705e0638d7376b9266bec213a764cd08cbba6e1e6c8cbcf",
+          "size": 4234
+        },
+        {
+          "path": "wasm/segapcm_wasm.cpp",
+          "sha256": "52cb59b1a94166c1081796eecc4fa803928b610ad3e1fe0becd7f603f6b7a643",
+          "size": 1244
+        }
+      ],
+      "outputs": [
+        {
+          "path": "segapcm_wasm.js",
+          "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5",
+          "size": 12513
+        },
+        {
+          "path": "segapcm_wasm.wasm",
+          "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f",
+          "size": 13966
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "segapsg",
       "format": "emscripten-es-module",
       "sourceFingerprint": "bede9f226fcfbab287c64dcb6759c1bbc774a8279a4dee56ec34ceb89c0384e9",

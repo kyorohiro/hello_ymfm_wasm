@@ -71,6 +71,10 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 旧再ビルド・配布済み・配布ソース単体の各80ケースでSDKとの差0。パスを埋め込むassertionによりWASMのbytesは異なる。
 対応ソース単体の再build、FM／VGM npm・Analyzer ZIPも検証した。WebKitの初期化中close試験は未解決として分けて記録した。
 詳細は[SNES／SPC WASMのSDK移行](wasm_sdk_spc_adoption_01.md)を参照。
+続くSega PCM WASMも固定SDKへ切り替えた。配布済み・旧再ビルド・SDK・docs／webの生成物はbyte一致した。
+旧再ビルド／配布済みとの各612比較でPCM・ROMを含むnative stateの差0。Analyzer両browserとnpm／ZIPも確認した。
+既存CLI WAV比較の参照側に抜けていた校正Mixerは、旧版で失敗を再現して試験だけ修正した。
+詳細は[Sega PCM WASMのSDK移行](wasm_sdk_segapcm_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1301,9 +1305,30 @@ Python91件・既存SPC／SNES222件、FM npm・VGM npmの隔離offline検証と
 Browser全体の成功とは扱わず、元の試験・runtimeを保持して証拠と切り分け手順を残した。
 詳細は[SNES／SPC移行](wasm_sdk_spc_adoption_01.md)と[検証JSON](wasm_sdk_spc_adoption_01.json)。証拠は`/private/tmp/tetorica-spc-wasm-sdk/`。
 
-固定SDKへ切り替えたWASMは計19／27 artifact。次の移行候補はSega PCM。
-残り8は`k051649`／`nuked_opn2`／`segapcm`／`ym3438`／`ymf276`／`ymf278b`／`ymf288`／`dx7`。
 WebKit closeは、既存試験の再生→close順序・AudioContext所有／resume／closeと一時mute harnessの切り分けが必要。
+SDK原本とTauri、Mixer数値は変更していない。commit／push・公開・remote CIは実施していない。
+この節はSPC移行時の記録。続くSega PCM移行は次の節に記載する。
+
+
+### 完了した作業 — Sega PCM WASMの固定SDK参照
+
+`scripts/build_segapcm_wasm.sh`もSDK `0.1.1`の`segapcm`ターゲットを使う。
+着手時の本体は`95edc7a8b11190c95a78694f3a887c8c47557e81`でclean。固定379ファイルとpin、先行19生成記録を保持した。
+C++17／O2、13 C export・runtime 3項目・wasmBinary・Perl cleanupを維持し、公開APIは変更していない。
+配布済み・旧再ビルド・SDK・通常docs・直接webのJS／WASMはすべてbyte一致した。
+旧再ビルド／配布済みとの2組は各612比較（chip522＋Engine90）・5,204,966生成ステレオフレームでPCM／全state bytes／ROM差0。
+16 voice、bank／loop／ROM転送、mute／reset・owned PCM、252 own＋252 raw相互復元、486再演奏と続行probeを確認した。
+公開state tokenは同一インスタンス・build用。Engineの保存facadeはなく、実Player seekは先頭からの再演奏を比較した。
+既存の手組みWAV参照に校正Mixerが抜けていたため、旧配布版でも失敗を再現した後、試験だけ既存Mixerを適用して修正した。
+Python95件・既存Node71件、旧配布版の修正後比較2件、Checker CLIの46実行が成功した。
+AnalyzerのChromium／WebKitでbank0／bank1／PSG混合とMixerを確認し、最初の音声接続前から最終zero gainを使った。
+FM npmとAnalyzer ZIPも検証し、Sega PCM資産・noticeの一致を確認した。校正66 source hash・generator checksも成功した。
+Analyzer gain0.261709・npmのgeneric unityを保持し、Playgroundの対応modeや音量調整は追加していない。
+詳細は[Sega PCM移行](wasm_sdk_segapcm_adoption_01.md)と[検証JSON](wasm_sdk_segapcm_adoption_01.json)。証拠は`/private/tmp/tetorica-segapcm-wasm-sdk/`。
+
+固定SDKへ切り替えたWASMは計20／27 artifact。次の移行候補はK051649（SCC）。
+残り7は`k051649`／`nuked_opn2`／`ym3438`／`ymf276`／`ymf278b`／`ymf288`／`dx7`。
+SPCのWebKit初期化中closeは引き続き未解決。今回のSega PCM Browser成功と混同しない。
 SDK原本とTauri、Mixer数値は変更していない。commit／push・公開・remote CIは実施していない。
 npm／アプリの公開とremote CI実行は未実施。
 

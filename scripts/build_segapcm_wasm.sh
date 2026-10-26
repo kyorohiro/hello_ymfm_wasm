@@ -1,17 +1,15 @@
 #!/bin/sh
-set -eu
-ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
-mkdir -p "$OUT_DIR"
-cd "$ROOT_DIR"
-em++ -std=c++17 -O2 -Isrc -Ithird_party/mame-segapcm \
-  wasm/segapcm_wasm.cpp third_party/mame-segapcm/segapcm.cpp \
-  -sMODULARIZE=1 -sEXPORT_ES6=1 \
-  -sINCOMING_MODULE_JS_API='["wasmBinary"]' \
-  -sENVIRONMENT=web,worker,node,shell -sALLOW_MEMORY_GROWTH=1 \
-  -sEXPORTED_FUNCTIONS='["_segapcm_create","_segapcm_destroy","_segapcm_reset","_segapcm_write","_segapcm_load_memory","_segapcm_clear_memory","_segapcm_sample_rate","_segapcm_set_mute_mask","_segapcm_generate","_segapcm_save_state","_segapcm_load_state","_malloc","_free"]' \
-  -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32","HEAPU8"]' \
-  -o "$OUT_DIR/segapcm_wasm.js"
 
-# Keep generated glue free of whitespace-only diff noise.
-perl -pi -e 's/[ \t]+$//' "$OUT_DIR/segapcm_wasm.js"
+set -eu
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
+OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
+
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
+mkdir -p "$OUT_DIR"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
+
+# Preserve the existing 16-voice PCM and same-build state ABI while using the
+# verified, bundled SDK sources without a checkout or network dependency.
+exec sh "$SDK_DIR/scripts/build-wasm.sh" segapcm "$OUT_DIR"
