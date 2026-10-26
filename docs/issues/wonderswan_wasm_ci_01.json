@@ -1,0 +1,1330 @@
+{
+  "schemaVersion": 1,
+  "recordedDate": "2026-10-27",
+  "passed": true,
+  "remoteFailure": {
+    "runId": 40377361314,
+    "jobId": 121763965725,
+    "runUrl": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40377361314",
+    "commit": "92b1ba87a872e745a466d1006d5effbde27590c1",
+    "step": "Test receipt validation, runner guards and standalone DX7 checks",
+    "tests": 81,
+    "pass": 78,
+    "fail": 3,
+    "error": "WASM output directory has missing or extra JS/WASM files",
+    "jobLogSha256": "ecb3e5420abd2ff969a9652ffc9b5d72c7eeaeaa30ffd8f4552ffbbb403d7292"
+  },
+  "causes": [
+    "SDK-only exact directory check rejected the independently receipted WonderSwan pair in docs/generated.",
+    "Four wrapper-parity scripts did not recognize the wonderswan-mode-2 cache revision."
+  ],
+  "unitTests": {
+    "tests": 93,
+    "pass": 93,
+    "fail": 0
+  },
+  "freshBuild": {
+    "passed": true,
+    "artifacts": 27,
+    "outputs": 53,
+    "command": "sh",
+    "args": [
+      "/Users/kyorohiro/development8/wfm/hello_ymfm/third_party/tetorica-soundchip-native/scripts/build-wasm.sh",
+      "all",
+      "/private/tmp/wonderswan-ci-10-fixed-sdk-build/rebuilt"
+    ],
+    "seconds": 63.255,
+    "exitCode": 0,
+    "workDirectory": "/private/tmp/wonderswan-ci-10-fixed-sdk-build",
+    "comparisonAfterBuild": "Initially stopped at the Nuked wrapper-cache check; fresh outputs reused unchanged after fixing the four cache allowlists."
+  },
+  "finalParity": {
+    "passed": true,
+    "workDirectory": "/private/tmp/wonderswan-ci-10-fixed-parity",
+    "reusedDirectory": "/private/tmp/wonderswan-ci-10-fixed-sdk-build/rebuilt",
+    "sdk": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.2",
+      "sourceCommit": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
+      "archiveName": "tetorica-soundchip-native-0.1.2-sources.zip",
+      "archiveSha256": "752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72",
+      "manifestSha256": "a79387194dd58628988abbf19938175c084246e11cee9d65647881b4bd65d8cf",
+      "fileCount": 381
+    },
+    "artifacts": [
+      {
+        "id": "ay8910",
+        "passed": true,
+        "comparisons": 8208,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: all main bodies+127-frame continuation probes including selected reset/replays. Bounded chip/Engine positives and actual Player render-ahead/seek-prefix generation are separate components. Engine delegates directly to the chip; those native output frames and Player delivered/discarded frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 35223552,
+          "postScenarioProbeOutputStereoFrames": 2244852,
+          "totalWrapperSelfCheckOutputStereoFrames": 811166,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 4638492,
+          "totalPlayerDeliveredOutputStereoFrames": 3880188,
+          "totalOutputStereoFrames": 37468404,
+          "totalGeneratedOutputStereoFrames": 42918062
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ay8910_wasm_sdk.mjs",
+          "bytes": 35828,
+          "sha256": "b6364ebd8f1ab6270b24f30c6f7c2be93a22afed6ad5a0b25872e8bc92d42bba"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ay8910_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ay8910.json"
+          ],
+          "seconds": 3.076,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ay8910.log",
+            "bytes": 378,
+            "sha256": "a883aed9d270aa6a461d7e8d2a7192d1a507c4960d0d31dedd07c5165b24f22d"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ay8910.json",
+          "bytes": 5837715,
+          "sha256": "f93ea3e0a8717b06b588a4b49ea416be12caf99e6c66fbf06acb1245213c431a"
+        }
+      },
+      {
+        "id": "dx7",
+        "passed": true,
+        "comparisons": 360,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: mono scenario bodies, 257-frame continuation probes, selected panic/reprogram replays and wrapper/raw-ABI control output. Each Float32 element is one mono output frame. Internal block prefetch and unreturned core work are not counted.",
+        "frameCounts": {
+          "totalFrames": 8192,
+          "probeFrames": 257,
+          "scenarioBodyOutputMonoFrames": 6160384,
+          "postScenarioProbeOutputMonoFrames": 193264,
+          "totalScenarioOutputMonoFrames": 6353648,
+          "totalWrapperSelfCheckOutputMonoFrames": 1300492,
+          "totalGeneratedOutputMonoFrames": 7654140
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_dx7_wasm_sdk.mjs",
+          "bytes": 33345,
+          "sha256": "4523239ec359408b3c9eeb72f2c4ac90066f964495afb30eeff341d9ffae0647"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_dx7_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/dx7.json"
+          ],
+          "seconds": 0.983,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/dx7.log",
+            "bytes": 246,
+            "sha256": "8ad2eb5dd2b871151af63a05eb51c88d9a12ae34d42edd9f9a1e18109102ab2f"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/dx7.json",
+          "bytes": 305005,
+          "sha256": "4ca7fcfb1b8688e3616a43117e370aa9954b4c6306fec2856d0a1e4e0383ed51"
+        }
+      },
+      {
+        "id": "gameboy_apu",
+        "passed": true,
+        "comparisons": 876,
+        "maximumDifference": 0,
+        "frameCountScope": "Both realbuilds: complete1024-frame bodies+97-frame probes; selected regular own/cross continuation bodies startat613 plusfreshprobes, resetreplays repeatfullbody/probe. Wrapper positives and actual Player generation separate; native ticks/internal Engine calls and delivered Player frames notaddedtwice.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 2209836,
+          "postScenarioProbeOutputStereoFrames": 228144,
+          "totalWrapperSelfCheckOutputStereoFrames": 126486,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+          "totalPlayerDeliveredOutputStereoFrames": 248840,
+          "totalOutputStereoFrames": 2437980,
+          "totalGeneratedOutputStereoFrames": 2877906
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+          "bytes": 38408,
+          "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/gameboy_apu.json"
+          ],
+          "seconds": 2.028,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/gameboy_apu.log",
+            "bytes": 348,
+            "sha256": "843a071b42946e4e6e32f99f804f21ef7504ca2ace7d689455fa97d0e46423c2"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/gameboy_apu.json",
+          "bytes": 783329,
+          "sha256": "a3e37e64f374a30757a97f3d1a46ff6cd7d38c1e8635c0a44cf5bd90d7f47fe2"
+        }
+      },
+      {
+        "id": "huc6280",
+        "passed": true,
+        "comparisons": 828,
+        "maximumDifference": 0,
+        "frameCountScope": "Both actual builds: main complete768-frame bodies+97-frame continuation probes; selected regular reset/replays repeat complete bodies+probes. Independent wrapper positives/direct rawC output and actual Player Engine generation are separate components. Native chip-clock ticks and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 1465344,
+          "postScenarioProbeOutputStereoFrames": 185076,
+          "totalWrapperSelfCheckOutputStereoFrames": 130044,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+          "totalPlayerDeliveredOutputStereoFrames": 515076,
+          "totalOutputStereoFrames": 1650420,
+          "totalGeneratedOutputStereoFrames": 2394918
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_huc6280_wasm_sdk.mjs",
+          "bytes": 37545,
+          "sha256": "a965bd1276141e1bac5be5f004c07e6956b0ef3c52420b2969bba3972dce4299"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_huc6280_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/huc6280.json"
+          ],
+          "seconds": 3.552,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/huc6280.log",
+            "bytes": 320,
+            "sha256": "1b79c3186218b5261cc52b2175e4303552e028a077ec3c05ab3d0bab6797c39c"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/huc6280.json",
+          "bytes": 578238,
+          "sha256": "efce386361c59af01b7b1f521a4fefd7e359ce3f69a762c0d90175a046b5b759"
+        }
+      },
+      {
+        "id": "k051649",
+        "passed": true,
+        "comparisons": 774,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, including selected reset/reprogram replays; bounded wrapper/engine controls and all actual MSX Player engine generation are added separately. Stereo frame is one left/right pair. Engine internal chip sources and delivered player frames are not added twice.",
+        "frameCounts": {
+          "totalFrames": 2048,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 3907584,
+          "postScenarioProbeOutputStereoFrames": 242316,
+          "totalWrapperSelfCheckOutputStereoFrames": 34122,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 2384316,
+          "totalPlayerDeliveredOutputStereoFrames": 2185560,
+          "totalOutputStereoFrames": 4149900,
+          "totalGeneratedOutputStereoFrames": 6568338
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_k051649_wasm_sdk.mjs",
+          "bytes": 34848,
+          "sha256": "6610f84886d46ba99901b307490cf1c0e006ef072eaf066ba176c73c04d0c6e3"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_k051649_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/k051649.json"
+          ],
+          "seconds": 4.851,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/k051649.log",
+            "bytes": 473,
+            "sha256": "f2908023abe9dd7d346cbd37a06cd29c6ecb1a04599c6a1b6600afb3706cdd17"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/k051649.json",
+          "bytes": 489361,
+          "sha256": "5069f8c93b004faa8e0d9f2b980a175ab15747bf2571c22c2e84c4e002e836a0"
+        }
+      },
+      {
+        "id": "nesapu",
+        "passed": true,
+        "comparisons": 912,
+        "maximumDifference": 0,
+        "frameCountScope": "BothrealWASMbuilds:complete1024-framebody+97-frameprobe,selectedregularreset/replaysrepeatfullbody/probe. ActualWASMwrapperpositivesanddirectnative_sampleloopsareseparate. AuxiliaryJSreferenceframesrecorded/excluded; parserrecordinggeneratesnoaudio; noWASMPlayerframes.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 2150400,
+          "postScenarioProbeOutputStereoFrames": 203700,
+          "totalWrapperSelfCheckOutputStereoFrames": 74820,
+          "totalJsReferenceOutputStereoFrames": 3598,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 0,
+          "totalPlayerDeliveredOutputStereoFrames": 0,
+          "totalOutputStereoFrames": 2354100,
+          "totalGeneratedOutputStereoFrames": 2428920
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nesapu_wasm_sdk.mjs",
+          "bytes": 33115,
+          "sha256": "48d3e138c580fe0f51dcba700a22f3ca3976dbbc82938d8ea69e016614af61e5"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nesapu_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/nesapu.json"
+          ],
+          "seconds": 1.847,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/nesapu.log",
+            "bytes": 280,
+            "sha256": "5c996543f680d17de5ca79be8293f4a79dfd78a0c4987e572a230e762e6a42d3"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/nesapu.json",
+          "bytes": 941005,
+          "sha256": "f62e78eb4820bd4a09cb80233da13c7e155d89c64959bcc48d08efcab29ebb5b"
+        }
+      },
+      {
+        "id": "nuked_opn2",
+        "passed": true,
+        "comparisons": 462,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame probes, selected reset replays, wrapper controls, real Synth and actual engine-generated player output including prefetched PCM (delivered frame count is recorded separately). One stereo frame is one left/right pair. Bus-write discarded outputs are not delivered PCM and are not counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6414336,
+          "postScenarioProbeOutputStereoFrames": 132588,
+          "totalScenarioOutputStereoFrames": 6546924,
+          "totalWrapperSelfCheckOutputStereoFrames": 83816,
+          "totalSynthOutputStereoFrames": 12136,
+          "totalEngineOutputStereoFrames": 19808,
+          "totalGeneratedOutputStereoFrames": 6662684
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nuked_opn2_wasm_sdk.mjs",
+          "bytes": 38262,
+          "sha256": "549b53635d770832dd7860ef925befa27a9a2d6464b8578051e2d2c29c517ec7"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nuked_opn2_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/nuked_opn2.json"
+          ],
+          "seconds": 6.306,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/nuked_opn2.log",
+            "bytes": 257,
+            "sha256": "cc46ebe17db92c696e85a6e029026560d3e899a2d77d9ed5e1f63ee94dc5861a"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/nuked_opn2.json",
+          "bytes": 424083,
+          "sha256": "6a324fc44a618a575b5c023373ca38758837c37b85456d4fa3443c5e3222f988"
+        }
+      },
+      {
+        "id": "okim6258",
+        "passed": true,
+        "comparisons": 2048,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds at their configured output rates: complete raw/Engine scenario renders and own/cross/reset continuations. Bounded wrapper self-checks and 31-frame pre-restore perturbations are separately counted; all three contribute to totalGeneratedOutputStereoFrames. Setup writes and zero-frame calls render no frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 23949880,
+          "preRestorePerturbationOutputStereoFrames": 2108,
+          "totalWrapperSelfCheckOutputStereoFrames": 1520,
+          "totalGeneratedOutputStereoFrames": 23953508
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+          "bytes": 36653,
+          "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/okim6258.json"
+          ],
+          "seconds": 4.179,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/okim6258.log",
+            "bytes": 468,
+            "sha256": "030064f861e0dd08f24a1e7bd1c02a49c69b39d845dfbc69895667878abd3e23"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/okim6258.json",
+          "bytes": 1309634,
+          "sha256": "40d5851a03d21a3beb9c1716e5b37ed418e0116e79355f7b07e7053e4b421b7e"
+        }
+      },
+      {
+        "id": "pwm32x",
+        "passed": true,
+        "comparisons": 864,
+        "maximumDifference": 0,
+        "frameCountScope": "Both actual builds: main complete body+65-frame probes; selected regular own/cross continuation bodies start at389 with fresh65-frame probes; reset/replays have complete bodies/probes. Wrapper positives and actual Player Engine generation are separate components. Retained-JS-reference auxiliary frames are separately recorded and excluded, as are internal Engine source frames and delivered Player frames.",
+        "frameCounts": {
+          "probeFrames": 65,
+          "scenarioBodyOutputStereoFrames": 2439480,
+          "postScenarioProbeOutputStereoFrames": 168480,
+          "totalWrapperSelfCheckOutputStereoFrames": 32394,
+          "totalJsReferenceOutputStereoFrames": 7680,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 356220,
+          "totalPlayerDeliveredOutputStereoFrames": 290240,
+          "totalOutputStereoFrames": 2607960,
+          "totalGeneratedOutputStereoFrames": 2996574
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_pwm32x_wasm_sdk.mjs",
+          "bytes": 44346,
+          "sha256": "a721581b5f2156ee15e6742963faac1dfc0a107f509801b8daa1e0ab5ba5c74e"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_pwm32x_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/pwm32x.json"
+          ],
+          "seconds": 0.738,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/pwm32x.log",
+            "bytes": 468,
+            "sha256": "901f6bf188bd62f5e701df2870f5e459f98d1a78f8d3b25333bf62187b3687b7"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/pwm32x.json",
+          "bytes": 830566,
+          "sha256": "10bd8590cc0efd8515f88aca0262afed6329e46a6aac855d5ec649234a7c4768"
+        }
+      },
+      {
+        "id": "rf5c164",
+        "passed": true,
+        "comparisons": 828,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 4634334,
+          "postScenarioProbeOutputStereoFrames": 301752,
+          "totalWrapperSelfCheckOutputStereoFrames": 16178,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+          "totalPlayerDeliveredOutputStereoFrames": 373260,
+          "totalOutputStereoFrames": 4936086,
+          "totalGeneratedOutputStereoFrames": 5422424
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+          "bytes": 41001,
+          "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/rf5c164.json"
+          ],
+          "seconds": 2.353,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/rf5c164.log",
+            "bytes": 422,
+            "sha256": "4ae8f4c48607ec925ae4b3ebb7114805b63e178fe7d2e79759d45a554c4bcd1c"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/rf5c164.json",
+          "bytes": 726505,
+          "sha256": "10687e7db8023ed476c92d37200428f9ca4aefe0a1ec88a375e4d0be04359955"
+        }
+      },
+      {
+        "id": "segapcm",
+        "passed": true,
+        "comparisons": 612,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds, complete scenario bodies plus127-frame post-scenario probes, selected own/cross continuation bodies starting at613 and selected reset/replay bodies and probes. Bounded controls, actual Player Engine generation and31-frame pre-restore perturbations are separately added. Engine internal sources and Player delivered frames are not counted twice.",
+        "frameCounts": {
+          "totalFrames": 2048,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 4225320,
+          "postScenarioProbeOutputStereoFrames": 281178,
+          "preRestorePerturbationOutputStereoFrames": 7812,
+          "totalWrapperSelfCheckOutputStereoFrames": 76202,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+          "totalPlayerDeliveredOutputStereoFrames": 515076,
+          "totalOutputStereoFrames": 4506498,
+          "totalGeneratedOutputStereoFrames": 5204966
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapcm_wasm_sdk.mjs",
+          "bytes": 43920,
+          "sha256": "065d7c015d55a92e3dd3b2867c2356912c13d8d65f779e3fdfbf37d985c85a7b"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapcm_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/segapcm.json"
+          ],
+          "seconds": 3.397,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/segapcm.log",
+            "bytes": 573,
+            "sha256": "712c5eae613ad5448d6ef9104e7b4790d7f21843f9b8803617b54ac6de0d812e"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/segapcm.json",
+          "bytes": 619938,
+          "sha256": "62907b1fb8be9b8c21551817dcd6f95d6d8a466c57921d56ff6325f78fe22d1d"
+        }
+      },
+      {
+        "id": "segapsg",
+        "passed": true,
+        "comparisons": 7074,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 30918870,
+          "postScenarioProbeOutputStereoFrames": 1945386,
+          "totalWrapperSelfCheckOutputStereoFrames": 392930,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 758694,
+          "totalPlayerDeliveredOutputStereoFrames": 639348,
+          "totalOutputStereoFrames": 32864256,
+          "totalGeneratedOutputStereoFrames": 34015880
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapsg_wasm_sdk.mjs",
+          "bytes": 38903,
+          "sha256": "24d4760f0175a8f34e7c57fc22c1d0b10b4d457cf3763ed1adc1a3ee29903f3a"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapsg_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/segapsg.json"
+          ],
+          "seconds": 1.51,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/segapsg.log",
+            "bytes": 426,
+            "sha256": "1a1785256f0e077e979f6886a84799951d7249438c4e732bb57d85fc0407966a"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/segapsg.json",
+          "bytes": 5721038,
+          "sha256": "73c9ab237b0bf17e1645379729d32d80f6ef9e0e4b0d79953b65878e8b2924a1"
+        }
+      },
+      {
+        "id": "spc",
+        "passed": true,
+        "comparisons": 80,
+        "maximumDifference": 0,
+        "frameCountScope": "All bounded nonzero PCM render requests go through one counter, including wrapper/trace positives, scenarios/probes, failed attempts and timeline-end silence. Direct invalid/zero validation-only calls never entering native rendering are excluded. Requested frames, successfully copied output frames and native position advances are reported separately. Internal 1024-frame chunks are not added again; failed trace rendering may advance native state before rejecting delivery, and ended timeline silence does not advance nativeFrames.",
+        "frameCounts": {
+          "bodyFrames": 4097,
+          "probeFrames": 97,
+          "totalDeliveredOutputStereoFrames": 1017898
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_spc_wasm_sdk.mjs",
+          "bytes": 29756,
+          "sha256": "015f215ca537356c7b7993d160409006fdee4de23e7a62382279abfee0df907e"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_spc_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/spc.json"
+          ],
+          "seconds": 0.326,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/spc.log",
+            "bytes": 213,
+            "sha256": "648ba66a707204ef0744dc41a8f3a7c9d19860bde06dcd21dcf0b0ca1904e3f7"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/spc.json",
+          "bytes": 135040,
+          "sha256": "f0d2c85665472ef4acafccee95400ed88908a8b300957b123612fff842aaa212"
+        }
+      },
+      {
+        "id": "y8950",
+        "passed": true,
+        "comparisons": 1794,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 21823488,
+          "postScenarioProbeOutputStereoFrames": 1010010,
+          "totalOutputStereoFrames": 22833498,
+          "totalWrapperSelfCheckOutputStereoFrames": 555780,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 24162360
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+          "bytes": 58704,
+          "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/y8950.json"
+          ],
+          "seconds": 2.907,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/y8950.log",
+            "bytes": 375,
+            "sha256": "16a074129c6f415042f2bff0a416ccdf0225ac82b3a236bd0c808dfff1505024"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/y8950.json",
+          "bytes": 1111787,
+          "sha256": "face879a2461157a6fb14d6638f0cc084adc48986b24236a1af2c9a02211bf90"
+        }
+      },
+      {
+        "id": "ym2151",
+        "passed": true,
+        "comparisons": 1408,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames and the 31-frame pre-restore perturbations are not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 17640320,
+          "preRestorePerturbationOutputStereoFrames": 1984,
+          "totalWrapperSelfCheckNativeStereoFrames": 398836,
+          "totalGeneratedOutputStereoFrames": 18041140
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2151_wasm_sdk.mjs",
+          "bytes": 29405,
+          "sha256": "3da1be74ea5acf84f8cf3d52b3ddd1e91a36eb8e69e78d85789701cbcfd9e261"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2151_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2151.json"
+          ],
+          "seconds": 2.64,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym2151.log",
+            "bytes": 417,
+            "sha256": "689824ca707f1e7fd19bfdbd80e4a79cd7213cb4c0cc17e002d9f28afc58cf1c"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2151.json",
+          "bytes": 992556,
+          "sha256": "823747a12684db8c0839b8a69cbe1751f2e669f56bcc4baa6e91f363f2beb53b"
+        }
+      },
+      {
+        "id": "ym2203",
+        "passed": true,
+        "comparisons": 432,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 9770400
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2203_wasm_sdk.mjs",
+          "bytes": 25447,
+          "sha256": "255074f1515aa0117dc72c901bf216c60385c6c598fc59cae927bf6828382b88"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2203_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2203.json"
+          ],
+          "seconds": 1.527,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym2203.log",
+            "bytes": 312,
+            "sha256": "8abeb21abeb036d99192f5a4791935abf48381bb6f6de840691ba975a55f0486"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2203.json",
+          "bytes": 295819,
+          "sha256": "10a641b3d83759273d050111bf20d63c189fc2c89a7e12a63cffe9f22a04148a"
+        }
+      },
+      {
+        "id": "ym2413",
+        "passed": true,
+        "comparisons": 1284,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 15446016,
+          "postScenarioProbeOutputStereoFrames": 687732,
+          "totalOutputStereoFrames": 16133748,
+          "totalWrapperSelfCheckOutputStereoFrames": 391674,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 17298504
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2413_wasm_sdk.mjs",
+          "bytes": 34147,
+          "sha256": "7afcab6d6fb22433a7a9b24e1220f81074c38e214d7a4b832f074946d1e01d01"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2413_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2413.json"
+          ],
+          "seconds": 2.209,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym2413.log",
+            "bytes": 376,
+            "sha256": "e816ef1c1591ee6fccb848d68cbc8f9a4b56e13d723509853957223355223707"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2413.json",
+          "bytes": 813019,
+          "sha256": "f9810c4bb16328ac6dd3cb58c1ef348fa73534f0a42426eb41d28e624b57bc9d"
+        }
+      },
+      {
+        "id": "ym2608",
+        "passed": true,
+        "comparisons": 586,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 7264744
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2608_wasm_sdk.mjs",
+          "bytes": 27889,
+          "sha256": "52098aa6de97c47465ca6ffb18b75d9f77c5bbff2a849f311b8a16f9ad1f817f"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2608_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2608.json"
+          ],
+          "seconds": 1.87,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym2608.log",
+            "bytes": 309,
+            "sha256": "c0b13f338a88a93a2051b53556818c86dbae194745ca2f26345cedbb6d20ebae"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2608.json",
+          "bytes": 395754,
+          "sha256": "fb3d58aabcda567b86daea7b12e6566dc34688d0c93a140b1d2ee47afee5b70a"
+        }
+      },
+      {
+        "id": "ym2610b",
+        "passed": true,
+        "comparisons": 1108,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 14063856,
+          "totalWrapperSelfCheckNativeStereoFrames": 1113736
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2610b_wasm_sdk.mjs",
+          "bytes": 31720,
+          "sha256": "784945441d06630daeec7d0db7f68efef69b0e3df1b85d0bb46c230b88f1d103"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2610b_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2610b.json"
+          ],
+          "seconds": 1.091,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym2610b.log",
+            "bytes": 313,
+            "sha256": "5c8c8ed9ed9d77fe285b5d42e455e40fa6c7b49c317f0b6e77da60df4bbfe668"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2610b.json",
+          "bytes": 778382,
+          "sha256": "c7fc5e796d7d2273e371c2e9e0d24b43ce9d19d59980a16821390239ef55dffa"
+        }
+      },
+      {
+        "id": "ym2612",
+        "passed": true,
+        "comparisons": 444,
+        "maximumDifference": 0,
+        "frameCountScope": "Case/layout renders plus own-state, cross-state and reset continuations, counting both builds; additional wrapper self-check frames are excluded.",
+        "frameCounts": {
+          "totalStereoFrames": 11557320
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2612_wasm_sdk.mjs",
+          "bytes": 25016,
+          "sha256": "a249b53fc868016db7d61ce65f1de581c67f416811186e827795a2469077b514"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2612_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2612.json"
+          ],
+          "seconds": 3.129,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym2612.log",
+            "bytes": 462,
+            "sha256": "d8b91c728a987cf27af64e6fd03ff30e411731f93dd375c6651c9e5a1f5e862b"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym2612.json",
+          "bytes": 285465,
+          "sha256": "b8a3de5c79ad551e32b4d8b0142f2cc0a737217ca77eddbfa551242428660d1a"
+        }
+      },
+      {
+        "id": "ym3438",
+        "passed": true,
+        "comparisons": 450,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6230016,
+          "postScenarioProbeOutputStereoFrames": 128778,
+          "totalScenarioOutputStereoFrames": 6358794,
+          "totalWrapperSelfCheckOutputStereoFrames": 39250,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 6412380
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3438_wasm_sdk.mjs",
+          "bytes": 30101,
+          "sha256": "dd34a3da6106c552696c9484b80b969653e27ff6dd528df3bb5fb61f1ebe1436"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3438_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym3438.json"
+          ],
+          "seconds": 1.013,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym3438.log",
+            "bytes": 253,
+            "sha256": "829fb57ab4a61e28a85965f046c40bfcbcc7e9078b3f53cb03e5ff7a0d00db38"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym3438.json",
+          "bytes": 405187,
+          "sha256": "6d1faa619408a14bdcbee0b76649b1124f4cc589773f96451460206ad9a98793"
+        }
+      },
+      {
+        "id": "ym3526",
+        "passed": true,
+        "comparisons": 1494,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 17952768,
+          "postScenarioProbeOutputStereoFrames": 806466,
+          "totalOutputStereoFrames": 18759234,
+          "totalWrapperSelfCheckOutputStereoFrames": 439962,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 19972278
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3526_wasm_sdk.mjs",
+          "bytes": 37404,
+          "sha256": "bb42c4ddf4222a366f06c7fa6e44401338667c902fe73b4fcb0ed6807c6b3413"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3526_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym3526.json"
+          ],
+          "seconds": 3.08,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym3526.log",
+            "bytes": 376,
+            "sha256": "bb62dbc4d5cef4268bcb161d978d92a72ff7571141d6e68d08714d0364e1255e"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym3526.json",
+          "bytes": 922512,
+          "sha256": "dbd978f040cdac26c132dd429edd623215c71311b7ed3e806bf8f47ceb700e05"
+        }
+      },
+      {
+        "id": "ym3812",
+        "passed": true,
+        "comparisons": 1848,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 22081536,
+          "postScenarioProbeOutputStereoFrames": 993048,
+          "totalOutputStereoFrames": 23074584,
+          "totalWrapperSelfCheckOutputStereoFrames": 609410,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 24457076
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3812_wasm_sdk.mjs",
+          "bytes": 40382,
+          "sha256": "500acfee83ae5f33705953adb5bca92926aee63fad0678b546776b7857687e49"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3812_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym3812.json"
+          ],
+          "seconds": 2.556,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ym3812.log",
+            "bytes": 376,
+            "sha256": "00cddae806fb6a9627ca9708a5d9ac82f2ba83e6e5986528f1c8050b2d3e79d2"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ym3812.json",
+          "bytes": 1128181,
+          "sha256": "cc33ae27134f0b73476cd94302ba0eab72d41e6662281767a1c01c6e8a4ead77"
+        }
+      },
+      {
+        "id": "ymf262",
+        "passed": true,
+        "comparisons": 3456,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 42799104,
+          "postScenarioProbeOutputStereoFrames": 1859652,
+          "totalOutputStereoFrames": 44658756,
+          "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 46586694
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+          "bytes": 47220,
+          "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf262.json"
+          ],
+          "seconds": 7.208,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ymf262.log",
+            "bytes": 377,
+            "sha256": "b4b27ddbd34bad20fbe2d8a133ad07247725102a7a693182ed8f3443e5db9d8f"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf262.json",
+          "bytes": 2178735,
+          "sha256": "50ec2d84402f2c37088912d353c2dfc2ef18700a4cda47d1bb7a3fbeb34ce95b"
+        }
+      },
+      {
+        "id": "ymf276",
+        "passed": true,
+        "comparisons": 462,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6414336,
+          "postScenarioProbeOutputStereoFrames": 132588,
+          "totalScenarioOutputStereoFrames": 6546924,
+          "totalWrapperSelfCheckOutputStereoFrames": 107080,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 6668340
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf276_wasm_sdk.mjs",
+          "bytes": 35874,
+          "sha256": "a9dd96b4a3cfd9dac8d87bbc147a41d745355f57d8f400f81de909935a3832e8"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf276_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf276.json"
+          ],
+          "seconds": 1.125,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ymf276.log",
+            "bytes": 253,
+            "sha256": "39df6facab6d0d818b4a05a27aba2a3ff7788462ad7e46e249f543f9f5773d3b"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf276.json",
+          "bytes": 431400,
+          "sha256": "ae86faaa9c19d580fa71a12352ea5b59a11d91be1c2823d97052c6050092f615"
+        }
+      },
+      {
+        "id": "ymf278b",
+        "passed": true,
+        "comparisons": 684,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario body and127frameprobe output, selectedpublicreset/replays, boundedchipcontrols, realEngineoutput plusindependentmanualsourcereference, actual VGMEngine renderahead andseekprefix output. Playerdeliveredframes areaseparateview, notadded. Internalnativeframes underlying Engineoutput arenotaddedagain.",
+        "frameCounts": {
+          "totalFrames": 4096,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6176768,
+          "postScenarioProbeOutputStereoFrames": 191516,
+          "totalScenarioOutputStereoFrames": 6368284,
+          "totalWrapperSelfCheckOutputStereoFrames": 605762,
+          "totalEngineControlGeneratedOutputStereoFrames": 25348,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 448386,
+          "totalGeneratedOutputStereoFrames": 7447780
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf278b_wasm_sdk.mjs",
+          "bytes": 48870,
+          "sha256": "803a6d4219c2ff15dcb6ee971df514534243165257663e9d3f8c39196766f953"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf278b_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf278b.json"
+          ],
+          "seconds": 2.493,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ymf278b.log",
+            "bytes": 254,
+            "sha256": "03c954a01b0ab15eaf21e33a58fa791a7924bb2810970f67d22c97dbffe3be09"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf278b.json",
+          "bytes": 530944,
+          "sha256": "82647e2be5a938921091eec7bbbf66bfe5e50981b974eb5e398c69661343e623"
+        }
+      },
+      {
+        "id": "ymf288",
+        "passed": true,
+        "comparisons": 606,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 8368128,
+          "postScenarioProbeOutputStereoFrames": 172974,
+          "totalScenarioOutputStereoFrames": 8541102,
+          "totalWrapperSelfCheckOutputStereoFrames": 254050,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 8809488
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf288_wasm_sdk.mjs",
+          "bytes": 41144,
+          "sha256": "c60f02ac530b76f3530c5e4af335490733c6e5fa740ea92e3dc1b4122ec4cedd"
+        },
+        "command": {
+          "command": "/Users/kyorohiro/.nvm/versions/node/v26.12.0/bin/node",
+          "args": [
+            "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf288_wasm_sdk.mjs",
+            "--legacy-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reference",
+            "--sdk-dir",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/rebuilt",
+            "--out",
+            "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf288.json"
+          ],
+          "seconds": 0.694,
+          "log": {
+            "path": "/private/tmp/wonderswan-ci-10-fixed-parity/logs/ymf288.log",
+            "bytes": 253,
+            "sha256": "d2cc8f76d73abccf628f11097baa51b8e16af8fc9a94d9df5d8ef669313dc906"
+          },
+          "exitCode": 0
+        },
+        "report": {
+          "path": "/private/tmp/wonderswan-ci-10-fixed-parity/reports/ymf288.json",
+          "bytes": 505604,
+          "sha256": "e13f0e1243e40c7404ee7a41d7a80070b10e4bcf84f2f1eee62f9510c0483cea"
+        }
+      }
+    ],
+    "artifactCount": 27,
+    "outputCount": 53,
+    "totalComparisons": 39982,
+    "maximumDifference": 0,
+    "byteIdenticalOutputs": 53,
+    "repositoryInputsUnchanged": true,
+    "standaloneReference": [
+      {
+        "id": "wonderswan",
+        "receipt": "wonderswan_build-info.json",
+        "outputs": [
+          {
+            "path": "wonderswan_wasm.js",
+            "bytes": 11356,
+            "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+          },
+          {
+            "path": "wonderswan_wasm.wasm",
+            "bytes": 10321,
+            "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+          }
+        ]
+      }
+    ]
+  },
+  "implementation": {
+    "standaloneAllowanceDefault": false,
+    "onlyReferenceOptsIn": true,
+    "sdkCandidateRemainsStrict": true,
+    "standaloneOutputSizeHashAndWasmAbiVerified": true,
+    "standaloneInputProvenanceScope": "Existing check_wonderswan_core.mjs checks its input receipt; the SDK coexistence check validates its two output files only.",
+    "runtimeCoreWasmMixerChanged": false
+  },
+  "sourceFiles": [
+    {
+      "path": "scripts/wasm_sdk_inventory.mjs",
+      "sha256": "34d33f7f62bc3aaf60a44a7e75794ad18825d963c08428a4d6f0dcbfc74f64e3"
+    },
+    {
+      "path": "scripts/check_wasm_sdk.mjs",
+      "sha256": "acc36307a98a82b731a2da32ca7cd424867a898c8648c7221656002c585b042b"
+    },
+    {
+      "path": "scripts/check_nuked_opn2_wasm_sdk.mjs",
+      "sha256": "549b53635d770832dd7860ef925befa27a9a2d6464b8578051e2d2c29c517ec7"
+    },
+    {
+      "path": "scripts/check_ym3438_wasm_sdk.mjs",
+      "sha256": "dd34a3da6106c552696c9484b80b969653e27ff6dd528df3bb5fb61f1ebe1436"
+    },
+    {
+      "path": "scripts/check_ymf276_wasm_sdk.mjs",
+      "sha256": "a9dd96b4a3cfd9dac8d87bbc147a41d745355f57d8f400f81de909935a3832e8"
+    },
+    {
+      "path": "scripts/check_ymf288_wasm_sdk.mjs",
+      "sha256": "c60f02ac530b76f3530c5e4af335490733c6e5fa740ea92e3dc1b4122ec4cedd"
+    },
+    {
+      "path": "test/wasm_sdk_inventory.test.mjs",
+      "sha256": "95cd779226b4c3b95ee639b2f97980d3959fbdfc5d4d7a4fa7a432188dc75026"
+    }
+  ],
+  "remoteRerunDispatched": false,
+  "committedOrPushed": false
+}

@@ -22,6 +22,9 @@ const isObject = value => value !== null && typeof value === 'object' && !Array.
 const isHash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const isSize = value => Number.isSafeInteger(value) && value >= 0 && value <= 64 * 1024 * 1024;
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+// WonderSwan has its own recipe/receipt until a future pinned SDK contains it.
+// It may coexist in deployed references, never in strict SDK build outputs.
+const STANDALONE_OUTPUTS = ['wonderswan_wasm.js', 'wonderswan_wasm.wasm'];
 
 function relativeName(value, label) {
   requireValue(typeof value === 'string' && value.length > 0 && value.length <= 512
@@ -68,6 +71,33 @@ function freeze(value) {
     Object.freeze(value);
   }
   return value;
+}
+
+async function verifyStandaloneWonderSwan(directory) {
+  const name = 'wonderswan_build-info.json';
+  const receipt = await jsonFile(directory, name);
+  requireValue(isObject(receipt) && receipt.schemaVersion === 1 && receipt.artifact === 'wonderswan',
+    'Invalid standalone artifact receipt: wonderswan');
+  requireValue(Array.isArray(receipt.outputs) && receipt.outputs.length === STANDALONE_OUTPUTS.length,
+    'Invalid standalone output list: wonderswan');
+  for (const [index, output] of receipt.outputs.entries()) {
+    requireValue(isObject(output) && same(Object.keys(output).sort(), ['bytes', 'path', 'sha256'])
+      && output.path === STANDALONE_OUTPUTS[index] && isSize(output.bytes) && isHash(output.sha256),
+    'Unexpected standalone output: wonderswan');
+    const bytes = await containedFile(directory, output.path);
+    requireValue(bytes.length === output.bytes && sha256(bytes) === output.sha256,
+      `Standalone output hash/size mismatch: ${output.path}`);
+    if (output.path.endsWith('.wasm')) {
+      let compiled;
+      try { compiled = await WebAssembly.compile(bytes); }
+      catch (error) { throw new Error(`Invalid standalone WASM output: ${output.path}`, {cause: error}); }
+      const exports = WebAssembly.Module.exports(compiled);
+      requireValue(exports.some(entry => entry.name === 'memory' && entry.kind === 'memory')
+        && exports.some(entry => entry.name === 'wonderswan_generate' && entry.kind === 'function'),
+      `Standalone WASM output has no WonderSwan ABI: ${output.path}`);
+    }
+  }
+  return {id: 'wonderswan', receipt: name, outputs: receipt.outputs};
 }
 
 /** Load the pinned SDK catalog, independent of any sibling checkout or compiler. */
@@ -138,8 +168,9 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
 }
 
 /** Verify complete receipts, pinned inputs and actual outputs before running JS. */
-export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, inventory, verifySources = true} = {}) {
+export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, inventory, verifySources = true, allowStandaloneArtifacts = false} = {}) {
   requireValue(typeof verifySources === 'boolean', 'verifySources must be boolean');
+  requireValue(typeof allowStandaloneArtifacts === 'boolean', 'allowStandaloneArtifacts must be boolean');
   inventory ??= await loadWasmSdkInventory({root});
   const expectedSources = inventories.get(inventory);
   requireValue(expectedSources, 'inventory must be returned by loadWasmSdkInventory');
@@ -153,7 +184,10 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
   const entries = await readdir(absolute, {withFileTypes: true});
   requireValue(entries.length <= 4096, 'Too many files in WASM output directory');
   const wasmOutputs = entries.filter(entry => /\.(?:js|wasm)$/.test(entry.name)).map(entry => entry.name).sort();
-  requireValue(same(wasmOutputs, expectedOutputs), 'WASM output directory has missing or extra JS/WASM files');
+  const hasStandalone = allowStandaloneArtifacts && STANDALONE_OUTPUTS.some(name => wasmOutputs.includes(name));
+  const allowedOutputs = hasStandalone ? [...expectedOutputs, ...STANDALONE_OUTPUTS].sort() : expectedOutputs;
+  requireValue(same(wasmOutputs, allowedOutputs), 'WASM output directory has missing or extra JS/WASM files');
+  const standaloneArtifacts = hasStandalone ? [await verifyStandaloneWonderSwan(absolute)] : [];
   const sourceCache = new Map();
   const artifacts = [];
   for (const artifact of inventory.artifacts) {
@@ -215,5 +249,6 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
   }
   return {schemaVersion: 1, directory: absolute, artifactCount: artifacts.length,
     outputCount: expectedOutputs.length, verifiedSourceCount: verifySources ? sourceCache.size : 0,
-    sourcesVerified: verifySources, artifacts};
+    sourcesVerified: verifySources, artifacts,
+    ...(standaloneArtifacts.length ? {standaloneArtifacts} : {})};
 }

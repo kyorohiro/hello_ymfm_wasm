@@ -144,7 +144,7 @@ export async function checkWasmSdk(options={}) {
     snapshot=await snapshotInputs(inventory);summary.inputSnapshot=snapshot;
     await save();
     summary.offlineCheck=await runWasmSdkCommand('python3',[join(root,'scripts/import_soundchip_sdk.py'),'--check'],join(workDirectory,'logs/offline.log'),120000);
-    summary.reference=await verifyWasmBuildDirectory({root,directory:referenceDirectory,inventory});
+    summary.reference=await verifyWasmBuildDirectory({root,directory:referenceDirectory,inventory,allowStandaloneArtifacts:true});
     const dx7=await metadata(join(referenceDirectory,'msfa.wasm'));
     summary.dx7RuntimeCopies=[];
     for(const name of ['web/msfa_dx7/wasm/msfa.wasm','docs/js/msfa_dx7/wasm/msfa.wasm']){
@@ -178,7 +178,7 @@ export async function checkWasmSdk(options={}) {
     }
     summary.stage='integrity';await save();
     await verifySnapshot(snapshot,inventory);
-    assert.deepEqual(await verifyWasmBuildDirectory({root,directory:referenceDirectory,inventory}),summary.reference,'Original reference build changed');
+    assert.deepEqual(await verifyWasmBuildDirectory({root,directory:referenceDirectory,inventory,allowStandaloneArtifacts:true}),summary.reference,'Original reference build changed');
     assert.deepEqual(await verifyWasmBuildDirectory({root,directory:reference,inventory}),summary.referenceSnapshot,'Reference snapshot changed');
     assert.deepEqual(await verifyWasmBuildDirectory({root,directory:candidate,inventory}),summary.candidate,'Candidate build changed');
     if(reusedDirectory)assert.deepEqual(await verifyWasmBuildDirectory({root,directory:reusedDirectory,inventory}),summary.prebuilt,'Prebuilt source changed');

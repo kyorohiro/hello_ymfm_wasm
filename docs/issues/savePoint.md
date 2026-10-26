@@ -9,6 +9,12 @@ Last updated: 2026-10-27
 
 ### 現在地
 
+WonderSwan commit `92b1ba87...`のWASM SDK CI #10が、独立WonderSwanの2出力を余剰と判定して前段3件で失敗した。
+参照元のみ独立receiptによる出力照合を許可し、SDK27種類／53出力の厳密検証を維持した。
+比較4scriptの既知cache番号にも`wonderswan-mode-2`を追加した。音源／WASM／Mixerは変更しない。
+前段93件成功、全27新規ビルド成功、39,982比較で差0、53出力byte一致。変更は未commit／未pushで、remote CI再実行はまだ。
+詳細は[wonderswan_wasm_ci_01.md](wonderswan_wasm_ci_01.md)とJSON。次は修正のpush後にCI成功を確認する。
+
 WonderSwanをPlaygroundへ接続した。Mode `wonderswan`、主音源`ws`、追加生成、4CH Keyboard、波形描画／音程／左右音量／Noise／Sweepのタブ、
 初期コード・3 Example・型／補完・Main／Workerを用意した。BrowserとTauriのWeb Audio対応であり、Tauri Native backendは次段階。
 共有gateレジスターのmask merge、手動試聴と演奏の所有・clock予約、Stop／state handoff／processor異常からの再起動を確認した。
