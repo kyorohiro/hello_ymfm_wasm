@@ -64,6 +64,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くGame Boy APU WASMも同じ固定SDKへ切り替えた。2 pulse・wave・noiseと既存保存状態APIを維持した。
 直接Web用に残っていた保存状態exportのない旧生成物も、別のPCM比較後にSDK版へ揃えた。
 詳細は[Game Boy APU WASMのSDK移行](wasm_sdk_gameboy_adoption_01.md)を参照。
+続くNES APU／FDS WASMも固定SDKへ切り替えた。31項目の観測ABIとowned／borrowed PCMを維持し、保存状態APIは追加していない。
+配布ソースもSDKの検証済み入力とstandalone recipeから作り、単体再buildを確認した。
+詳細は[NES APU／FDS WASMのSDK移行](wasm_sdk_nesapu_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1257,9 +1260,27 @@ Python83件・既存Game Boy関連79件とnpm／Analyzer ZIPの検証が成功�
 両Browserで主／追加Workletの4経路と、既存editor／Keyboard試験を絞った4 voice・対象切替・release／Stopが成功した。
 詳細と最終結果・hashは[Game Boy移行記録](wasm_sdk_gameboy_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計17 artifact。次はNES APU／FDS用WASMへの展開が候補。
-`scripts/build_nesapu_wasm.sh`と配布source bundleの参照先を調べ、既存のNES／FDS API・DMC／wave RAM・状態保存・Browser／npm経路を確認して移行する。
-残り10 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はGame Boy移行時の記録。続くNES APU／FDS移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — NES APU／FDS WASMの固定SDK参照
+
+`scripts/build_nesapu_wasm.sh`もSDK `0.1.1`のWASMレシピを使う。
+固定379ファイルとpin、公開API／Mixer値を保持し、先行17音源の記録・34生成物も維持した。
+C++17／例外・FP設定、18 C exportとloader／runtime各5項目を維持する。
+配布済みdocs・旧再ビルド・SDK・通常出力・webのJS／WASMはすべてbyte一致した。
+
+各912比較・2,354,100主比較フレームで差0。reset／再演奏276回と31項目のcontrol直後／終端観測・RAMを確認した。
+400byte getStateは観測ABIで保存状態ではなく、WASM Player adapter／checkpointは追加していない。既存Analyzer／PlayerのJS referenceは維持する。
+配布用ソースはSDK10入力を検証後に出力し、standalone recipeの2 vendor pathだけを既存third_party配置へ移す。
+source単体buildと生成物一致、core／recipe／manifestの改変拒否、npm／Analyzer ZIPの収録も確認した。
+Python87件・既存NES関連77件、両Browserの主／追加Worklet4経路・全6CH Keyboard／Operators／DMC／FDS／Stopが成功した。
+詳細とhashは[NES移行記録](wasm_sdk_nesapu_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計18 artifact。次はSNES／SPC用WASMへの展開が候補。
+`scripts/build_spc_wasm.sh`とSDKのspc target、LGPLの対応ソース同梱を調べ、SPC／S-DSPの既存API・再生・Browser／npmを比較して移行する。
+残り9 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

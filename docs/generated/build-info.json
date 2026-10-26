@@ -194,6 +194,60 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "nesapu",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "c6a668de97db77fe10bd109e927632e773d4700f5812ab8e9561abcdd71e826b",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_nesapu_wasm.sh",
+          "sha256": "07d6d82cae438db2ea2f8f329fb57c0e490cdf3d8201c67d210ab35683fa744e",
+          "size": 1072
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/tetorica-nes/nes_core.cpp",
+          "sha256": "6658f4012eeac783ea72693b2284dd150dcb2e22a1f29859b83e1ae3d333f959",
+          "size": 32166
+        },
+        {
+          "path": "vendor/tetorica-nes/nes_core.h",
+          "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
+          "size": 2163
+        },
+        {
+          "path": "wasm/nesapu_wasm.cpp",
+          "sha256": "49f5f980b5685fc4b3878369e367700e37fbf143db4930765ab347a702d7e105",
+          "size": 2389
+        }
+      ],
+      "outputs": [
+        {
+          "path": "nesapu_wasm.js",
+          "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b",
+          "size": 16041
+        },
+        {
+          "path": "nesapu_wasm.wasm",
+          "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+          "size": 30410
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "okim6258",
       "format": "emscripten-es-module",
       "sourceFingerprint": "02878a241917a4d4365771ba4f3b63f4d4ab035c32aed46249321f86bad33eb6",

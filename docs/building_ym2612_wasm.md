@@ -26,6 +26,7 @@ download or synchronized edit of another repository is required.
 | 32X PWM | `scripts/build_pwm32x_wasm.sh` | `pwm32x_wasm` |
 | HuC6280 | `scripts/build_huc6280_wasm.sh` | `huc6280_wasm` |
 | Game Boy APU | `scripts/build_gameboy_apu_wasm.sh` | `gameboy_apu_wasm` |
+| NES APU / FDS | `scripts/build_nesapu_wasm.sh` | `nesapu_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -48,6 +49,7 @@ sh scripts/build_rf5c164_wasm.sh
 sh scripts/build_pwm32x_wasm.sh
 sh scripts/build_huc6280_wasm.sh
 sh scripts/build_gameboy_apu_wasm.sh
+sh scripts/build_nesapu_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -58,7 +60,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine` and `GameboyApu` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu` and `NesApuWasm` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -88,12 +90,13 @@ sh /path/to/checkout/scripts/build_rf5c164_wasm.sh ./rf5c164-output
 sh /path/to/checkout/scripts/build_pwm32x_wasm.sh ./pwm32x-output
 sh /path/to/checkout/scripts/build_huc6280_wasm.sh ./huc6280-output
 sh /path/to/checkout/scripts/build_gameboy_apu_wasm.sh ./gameboy-output
+sh /path/to/checkout/scripts/build_nesapu_wasm.sh ./nes-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
-O2, the existing exports and memory growth settings. AY and Game Boy use C++17
-without `EXPORT_ALL`, retaining ten and eleven exports respectively; the other recipes above use C++14.
-OPN, YM2413, Sega PSG and RF5C164 recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+O2, the existing exports and memory growth settings. AY, Game Boy and NES use C++17
+without `EXPORT_ALL`, retaining ten, eleven and eighteen exports respectively; the other recipes above use C++14.
+OPN, YM2413, Sega PSG and RF5C164 recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -132,6 +135,20 @@ or untrusted-input format. `GameboyApuAudioEngine` additionally validates its
 rate, volume and channel-mask settings before loading its own snapshot tokens.
 Its `process(left, right, frames)` fills caller buffers through owned generation;
 no low-level Into, borrowed-buffer, read/status or IRQ API is introduced.
+NES retains `-fwrapv`, `-fno-strict-aliasing`, `-ffp-contract=off`,
+`-fexceptions` and `DISABLE_EXCEPTION_CATCHING=0`. Its incoming loader options
+remain `wasmBinary`, `locateFile`, `print`, `printErr` and `noInitialRun`; runtime
+methods remain `cwrap`, `HEAPU8`, `HEAPU32`, `HEAPF32` and `HEAPF64`.
+Asynchronous `NesApu.create()` uses WASM; `new NesApu()` retains the synchronous
+JavaScript reference. The WASM wrapper retains five APU voices, optional FDS,
+64 KiB RAM load/read, owned output and cached borrowed views. Its 400-byte,
+31-field applied-state observation is not a save/load facility. Reset clears
+RAM, FDS tables and synthesis history while retaining mutes and C clock override.
+Existing Analyzer/Player NES playback continues to use the separate JavaScript
+engine, including its snapshots; this migration adds no WASM Player adapter.
+Distribution source bundles contain verified SDK inputs and a standalone
+recipe with only its two vendor paths relocated to the existing `third_party/`
+layout. They rebuild without the checkout's SDK dispatcher or Python importer.
 
 ## Fixed source and updates
 
@@ -141,6 +158,8 @@ SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
 and `vendor/` notices; these seventeen wrappers, ymfm inputs and the MAME-derived
 OKIM6258, AY, RF5C164, PWM, HuC6280 and Game Boy adaptations retain BSD-3-Clause.
+NES/FDS retains its Apache-2.0 JSNES and MIT FDS licenses, authors and provenance;
+these terms are separate from the seventeen BSD-3-Clause module recipes.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
 their location under `vendor/ymfm/` does not make them ymfm-originated code.
 
@@ -232,6 +251,10 @@ node scripts/check_gameboy_apu_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-gameboy-build \
   --sdk-dir /path/to/sdk-gameboy-build \
   --out /tmp/gameboy-comparison.json
+node scripts/check_nesapu_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-nes-build \
+  --sdk-dir /path/to/sdk-nes-build \
+  --out /tmp/nes-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -305,10 +328,16 @@ timing and owned output. Snapshot comparisons validate headers/configuration
 and exact PCM continuation through public tokens and trusted same-build native
 loads; they do not claim equality of ABI padding. Actual VGM `0xb3` playback
 and the Player's existing checkpoint/seek behavior are also checked.
+The NES checker compares actual WASM pulse, triangle, noise, DMC and FDS PCM,
+31-field observations, RAM readback, reset/replay and owned/borrowed buffers.
+Mute/filter history is compared against the retained JavaScript reference with
+the same history. VGM `0xb4` writes and type-`0xc2` RAM blocks are checked through
+the existing parser and a recording target; no WASM Player/checkpoint integration
+or inaccessible full-state equality is claimed.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The seventeen module recipes above have switched to this build source. Other chip recipes and
+The eighteen module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.

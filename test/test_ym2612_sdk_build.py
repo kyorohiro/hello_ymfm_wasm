@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
-             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu')
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -124,6 +124,14 @@ GAMEBOY_APU_EXPORTS = [
     '_gameboy_apu_generate', '_gameboy_apu_save_state', '_gameboy_apu_load_state',
     '_malloc', '_free',
 ]
+NESAPU_EXPORTS = [
+    '_native_nes_create', '_native_nes_destroy', '_native_nes_reset',
+    '_native_nes_stop', '_native_nes_write', '_native_nes_enable',
+    '_native_nes_load', '_native_nes_set_mute', '_native_nes_set_clock',
+    '_native_nes_sample', '_native_nes_get_state', '_native_nes_read_memory',
+    '_nesapu_generate', '_nesapu_state_size', '_nesapu_state_field_count',
+    '_nesapu_state_offset', '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -138,6 +146,7 @@ def sha256(data):
                      'These shell-route integration tests require POSIX sh and Node')
 class SdkBuildRouteMixin:
     runtime_methods = ['cwrap', 'HEAPF32']
+    incoming_module_api = ['wasmBinary']
     language_standard = 'c++14'
     export_all = True
     trim_glue = False
@@ -147,6 +156,7 @@ class SdkBuildRouteMixin:
     include_directories = ['vendor/ymfm']
     quoted_header_directories = ()
     floating_point_flags = []
+    additional_behavior_flags = []
     support_sources = ['wasm/ymfm_wasm_interface.h', 'vendor/ymfm/ymfm_fm.ipp',
                        'vendor/ymfm/chip_state.h']
     extra_manifest_headers = ('vendor/ymfm/chip_state.h',)
@@ -259,13 +269,17 @@ else:
                          ['-std=' + self.language_standard])
         self.assertEqual([value for value in arguments if value.startswith('-ffp-contract=')],
                          self.floating_point_flags)
+        self.assertEqual([value for value in arguments
+                          if value in ('-fwrapv', '-fno-strict-aliasing', '-fexceptions')
+                          or value.startswith('-sDISABLE_EXCEPTION_CATCHING=')],
+                         self.additional_behavior_flags)
         self.assertEqual([value for value in arguments if value.startswith('-sEXPORT_ALL=')],
                          ['-sEXPORT_ALL=1'] if self.export_all else [])
         self.assertEqual([value for value in arguments if value.startswith('-sASSERTIONS=')],
                          ['-sASSERTIONS=1'] if self.assertions else [])
         for flag, expected in (('-sEXPORTED_FUNCTIONS=', self.exports),
                                ('-sEXPORTED_RUNTIME_METHODS=', self.runtime_methods),
-                               ('-sINCOMING_MODULE_JS_API=', ['wasmBinary'])):
+                               ('-sINCOMING_MODULE_JS_API=', self.incoming_module_api)):
             actual = next(value[len(flag):] for value in arguments if value.startswith(flag))
             self.assertEqual(json.loads(actual), expected)
         javascript = self.artifact + '_wasm.js'
@@ -613,6 +627,30 @@ class GameboyApuSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280'])
+
+
+class NesApuSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'nesapu'
+    exports = NESAPU_EXPORTS
+    runtime_methods = ['cwrap', 'HEAPU8', 'HEAPU32', 'HEAPF32', 'HEAPF64']
+    incoming_module_api = ['wasmBinary', 'locateFile', 'print', 'printErr', 'noInitialRun']
+    language_standard = 'c++17'
+    export_all = False
+    assertions = False
+    floating_point_flags = ['-ffp-contract=off']
+    additional_behavior_flags = ['-fwrapv', '-fno-strict-aliasing', '-fexceptions',
+                                 '-sDISABLE_EXCEPTION_CATCHING=0']
+    vendor_sources = ['vendor/tetorica-nes/nes_core.cpp']
+    core_header = 'vendor/tetorica-nes/nes_core.h'
+    include_directories = ['vendor/tetorica-nes']
+    support_sources = []
+    extra_manifest_headers = ()
+
+    def test_shared_output_preserves_all_seventeen_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu'])
 
 
 if __name__ == '__main__':
