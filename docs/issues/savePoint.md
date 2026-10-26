@@ -49,6 +49,9 @@ X68000のFM・ADPCM双方のビルド元が揃った。詳細は[OKIM6258 WASM�
 続くAY-3-8910／YM2149 WASMも同じ固定SDKへ切り替えた。tone・noise・envelopeと全対応type／flag、register読出し、reset／再演奏／seekを比較した。
 JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力がすべてbyte一致した。
 詳細は[AY-3-8910／YM2149 WASMのSDK移行](wasm_sdk_ay8910_adoption_01.md)を参照。
+続くSega PSG WASMも同じ固定SDKへ切り替えた。Genesis系・Game Gear・Master System・追加PSGで共有するartifactのビルド元を統一した。
+3 tone／noise・Game Gear stereo、状態保存／復元とowned／borrowed PCMを比較し、生成物は旧版とbyte一致した。
+詳細は[Sega PSG WASMのSDK移行](wasm_sdk_segapsg_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1142,8 +1145,28 @@ Python63件と既存AY／MSX試験45件、両Browserの6 Worklet経路、MSX／A
 隔離npm配布物と型、Analyzer ZIPも成功。出力bytesと校正hashが変わらず、再測定や音量変更は不要だった。
 詳細と最終比較結果・hashは[AY移行記録](wasm_sdk_ay8910_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計12 artifact。次はSega PSG用WASMへの展開が候補。
-残り15 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はAY移行時の記録。続くSega PSG移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — Sega PSG WASMの固定SDK参照
+
+`scripts/build_segapsg_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルと取り込み記録、公開APIとMixer値を保持し、先行12音源の記録・24生成物も維持した。
+PSGのC++14／O2・ASSERTIONS／EXPORT_ALL・12個の公開C exportを保持する。
+配布済み・旧手順再ビルド・SDK・通常出力のJS／WASMはすべてbyte一致した。
+
+旧再ビルド／配布済み版との各7,074比較・32,864,256出力ステレオフレームで差0。
+3CH tone・noise・byte latch、全256 Game Gear stereo mask、mute位相と40byte状態を比較した。
+public同一instance復元414回・raw状態の相互復元324回・reset／再演奏432回も成功。
+実GenesisAudioEngineのFM＋PSG継続と、実VgmPlayerの状態／checkpoint／seekを確認した。
+既存VGM parserが0x4fをskipする仕様は保持し、直接APIのGame Gear stereo検証と区別する。
+Python67件と既存PSG／Genesis試験52件、両Browserの10 Worklet経路、SMS／GGのKeyboard UIを検証済み。
+隔離npm配布物と型、Analyzer ZIPも成功。出力bytesと校正hashが変わらず、再測定や音量変更は不要だった。
+詳細と最終比較結果・hashは[PSG移行記録](wasm_sdk_segapsg_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計13 artifact。次はRF5C164用WASMへの展開が候補。
+残り14 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

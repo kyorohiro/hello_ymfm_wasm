@@ -12,7 +12,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
-             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910')
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -90,6 +91,12 @@ AY8910_EXPORTS = [
     '_ay8910_create', '_ay8910_destroy', '_ay8910_reset', '_ay8910_write',
     '_ay8910_read', '_ay8910_sample_rate', '_ay8910_set_mute_mask',
     '_ay8910_generate', '_malloc', '_free',
+]
+SEGAPSG_EXPORTS = [
+    '_segapsg_create', '_segapsg_destroy', '_segapsg_reset', '_segapsg_write',
+    '_segapsg_set_mute_mask', '_segapsg_set_stereo', '_segapsg_sample_rate',
+    '_segapsg_generate', '_segapsg_save_state', '_segapsg_load_state',
+    '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -486,6 +493,19 @@ class Ay8910SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         self.assert_shared_output_preserves(
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950'])
+
+
+class SegaPsgSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'segapsg'
+    exports = SEGAPSG_EXPORTS
+    vendor_sources = ['vendor/ymfm/segapsg.cpp']
+    core_header = 'vendor/ymfm/segapsg.h'
+    support_sources = ['vendor/ymfm/chip_state.h']
+
+    def test_shared_output_preserves_all_twelve_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910'])
 
 
 if __name__ == '__main__':

@@ -3,21 +3,13 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
 OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
 
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
 
-# Keep runtime checks while optimizing the audio-thread synthesis hot path.
-em++ -std=c++14 -O2 -sASSERTIONS=1 \
-  -Isrc \
-  wasm/segapsg_wasm.cpp \
-  src/segapsg.cpp \
-  -sMODULARIZE=1 \
-  -sEXPORT_ES6=1 \
-  -sINCOMING_MODULE_JS_API='["wasmBinary"]' \
-  -sENVIRONMENT=web,worker,node,shell \
-  -sALLOW_MEMORY_GROWTH=1 \
-  -sEXPORT_ALL=1 \
-  -sEXPORTED_FUNCTIONS='["_segapsg_create","_segapsg_destroy","_segapsg_reset","_segapsg_write","_segapsg_set_mute_mask","_segapsg_set_stereo","_segapsg_sample_rate","_segapsg_generate","_segapsg_save_state","_segapsg_load_state","_malloc","_free"]' \
-  -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPF32"]' \
-  -o "$OUT_DIR/segapsg_wasm.js"
+# Keep the existing PSG byte writes, stereo routing, synchronous PCM and state ABI
+# while building the checked, bundled SDK sources without a network dependency.
+exec sh "$SDK_DIR/scripts/build-wasm.sh" segapsg "$OUT_DIR"
