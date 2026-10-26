@@ -1,11 +1,11 @@
-import {createOplRegisterClient,stageOplAuthorEdit} from './playground_opl.js?v=wonderswan-mode-2';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=wonderswan-mode-2';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=wonderswan-mode-2';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-mode-2';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-mode-2';
-import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
-import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=wonderswan-mode-2';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-ui-1';
+import {createOplRegisterClient,stageOplAuthorEdit} from './playground_opl.js?v=wonderswan-native-1';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=wonderswan-native-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=wonderswan-native-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-native-1';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
+import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=wonderswan-native-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-native-1';
 
 export const EXTRA_OPL_CHIPS=Object.freeze(['ym3526','ym3812','y8950','ymf262']);
 export const extraOplClockHeldError=kind=>`Release the manually held additional ${kind.toUpperCase()} voices before changing the clock`;

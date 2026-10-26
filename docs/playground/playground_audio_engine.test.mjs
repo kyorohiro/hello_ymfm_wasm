@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {PLAYGROUND_MODES} from './playground_mode.js';
 import {supportsPlaygroundAudioEngineMode,resolvePlaygroundAudioEngine} from './playground_audio_engine.js';
 
-test('Native supports the existing standard modes and keeps Atari ST and WonderSwan on Web Audio',()=>{
-  assert.equal(PLAYGROUND_MODES.filter(mode=>!['atari-st','wonderswan'].includes(mode.id)).length,21);
+test('Native supports the existing standard modes and keeps Atari ST on Web Audio',()=>{
+  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,22);
   for(const mode of PLAYGROUND_MODES){
-    const native=!['atari-st','wonderswan'].includes(mode.id);
+    const native=mode.id!=='atari-st';
     assert.equal(supportsPlaygroundAudioEngineMode('webaudio',mode.id),true,mode.id);
     assert.equal(supportsPlaygroundAudioEngineMode('native',mode.id),native,mode.id);
     assert.equal(resolvePlaygroundAudioEngine({search:'?audioEngine=native',desktop:true,modeId:mode.id}).engine,native?'native':'webaudio');
@@ -22,11 +22,13 @@ test('Atari ST cannot select Native even in a desktop URL',()=>{
     {requested:'native',engine:'webaudio',available:false});
 });
 
-test('WonderSwan cannot select Native even in a desktop URL',()=>{
+test('WonderSwan supports Native only when selected in the desktop app',()=>{
   assert.equal(supportsPlaygroundAudioEngineMode('webaudio','wonderswan'),true);
-  assert.equal(supportsPlaygroundAudioEngineMode('native','wonderswan'),false);
+  assert.equal(supportsPlaygroundAudioEngineMode('native','wonderswan'),true);
   assert.deepEqual(resolvePlaygroundAudioEngine({search:'?mode=wonderswan&audioEngine=native',desktop:true,modeId:'wonderswan'}),
-    {requested:'native',engine:'webaudio',available:false});
+    {requested:'native',engine:'native',available:true});
+  assert.equal(resolvePlaygroundAudioEngine({modeId:'wonderswan',desktop:true}).engine,'webaudio');
+  assert.equal(resolvePlaygroundAudioEngine({modeId:'wonderswan',desktop:false,search:'?audioEngine=native'}).engine,'webaudio');
 });
 
 test('Web Audio remains the default and Native requires desktop selection for Nuked modes',()=>{

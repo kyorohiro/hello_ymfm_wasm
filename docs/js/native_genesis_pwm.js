@@ -1,6 +1,6 @@
 /** Native 32X PWM command adapter. Rendering and reservations stay in C++. */
-import {readPwmInspector} from './playground_chip_inspector_state.js?v=wonderswan-mode-2';
-import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {readPwmInspector} from './playground_chip_inspector_state.js?v=wonderswan-native-1';
+import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
 
 const integer=(value,max,name)=>{if(!Number.isSafeInteger(value)||value<0||value>max)throw new RangeError(`Invalid PWM ${name}`);return value;};
 const abort=()=>new DOMException('Native PWM operation was cancelled','AbortError');

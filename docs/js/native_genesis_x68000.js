@@ -1,10 +1,10 @@
 /** X68000 control helpers shared with Web Audio; Native owns both renderers. */
 import {noteToHz,opmPitchFromHz} from './soundchip_pitch.js';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
-import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js?v=wonderswan-mode-2';
-import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=wonderswan-mode-2';
-import {Oki6258Synth,OKIM6258_DIVIDERS,oki6258Rate,encodeOki6258,summarizeOki6258} from './okim6258synth.js?v=wonderswan-mode-2';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js?v=wonderswan-native-1';
+import {Oki6258VoiceInspector} from './playground_okim6258_inspector.js?v=wonderswan-native-1';
+import {Oki6258Synth,OKIM6258_DIVIDERS,oki6258Rate,encodeOki6258,summarizeOki6258} from './okim6258synth.js?v=wonderswan-native-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-native-1';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
 

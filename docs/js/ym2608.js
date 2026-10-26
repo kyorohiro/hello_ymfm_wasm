@@ -39,8 +39,8 @@ export class Ym2608 {
    * Initialize Ym2608 and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
    * @param {Object} [options={}] Chip and Emscripten initialization settings.
-   * @param {import('./soundchip.js?v=wonderswan-mode-2').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
-   * @param {import('./soundchip.js?v=wonderswan-mode-2').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @returns {Promise<Ym2608>} Ready-to-use chip; the caller must dispose it.
    */
   static async create(options = {}) {

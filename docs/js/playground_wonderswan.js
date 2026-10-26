@@ -1,5 +1,5 @@
-import {attachChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
-import {WonderSwanSynth, WONDERSWAN_CLOCK} from './wonderswansynth.js?v=wonderswan-mode-2';
+import {attachChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {WonderSwanSynth, WONDERSWAN_CLOCK} from './wonderswansynth.js?v=wonderswan-native-1';
 
 /** Immediate, ordered register/RAM commands shared by Main and Worker runtimes.
  * This client keeps authored state; it does not read advancing core registers.
@@ -25,6 +25,11 @@ export function createWonderSwanClient(port, options = {}, lifecycle = {}) {
     const state = synth._getState(); state.registers[16] &= 0xf0; synth._adoptState(state);
     return controlled._requestControl('stopVoices');
   }});
+  if(options.native){
+    const setClock=controlled.setClock.bind(controlled);
+    const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
+    controlled.setClock=hz=>{const context=lifecycle.captureContext?.();check(context);return setClock(hz).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
+  }
   return controlled;
 }
 

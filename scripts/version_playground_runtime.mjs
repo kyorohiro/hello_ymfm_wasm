@@ -272,8 +272,9 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>atariFiles.has(match[1]))){atariFiles.add(name);propagated=true;}
 }}while(propagated);
-const wonderswanVersion='wonderswan-mode-2';
+const wonderswanVersion='wonderswan-native-1';
 const wonderswanFiles=new Set(['wonderswan.js','wonderswansynth.js','playground_wonderswan.js','playground_wonderswan_audio.js','playground_wonderswan_worklet.js','playground_wonderswan_inspector.js','playground_wonderswan_voice_panel.js','playground_keyboard_channels.js','playground_performance_processor.js','playground_native_primary.js','native_runtime_synth.js','tetorica_synth.js','playground_soundchips.js','playground_runtime.js','playground_logic_worker.js','playground_chip_clock.js','playground.js','playground_ui.js','playground_mode.js','playground_mode_examples.js','playground_examples.js','playground_mode_keyboard.js','playground_mode_project.js','playground_mode_starters.js','playground_declarations.js','playground_monaco.js','playground_monaco_completion.js','playground_chip_tabs.js','playground_operator_keyboard.js','playground_workbench.js','playground_audio_engine.js','playground_mixer_defaults.js']);
+for(const name of ['native_genesis_wonderswan.js','native_genesis_extra_wonderswan.js','native_genesis_synth.js','native_genesis_worker.js','native_genesis_extra_chip.js'])wonderswanFiles.add(name);
 do {propagated=false;for(const {name,source}of sources){
   if(wonderswanFiles.has(name))continue;
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];

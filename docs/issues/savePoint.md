@@ -9,21 +9,43 @@ Last updated: 2026-10-27
 
 ### 現在地
 
-本体とTauriの固定SDKを、公開済みの同じ0.1.4ソースZIP（各395ファイル）へ更新した。
-全28 WASMを実再buildし、55出力は退避した従来版とすべてbyte一致。新しい共通receiptの170入力を照合した。
-WonderSwanも固定SDKの通常recipe／中央`build-info.json`へ統合し、独立receiptと一時的な検証例外を撤去した。
-全体40,360比較でPCM／API差0、WonderSwan旧版対SDK378ケース／Native対SDK126ケースも差0。
-Importer19件・build route113件・receipt／CLI95件、npm配布物のinstall／実行／型、最終flat ZIPのChromium／WebKitが成功。
-TauriはPython22／Node31件・Rust726成功＋4ignored、既存22mode・追加混合／16台制限／Stop予算0が成功。
-frontend918ファイルとNative22固定記録・対応ソースZIP1,851ファイルも照合済み。Mixer・音声bytes・Native対応範囲は維持。
-ユーザーが本体`a72c44cf5569ad8f9a628ee380987fe3d5a735ef`／Tauri`d3885716a152994b7c483ab4675a5a9e3e6aa37f`へcommit／push済み。
-本体の全28 WASM CI run `40391153310`は成功。取得した成果物も両28／55 receipt・170入力・全40,360比較を照合した。
-Tauriのmain手動dispatch run `40391737139`も全5構成success。Windows／Linux x86_64・ARM64／macOS Intel・ARM64で検証とinstaller生成が成功した。
-全5構成の検証artifact（計15 JSON）を取得し、SDK0.1.4／395ファイル・22固定記録・frontend・22mode／追加混合／16台制限／Stop予算0を照合した。
-対応sourceZIPは全構成1,851ファイル、Windowsのhashは他4構成と異なるが各job内の照合は成功。installerの起動／実聴は行っていない。
-WonderSwan Native接続の読み取り調査を[実装計画](native_wonderswan_01.md)へ記録した。音声接続コードはまだ変更していない。
-次は[WonderSwanのTauri Native Audio接続](native_wonderswan_01.md)。CI結果と計画の追記のみ未commitで、今回音声接続コードは変更していない。
-詳細とhashは[sdk_014_adoption_01.md](sdk_014_adoption_01.md)とJSONを参照。SDK原本と公開タグは変更していない。
+WonderSwanのTauri Native Audio接続を実装し、ローカル検証と配布物の取り込みを完了した。
+選択中`wonderswan` modeと独立した`createSoundChip('wonderswan')`、Main／Worker、4CH Keyboard、
+波形／pan／Noise／SweepのInspectorを接続。Web Audioが既定のまま、Nativeの対応modeにWonderSwanを追加した。
+固定SDK0.1.4のrawコアを一度だけビルドし、アプリ側の新adapterでBrowserと同じspeaker補正・初回fetch境界・clock変換を行う。
+共有0x90のmask merge、実アドレスによるRAM保護、manual lease、clock予約とcancel、Stop／reset／retirementを検証した。
+Stopは主音源のRAM・音色・clockを保持。定期観測で16KiB RAMを毎callbackコピーしない。
+
+実Worklet対Nativeは204ケース・995,328ステレオフレーム、raw WASM比較9ケース・73,728フレームで差0。
+C++377,424チェックとASan／UBSan成功。2,048 hot blockでC++ new／delete 0。
+新Rust15件・全体741成功＋4ignored、Native23mode・631,488frames・92 Run／Stopが成功。
+追加音源は4混合／8単独／16台制限／17台目拒否／予約rollback／Stop予算0が成功した。
+JS関連1,276件・page＋focused1,106件（重複あり）、新機能10件・creation lifecycle12件、mode型／npm配布物も成功。
+全28 WASM／55出力の最終回帰40,360比較は差0・入力snapshot不変。以前実再buildしたSDK0.1.4成果物を再利用した。
+固定SDKは本体／Tauri各395ファイルのまま、音声55出力とMixerソース3ファイルもHEADとbyte一致。
+
+最終flat ZIPのChromium／WebKitでNative UIと実Web Audioを別々に確認した。
+Native UIはRPCモックによる接続試験でAudioContext／Workletを作成せず、音声計算自体は上記C++／Rust試験で別途検証した。
+ZIPは`release/hello_ymfm_wasm_wonderswan-native-dev_itch_playground.zip`、SHA256
+`b74be494e9da737f09b62aa8a417ac7b4c74ecadbfaf28042f069a7368b077f1`。
+Tauriへ920ファイルを取り込み、Python22／Node31件・frontend照合・Native22固定記録も成功。
+新adapter・SDK原典・BSDライセンスを含む対応sourceZIPは1,861ファイル、SHA256
+`c9dafaca455a09a743065a3ebe9ecb7a4dc4c8eeccd3415ef530cfbcc247530f`で照合済み。
+
+本体とTauriの今回の変更は未commit。SDK原本／公開tag・npm版は変更していない。
+次は本体とTauriをcommit／pushし、その新HEADでTauriの5構成CIを実行して、実アプリでNative WonderSwanを聴く。
+今回の実装はローカルmacOS ARM64の検証で、物理音声・実時間deadline・聴感ノイズ・新コードの他OS動作は未確認。
+実装と再現手順・hashは[native_wonderswan_01.md](native_wonderswan_01.md)とJSONを参照。
+
+### 直前のSDK取り込みCI（今回のNative接続前）
+
+固定SDK0.1.4の取り込みは本体`a72c44cf5569ad8f9a628ee380987fe3d5a735ef`／
+Tauri`d3885716a152994b7c483ab4675a5a9e3e6aa37f`へユーザーcommit／push済み。
+本体の全28 WASM CI run `40391153310`と、Tauriの全5構成run `40391737139`はsuccess。
+両28／55 receipt・170入力・全40,360比較と、全5構成の検証artifact計15 JSONを取得して照合した。
+Windows／Linux x86_64・ARM64／macOS Intel・ARM64で検証とinstaller生成が成功。installerの起動／実聴は未実施。
+当時のfrontendは918ファイル、対応sourceZIPは1,851ファイル。これらのCIは今回のWonderSwan Native接続を含まない。
+SDK取り込みの詳細は[sdk_014_adoption_01.md](sdk_014_adoption_01.md)とJSONを参照。
 
 ### 直前のSDK公開とPlayground接続
 

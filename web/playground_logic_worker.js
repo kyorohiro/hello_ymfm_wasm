@@ -399,7 +399,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     postMessage({type:'primary-pcm-clock',clock:primaryPcmClient.clock});
   }, () => (!run.stopped || run.currentLoop?.keyboardCleanup) && !run.currentLoop?.stopped)) : null;
   const chip = !nativePrimary && chipConnection ? createWorkerChip({...chipConnection,port:performanceTransport.port(chipConnection.port,'chip'),capabilities,observe:event=>postMessage({type:"chip-observer",event})}) : null;
-  run.adoptNativeState=(name,state)=>native.adopt(name,state);
+  run.adoptNativeState=(name,state,authorEdit)=>native.adopt(name,state,authorEdit);
   run.adoptExtraOplState=(id,state,instance,authorEdit)=>{if(!Number.isSafeInteger(instance)||instance<1)return;for(const client of pcmClients)if(client.id===id&&pcmInstances.get(client)===instance){if(authorEdit&&client._applyAuthorEdit)client._applyAuthorEdit(authorEdit);else client._adoptState?.(state);}};
   run.resumeChip = () => chip?.resume();
   const workerDac = chip && capabilities.dac ? createWorkerDac(chip.send, timing) : null;
@@ -1031,7 +1031,7 @@ self.onmessage = (event) => {
   if (message.type === 'tempo') { currentRun?.setBpm(message.bpm); return; }
   if (message.type === 'extra-opl-state') {currentRun?.adoptExtraOplState(message.id,message.state,message.instance,message.authorEdit);return;}
   if (message.type === 'extra-chip-disposed') {currentRun?.disposeExtraChip(message.id,message.instance);return;}
-  if (message.type === 'native-primary-state') {currentRun?.adoptNativeState(message.name,message.state);return;}
+  if (message.type === 'native-primary-state') {currentRun?.adoptNativeState(message.name,message.state,message.authorEdit);return;}
   if (message.type === 'chip-clock-state') { currentRun?.adoptChipClock(message.clock); return; }
   if (message.type === "chip-state") { currentRun?.adoptChipState(message.state); return; }
   if (message.type === "chip-port") { chipConnection?.port.close(); chipConnection={port:message.port,state:message.state}; return; }

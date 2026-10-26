@@ -1,5 +1,5 @@
 import {noteToHz} from './soundchip_pitch.js';
-import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-mode-2';
+import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-native-1';
 
 export {WONDERSWAN_CLOCK};
 
@@ -158,6 +158,16 @@ export class WonderSwanSynth {
   /** Internal authored state for Main/Worker handoff; never live register readback. */
   _getState() {
     return {clock:this.clock, initialized:this.#initialized, registers:Array.from(this.#registers), memory:Array.from(this.#memory)};
+  }
+  /** Merge a Native editor's explicit fields into future authored state. */
+  _applyAuthorEdit(patch) {
+    configuration(patch,['clock','registers','memory']);
+    for(const [field,maximum]of [['registers',128],['memory',16384]])if(patch[field]!==undefined&&(!Array.isArray(patch[field])||patch[field].length>maximum||patch[field].some(entry=>!Array.isArray(entry)||entry.length<2||entry.length>(field==='registers'?3:2))))throw new TypeError('Invalid WonderSwan author edit');
+    const state=this._getState();
+    for(const [index,value,mask=255]of patch.registers??[]){integer(index,0,31,'register index');integer(value,0,255,'register byte');integer(mask,0,255,'register mask');state.registers[index]=(state.registers[index]&~mask)|(value&mask);}
+    for(const [address,value]of patch.memory??[]){integer(address,0,16383,'RAM address');state.memory[address]=integer(value,0,255,'RAM byte');}
+    if(patch.clock!==undefined)state.clock=integer(patch.clock,100000,100000000,'clock');
+    this._adoptState(state);
   }
   /** Adopt authored state without replaying writes, resets or hardware triggers. */
   _adoptState(state) {

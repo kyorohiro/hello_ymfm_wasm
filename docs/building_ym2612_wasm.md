@@ -251,8 +251,10 @@ Its four waveform voices, Noise, Sweep, direct Voice PCM, 16 KiB RAM and
 synchronous register/RAM access are unchanged. The raw headphone DAC remains
 unipolar with its original `/1024` gain and integer clock/128 sample hold;
 speaker DC correction remains in the application adapter. Owned, borrowed and
-caller-buffer stereo generation retain their existing APIs. This SDK adoption
-does not add a Tauri Native Audio adapter or a save/load state API.
+caller-buffer stereo generation retain their existing APIs. The SDK adoption
+did not change these APIs or add save/load state. The subsequent
+[Tauri Native Audio integration](issues/native_wonderswan_01.md) uses the same
+fixed raw core through a separate application speaker/scheduling adapter.
 NES retains `-fwrapv`, `-fno-strict-aliasing`, `-ffp-contract=off`,
 `-fexceptions` and `DISABLE_EXCEPTION_CATCHING=0`. Its incoming loader options
 remain `wasmBinary`, `locateFile`, `print`, `printErr` and `noInitialRun`; runtime

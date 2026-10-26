@@ -1,9 +1,9 @@
 /** Neo Geo authoring stays in the shared YM2610/B helpers; Native owns synthesis. */
-import {YM2610BSynth, YM2610BAdpcmBSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=wonderswan-mode-2';
+import {YM2610BSynth, YM2610BAdpcmBSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=wonderswan-native-1';
 import {encodeAdpcmB} from './adpcm_b_sample.js';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=wonderswan-mode-2';
-import {CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=wonderswan-native-1';
+import {CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
 import {createOfflineAudioDecoder} from './audio_decode.js';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 

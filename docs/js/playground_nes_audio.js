@@ -10,7 +10,7 @@ export async function createNesAudio(context, destination, {fds = false, clock =
   const wasmUrl=new URL('../generated/nesapu_wasm.wasm?v=nes-wasm-1',import.meta.url);
   const [wasmBinary]=await waitForInitialization(Promise.all([
     nativeFetch(wasmUrl,{signal}).then(response=>{if(!response.ok)throw new Error(`NES WASM HTTP ${response.status}`);return response.arrayBuffer();}),
-    context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js?v=wonderswan-mode-2', import.meta.url)),
+    context.audioWorklet.addModule(workletUrl ?? new URL('./playground_nes_worklet.js?v=wonderswan-native-1', import.meta.url)),
   ]), signal);
   signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-nes', {

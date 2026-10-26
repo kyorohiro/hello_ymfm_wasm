@@ -1,5 +1,5 @@
 import {noteToHz} from './soundchip_pitch.js';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
 
 const integer=(value,min,max,label)=>{if(!Number.isInteger(value)||value<min||value>max)throw new RangeError(`${label} must be ${min}..${max}`);return value;};
 const boolean=(value,label)=>{if(typeof value!=='boolean')throw new TypeError(`${label} must be boolean`);return value;};

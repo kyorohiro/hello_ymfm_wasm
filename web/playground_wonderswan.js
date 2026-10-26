@@ -25,6 +25,11 @@ export function createWonderSwanClient(port, options = {}, lifecycle = {}) {
     const state = synth._getState(); state.registers[16] &= 0xf0; synth._adoptState(state);
     return controlled._requestControl('stopVoices');
   }});
+  if(options.native){
+    const setClock=controlled.setClock.bind(controlled);
+    const resume=(context,callback)=>new Promise((resolve,reject)=>setTimeout(()=>{try{check(context);lifecycle.restoreContext?.(context);resolve(callback());}catch(error){reject(error);}},0));
+    controlled.setClock=hz=>{const context=lifecycle.captureContext?.();check(context);return setClock(hz).then(value=>resume(context,()=>value),error=>resume(context,()=>{throw error;}));};
+  }
   return controlled;
 }
 

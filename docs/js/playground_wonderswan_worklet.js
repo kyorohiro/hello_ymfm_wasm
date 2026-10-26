@@ -1,9 +1,9 @@
-import {WonderSwan,WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-mode-2';
-import factory from '../generated/wonderswan_wasm.js?v=wonderswan-mode-2';
-import {ChipClockResampler,validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-mode-2';
-import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=wonderswan-mode-2';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=wonderswan-mode-2';
+import {WonderSwan,WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-native-1';
+import factory from '../generated/wonderswan_wasm.js?v=wonderswan-native-1';
+import {ChipClockResampler,validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-native-1';
+import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=wonderswan-native-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=wonderswan-native-1';
 
 class Processor extends AudioWorkletProcessor {
   constructor({processorOptions:{clock=WONDERSWAN_CLOCK,wasmBinary}}){

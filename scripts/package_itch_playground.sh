@@ -295,6 +295,8 @@ native_genesis_rf5c164.js
 native_genesis_dx7.js
 native_genesis_nes.js
 native_genesis_console.js
+native_genesis_wonderswan.js
+native_genesis_extra_wonderswan.js
 native_genesis_snes.js
 native_genesis_pwm.js
 native_genesis_ym2608.js

@@ -98,7 +98,7 @@ function trackNativeLifecycle(native, page) {
 
 function mockVoices(native) {
   const held = [native.ym2203,native.opna,native.opnb,...Object.values(native.x68000??{}),
-    ...Object.values(native.gameGear??{}),...Object.values(native.masterSystem??{}),...Object.values(native.msx??{}),native.opl]
+    ...Object.values(native.gameGear??{}),...Object.values(native.masterSystem??{}),...Object.values(native.msx??{}),native.opl,native.wonderswan]
     .reduce((count,state)=>count+(state?.held?.size??0),0);
   return {held,pcmMask:native.pcm?.mask??255,pcmLeases:(native.pcmVoices??[]).filter(Boolean).length,
     dx7Notes:native.dx7Notes?.size??0,nesEnabled:native.nesInspector?.enabled??0,
@@ -121,6 +121,7 @@ function containsGate(command) {
   if(command.type==='snes')return register===0x4c&&value!==0;
   if(command.type==='nes')return register===0x4015&&value!==0;
   if(command.type==='gameboy')return [4,9,14,19].includes(register)&&Boolean(value&128);
+  if(command.type==='wonderswan')return register===0x90&&Boolean(value&15);
   if(command.type==='huc6280')return register===4&&Boolean(value&128);
   if(command.type==='x68000')return message.chip==='ym2151'&&register===8&&Boolean(value&120);
   if(command.type==='opl')return (register&255)>=0xb0&&(register&255)<=0xb8&&Boolean(value&32);

@@ -1,12 +1,12 @@
 /** DOS PC register authoring stays in JS; the selected OPL renders in Native. */
 import {OPLSynth} from './opl_synth.js?v=audio-numeric-bindings-1';
-import {OplVoiceInspector} from './playground_opl_inspector.js?v=wonderswan-mode-2';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {OplVoiceInspector} from './playground_opl_inspector.js?v=wonderswan-native-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
 import {attachY8950Adpcm} from './y8950_adpcm.js?v=y8950-adpcm-ui-1';
-import {createNativeY8950AdpcmTransport} from './native_genesis_extra_register_voice.js?v=wonderswan-mode-2';
+import {createNativeY8950AdpcmTransport} from './native_genesis_extra_register_voice.js?v=wonderswan-native-1';
 import {createNativeY8950AdpcmInspection,createNativeY8950SampleLoader} from './native_genesis_y8950_inspector.js?v=y8950-adpcm-ui-1';
 import {createNativeVoiceContext, createNativeVoiceEndpoint, nativeInteger as integer,
-  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
+  nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
 
 const CHIPS = Object.freeze(['ym3526', 'ym3812', 'ymf262']);
 const PAIRS = [0, 1, 2, 9, 10, 11];

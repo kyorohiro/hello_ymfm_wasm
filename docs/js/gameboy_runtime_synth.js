@@ -6,9 +6,9 @@
  */
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=y8950-adpcm-ui-1";
 import { GameboySynth } from "./gameboysynth.js?v=audio-stability-2";
-import { attachChipClock, CHIP_CLOCKS } from "./playground_chip_clock.js?v=wonderswan-mode-2";
+import { attachChipClock, CHIP_CLOCKS } from "./playground_chip_clock.js?v=wonderswan-native-1";
 
-/** @typedef {Pick<import('./megasynth.js?v=wonderswan-mode-2').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string}} GameboyRuntimeSynthOptions */
+/** @typedef {Pick<import('./megasynth.js?v=wonderswan-native-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string}} GameboyRuntimeSynthOptions */
 
 const MAX_MASTER_VOLUME = 3.8;
 
@@ -18,7 +18,7 @@ const MAX_MASTER_VOLUME = 3.8;
 export class GameboyRuntimeSynth {
   /** @param {GameboyRuntimeSynthOptions|undefined} options */
   constructor(options = {}) {
-    const config = {chip:'gameboy', fmChannels:0, workletUrl:new URL('./playground_gameboy_worklet.js?v=wonderswan-mode-2',import.meta.url),
+    const config = {chip:'gameboy', fmChannels:0, workletUrl:new URL('./playground_gameboy_worklet.js?v=wonderswan-native-1',import.meta.url),
       wasmUrl:new URL('../generated/gameboy_apu_wasm.wasm',import.meta.url), processorName:'tetorica-gameboy', chipName:'Game Boy'};
     this.chip = config.chip;
     this.capabilities = Object.freeze({

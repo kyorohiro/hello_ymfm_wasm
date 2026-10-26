@@ -37,7 +37,7 @@ test('wobble sample loop plays only samples loaded during preparation', async ()
 test('bundled examples match editable categorized source files', async () => {
   const folders = [...new Set(EXAMPLE_FILES.map(file => file.path.split('/')[2]))];
   assert.equal(folders.indexOf('chip-raw'), folders.indexOf('basic') + 1);
-  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'msx', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl']);
+  assert.deepEqual(folders, ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'msx', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl', 'atari-st', 'wonderswan']);
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/ym2612-raw-write-beep.js'));
   assert.ok(EXAMPLE_FILES.some(file => file.path === '/examples/chip-raw/gameboy-raw-write-sample.js'));
   assert.deepEqual(EXAMPLE_FILES.filter(file => file.path.startsWith('/examples/basic/livefx/')).map(file => file.name), ['live-fx-distortion']);
@@ -53,8 +53,8 @@ test('bundled examples match editable categorized source files', async () => {
   }
   assert.equal(await buildExampleBundle(), await readFile(new URL('./playground_examples.js',import.meta.url),'utf8'));
   for(const file of EXAMPLE_FILES){
-    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|mega-cd|game-gear|master-system|msx|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl)\/(?:[\w-]+\/)*[\w-]+\.js$/);
-    if (/^\/examples\/(genesis|mega-cd|game-gear|master-system|msx|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl)\//.test(file.path)) {
+    assert.match(file.path,/^\/examples\/(basic|chip-raw|genesis|mega-cd|game-gear|master-system|msx|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl|atari-st|wonderswan)\/(?:[\w-]+\/)*[\w-]+\.js$/);
+    if (/^\/examples\/(genesis|mega-cd|game-gear|master-system|msx|gameboy|nes|pc98|neogeo|x68000|dx7|snes|pc-engine|opl|atari-st|wonderswan)\//.test(file.path)) {
       assert.equal(file.path.split('/').length, 4, 'machine examples have no subfolders');
     }
     assert.equal(file.data,await readFile(new URL('.'+file.path,import.meta.url),'utf8'));
@@ -64,7 +64,7 @@ test('bundled examples match editable categorized source files', async () => {
 
 test('all mode starters match their physical index.js sources', async () => {
   const modeIds = Object.keys(MODE_STARTERS);
-  assert.equal(modeIds.length, 22);
+  assert.equal(modeIds.length, 24);
   assert.deepEqual(Object.keys(MODE_DEFAULT_CODES), modeIds);
   for (const [id, definition] of Object.entries(MODE_STARTERS)) {
     assert.equal(definition.index, `${id}/index.js`);
@@ -216,7 +216,7 @@ test('examples appear in the folder tree and edited source survives cassette exp
   const tree=buildFileTree(fs.list());
   assert.equal(tree[0].name,'examples');
   assert.equal(tree[0].children.length,new Set(EXAMPLE_FILES.map(file=>file.path.split('/')[2])).size);
-  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'msx', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl']);
+  assert.deepEqual(tree[0].children.map(node => node.name), ['basic', 'chip-raw', 'genesis', 'mega-cd', 'game-gear', 'master-system', 'msx', 'gameboy', 'nes', 'pc98', 'neogeo', 'x68000', 'dx7', 'snes', 'pc-engine', 'opl', 'atari-st', 'wonderswan']);
   const path='/examples/basic/midi/midi-auto-chord.js';
   fs.writeText(path,'// user edited\n'+fs.get(path).data);
   const zip=createPlaygroundCassetteZip(fs.list());

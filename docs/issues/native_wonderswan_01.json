@@ -1,0 +1,849 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "status": "locally-verified",
+  "physicalAudioTested": false,
+  "scope": {
+    "mode": "wonderswan",
+    "primary": true,
+    "additional": true,
+    "main": true,
+    "worker": true,
+    "keyboard": true,
+    "inspector": true,
+    "defaultBackend": "web-audio",
+    "cacheVersion": "wonderswan-native-1"
+  },
+  "baseCommits": {
+    "main": "d348ad21f6150dba6b60c3873641c03166d25a3e",
+    "tauri": "d3885716a152994b7c483ab4675a5a9e3e6aa37f"
+  },
+  "sdkPins": [
+    {
+      "repository": "main",
+      "path": "third_party/soundchip-sdk.json",
+      "receipt": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.4",
+        "sourceCommit": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+        "archiveName": "tetorica-soundchip-native-0.1.4-sources.zip",
+        "archiveSha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+        "manifestSha256": "61354b939961eea8c2c058ca08c682fb1fdc48cf58373a45da2b468455227924",
+        "fileCount": 395
+      },
+      "unchangedFromHead": true
+    },
+    {
+      "repository": "tauri",
+      "path": "src-tauri/soundchip-sdk.json",
+      "receipt": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.4",
+        "sourceCommit": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+        "archiveName": "tetorica-soundchip-native-0.1.4-sources.zip",
+        "archiveSha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+        "manifestSha256": "61354b939961eea8c2c058ca08c682fb1fdc48cf58373a45da2b468455227924",
+        "fileCount": 395
+      },
+      "unchangedFromHead": true
+    }
+  ],
+  "mixerValuesUnchanged": [
+    {
+      "path": "web/soundchip_mixer_presets.js",
+      "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "docs/vgm_analyzer/playback_mixer.js",
+      "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+      "unchangedFromHead": true
+    }
+  ],
+  "generatedOutputs": {
+    "count": 55,
+    "byteIdentical": true,
+    "files": [
+      {
+        "path": "ay8910_wasm.js",
+        "bytes": 12113,
+        "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+      },
+      {
+        "path": "ay8910_wasm.wasm",
+        "bytes": 13549,
+        "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+      },
+      {
+        "path": "msfa.wasm",
+        "bytes": 32084,
+        "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f"
+      },
+      {
+        "path": "gameboy_apu_wasm.js",
+        "bytes": 11497,
+        "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+      },
+      {
+        "path": "gameboy_apu_wasm.wasm",
+        "bytes": 13782,
+        "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+      },
+      {
+        "path": "huc6280_wasm.js",
+        "bytes": 13612,
+        "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f"
+      },
+      {
+        "path": "huc6280_wasm.wasm",
+        "bytes": 8935,
+        "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+      },
+      {
+        "path": "k051649_wasm.js",
+        "bytes": 11133,
+        "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7"
+      },
+      {
+        "path": "k051649_wasm.wasm",
+        "bytes": 9399,
+        "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c"
+      },
+      {
+        "path": "nesapu_wasm.js",
+        "bytes": 16041,
+        "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+      },
+      {
+        "path": "nesapu_wasm.wasm",
+        "bytes": 30410,
+        "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+      },
+      {
+        "path": "nuked_opn2_wasm.js",
+        "bytes": 32804,
+        "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+      },
+      {
+        "path": "nuked_opn2_wasm.wasm",
+        "bytes": 21071,
+        "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1"
+      },
+      {
+        "path": "okim6258_wasm.js",
+        "bytes": 14797,
+        "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+      },
+      {
+        "path": "okim6258_wasm.wasm",
+        "bytes": 20173,
+        "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+      },
+      {
+        "path": "pwm32x_wasm.js",
+        "bytes": 12398,
+        "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+      },
+      {
+        "path": "pwm32x_wasm.wasm",
+        "bytes": 10636,
+        "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c"
+      },
+      {
+        "path": "rf5c164_wasm.js",
+        "bytes": 35162,
+        "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+      },
+      {
+        "path": "rf5c164_wasm.wasm",
+        "bytes": 27583,
+        "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+      },
+      {
+        "path": "segapcm_wasm.js",
+        "bytes": 12513,
+        "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5"
+      },
+      {
+        "path": "segapcm_wasm.wasm",
+        "bytes": 13966,
+        "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f"
+      },
+      {
+        "path": "segapsg_wasm.js",
+        "bytes": 33978,
+        "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+      },
+      {
+        "path": "segapsg_wasm.wasm",
+        "bytes": 27286,
+        "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+      },
+      {
+        "path": "spc_wasm.js",
+        "bytes": 41458,
+        "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699"
+      },
+      {
+        "path": "spc_wasm.wasm",
+        "bytes": 63074,
+        "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408"
+      },
+      {
+        "path": "wonderswan_wasm.js",
+        "bytes": 11356,
+        "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+      },
+      {
+        "path": "wonderswan_wasm.wasm",
+        "bytes": 10321,
+        "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+      },
+      {
+        "path": "y8950_wasm.js",
+        "bytes": 15461,
+        "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+      },
+      {
+        "path": "y8950_wasm.wasm",
+        "bytes": 22425,
+        "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+      },
+      {
+        "path": "ym2151_wasm.js",
+        "bytes": 15584,
+        "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+      },
+      {
+        "path": "ym2151_wasm.wasm",
+        "bytes": 31322,
+        "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26"
+      },
+      {
+        "path": "ym2203_wasm.js",
+        "bytes": 35153,
+        "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e"
+      },
+      {
+        "path": "ym2203_wasm.wasm",
+        "bytes": 45306,
+        "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13"
+      },
+      {
+        "path": "ym2413_wasm.js",
+        "bytes": 32911,
+        "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+      },
+      {
+        "path": "ym2413_wasm.wasm",
+        "bytes": 33469,
+        "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04"
+      },
+      {
+        "path": "ym2608_wasm.js",
+        "bytes": 36356,
+        "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+      },
+      {
+        "path": "ym2608_wasm.wasm",
+        "bytes": 53893,
+        "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f"
+      },
+      {
+        "path": "ym2610b_wasm.js",
+        "bytes": 36296,
+        "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879"
+      },
+      {
+        "path": "ym2610b_wasm.wasm",
+        "bytes": 51172,
+        "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316"
+      },
+      {
+        "path": "ym2612_wasm.js",
+        "bytes": 34902,
+        "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+      },
+      {
+        "path": "ym2612_wasm.wasm",
+        "bytes": 40357,
+        "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+      },
+      {
+        "path": "ym3438_wasm.js",
+        "bytes": 11466,
+        "sha256": "023cf6770e2cd0b9983f7a6793d55cc21c2de47750a19458567b6ccb11c3f81e"
+      },
+      {
+        "path": "ym3438_wasm.wasm",
+        "bytes": 18778,
+        "sha256": "a6c49e22d9b5ff703a7f4da6df877e067dd494dc3e4354987e23151297b1d984"
+      },
+      {
+        "path": "ym3526_wasm.js",
+        "bytes": 14274,
+        "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+      },
+      {
+        "path": "ym3526_wasm.wasm",
+        "bytes": 18894,
+        "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11"
+      },
+      {
+        "path": "ym3812_wasm.js",
+        "bytes": 14274,
+        "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+      },
+      {
+        "path": "ym3812_wasm.wasm",
+        "bytes": 19058,
+        "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6"
+      },
+      {
+        "path": "ymf262_wasm.js",
+        "bytes": 14274,
+        "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+      },
+      {
+        "path": "ymf262_wasm.wasm",
+        "bytes": 21377,
+        "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+      },
+      {
+        "path": "ymf276_wasm.js",
+        "bytes": 11466,
+        "sha256": "76bef5969998cf45fe3d1452592b5bc74f9f1c363740a9b011f8d5462ddd096c"
+      },
+      {
+        "path": "ymf276_wasm.wasm",
+        "bytes": 18813,
+        "sha256": "c5c06bc94d0dec355c9acea7c408bb85c82b169666fdc47cc9bc7f0f6033bc01"
+      },
+      {
+        "path": "ymf278b_wasm.js",
+        "bytes": 15707,
+        "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48"
+      },
+      {
+        "path": "ymf278b_wasm.wasm",
+        "bytes": 26827,
+        "sha256": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30"
+      },
+      {
+        "path": "ymf288_wasm.js",
+        "bytes": 11466,
+        "sha256": "9e98de8c8649cce49f8a8dcb12bbd0679f0f591a0d1c0c16a1c4c82ce263dd86"
+      },
+      {
+        "path": "ymf288_wasm.wasm",
+        "bytes": 23819,
+        "sha256": "34b4211983b0af5bc7479809d949693164b34e2a94e01db1a77abe545d6f4f23"
+      }
+    ]
+  },
+  "nativeParity": {
+    "method": "Actual Browser WonderSwan Processor source, performance scheduler, inspector, clock resampler and real WASM; only host AudioWorkletProcessor/MessagePort stubbed. Native uses unchanged pinned SDK core plus application adapter.",
+    "wasmSha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+    "workletSha256": "bc1ece60c099312bf001b0cd1a637b547985a45f9508b824a1b71ab41e18533f",
+    "nativeSources": [
+      {
+        "path": "src-tauri/src/native_genesis_wonderswan.cpp",
+        "sha256": "55f91dbb4b9652d5372b13ac718bfc0be4955b0a69573a6745b2e95b2e5f8216"
+      },
+      {
+        "path": "src-tauri/src/native_genesis_wonderswan_fixture.cpp",
+        "sha256": "41eb846a418ee6e5938d2f5884594cc05ebc4bede8acc3d8d1aa58aa552b22ba"
+      },
+      {
+        "path": "src-tauri/vendor/tetorica-soundchip-native/vendor/mame-wonderswan/wonderswan.cpp",
+        "sha256": "fcd143482371f07d335ce3f9ef4fabb4febf6125c46888adcb02e4a400e24294"
+      },
+      {
+        "path": "src-tauri/src/native_genesis_wonderswan.h",
+        "sha256": "080629ed9e4ccec4b6395ce13756072403f895ad03566e4a8e8575aa3f2309f3"
+      },
+      {
+        "path": "src-tauri/vendor/tetorica-soundchip-native/vendor/mame-wonderswan/wonderswan.h",
+        "sha256": "38ca485de40fc60d858b1a7d70bc2037c52d9a04e4e28e851b69945c957f6b40"
+      },
+      {
+        "path": "src-tauri/soundchip-sdk.json",
+        "sha256": "651f53330c5c8e47f77de1ba33ef5bb56ab96b5556335858416d3097541ceee3"
+      }
+    ],
+    "selfTest": {
+      "passed": true,
+      "checks": 377424,
+      "allocationsDuringRender": 0,
+      "freesDuringRender": 0,
+      "coreBytes": 33160,
+      "stateBytes": 16428,
+      "rawSdkParityFrames": 73728,
+      "hotBlocks": 2048,
+      "hotBlockFrames": 128,
+      "allocationScope": "C++ new/new[] and delete/delete[] only; direct malloc is not intercepted"
+    },
+    "rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "stereoFrames": 995328,
+    "rawStereoFrames": 73728,
+    "maximumDifference": 0,
+    "limits": [
+      "Offline PCM/API checks do not measure physical audio, deadlines or hardware accuracy.",
+      "Browser worklet has no per-source mute command; Native mute is checked independently against phase/zero/register controls and raw WASM.",
+      "Allocation audit intercepts C++ new/delete only, not direct malloc/free."
+    ],
+    "cases": 204,
+    "rawCases": 9
+  },
+  "sanitizers": {
+    "passed": true,
+    "enabled": [
+      "address",
+      "undefined"
+    ],
+    "cases": 204,
+    "report": {
+      "path": "/private/tmp/native-wonderswan-sanitized.json",
+      "sha256": "b4330b9d6548837c791d7477c55d1073b6fc139e792ff03349e65bd0fc086d82"
+    }
+  },
+  "rust": {
+    "newTestsPassed": 15,
+    "allPassed": 741,
+    "failed": 0,
+    "ignored": 4,
+    "log": {
+      "path": "/private/tmp/native-wonderswan/cargo-all.log",
+      "sha256": "1a3ef98e053dc3277031cc73faff1a71304e998aa768581aa920a19e4c789bd9"
+    }
+  },
+  "stability": {
+    "passed": true,
+    "deviceOpened": false,
+    "totals": {
+      "constructorCount": 92,
+      "events": 14732,
+      "futureEventsDiscardedByStop": 1464,
+      "modes": 23,
+      "ownerCancellations": 92,
+      "reclaimedBankGuards": 92,
+      "reclaimedCommandGuards": 7252,
+      "renderSeconds": 0.6818771940000001,
+      "renderedFrames": 631488,
+      "runStopTransitions": 92,
+      "simulatedSeconds": 13.155999999999992
+    },
+    "limits": {
+      "absolutePerformanceGate": false,
+      "maximumBatch": 4096,
+      "mediaBudgetBytes": 67108864,
+      "nonFinitePcm": 0,
+      "pendingAfterStop": 0,
+      "queueCapacity": 65536,
+      "stoppedPeak": 0,
+      "testBankGuardsAfterReclaim": 0
+    },
+    "report": {
+      "path": "/private/tmp/native-wonderswan-stability.json",
+      "sha256": "d554b6e88fe4e1386305af3247380ff586666ee98cdd924468b994f5d4f48197"
+    }
+  },
+  "extraStability": {
+    "passed": true,
+    "mixedScenes": 4,
+    "soloSources": 8,
+    "slots": {
+      "futureGuardReclaimed": true,
+      "monotonicReplacement": 17,
+      "passed": true,
+      "rejectedSeventeenth": true,
+      "reservationBytes": 27763056,
+      "reservedBytesAfterStop": 0,
+      "retiringSlotRejectedBeforeDrain": true,
+      "slots": 16
+    },
+    "admission": {
+      "customPayloadBudgetBytes": 8388608,
+      "default64MiBPolicyProbe": {
+        "creationAndWriteRolledBack": true,
+        "recoveredAfterPermitDrop": true,
+        "reservationOnly": true,
+        "saturatedReservationBytes": 67108864
+      },
+      "instanceBudgetRejection": "Additional Native sound-chip memory budget exceeded (5570560 bytes)",
+      "passed": true,
+      "payloadRollbackAttempts": 4,
+      "reservedBytesAfterRejection": 3518776,
+      "reservedBytesAfterStop": 0
+    },
+    "report": {
+      "path": "/private/tmp/native-wonderswan-extra-stability.json",
+      "sha256": "216cd1cc7313980b2bb6fb6cd2ee791ee4e0f7c3f5993735d3598c3fab85c21f"
+    }
+  },
+  "webTests": {
+    "focusedPassed": 10,
+    "creationLifecyclePassed": 12,
+    "relatedNativeRuntimePassed": 1276,
+    "pagesAndFocusedPassed": 1106,
+    "countsOverlap": true,
+    "modeTypesPassed": true,
+    "npmInstalledRuntimeAndTypesPassed": true
+  },
+  "wasmRegression": {
+    "passed": true,
+    "artifacts": 28,
+    "outputs": 55,
+    "comparisons": 40360,
+    "maximumDifference": 0,
+    "repositoryInputsUnchanged": true,
+    "reusedActuallyRebuiltSdkArtifacts": true,
+    "newWasmBuildPerformed": false,
+    "report": {
+      "path": "/private/tmp/native-wonderswan/wasm-regression-final/summary.json",
+      "sha256": "7e1c7667fc3bdd71efe1dc3447bdeebbcb0f74edaaca8522de47d5c4760b9c04"
+    }
+  },
+  "frontend": {
+    "archive": "release/hello_ymfm_wasm_wonderswan-native-dev_itch_playground.zip",
+    "sha256": "b74be494e9da737f09b62aa8a417ac7b4c74ecadbfaf28042f069a7368b077f1",
+    "files": 920,
+    "tauriReceiptSha256": "e18ba5101da72a0b8a6eab7c4dd1a5f1773c2f460aa383541d8b67bdc8b3f8a9",
+    "importCheckPassed": true
+  },
+  "flatNativeUi": {
+    "nativeRpc": "mocked",
+    "results": [
+      {
+        "browser": "chromium",
+        "primary": true,
+        "additional": true,
+        "main": true,
+        "worker": true,
+        "modeFilter": true,
+        "waveEditor": true,
+        "operatorKeyboard": true,
+        "stop": true,
+        "audioNodes": 0,
+        "nativeRpc": "mocked",
+        "passed": true
+      },
+      {
+        "browser": "webkit",
+        "primary": true,
+        "additional": true,
+        "main": true,
+        "worker": true,
+        "modeFilter": true,
+        "waveEditor": true,
+        "operatorKeyboard": true,
+        "stop": true,
+        "audioNodes": 0,
+        "nativeRpc": "mocked",
+        "passed": true
+      }
+    ]
+  },
+  "flatWebAudioUi": {
+    "realAudioWorklet": true,
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": -0.00028014183044433594,
+              "rms": 0.10444554780206161,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 542.4942952776261
+            },
+            {
+              "mean": -0.00028014183044433594,
+              "rms": 0.10444554780206161,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 542.4942952776261
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "dc": 3.7886202335357666e-06,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": 0.00011909008026123047,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "clock": 3072000,
+        "primaries": {
+          "chips": [
+            [
+              "wonderswan",
+              "wonderswan"
+            ]
+          ],
+          "endpoints": [
+            "wonderswan"
+          ],
+          "strips": [
+            "wonderswan"
+          ],
+          "fm": 0
+        },
+        "types": {
+          "wsGlobal": true,
+          "noImplicitFM": true,
+          "fourChannelBounds": true
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.0010479241609573364,
+              "rms": 0.10120385802897046,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 543.1701050341017
+            },
+            {
+              "mean": 0.0010479241609573364,
+              "rms": 0.10120385802897046,
+              "peak": 0.262451171875,
+              "stepPeak": 0.05859375,
+              "finite": true,
+              "hz": 543.1701050341017
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.3669724770642,
+            "dc": 0.00014162063598632812,
+            "stereoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "dc": -5.364418029785156e-06,
+            "stereoDifference": 0
+          }
+        ],
+        "sharedChannelOwnership": [
+          {
+            "execution": "main",
+            "releasedOwn": true,
+            "preservedSibling": true
+          },
+          {
+            "execution": "worker",
+            "releasedOwn": true,
+            "preservedSibling": true
+          }
+        ],
+        "keyboard": true,
+        "editor": {
+          "wave": true,
+          "stereo": true,
+          "noise": true,
+          "sweep": true,
+          "retainedAfterRun": true
+        },
+        "examples": [
+          {
+            "path": "/examples/wonderswan/ws-four-voices.js",
+            "execution": "main"
+          },
+          {
+            "path": "/examples/wonderswan/ws-stereo.js",
+            "execution": "worker"
+          },
+          {
+            "path": "/examples/wonderswan/ws-noise-sweep.js",
+            "execution": "main"
+          }
+        ],
+        "physicalOutputMuted": true,
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "hz": 440.42084658673843,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "main",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          },
+          {
+            "execution": "worker",
+            "hz": 440.3669724770642,
+            "independentMixer": true,
+            "stopped": true,
+            "ownership": {
+              "execution": "worker",
+              "releasedOwn": true,
+              "preservedSibling": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "tauriTests": {
+    "pythonPassed": 22,
+    "nodePassed": 31,
+    "failed": 0,
+    "log": {
+      "path": "/private/tmp/native-wonderswan/tauri-tests.log",
+      "sha256": "64eeb179766226681b89d65bfe671b71a43e81e355e5ae73d6178ebce67b9a14"
+    }
+  },
+  "nativeSources": {
+    "snapshotsVerified": 22,
+    "sourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "c9dafaca455a09a743065a3ebe9ecb7a4dc4c8eeccd3415ef530cfbcc247530f",
+      "files": 1861,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "b74be494e9da737f09b62aa8a417ac7b4c74ecadbfaf28042f069a7368b077f1"
+    },
+    "report": {
+      "path": "/private/tmp/native-wonderswan/source-bundle.json",
+      "sha256": "e7e38f9a013ef9bf5e0cb583ec2af171e9628476ae02b96b800c33a1d8773e50"
+    }
+  },
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "tagged": false,
+    "npmPublished": false,
+    "sdkPublished": false,
+    "crossPlatformCiRunForNewCode": false
+  },
+  "next": [
+    "Commit main and Tauri changes including imported frontend",
+    "Run Tauri five-platform CI on the new commits",
+    "Audition WonderSwan through the actual Native audio device"
+  ],
+  "limits": [
+    "Offline rendering does not verify perceived noise, real-time deadlines or hardware accuracy.",
+    "Native UI checks mock RPC; actual C++/Rust rendering is tested separately.",
+    "The earlier SDK 0.1.4 CI did not contain this new application adapter.",
+    "Temporary report paths are local evidence; the committed scripts reproduce the checks."
+  ]
+}

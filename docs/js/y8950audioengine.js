@@ -16,7 +16,7 @@ import { SegaPSG } from './segapsg.js?v=audio-numeric-bindings-1';
 export class Y8950AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{y8950ModuleFactory: import('./soundchip.js?v=wonderswan-mode-2').WasmModuleFactory, y8950ModuleOptions?: import('./soundchip.js?v=wonderswan-mode-2').WasmModuleOptions, y8950Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-mode-2').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{y8950ModuleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, y8950ModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, y8950Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Y8950AudioEngine>} Initialized engine owned by the caller.

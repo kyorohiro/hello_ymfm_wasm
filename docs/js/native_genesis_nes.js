@@ -1,9 +1,9 @@
 /** NES + FDS controls for the callback-owned Native core; no audio bridge. */
 import {NesApuSynth} from './nesapusynth.js?v=nes-wasm-1';
 import {NES_APU_CLOCK} from './nesapu.js?v=nes-wasm-1';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
-import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=wonderswan-mode-2';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-mode-2';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=wonderswan-native-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-native-1';
 
 const integer=(value,max,name)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`Invalid NES ${name}`);return value;};
 const abort=()=>new DOMException('Native NES operation was cancelled','AbortError');

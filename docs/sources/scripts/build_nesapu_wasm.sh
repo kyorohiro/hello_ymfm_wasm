@@ -1,10 +1,11 @@
 #!/bin/sh
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
+cd "$ROOT_DIR"
+OUT_DIR="${1:-$ROOT_DIR/dist/wasm}"
 mkdir -p "$OUT_DIR"
 cd "$ROOT_DIR"
-em++ -std=c++17 -O2 -fwrapv -fno-strict-aliasing -ffp-contract=off -fexceptions \
+"${EMXX:-em++}" -std=c++17 -O2 -fwrapv -fno-strict-aliasing -ffp-contract=off -fexceptions \
   -Ithird_party/tetorica-nes \
   wasm/nesapu_wasm.cpp third_party/tetorica-nes/nes_core.cpp \
   -sMODULARIZE=1 -sEXPORT_ES6=1 \

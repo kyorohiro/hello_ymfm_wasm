@@ -1,11 +1,12 @@
 #!/bin/sh
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
+cd "$ROOT_DIR"
+OUT_DIR="${1:-$ROOT_DIR/dist/wasm}"
 mkdir -p "$OUT_DIR"
 cd "$ROOT_DIR"
 # Accurate DSP, fixed native 32 kHz. No optional fast DSP, filter or bundled IPL ROM.
-em++ -std=c++14 -O2 -sASSERTIONS=1 \
+"${EMXX:-em++}" -std=c++14 -O2 -sASSERTIONS=1 \
   -Ithird_party/snes-spc/snes_spc \
   wasm/spc_wasm.cpp \
   third_party/snes-spc/snes_spc/SNES_SPC.cpp \

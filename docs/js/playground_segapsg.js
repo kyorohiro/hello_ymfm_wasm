@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-native-1';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 /** Immediate ordered commands, shared by main-thread and Worker runtimes.
  * @param {MessagePort} port

@@ -1,10 +1,10 @@
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
 import {GAMEBOY_APU_CLOCK} from './gameboyapu.js?v=audio-stability-2';
-import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=wonderswan-mode-2';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-mode-2';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=y8950-adpcm-ui-1';
+import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=wonderswan-native-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-native-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-native-1';
 
 export const EXTRA_GAMEBOY_CLOCK_HELD_ERROR='Release the manually held additional Game Boy voices before changing the clock';
 const TRIGGERS=[4,9,14,19],DACS=[2,7,10,17];

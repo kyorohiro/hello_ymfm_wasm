@@ -1,5 +1,5 @@
 import {noteToHz, opmPitchFromHz} from './soundchip_pitch.js';
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-mode-2';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-native-1';
 /** Independent OPM client. Operator indices follow register order M1, C1, M2, C2. */
 /** @param {MessagePort} port */
 export function createYm2151RegisterClient(transportSend,{clock=CHIP_CLOCKS.ym2151,close=()=>{}}={}) {

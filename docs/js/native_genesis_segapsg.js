@@ -1,8 +1,8 @@
 /** Shared Sega PSG authoring / inspection for Native Master System and Game Gear. */
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
-import {PsgInspectorState} from './playground_chip_inspector_state.js?v=wonderswan-mode-2';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-mode-2';
-import {createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-mode-2';
+import {PsgInspectorState} from './playground_chip_inspector_state.js?v=wonderswan-native-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
 const CLOCK=3579545;
 export function createNativeGenesisSegaPsg(context,{stereoEnabled=false,acknowledgeClock=false}={}){
   const {synth}=context;let clock=CLOCK,appliedClock=CLOCK,latch=0,appliedStereo=255;
