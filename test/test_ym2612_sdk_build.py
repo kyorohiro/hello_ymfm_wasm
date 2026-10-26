@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
-             'segapsg', 'rf5c164', 'pwm32x', 'huc6280')
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -117,6 +117,12 @@ PWM32X_EXPORTS = [
 HUC6280_EXPORTS = [
     '_huc6280_create', '_huc6280_destroy', '_huc6280_reset', '_huc6280_mute',
     '_huc6280_write', '_huc6280_generate', '_malloc', '_free',
+]
+GAMEBOY_APU_EXPORTS = [
+    '_gameboy_apu_create', '_gameboy_apu_destroy', '_gameboy_apu_reset',
+    '_gameboy_apu_write', '_gameboy_apu_sample_rate', '_gameboy_apu_set_mute_mask',
+    '_gameboy_apu_generate', '_gameboy_apu_save_state', '_gameboy_apu_load_state',
+    '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -588,6 +594,25 @@ class Huc6280SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x'])
+
+
+class GameboyApuSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'gameboy_apu'
+    exports = GAMEBOY_APU_EXPORTS
+    language_standard = 'c++17'
+    export_all = False
+    assertions = False
+    vendor_sources = ['vendor/mame-gameboy/gameboy_apu.cpp']
+    core_header = 'vendor/mame-gameboy/gameboy_apu.h'
+    include_directories = ['vendor/mame-gameboy']
+    support_sources = []
+    extra_manifest_headers = ()
+
+    def test_shared_output_preserves_all_sixteen_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280'])
 
 
 if __name__ == '__main__':

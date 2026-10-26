@@ -66,6 +66,70 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "gameboy_apu",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "a2cede68ef04bd35eb6831b7db89b37f8909bf5581ddb240ccae207c0d2430e2",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_gameboy_apu_wasm.sh",
+          "sha256": "a9591f2b4c346d2b9a9ecbc87b1e18802ac90ac474830e25e71f4b6d738baa2f",
+          "size": 778
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-gameboy/gameboy_apu.cpp",
+          "sha256": "ba5fa988a82d175500dac392f518d7d86258c3743910b87f24218ef5602c91de",
+          "size": 18222
+        },
+        {
+          "path": "vendor/mame-gameboy/gameboy_apu.h",
+          "sha256": "3f464c0874e12995ddc3403587ab4bed0538c57e49d3179c7a0c50e6a1d96a12",
+          "size": 3661
+        },
+        {
+          "path": "vendor/mame-gameboy/upstream/gb.cpp",
+          "sha256": "c3ce71628faf03013234275e1ed5023b4b4393a843cd81b6b60f6dc0c625dee3",
+          "size": 34748
+        },
+        {
+          "path": "vendor/mame-gameboy/upstream/gb.h",
+          "sha256": "79a124a25f43ba325c19940a351f44267654bb8652c651e53de069ce07389599",
+          "size": 5569
+        },
+        {
+          "path": "wasm/gameboy_apu_wasm.cpp",
+          "sha256": "03ad182b928394ca58340a50e36570dc425ff080338bd196b903572638bc2db7",
+          "size": 2076
+        }
+      ],
+      "outputs": [
+        {
+          "path": "gameboy_apu_wasm.js",
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+          "size": 11497
+        },
+        {
+          "path": "gameboy_apu_wasm.wasm",
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+          "size": 13782
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "huc6280",
       "format": "emscripten-es-module",
       "sourceFingerprint": "65858bbf15e8b65de8b9728889a7514925960a64994d1222acf0f76694624712",

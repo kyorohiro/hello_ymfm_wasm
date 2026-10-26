@@ -61,6 +61,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くHuC6280 WASMも同じ固定SDKへ切り替えた。PC Engineと追加音源のビルド元を統一した。
 既存の6CH・wave RAM・DDA・noise・LFOとowned PCMを維持し、snapshot APIは追加していない。
 詳細は[HuC6280 WASMのSDK移行](wasm_sdk_huc6280_adoption_01.md)を参照。
+続くGame Boy APU WASMも同じ固定SDKへ切り替えた。2 pulse・wave・noiseと既存保存状態APIを維持した。
+直接Web用に残っていた保存状態exportのない旧生成物も、別のPCM比較後にSDK版へ揃えた。
+詳細は[Game Boy APU WASMのSDK移行](wasm_sdk_gameboy_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1235,9 +1238,28 @@ snapshotはなく、reset／再演奏252回と実VgmPlayerのB9／DDA stream・�
 Python79件・既存HuC6280関連試験63件とnpm／Analyzer ZIPの検証が成功した。
 詳細と最終結果・hashは[HuC6280移行記録](wasm_sdk_huc6280_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計16 artifact。次はGame Boy APU用WASMへの展開が候補。
-`scripts/build_gameboy_apu_wasm.sh`を対象に、2 pulse／wave／noise・frame sequencer・register／wave RAM・reset／PCMと既存state APIの有無を確認してから移行する。
-残り11 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はHuC6280移行時の記録。続くGame Boy移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — Game Boy APU WASMの固定SDK参照
+
+`scripts/build_gameboy_apu_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルとpin、公開API／Mixer値を保持し、先行16音源の記録・32生成物も維持した。
+C++17／O2・11 C exportとcwrap／F32を維持する。core headerはNative用friend宣言だけがSDK側に追加され、DSPと生成物には差がない。
+配布済みdocs・旧手順再ビルド・SDK・通常出力のJS／WASMはすべてbyte一致した。
+
+旧再ビルド／配布済みdocsとの各876比較・2,437,980主比較フレームで差0。
+own復元192回・trusted raw相互復元132回・reset／再演奏276回を確認した。
+Stateは同一buildの312byte objectコピーで、padding全体の一致ではなくheaderとPCM続行を比較する。
+直接Web用だけ旧state非対応pairが残っていたため、共通APIの270比較・1,158,300フレームで差0を確認後、2生成物をSDK版へ同期した。
+Python83件・既存Game Boy関連79件とnpm／Analyzer ZIPの検証が成功した。
+両Browserで主／追加Workletの4経路と、既存editor／Keyboard試験を絞った4 voice・対象切替・release／Stopが成功した。
+詳細と最終結果・hashは[Game Boy移行記録](wasm_sdk_gameboy_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計17 artifact。次はNES APU／FDS用WASMへの展開が候補。
+`scripts/build_nesapu_wasm.sh`と配布source bundleの参照先を調べ、既存のNES／FDS API・DMC／wave RAM・状態保存・Browser／npm経路を確認して移行する。
+残り10 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

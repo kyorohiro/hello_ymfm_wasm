@@ -1,0 +1,4874 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-26",
+  "scope": "Game Boy APU WASM uses immutable bundled SDK for Game Boy primary/additional chips and Analyzer/CLI/npm. Existing four voices, register/wave RAM, mute, owned PCM, opaque states and Engine settings retained. No JS API or numeric Mixer changes. Stale direct-web generated pair lacking state exports is synchronized only after separate common-ABI exact PCM comparison.",
+  "startingPoint": {
+    "sourceCommitBeforeChange": "8136696cba9b9b6b407c206c29a8e20de129da61",
+    "startingStatus": "",
+    "legacyRecipeSha256": "4b86034acf3eee2de5a63aef8d18a71a091d48c85ac86481587c1e952ef7a003",
+    "sdkPin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.1",
+      "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+      "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+      "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+      "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+      "fileCount": 379
+    }
+  },
+  "sourceAudit": {
+    "path": "/private/tmp/tetorica-gameboy-wasm-sdk/source-audit.json",
+    "bytes": 15947,
+    "sha256": "94f5b658305a33b156dcc2857a8fc10036c33e5571fd03bb6d87cc91ad483f6d",
+    "record": {
+      "readOnly": true,
+      "chip": "gameboy",
+      "artifact": "gameboy_apu",
+      "baseHead": "8136696cba9b9b6b407c206c29a8e20de129da61",
+      "pin": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.1",
+        "sourceCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+        "archiveName": "tetorica-soundchip-native-0.1.1-sources.zip",
+        "archiveSha256": "939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b",
+        "manifestSha256": "f0ad25ed94c8e028891bcd4601483fcc6b1fc6801b0a19ebb52696cc75d686e2",
+        "fileCount": 379
+      },
+      "manifestMatchesPin": true,
+      "legacyRecipeSource": "git show 8136696cba9b9b6b407c206c29a8e20de129da61:scripts/build_gameboy_apu_wasm.sh",
+      "allSourceLicenseComparisonsEqual": false,
+      "exactSourceLicenseComparisonCount": 7,
+      "sdkHeaderOnlyNativeFriendDelta": true,
+      "sourceLicenseComparisonCount": 8,
+      "sourceComparisons": [
+        {
+          "local": "third_party/mame-gameboy/gameboy_apu.cpp",
+          "sdk": "vendor/mame-gameboy/gameboy_apu.cpp",
+          "localSha256": "ba5fa988a82d175500dac392f518d7d86258c3743910b87f24218ef5602c91de",
+          "sdkSha256": "ba5fa988a82d175500dac392f518d7d86258c3743910b87f24218ef5602c91de",
+          "localBytes": 18222,
+          "sdkBytes": 18222,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-gameboy/gameboy_apu.h",
+          "sdk": "vendor/mame-gameboy/gameboy_apu.h",
+          "localSha256": "1d0d70f8d716dd62f67cc4d4a31d3d5df85c602711fb0595ea754c50249475a8",
+          "sdkSha256": "3f464c0874e12995ddc3403587ab4bed0538c57e49d3179c7a0c50e6a1d96a12",
+          "localBytes": 3561,
+          "sdkBytes": 3661,
+          "bytesEqual": false,
+          "difference": "SDK adds only NativeGameboyAccess friend declaration/comment; no data fields or methods/DSP changed.",
+          "normalizedRemovingExactFriendLineEqual": true
+        },
+        {
+          "local": "wasm/gameboy_apu_wasm.cpp",
+          "sdk": "wasm/gameboy_apu_wasm.cpp",
+          "localSha256": "03ad182b928394ca58340a50e36570dc425ff080338bd196b903572638bc2db7",
+          "sdkSha256": "03ad182b928394ca58340a50e36570dc425ff080338bd196b903572638bc2db7",
+          "localBytes": 2076,
+          "sdkBytes": 2076,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-gameboy/LICENSE",
+          "sdk": "vendor/mame-gameboy/LICENSE",
+          "localSha256": "acb20353889f489aba276d31cbd8ffce15c6bd353f873dc2255e67053446f3dc",
+          "sdkSha256": "acb20353889f489aba276d31cbd8ffce15c6bd353f873dc2255e67053446f3dc",
+          "localBytes": 1529,
+          "sdkBytes": 1529,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-gameboy/README.md",
+          "sdk": "vendor/mame-gameboy/README.md",
+          "localSha256": "831990cae084021f75b9432aa6a9c50f2b686e79541482e86997a9cf67e50f61",
+          "sdkSha256": "831990cae084021f75b9432aa6a9c50f2b686e79541482e86997a9cf67e50f61",
+          "localBytes": 5351,
+          "sdkBytes": 5351,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-gameboy/upstream/gb.cpp",
+          "sdk": "vendor/mame-gameboy/upstream/gb.cpp",
+          "localSha256": "c3ce71628faf03013234275e1ed5023b4b4393a843cd81b6b60f6dc0c625dee3",
+          "sdkSha256": "c3ce71628faf03013234275e1ed5023b4b4393a843cd81b6b60f6dc0c625dee3",
+          "localBytes": 34748,
+          "sdkBytes": 34748,
+          "bytesEqual": true
+        },
+        {
+          "local": "third_party/mame-gameboy/upstream/gb.h",
+          "sdk": "vendor/mame-gameboy/upstream/gb.h",
+          "localSha256": "79a124a25f43ba325c19940a351f44267654bb8652c651e53de069ce07389599",
+          "sdkSha256": "79a124a25f43ba325c19940a351f44267654bb8652c651e53de069ce07389599",
+          "localBytes": 5569,
+          "sdkBytes": 5569,
+          "bytesEqual": true
+        },
+        {
+          "local": "LICENSE",
+          "sdk": "vendor/ymfm/LICENSE",
+          "localSha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+          "sdkSha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+          "localBytes": 1519,
+          "sdkBytes": 1519,
+          "bytesEqual": true
+        }
+      ],
+      "recipes": {
+        "legacy": {
+          "sha256": "4b86034acf3eee2de5a63aef8d18a71a091d48c85ac86481587c1e952ef7a003",
+          "standard": [
+            "-std=c++17"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API=[\"wasmBinary\"]",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORTED_FUNCTIONS=[\"_gameboy_apu_create\",\"_gameboy_apu_destroy\",\"_gameboy_apu_reset\",\"_gameboy_apu_write\",\"_gameboy_apu_sample_rate\",\"_gameboy_apu_set_mute_mask\",\"_gameboy_apu_generate\",\"_gameboy_apu_save_state\",\"_gameboy_apu_load_state\",\"_malloc\",\"_free\"]",
+            "-sEXPORTED_RUNTIME_METHODS=[\"cwrap\",\"HEAPF32\"]"
+          ],
+          "exports": [
+            "_gameboy_apu_create",
+            "_gameboy_apu_destroy",
+            "_gameboy_apu_reset",
+            "_gameboy_apu_write",
+            "_gameboy_apu_sample_rate",
+            "_gameboy_apu_set_mute_mask",
+            "_gameboy_apu_generate",
+            "_gameboy_apu_save_state",
+            "_gameboy_apu_load_state",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32"
+          ],
+          "assertionsFlag": false,
+          "exportAll": false,
+          "perlCleanup": false
+        },
+        "sdk": {
+          "sha256": "a9591f2b4c346d2b9a9ecbc87b1e18802ac90ac474830e25e71f4b6d738baa2f",
+          "standard": [
+            "-std=c++17"
+          ],
+          "optimization": [
+            "-O2"
+          ],
+          "emscriptenFlags": [
+            "-sMODULARIZE=1",
+            "-sEXPORT_ES6=1",
+            "-sINCOMING_MODULE_JS_API=[\"wasmBinary\"]",
+            "-sENVIRONMENT=web,worker,node,shell",
+            "-sALLOW_MEMORY_GROWTH=1",
+            "-sEXPORTED_FUNCTIONS=[\"_gameboy_apu_create\",\"_gameboy_apu_destroy\",\"_gameboy_apu_reset\",\"_gameboy_apu_write\",\"_gameboy_apu_sample_rate\",\"_gameboy_apu_set_mute_mask\",\"_gameboy_apu_generate\",\"_gameboy_apu_save_state\",\"_gameboy_apu_load_state\",\"_malloc\",\"_free\"]",
+            "-sEXPORTED_RUNTIME_METHODS=[\"cwrap\",\"HEAPF32\"]"
+          ],
+          "exports": [
+            "_gameboy_apu_create",
+            "_gameboy_apu_destroy",
+            "_gameboy_apu_reset",
+            "_gameboy_apu_write",
+            "_gameboy_apu_sample_rate",
+            "_gameboy_apu_set_mute_mask",
+            "_gameboy_apu_generate",
+            "_gameboy_apu_save_state",
+            "_gameboy_apu_load_state",
+            "_malloc",
+            "_free"
+          ],
+          "runtimeMethods": [
+            "cwrap",
+            "HEAPF32"
+          ],
+          "assertionsFlag": false,
+          "exportAll": false,
+          "perlCleanup": false
+        }
+      },
+      "flagsAndExportsExactlyEqual": true,
+      "preprocessorMethod": "clang++ -MM -std=c++17 only; no objects generated",
+      "translationUnitCount": 2,
+      "physicalDependencyCount": 3,
+      "normalizedDependencySetsExactlyEqual": true,
+      "dependencies": {
+        "legacy": [
+          "third_party/mame-gameboy/gameboy_apu.cpp",
+          "third_party/mame-gameboy/gameboy_apu.h",
+          "wasm/gameboy_apu_wasm.cpp"
+        ],
+        "sdk": [
+          "vendor/mame-gameboy/gameboy_apu.cpp",
+          "vendor/mame-gameboy/gameboy_apu.h",
+          "wasm/gameboy_apu_wasm.cpp"
+        ]
+      },
+      "catalogDependencyCoverage": {
+        "actualPhysicalDependencies": 3,
+        "missingActualDependencies": [],
+        "allCompiledInputsDeclared": true
+      },
+      "activeCalibrationGuards": [
+        {
+          "report": "docs/issues/analyzer_nes_levels_01.json",
+          "sourceCount": 11,
+          "gameboyAssetsTracked": [],
+          "changedTrackedAssets": []
+        },
+        {
+          "report": "docs/issues/analyzer_extra_levels_02.json",
+          "sourceCount": 23,
+          "gameboyAssetsTracked": [],
+          "changedTrackedAssets": []
+        },
+        {
+          "report": "docs/issues/analyzer_psg_levels_04.json",
+          "sourceCount": 32,
+          "gameboyAssetsTracked": [],
+          "changedTrackedAssets": []
+        },
+        {
+          "report": "docs/issues/soundchip_psg_levels_01.json",
+          "sourceCount": 12,
+          "gameboyAssetsTracked": [],
+          "changedTrackedAssets": []
+        }
+      ],
+      "calibrationGuardChecks": [
+        {
+          "command": "node scripts/generate_analyzer_mixer_defaults.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: 8 Analyzer-specific reference levels"
+        },
+        {
+          "command": "node scripts/generate_soundchip_mixer_presets.mjs --check",
+          "passed": true,
+          "output": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/web/soundchip_mixer_presets.js"
+        },
+        {
+          "command": "node scripts/generate_playground_mixer_defaults.mjs --check --report=docs/issues/playground_chip_levels_01.json",
+          "passed": true,
+          "output": "CHECK PASS: /Users/kyorohiro/development8/wfm/hello_ymfm/docs/playground/playground_mixer_defaults.js; target amplitude 0.12881777435541153"
+        }
+      ],
+      "calibrationFinalDecision": {
+        "defaultBuildStable": true,
+        "fingerprints": {
+          "js": {
+            "bytes": 11497,
+            "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+            "deployedLegacySdkDefaultByteEqual": true
+          },
+          "wasm": {
+            "bytes": 13782,
+            "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+            "deployedLegacySdkDefaultByteEqual": true
+          }
+        },
+        "actualTrackedSourcesChanged": false,
+        "remeasureRequired": false,
+        "activeReportsAndGeneratorsPreserved": true,
+        "reason": "Root stabledefault confirms deployed/legacy/SDK/docs byteequal. Numericreference is sharedPlaygroundbaseline; activegeneratorper-source reports have noGameBoy-specific hashes."
+      },
+      "wholeBundleIntegrityCheck": {
+        "command": "python3 scripts/import_soundchip_sdk.py --check",
+        "passed": true,
+        "output": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)"
+      },
+      "license": "MAME DMGAPU adaptation/upstream BSD-3-Clause WilbertPol/AnthonyKruize withthanksShayGreen. cpp0e6df89e98f10a05af5fd4df32572982e1709c81/headerfca00cace9e40ca70d82bbcc6dbd82167325e12b provenance retained.7 source/license/provenance pairs exactlyequal plus1headerNative-onlyfrienddeclarationdelta; originalTetoricawrapper repositoryBSD-3-Clause, noGPL core introduced.",
+      "recipeDifferences": [
+        "SDKROOT/cd beforeoutput",
+        "EMXX override defaults em++",
+        "third_party/mame-gameboy -> vendor/mame-gameboy",
+        "SDKdefaultdist/wasm vs maindocs/generated; mainshimabsoluteoutputpreserved"
+      ],
+      "chipSemantics": {
+        "fourVoices": "DMGonly twoSquare(4dutytypes,CH0sweep),32×4bitwave in16bytes,15/7bitLFSRnoise. Square advances/4nativecycles,Wave/2,Noise8-entrydivisor<<shift; undividedinputclocktick. NoCGB/AGBvariant,analogfilter orhardwareaccuracyclaim.",
+        "timing": "Durationweighted integratesheld per-native-tickchannel outputs overeachhostframe usingintegerphase.8192cycle8stepframeSequencer:length0/2/4/6,sweep2/6,envelope7; parity-gated immediateextra length-enable clock preserved.",
+        "waveRam": "WaveRAM offsets20..2F relativeFF10. Accessiblepoweroff. Whilewaveon, writesonlyduring sampleReading window tocurrentwaveOffset/2 regardlessaddress. Triggerwave resetsplaycursor/samplestate butdoesnotemulateglitchRAMcorruption. DACdisable keysoff.",
+        "powerResetMute": "NR52off clearsAPUregisters/gates/master routing,retainsWaveRAM andDMGoff-writablelengths behavior. Coldreset resetschannels/sequencer/phase/heldarrays,restores16byteDMGinitialWavepattern,retainsconfiguredrate/clock andmuteMask. Mute appliedafter native synthesis soall counters/NoiseLFSRcontinue. Noisefreeruns whenpowered evenoff.",
+        "mix": "Peronchannel sample=15-2*raw; volume0 orwavelevel0canbeconstantDC,notexactzero. NR51low4bitsright/high4left. CurrentcoreNR50low3left/high3right; hostscale(1+volume)/480. Preserveactualsource semantics,notfixhardwaremappinginmigration.",
+        "registers": "CABIwriteuint8offset/value; publicoffsetrange0..FF butonly00..16(+gaps)/20..2Fmeaningful. WriteswhileoffallowedNR52,lengthregisters,WaveRAM; othersignored. No read/readStatus/IRQ/hooks.",
+        "state": "Saveheader16bytes magic47424131,size,rate,clock followedbymemcpy entiretriviallycopyableGameboyApu (scalars/inlinearrays) includingC++padding,rate/clock,muteMask,heldarrays,counters,WaveRAM. Loadrequiresnonnullhandle/data,exactsize,headermagic/size/currentrate/clock andcopiedbodyrate/clockmatch; no arbitrary/deepstatefieldvalidation. SameWASMbuildABIonly,notportable snapshots orunsafe-fuzz promise.",
+        "publicWrapper": "GameboyApu public moduleweb/gameboyapu.js validatescreation, registerwrite andframebounds; aliveguards supported. FrozenopaqueWeakMap tokens boundtosameinstance; ownedgenerateStereo copies survivegrowth/disposal, currentheap used. Noreserve/view/Into API. rawstateincludesmutemask:loadrestoresit, resetretainsit.",
+        "publicEngine": "GameboyApuAudioEngine wraps chip+mastergain0..3.8 andfourchannelMask. Engineopaque state keybinds sampleRate/mastergain/channelMask andvalidatesunderlyingtoken; rejectsforeign/configmismatch. ProcessFramesowned PCM atconfiguredrate; processvalidatescaller Float32Arraycapacity thenfills. NohiddenFM/otherchip."
+      },
+      "consumers": [
+        "GameBoyprimary+additionalPlaygroundWorklets usegameboyapu.js wrapper andsameAPUartifact",
+        "npmcreateSoundChip(gameboy)/genericoutputWorklet, Node/browserPCM",
+        "Analyzer/CLI GameboyApuAudioEngine supportsactualchip snapshots/Playerseek; no registerreads introduced"
+      ],
+      "webGeneratedConsumerCopies": {
+        "observedBeforeRootResolution": {
+          "js": {
+            "path": "web/generated/gameboy_apu_wasm.js",
+            "sha256": "cfe9f1e9b0aa668e0fb888fddd4f34a8ce49b2d411bc1209faa64d57f24a71fb",
+            "bytes": 11257,
+            "byteEqualsDocs": false
+          },
+          "wasm": {
+            "path": "web/generated/gameboy_apu_wasm.wasm",
+            "sha256": "85fdf033730d026ec1b4632f9afd142ffe34543c84b5840d7661eda861d798b9",
+            "bytes": 13377,
+            "byteEqualsDocs": false
+          }
+        },
+        "current": {
+          "js": {
+            "path": "web/generated/gameboy_apu_wasm.js",
+            "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+            "bytes": 11497,
+            "byteEqualsDocs": true
+          },
+          "wasm": {
+            "path": "web/generated/gameboy_apu_wasm.wasm",
+            "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+            "bytes": 13782,
+            "byteEqualsDocs": true
+          }
+        },
+        "allCurrentCopiesEqualDocs": true,
+        "consumers": [
+          "web/playground_gameboy_worklet.js staticweb/generatedJS",
+          "web/playground_gameboy_audio.js fetchweb/generatedWASM",
+          "web/soundchip-output-worklet.js staticweb/generatedJS"
+        ],
+        "resolution": "Root synchronized directwebpair tobyteidenticalSDK/docs after actualcommon-ABIoldweb-versusSDKPCM proof; oldwebhadno nativeSaveLoad. Noassetwritesbythisauditor.",
+        "compatibilityEvidence": {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/web-compatibility.json",
+          "sha256": "ce20ee3c2f7e0ac9dbed95e586b433c0ac2faa15fe5877b81763dd684f7025cd",
+          "comparisons": 270,
+          "totalGeneratedOutputStereoFrames": 1158300,
+          "maximumDifference": 0,
+          "scope": "Frozen old web build without save/load versus fixed SDK. Common existing register/mute/reset/owned PCM only; no state equivalence or old state support is claimed."
+        },
+        "calibrationSourceHashesAffected": false
+      },
+      "stateSupport": {
+        "nativeSaveLoadExports": true,
+        "publicOpaqueSameInstanceSaveLoad": true,
+        "rawBodyIncludesAbiPaddingAndMuteAndConfig": true,
+        "deepMalformedStateValidation": false
+      },
+      "externalRepositories": {
+        "tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "worktreeClean": true
+        },
+        "tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "worktreeClean": true
+        }
+      },
+      "scope": "Read-only source/dependency/license/recipe/state audit; noSDK/Tauri/publicAPI/calibrationnumeric changes."
+    }
+  },
+  "builds": {
+    "frozenPairs": {
+      "deployed": {
+        "js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        "wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        }
+      },
+      "legacy": {
+        "js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        "wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        }
+      },
+      "sdk": {
+        "js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        "wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        }
+      },
+      "default": {
+        "js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        "wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        }
+      },
+      "defaultMatchesSdk": true,
+      "webPairMatchesSdk": true,
+      "allThreePairsIdentical": true,
+      "webOriginal": {
+        "js": {
+          "bytes": 11257,
+          "sha256": "cfe9f1e9b0aa668e0fb888fddd4f34a8ce49b2d411bc1209faa64d57f24a71fb"
+        },
+        "wasm": {
+          "bytes": 13377,
+          "sha256": "85fdf033730d026ec1b4632f9afd142ffe34543c84b5840d7661eda861d798b9"
+        }
+      },
+      "web": {
+        "js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        "wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        }
+      },
+      "webPairSynchronizedAfterCommonPcmCompatibility": true
+    },
+    "deployedDocsLegacySdkAndDefaultByteIdentical": true,
+    "directWebPairInitiallyDifferentNowSynchronized": true,
+    "defaultReceipt": {
+      "id": "gameboy_apu",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "a2cede68ef04bd35eb6831b7db89b37f8909bf5581ddb240ccae207c0d2430e2",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_gameboy_apu_wasm.sh",
+          "sha256": "a9591f2b4c346d2b9a9ecbc87b1e18802ac90ac474830e25e71f4b6d738baa2f",
+          "size": 778
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-gameboy/gameboy_apu.cpp",
+          "sha256": "ba5fa988a82d175500dac392f518d7d86258c3743910b87f24218ef5602c91de",
+          "size": 18222
+        },
+        {
+          "path": "vendor/mame-gameboy/gameboy_apu.h",
+          "sha256": "3f464c0874e12995ddc3403587ab4bed0538c57e49d3179c7a0c50e6a1d96a12",
+          "size": 3661
+        },
+        {
+          "path": "vendor/mame-gameboy/upstream/gb.cpp",
+          "sha256": "c3ce71628faf03013234275e1ed5023b4b4393a843cd81b6b60f6dc0c625dee3",
+          "size": 34748
+        },
+        {
+          "path": "vendor/mame-gameboy/upstream/gb.h",
+          "sha256": "79a124a25f43ba325c19940a351f44267654bb8652c651e53de069ce07389599",
+          "size": 5569
+        },
+        {
+          "path": "wasm/gameboy_apu_wasm.cpp",
+          "sha256": "03ad182b928394ca58340a50e36570dc425ff080338bd196b903572638bc2db7",
+          "size": 2076
+        }
+      ],
+      "outputs": [
+        {
+          "path": "gameboy_apu_wasm.js",
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+          "size": 11497
+        },
+        {
+          "path": "gameboy_apu_wasm.wasm",
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+          "size": 13782
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    "existingSixteenArtifactsPreserved": [
+      {
+        "id": "ay8910",
+        "recordSha256": "e811fe97294a0043972a0cb5c4c16782dd467ef47de7c8895412151036f9b1ee",
+        "recordUnchanged": true
+      },
+      {
+        "id": "huc6280",
+        "recordSha256": "fd355d9122a9f276734418fb8daaa29164fecbf7ba255226c27ef891dab6b9e0",
+        "recordUnchanged": true
+      },
+      {
+        "id": "okim6258",
+        "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+        "recordUnchanged": true
+      },
+      {
+        "id": "pwm32x",
+        "recordSha256": "7b115819763dd96d72109db82579ca2f7efb205a5edebcf7feae19d98541744a",
+        "recordUnchanged": true
+      },
+      {
+        "id": "rf5c164",
+        "recordSha256": "068e3609adfc0458df7dfae63d755291f309d403e1a04b047f1d3c5e3f55300b",
+        "recordUnchanged": true
+      },
+      {
+        "id": "segapsg",
+        "recordSha256": "78faa719d3c7a9e42ed95c407cd1caf65964a464d15219740cf1c000ba6e40d3",
+        "recordUnchanged": true
+      },
+      {
+        "id": "y8950",
+        "recordSha256": "0c9f0c5715b83f661ee4398458d30b053c6d4d3b0ebc74deff85beafe3472866",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2151",
+        "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2203",
+        "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2413",
+        "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2608",
+        "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2610b",
+        "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym2612",
+        "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3526",
+        "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ym3812",
+        "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+        "recordUnchanged": true
+      },
+      {
+        "id": "ymf262",
+        "recordSha256": "f7d26b834504dc82013673c2d26daffc5acdc6bd8f2305e83789fc8903e956c0",
+        "recordUnchanged": true
+      }
+    ],
+    "sdkFilesUnchanged": 379,
+    "distPackageAssetsEqualTestedDefault": true
+  },
+  "directWebCompatibilityAndSynchronization": {
+    "path": "/private/tmp/tetorica-gameboy-wasm-sdk/web-compatibility.json",
+    "bytes": 178615,
+    "sha256": "ce20ee3c2f7e0ac9dbed95e586b433c0ac2faa15fe5877b81763dd684f7025cd",
+    "record": {
+      "passed": true,
+      "deviceOpened": false,
+      "method": "Frozen old web build without save/load versus fixed SDK. Common existing register/mute/reset/owned PCM only; no state equivalence or old state support is claimed.",
+      "clocks": [
+        2097152,
+        4194304,
+        8388608
+      ],
+      "rates": [
+        8000,
+        44100,
+        96000
+      ],
+      "inputs": [
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/web-deployed/gameboy_apu_wasm.js",
+          "bytes": 11257,
+          "sha256": "cfe9f1e9b0aa668e0fb888fddd4f34a8ce49b2d411bc1209faa64d57f24a71fb"
+        },
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/web-deployed/gameboy_apu_wasm.wasm",
+          "bytes": 13377,
+          "sha256": "85fdf033730d026ec1b4632f9afd142ffe34543c84b5840d7661eda861d798b9"
+        },
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.js",
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.wasm",
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        },
+        {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapu.js",
+          "bytes": 7082,
+          "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+        },
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/check-old-web.mjs",
+          "bytes": 4822,
+          "sha256": "ca133d411c248c957ef09f0a8156ec2dea95989fc61254d5179df0c59ed4fb12"
+        }
+      ],
+      "comparisons": 270,
+      "totalGeneratedOutputStereoFrames": 1158300,
+      "maximumDifference": 0,
+      "temporaryScriptSource": "import assert from 'node:assert/strict';\nimport {readFile,writeFile} from 'node:fs/promises';\nimport {createHash} from 'node:crypto';\nimport {pathToFileURL} from 'node:url';\nimport {GameboyApu} from '/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapu.js';\nconst tmp='/private/tmp/tetorica-gameboy-wasm-sdk',root='/Users/kyorohiro/development8/wfm/hello_ymfm';\nconst sha=b=>createHash('sha256').update(b).digest('hex');\nconst file=async path=>{const b=await readFile(path);return {path,bytes:b.length,sha256:sha(b)};};\nasync function build(dir){const wasmBinary=await readFile(dir+'/gameboy_apu_wasm.wasm');const {default:moduleFactory}=await import(pathToFileURL(dir+'/gameboy_apu_wasm.js'));return options=>GameboyApu.create({...options,moduleFactory,moduleOptions:{wasmBinary}});}\nconst old=await build(tmp+'/web-deployed'),sdk=await build(tmp+'/sdk');\nfunction program(write,ch,{duty=2,frequency=1750,short=false,sweep=0,level=1}={}){\n write(0x16,128);write(0x14,0x77);write(0x15,0xff);\n if(ch<2){const b=ch===0?0:5;if(ch===0)write(0,sweep);write(b+1,duty<<6);write(b+2,0xf1);write(b+3,frequency&255);write(b+4,128|(frequency>>8));}\n else if(ch===2){write(0x0a,0);for(let i=0;i<16;i++)write(0x20+i,((i*2)&15)<<4|((i*2+1)&15));write(0x0a,128);write(0x0c,level<<5);write(0x0d,frequency&255);write(0x0e,128|(frequency>>8));}\n else {write(0x10,0);write(0x11,0xf1);write(0x12,0x11|(short?8:0));write(0x13,128);}\n}\nconst scenes=[];\nfunction scene(name,setup){const events=[];const add=(frame,op,...args)=>events.push({frame,op,args});setup((r,v)=>add(0,'write',r,v));add(101,'write',0x14,0x17);add(509,'write',0x15,0xf0);add(733,'mute',15);add(857,'mute',0);add(1021,'write',0x15,0x0f);add(1409,'write',0x16,0);add(1537,'write',0x20,0xab);add(1601,'write',0x16,128);add(1793,'reset');setup((r,v)=>add(1793,'write',r,v));scenes.push({name,events});}\nfor(let ch=0;ch<2;ch++)for(let duty=0;duty<4;duty++)scene(`pulse${ch}/duty${duty}`,w=>program(w,ch,{duty}));\nscene('pulse0/sweep',w=>program(w,0,{frequency:1000,sweep:0x11}));\nfor(const level of [1,2,3])scene(`wave/level${level}`,w=>program(w,2,{frequency:1900,level}));\nfor(const short of [false,true])scene(`noise/${short?'7bit':'15bit'}`,w=>program(w,3,{short}));\nscene('mix/all4',w=>{for(let ch=0;ch<4;ch++)program(w,ch,{frequency:1700+ch*70});});\nfunction execute(chip,scene,layout){let position=0,event=0,block=0;const left=new Float32Array(2048),right=new Float32Array(2048);while(position<2048){while(event<scene.events.length&&scene.events[event].frame===position){const {op,args}=scene.events[event++];if(op==='write')chip.writeRegister(...args);else if(op==='mute')chip.setMuteMask(...args);else chip.reset();}const n=Math.min(2048-position,layout[block++%layout.length],(scene.events[event]?.frame??2048)-position);assert(n>0);const p=chip.generateStereo(n);left.set(p.left,position);right.set(p.right,position);position+=n;}return {left,right,probe:chip.generateStereo(97)};}\nconst pcmSha=p=>sha(Buffer.concat([Buffer.from(p.left.buffer),Buffer.from(p.right.buffer)]));\nconst report={passed:false,deviceOpened:false,method:'Frozen old web build without save/load versus fixed SDK. Common existing register/mute/reset/owned PCM only; no state equivalence or old state support is claimed.',clocks:[2097152,4194304,8388608],rates:[8000,44100,96000],scenes,cases:[],inputs:await Promise.all([file(tmp+'/web-deployed/gameboy_apu_wasm.js'),file(tmp+'/web-deployed/gameboy_apu_wasm.wasm'),file(tmp+'/sdk/gameboy_apu_wasm.js'),file(tmp+'/sdk/gameboy_apu_wasm.wasm'),file(root+'/web/gameboyapu.js'),file(tmp+'/check-old-web.mjs')])};\nfor(const clock of report.clocks)for(const sampleRate of report.rates)for(const scene of scenes){let whole;for(const [name,layout] of [['regular',[256]],['irregular',[1,17,127,509,3,1024]]]){const a=await old({clock,sampleRate}),b=await sdk({clock,sampleRate});try{assert.equal(a.supportsState(),false);assert.equal(b.supportsState(),true);const x=execute(a,scene,layout),y=execute(b,scene,layout);assert.deepEqual(y,x);if(whole)assert.deepEqual(x,whole);else whole=x;assert(x.left.some(n=>n!==0)||x.right.some(n=>n!==0));for(const n of [...x.left,...x.right])assert(Number.isFinite(n));report.cases.push({scene:scene.name,clock,sampleRate,layout:name,frames:2048,probeFrames:97,pcmSha256:pcmSha(x),probeSha256:pcmSha(x.probe),maximumDifference:0});}finally{a.dispose();b.dispose();}}}\nreport.passed=true;report.comparisons=report.cases.length;report.totalGeneratedOutputStereoFrames=report.cases.length*2*(2048+97);report.maximumDifference=0;report.temporaryScriptSource=await readFile(tmp+'/check-old-web.mjs','utf8');await writeFile(tmp+'/web-compatibility.json',JSON.stringify(report,null,2)+'\\n');console.log(JSON.stringify({passed:true,cases:report.comparisons,totalOutputFrames:report.totalGeneratedOutputStereoFrames}));\n"
+    },
+    "caseManifestCanonicalSha256": "07f45f760b7dbefff5571ce68af91b7be1abc41b7aa71f0b5bfabcea933a2e38",
+    "sceneManifestCanonicalSha256": "ab17265c456327b714af4d041810daa69195a3fc076995a9a7caa921c7ed6387",
+    "scenarioCount": 15
+  },
+  "runtime": {
+    "checker": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+      "bytes": 38408,
+      "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+    },
+    "reports": [
+      {
+        "path": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy-sdk-parity.json",
+        "bytes": 780243,
+        "sha256": "4302bb3a8fc6d04eeccda6f5a05f43a6887111fe0d364583ccff294faba81148",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy",
+            "javascript": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy/gameboy_apu_wasm.js",
+              "bytes": 11497,
+              "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy/gameboy_apu_wasm.wasm",
+              "bytes": 13782,
+              "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_create",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_generate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_reset",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_write",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.js",
+              "bytes": 11497,
+              "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.wasm",
+              "bytes": 13782,
+              "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_create",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_generate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_reset",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_write",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/build-info.json",
+              "bytes": 2581,
+              "sha256": "96c3ed7980142525dcbe7f60351ba9cd1c1e30b7292ebba960d806c00e2133d5"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+            "bytes": 38408,
+            "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapu.js",
+              "bytes": 7082,
+              "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapu.js",
+              "bytes": 7139,
+              "sha256": "1d6116be5f9466cb4dc0fe2de49306e7c130424903b03ae3cfbfb3b5b68eb4a5"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapuaudioengine.js",
+              "bytes": 5590,
+              "sha256": "a442b51b4a5f2b85bde2a1d7b012861d789c14c7255853517d4e72f60b982da2"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapuaudioengine.js",
+              "bytes": 5633,
+              "sha256": "6d45fc034fd1c0f5759afc0c3f7cd19f9dd8fc19e3ab6c56aa5df9184b4f6698"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+              "bytes": 4213,
+              "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          1048576,
+          4194304
+        ],
+        "outputRates": [
+          8000,
+          44100,
+          96000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "checkpointFrame": 613,
+        "probeFrames": 97,
+        "method": "Actual generated Gameboy APU JS/WASM through unchanged lowlevel and AudioEngine wrappers; exact owned PCM and continuation probes, same-instance opaque and trusted raw snapshot continuation. Deterministic header is compared; raw C++ payload/padding is not claimed byte-identical. Actual VgmPlayer b3 reset/checkpoint/seek. No mock, tolerance or audio device.",
+        "limits": [
+          "All4voices, square4duties, envelope/sweep/length/frame sequencer, wave RAM/levels/read-window writes and original DMG reset pattern,7/15bit noise/all8divisors, NR50/NR51/NR52 and mute phases are tested. Current NR50 lower3bits controlleft and higher3bits controlright; existing behavior is preserved.",
+          "Raw snapshot is16-byte magic/size/rate/clock header plus same-build trivially-copyable C++ object including mute and ABIpadding. Header validation and exact continuation after trusted sameconfiguration restores are tested; no fullpayloadbyte-equality or portable serialization claim. Arbitrary payload fuzzing is not performed. Public tokens are same-instance only.",
+          "Reset rewinds synthesis/frame timing and restores initial DMG waveRAM while retaining native mute. Raw snapshots include mute; Engine opaque state additionally requires current volume/channelMask settings to match. No read/status/IRQ/borrowed/Into API is invented.",
+          "Generation integrates per-channel held samples with integer tick_remaining. First output ticks immediately; native mute excludes each held channel at mix time even with slowclocks, while phases continue. All returnedarrays remain owned through overwrite/capacity/heapgrowth/disposal.",
+          "Actual GameBoy VGM opcode is0xb3 and existing Player checkpoints include real APU state. Only frozen legacy/deployed docs and SDK assets are compared here; a separate older web-generated pair without state exports is not claimed identical by this report.",
+          "No Browser/Worklet scheduling, Native backend, physical hardware, listening or Mixer policy is tested."
+        ],
+        "scenarioBodyOutputStereoFrames": 2209836,
+        "postScenarioProbeOutputStereoFrames": 228144,
+        "ownStateLoads": 192,
+        "crossStateLoads": 132,
+        "resetReplayExecutions": 276,
+        "maximumDifference": 0,
+        "totalWrapperSelfCheckOutputStereoFrames": 126486,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+        "totalPlayerDeliveredOutputStereoFrames": 248840,
+        "rawScenariosPerClockRate": 68,
+        "scenarioConfigurations": 438,
+        "scenarioRenderExecutions": 2352,
+        "totalOutputStereoFrames": 2437980,
+        "totalGeneratedOutputStereoFrames": 2877906,
+        "frameCountScope": "Both realbuilds: complete1024-frame bodies+97-frame probes; selected regular own/cross continuation bodies startat613 plusfreshprobes, resetreplays repeatfullbody/probe. Wrapper positives and actual Player generation separate; native ticks/internal Engine calls and delivered Player frames notaddedtwice.",
+        "comparisons": 876,
+        "caseKindCounts": {
+          "chip": 816,
+          "engine": 60
+        },
+        "caseManifestCanonicalSha256": "da98e918955ed90d48b89941f7378c24b7628e195b1061a21f6400054a00ffaa"
+      },
+      {
+        "path": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed-sdk-parity.json",
+        "bytes": 780249,
+        "sha256": "60e4c8d339a4f262687b8c25c38254567b3195c8a6df8f760ec24dba273e6aa0",
+        "inputs": {
+          "legacy": {
+            "directory": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed",
+            "javascript": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed/gameboy_apu_wasm.js",
+              "bytes": 11497,
+              "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed/gameboy_apu_wasm.wasm",
+              "bytes": 13782,
+              "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_create",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_generate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_reset",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_write",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              }
+            ]
+          },
+          "sdk": {
+            "directory": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk",
+            "javascript": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.js",
+              "bytes": 11497,
+              "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+            },
+            "wasm": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.wasm",
+              "bytes": 13782,
+              "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+            },
+            "exports": [
+              {
+                "name": "__indirect_function_table",
+                "kind": "table"
+              },
+              {
+                "name": "__wasm_call_ctors",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_alloc",
+                "kind": "function"
+              },
+              {
+                "name": "_emscripten_stack_restore",
+                "kind": "function"
+              },
+              {
+                "name": "emscripten_stack_get_current",
+                "kind": "function"
+              },
+              {
+                "name": "free",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_create",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_destroy",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_generate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_load_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_reset",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_sample_rate",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_save_state",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_set_mute_mask",
+                "kind": "function"
+              },
+              {
+                "name": "gameboy_apu_write",
+                "kind": "function"
+              },
+              {
+                "name": "malloc",
+                "kind": "function"
+              },
+              {
+                "name": "memory",
+                "kind": "memory"
+              }
+            ],
+            "buildInfo": {
+              "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/build-info.json",
+              "bytes": 2581,
+              "sha256": "96c3ed7980142525dcbe7f60351ba9cd1c1e30b7292ebba960d806c00e2133d5"
+            }
+          },
+          "checker": {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+            "bytes": 38408,
+            "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+          },
+          "wrappers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapu.js",
+              "bytes": 7082,
+              "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapu.js",
+              "bytes": 7139,
+              "sha256": "1d6116be5f9466cb4dc0fe2de49306e7c130424903b03ae3cfbfb3b5b68eb4a5"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapuaudioengine.js",
+              "bytes": 5590,
+              "sha256": "a442b51b4a5f2b85bde2a1d7b012861d789c14c7255853517d4e72f60b982da2"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapuaudioengine.js",
+              "bytes": 5633,
+              "sha256": "6d45fc034fd1c0f5759afc0c3f7cd19f9dd8fc19e3ab6c56aa5df9184b4f6698"
+            }
+          ],
+          "helpers": [
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+              "bytes": 23516,
+              "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+              "bytes": 112669,
+              "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+              "bytes": 4213,
+              "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+            },
+            {
+              "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+              "bytes": 1837,
+              "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+            }
+          ]
+        },
+        "passed": true,
+        "deviceOpened": false,
+        "clocks": [
+          1048576,
+          4194304
+        ],
+        "outputRates": [
+          8000,
+          44100,
+          96000
+        ],
+        "layouts": {
+          "regular": [
+            256
+          ],
+          "irregular": [
+            1,
+            17,
+            127,
+            509,
+            3,
+            1024,
+            257,
+            4096
+          ]
+        },
+        "checkpointFrame": 613,
+        "probeFrames": 97,
+        "method": "Actual generated Gameboy APU JS/WASM through unchanged lowlevel and AudioEngine wrappers; exact owned PCM and continuation probes, same-instance opaque and trusted raw snapshot continuation. Deterministic header is compared; raw C++ payload/padding is not claimed byte-identical. Actual VgmPlayer b3 reset/checkpoint/seek. No mock, tolerance or audio device.",
+        "limits": [
+          "All4voices, square4duties, envelope/sweep/length/frame sequencer, wave RAM/levels/read-window writes and original DMG reset pattern,7/15bit noise/all8divisors, NR50/NR51/NR52 and mute phases are tested. Current NR50 lower3bits controlleft and higher3bits controlright; existing behavior is preserved.",
+          "Raw snapshot is16-byte magic/size/rate/clock header plus same-build trivially-copyable C++ object including mute and ABIpadding. Header validation and exact continuation after trusted sameconfiguration restores are tested; no fullpayloadbyte-equality or portable serialization claim. Arbitrary payload fuzzing is not performed. Public tokens are same-instance only.",
+          "Reset rewinds synthesis/frame timing and restores initial DMG waveRAM while retaining native mute. Raw snapshots include mute; Engine opaque state additionally requires current volume/channelMask settings to match. No read/status/IRQ/borrowed/Into API is invented.",
+          "Generation integrates per-channel held samples with integer tick_remaining. First output ticks immediately; native mute excludes each held channel at mix time even with slowclocks, while phases continue. All returnedarrays remain owned through overwrite/capacity/heapgrowth/disposal.",
+          "Actual GameBoy VGM opcode is0xb3 and existing Player checkpoints include real APU state. Only frozen legacy/deployed docs and SDK assets are compared here; a separate older web-generated pair without state exports is not claimed identical by this report.",
+          "No Browser/Worklet scheduling, Native backend, physical hardware, listening or Mixer policy is tested."
+        ],
+        "scenarioBodyOutputStereoFrames": 2209836,
+        "postScenarioProbeOutputStereoFrames": 228144,
+        "ownStateLoads": 192,
+        "crossStateLoads": 132,
+        "resetReplayExecutions": 276,
+        "maximumDifference": 0,
+        "totalWrapperSelfCheckOutputStereoFrames": 126486,
+        "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+        "totalPlayerDeliveredOutputStereoFrames": 248840,
+        "rawScenariosPerClockRate": 68,
+        "scenarioConfigurations": 438,
+        "scenarioRenderExecutions": 2352,
+        "totalOutputStereoFrames": 2437980,
+        "totalGeneratedOutputStereoFrames": 2877906,
+        "frameCountScope": "Both realbuilds: complete1024-frame bodies+97-frame probes; selected regular own/cross continuation bodies startat613 plusfreshprobes, resetreplays repeatfullbody/probe. Wrapper positives and actual Player generation separate; native ticks/internal Engine calls and delivered Player frames notaddedtwice.",
+        "comparisons": 876,
+        "caseKindCounts": {
+          "chip": 816,
+          "engine": 60
+        },
+        "caseManifestCanonicalSha256": "da98e918955ed90d48b89941f7378c24b7628e195b1061a21f6400054a00ffaa"
+      }
+    ],
+    "caseArraysEqualBetweenReferencePairs": true,
+    "caseManifestCanonicalization": "JSON with sorted keys, compact separators, UTF-8. Full case arrays can be regenerated using the checked-in checker. Exact PCM/probes and deterministic state headers are compared; native C++ payload/padding byte equality is not claimed.",
+    "scenarioNames": [
+      "square/channel0/duty0",
+      "square/channel0/duty1",
+      "square/channel0/duty2",
+      "square/channel0/duty3",
+      "square/channel1/duty0",
+      "square/channel1/duty1",
+      "square/channel1/duty2",
+      "square/channel1/duty3",
+      "frequency/value0",
+      "frequency/value900",
+      "frequency/value1750",
+      "frequency/value2047",
+      "envelope/channel0/value8",
+      "envelope/channel0/value121",
+      "envelope/channel0/value241",
+      "envelope/channel0/value250",
+      "envelope/channel1/value8",
+      "envelope/channel1/value121",
+      "envelope/channel1/value241",
+      "envelope/channel1/value250",
+      "sweep/value0",
+      "sweep/value19",
+      "sweep/value25",
+      "sweep/value115",
+      "wave/level0/original",
+      "wave/level0/square",
+      "wave/level1/original",
+      "wave/level1/square",
+      "wave/level2/original",
+      "wave/level2/square",
+      "wave/level3/original",
+      "wave/level3/square",
+      "noise/width15/divisor0",
+      "noise/width15/divisor1",
+      "noise/width15/divisor2",
+      "noise/width15/divisor3",
+      "noise/width15/divisor4",
+      "noise/width15/divisor5",
+      "noise/width15/divisor6",
+      "noise/width15/divisor7",
+      "noise/width7/divisor0",
+      "noise/width7/divisor1",
+      "noise/width7/divisor2",
+      "noise/width7/divisor3",
+      "noise/width7/divisor4",
+      "noise/width7/divisor5",
+      "noise/width7/divisor6",
+      "noise/width7/divisor7",
+      "NR50/value0",
+      "NR50/value7",
+      "NR50/value112",
+      "NR50/value119",
+      "NR50/value255",
+      "NR51/mask0",
+      "NR51/mask17",
+      "NR51/mask34",
+      "NR51/mask68",
+      "NR51/mask136",
+      "NR51/mask240",
+      "NR51/mask15",
+      "NR51/mask255",
+      "length/channel0",
+      "length/channel1",
+      "length/channel2",
+      "length/channel3",
+      "power/waveRam/off-state-writes",
+      "mute/reset-retains-mask",
+      "mix/all-four/master-volume",
+      "cold/power-off"
+    ],
+    "samePositiveWrapperChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "snapshotHeader": {
+        "magic": 1195524401,
+        "bytes": 312,
+        "rate": 44100,
+        "clock": 4194304
+      },
+      "stateComparison": "Header plus exact trusted continuation only; raw C++ object padding is not claimed portable or byte-identical.",
+      "sameInstanceTokens": true,
+      "malformedHeaderSizeAndForeignConfigRejected": true,
+      "restoredObjectConfigRevalidated": true,
+      "nativeMuteIncludedInState": true,
+      "dutyRows": [
+        {
+          "channel": 0,
+          "duty": 0,
+          "pcmSha256": "096082585189b0eec590e666146f1565e65a39ec71bc7c33b86e4b8f0111301a"
+        },
+        {
+          "channel": 0,
+          "duty": 1,
+          "pcmSha256": "2d643cb862b6b3d39580f67819c0bdc635947cf94c0526ebaf967f3e02b89071"
+        },
+        {
+          "channel": 0,
+          "duty": 2,
+          "pcmSha256": "1531be3545328122c39d3c7f457a5e243a1169bf8cd2313ef7a01ee67294b20e"
+        },
+        {
+          "channel": 0,
+          "duty": 3,
+          "pcmSha256": "51ccb77b30968890cc85999e45856e1bf0f3da26c6ec7764aab25f4d20c0692c"
+        },
+        {
+          "channel": 1,
+          "duty": 0,
+          "pcmSha256": "096082585189b0eec590e666146f1565e65a39ec71bc7c33b86e4b8f0111301a"
+        },
+        {
+          "channel": 1,
+          "duty": 1,
+          "pcmSha256": "2d643cb862b6b3d39580f67819c0bdc635947cf94c0526ebaf967f3e02b89071"
+        },
+        {
+          "channel": 1,
+          "duty": 2,
+          "pcmSha256": "1531be3545328122c39d3c7f457a5e243a1169bf8cd2313ef7a01ee67294b20e"
+        },
+        {
+          "channel": 1,
+          "duty": 3,
+          "pcmSha256": "51ccb77b30968890cc85999e45856e1bf0f3da26c6ec7764aab25f4d20c0692c"
+        }
+      ],
+      "waveRows": [
+        {
+          "level": 0,
+          "pcmSha256": "838f1f3d72b173257558fc1752093f06cbd75f97b47d91b5464011258647a4c4"
+        },
+        {
+          "level": 1,
+          "pcmSha256": "4072e1b76e2556fdde8686690c125834a48998aa9309c678edbddca70e1147df"
+        },
+        {
+          "level": 2,
+          "pcmSha256": "f5ed4eaacea1f411081a84dcb56016e77937d8fb9aae783ff1f7cfe173ddcc71"
+        },
+        {
+          "level": 3,
+          "pcmSha256": "42b8d028df23c316e18c8cbc7439328511242a01ffc12e8d654f7bb42916d914"
+        }
+      ],
+      "activeWaveRamReadWindowAndPowerOffWrites": true,
+      "resetRestoresOriginalDmgWavePattern": true,
+      "noiseRows": [
+        {
+          "width": 15,
+          "divisor": 0,
+          "pcmSha256": "c0079d4ba59668022996faa0b734709ef7439be624551c2ed657595e823fb149"
+        },
+        {
+          "width": 15,
+          "divisor": 1,
+          "pcmSha256": "e6b6613051e182d9d07d59eb64eb4bb3311d566a6a763656ea33ed38cb94c3e4"
+        },
+        {
+          "width": 15,
+          "divisor": 2,
+          "pcmSha256": "65115149fc71f95ffb19bd118cbc1190b1cbef72578fcf05bd568b262d5292b0"
+        },
+        {
+          "width": 15,
+          "divisor": 3,
+          "pcmSha256": "dd7cd21e341adb1fe3c5f813bc3e97331a8f3fc8b9beb612189ce75b8e60dab3"
+        },
+        {
+          "width": 15,
+          "divisor": 4,
+          "pcmSha256": "07a57b905895ae9d526b280a3801613b7b68a367d55a0d40351fee81da6f4bd5"
+        },
+        {
+          "width": 15,
+          "divisor": 5,
+          "pcmSha256": "407f2ed9a7373f222108dfb510129c2e7a4390f73798bf17e51bbd8b45486e41"
+        },
+        {
+          "width": 15,
+          "divisor": 6,
+          "pcmSha256": "eb770fb8e447dfc2fa77b998327a5ed52438b3377b8eb462a8b8dbc608c19902"
+        },
+        {
+          "width": 15,
+          "divisor": 7,
+          "pcmSha256": "99d826fb255ff094f5cd1506354f8679b5a35bacca1b8173b00de370921bfe30"
+        },
+        {
+          "width": 7,
+          "divisor": 0,
+          "pcmSha256": "662ef3e7f99b63a8b7cd87c2bc7cf2b8e0d2a3bde80ca2554ba8ac212c6e2145"
+        },
+        {
+          "width": 7,
+          "divisor": 1,
+          "pcmSha256": "9b88a9db179ecb8bb8fc01e8d48ec80cb698f11df481949d22ce25fd7f117acb"
+        },
+        {
+          "width": 7,
+          "divisor": 2,
+          "pcmSha256": "37d100266772e5bcc3a8dcbbdb6cd60b61ba5674894cf43e17d3fcfe41b1468c"
+        },
+        {
+          "width": 7,
+          "divisor": 3,
+          "pcmSha256": "46a77d32ac5e5d2d36f56aaeb767019d84196285ff4d10a00d749072a014e450"
+        },
+        {
+          "width": 7,
+          "divisor": 4,
+          "pcmSha256": "70b64c3c47f2eccd3bbd39ab0d6568ac82b3a83e6c2b169ceb8c125e9ed0bd5a"
+        },
+        {
+          "width": 7,
+          "divisor": 5,
+          "pcmSha256": "a4051df724c87a0b0822cf5aeaca12c9e1b87e9002695955f7534253f3c973f1"
+        },
+        {
+          "width": 7,
+          "divisor": 6,
+          "pcmSha256": "35ba4a35aa2c48116ea160f83cbee98c5c40ccf8921e1e45f27bcbbdc4d1a748"
+        },
+        {
+          "width": 7,
+          "divisor": 7,
+          "pcmSha256": "252883e6118886fbb28c46a8485816b6cfd5853813be10ac03b3d7145534fd4c"
+        }
+      ],
+      "routingRows": [
+        {
+          "pan": 0,
+          "left": 0,
+          "right": 0
+        },
+        {
+          "pan": 1,
+          "left": 0,
+          "right": 0.25
+        },
+        {
+          "pan": 2,
+          "left": 0,
+          "right": 0.25
+        },
+        {
+          "pan": 3,
+          "left": 0,
+          "right": 0.5
+        },
+        {
+          "pan": 4,
+          "left": 0,
+          "right": 0.25
+        },
+        {
+          "pan": 5,
+          "left": 0,
+          "right": 0.5
+        },
+        {
+          "pan": 6,
+          "left": 0,
+          "right": 0.5
+        },
+        {
+          "pan": 7,
+          "left": 0,
+          "right": 0.75
+        },
+        {
+          "pan": 8,
+          "left": 0,
+          "right": 0.25
+        },
+        {
+          "pan": 9,
+          "left": 0,
+          "right": 0.5
+        },
+        {
+          "pan": 10,
+          "left": 0,
+          "right": 0.5
+        },
+        {
+          "pan": 11,
+          "left": 0,
+          "right": 0.75
+        },
+        {
+          "pan": 12,
+          "left": 0,
+          "right": 0.5
+        },
+        {
+          "pan": 13,
+          "left": 0,
+          "right": 0.75
+        },
+        {
+          "pan": 14,
+          "left": 0,
+          "right": 0.75
+        },
+        {
+          "pan": 15,
+          "left": 0,
+          "right": 1
+        },
+        {
+          "pan": 16,
+          "left": 0.25,
+          "right": 0
+        },
+        {
+          "pan": 17,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 18,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 19,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 20,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 21,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 22,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 23,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 24,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 25,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 26,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 27,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 28,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 29,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 30,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 31,
+          "left": 0.25,
+          "right": 1
+        },
+        {
+          "pan": 32,
+          "left": 0.25,
+          "right": 0
+        },
+        {
+          "pan": 33,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 34,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 35,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 36,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 37,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 38,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 39,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 40,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 41,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 42,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 43,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 44,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 45,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 46,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 47,
+          "left": 0.25,
+          "right": 1
+        },
+        {
+          "pan": 48,
+          "left": 0.5,
+          "right": 0
+        },
+        {
+          "pan": 49,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 50,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 51,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 52,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 53,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 54,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 55,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 56,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 57,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 58,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 59,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 60,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 61,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 62,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 63,
+          "left": 0.5,
+          "right": 1
+        },
+        {
+          "pan": 64,
+          "left": 0.25,
+          "right": 0
+        },
+        {
+          "pan": 65,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 66,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 67,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 68,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 69,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 70,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 71,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 72,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 73,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 74,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 75,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 76,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 77,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 78,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 79,
+          "left": 0.25,
+          "right": 1
+        },
+        {
+          "pan": 80,
+          "left": 0.5,
+          "right": 0
+        },
+        {
+          "pan": 81,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 82,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 83,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 84,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 85,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 86,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 87,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 88,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 89,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 90,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 91,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 92,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 93,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 94,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 95,
+          "left": 0.5,
+          "right": 1
+        },
+        {
+          "pan": 96,
+          "left": 0.5,
+          "right": 0
+        },
+        {
+          "pan": 97,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 98,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 99,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 100,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 101,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 102,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 103,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 104,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 105,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 106,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 107,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 108,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 109,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 110,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 111,
+          "left": 0.5,
+          "right": 1
+        },
+        {
+          "pan": 112,
+          "left": 0.75,
+          "right": 0
+        },
+        {
+          "pan": 113,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 114,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 115,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 116,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 117,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 118,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 119,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 120,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 121,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 122,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 123,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 124,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 125,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 126,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 127,
+          "left": 0.75,
+          "right": 1
+        },
+        {
+          "pan": 128,
+          "left": 0.25,
+          "right": 0
+        },
+        {
+          "pan": 129,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 130,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 131,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 132,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 133,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 134,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 135,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 136,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "pan": 137,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 138,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 139,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 140,
+          "left": 0.25,
+          "right": 0.5
+        },
+        {
+          "pan": 141,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 142,
+          "left": 0.25,
+          "right": 0.75
+        },
+        {
+          "pan": 143,
+          "left": 0.25,
+          "right": 1
+        },
+        {
+          "pan": 144,
+          "left": 0.5,
+          "right": 0
+        },
+        {
+          "pan": 145,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 146,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 147,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 148,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 149,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 150,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 151,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 152,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 153,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 154,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 155,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 156,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 157,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 158,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 159,
+          "left": 0.5,
+          "right": 1
+        },
+        {
+          "pan": 160,
+          "left": 0.5,
+          "right": 0
+        },
+        {
+          "pan": 161,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 162,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 163,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 164,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 165,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 166,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 167,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 168,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 169,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 170,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 171,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 172,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 173,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 174,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 175,
+          "left": 0.5,
+          "right": 1
+        },
+        {
+          "pan": 176,
+          "left": 0.75,
+          "right": 0
+        },
+        {
+          "pan": 177,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 178,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 179,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 180,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 181,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 182,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 183,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 184,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 185,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 186,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 187,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 188,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 189,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 190,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 191,
+          "left": 0.75,
+          "right": 1
+        },
+        {
+          "pan": 192,
+          "left": 0.5,
+          "right": 0
+        },
+        {
+          "pan": 193,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 194,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 195,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 196,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 197,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 198,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 199,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 200,
+          "left": 0.5,
+          "right": 0.25
+        },
+        {
+          "pan": 201,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 202,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 203,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 204,
+          "left": 0.5,
+          "right": 0.5
+        },
+        {
+          "pan": 205,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 206,
+          "left": 0.5,
+          "right": 0.75
+        },
+        {
+          "pan": 207,
+          "left": 0.5,
+          "right": 1
+        },
+        {
+          "pan": 208,
+          "left": 0.75,
+          "right": 0
+        },
+        {
+          "pan": 209,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 210,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 211,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 212,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 213,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 214,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 215,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 216,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 217,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 218,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 219,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 220,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 221,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 222,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 223,
+          "left": 0.75,
+          "right": 1
+        },
+        {
+          "pan": 224,
+          "left": 0.75,
+          "right": 0
+        },
+        {
+          "pan": 225,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 226,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 227,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 228,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 229,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 230,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 231,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 232,
+          "left": 0.75,
+          "right": 0.25
+        },
+        {
+          "pan": 233,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 234,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 235,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 236,
+          "left": 0.75,
+          "right": 0.5
+        },
+        {
+          "pan": 237,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 238,
+          "left": 0.75,
+          "right": 0.75
+        },
+        {
+          "pan": 239,
+          "left": 0.75,
+          "right": 1
+        },
+        {
+          "pan": 240,
+          "left": 1,
+          "right": 0
+        },
+        {
+          "pan": 241,
+          "left": 1,
+          "right": 0.25
+        },
+        {
+          "pan": 242,
+          "left": 1,
+          "right": 0.25
+        },
+        {
+          "pan": 243,
+          "left": 1,
+          "right": 0.5
+        },
+        {
+          "pan": 244,
+          "left": 1,
+          "right": 0.25
+        },
+        {
+          "pan": 245,
+          "left": 1,
+          "right": 0.5
+        },
+        {
+          "pan": 246,
+          "left": 1,
+          "right": 0.5
+        },
+        {
+          "pan": 247,
+          "left": 1,
+          "right": 0.75
+        },
+        {
+          "pan": 248,
+          "left": 1,
+          "right": 0.25
+        },
+        {
+          "pan": 249,
+          "left": 1,
+          "right": 0.5
+        },
+        {
+          "pan": 250,
+          "left": 1,
+          "right": 0.5
+        },
+        {
+          "pan": 251,
+          "left": 1,
+          "right": 0.75
+        },
+        {
+          "pan": 252,
+          "left": 1,
+          "right": 0.5
+        },
+        {
+          "pan": 253,
+          "left": 1,
+          "right": 0.75
+        },
+        {
+          "pan": 254,
+          "left": 1,
+          "right": 0.75
+        },
+        {
+          "pan": 255,
+          "left": 1,
+          "right": 1
+        }
+      ],
+      "volumeRows": [
+        {
+          "volume": 0,
+          "left": 0.03125,
+          "right": 0.03125
+        },
+        {
+          "volume": 7,
+          "left": 0.25,
+          "right": 0.03125
+        },
+        {
+          "volume": 112,
+          "left": 0.03125,
+          "right": 0.25
+        },
+        {
+          "volume": 119,
+          "left": 0.25,
+          "right": 0.25
+        },
+        {
+          "volume": 255,
+          "left": 0.25,
+          "right": 0.25
+        }
+      ],
+      "lengthExpiryPhysicalChannels": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "sweepOverflowPositive": true,
+      "envelopeClockPositive": true,
+      "muteEffectAndPhaseMasks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "resetRetainsMute": true,
+      "slowClockImmediateTickAndImmediateMute": true,
+      "powerOffIgnoresNormalRegisterWrites": true,
+      "engineVolumeAndSnapshotSettingsGuard": true,
+      "ownedSurvivesOverwriteCapacityHeapDispose": true,
+      "totalOutputStereoFrames": 63243,
+      "frameCountScope": "All real lowlevel and actual Engine output frames in bounded positives; internal native ticks and Engine source calls are not addedtwice. Header and control operations generate noPCM."
+    },
+    "sameActualVgmPlayerChecksForBothBuildsAndBothComparisons": {
+      "passed": true,
+      "rows": [
+        {
+          "clock": 1048576,
+          "outputRate": 8000,
+          "fixtureBytes": 575,
+          "fixtureSha256": "41abdd779840a9dfeecc9a3616de944e5333162aa54c1cfdc3bd6448ed9cc771",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 1300,
+          "capturedCheckpoints": 3,
+          "baselinePcmSha256": "254c6296468f0733a9980b1f2a1d9a08ff01626f6aad71126ff186a4b6a1629e",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "556bb95c51a0d981a39dfbf7f8ff953ef1d45c6e23991d986adddcb5b8895641"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "556bb95c51a0d981a39dfbf7f8ff953ef1d45c6e23991d986adddcb5b8895641"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 127,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "d92a727701179e87fc701c3b914a29729c0abc88b36cb78de981ab9fb23ddc84"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 308,
+              "restoredCheckpointFrame": 256,
+              "pcmSha256": "03894e7407e814d89dbb5d28c2bf950764ea8e7815112d975331221ba07e1acc"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 425,
+              "restoredCheckpointFrame": 336,
+              "pcmSha256": "2779e0f5ba28b2f3e8cfa0cecae0c604e47420f669ed27025c5b8b54fe03dcd3"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 925,
+              "restoredCheckpointFrame": 768,
+              "pcmSha256": "c94939c4d71c223fff7006729c5e153a2dd8a2acbd2413b476bb8af6c86e85cb"
+            }
+          ],
+          "actualOpcode": "0xb3",
+          "opaquePlayerContinuation": true
+        },
+        {
+          "clock": 1048576,
+          "outputRate": 44100,
+          "fixtureBytes": 575,
+          "fixtureSha256": "41abdd779840a9dfeecc9a3616de944e5333162aa54c1cfdc3bd6448ed9cc771",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "capturedCheckpoints": 5,
+          "baselinePcmSha256": "e5281f4d9ba20ebe4b44ed79c17d0d2d17e9506f3b2a12041fa25b952bbb766b",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "c4103a9310373889cf216922f9b45d5a94cb25b5698ccb45ce1b2fbe6680e456"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "360ec04d93e6039421e4f6158d3a5cca62649ea6c5edf41ae353e4c7fc764774"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "restoredCheckpointFrame": 654,
+              "pcmSha256": "aed4ca272b25d82330009ccdda2a44aba690aeae1116408259b7321d42858a1f"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "restoredCheckpointFrame": 1681,
+              "pcmSha256": "11b343157bdfdaa35073b31544ec000febbbe4ff51782160319b1ff3be3847f8"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "restoredCheckpointFrame": 2304,
+              "pcmSha256": "f748b5388e8b5939b2e23f136ef1f0816f9bb2f821745ac21b58717dbd9dc660"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "7994eaf5e8f13ebb08188b00094866c745e33cffda8ca3c8885a41264d553b75"
+            }
+          ],
+          "actualOpcode": "0xb3",
+          "opaquePlayerContinuation": true
+        },
+        {
+          "clock": 1048576,
+          "outputRate": 96000,
+          "fixtureBytes": 575,
+          "fixtureSha256": "41abdd779840a9dfeecc9a3616de944e5333162aa54c1cfdc3bd6448ed9cc771",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "capturedCheckpoints": 6,
+          "baselinePcmSha256": "c375d0815b568dc7906fefb7af74fed01899770773db2e84db9ff913b502ab02",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "03e883094e382cc7b43103f1d9c5af7894957a58001b57c1b990bb318ebccffc"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "09a65a1aaab284f49f6fe2f362c8f7e8f15238deda6d75b88232acdb1d4935ad"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "5d46aac7a54ae0f7c14ba9d058ad181982beccb324882d8fb32f842c1cd3c4a1"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "restoredCheckpointFrame": 2816,
+              "pcmSha256": "e3d21d8147fa76271bd7559fae95360978ef1691305b5e60c87ca26302deb2d1"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "1e18db15266f41a6b08c316d47c021d4e0da23f2f997791f3281fceba9f1c7d4"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "restoredCheckpointFrame": 10752,
+              "pcmSha256": "028d5a1c51e371ca5b0c9882112215e528fce97a7db5998b4f31cc75da0b8ea9"
+            }
+          ],
+          "actualOpcode": "0xb3",
+          "opaquePlayerContinuation": true
+        },
+        {
+          "clock": 4194304,
+          "outputRate": 8000,
+          "fixtureBytes": 575,
+          "fixtureSha256": "7bb481b9c3d7b0485aa67b6dd4a53a57138b5103629f529002c11ec0b1ed685b",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 1300,
+          "capturedCheckpoints": 3,
+          "baselinePcmSha256": "6f1c8eef6fa9b76b646940ee38b9944001edf99acefbed176da492191b03cdb6",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "d518e176e5f131fb865992a660aa7ebcd4d11ca2217e120f87aacb6549c27bbe"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "d518e176e5f131fb865992a660aa7ebcd4d11ca2217e120f87aacb6549c27bbe"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 127,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "66f0754bd7c6255a29f49e5a7b49bf84f2d26fec2c53762f73b8ee0bc3bbc494"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 308,
+              "restoredCheckpointFrame": 256,
+              "pcmSha256": "be5eea8357fdc2ad0360969cc8034404afd4b489a183303d787cdacc157318df"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 425,
+              "restoredCheckpointFrame": 336,
+              "pcmSha256": "a2e9a83805d8b40e0aa371e502a527d45f8fd77e50c875eec4e4519e94caedac"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 925,
+              "restoredCheckpointFrame": 768,
+              "pcmSha256": "f17ae69aa92b0b7b500361e2645c749822effa6c6805ff9776b3a6833995541c"
+            }
+          ],
+          "actualOpcode": "0xb3",
+          "opaquePlayerContinuation": true
+        },
+        {
+          "clock": 4194304,
+          "outputRate": 44100,
+          "fixtureBytes": 575,
+          "fixtureSha256": "7bb481b9c3d7b0485aa67b6dd4a53a57138b5103629f529002c11ec0b1ed685b",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 7168,
+          "capturedCheckpoints": 5,
+          "baselinePcmSha256": "aac86d823dd356e91b0a52300f4919239639ecedb3dd2d3be12d98e36528210d",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "d9d8c1ade3259bea0bdd405369bff5fc739d41c6fb479026b6a530518272172c"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 1,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "1e269ca333d28dbaaacbef74835f3cc512bf2f8f31257a40b0965be6e66631e5"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 701,
+              "restoredCheckpointFrame": 654,
+              "pcmSha256": "bc1da0441e4589ea03053bd87dbf38379c81f06d4aa7b5acabb15ad10a541d0d"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 1703,
+              "restoredCheckpointFrame": 1681,
+              "pcmSha256": "27693890cf09d8dbef7d5ecc3b17904d237a1bc18d0f3b2bdda5c8c2bfdec9fb"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 2345,
+              "restoredCheckpointFrame": 2304,
+              "pcmSha256": "7a2c5a14455b5ed265974d0dd15906351f1a160362fe03fe613d050ec5d3d8a6"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 5101,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "b10def2524e341096efff8cf06df7180544a5f5717950b380f08dc9e1f8ecc9e"
+            }
+          ],
+          "actualOpcode": "0xb3",
+          "opaquePlayerContinuation": true
+        },
+        {
+          "clock": 4194304,
+          "outputRate": 96000,
+          "fixtureBytes": 575,
+          "fixtureSha256": "7bb481b9c3d7b0485aa67b6dd4a53a57138b5103629f529002c11ec0b1ed685b",
+          "fixtureVgmSamples": 7168,
+          "completeOutputFrames": 15603,
+          "capturedCheckpoints": 6,
+          "baselinePcmSha256": "6d289d4e625fff4a91c50a85d9f8a9b4b33b31502b4c8ffbec6d908209b4af65",
+          "seeks": [
+            {
+              "targetVgmSample": 0,
+              "outputFrame": 0,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "140d857ce52e1b938944ca4e9182b5b972e3c1205a5d81f44b8c6d7719d9961e"
+            },
+            {
+              "targetVgmSample": 1,
+              "outputFrame": 2,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "4fe1996131302ed24c536938fd5e71210295f8380d03eebb19a21619e339b5b2"
+            },
+            {
+              "targetVgmSample": 701,
+              "outputFrame": 1525,
+              "restoredCheckpointFrame": 0,
+              "pcmSha256": "9f9e95c302602f738a7a1a38f42f6d928ed152a9508c2cc4e29233781987bda3"
+            },
+            {
+              "targetVgmSample": 1703,
+              "outputFrame": 3707,
+              "restoredCheckpointFrame": 2816,
+              "pcmSha256": "88b72655d80e200c1db1a15a83c6016c89501fd1f2ca59b96bd60d7e6f1488f5"
+            },
+            {
+              "targetVgmSample": 2345,
+              "outputFrame": 5104,
+              "restoredCheckpointFrame": 4864,
+              "pcmSha256": "23363690a8a2051ef28ef87c6e05cf82ecf988f94db7fca6821e6254e0a39807"
+            },
+            {
+              "targetVgmSample": 5101,
+              "outputFrame": 11104,
+              "restoredCheckpointFrame": 10752,
+              "pcmSha256": "03d6d64828ea60816d5d74b117f567092f21668f83062427f6dfb4da4e1b2bb0"
+            }
+          ],
+          "actualOpcode": "0xb3",
+          "opaquePlayerContinuation": true
+        }
+      ],
+      "positiveCheckpointRestores": 20,
+      "generatedEngineOutputStereoFrames": 156720,
+      "deliveredPlayerOutputStereoFrames": 124420,
+      "requestedPlayerOutputStereoFrames": 124420,
+      "engineRenderExecutions": 140,
+      "playerProcessCalls": 594,
+      "frameCountScope": "Actual Engine generation includes baseline/replay, checkpoint-or-zero seek prefixes and opaque Player replay; delivered/requested queued frames are not addedagain."
+    },
+    "freeze": {
+      "path": "/private/tmp/tetorica-gameboy-wasm-sdk/checker-freeze.json",
+      "bytes": 9692,
+      "sha256": "426dab11cf95334262d08c01a98202c3861574b8d169db4bf626cae549c2e879",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+          "bytes": 38408,
+          "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+        },
+        "checkerFrozen": true,
+        "deviceOpened": false,
+        "caseArraysAndWrapperAndPlayerChecksIdenticalBetweenReferencePairs": true,
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy-sdk-parity.json",
+            "bytes": 780243,
+            "sha256": "4302bb3a8fc6d04eeccda6f5a05f43a6887111fe0d364583ccff294faba81148",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy/gameboy_apu_wasm.js",
+                "bytes": 11497,
+                "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy/gameboy_apu_wasm.wasm",
+                "bytes": 13782,
+                "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.js",
+                "bytes": 11497,
+                "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.wasm",
+                "bytes": 13782,
+                "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/build-info.json",
+                "bytes": 2581,
+                "sha256": "96c3ed7980142525dcbe7f60351ba9cd1c1e30b7292ebba960d806c00e2133d5"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+                "bytes": 38408,
+                "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapu.js",
+                "bytes": 7082,
+                "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapu.js",
+                "bytes": 7139,
+                "sha256": "1d6116be5f9466cb4dc0fe2de49306e7c130424903b03ae3cfbfb3b5b68eb4a5"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapuaudioengine.js",
+                "bytes": 5590,
+                "sha256": "a442b51b4a5f2b85bde2a1d7b012861d789c14c7255853517d4e72f60b982da2"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapuaudioengine.js",
+                "bytes": 5633,
+                "sha256": "6d45fc034fd1c0f5759afc0c3f7cd19f9dd8fc19e3ab6c56aa5df9184b4f6698"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+                "bytes": 4213,
+                "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClockRate": 68,
+              "scenarioConfigurations": 438,
+              "scenarioRenderExecutions": 2352,
+              "scenarioBodyOutputStereoFrames": 2209836,
+              "postScenarioProbeOutputStereoFrames": 228144,
+              "totalOutputStereoFrames": 2437980,
+              "totalWrapperSelfCheckOutputStereoFrames": 126486,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+              "totalPlayerDeliveredOutputStereoFrames": 248840,
+              "totalGeneratedOutputStereoFrames": 2877906,
+              "ownStateLoads": 192,
+              "crossStateLoads": 132,
+              "resetReplayExecutions": 276
+            },
+            "comparisons": 876,
+            "chipComparisons": 816,
+            "engineComparisons": 60,
+            "checkpointSavedRows": 192,
+            "actualContinuationReplayRows": 96,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed-sdk-parity.json",
+            "bytes": 780249,
+            "sha256": "60e4c8d339a4f262687b8c25c38254567b3195c8a6df8f760ec24dba273e6aa0",
+            "verifiedInputRecords": [
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed/gameboy_apu_wasm.js",
+                "bytes": 11497,
+                "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed/gameboy_apu_wasm.wasm",
+                "bytes": 13782,
+                "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.js",
+                "bytes": 11497,
+                "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/gameboy_apu_wasm.wasm",
+                "bytes": 13782,
+                "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+              },
+              {
+                "path": "/private/tmp/tetorica-gameboy-wasm-sdk/sdk/build-info.json",
+                "bytes": 2581,
+                "sha256": "96c3ed7980142525dcbe7f60351ba9cd1c1e30b7292ebba960d806c00e2133d5"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+                "bytes": 38408,
+                "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapu.js",
+                "bytes": 7082,
+                "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapu.js",
+                "bytes": 7139,
+                "sha256": "1d6116be5f9466cb4dc0fe2de49306e7c130424903b03ae3cfbfb3b5b68eb4a5"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/gameboyapuaudioengine.js",
+                "bytes": 5590,
+                "sha256": "a442b51b4a5f2b85bde2a1d7b012861d789c14c7255853517d4e72f60b982da2"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/gameboyapuaudioengine.js",
+                "bytes": 5633,
+                "sha256": "6d45fc034fd1c0f5759afc0c3f7cd19f9dd8fc19e3ab6c56aa5df9184b4f6698"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+                "bytes": 23516,
+                "sha256": "71cdf4e4c25178dbe21bb879eaa89a18d644e82d86e206f7bc1259ab9d8d38fd"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+                "bytes": 112669,
+                "sha256": "5014672b7b9f6a9369062dd8327e63f054b99b025a534877027b8106378c53b9"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/opn_fm_vgm.js",
+                "bytes": 4213,
+                "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+              },
+              {
+                "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/seek_playback.js",
+                "bytes": 1837,
+                "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+              }
+            ],
+            "counts": {
+              "rawScenariosPerClockRate": 68,
+              "scenarioConfigurations": 438,
+              "scenarioRenderExecutions": 2352,
+              "scenarioBodyOutputStereoFrames": 2209836,
+              "postScenarioProbeOutputStereoFrames": 228144,
+              "totalOutputStereoFrames": 2437980,
+              "totalWrapperSelfCheckOutputStereoFrames": 126486,
+              "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+              "totalPlayerDeliveredOutputStereoFrames": 248840,
+              "totalGeneratedOutputStereoFrames": 2877906,
+              "ownStateLoads": 192,
+              "crossStateLoads": 132,
+              "resetReplayExecutions": 276
+            },
+            "comparisons": 876,
+            "chipComparisons": 816,
+            "engineComparisons": 60,
+            "checkpointSavedRows": 192,
+            "actualContinuationReplayRows": 96,
+            "maximumDifference": 0
+          }
+        ],
+        "scope": "Actual Gameboy lowlevel/AudioEngine owned PCM and97-frame probes, same-instance opaque continuation and trusted sameconfiguration raw crossrestore. Native312-byte snapshot includes16-byte deterministicheader plustriviallycopyable object/padding; onlyheader+restoredcontinuation equivalence isclaimed, notfullpayloadbyteidentity orportableformat. Header and innerobjectrate/clockguards exercisedusingvalidforeignconfigurationpayloads. Native muteincludedinstate andretainedbyreset;Engine additionallyvalidatesvolumemasksettings. Independent duty/wave/LFSR,routing,sweep/envelope/length,waveRAMwritewindow/DMGresetpattern,mutephase andnontrivialownedoverwrites arepositivecontrols. ActualVgmPlayeropcodeb3 checkpoints/opaque/seek withrealAPU; olderwebgeneratedno-statepair isoutside these2mainreferences. Totalactualbuildoutputs2877906 includes main2437980+self126486+Player313440;delivered248840 andnativeticks notaddedtwice."
+      }
+    },
+    "independentImplementationReview": {
+      "path": "/private/tmp/tetorica-gameboy-wasm-sdk/checker-implementation-audit.json",
+      "bytes": 7299,
+      "sha256": "39798e0cdbef1c1e4d9a2f50198410bbab7140c491ef673fbf69f7fcf52f3a27",
+      "record": {
+        "schemaVersion": 1,
+        "passed": true,
+        "reviewMode": "Independent read-only source, frozen input and final real-WASM report audit. No synthesis rerun or product edits by reviewer.",
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+          "bytes": 38408,
+          "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+        },
+        "freeze": {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/checker-freeze.json",
+          "bytes": 9692,
+          "sha256": "426dab11cf95334262d08c01a98202c3861574b8d169db4bf626cae549c2e879"
+        },
+        "reports": [
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/legacy-sdk-parity.json",
+            "bytes": 780243,
+            "sha256": "4302bb3a8fc6d04eeccda6f5a05f43a6887111fe0d364583ccff294faba81148",
+            "verifiedCurrentInputRecords": 14,
+            "comparisons": 876,
+            "chipComparisons": 816,
+            "engineComparisons": 60,
+            "rawScenariosPerClockRate": 68,
+            "scenarioConfigurations": 438,
+            "scenarioRenderExecutions": 2352,
+            "ownStateLoads": 192,
+            "crossStateLoads": 132,
+            "resetReplayExecutions": 276,
+            "bodyFramesRecomputed": 2209836,
+            "probeFramesRecomputed": 228144,
+            "wrapperFrames": 126486,
+            "playerGeneratedFrames": 313440,
+            "playerDeliveredFramesRecomputedExcluded": 248840,
+            "totalGeneratedFramesRecomputed": 2877906,
+            "maximumDifference": 0
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/deployed-sdk-parity.json",
+            "bytes": 780249,
+            "sha256": "60e4c8d339a4f262687b8c25c38254567b3195c8a6df8f760ec24dba273e6aa0",
+            "verifiedCurrentInputRecords": 14,
+            "comparisons": 876,
+            "chipComparisons": 816,
+            "engineComparisons": 60,
+            "rawScenariosPerClockRate": 68,
+            "scenarioConfigurations": 438,
+            "scenarioRenderExecutions": 2352,
+            "ownStateLoads": 192,
+            "crossStateLoads": 132,
+            "resetReplayExecutions": 276,
+            "bodyFramesRecomputed": 2209836,
+            "probeFramesRecomputed": 228144,
+            "wrapperFrames": 126486,
+            "playerGeneratedFrames": 313440,
+            "playerDeliveredFramesRecomputedExcluded": 248840,
+            "totalGeneratedFramesRecomputed": 2877906,
+            "maximumDifference": 0
+          }
+        ],
+        "caseWrapperPlayerArraysIdenticalAcrossReferencePairs": true,
+        "resolvedFindings": [
+          {
+            "finding": "Foreign rate/clock snapshots originally exercised only header or destination mismatch.",
+            "resolution": "Owner added safe inner-object validation probe: valid other-rate/clock payload with only outerheader rewritten to destination config must reject, without private offset guessing or arbitrary payload fuzzing."
+          },
+          {
+            "finding": "Initial owned-array overwrite sample could be constant at lowlevel clock=rate/frequency1750.",
+            "resolution": "Owner changed only this positive to frequency2047/duty3, requires both signs and next scratch digest actually differs before checking retained arrays unchanged; counts unaffected."
+          }
+        ],
+        "coverageReview": {
+          "apiScope": "Unchanged GameboyApu and GameboyApuAudioEngine use owned generation. Engine process(left,right,n) copies owned PCM; no lowlevel borrowed/Into/read/status/IRQ API is invented. Constructor/write/frame and actual disposed guards exercised.",
+          "snapshotScope": "Current snapshot is16-byte magic/size/rate/clock header plus triviallycopyable C++ object including native mute and padding;312bytes in tested wasm32. Only deterministic header and exact trusted restored continuation are compared, not full payload bytes, padding or portable serialization. Same-instance WeakMap tokens and Engine rate/volume/channelMask key guards are checked separately.",
+          "snapshotValidation": "Native null/size/header/foreign destination rate-clock guards and valid foreign object payload with rewritten header exercise inner object config rejection. Arbitrary same-sized internal-field corruption is excluded. Raw cross-loads are chip-only matching configurations; Engine own continuations restore settings first.",
+          "independentVoices": "Both square channels/four duties compare exact counter/duty oracle; wave nibble/timer/level model compares all4levels. Active wave writes are compared inside/outside sampleReading window, powered-off wave writes and resetDMG initialpattern. All16noise width/divisor combinations use independent7/15bit LFSR model.",
+          "mixAndSequencer": "All256 NR51 routes count independently. Existing NR50 lower3bits-left/upper3bits-right mapping is preserved by exact positive assertions. Real frame-sequencer length expiry, sweep overflow and envelope change are positive; no exhaustive hardware quirk validation claimed.",
+          "muteReset": "All15nonzero mute masks have audible effect and matched-phase unmute continuation. Snapshots restore native mute; reset retains it and restoresDMG RAM/timing. Slowclock proves immediate first tick and mix-time mute of held channels. Powered-off ordinary writes remain ignored.",
+          "ownership": "Retained actual owned both-side arrays have nonconstant content; later scratch actually differs. Copies survive observed buffer-capacity increase, actual WASM heap growth and disposal. Engine gain multiplies owned Float32 samples once and opaque Engine resumes after valid settings restored.",
+          "player": "Actual0xb3 fourvoice VGM uses6clock/rate profiles, baseline/reset replay,6seeks each, positive checkpoints20/build, and opaque queue/parser/APU continuation. Parser/helper local runtime closure and both web/docs wrappers are hashed14records per reference pair.",
+          "accounting": "Main1024frame bodies/97frame probes plus selected own/cross613tails and fullreset replays recomputed. Self63243/build separately counted; actualPlayer313440 generation and248840delivered are distinct. Native ticks and internal Engine source calls are not double-counted.",
+          "oldWebScope": "Checker compares frozen old-recipe/deployed docs assets to SDK with state support. Separate historical web pair lacked state exports and its distinct270case PCM compatibility proof/web synchronization belongs to source/docs evidence, not this main report."
+        },
+        "wrapperFrameBreakdownPerBuild": {
+          "invalidContinuationPair": 514,
+          "opaqueOwnContinuation": 514,
+          "snapshotNativeMute": 51,
+          "resetPhasePair": 514,
+          "squareDutyOracle": 1024,
+          "waveLevelOracle": 1024,
+          "closedWaveWriteWindowPair": 258,
+          "openWaveWriteWindowPair": 520,
+          "initialDmgPatternPair": 514,
+          "powerOffRamWritePair": 514,
+          "noise16": 32768,
+          "routing256": 256,
+          "NR50five": 5,
+          "length4": 352,
+          "sweepOverflow": 96,
+          "envelopePair": 768,
+          "mute15maskPhasePairs": 18810,
+          "resetRetainsMask": 17,
+          "slowTickMute": 3,
+          "powerOffWriteGuards": 34,
+          "engineGainPairs": 2056,
+          "engineOpaque": 514,
+          "ownedActualCapacityHeapDispose": 2117
+        },
+        "materialIssues": [],
+        "limitations": [
+          "No arbitrary invalid internal native state/padding fuzzing or portable save format is implied.",
+          "Header/config and observable PCM continuation are proved; inaccessible full internal-state equality is not claimed.",
+          "No Browser/Native scheduling, hardware timbre, listening, Mixer policy, remoteCI or release validation inferred from this checker."
+        ]
+      }
+    },
+    "documentationReview": {
+      "path": "/private/tmp/tetorica-gameboy-wasm-sdk/checker-docs-audit.json",
+      "bytes": 7946,
+      "sha256": "8e371b633fd177eba9ec384d9656683aa6e673fb3f7cad477a966b40174d20e9",
+      "record": {
+        "schemaVersion": 1,
+        "passed": true,
+        "reviewMode": "Independent read-only final docs/source-delta/old-web-compatibility review against frozen real-WASM execution, Browser summaries and current staged artifacts. No extra tests performed during audit.",
+        "documentationInputs": [
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/README.md",
+            "bytes": 21585,
+            "sha256": "4b7e5edb996673d935e15088b01c9a933fa4b451208d40d7f1e73d84ea05a99f"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/building_ym2612_wasm.md",
+            "bytes": 17999,
+            "sha256": "94538e50cda934532eecd04f34f4f1df124d0102749d79d8729a8a0e1027a03b"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/issues/wasm_sdk_gameboy_adoption_01.md",
+            "bytes": 7203,
+            "sha256": "04bd59b7a2abf8931ef1f4384433e12c5d704fb93df168e79d995aed3c93effa"
+          },
+          {
+            "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/issues/savePoint.md",
+            "bytes": 182853,
+            "sha256": "73659829fb06a3b5c022be214599a50f2b4560949c0d4381ee6ae74d87173ab7"
+          }
+        ],
+        "implementationAudit": {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/checker-implementation-audit.json",
+          "bytes": 7299,
+          "sha256": "39798e0cdbef1c1e4d9a2f50198410bbab7140c491ef673fbf69f7fcf52f3a27"
+        },
+        "evidenceInputs": [
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/checker-freeze.json",
+            "bytes": 9692,
+            "sha256": "426dab11cf95334262d08c01a98202c3861574b8d169db4bf626cae549c2e879"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/source-audit.json",
+            "bytes": 15947,
+            "sha256": "94f5b658305a33b156dcc2857a8fc10036c33e5571fd03bb6d87cc91ad483f6d"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/build-fingerprints.json",
+            "bytes": 1763,
+            "sha256": "6adb64076883787014d324f7cf32b3bfa3c6d440c82a26ada0d6c4361d53d557"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/web-pair-exports.json",
+            "bytes": 806,
+            "sha256": "370f75061ad9b64b0c96e21d264f93e2892cd577c221b926f9f3e2d2d3e80b9d"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/web-compatibility.json",
+            "bytes": 178615,
+            "sha256": "ce20ee3c2f7e0ac9dbed95e586b433c0ac2faa15fe5877b81763dd684f7025cd"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/check-old-web.mjs",
+            "bytes": 4822,
+            "sha256": "ca133d411c248c957ef09f0a8156ec2dea95989fc61254d5179df0c59ed4fb12"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/python-sdk-tests.log",
+            "bytes": 15365,
+            "sha256": "384093b863e54662665747c082cb9d194a852112c0947d137a55f61a92645e9c"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/node-tests.log",
+            "bytes": 7222,
+            "sha256": "787ba42a57ce3748c3b16d9adec9917f4c3e7ba5826034aca057faa7f7f1aea1"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/playground-summary.json",
+            "bytes": 5388,
+            "sha256": "58ea9cf510d6b329f6fcaf6c6c09983f6d9300991a80eb9e87cb1d18b6f3fe6a"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/voice-summary.json",
+            "bytes": 7051,
+            "sha256": "8154a93042159bdfe43e623073ac1d2ce3c5b88b4bcea57eef853789c5c49409"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/npm-check.log",
+            "bytes": 1637,
+            "sha256": "b6c2205aadb4e360f82b2534086ce976a18d9f0f249669e45adf4756c04c91a4"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/analyzer-package.log",
+            "bytes": 20571,
+            "sha256": "d717913bcab7ae7abb80449bc4d55ff43246d9a514e3cec00bc70ca0e0580cf0"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/final-integrity-audit.json",
+            "bytes": 16855,
+            "sha256": "cc9cca7aa5e3f2cba685028b6d99147bae1b54bd1d113d180f377cef173f8d62"
+          },
+          {
+            "path": "/private/tmp/tetorica-gameboy-wasm-sdk/zip-audit.json",
+            "bytes": 661,
+            "sha256": "a28e18ec616f4b8a98ebd41724839e25bc6d7ac23a89071937027a3a90ace8d0"
+          }
+        ],
+        "scopeVerified": {
+          "fixedSource": "Same SDK0.1.1/e4b7d7e/379files,2TUs/3actual dependencies cataloged. C++17/O2/11exports/cwrap-F32 without explicit assertions/EXPORT_ALL/Perl. Sevenof8source/license/provenance pairs byteequal; only coreheader differs by exact NativeGameboyAccess friend/comment line. No data/DSP delta.",
+          "mainAssetsAndOldWeb": "Frozen deployed docs/old-recipe/SDK/default and current web/npm/ZIP allcanonical byteequal. Historical originalweb pair differs and lacked state exports; it is not misrepresented as original byteidentity or snapshotcompatible.",
+          "oldWebCompatibility": "Read full embedded temporaryscript and verified all6input records/current hashes,15scene names and270unique scene/clock/rate/layout cases,2*(2048+97)frames each=1158300,allmaxdiff0. Common register/mute/reset/ownedPCM only; source asserts old supportsState=false/new=true and retains frozen old fingerprints before websync.",
+          "priorPreservation": "All16prior build entries/32outputs preserved; current guardfile hashes and11calibrationrecords retained. Existing Mixer0.36 unchanged.",
+          "stateClaims": "312byte tested wasm32 objectcopy includes16byteheader,padding,mute/config/wave/phase/held samples. Docs limit equality to header and exact restoredPCM, retain trusted/samebuild/sameinstance scope and Engine rate-volume-channelMask key. Inner object config validation and unsafepayloadfuzz exclusion accurately stated. No read/status/IRQ/lowlevelInto/borrowed API introduced. Engine caller process copies ownedPCM.",
+          "coreBehavior": "Both pulse duties,sweep/envelope/length/frame sequencer,wave levels/readwindow/DMGresetpattern,7/15bitnoise,allNR51routes and existing reversedNR50mapping,heldsampleintegration/immediate tick+mute are documented without hardwareaccuracy change.",
+          "mainRuntimeAccounting": "Each876comparisons=816chip+60Engine,438configs/2352renders; own192/rawcross132/reset276. Main2209836+228144=2437980; self126486+Player313440=2877906. Delivered248840/internalticks notaddedagain.",
+          "browserCaptures": "Chromium/WebKit×additional/genesis and primary/gameboy yields4actual captures atgain0.36/amplitude0.09000000357627869. Centered references, no broad perceptual/hardware claim.",
+          "browserUi": "Four narrowed cases: pulse0/1 editor/floating/dockedKeyboard plus Chip/CH Wave/Noise routing inbothBrowsers WebAudio/main. Existing case/mode/main filters and memory-only finalzeroGain harness preserve normal source/master/Mixer/monitor. Key ownership/channelchanges/stalekeyup/viewexit/Stop and wave/noise selection/release match summaries; no new waveform editing/samplerUI or Worker claim.",
+          "packages": "83Python/79Node pass. npm803files/26engines/942refs/types/runtime,tar1590432compressed/5933288unpacked. Analyzer753refs/370files andGameBoyassetidentity pass; installedpackage existingGameBoysampler test retained. No source bundle or publicAPI changes inferred.",
+          "roadmap": "17migrated artifacts/10remain; NESAPU/FDS candidate only; SDK/Tauri unchanged, no remoteCI/publication/listening claim.",
+          "protectedHistoricalTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7"
+        },
+        "pendingRootFinalization": {
+          "expectedNewEvidenceJsonLink": "docs/issues/wasm_sdk_gameboy_adoption_01.json",
+          "currentlyMissingNewIssueLinks": [
+            "wasm_sdk_gameboy_adoption_01.json"
+          ],
+          "reason": "Root assembles permanent evidence after this reviewer artifact, then validates links."
+        },
+        "materialIssues": [],
+        "limitations": [
+          "Audited actual executions and source without rerunning synthesis/Browser.",
+          "Snapshot payload padding/full hidden-state equality and portable oldweb state compatibility are explicitly unclaimed.",
+          "Browser timing/dropout/hardware/listening, Native/Audify/Worker and new voiceediting UI are outside narrowed UI evidence."
+        ]
+      }
+    },
+    "cli": {
+      "path": "/private/tmp/tetorica-gameboy-wasm-sdk/checker-cli-audit.json",
+      "bytes": 4847,
+      "sha256": "ca68731f85d1bb715284b02337774256b05e602985f22e93f76edc8386d0770b",
+      "record": {
+        "passed": true,
+        "checker": {
+          "path": "scripts/check_gameboy_apu_wasm_sdk.mjs",
+          "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d",
+          "bytes": 38408
+        },
+        "invalidForms": [
+          {
+            "argv": [],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--help",
+              "--out",
+              "/private/tmp/tetorica-gameboy-wasm-sdk/cli-guard-inputs/help-no-write.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--wat"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--sdk-dir",
+              "b"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out="
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--legacy-dir",
+              "c"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "a"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/gameboy_apu_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/gameboy_apu_wasm.js"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/gameboy_apu_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/gameboy_apu_wasm.wasm"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "a/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          },
+          {
+            "argv": [
+              "--legacy-dir",
+              "a",
+              "--sdk-dir",
+              "b",
+              "--out",
+              "b/build-info.json"
+            ],
+            "passed": true,
+            "rejectedBeforeBuildInputAccess": true,
+            "noFileWrites": true
+          }
+        ],
+        "validHelp": true,
+        "noFileWritesForInvalidArgumentsOrHelp": true,
+        "protectedSyntheticInputFiles": {
+          "a/build-info.json": "c98a3c74f501c78c817fea501f27b24228e7791eeadbcf17cb06ab3426e82271",
+          "a/gameboy_apu_wasm.wasm": "59d58286427ae6a060dc244d747b1d8599eb07c1da836467b6339a73838bf75f",
+          "a/gameboy_apu_wasm.js": "8405004ef8b2bcf66cc3905d4b08e6641881d07efe7782906850533145fdd6ab",
+          "b/build-info.json": "b77ed95187885a9bead1d1f15ab6e3a8013b2bdebcf6a896a387c054e893e315",
+          "b/gameboy_apu_wasm.wasm": "f38ad484742801a8db6a2f3e50477149faa4552bfa4837adf86565e31032c57d",
+          "b/gameboy_apu_wasm.js": "fb35524b322a1c3cc5c3abaf1192c3013e23902761a498011148f766f2853152"
+        },
+        "scope": "Arguments parsed and rejected before build input access. Synthetic protected input files and full guard output directory remain byte-identical; no matrix rerun."
+      }
+    }
+  },
+  "browserWorklet": {
+    "path": "/private/tmp/tetorica-gameboy-wasm-sdk/playground-summary.json",
+    "bytes": 5388,
+    "sha256": "58ea9cf510d6b329f6fcaf6c6c09983f6d9300991a80eb9e87cb1d18b6f3fe6a",
+    "record": {
+      "passed": true,
+      "actualAudioWorkletRoutes": 4,
+      "sourceReports": [
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/playground-chromium.json",
+          "bytes": 4021,
+          "sha256": "65898ffae09533076aecd10bb1c113dac3e43fb1ef33729c7152d3db861b9c1f"
+        },
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/playground-webkit.json",
+          "bytes": 4015,
+          "sha256": "e31fc06a4bdeff08e5fd6b21cd5b581d8339b57e7661d66d1179f558be671115"
+        }
+      ],
+      "rows": [
+        {
+          "browser": "chromium",
+          "role": "extra",
+          "mode": "genesis",
+          "kind": "gameboy",
+          "frequencyHz": 440,
+          "sourceGain": 0.36,
+          "measuredAmplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "minimum": [
+              -0.09000000357627869,
+              -0.09000000357627869
+            ],
+            "maximum": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "rms": [
+              0.06397899777493317,
+              0.06397899777493317
+            ],
+            "dc": [
+              -0.00034226006552235804,
+              -0.00034226006552235804
+            ],
+            "acRms": [
+              0.06397808229645877,
+              0.06397808229645877
+            ],
+            "nonzero": [
+              19200,
+              19200
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        },
+        {
+          "browser": "chromium",
+          "role": "primary",
+          "mode": "gameboy",
+          "kind": "gameboy",
+          "frequencyHz": 440,
+          "sourceGain": 0.36,
+          "measuredAmplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "minimum": [
+              -0.09000000357627869,
+              -0.09000000357627869
+            ],
+            "maximum": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "rms": [
+              0.06397899777493317,
+              0.06397899777493317
+            ],
+            "dc": [
+              -0.00034226006552235804,
+              -0.00034226006552235804
+            ],
+            "acRms": [
+              0.06397808229645877,
+              0.06397808229645877
+            ],
+            "nonzero": [
+              19200,
+              19200
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        },
+        {
+          "browser": "webkit",
+          "role": "extra",
+          "mode": "genesis",
+          "kind": "gameboy",
+          "frequencyHz": 440,
+          "sourceGain": 0.36,
+          "measuredAmplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "minimum": [
+              -0.09000000357627869,
+              -0.09000000357627869
+            ],
+            "maximum": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "rms": [
+              0.06399429490706383,
+              0.06399429490706383
+            ],
+            "dc": [
+              -0.0003566563500303725,
+              -0.0003566563500303725
+            ],
+            "acRms": [
+              0.06399330103143797,
+              0.06399330103143797
+            ],
+            "nonzero": [
+              19200,
+              19200
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        },
+        {
+          "browser": "webkit",
+          "role": "primary",
+          "mode": "gameboy",
+          "kind": "gameboy",
+          "frequencyHz": 440,
+          "sourceGain": 0.36,
+          "measuredAmplitude": 0.09000000357627869,
+          "expectedAmplitude": 0.09,
+          "relativeError": 3.9736429924275285e-08,
+          "pcm": {
+            "frames": 19200,
+            "sampleRate": 48000,
+            "peak": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "minimum": [
+              -0.09000000357627869,
+              -0.09000000357627869
+            ],
+            "maximum": [
+              0.09000000357627869,
+              0.09000000357627869
+            ],
+            "rms": [
+              0.06399429490706383,
+              0.06399429490706383
+            ],
+            "dc": [
+              -0.0003566563500303725,
+              -0.0003566563500303725
+            ],
+            "acRms": [
+              0.06399330103143797,
+              0.06399330103143797
+            ],
+            "nonzero": [
+              19200,
+              19200
+            ],
+            "nonfinite": 0,
+            "overrange": 0
+          }
+        }
+      ],
+      "maxRelativeError": 3.9736429924275285e-08,
+      "physicalOutputMuted": true,
+      "method": "Existing calibration runner --verify at440Hz; listening gain0 while capture observes pre-master PCM. Actual additionalGameBoy/genesis and primaryGameBoy/gameboy Worklets in Chromium/WebKit.",
+      "limits": [
+        "Four existing synthetic centered single-voice wavetable references only; no perceived-loudness/polyphony or physical-listening claim.",
+        "Existing narrowed GameBoy editor pulse0/1 and Chip/CH Wave+Noise Keyboard cases are reported separately.",
+        "No Native/Audify/Worker or physical listening; no numerical Mixer tuning or calibration refresh. These docs-only captures do not exercise the preexisting mismatched directweb generated copy."
+      ]
+    }
+  },
+  "browserVoiceKeyboard": {
+    "path": "/private/tmp/tetorica-gameboy-wasm-sdk/voice-summary.json",
+    "bytes": 7051,
+    "sha256": "8154a93042159bdfe43e623073ac1d2ce3c5b88b4bcea57eef853789c5c49409",
+    "record": {
+      "passed": true,
+      "results": {
+        "operatorPulse0And1": [
+          {
+            "case": "gameboy",
+            "mode": "gameboy",
+            "browser": "chromium",
+            "worker": false,
+            "beforeRun": [
+              {
+                "rms": 0.002840739107950892,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.003897198456797364,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "first": [
+              {
+                "rms": 0.008532153902504449,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.008532153902504449,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "next": [
+              {
+                "rms": 0.007829629770373752,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.007829629770373752,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "dock": [
+              {
+                "rms": 0.0108737084844626,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.0108737084844626,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "pass": true
+          },
+          {
+            "case": "gameboy",
+            "mode": "gameboy",
+            "browser": "webkit",
+            "worker": false,
+            "beforeRun": [
+              {
+                "rms": 0.01707243815265344,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.017529710131535398,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "first": [
+              {
+                "rms": 0.00782944578025413,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.00782944578025413,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "next": [
+              {
+                "rms": 0.007829337601189775,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.007829337601189775,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "dock": [
+              {
+                "rms": 0.007829351446673311,
+                "peak": 0.04500000178813934,
+                "finite": true
+              },
+              {
+                "rms": 0.007829351446673311,
+                "peak": 0.04500000178813934,
+                "finite": true
+              }
+            ],
+            "pass": true
+          }
+        ],
+        "chipChannelWaveAndNoise": [
+          {
+            "browser": "chromium",
+            "worker": false,
+            "mode": "gameboy",
+            "voices": [
+              {
+                "endpoint": "gameboy",
+                "channel": 2,
+                "midi": 45,
+                "hz": [
+                  115.06728220343103,
+                  115.06728220343103
+                ]
+              },
+              {
+                "endpoint": "gameboy",
+                "channel": 3,
+                "midi": 45,
+                "hz": [
+                  0,
+                  0
+                ]
+              }
+            ],
+            "pass": true
+          },
+          {
+            "browser": "webkit",
+            "worker": false,
+            "mode": "gameboy",
+            "voices": [
+              {
+                "endpoint": "gameboy",
+                "channel": 2,
+                "midi": 45,
+                "hz": [
+                  115.06798405437259,
+                  115.06798405437259
+                ]
+              },
+              {
+                "endpoint": "gameboy",
+                "channel": 3,
+                "midi": 45,
+                "hz": [
+                  253.9035725939238,
+                  253.9035725939238
+                ]
+              }
+            ],
+            "pass": true
+          }
+        ]
+      },
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "execution": [
+        "main"
+      ],
+      "physicalOutputMuted": true,
+      "sourceScripts": [
+        {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_playground_operator_keyboard_browser.cjs",
+          "bytes": 20440,
+          "sha256": "092a6e1b3e2fe6180cb668f5ccc2900ac66fee39abdeafb81ef51d2a5750bdcc"
+        },
+        {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_playground_keyboard_routing_browser.cjs",
+          "bytes": 19270,
+          "sha256": "57c9df81039a88edb8c401d06c32b3af9de945a7ed83c5f1d45112ad59cbf2e0"
+        }
+      ],
+      "temporaryHarnesses": [
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/run-operator-main-muted.cjs",
+          "bytes": 1203,
+          "sha256": "c4b352f04b10210bf2e493892f5942545fc6a95d8207fabcbe80c082bcfe72e6"
+        },
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/run-routing-main-muted.cjs",
+          "bytes": 1162,
+          "sha256": "dcce92aa9008e071fa89e651ee8b6072cdaa1012d86950777c55af6a15523fb0"
+        }
+      ],
+      "sourceLogs": [
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/operator-muted.log",
+          "bytes": 1694,
+          "sha256": "8756eae775225b7551d4105970237657d2d89aacb7fbd526e2919bf8c6418274"
+        },
+        {
+          "path": "/private/tmp/tetorica-gameboy-wasm-sdk/routing-muted.log",
+          "bytes": 794,
+          "sha256": "837e8deb0410781946bbcccb2c6f9e10d50dce141260c726d8568b2bd28cd518"
+        }
+      ],
+      "muteMethod": "In-memory served accessor wraps audio.ensureRouting before firstaudio; context-owned finalzeroGain outputNode connectedbefore originalrouting. Source/master/Mixer/outputMonitor normal, noapp/testfileedits.",
+      "coverage": [
+        "ExistingoperatorKeyboard --case=gameboy --main: defaultauthoredpulse beforefirstRun, pulse0/1selectededitorvoices, actualfinite/unclippedPCM, floatingoverlay+sharedcompactcontrols, stale keyup ownership, channelchange release, viewexit releases, normaldockedKeyboard routepreserved, Stopreleases.",
+        "ExistingkeyboardRouting --modes=gameboy --main: actualChip/CHselectors, idlechanges do notsendvoicecommands, configuredWaveRAM/level andNoisevoice; selectphysicalCH2Wave orCH3Noise, keyonappliedstate/nativePCM, keyupquiet, finalStop, noRPC/page/resourceerrors.",
+        "AllfourphysicalGameBoyvoices coveredacrosstwoexistingnarrowedtests; noadditionalmode/case executed."
+      ],
+      "adaptations": [
+        "Originaltests loadedthroughModule._compile frommemory withtestaccessorappend only; useexistingcase/mode/mainfilters.",
+        "No packageoption/distimports; repositorydocs/generatedcanonicalSDKpair used.",
+        "Root separatelyupdated preexistingdirectwebpair after270common-ABIoldwebcompatibilitycases; thatcompatibility evidence is recordedinsource-audit, notclaimed as thisUIrun."
+      ],
+      "limits": [
+        "No Worker, Native, Audify, hardwaremicrophone, physical listening, timingdeadline/dropoutorhardwareaccuracy claim.",
+        "No newGameBoyvoiceediting/samplerUItest added; currenttwoexistingcases exercise authoringviaunchangedpublicAPIs pluseditor/Keyboardrouting.",
+        "Noisecrossingfrequency is diagnosticonly/unpitched; pitched assertion appliesWavevoice only."
+      ]
+    }
+  },
+  "verification": {
+    "python": {
+      "command": "python3 -m unittest discover -s test -p 'test_*sdk*.py' -v",
+      "passed": 83,
+      "log": {
+        "path": "/private/tmp/tetorica-gameboy-wasm-sdk/python-sdk-tests.log",
+        "bytes": 15365,
+        "sha256": "384093b863e54662665747c082cb9d194a852112c0947d137a55f61a92645e9c"
+      }
+    },
+    "existingGameboyTests": {
+      "command": "node --test web/gameboy_apu.test.mjs web/gameboysynth.test.mjs web/gameboy_runtime_synth.test.mjs web/playground_gameboy.test.mjs docs/playground/playground_gameboy_voice_panel.test.mjs docs/vgm_analyzer/gameboy_notes.test.mjs docs/vgm_analyzer/gameboy_voices.test.mjs docs/vgm_analyzer/gameboy_waves.test.mjs docs/introductions/gameboy-lessons.test.mjs docs/introductions/gameboy-lesson-player.test.mjs docs/introductions/gameboy-pulse.test.mjs",
+      "passed": 79,
+      "log": {
+        "path": "/private/tmp/tetorica-gameboy-wasm-sdk/node-tests.log",
+        "bytes": 7222,
+        "sha256": "787ba42a57ce3748c3b16d9adec9917f4c3e7ba5826034aca057faa7f7f1aea1"
+      }
+    },
+    "npm": {
+      "command": "node scripts/check_fm2612_package.mjs",
+      "passed": true,
+      "published": false,
+      "packageVersion": "0.2.28",
+      "files": 803,
+      "wasmEngines": 26,
+      "localSynthReferences": 942,
+      "compressedBytes": 1590432,
+      "unpackedBytes": 5933288,
+      "typeChecks": [
+        "NodeNext",
+        "Bundler",
+        "positive and negative declarations",
+        "browser without Node ambient types"
+      ],
+      "log": {
+        "path": "/private/tmp/tetorica-gameboy-wasm-sdk/npm-check.log",
+        "bytes": 1637,
+        "sha256": "b6c2205aadb4e360f82b2534086ce976a18d9f0f249669e45adf4756c04c91a4"
+      }
+    },
+    "analyzerPackage": {
+      "command": "sh scripts/package_itch_vgm_analyzer.sh gameboy-sdk",
+      "passed": true,
+      "localReferences": 753,
+      "log": {
+        "path": "/private/tmp/tetorica-gameboy-wasm-sdk/analyzer-package.log",
+        "bytes": 20571,
+        "sha256": "d717913bcab7ae7abb80449bc4d55ff43246d9a514e3cec00bc70ca0e0580cf0"
+      },
+      "zip": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_gameboy-sdk_itch_vgm_analyzer.zip",
+        "sha256": "3a4c453a60924a710083127cd68fd27ef007ce6fe3b89b1fb3b4bced03bf6bd7",
+        "bytes": 1751903,
+        "fileCount": 370,
+        "assets": [
+          {
+            "path": "generated/gameboy_apu_wasm.js",
+            "bytes": 11497,
+            "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+            "testedDefaultMatches": true
+          },
+          {
+            "path": "generated/gameboy_apu_wasm.wasm",
+            "bytes": 13782,
+            "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+            "testedDefaultMatches": true
+          }
+        ]
+      }
+    },
+    "calibration": {
+      "refreshRequired": false,
+      "numericMixerDefaultsChanged": false,
+      "currentPlaygroundGameboyMixerGain": 0.36,
+      "reason": "Deployed docs, legacy rebuild, SDK and default pairs are byte-identical. Stale direct-web pair was common-PCM compared separately then synchronized to SDK. Public wrappers, all historical calibration reports, active generator inputs and numerical Mixer defaults remain unchanged."
+    }
+  },
+  "integrity": {
+    "path": "/private/tmp/tetorica-gameboy-wasm-sdk/final-integrity-audit.json",
+    "bytes": 16855,
+    "sha256": "cc9cca7aa5e3f2cba685028b6d99147bae1b54bd1d113d180f377cef173f8d62",
+    "record": {
+      "passed": true,
+      "baseCommit": "8136696cba9b9b6b407c206c29a8e20de129da61",
+      "previousArtifactsPreserved": [
+        {
+          "id": "ay8910",
+          "recordSha256": "e811fe97294a0043972a0cb5c4c16782dd467ef47de7c8895412151036f9b1ee",
+          "recordUnchanged": true
+        },
+        {
+          "id": "huc6280",
+          "recordSha256": "fd355d9122a9f276734418fb8daaa29164fecbf7ba255226c27ef891dab6b9e0",
+          "recordUnchanged": true
+        },
+        {
+          "id": "okim6258",
+          "recordSha256": "b96e1c80cbbd535ff1a731e8c99ff27838d7038c864470b0aeff942cbbbaba1c",
+          "recordUnchanged": true
+        },
+        {
+          "id": "pwm32x",
+          "recordSha256": "7b115819763dd96d72109db82579ca2f7efb205a5edebcf7feae19d98541744a",
+          "recordUnchanged": true
+        },
+        {
+          "id": "rf5c164",
+          "recordSha256": "068e3609adfc0458df7dfae63d755291f309d403e1a04b047f1d3c5e3f55300b",
+          "recordUnchanged": true
+        },
+        {
+          "id": "segapsg",
+          "recordSha256": "78faa719d3c7a9e42ed95c407cd1caf65964a464d15219740cf1c000ba6e40d3",
+          "recordUnchanged": true
+        },
+        {
+          "id": "y8950",
+          "recordSha256": "0c9f0c5715b83f661ee4398458d30b053c6d4d3b0ebc74deff85beafe3472866",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2151",
+          "recordSha256": "35fe1d518702ce6c273c3776d7c4b353da39b79e810b174f7e3ebe31a82df968",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2203",
+          "recordSha256": "f33920006b3b12b76f04fa51463008b60615aba2126188b087e42e1f6ba981bf",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2413",
+          "recordSha256": "9ec4739707c5905aa0b348716a8c6ccdaf3159a205961bfcd29fdf48b12a837e",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2608",
+          "recordSha256": "4c74925f6fa86f9ac27a3ced7b6aa4fc6bd3b86eb8a775c07761d62902856d62",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2610b",
+          "recordSha256": "c85a6ba7e06bc1d83fa84433db3bb5ef6cadbf89bc51f794903be54b86106569",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym2612",
+          "recordSha256": "42a9553f14b035a894b1894d1bb9c8e7f45fbdde13fa7f860049ca0b9ebca996",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3526",
+          "recordSha256": "7c3dc6de3ec380f4c83dcb170aea364512acbdd1aa9d7a4d9cd82954977d5bc5",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ym3812",
+          "recordSha256": "2ce1e53437f7f1df6930ad9edb9fc5def03ff2db75eaca7db0cd78dd75440a0f",
+          "recordUnchanged": true
+        },
+        {
+          "id": "ymf262",
+          "recordSha256": "f7d26b834504dc82013673c2d26daffc5acdc6bd8f2305e83789fc8903e956c0",
+          "recordUnchanged": true
+        }
+      ],
+      "previousGeneratedFilesPreserved": [
+        {
+          "path": "docs/generated/ay8910_wasm.js",
+          "bytes": 12113,
+          "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ay8910_wasm.wasm",
+          "bytes": 13549,
+          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/huc6280_wasm.js",
+          "bytes": 13612,
+          "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/huc6280_wasm.wasm",
+          "bytes": 8935,
+          "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.js",
+          "bytes": 14797,
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/okim6258_wasm.wasm",
+          "bytes": 20173,
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/pwm32x_wasm.js",
+          "bytes": 12398,
+          "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/pwm32x_wasm.wasm",
+          "bytes": 10636,
+          "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/rf5c164_wasm.js",
+          "bytes": 35162,
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/rf5c164_wasm.wasm",
+          "bytes": 27583,
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/segapsg_wasm.js",
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/segapsg_wasm.wasm",
+          "bytes": 27286,
+          "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/y8950_wasm.js",
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/y8950_wasm.wasm",
+          "bytes": 22425,
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.js",
+          "bytes": 15584,
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2151_wasm.wasm",
+          "bytes": 31322,
+          "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.js",
+          "bytes": 35153,
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2203_wasm.wasm",
+          "bytes": 45306,
+          "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.js",
+          "bytes": 32911,
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2413_wasm.wasm",
+          "bytes": 33469,
+          "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.js",
+          "bytes": 36356,
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2608_wasm.wasm",
+          "bytes": 53893,
+          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.js",
+          "bytes": 36296,
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2610b_wasm.wasm",
+          "bytes": 51172,
+          "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2612_wasm.js",
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym2612_wasm.wasm",
+          "bytes": 40357,
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.js",
+          "bytes": 14274,
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3526_wasm.wasm",
+          "bytes": 18894,
+          "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.js",
+          "bytes": 14274,
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ym3812_wasm.wasm",
+          "bytes": 19058,
+          "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ymf262_wasm.js",
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "unchanged": true
+        },
+        {
+          "path": "docs/generated/ymf262_wasm.wasm",
+          "bytes": 21377,
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "unchanged": true
+        }
+      ],
+      "unchangedPublicMixerCalibrationAndPinFiles": [
+        {
+          "path": "web/gameboyapu.js",
+          "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4",
+          "bytes": 7082,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/gameboyapu.js",
+          "sha256": "1d6116be5f9466cb4dc0fe2de49306e7c130424903b03ae3cfbfb3b5b68eb4a5",
+          "bytes": 7139,
+          "unchanged": true
+        },
+        {
+          "path": "third_party/soundchip-sdk.json",
+          "sha256": "f195c3929eb1895235e431f496f90314d7419a260a504361a352f080e87a6500",
+          "bytes": 407,
+          "unchanged": true
+        },
+        {
+          "path": "web/gameboyapuaudioengine.js",
+          "sha256": "a442b51b4a5f2b85bde2a1d7b012861d789c14c7255853517d4e72f60b982da2",
+          "bytes": 5590,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/gameboyapuaudioengine.js",
+          "sha256": "6d45fc034fd1c0f5759afc0c3f7cd19f9dd8fc19e3ab6c56aa5df9184b4f6698",
+          "bytes": 5633,
+          "unchanged": true
+        },
+        {
+          "path": "web/gameboysynth.js",
+          "sha256": "762e227143aa264208d239479ed6376ab39d3b5fb6cdb05d7ad1f8ac6f9dfcf4",
+          "bytes": 13903,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/gameboysynth.js",
+          "sha256": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af",
+          "bytes": 13943,
+          "unchanged": true
+        },
+        {
+          "path": "web/soundchip_mixer_presets.js",
+          "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+          "bytes": 2967,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/soundchip_mixer_presets.js",
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+          "bytes": 2986,
+          "unchanged": true
+        },
+        {
+          "path": "docs/vgm_analyzer/playback_mixer.js",
+          "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+          "bytes": 4433,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/calibrate_playground_chip_levels.cjs",
+          "sha256": "b90d85dfdbdb620b1a1512c13029aff1892cb1e0e7d0d0b4f65b43ad211bac97",
+          "bytes": 12107,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/check_playground_operator_keyboard_browser.cjs",
+          "sha256": "092a6e1b3e2fe6180cb668f5ccc2900ac66fee39abdeafb81ef51d2a5750bdcc",
+          "bytes": 20440,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/check_playground_keyboard_routing_browser.cjs",
+          "sha256": "57c9df81039a88edb8c401d06c32b3af9de945a7ed83c5f1d45112ad59cbf2e0",
+          "bytes": 19270,
+          "unchanged": true
+        },
+        {
+          "path": "web/playground_gameboy.js",
+          "sha256": "2a14b2fa6c3993a32e6903ba68a94beb63d9f768290d7c7285af3865c58afad3",
+          "bytes": 3581,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/playground_gameboy.js",
+          "sha256": "780ad57ed32ca65e900980674ffc236003d183247a676eacb26389919595547e",
+          "bytes": 3628,
+          "unchanged": true
+        },
+        {
+          "path": "web/playground_gameboy_audio.js",
+          "sha256": "c82bffe7e0b5b9cbcc083c40d40b95cf547a751fcff8624b3a46b5ac895362a7",
+          "bytes": 1895,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/playground_gameboy_audio.js",
+          "sha256": "cf707e7b681ec4dd6d36bb49799c1add29fcd17f59f485f1c771599f9bff1b5b",
+          "bytes": 1934,
+          "unchanged": true
+        },
+        {
+          "path": "web/playground_gameboy_worklet.js",
+          "sha256": "744e3cda7a0c4e1c06c5e0cedba14382aac7e46cda1016886fa29d8a20109003",
+          "bytes": 4916,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/playground_gameboy_worklet.js",
+          "sha256": "e78b0a3cde8034b7f7f48e9757a943bc45a054736eea504fd83dc3b45e2ae6b5",
+          "bytes": 5029,
+          "unchanged": true
+        },
+        {
+          "path": "web/soundchip_factory.js",
+          "sha256": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca",
+          "bytes": 809,
+          "unchanged": true
+        },
+        {
+          "path": "docs/js/soundchip_factory.js",
+          "sha256": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca",
+          "bytes": 809,
+          "unchanged": true
+        },
+        {
+          "path": "docs/playground/playground_mixer_defaults.js",
+          "sha256": "957fb1eac305eb73db70d37760cf6c197ce8c50bdb8a1474026209aa1f184c23",
+          "bytes": 9183,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/generate_analyzer_mixer_defaults.mjs",
+          "sha256": "a3bbdea5e5a96c69cd5ba6e3111adf892ac7122d56c07236a8bc36bc2d0cae9f",
+          "bytes": 6493,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/generate_soundchip_mixer_presets.mjs",
+          "sha256": "2c262006627b4478b84734cd30d72bae56c18d5d47c89ac3c7d6a610810d5420",
+          "bytes": 5993,
+          "unchanged": true
+        },
+        {
+          "path": "scripts/generate_playground_mixer_defaults.mjs",
+          "sha256": "b8e15553d4dd15d8dedc4c65e4e0d25b15adf8818036eb770a9653894dcd5b13",
+          "bytes": 13189,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_01.json",
+          "sha256": "d113077b099a2cf45de97bc5d00f4d61e2d25501c3c9ec227ef4908fdf020876",
+          "bytes": 34163,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_extra_levels_02.json",
+          "sha256": "ad4acdb5bd6be083f995754651956e2285e181dcd3eea09a9341bb74543eb37a",
+          "bytes": 35083,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_mixer_levels_validation.json",
+          "sha256": "07227a8aa9b0dbe5aedd33a6028f4db408dc2f60352fae50015f4a3309cd4c47",
+          "bytes": 10372,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_nes_levels_01.json",
+          "sha256": "1cca711e8b58417d7759a48f6b18b2c298224f0497a6078e013469c71378d3af",
+          "bytes": 24645,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_01.json",
+          "sha256": "6a234c9833d6889e704b436f48b50bba75d18ccf2760272df37f869ab6076ab3",
+          "bytes": 20391,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_02.json",
+          "sha256": "0ead909b24b29daa965d0ecc128b211c4d9f44c8158630545c38f8aa6f9f28ef",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_03.json",
+          "sha256": "bae758a548af196859753834b88896308d0d442341e4ae6819dbd7e492f74917",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/analyzer_psg_levels_04.json",
+          "sha256": "f8f31e9295bd41ac6ed840c5e01de658bba7a6945f4af73373a05357d4cfc42d",
+          "bytes": 22567,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/playground_chip_levels_01.json",
+          "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234",
+          "bytes": 248714,
+          "unchanged": true
+        },
+        {
+          "path": "docs/issues/soundchip_psg_levels_01.json",
+          "sha256": "2b92f8286b9dee25994972b146f9ee2c145df883434d5971d2a01f620b39d2f6",
+          "bytes": 35365,
+          "unchanged": true
+        }
+      ],
+      "allOldLevelRecordsPreserved": 11,
+      "defaultOutputs": [
+        {
+          "path": "docs/generated/gameboy_apu_wasm.js",
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true,
+          "synchronizedDirectWebMatches": true
+        },
+        {
+          "path": "docs/generated/gameboy_apu_wasm.wasm",
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+          "frozenSdkMatches": true,
+          "stagedNpmPackageMatches": true,
+          "synchronizedDirectWebMatches": true
+        }
+      ],
+      "sdkVerification": "SDK 0.1.1: 379 pinned files verified offline (archive SHA256 939fb035aef36c84cac3d1e058271ca3ddfc6ebd9ce5cfa4b3d04bc92876416b)",
+      "protectedSavePointTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7",
+      "externalRepositories": {
+        "w/tetorica-soundchip-native": {
+          "head": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+          "clean": true
+        },
+        "w/tetorica-fm2612-playground-tauri": {
+          "head": "7056a96100b30c1ddd6418b2f4dda5adcd995c00",
+          "clean": true
+        }
+      }
+    }
+  },
+  "remaining": {
+    "migratedSdkWasmArtifacts": 17,
+    "remainingSdkDispatcherArtifacts": 10,
+    "nextCandidate": "NES APU/FDS WASM",
+    "remoteCiRun": false,
+    "npmOrApplicationPublished": false,
+    "nativeBackendTestedThisTask": false,
+    "physicalListeningTested": false,
+    "sdkOrTauriRepositoryEdited": false,
+    "browserExecution": "Web Audio/main only for narrowed existing Game Boy editor/Keyboard cases in Chromium/WebKit, plus four primary/additional Worklet captures. Final destination zero gain; source/Mixer/monitor values preserved. No hardware microphone or listening judgement.",
+    "stateCompatibility": "Existing public states are same-instance opaque tokens; Engine additionally validates rate/volume/channelMask. Native312-byte object copy includes mute/configuration and ABI padding, trusted same-build states only. Deterministic headers and exact PCM continuation compared, not full payload bytes or portable format.",
+    "catalogNote": "Game Boy catalog covers three actual compiled dependencies. SDK header adds one NativeGameboyAccess friend declaration only; source cpp/wrapper unchanged, no DSP/layout changes. Complete pinned379-file manifest retained."
+  }
+}
