@@ -25,7 +25,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
     ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['atari-st','ay8910',2000000,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
     ['dx7','dx7',undefined,false],
-    ['ym3812','ym3812',3579545,false],['ym3526','ym3526',3579545,false],
+    ['ym3526','ym3526',3579545,false],['ym3812','ym3812',3579545,false],
     ['ymf262','ymf262',14318180,false],
   ];
   assert.deepEqual(PLAYGROUND_MODES.map(mode => [mode.id,mode.chip,mode.clock,mode.full]), expected);

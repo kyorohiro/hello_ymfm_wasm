@@ -29,10 +29,10 @@ const definitions = [
     details:'PSG + MSX-MUSIC + MSX-AUDIO FM'},
   {id:'dx7', label:'DX7', chip:'dx7', engine:'msfa', fmChannels:0, chipTabs:['dx7'],
     details:'MSFA DX7 · 6 operators · 32 algorithms · 16 voices · 44,100 Hz internal'},
-  {id:'ym3812', label:'DOS PC (YM3812/OPL2)', chip:'ym3812', engine:'opl', fmChannels:0, chipTabs:['ym3812'],
-    details:'YM3812 · 9 FM voices · 2 operators · 4 waveforms · Mono'},
   {id:'ym3526', label:'DOS PC (YM3526/OPL)', chip:'ym3526', engine:'opl', fmChannels:0, chipTabs:['ym3526'],
     details:'YM3526 · 9 FM voices · 2 operators · Sine waveform · Mono'},
+  {id:'ym3812', label:'DOS PC (YM3812/OPL2)', chip:'ym3812', engine:'opl', fmChannels:0, chipTabs:['ym3812'],
+    details:'YM3812 · 9 FM voices · 2 operators · 4 waveforms · Mono'},
   {id:'ymf262', label:'DOS PC (YMF262/OPL3)', chip:'ymf262', engine:'opl', fmChannels:0, chipTabs:['ymf262'],
     details:'YMF262 · 18 FM channels · 6 optional four-operator pairs · Stereo'},
   // Preserve old engine/chip links without adding another standard environment.
@@ -92,7 +92,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.engine === 'msx') return {
     chip:mode.chip,clock:mode.clock,segaPsgWasmUrl:null,megaCD:false,mega32X:false,
-    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-2',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
+    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-3',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
     opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
     ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
   };
@@ -107,7 +107,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   };
   if (mode.chip === 'ay8910') return {
     chip:mode.chip, clock:mode.clock, type:0x10, flags:1,
-    workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-2',base).href,
+    workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-3',base).href,
     wasmUrl:new URL('ay8910_wasm.wasm',generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };

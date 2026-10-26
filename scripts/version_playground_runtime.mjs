@@ -260,7 +260,7 @@ do {propagated=false;for(const {name,source}of sources){
 }}while(propagated);
 // Roll out the fixed AY/YM profile and its importers together. Other machines
 // retain their existing chip profile and calibration.
-const atariVersion='atari-st-mode-2';
+const atariVersion='atari-st-mode-3';
 const atariFiles=new Set(['playground_ay8910_audio.js','playground_ay8910_worklet.js',
   'native_runtime_synth.js','playground_runtime.js','playground.js','playground_mode.js',
   'playground_mode_examples.js','playground_examples.js','playground_mode_keyboard.js',
