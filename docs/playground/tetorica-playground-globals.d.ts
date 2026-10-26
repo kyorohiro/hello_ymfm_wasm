@@ -655,7 +655,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -690,6 +690,7 @@ type PlaygroundSelectedFm = {
   huc6280: never;
   'game-gear': never;
   'master-system': never;
+  'atari-st': never;
   dx7: never;
   ym3526: never;
   ym3812: never;
@@ -718,7 +719,7 @@ declare const OPL_PRESETS: PlaygroundOplPresets<PlaygroundSelectedOplChip>;
 declare const opll: PlaygroundPrimaryYm2413;
 declare const OPLL_INSTRUMENTS: readonly string[];
 declare const OPLL_USER_PRESETS: Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>;
-/** MSX's three-channel AY PSG, with shared noise and hardware envelope. */
+/** Primary three-channel AY-compatible PSG, with shared noise and hardware envelope. */
 declare const ay: PlaygroundPrimaryAy8910;
 
 type PSGApi = {
@@ -1169,6 +1170,7 @@ type PlaygroundFmConvenienceName = 'fm' | 'midi' | 'presets' | 'tfiToPreset' | '
   | 'play' | 'write' | 'scheduleWritesSamples' | 'noteToBlockFnum' | 'hzToBlockFnum' | 'noteLerp'
   | 'setDacLookahead' | 'getDacLookahead';
 type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'gameboy' ? {gameboy: PlaygroundPrimaryGameboy}
+  : TetoricaSelectedChip extends 'atari-st' ? {ay:PlaygroundPrimaryAy8910}
   : TetoricaSelectedChip extends 'msx' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
   : TetoricaSelectedChip extends 'msx-audio' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;opl:PlaygroundPrimaryOpl<'y8950'>;OPL_PRESETS:PlaygroundOplPresets<'y8950'>;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
   : TetoricaSelectedChip extends 'nes' ? {nes: PlaygroundPrimaryNes}
@@ -1824,7 +1826,7 @@ type PlaygroundSoundChipMap = {
   y8950: TetoricaSelectedChip extends 'y8950'|'msx-audio' ? PlaygroundPrimaryOpl<'y8950'> : PlaygroundOpl<'y8950'>;
   ymf262: TetoricaSelectedChip extends 'ymf262' ? PlaygroundPrimaryOpl<'ymf262'> : PlaygroundOpl<'ymf262'>;
   ym2413: TetoricaSelectedChip extends 'master-system'|'msx'|'msx-audio' ? PlaygroundPrimaryYm2413 : PlaygroundYm2413;
-  ay8910: TetoricaSelectedChip extends 'msx'|'msx-audio' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
+  ay8910: TetoricaSelectedChip extends 'msx'|'msx-audio'|'atari-st' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
 type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc'

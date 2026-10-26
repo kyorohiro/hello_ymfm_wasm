@@ -3,11 +3,23 @@ import assert from 'node:assert/strict';
 import {PLAYGROUND_MODES} from './playground_mode.js';
 import {supportsPlaygroundAudioEngineMode,resolvePlaygroundAudioEngine} from './playground_audio_engine.js';
 
-test('Native supports every standard mode and the hidden legacy Genesis Nuked URL',()=>{
-  assert.equal(PLAYGROUND_MODES.length,21);
-  for(const mode of PLAYGROUND_MODES){assert.equal(supportsPlaygroundAudioEngineMode('native',mode.id),true,mode.id);assert.equal(resolvePlaygroundAudioEngine({search:'?audioEngine=native',desktop:true,modeId:mode.id}).engine,'native');}
+test('Native supports the existing standard modes and keeps Atari ST on Web Audio',()=>{
+  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,21);
+  for(const mode of PLAYGROUND_MODES){
+    const native=mode.id!=='atari-st';
+    assert.equal(supportsPlaygroundAudioEngineMode('webaudio',mode.id),true,mode.id);
+    assert.equal(supportsPlaygroundAudioEngineMode('native',mode.id),native,mode.id);
+    assert.equal(resolvePlaygroundAudioEngine({search:'?audioEngine=native',desktop:true,modeId:mode.id}).engine,native?'native':'webaudio');
+  }
   assert.equal(supportsPlaygroundAudioEngineMode('native','genesis-nuked'),true);
   assert.equal(supportsPlaygroundAudioEngineMode('native','unknown-machine'),false);
+});
+
+test('Atari ST cannot select Native even in a desktop URL',()=>{
+  assert.equal(supportsPlaygroundAudioEngineMode('webaudio','atari-st'),true);
+  assert.equal(supportsPlaygroundAudioEngineMode('native','atari-st'),false);
+  assert.deepEqual(resolvePlaygroundAudioEngine({search:'?mode=atari-st&audioEngine=native',desktop:true,modeId:'atari-st'}),
+    {requested:'native',engine:'webaudio',available:false});
 });
 
 test('Web Audio remains the default and Native requires desktop selection for Nuked modes',()=>{

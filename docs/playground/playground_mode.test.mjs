@@ -23,7 +23,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['gameboy','gameboy',4194304,false],
     ['nes','nes',1789773,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
-    ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
+    ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['atari-st','ay8910',2000000,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
     ['dx7','dx7',undefined,false],
     ['ym3812','ym3812',3579545,false],['ym3526','ym3526',3579545,false],
     ['ymf262','ymf262',14318180,false],
@@ -65,6 +65,20 @@ test('modes select native chips, clocks and console expansions', () => {
       assert.equal(options.clock,undefined,'DX7 uses a fixed internal sample rate rather than a chip clock');
       assert.equal(options.workletUrl,undefined,'DX7 resolves its Worklet and WASM beside its module');
       assert.equal(options.ym2612WasmUrl,undefined);
+      continue;
+    }
+    if (mode.id === 'atari-st') {
+      assert.equal(mode.fmChannels,0);
+      assert.equal(mode.declarationChip,'atari-st');
+      assert.equal(mode.legacyDraftKey,'atari-st','Atari ST does not reuse a generic AY draft');
+      assert.deepEqual(mode.chipTabs,['ay8910']);
+      assert.equal(options.clock,2000000,'the machine clock overrides generic AY defaults');
+      assert.equal(options.type,0x10,'the AY-compatible core uses YM2149 behavior');
+      assert.equal(options.flags,1,'YM2149 pin 26 is high: no additional clock divider');
+      assertWorkletUrl(options.workletUrl,'ay8910');
+      assert.equal(options.wasmUrl,'https://example.com/app/generated/ay8910_wasm.wasm');
+      assert.equal(options.ym2612WasmUrl,undefined);
+      assert.equal(options.opllOptions,undefined,'Atari ST only loads its primary PSG');
       continue;
     }
     if (mode.chip === 'segapsg') {
@@ -138,6 +152,7 @@ test('legacy chip and engine links retain their original environments; explicit 
   assert.equal(resolvePlaygroundMode('?mode=dx7').chip, 'dx7');
   assert.equal(resolvePlaygroundMode('?chip=dx7').id, 'dx7');
   assert.equal(resolvePlaygroundMode('?mode=msx').chip,'msx'); assert.equal(resolvePlaygroundMode('?chip=msx').id,'msx');
+  assert.equal(resolvePlaygroundMode('?mode=atari-st').chip,'ay8910');
   for (const search of ['?mode=msx-audio','?chip=msx-audio','?mode=y8950','?chip=y8950']) assert.equal(resolvePlaygroundMode(search).id,'msx-audio',search);
   assert.equal(getPlaygroundMode('Y8950'),getPlaygroundMode('msx-audio'),'old saved mode IDs resolve to the expanded environment');
   for (const chip of ['ym3812','ym3526','ymf262']) {

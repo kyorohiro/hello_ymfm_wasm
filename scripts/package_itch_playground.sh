@@ -116,6 +116,7 @@ tetorica-playground-game-gear.d.ts
 tetorica-playground-master-system.d.ts
 tetorica-playground-msx.d.ts
 tetorica-playground-msx-audio.d.ts
+tetorica-playground-atari-st.d.ts
 tetorica-playground-mega-cd.d.ts
 "
 
@@ -598,7 +599,7 @@ Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.
-MSX AY-3-8910 PSG: MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
+AY-3-8910 / YM2149 PSG (MSX / Atari ST): MAME adaptation, BSD-3-Clause. See licenses/mame-ay8910/.
 
 RF5C164: MAME adaptation, BSD-3-Clause.
 See ./licenses/mame-rf5c164/LICENSE and README.md.

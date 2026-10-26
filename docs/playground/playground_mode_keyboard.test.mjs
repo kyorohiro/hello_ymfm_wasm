@@ -23,6 +23,7 @@ test('multi-chip environments expose physical primary IDs before preparation',()
   assert.deepEqual(ids({chip:'msx-audio'}),[['y8950','y8950'],['ym2413','ym2413'],['ay8910','ay8910']]);
   assert.deepEqual(ids({chip:'segapsg',ym2413:true}),[['segapsg','segapsg'],['ym2413','ym2413']]);
   assert.deepEqual(ids({chip:'segapsg'}),[['segapsg','segapsg']]);
+  assert.deepEqual(playgroundPrimaryKeyboardChips({id:'atari-st',chip:'ay8910'}),[{id:'ay8910',kind:'ay8910',label:'YM2149 (primary)'}]);
   assert.deepEqual(ids({chip:'x68000'}),[['ym2151','ym2151'],['okim6258','okim6258']]);
   assert.deepEqual(ids({chip:'ym2612',full:true},{psg:true,pcm:true}),[['ym2612','ym2612'],['segapsg','segapsg'],['rf5c164','rf5c164'],['pwm','pwm']]);
 });

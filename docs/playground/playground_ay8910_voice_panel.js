@@ -17,7 +17,7 @@ export function ay8910VoiceCode(state,channel = 0) {
 export function createPlaygroundAy8910VoicePanel({root,invoke,onKeyboardTargetChange = () => {},onError = () => {}}) {
   const doc = root.ownerDocument ?? globalThis.document, win = doc.defaultView ?? globalThis, panelId = ++sequence;
   const listeners = [], held = new Map();
-  let state = null, channel = 0, connected = false, visible = true, disposed = false, keyboardActive = false;
+  let state = null, channel = 0, connected = false, visible = true, disposed = false, keyboardActive = false, hardwareName = 'AY-3-8910';
   let connectionEpoch = 0, bindingEpoch = 0, pressSequence = 0, target, timer = null, holdPress = null;
   const make = (tag,className,text) => {const node = doc.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node;};
   function listen(node,type,handler) {node.addEventListener(type,handler); listeners.push(() => node.removeEventListener(type,handler));}
@@ -56,7 +56,7 @@ export function createPlaygroundAy8910VoicePanel({root,invoke,onKeyboardTargetCh
   const hold = button(actions,'Hold to play',null,'hold');
   button(actions,'Play 1 second',() => {if (!visible) return; releaseSource('preview'); const id = startNote(Number(midi.value),'preview'); if (id) timer = win.setTimeout(() => {timer = null; endNote(id);},1000);},'play');
   button(actions,'Release',releaseAll,'release');
-  const keyboard = button(actions,'Use Keyboard',() => {if (!connected) return; keyboardActive = true; updateTarget(); status.textContent = `AY-3-8910 CH${channel + 1} is connected to the Guitar Keyboard.`;},'keyboard');
+  const keyboard = button(actions,'Use Keyboard',() => {if (!connected) return; keyboardActive = true; updateTarget(); status.textContent = `${hardwareName} CH${channel + 1} is connected to the Guitar Keyboard.`;},'keyboard');
   button(actions,'Load basic tone',() => {releaseAll(); void command('setVoice',[channel,{tone:true,noise:false,volume:9,envelope:false,note:'A4'}]);},'basic');
   const noiseCard = section('Shared noise generator'), noiseFields = fields(noiseCard);
   const noisePeriod = number(noiseFields,'Noise period (5-bit)','noise-period',31,n => command('setNoisePeriod',[n]));
@@ -84,7 +84,7 @@ export function createPlaygroundAy8910VoicePanel({root,invoke,onKeyboardTargetCh
   function releaseAll() {for (const id of [...held.keys()]) endNote(id); if (timer !== null) {win.clearTimeout(timer); timer = null;} holdPress = null; hold.setAttribute('aria-pressed','false');}
   function updateTarget() {
     const selectedChannel = channel, epoch = ++bindingEpoch;
-    target = {owner:'ay8910-voice-panel',name:`AY-3-8910 · CH${channel + 1}`,
+    target = {owner:'ay8910-voice-panel',name:`${hardwareName} · CH${channel + 1}`,
       noteOn(event) {if (!keyboardActive || !connected || epoch !== bindingEpoch || typeof event?.id !== 'string') return; for (const [id,entry] of held) if (entry.source === 'keyboard' && entry.externalId === event.id && entry.epoch === epoch) endNote(id); startNote(event.midi,'keyboard',event.id,epoch);},
       noteOff(event) {for (const [id,entry] of held) if (entry.source === 'keyboard' && entry.externalId === event?.id && entry.epoch === epoch && entry.channel === selectedChannel) endNote(id);},
       allNotesOff() {for (const [id,entry] of held) if (entry.source === 'keyboard' && entry.epoch === epoch) endNote(id);},
@@ -97,6 +97,10 @@ export function createPlaygroundAy8910VoicePanel({root,invoke,onKeyboardTargetCh
   listen(hold,'blur',() => releaseSource('hold')); listen(win,'blur',releaseAll); listen(doc,'visibilitychange',() => {if (doc.hidden) releaseAll();});
   function update(snapshot) {
     if (disposed || !snapshot) return; state = snapshot; const voice = snapshot.channels?.[channel] ?? {};
+    const nextHardwareName = snapshot.type === 0x10 ? 'YM2149' : 'AY-3-8910';
+    if (hardwareName !== nextHardwareName) {hardwareName = nextHardwareName; target.name = `${hardwareName} · CH${channel + 1}`;}
+    channels.setAttribute('aria-label',`${hardwareName} channel`);
+    code.setAttribute('aria-label',`${hardwareName} voice JavaScript`);
     channelButtons.forEach((node,index) => {node.setAttribute('aria-pressed',String(channel === index)); node.dataset.sounding = String(Boolean(snapshot.channels?.[index]?.active));});
     gate.textContent = `${voice.active ? 'Enabled' : 'Silent'} · applied volume ${voice.volume ?? '—'}${voice.envelope ? ' · shared envelope' : ''}`;
     checked(tone,voice.toneEnabled); checked(noise,voice.noiseEnabled); value(volume,voice.configuredVolume ?? voice.volume); checked(envelope,voice.configuredEnvelope ?? voice.envelope);

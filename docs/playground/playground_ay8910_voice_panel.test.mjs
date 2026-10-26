@@ -39,6 +39,24 @@ test('AY readback never writes or retriggers the shared envelope, and keeps focu
   for (let i = 0; i < 4; i++) panel.update(snapshot()); assert.equal(shape.value,'14'); assert.deepEqual(calls,[]); panel.dispose();
 });
 
+test('YM2149 metadata labels the editor and Keyboard without changing audition ownership',async () => {
+  const {root,panel,calls,targets} = fixture();
+  await action(root,'keyboard').fire('click'); const target = targets.at(-1);
+  target.noteOn({id:'held',midi:69}); await flush();
+  panel.update({...snapshot(),clock:2000000,type:0x10,flags:1});
+  assert.equal(panel.getNoteTarget(),target,'readback keeps the current held-note target');
+  assert.equal(target.name,'YM2149 · CH1');
+  assert.equal(control(root,'code').getAttribute('aria-label'),'YM2149 voice JavaScript');
+  assert.equal(walk(root).find(node=>node.className==='chip-channel-list').getAttribute('aria-label'),'YM2149 channel');
+  target.noteOff({id:'held'}); await flush();
+  assert.deepEqual(calls.map(([method])=>method),['auditionOn','auditionOff']);
+  assert.equal(calls[0][1][2],calls[1][1][1]);
+  await channel(root,2).fire('click'); await action(root,'keyboard').fire('click');
+  assert.equal(targets.at(-1).name,'YM2149 · CH3');
+  assert.match(walk(root).find(node=>node.className==='chip-editor-status').textContent,/YM2149 CH3/);
+  panel.dispose();
+});
+
 test('tone/noise mix, fixed level and envelope selection are partial per-channel edits',async () => {
   const {root,panel,calls} = fixture(); await channel(root,2).fire('click');
   control(root,'tone').checked = false; await control(root,'tone').fire('change'); control(root,'noise').checked = true; await control(root,'noise').fire('change');

@@ -258,8 +258,23 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>nativeDesktopFiles.has(match[1]))){nativeDesktopFiles.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+// Roll out the fixed AY/YM profile and its importers together. Other machines
+// retain their existing chip profile and calibration.
+const atariVersion='atari-st-mode-1';
+const atariFiles=new Set(['playground_ay8910_audio.js','playground_ay8910_worklet.js',
+  'native_runtime_synth.js','playground_runtime.js','playground.js','playground_mode.js',
+  'playground_mode_examples.js','playground_examples.js','playground_mode_keyboard.js',
+  'playground_mode_project.js','playground_mode_starters.js','playground_declarations.js',
+  'playground_monaco.js','playground_monaco_completion.js','playground_ay8910_voice_panel.js',
+  'playground_chip_tabs.js','playground_audio_engine.js','playground_mixer_defaults.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(atariFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>atariFiles.has(match[1]))){atariFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...atariFiles,
   ...nativeDesktopFiles,
   ...ym2203NativeFiles,
   ...msxAudioNativeFiles,

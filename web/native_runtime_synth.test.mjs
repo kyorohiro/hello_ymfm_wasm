@@ -19,7 +19,7 @@ async function until(predicate) {
 }
 
 /** Real client MessageChannels, with deterministic device/module boundaries. */
-function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' : chip, stereoEnabled = true,ym2413=false,opllOptions,ayOptions,oplOptions} = {}) {
+function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' : chip, stereoEnabled = true,ym2413=false,opllOptions,ayOptions,oplOptions,clock,type,flags} = {}) {
   const previous = globalThis.AudioWorkletNode;
   const previousFetchAsset=fetchAsset;
   const gate = deferred(), nodes = [], fetches = [], moduleLoads = [], ports = new Set();
@@ -67,7 +67,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
     connect(node) { this.connections.push(node); }
     disconnect() { this.connections.length = 0; }
   };
-  const synth = new NativeRuntimeSynth({chip, audioContext:context, fetch:fetchBytes, extraOki:{fetch:fetchBytes}, stereoEnabled,ym2413,opllOptions,ayOptions,oplOptions});
+  const synth = new NativeRuntimeSynth({chip, audioContext:context, fetch:fetchBytes, extraOki:{fetch:fetchBytes}, stereoEnabled,ym2413,opllOptions,ayOptions,oplOptions,clock,type,flags});
   t.after(async () => {
     gate.resolve(); await synth.close(); for (const port of ports) port.close(); globalThis.AudioWorkletNode = previous;fetchAsset=previousFetchAsset;
   });
@@ -297,6 +297,39 @@ test('MSX starts only AY and OPLL, without loading or routing an MSX Audio Y8950
   const {synth,nodes,fetches,moduleLoads}=harness(t,'msx',{oplOptions:{wasmUrl:'https://unused.test/y8950.wasm',workletUrl:'https://unused.test/opl.js'}});assert.equal(nodes.length,0);await Promise.all([synth.start(),synth.start()]);
   assert.equal(nodes.length,2);assert.deepEqual(synth.primaryEndpoints.map(endpoint=>[endpoint.name,endpoint.globalName]),[['ay8910','ay'],['ym2413','opll']]);assert.deepEqual(synth.mixer.list().filter(row=>row.connected).map(row=>row.id),['ay8910','ym2413']);assert.equal(synth.opl,null);assert.equal(synth.primaryApis.opl,undefined);assert(!fetches.some(url=>url.includes('y8950')));assert(!moduleLoads.some(url=>url.includes('opl.js')||url.includes('playground_opl_worklet')));
   synth.ay.setVolume(2,7,true);synth.ay.setEnvelope({period:1234,shape:10});synth.opll.setInstrument(8,4,3);await synth.stopAllNative();assert.equal(synth.ay._getState().levels[2],23);assert.equal(synth.opll.getRegisterSnapshot()[0x38],0x43);assert(nodes.every(node=>node.messages.some(message=>message.method==='stopVoices')));await synth.close();await synth.start();assert.equal(nodes.length,4);assert.equal(synth.primaryEndpoints.length,2);
+});
+
+test('Atari ST primary forwards a fixed YM2149 profile at 2 MHz, and Worker handoff preserves pitch and Stop',async t=>{
+  const profile={clock:2000000,type:0x10,flags:1};
+  const {synth,nodes}=harness(t,'ay8910',profile);await synth.start();
+  assert.equal(nodes.length,1);assert.deepEqual(synth.primaryEndpoints.map(endpoint=>endpoint.name),['ay8910']);
+  assert.deepEqual(Object.fromEntries(['clock','type','flags'].map(key=>[key,nodes[0].options.processorOptions[key]])),profile);
+  assert.equal(synth.primaryEndpoints[0].type,0x10);assert.equal(synth.primaryEndpoints[0].flags,1);
+  assert.equal(synth.ay.clock,2000000);synth.ay.setVoice(2,{tone:true,noise:false,volume:11});synth.ay.noteOn(2,'A4');
+  const before=synth.ay._getState();assert.equal(before.registers[4]|before.registers[5]<<8,284,'A4 uses the Atari ST clock');
+  const channel=new MessageChannel(),messages=[];channel.port1.onmessage=({data})=>messages.push(data);channel.port1.start();
+  const worker=createNativePrimaryClient('ay8910',channel.port2,{clock:synth.ay.clock,state:before});
+  t.after(()=>{worker.dispose();channel.port1.close();});
+  await immediate();assert.deepEqual(messages,[]);assert.deepEqual(worker._getState(),before);
+  worker.noteOn(0,'A4');await until(()=>messages.length>0);assert.equal(worker.clock,2000000);
+  await synth.stopAllNative();assert(nodes[0].messages.some(message=>message.method==='stopVoices'&&message.id!==undefined));
+  assert.deepEqual(synth.ay._getState().levels,before.levels);assert(synth.ay._getState().registers.slice(8,11).every(value=>value===0));
+  await synth.close();await synth.start();assert.equal(nodes.length,2);
+  assert.deepEqual(Object.fromEntries(['clock','type','flags'].map(key=>[key,nodes[1].options.processorOptions[key]])),profile);
+});
+for(const stage of ['fetch','module','ready'])test(`YM2149 close during ${stage} cancels initialization and preserves its profile on restart`,async t=>{
+  const {synth,nodes,gate,reached}=harness(t,'ay8910',{clock:2000000,type:0x10,flags:1,stage});
+  const canceled=assert.rejects(synth.start(),{name:'AbortError'});await until(reached);await synth.close();await canceled;gate.resolve();
+  assert(nodes.every(node=>node.port.closed&&!node.connections.length));await synth.start();assert(synth.isReady());
+  assert.equal(nodes.at(-1).options.processorOptions.type,0x10);assert.equal(synth.ay.clock,2000000);
+});
+for(const profile of [{type:17,flags:1},{type:16,flags:2},{type:0,flags:17}])test(`unsupported AY profile ${JSON.stringify(profile)} fails before assets or nodes load`,async t=>{
+  const {synth,nodes,fetches,moduleLoads}=harness(t,'ay8910',{clock:2000000,...profile});
+  await assert.rejects(synth.start(),/Support coming soon/);assert.deepEqual(nodes,[]);assert.deepEqual(fetches,[]);assert.deepEqual(moduleLoads,[]);
+});
+for(const mode of ['msx','msx-audio'])test(`${mode} keeps the original AY-3-8910 profile`,async t=>{
+  const {synth,nodes}=harness(t,mode);await synth.start();
+  assert.equal(nodes[0].options.processorOptions.clock,1789773);assert.equal(nodes[0].options.processorOptions.type,0);assert.equal(nodes[0].options.processorOptions.flags,1);
 });
 for(const target of ['ay8910','ym2413'])for(const stage of ['fetch','module','ready'])test(`MSX close during ${target} ${stage} releases its two-device setup and restarts without Y8950`,async t=>{
   const {synth,nodes,gate,reached}=harness(t,'msx',{target,stage});const canceled=assert.rejects(synth.start(),{name:'AbortError'});await until(reached);assert.equal(synth.primaryEndpoints.length,['ay8910','ym2413'].indexOf(target));await synth.close();await canceled;gate.resolve();assert(nodes.every(node=>node.port.closed&&!node.connections.length));await synth.start();assert.equal(synth.primaryEndpoints.length,2);assert(synth.ay&&synth.opll);assert.equal(synth.opl,null);

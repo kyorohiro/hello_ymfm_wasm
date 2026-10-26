@@ -1,6 +1,6 @@
 import {createDefinitionViewer} from './playground_monaco_definitions.js?v=opn-modes-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=audio-numeric-bindings-1";
-import {selectPlaygroundDeclarations} from './playground_declarations.js?v=audio-numeric-bindings-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=atari-st-mode-1";
+import {selectPlaygroundDeclarations} from './playground_declarations.js?v=atari-st-mode-1';
 
 function registerMonacoHover(
   monaco

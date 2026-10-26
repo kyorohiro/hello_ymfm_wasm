@@ -1,18 +1,23 @@
 import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
 import {validateChipClock} from './playground_chip_clock.js?v=audio-numeric-bindings-1';
+import {validateAy8910} from './ay8910.js?v=audio-stability-2';
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 const modules = new WeakMap();
 /** Browser setup; subsequent writes travel directly from Worker to Worklet.
  * @param {AudioContext} context @param {AudioNode|null} destination
- * @param {{clock?:number,signal?:AbortSignal,wasmUrl?:string|URL,workletUrl?:string|URL,fetch?:typeof fetch,onError?:()=>void}} [options] */
+ * @param {{clock?:number,type?:0|16,flags?:number,signal?:AbortSignal,wasmUrl?:string|URL,workletUrl?:string|URL,fetch?:typeof fetch,onError?:()=>void}} [options] */
 export async function createAy8910Audio(context, destination, options = {}) {
   options.signal?.throwIfAborted();
   const chip = 'ay8910';
   const clock = validateChipClock(options.clock ?? CHIP_CLOCKS[chip]);
+  const type = options.type ?? 0, flags = options.flags ?? 1;
+  // A profile is fixed for this endpoint. Reject unsupported variants before
+  // loading assets or allocating a node; clock edits only retime this core.
+  validateAy8910({clock, sampleRate:context?.sampleRate, type, flags});
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('AY8910 requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_ay8910_worklet.js?v=y8950-adpcm-ui-1', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_ay8910_worklet.js?v=atari-st-mode-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }
@@ -30,7 +35,7 @@ export async function createAy8910Audio(context, destination, options = {}) {
   ]));
   options.signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-ay8910', {
-    numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2], processorOptions:{wasmBinary, clock, chip},
+    numberOfInputs:0, numberOfOutputs:1, outputChannelCount:[2], processorOptions:{wasmBinary, clock, chip, type, flags},
   });
   const channel = new MessageChannel(); let disposed = false, rejectReady, timer;
   const dispose = () => {
@@ -56,7 +61,7 @@ export async function createAy8910Audio(context, destination, options = {}) {
     clearTimeout(timer); options.signal?.throwIfAborted();
     if (context.state === 'closed') throw new Error('AY8910 AudioContext was closed');
     node.port.postMessage({port:channel.port1}, [channel.port1]); if (destination) node.connect(destination);
-    return watchAudioEndpoint({node, port:channel.port2, clock, chip, dispose}, {context,label:'AY8910',onError:options.onError});
+    return watchAudioEndpoint({node, port:channel.port2, clock, chip, type, flags, dispose}, {context,label:type===0x10?'YM2149':'AY8910',onError:options.onError});
   } catch (error) { dispose(); throw error; }
   finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }

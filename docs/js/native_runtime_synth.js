@@ -1,5 +1,5 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=y8950-adpcm-ui-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=atari-st-mode-1';
 import {createAy8910Client} from './playground_ay8910.js?v=y8950-adpcm-ui-1';
 import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=y8950-adpcm-ui-1';
 import {createNesAudio} from './playground_nes_audio.js?v=y8950-adpcm-ui-1';
@@ -25,6 +25,7 @@ const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'segaps
 
 /** @typedef {Pick<import('./megasynth.js?v=y8950-adpcm-ui-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number, stereoEnabled?:boolean, fds?:boolean,
+ * type?:0|16, flags?:number,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * ayOptions?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL},
  * oplOptions?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL},
@@ -220,7 +221,7 @@ export class NativeRuntimeSynth {
       await this.#addOpll({fetch:this.options.fetch,...this.options.opllOptions,clock:3579545,signal},signal);
       if(this.chip==='msx-audio')await this.#addOpl('y8950',{fetch:this.options.fetch,...this.options.oplOptions,clock:3579545,signal},signal);
     }else if(this.chip==='ay8910'){
-      await this.#addAy(options,signal);
+      await this.#addAy({...options,type:options.type??0,flags:options.flags??1},signal);
     }else if (this.chip === 'nes') {
       await this.#addPrimary('nes', 'nes', createNesAudio, device => createNesClient(device.port, {clock:device.clock, fdsEnabled:true}), {...options, fds:true}, signal);
     } else if (this.chip === 'snes') {

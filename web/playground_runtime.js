@@ -107,6 +107,8 @@ const SCALE_INTERVALS = {
  *   megaDrive?: object | null,
  *   chip?: PlaygroundChip,
  *   clock?: number,
+ *   type?: number,
+ *   flags?: number,
  *   stereoEnabled?: boolean,
  *   ym2413?: boolean,
  *   ayOptions?: {fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL},
@@ -144,6 +146,8 @@ export function createPlaygroundRuntime(
     options.megaDrive ??
     createTetoricaSynth({
       chip: options.chip,
+      type:options.type,
+      flags:options.flags,
       stereoEnabled:options.stereoEnabled,
       ym2413:options.ym2413,
       opllOptions:options.opllOptions,
@@ -352,7 +356,7 @@ export function createPlaygroundRuntime(
     if(hasOpn&&megaDrive.node?.port)entries.push({id:capabilities.chip,kind:capabilities.chip,label:`${capabilities.chip.toUpperCase()} (primary)`,port:megaDrive.node.port});
     if(capabilities.chip==='gameboy'&&megaDrive.gameboy&&megaDrive.node?.port)entries.push({id:'gameboy',kind:'gameboy',label:'Game Boy (primary)',port:megaDrive.node.port});
     const nativeLabels={snes:'SNES (primary)',nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)',dx7:'DX7 (primary)',ym3526:'YM3526 (primary)',ym3812:'YM3812 (primary)',y8950:'Y8950 FM (primary)',ymf262:'YMF262 (primary)',ym2413:'YM2413 OPLL (primary)',ay8910:'AY-3-8910 (primary)'};
-    for(const endpoint of megaDrive.primaryEndpoints??[])if(nativeLabels[endpoint.name]&&endpoint.client&&endpoint.node?.port)entries.push({id:endpoint.name,kind:endpoint.name,label:nativeLabels[endpoint.name],port:endpoint.node.port,...(endpoint.name==='nes'?{fdsEnabled:true}:{})});
+    for(const endpoint of megaDrive.primaryEndpoints??[])if(nativeLabels[endpoint.name]&&endpoint.client&&endpoint.node?.port)entries.push({id:endpoint.name,kind:endpoint.name,label:endpoint.name==='ay8910'&&endpoint.type===0x10?'YM2149 (primary)':nativeLabels[endpoint.name],port:endpoint.node.port,...(endpoint.name==='nes'?{fdsEnabled:true}:{})});
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
     if(megaDrive.pwm&&megaDrive.pwmDevice?.node?.port)entries.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)',port:megaDrive.pwmDevice.node.port});

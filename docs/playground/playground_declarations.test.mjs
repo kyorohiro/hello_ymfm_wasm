@@ -47,10 +47,10 @@ test('Game Boy globals expose its native APU and shared helpers without FM short
   assert.match(selected, /type PlaygroundCreatedOPN</);
 });
 
-for (const [chip, globals] of [['nes',['nes']],['snes',['snes']],['x68000',['opm','adpcm']],['huc6280',['pce']],['dx7',['dx7']]]) {
+for (const [chip, globals] of [['nes',['nes']],['snes',['snes']],['x68000',['opm','adpcm']],['huc6280',['pce']],['dx7',['dx7']],['atari-st',['ay']]]) {
   test(`${chip} exposes only native primary globals and shared helpers`, () => {
     const selected = selectPlaygroundDeclarations(source, chip);
-    for (const name of ['gameboy','nes','snes','opm','pce','adpcm','dx7']) {
+    for (const name of ['gameboy','nes','snes','opm','pce','adpcm','dx7','ay','opll','opl']) {
       assert.equal(new RegExp(`^declare const ${name}:`, 'm').test(selected), globals.includes(name), name);
     }
     assert.doesNotMatch(selected, /^declare const (?:fm|FM_PRESETS|midi|CH\d+|OP\d+|psg|PSG\d+|dac|ssg|rhythm|adpcm[AB]):/m);

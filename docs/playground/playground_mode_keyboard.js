@@ -25,6 +25,7 @@ let sequence = 0;
 /** Authoring environments may contain several primary physical sound chips. */
 export function playgroundPrimaryKeyboardChips(mode,capabilities = {}) {
   const chip = mode.chip;
+  if (mode.id === 'atari-st') return [{id:'ay8910',kind:'ay8910',label:'YM2149 (primary)'}];
   if (chip === 'msx' || chip === 'msx-audio') return [
     ...(chip === 'msx-audio' ? [{id:'y8950',kind:'y8950',label:'Y8950 FM / ADPCM (primary)'}] : []),
     {id:'ym2413',kind:'ym2413',label:'YM2413 OPLL (primary)'},

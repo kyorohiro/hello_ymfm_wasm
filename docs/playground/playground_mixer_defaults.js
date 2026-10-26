@@ -134,6 +134,18 @@ const factoryEngines = freeze({
   ]
 });
 const factoryModes = freeze({
+  "atari-st": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "ay8910",
+        "name": "ay8910",
+        "settings": {
+          "volume": 0.85
+        }
+      }
+    ]
+  },
   "dx7": {
     "version": 1,
     "entries": [

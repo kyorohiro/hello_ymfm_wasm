@@ -9,6 +9,24 @@ Last updated: 2026-10-26
 
 ### 現在地
 
+Playgroundに`Atari ST` mode（`atari-st`）を追加した。YM2149 type16／flags1／2MHz、
+`ay`の3CH・共有noise／envelopeを使う。初期コード・3 Example・型／補完・YM2149タブ・Keyboardを接続した。
+BrowserとTauriのWeb Audio対応。固定Native AY adapterはAY-3-8910専用なので、Native一覧には追加しない。
+244件と292件の関連Node試験、全mode型検証、通常docs／最終flat ZIPのChromium・WebKitが成功。
+Main／Worker A4は440.13–440.15Hz、左右PCM一致、Stop／再Run・編集・全Exampleを確認した。
+Tauriへ901ファイルを取り込み、Python22／Node31件、frontend・固定SDK・対応source bundleの照合も成功。
+本体／TauriのSDK0.1.2・各381ファイルは維持。今回のコード変更は未commit、公開・タグ作成はしていない。
+詳細は[Atari ST mode](playground_atari_st_mode_01.md)。生成ZIPは`release/hello_ymfm_wasm_atari-st-dev_itch_playground.zip`。
+
+SDK原本へ、versionタグのpushでGitHub Releaseを自動生成する処理を追加した。
+Native5構成とYM2612 WASMが成功した後、source ZIPとsource専用SHA256SUMSを生成・添付して公開する。
+gh/npmやローカルZIP作成は不要。導入版は`0.1.3`とし、本体／Tauriが固定した`0.1.2`は変更しない。
+SDK側の`.github/workflows/verify-sdk.yml`、`scripts/publish_release.py`、`docs/releases.md`を参照。
+公開処理はタグ／version／remote commit／添付bytesを照合し、draftの再開にも対応する。
+Python67試験（公開プロトコル16件を含む）、YAML読込、生成ZIPの独立ビルド19 library／CTest24件／WAV18本／JS10項目が成功。
+その後ユーザーがSDK `303f0450ed3c2fc286fecb29f6d51768d3efd0f6`（`checksum`）へcommit／pushし、`v0.1.3`タグもpush済み。
+確認時のタグCIはrun `40305965753`で進行中だった。Atari STの作業では、そのCIの最終結果やRelease公開を再確認していない。
+
 SDK `0.1.2`を準備し、本体とTauriへ同じ正式sourceZIPを取り込んだ。各381ファイル。
 SDK sourcecommitは`53b33a15f5c4b919b185cb912016eccfbbb6d3a6`、ZIP SHA256は
 `752d0f449fd69300881f7c369f190932154e96ab8fd103676917087a454b8c72`。

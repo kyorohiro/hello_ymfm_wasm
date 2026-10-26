@@ -113,6 +113,9 @@ export function buildPlaygroundMixerDefaults(report) {
   inherit('genesis-full','mega-cd');
   inherit('genesis-full-nuked','genesis-full',['rf5c164','pwm']);
   inherit('genesis-nuked','genesis-full-nuked',['ym2612','segapsg']);
+  // Atari ST uses the AY-family Mixer policy. This is an inherited default,
+  // not a new measurement of its YM2149 clock/type or analogue output stage.
+  inherit('atari-st','msx',['ay8910']);
   return {
     calibration:{version:1,referenceFrequencyHz:REFERENCE_FREQUENCY,frequencies:[...FREQUENCIES],
       targetAmplitude:calibration.targetAmplitude,referenceAmplitude:calibration.referenceAmplitude,

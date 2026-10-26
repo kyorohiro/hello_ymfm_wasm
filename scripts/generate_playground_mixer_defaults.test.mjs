@@ -43,7 +43,7 @@ test('listening policy covers PSG and wavetable primaries and extras while retai
     entry(expected,mode,'ym2612').settings.volume=Number((entry(raw,mode,'ym2612').settings.volume*.9).toFixed(6));
   }
   for(const mode of ['master-system','game-gear'])entry(expected,mode,'segapsg').settings.volume=.35;
-  for(const mode of ['msx','msx-audio'])entry(expected,mode,'ay8910').settings.volume=.85;
+  for(const mode of ['msx','msx-audio','atari-st'])entry(expected,mode,'ay8910').settings.volume=.85;
   entry(expected,'nes','nes').settings.volume=1.16;
   entry(expected,'gameboy','gameboy').settings.volume=.36;
   entry(expected,'pc-engine','huc6280').settings.volume=.44;
@@ -118,6 +118,16 @@ test('composite and legacy modes copy measured constituent gains without nominal
   for(const entries of Object.values(profile.factoryModes))for(const record of entries.entries) {
     assert(record.settings.volume>0&&record.settings.volume<=2);
   }
+});
+
+test('Atari ST inherits only the AY default without claiming another calibrated route',()=>{
+  const report=fixture(),before=structuredClone(report),profile=buildPlaygroundMixerDefaults(report);
+  assert.deepEqual(profile.factoryModes['atari-st'],{version:1,entries:[entry(profile,'msx','ay8910')]});
+  assert.notEqual(profile.factoryModes['atari-st'].entries[0],entry(profile,'msx','ay8910'));
+  assert.equal(profile.calibration.measuredPrimaryRoutes,28);
+  assert.equal(report.calibration.routes.some(route=>route.mode==='atari-st'),false);
+  assert.equal(entry(buildPlaygroundMixerPolicy(report),'atari-st','ay8910').settings.volume,.85);
+  assert.deepEqual(report,before);
 });
 
 test('partial, verification, duplicate, silent and incorrectly identified measurements cannot replace System',()=>{
@@ -196,6 +206,11 @@ test('generated module constructs independent application mixers and preserves s
   assert.equal(gameboy.get('extra').volume,.36,'unmodified extra uses the listening fallback');
   gameboy.restoreState({version:1,entries:[]},{version:1,kinds:[]});
   assert.equal(gameboy.get('gameboy').volume,entry(profile,'gameboy','gameboy').settings.volume,'System fallback is applied once');
+  const atari=generated.createPlaygroundSoundChipMixer('atari-st');
+  atari.register('ay8910','ay8910',()=>{});
+  assert.equal(atari.get('ay8910').volume,.85,'Atari ST can start with the shared AY listening default');
+  atari.restoreState({version:1,entries:[{id:'ay8910',name:'ay8910',settings:{volume:.6}}]},{version:1,kinds:[]});
+  assert.equal(atari.get('ay8910').volume,.6,'Atari ST preserves a saved Mixer adjustment');
   first.restoreState({version:1,entries:[]},{version:1,kinds:[]});
   assert.equal(first.get('segapsg').volume,entry(profile,'genesis','segapsg').settings.volume);
   assert.throws(()=>generated.createPlaygroundSoundChipMixer('missing-mode'),/No Playground Mixer calibration/);

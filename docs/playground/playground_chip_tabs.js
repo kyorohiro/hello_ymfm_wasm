@@ -8,7 +8,7 @@ import {createPlaygroundOki6258VoicePanel} from './playground_okim6258_voice_pan
 import {createPlaygroundYm2151VoicePanel} from './playground_ym2151_voice_panel.js?v=audio-numeric-bindings-1';
 import {createPlaygroundOplVoicePanel} from './playground_opl_voice_panel.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundYm2413VoicePanel} from './playground_ym2413_voice_panel.js?v=audio-numeric-bindings-1';
-import {createPlaygroundAy8910VoicePanel} from './playground_ay8910_voice_panel.js?v=audio-numeric-bindings-1';
+import {createPlaygroundAy8910VoicePanel} from './playground_ay8910_voice_panel.js?v=atari-st-mode-1';
 
 export function frequencyNote(frequency) {
   if (!Number.isFinite(frequency) || frequency <= 0) return '—';

@@ -21,6 +21,8 @@ const definitions = [
     stereoEnabled:true, chipTabs:['segapsg'], details:'Sega PSG · 3,579,545 Hz · 3 tones + noise · Stereo'},
   {id:'master-system', label:'Master System', chip:'segapsg', declarationChip:'master-system', engine:'psg', fmChannels:0,
     stereoEnabled:false, ym2413:true, chipTabs:['segapsg','ym2413'], details:'Sega PSG + YM2413 OPLL · 3,579,545 Hz · Mono'},
+  {id:'atari-st', label:'Atari ST', chip:'ay8910', declarationChip:'atari-st', engine:'psg', fmChannels:0,
+    clock:2000000, legacyDraftKey:'atari-st', chipTabs:['ay8910'], details:'YM2149 · 2,000,000 Hz · 3 tones + shared noise and envelope · Mono'},
   {id:'msx', label:'MSX', chip:'msx', declarationChip:'msx', engine:'msx', fmChannels:0, chipTabs:['ym2413','ay8910'],
     details:'PSG + MSX-MUSIC'},
   {id:'msx-audio', label:'MSX Audio', chip:'msx-audio', declarationChip:'msx-audio', engine:'msx', fmChannels:0, chipTabs:['y8950','ym2413','ay8910'],
@@ -38,7 +40,7 @@ const definitions = [
 ];
 const modes = new Map(definitions.map(definition => {
   const mode = Object.freeze({engine:'ymfm', full:false, ...definition,
-    clock:CHIP_CLOCKS[definition.chip],
+    clock:definition.clock ?? CHIP_CLOCKS[definition.chip],
     declarationChip:definition.declarationChip ?? definition.chip,
     legacyDraftKey:definition.legacyDraftKey ?? (definition.chip === 'segapsg' ? definition.id : definition.chip + (definition.engine === 'nuked' ? ':nuked' : '')),
     chipTabs:Object.freeze(definition.chipTabs ?? (definition.chip === 'ym2612'
@@ -90,7 +92,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.engine === 'msx') return {
     chip:mode.chip,clock:mode.clock,segaPsgWasmUrl:null,megaCD:false,mega32X:false,
-    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
+    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-1',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
     opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
     ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
   };
@@ -102,6 +104,12 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   };
   if (mode.chip === 'dx7') return {
     chip:'dx7', segaPsgWasmUrl:null, megaCD:false, mega32X:false,
+  };
+  if (mode.chip === 'ay8910') return {
+    chip:mode.chip, clock:mode.clock, type:0x10, flags:1,
+    workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-1',base).href,
+    wasmUrl:new URL('ay8910_wasm.wasm',generated).href,
+    segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };
   if (mode.chip === 'segapsg') return {
     chip:mode.chip, clock:mode.clock, stereoEnabled:mode.stereoEnabled,

@@ -32,6 +32,7 @@ const definitions = {
   'game-gear': ['/examples/game-gear/gg-mode-melody.js', '/examples/game-gear/gg-mode-noise.js', '/examples/game-gear/gg-mode-stereo.js'],
   'master-system': ['/examples/master-system/sms-mode-melody.js', '/examples/master-system/sms-mode-noise.js',
     '/examples/master-system/sms-opll-instruments.js', '/examples/master-system/sms-opll-user-patch.js', '/examples/master-system/sms-opll-rhythm.js'],
+  'atari-st': ['/examples/atari-st/st-three-voices.js','/examples/atari-st/st-tone-noise.js','/examples/atari-st/st-shared-envelope.js'],
   msx: ['/examples/msx/msx-ay-tone-noise.js','/examples/msx/msx-ay-envelope.js','/examples/msx/msx-music-duet.js'],
   'msx-audio': ['/examples/msx/msx-fm-sections.js','/examples/msx/msx-audio-adpcm.js','/examples/msx/msx-ay-tone-noise.js'],
   dx7: ['/examples/dx7/dx7-object-preset.js', '/examples/dx7/dx7-live-parameters.js', '/examples/dx7/dx7-keyboard.js'],

@@ -10,12 +10,12 @@ import {createProcessorPerformance} from './playground_performance_processor.js'
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
 import {validateChipClock,ChipClockResampler} from './playground_chip_clock.js';
 const RATE=48000,peak=values=>values.reduce((result,value)=>Math.max(result,Math.abs(value)),0);
-async function setup(){
+async function setup(options={}){
   let Processor,frame=0,ready;const messages=[],port={postMessage:message=>{messages.push(message);if(message.ready||message.error)ready(message);}},started=new Promise(resolve=>ready=resolve);
   const source=(await readFile(new URL('./playground_ay8910_worklet.js',import.meta.url),'utf8')).replace(/^import .*;$/gm,'');
   vm.runInNewContext(source,{Ay8910,factory,Ay8910VoiceInspector,receiveChipInspector,validateChipClock,ChipClockResampler,sampleRate:RATE,createProcessorPerformance:options=>createProcessorPerformance({...options,rate:RATE,nowFrame:()=>frame}),AudioWorkletProcessor:class{constructor(){this.port=port;}},registerProcessor:(_name,Type)=>Processor=Type});
-  const processor=new Processor({processorOptions:{wasmBinary:await readFile(new URL('../docs/generated/ay8910_wasm.wasm',import.meta.url))}});assert.equal((await started).ready,true,JSON.stringify(messages));
-  const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createAy8910Client(clientPort);client.initialize();
+  const processor=new Processor({processorOptions:{...options,wasmBinary:await readFile(new URL('../docs/generated/ay8910_wasm.wasm',import.meta.url))}});assert.equal((await started).ready,true,JSON.stringify(messages));
+  const clientPort={start(){},close(){},postMessage:data=>processor.receive(data,{postMessage:reply=>clientPort.onmessage?.({data:reply})})},client=createAy8910Client(clientPort,{clock:options.clock});client.initialize();
   return {processor,client,messages,port,receive:data=>processor.receive(data,port),read:()=>processor.inspector.read(),invoke:(method,args=[])=>processor.inspector.invoke(method,args),render(frames){const output=[new Float32Array(frames),new Float32Array(frames)];processor.process([],[output]);frame+=frames;return output;},close(){client.dispose();processor.dispose();}};
 }
 test('AY inspection exposes exactly three tone/noise mixes and shared envelope without writes or PCM advancement',async()=>{
@@ -24,6 +24,40 @@ test('AY inspection exposes exactly three tone/noise mixes and shared envelope w
     const state=p.read();assert.equal(state.channels.length,3);assert.equal(state.keyboardChannels.length,3);assert.equal(state.channels[2].toneEnabled,true);assert.equal(state.channels[2].noiseEnabled,true);assert.equal(state.channels[2].volume,0);assert.equal(state.channels[2].configuredVolume,7);assert.equal(state.channels[2].configuredEnvelope,true);assert.equal(state.noise.period,19);assert.equal(state.envelope.period,1234);assert.equal(state.envelope.shape,10);
     const before=state.registers;assert.throws(()=>p.invoke('setVoice',[1,{volume:4,period:99999}]));assert.deepEqual(p.read().registers,before);
     let writes=0,renders=0;const write=p.processor.chip.writeRegister.bind(p.processor.chip),render=p.processor.chip.generateStereo.bind(p.processor.chip);p.processor.chip.writeRegister=(...args)=>{writes++;return write(...args);};p.processor.chip.generateStereo=(...args)=>{renders++;return render(...args);};assert.deepEqual(p.read(),state);assert.equal(writes,0);assert.equal(renders,0);
+  }finally{p.close();}
+});
+
+test('YM2149 Worklet generates actual YM PCM, with fixed profile through reset and clock changes',async()=>{
+  const profile={clock:2000000,type:0x10,flags:1};
+  const p=await setup(profile),options={moduleFactory:factory,moduleOptions:{wasmBinary:await readFile(new URL('../docs/generated/ay8910_wasm.wasm',import.meta.url))},sampleRate:RATE,...profile};
+  const expected=await Ay8910.create(options),ay=await Ay8910.create({...options,type:0});
+  const retimed=new ChipClockResampler();
+  const sync=chip=>{chip.reset();for(const [register,value]of p.client._getState().registers.entries())chip.writeRegister(register,value);chip.setMuteMask(6);};
+  const render=frames=>{const [left,right]=p.render(frames),l=new Float32Array(frames),r=new Float32Array(frames);retimed.render(expected,l,r);assert.deepEqual(left,l);assert.deepEqual(right,r);return left;};
+  try{
+    p.client.setVoice(0,{tone:true,noise:false,volume:9,envelope:false,note:'A4'});sync(expected);sync(ay);
+    const initial=render(4096);assert(peak(initial)>.01);assert.notDeepEqual(initial,ay.generateStereo(4096).left,'YM2149 DAC response must not silently use AY-3-8910');
+    p.receive({type:'chip-inspector',id:'profile',action:'read'});const inspection=p.messages.find(message=>message.id==='profile');
+    assert.equal(inspection.value.type,0x10);assert.equal(inspection.value.flags,1);assert.equal(inspection.value.clock,2000000);
+    await p.client.setClock(3000000);retimed.setClock(3000000,2000000);render(1703);
+    p.client.reset();p.client.setVoice(0,{tone:true,noise:false,volume:9,envelope:false,note:'A4'});sync(expected);retimed.resetPhase();render(2048);
+    assert.equal(p.processor.type,0x10);assert.equal(p.processor.flags,1);assert.equal(p.processor.baseClock,2000000);assert.equal(p.client.clock,3000000);
+  }finally{p.close();expected.dispose();ay.dispose();}
+});
+
+for(const execution of ['Main','Worker'])test(`YM2149 ${execution} Stop silences held resampler output and cancels queued notes without changing the profile`,async()=>{
+  const p=await setup({clock:2000000,type:0x10,flags:1});
+  try{
+    await p.client.setClock(400000);p.client.setVoice(0,{tone:true,noise:false,volume:9,envelope:false,note:'A4'});
+    p.render(5);assert(peak(p.render(1)[0])>.01,'a source sample is being held between chip frames');
+    if(execution==='Main')await p.client._stopVoices();
+    else{
+      p.receive({type:'performance-start',session:1});
+      p.receive({performance:{session:1,owner:'future',time:.05},commands:[{method:'writeRegister',args:[8,15]}]});
+      p.receive({type:'performance-stop',session:1});
+    }
+    assert.equal(peak(p.render(4096)[0]),0);assert.equal(p.processor.type,0x10);assert.equal(p.processor.flags,1);assert.equal(p.client.clock,400000);
+    p.client.keyOn(0);assert(peak(p.render(2048)[0])>.01,'the retained patch remains playable after Stop');
   }finally{p.close();}
 });
 test('AY manual A4 is audible and Stop preserves tone/noise/envelope configuration while muting all voices',async()=>{

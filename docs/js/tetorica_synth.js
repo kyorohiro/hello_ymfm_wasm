@@ -5,7 +5,7 @@
  * start() による実再生には Web Audio と WASM アセットが必要。
  */
 import { GameboyRuntimeSynth } from "./gameboy_runtime_synth.js?v=y8950-adpcm-ui-1";
-import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=y8950-adpcm-ui-1";
+import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=atari-st-mode-1";
 import { MegaSynth } from "./megasynth.js?v=y8950-adpcm-ui-1";
 import { YM2203RuntimeSynth } from "./ym2203synth.js?v=y8950-adpcm-ui-1";
 import { YM2608RuntimeSynth } from "./ym2608synth.js?v=y8950-adpcm-ui-1";
@@ -29,7 +29,7 @@ export function normalizeTetoricaChip(chip) {
 
 /**
  * Construct the runtime synth for the selected chip. Call start() to initialize audio.
- * @param {import("./megasynth.js?v=y8950-adpcm-ui-1").MegaSynthOptions & import("./opn_runtime_synth.js?v=y8950-adpcm-ui-1").OPNRuntimeSynthOptions & Omit<import("./native_runtime_synth.js?v=y8950-adpcm-ui-1").NativeRuntimeSynthOptions, 'chip'> & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
+ * @param {import("./megasynth.js?v=y8950-adpcm-ui-1").MegaSynthOptions & import("./opn_runtime_synth.js?v=y8950-adpcm-ui-1").OPNRuntimeSynthOptions & Omit<import("./native_runtime_synth.js?v=atari-st-mode-1").NativeRuntimeSynthOptions, 'chip'> & {chip?:string}} [options={}] Forwarded to the selected synth constructor.
  * @param {string} [options.chip="ym2612"] One of TETORICA_CHIPS.
  * @returns {MegaSynth|YM2203RuntimeSynth|YM2608RuntimeSynth|NeoGeoSynth|YM2610BRuntimeSynth|GameboyRuntimeSynth|NativeRuntimeSynth}
  *   Unstarted runtime; construction alone does not load WASM or open an audio device.

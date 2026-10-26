@@ -2182,6 +2182,8 @@
             <p data-native-helper="ym3526" hidden><code>opl</code> is the primary OPL instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3526</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
             <p data-native-helper="y8950" hidden><code>opl</code> is the primary Y8950 FM instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>Y8950</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Y8950 ADPCM is not part of this FM mode.</p>
             <p data-native-helper="ymf262" hidden><code>opl</code> is the primary OPL3 instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..17</code>; MIDI note 69 is A4. Open <strong>YMF262</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel. Four-op primaries are 0..2 and 9..11; each borrows its primary + 3. Keyboard excludes paired secondary channels. Stereo uses left/right routing switches.</p>
+            <p data-native-helper="ay8910" hidden>Atari ST provides <code>ay</code> for its mono YM2149 PSG at 2 MHz. <code>ay.setVoice(0, {tone:true, noise:false, volume:9})</code>, <code>ay.noteOn(0, "C4")</code> and <code>ay.keyOff(0)</code> configure and play a voice. Channels are <code>0..2</code>. <code>await useSoundChip("ay8910")</code> borrows this same PSG.</p>
+            <p data-native-helper="ay8910" hidden>Open <strong>YM2149</strong> to edit tone, noise, fixed volume and the shared hardware envelope, then audition the selected voice with <strong>Hold to play</strong> or Keyboard. Three voices share one noise generator and one envelope; writing its Shape retriggers it globally. This mode models the original ST PSG, without STE DMA audio.</p>
             <p data-native-helper="msx" hidden>MSX provides <code>ay</code> for PSG and <code>opll</code> for MSX-MUSIC. The Keyboard selects each chip and its physical channel. Open its chip tab to edit and audition the current voice.</p>
             <p data-native-helper="msx" hidden><code>ay.setVoice(0, {tone:true, noise:false, volume:9})</code> configures a PSG voice. <code>ay.noteOn(0, "C4")</code> and <code>ay.keyOff(0)</code> play it. Three channels share one noise generator and one hardware envelope; writing its Shape explicitly retriggers it globally.</p>
             <p data-native-helper="msx" hidden><code>opll.setVoice(0, {instrument:3, attenuation:5})</code> selects a ROM instrument; instrument 0 uses the shared <code>OPLL_USER_PRESETS</code> patch. Use <code>opll.noteOn(0, "C4")</code> and <code>opll.keyOff(0)</code> to play it. Select MSX Audio for the additional Y8950 FM instrument.</p>
@@ -2480,7 +2482,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=y8950-adpcm-ui-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=atari-st-mode-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>
