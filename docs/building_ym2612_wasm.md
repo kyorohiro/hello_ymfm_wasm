@@ -29,6 +29,7 @@ download or synchronized edit of another repository is required.
 | NES APU / FDS | `scripts/build_nesapu_wasm.sh` | `nesapu_wasm` |
 | SNES SPC700 / S-DSP | `scripts/build_spc_wasm.sh` | `spc_wasm` |
 | Sega PCM (315-5218) | `scripts/build_segapcm_wasm.sh` | `segapcm_wasm` |
+| K051649 (SCC) | `scripts/build_k051649_wasm.sh` | `k051649_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -54,6 +55,7 @@ sh scripts/build_gameboy_apu_wasm.sh
 sh scripts/build_nesapu_wasm.sh
 sh scripts/build_spc_wasm.sh
 sh scripts/build_segapcm_wasm.sh
+sh scripts/build_k051649_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -64,7 +66,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore` and `SegaPcm` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `SegaPcm` and `K051649` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -97,12 +99,13 @@ sh /path/to/checkout/scripts/build_gameboy_apu_wasm.sh ./gameboy-output
 sh /path/to/checkout/scripts/build_nesapu_wasm.sh ./nes-output
 sh /path/to/checkout/scripts/build_spc_wasm.sh ./spc-output
 sh /path/to/checkout/scripts/build_segapcm_wasm.sh ./segapcm-output
+sh /path/to/checkout/scripts/build_k051649_wasm.sh ./scc-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
-O2, the existing exports and memory growth settings. AY, Game Boy, NES and Sega PCM use C++17
-without `EXPORT_ALL`, retaining ten, eleven, eighteen and thirteen exports respectively; the other recipes above use C++14.
-OPN, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+O2, the existing exports and memory growth settings. AY, Game Boy, NES, Sega PCM and K051649 use C++17
+without `EXPORT_ALL`, retaining ten, eleven, eighteen, thirteen and nine exports respectively; the other recipes above use C++14.
+OPN, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -173,6 +176,12 @@ configuration, caller-owned stereo output and opaque same-instance/same-build
 state API. State contains sample ROM as well as playback state; it is not a
 portable serialization contract. The Analyzer's Sega PCM engine uses main-thread
 synthesis and replay-from-zero seeking rather than a checkpoint adapter.
+K051649 retains its five voices, SCC shared waveform and SCC+ independent
+waveform writes, frequency/volume/key/test controls, native mute and owned PCM.
+Its recipe exposes `cwrap` / `HEAPF32`, with no Perl cleanup or state/read API.
+Reset/reprogram and post-scenario continuation are compared instead of snapshot
+restoration. Analyzer MSX compositions use the existing engine and replay seek;
+this build migration does not add an SCC Playground mode.
 
 ## Fixed source and updates
 
@@ -180,10 +189,10 @@ synthesis and replay-from-zero seeking rather than a checkpoint adapter.
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these eighteen wrappers, ymfm inputs and the MAME-derived
-OKIM6258, AY, RF5C164, PWM, HuC6280, Game Boy and Sega PCM adaptations retain BSD-3-Clause.
+and `vendor/` notices; these nineteen wrappers, ymfm inputs and the MAME-derived
+OKIM6258, AY, RF5C164, PWM, HuC6280, Game Boy, Sega PCM and K051649 adaptations retain BSD-3-Clause.
 NES/FDS retains its Apache-2.0 JSNES and MIT FDS licenses, authors and provenance;
-these terms are separate from the eighteen BSD-3-Clause module recipes.
+these terms are separate from the nineteen BSD-3-Clause module recipes.
 SNES SPC700/S-DSP retains snes_spc's LGPL-2.1-or-later terms and complete
 corresponding modified source; its license is not applied to other chip cores.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
@@ -289,6 +298,10 @@ node scripts/check_segapcm_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-segapcm-build \
   --sdk-dir /path/to/sdk-segapcm-build \
   --out /tmp/segapcm-comparison.json
+node scripts/check_k051649_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-scc-build \
+  --sdk-dir /path/to/sdk-scc-build \
+  --out /tmp/scc-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -378,10 +391,14 @@ The Sega PCM checker compares actual 16-voice stereo PCM and opaque state,
 ROM load/clear and bank selection, register aliases, looping/end conditions,
 mute/reset and state continuation. Engine/optional PSG and real Player replay
 seek use the existing Analyzer path; the engine has no checkpoint state facade.
+The K051649 checker compares real five-voice PCM, shared/independent wave writes,
+frequency halt, test-register protection, key/volume aliases, mute/reset, owned
+buffer lifetime, Engine mixing and MSX/AY Player replay seeking. It records the
+transitive static runtime dependency closure and uses no inaccessible chip state.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The twenty module recipes above have switched to this build source. Other chip recipes and
+The twenty-one module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.

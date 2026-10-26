@@ -75,7 +75,10 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 旧再ビルド／配布済みとの各612比較でPCM・ROMを含むnative stateの差0。Analyzer両browserとnpm／ZIPも確認した。
 既存CLI WAV比較の参照側に抜けていた校正Mixerは、旧版で失敗を再現して試験だけ修正した。
 詳細は[Sega PCM WASMのSDK移行](wasm_sdk_segapcm_adoption_01.md)を参照。
-その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
+続くK051649（SCC）WASMも固定SDKへ切り替えた。配布済み・旧再ビルド・SDK・docs／webの生成物はbyte一致した。
+各774比較でPCM・続行probe差0。保存状態APIは追加せず、SCC／SCC+・reset／再演奏とMSX混合／seekを確認した。
+詳細は[K051649 WASMのSDK移行](wasm_sdk_k051649_adoption_01.md)を参照。
+既存の音量調整では、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
 その後、未反映だったPSG・AY・NES・PC Engineの初期値も揃えた。
@@ -1326,10 +1329,32 @@ FM npmとAnalyzer ZIPも検証し、Sega PCM資産・noticeの一致を確認し
 Analyzer gain0.261709・npmのgeneric unityを保持し、Playgroundの対応modeや音量調整は追加していない。
 詳細は[Sega PCM移行](wasm_sdk_segapcm_adoption_01.md)と[検証JSON](wasm_sdk_segapcm_adoption_01.json)。証拠は`/private/tmp/tetorica-segapcm-wasm-sdk/`。
 
-固定SDKへ切り替えたWASMは計20／27 artifact。次の移行候補はK051649（SCC）。
-残り7は`k051649`／`nuked_opn2`／`ym3438`／`ymf276`／`ymf278b`／`ymf288`／`dx7`。
 SPCのWebKit初期化中closeは引き続き未解決。今回のSega PCM Browser成功と混同しない。
 SDK原本とTauri、Mixer数値は変更していない。commit／push・公開・remote CIは実施していない。
+この節はSega PCM移行時の記録。続くK051649移行は次の節に記載する。
+
+
+### 完了した作業 — K051649（SCC）WASMの固定SDK参照
+
+`scripts/build_k051649_wasm.sh`もSDK `0.1.1`の`k051649`ターゲットを使う。
+着手時の本体は`289dac7dd684046d3f7c39aecb69813c8444386b`でclean。固定379ファイルとpin、先行20生成記録を保持した。
+freeze時にはimporter／試験編集が始まっていたため別statusを残し、旧レシピ・出力・pin・SavePointの56入力を基準commitへ直接照合した。
+C++17／O2、9 C export・runtime 2項目・wasmBinaryを維持し、ASSERTIONS／EXPORT_ALL／Perl cleanupは追加していない。
+配布済み・旧再ビルド・SDK・通常docs・直接webのJS／WASMはすべてbyte一致した。
+旧再ビルド／配布済みの2組は各774比較（chip684＋Engine90）・6,568,338生成ステレオフレームでPCM／続行probe差0。
+5 voice、SCC共有／SCC+独立wave、frequency／volume／key／test、mute／reset・owned PCMと各360再演奏を確認した。
+chipのstate／read APIはなく、内部状態serializeは追加していない。実MSX Playerのseekは先頭からの再演奏で比較した。
+Python99件・既存Node47件、Checker CLIの53実行が成功した。
+AnalyzerのChromium／WebKitでSCC単独／SCC+／AY＋OPLL＋Y8950＋SCC混合、子音源の合計・Mixerを確認した。
+最初の音声接続前から最終zero Gainを使い、合成は主スレッド・Workletは出力transport。初回の一時harness接続カウンターの失敗も記録した。
+FM npm・実install済みSCC／MSX entryとAnalyzer ZIPを検証し、資産・BSD noticeの計21項目の一致を確認した。
+校正66 source hash・generator checksも成功し、Analyzer gain1.103844・npm generic unityを保持する。Playground SCC modeは追加していない。
+詳細は[K051649移行](wasm_sdk_k051649_adoption_01.md)と[検証JSON](wasm_sdk_k051649_adoption_01.json)。証拠は`/private/tmp/tetorica-k051649-wasm-sdk/`。
+
+固定SDKへ切り替えたWASMは計21／27 artifact。次の移行候補はYM3438。
+残り6は`nuked_opn2`／`ym3438`／`ymf276`／`ymf278b`／`ymf288`／`dx7`。
+SPCのWebKit初期化中closeは引き続き未解決。SDK原本とTauri、Mixer数値は変更していない。
+commit／push・公開・remote CIは実施していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

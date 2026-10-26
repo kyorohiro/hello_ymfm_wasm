@@ -194,6 +194,70 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "k051649",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "bf4f8f1203869b0b90effb75d0a1d032eb4f1f0b480183981af73af8e73f6a22",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_k051649_wasm.sh",
+          "sha256": "d0f070fb79088b427affa3b5b9409c4d6093e90dd6130d48b5e2fc30a136ec37",
+          "size": 686
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-k051649/k051649.cpp",
+          "sha256": "27a073a5be349b4edcf1f2c9b5e464a3ec633142c0b3fee9f1a20b64153a1c36",
+          "size": 3802
+        },
+        {
+          "path": "vendor/mame-k051649/k051649.h",
+          "sha256": "527fa76035e60f717ffba8eaa514028a89925135e10da347b305b801e40efd8a",
+          "size": 1390
+        },
+        {
+          "path": "vendor/mame-k051649/upstream/k051649.cpp",
+          "sha256": "003db1a492076e437b6b22f515ddb7f0c0fde01de0722ff308123a07a4637122",
+          "size": 7422
+        },
+        {
+          "path": "vendor/mame-k051649/upstream/k051649.h",
+          "sha256": "42d22c7bd3a4a5665891fdec4fccc67586a226e2fcc8f971ff11cb964dfd8a06",
+          "size": 2007
+        },
+        {
+          "path": "wasm/k051649_wasm.cpp",
+          "sha256": "32f4dcc756a4beda40a9137f5585891e1917a1a091085398cd032c3bc723c466",
+          "size": 700
+        }
+      ],
+      "outputs": [
+        {
+          "path": "k051649_wasm.js",
+          "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7",
+          "size": 11133
+        },
+        {
+          "path": "k051649_wasm.wasm",
+          "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c",
+          "size": 9399
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "nesapu",
       "format": "emscripten-es-module",
       "sourceFingerprint": "c6a668de97db77fe10bd109e927632e773d4700f5812ab8e9561abcdd71e826b",

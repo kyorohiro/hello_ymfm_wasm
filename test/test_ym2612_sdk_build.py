@@ -15,7 +15,7 @@ SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
-             'spc', 'segapcm')
+             'spc', 'segapcm', 'k051649')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -151,6 +151,11 @@ SEGAPCM_EXPORTS = [
     '_segapcm_load_memory', '_segapcm_clear_memory', '_segapcm_sample_rate',
     '_segapcm_set_mute_mask', '_segapcm_generate', '_segapcm_save_state',
     '_segapcm_load_state', '_malloc', '_free',
+]
+K051649_EXPORTS = [
+    '_k051649_create', '_k051649_destroy', '_k051649_reset', '_k051649_write',
+    '_k051649_sample_rate', '_k051649_set_mute_mask', '_k051649_generate',
+    '_malloc', '_free',
 ]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
@@ -757,6 +762,33 @@ class SegaPcmSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc'])
+
+
+class K051649SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'k051649'
+    exports = K051649_EXPORTS
+    language_standard = 'c++17'
+    export_all = False
+    assertions = False
+    vendor_sources = ['vendor/mame-k051649/k051649.cpp']
+    core_header = 'vendor/mame-k051649/k051649.h'
+    include_directories = ['vendor/mame-k051649']
+    # Preserve upstream provenance in the recorded inputs; these files are
+    # not translation units or dependencies of the standalone adaptation.
+    support_sources = ['vendor/mame-k051649/upstream/k051649.cpp',
+                       'vendor/mame-k051649/upstream/k051649.h']
+    extra_manifest_headers = ()
+    extra_tamper_dependencies = (*vendor_sources, *support_sources,
+                                 'vendor/mame-k051649/LICENSE',
+                                 'vendor/mame-k051649/README.md')
+    verify_quoted_header_dependencies = True
+
+    def test_shared_output_preserves_all_twenty_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
+             'spc', 'segapcm'])
 
 
 if __name__ == '__main__':
