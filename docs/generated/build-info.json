@@ -599,6 +599,135 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "spc",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "da93df08b48b634ed657a139ea9d28ef82336c22289f6e8dc040340e067b9580",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_spc_wasm.sh",
+          "sha256": "3eed01347f67aaae3690db3050fdfcff104fe209f621826870c651e732b57577",
+          "size": 1480
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC.cpp",
+          "sha256": "3d235748b0c520a000263b8098305061673b405754c900a94b9545991628533f",
+          "size": 17737
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC.h",
+          "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae",
+          "size": 9033
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC_misc.cpp",
+          "sha256": "d89d85fd584299360eb304219658f2b92121b5dd4e8a4089e1e7d4806c1a8d3e",
+          "size": 9468
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SNES_SPC_state.cpp",
+          "sha256": "6af18978d82617f12b9830b87e06dd6c27f772b78de9d18a8ebbdf38d93309d2",
+          "size": 3676
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_CPU.h",
+          "sha256": "8f28ed5a3461cbf85c64c6a8ecdb6f51b486396e37940e112b94748b44c3a7a8",
+          "size": 24078
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_DSP.cpp",
+          "sha256": "ec2ad75d60192fd1d03c63b5fea25874f96ec1beade45d6cecbd08277f35c9fc",
+          "size": 26250
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_DSP.h",
+          "sha256": "736ac067d04e38bd1bc888c8e06799579a35fa14c9879f7c7ab7b69c6b085f8a",
+          "size": 8413
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_Filter.cpp",
+          "sha256": "34c6ab92475d5fd700c3e01bff7d2fe8e59f8d188a0719c1ad12141d905f62e8",
+          "size": 1768
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/SPC_Filter.h",
+          "sha256": "a86f33de7fbaa1d448de8e3879c4619e1d9a30a494c5a9606d682cee8dd89bb9",
+          "size": 1065
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_common.h",
+          "sha256": "4bc17a19fe46de2860868d3f88c037aee718b4dedc61450a28de3d1336053dba",
+          "size": 5205
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_config.h",
+          "sha256": "b318cfcd2828719d8e3435e4972bc75ba82697c2cc6b8d291130d66d7b6904b8",
+          "size": 620
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_endian.h",
+          "sha256": "97062e15b46e1347a4fc2e95fd131bcb89c1b8947b28d20a27c1f342a387d637",
+          "size": 6364
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/blargg_source.h",
+          "sha256": "bd6b376d6d9b1bccce3b89e915b1ad9a6fede7d43b273258bfa13c3855fb1a6a",
+          "size": 3037
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/dsp.cpp",
+          "sha256": "80b7ff9f2f7ab4af0485c5faaa3dc333359a8892c63b996a3448c047bad62bb6",
+          "size": 2600
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/dsp.h",
+          "sha256": "ac61fc96a688ce7429942a76562b0ce8cfb014f84c2c2398ef875b0f33521c2b",
+          "size": 2512
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/spc.cpp",
+          "sha256": "0f6bf884f2d6ef5728d8bb3fc277ff1e1bf74813251d8308f4e6d3aa1e33ec1f",
+          "size": 4212
+        },
+        {
+          "path": "vendor/snes-spc/snes_spc/spc.h",
+          "sha256": "e45c8e2862f44a23804bb6fe14c747e16f49efc2e991a92138d285c36b45e0c7",
+          "size": 4758
+        },
+        {
+          "path": "wasm/spc_wasm.cpp",
+          "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77",
+          "size": 15355
+        }
+      ],
+      "outputs": [
+        {
+          "path": "spc_wasm.js",
+          "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699",
+          "size": 41458
+        },
+        {
+          "path": "spc_wasm.wasm",
+          "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408",
+          "size": 63074
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "y8950",
       "format": "emscripten-es-module",
       "sourceFingerprint": "9e60f75aa35f10c68c1c69f9b383e1c91200948861c32553c812768f10c860c1",

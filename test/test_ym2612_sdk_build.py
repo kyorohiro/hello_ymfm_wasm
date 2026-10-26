@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -13,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
-             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu')
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
+             'spc')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -132,6 +134,18 @@ NESAPU_EXPORTS = [
     '_nesapu_generate', '_nesapu_state_size', '_nesapu_state_field_count',
     '_nesapu_state_offset', '_malloc', '_free',
 ]
+SPC_EXPORTS = [
+    '_spc_create', '_spc_destroy', '_spc_error', '_spc_load', '_spc_restart',
+    '_spc_render', '_spc_left_ptr', '_spc_right_ptr', '_spc_native_frames',
+    '_spc_set_mute_mask', '_spc_snapshot_ptr', '_spc_load_ram',
+    '_spc_write_dsp', '_spc_read_dsp', '_spc_trace_begin', '_spc_trace_finish',
+    '_spc_trace_initial_ptr', '_spc_trace_events_ptr', '_spc_trace_event_count',
+    '_spc_ram_read_begin', '_spc_ram_read_finish', '_spc_ram_read_mask_ptr',
+    '_spc_observer_begin', '_spc_observer_stop', '_spc_observer_ptr',
+    '_spc_observer_drain', '_spc_observer_lost', '_spc_observer_registers_ptr',
+    '_spc_load_timeline', '_spc_restart_timeline', '_spc_timeline_total_frames',
+    '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -161,6 +175,8 @@ class SdkBuildRouteMixin:
                        'vendor/ymfm/chip_state.h']
     extra_manifest_headers = ('vendor/ymfm/chip_state.h',)
     extra_tamper_dependencies = ()
+    verify_quoted_header_dependencies = False
+    disabled_optional_includes = {}
 
     @property
     def build_script(self):
@@ -261,6 +277,36 @@ else:
             # recipe's historical catalog-based build-info input list.
             self.assertEqual(manifest['files'][header]['sha256'],
                              sha256((self.sdk / header).read_bytes()))
+        if self.verify_quoted_header_dependencies:
+            # Follow every quoted include from each actual translation unit;
+            # nested upstream headers must resolve from the recipe's paths.
+            pending = list(self.sources)
+            visited = set()
+            while pending:
+                source = pending.pop()
+                if source in visited:
+                    continue
+                visited.add(source)
+                text = (self.sdk / source).read_text()
+                for include in re.findall(r'^\s*#\s*include\s*"([^"]+)"', text, re.M):
+                    macro = self.disabled_optional_includes.get((source, include))
+                    if macro:
+                        self.assertRegex(text, r'#ifdef\s+' + re.escape(macro)
+                                         + r'\s*#include\s*"' + re.escape(include)
+                                         + r'"\s*#endif')
+                        self.assertFalse(any(value == '-D' + macro
+                                             or value.startswith('-D' + macro + '=')
+                                             for value in arguments), macro)
+                        continue
+                    candidates = [Path(source).parent / include,
+                                  *(Path(directory) / include
+                                    for directory in self.include_directories)]
+                    dependency = next((path.as_posix() for path in candidates
+                                       if (self.sdk / path).is_file()), None)
+                    self.assertIsNotNone(dependency, source + ': ' + include)
+                    self.assertEqual(manifest['files'][dependency]['sha256'],
+                                     sha256((self.sdk / dependency).read_bytes()))
+                    pending.append(dependency)
         for flag in ('-O2', '-sMODULARIZE=1',
                      '-sEXPORT_ES6=1', '-sENVIRONMENT=web,worker,node,shell',
                      '-sALLOW_MEMORY_GROWTH=1'):
@@ -651,6 +697,35 @@ class NesApuSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu'])
+
+
+class SpcSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'spc'
+    exports = SPC_EXPORTS
+    runtime_methods = ['HEAPU8', 'HEAPF32', 'UTF8ToString']
+    export_all = False
+    trim_glue = True
+    vendor_sources = ['vendor/snes-spc/snes_spc/' + name for name in (
+        'SNES_SPC.cpp', 'SNES_SPC_misc.cpp', 'SNES_SPC_state.cpp', 'SPC_DSP.cpp')]
+    core_header = 'vendor/snes-spc/snes_spc/SNES_SPC.h'
+    include_directories = ['vendor/snes-spc/snes_spc']
+    support_sources = ['vendor/snes-spc/snes_spc/' + name for name in (
+        'SPC_CPU.h', 'SPC_DSP.h', 'blargg_common.h', 'blargg_config.h',
+        'blargg_endian.h', 'blargg_source.h')]
+    extra_manifest_headers = tuple(support_sources)
+    extra_tamper_dependencies = (*vendor_sources, *support_sources,
+                                 'vendor/snes-spc/LICENSE',
+                                 'vendor/snes-spc/license.txt')
+    verify_quoted_header_dependencies = True
+    disabled_optional_includes = {
+        ('vendor/snes-spc/snes_spc/blargg_config.h', 'config.h'): 'HAVE_CONFIG_H',
+    }
+
+    def test_shared_output_preserves_all_eighteen_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu'])
 
 
 if __name__ == '__main__':

@@ -67,6 +67,10 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くNES APU／FDS WASMも固定SDKへ切り替えた。31項目の観測ABIとowned／borrowed PCMを維持し、保存状態APIは追加していない。
 配布ソースもSDKの検証済み入力とstandalone recipeから作り、単体再buildを確認した。
 詳細は[NES APU／FDS WASMのSDK移行](wasm_sdk_nesapu_adoption_01.md)を参照。
+続くSNES／SPC WASMも固定SDKへ切り替えた。32 kHzのSPC700／accurate S-DSPと33 C exportを維持した。
+旧再ビルド・配布済み・配布ソース単体の各80ケースでSDKとの差0。パスを埋め込むassertionによりWASMのbytesは異なる。
+対応ソース単体の再build、FM／VGM npm・Analyzer ZIPも検証した。WebKitの初期化中close試験は未解決として分けて記録した。
+詳細は[SNES／SPC WASMのSDK移行](wasm_sdk_spc_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1278,9 +1282,29 @@ source単体buildと生成物一致、core／recipe／manifestの改変拒否、
 Python87件・既存NES関連77件、両Browserの主／追加Worklet4経路・全6CH Keyboard／Operators／DMC／FDS／Stopが成功した。
 詳細とhashは[NES移行記録](wasm_sdk_nesapu_adoption_01.md)とそのJSONを参照する。
 
-固定SDKへ切り替えたWASMは計18 artifact。次はSNES／SPC用WASMへの展開が候補。
-`scripts/build_spc_wasm.sh`とSDKのspc target、LGPLの対応ソース同梱を調べ、SPC／S-DSPの既存API・再生・Browser／npmを比較して移行する。
-残り9 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はNES APU／FDS移行時の記録。続くSNES／SPC移行は次の節に記載する。
+
+
+### 完了した作業 — SNES／SPC WASMの固定SDK参照
+
+`scripts/build_spc_wasm.sh`もSDK `0.1.1`の`spc`ターゲットを使う。
+着手時の本体は`ef783f2099a97cd8faed4ec5f1cf90efbd103059`でclean。固定379ファイルとpin、先行18生成記録・36出力を保持した。
+C++14／O2・ASSERTIONS・accurate S-DSP、33 C export・runtime 3項目・Perl cleanupを維持する。
+旧配布／旧再ビルドとSDKでWASM bytesは異なるが、SDKレシピのvendor path5箇所だけを旧配置へ移したsource単体buildで旧bytesを再現した。
+旧再ビルド・配布済み・配布ソース単体の3組は、SDKとの各40シナリオ・80ケースでPCM／RAM／DSP／nativeFrames・trace／timeline差0。
+各組の受渡し済み出力は両build計1,017,898ステレオフレーム、native位置の増分は1,017,766。解析用snapshotを保存状態とは扱わない。
+配布source helperは26入力を全検証してから出力し、standalone recipeだけ5パスを移す。LGPL／由来・変更記録を保持する。
+Python91件・既存SPC／SNES222件、FM npm・VGM npmの隔離offline検証とAnalyzer ZIPが成功した。
+主／追加SNESの4 Worklet校正経路、SNES Mainの両browser、SPCファイル再生の両browser×2 output rateも成功した。
+ただしWebKitの初期化中closeは2回失敗し、AbortError・nodeなしでもAudioContextがrunningのままだった。Chromiumは成功。
+旧WASMのclose単独は成功したが、同じ再生順序を含む旧版試験は先に無音判定で停止し、移行との因果は未確定。
+Browser全体の成功とは扱わず、元の試験・runtimeを保持して証拠と切り分け手順を残した。
+詳細は[SNES／SPC移行](wasm_sdk_spc_adoption_01.md)と[検証JSON](wasm_sdk_spc_adoption_01.json)。証拠は`/private/tmp/tetorica-spc-wasm-sdk/`。
+
+固定SDKへ切り替えたWASMは計19／27 artifact。次の移行候補はSega PCM。
+残り8は`k051649`／`nuked_opn2`／`segapcm`／`ym3438`／`ymf276`／`ymf278b`／`ymf288`／`dx7`。
+WebKit closeは、既存試験の再生→close順序・AudioContext所有／resume／closeと一時mute harnessの切り分けが必要。
+SDK原本とTauri、Mixer数値は変更していない。commit／push・公開・remote CIは実施していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

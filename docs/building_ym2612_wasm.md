@@ -27,6 +27,7 @@ download or synchronized edit of another repository is required.
 | HuC6280 | `scripts/build_huc6280_wasm.sh` | `huc6280_wasm` |
 | Game Boy APU | `scripts/build_gameboy_apu_wasm.sh` | `gameboy_apu_wasm` |
 | NES APU / FDS | `scripts/build_nesapu_wasm.sh` | `nesapu_wasm` |
+| SNES SPC700 / S-DSP | `scripts/build_spc_wasm.sh` | `spc_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -50,17 +51,18 @@ sh scripts/build_pwm32x_wasm.sh
 sh scripts/build_huc6280_wasm.sh
 sh scripts/build_gameboy_apu_wasm.sh
 sh scripts/build_nesapu_wasm.sh
+sh scripts/build_spc_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
 recipe. Each module basename in the table produces a `.js` / `.wasm` pair
 under `docs/generated/`.
-The YM2203, YM2610B, YM2151 and OKIM6258 recipes retain their generated-glue whitespace cleanup using Perl.
+The YM2203, YM2610B, YM2151, OKIM6258 and SPC recipes retain their generated-glue whitespace cleanup using Perl.
 With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu` and `NesApuWasm` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore` and `SnesDspCore` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -91,12 +93,13 @@ sh /path/to/checkout/scripts/build_pwm32x_wasm.sh ./pwm32x-output
 sh /path/to/checkout/scripts/build_huc6280_wasm.sh ./huc6280-output
 sh /path/to/checkout/scripts/build_gameboy_apu_wasm.sh ./gameboy-output
 sh /path/to/checkout/scripts/build_nesapu_wasm.sh ./nes-output
+sh /path/to/checkout/scripts/build_spc_wasm.sh ./spc-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
 O2, the existing exports and memory growth settings. AY, Game Boy and NES use C++17
 without `EXPORT_ALL`, retaining ten, eleven and eighteen exports respectively; the other recipes above use C++14.
-OPN, YM2413, Sega PSG and RF5C164 recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+OPN, YM2413, Sega PSG, RF5C164 and SPC recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -149,6 +152,19 @@ engine, including its snapshots; this migration adds no WASM Player adapter.
 Distribution source bundles contain verified SDK inputs and a standalone
 recipe with only its two vendor paths relocated to the existing `third_party/`
 layout. They rebuild without the checkout's SDK dispatcher or Python importer.
+SPC retains C++14/O2, assertions, 33 C exports, `wasmBinary` initialization and
+`HEAPU8` / `HEAPF32` / `UTF8ToString` runtime methods. The accurate DSP generates
+32,000 native stereo frames per second; output resampling remains at the boundary.
+`SpcCore` runs SPC700 files, while `SnesDspCore` is DSP-only. Caller-owned
+`renderInto()` output, copied RAM/DSP analysis snapshots, mute, restart and
+existing trace/discovery/observer/timeline APIs are preserved. These snapshots
+are not arbitrary-position restorable emulator states. Timeline replay retains
+the original four-frame output FIFO and 1,024,000-Hz effective DSP event ordering.
+The complete modified LGPL library travels with the distribution, including
+uncompiled source and original notices. Its standalone recipe relocates five
+vendor paths to the existing `third_party/snes-spc` layout. Assertions embed
+source paths, so relocated binaries can differ in hash; runtime equality is
+checked separately. No fast DSP, optional filter or IPL ROM is added.
 
 ## Fixed source and updates
 
@@ -160,6 +176,8 @@ and `vendor/` notices; these seventeen wrappers, ymfm inputs and the MAME-derive
 OKIM6258, AY, RF5C164, PWM, HuC6280 and Game Boy adaptations retain BSD-3-Clause.
 NES/FDS retains its Apache-2.0 JSNES and MIT FDS licenses, authors and provenance;
 these terms are separate from the seventeen BSD-3-Clause module recipes.
+SNES SPC700/S-DSP retains snes_spc's LGPL-2.1-or-later terms and complete
+corresponding modified source; its license is not applied to other chip cores.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
 their location under `vendor/ymfm/` does not make them ymfm-originated code.
 
@@ -255,6 +273,10 @@ node scripts/check_nesapu_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-nes-build \
   --sdk-dir /path/to/sdk-nes-build \
   --out /tmp/nes-comparison.json
+node scripts/check_spc_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-spc-build \
+  --sdk-dir /path/to/sdk-spc-build \
+  --out /tmp/spc-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -334,10 +356,16 @@ Mute/filter history is compared against the retained JavaScript reference with
 the same history. VGM `0xb4` writes and type-`0xc2` RAM blocks are checked through
 the existing parser and a recording target; no WASM Player/checkpoint integration
 or inaccessible full-state equality is claimed.
+The SPC checker compares actual SPC700 and DSP-only PCM, RAM/DSP analysis,
+eight BRR voices, envelopes, pitch/noise/echo, restart and caller-buffer rendering.
+It also exercises bounded DSP observation, RAM-read discovery, trace and timeline
+replay. Active CPU writes to live BRR RAM retain the upstream dependence on render
+partitions; comparisons use identical layouts in that case. No snapshot-load API
+or unrestricted hardware-transcription accuracy is inferred.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The eighteen module recipes above have switched to this build source. Other chip recipes and
+The nineteen module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.
