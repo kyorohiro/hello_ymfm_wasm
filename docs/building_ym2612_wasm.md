@@ -23,6 +23,7 @@ download or synchronized edit of another repository is required.
 | AY-3-8910 / YM2149 | `scripts/build_ay8910_wasm.sh` | `ay8910_wasm` |
 | Sega PSG | `scripts/build_segapsg_wasm.sh` | `segapsg_wasm` |
 | RF5C164 | `scripts/build_rf5c164_wasm.sh` | `rf5c164_wasm` |
+| 32X PWM | `scripts/build_pwm32x_wasm.sh` | `pwm32x_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -42,6 +43,7 @@ sh scripts/build_y8950_wasm.sh
 sh scripts/build_ay8910_wasm.sh
 sh scripts/build_segapsg_wasm.sh
 sh scripts/build_rf5c164_wasm.sh
+sh scripts/build_pwm32x_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
@@ -52,7 +54,7 @@ With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
 These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG` and `Rf5c164` APIs.
+the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164` and `PWM32X` APIs.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -79,12 +81,13 @@ sh /path/to/checkout/scripts/build_y8950_wasm.sh ./y8950-output
 sh /path/to/checkout/scripts/build_ay8910_wasm.sh ./ay8910-output
 sh /path/to/checkout/scripts/build_segapsg_wasm.sh ./segapsg-output
 sh /path/to/checkout/scripts/build_rf5c164_wasm.sh ./rf5c164-output
+sh /path/to/checkout/scripts/build_pwm32x_wasm.sh ./pwm32x-output
 ```
 
 Set `EMXX` to select an installed Emscripten C++ compiler. The SDK recipes retain
 O2, the existing exports and memory growth settings. AY uses C++17 and its
 original ten exports without `EXPORT_ALL`; the other recipes above use C++14.
-OPN, YM2413, Sega PSG and RF5C164 recipes retain their explicit `ASSERTIONS=1`; AY, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
+OPN, YM2413, Sega PSG and RF5C164 recipes retain their explicit `ASSERTIONS=1`; AY, PWM, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
 `writeOki6258()` / `processFrames()` APIs are unchanged.
@@ -102,6 +105,11 @@ address reads, owned stereo output and opaque same-instance state. Its core
 holds the latest clock/384 sample at the configured output rate. Reset clears
 voice/control/phase state and retains the 64 KiB RAM; state restoration includes
 RAM and the held stereo sample. `HEAPU8` remains available for sample uploads.
+PWM retains `-ffp-contract=off`, 23 exports and its original lack of
+`EXPORT_ALL`. Its runtime methods are `cwrap`, `HEAPU8`, `HEAPU16` and `HEAPF32`.
+The default async `PWM32X.create()` uses WASM; `new PWM32X()` remains the
+explicit synchronous JS reference. Existing FIFO proxies, owned/borrowed PCM,
+`renderInto()` and same-instance snapshots are preserved.
 
 ## Fixed source and updates
 
@@ -109,8 +117,8 @@ RAM and the held stereo sample. `HEAPU8` remains available for sample uploads.
 `e4b7d7ecef60e3927ac04815cd9f985f62c82f04`, archive SHA-256, release-manifest
 SHA-256 and the complete 379-file snapshot. This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these fourteen wrappers, ymfm inputs and the MAME-derived
-OKIM6258, AY and RF5C164 adaptations retain BSD-3-Clause.
+and `vendor/` notices; these fifteen wrappers, ymfm inputs and the MAME-derived
+OKIM6258, AY, RF5C164 and PWM adaptations retain BSD-3-Clause.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
 their location under `vendor/ymfm/` does not make them ymfm-originated code.
 
@@ -190,6 +198,10 @@ node scripts/check_rf5c164_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-rf5c164-build \
   --sdk-dir /path/to/sdk-rf5c164-build \
   --out /tmp/rf5c164-comparison.json
+node scripts/check_pwm32x_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-pwm32x-build \
+  --sdk-dir /path/to/sdk-pwm32x-build \
+  --out /tmp/pwm32x-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -244,10 +256,18 @@ markers, step/envelope/pan/control writes, sample RAM bounds and bank-OR window
 access. It compares actual bus address reads and native state including RAM,
 same-instance opaque continuation, reset and existing VGM memory commands and
 seek. The public API has owned PCM only; no borrowed/Into or IRQ API is added.
+The PWM checker covers FIFO overflow/flags, all sixteen routing values, timer
+cadence/fractional phase, DAC/duty output, reset and state continuation, public
+FIFO proxies, borrowed output and `renderInto()`. The raw state is a wasm32
+struct copy: comparisons decode semantic fields and exclude ABI padding and
+inactive FIFO slots; no portable state format or full raw-byte equivalence is
+claimed. Snapshots exclude clock/rate/gain/output-mode/mute. Actual MAME-model
+Genesis mixing and VGM PWM writes/streams/seek are tested; the standard
+GenesisAudioEngine's legacy `SimplePwm` default is unchanged.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The fourteen module recipes above have switched to this build source. Other chip recipes and
+The fifteen module recipes above have switched to this build source. Other chip recipes and
 the optional Nuked build continue using their existing inputs. Local `src/`
 and `wasm/` copies remain available for those recipes and comparison builds.

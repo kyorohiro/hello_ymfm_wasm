@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
-             'segapsg', 'rf5c164')
+             'segapsg', 'rf5c164', 'pwm32x')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -105,6 +105,15 @@ RF5C164_EXPORTS = [
     '_rf5c164_load', '_rf5c164_bank', '_rf5c164_save_state',
     '_rf5c164_load_state', '_malloc', '_free',
 ]
+PWM32X_EXPORTS = [
+    '_pwm32x_create', '_pwm32x_destroy', '_pwm32x_reset', '_pwm32x_write',
+    '_pwm32x_read', '_pwm32x_generate', '_pwm32x_set_clock', '_pwm32x_set_gain',
+    '_pwm32x_set_output_mode', '_pwm32x_set_muted', '_pwm32x_tick',
+    '_pwm32x_configure_timer', '_pwm32x_active', '_pwm32x_get', '_pwm32x_set',
+    '_pwm32x_fifo_count', '_pwm32x_fifo_get', '_pwm32x_fifo_set',
+    '_pwm32x_state_size', '_pwm32x_save_state', '_pwm32x_load_state',
+    '_malloc', '_free',
+]
 YMFM_SOURCES = [
     'vendor/ymfm/ymfm_' + chip + '.cpp'
     for chip in ('adpcm', 'misc', 'opl', 'opm', 'opn', 'opq', 'opz', 'pcm', 'ssg')
@@ -126,6 +135,8 @@ class SdkBuildRouteMixin:
     vendor_sources = YMFM_SOURCES
     core_header = 'vendor/ymfm/ymfm_opn.h'
     include_directories = ['vendor/ymfm']
+    quoted_header_directories = ()
+    floating_point_flags = []
     support_sources = ['wasm/ymfm_wasm_interface.h', 'vendor/ymfm/ymfm_fm.ipp',
                        'vendor/ymfm/chip_state.h']
     extra_manifest_headers = ('vendor/ymfm/chip_state.h',)
@@ -224,7 +235,8 @@ else:
         manifest = json.loads((self.sdk / 'RELEASE-MANIFEST.json').read_text())
         for header in (self.core_header, *self.extra_manifest_headers):
             self.assertTrue(any((self.sdk / directory / Path(header).name).is_file()
-                                for directory in self.include_directories), header)
+                                for directory in (*self.include_directories,
+                                                  *self.quoted_header_directories)), header)
             # Full snapshot integrity also covers dependencies omitted by a
             # recipe's historical catalog-based build-info input list.
             self.assertEqual(manifest['files'][header]['sha256'],
@@ -235,6 +247,8 @@ else:
             self.assertIn(flag, arguments)
         self.assertEqual([value for value in arguments if value.startswith('-std=')],
                          ['-std=' + self.language_standard])
+        self.assertEqual([value for value in arguments if value.startswith('-ffp-contract=')],
+                         self.floating_point_flags)
         self.assertEqual([value for value in arguments if value.startswith('-sEXPORT_ALL=')],
                          ['-sEXPORT_ALL=1'] if self.export_all else [])
         self.assertEqual([value for value in arguments if value.startswith('-sASSERTIONS=')],
@@ -532,6 +546,27 @@ class Rf5c164SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
             ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg'])
+
+
+class Pwm32xSdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'pwm32x'
+    exports = PWM32X_EXPORTS
+    runtime_methods = ['cwrap', 'HEAPU8', 'HEAPU16', 'HEAPF32']
+    export_all = False
+    assertions = False
+    floating_point_flags = ['-ffp-contract=off']
+    vendor_sources = []
+    core_header = 'wasm/pwm32x_core.h'
+    include_directories = []
+    quoted_header_directories = ('wasm',)
+    support_sources = []
+    extra_manifest_headers = ()
+
+    def test_shared_output_preserves_all_fourteen_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164'])
 
 
 if __name__ == '__main__':

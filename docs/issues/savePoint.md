@@ -55,6 +55,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くRF5C164 WASMも同じ固定SDKへ切り替えた。Mega CDと追加PCMのビルド元を統一した。
 8 voice、64 KiB RAM・bank OR、bus読出しと状態復元を比較し、生成JS／WASMは旧版とbyte一致した。
 詳細は[RF5C164 WASMのSDK移行](wasm_sdk_rf5c164_adoption_01.md)を参照。
+続く32X PWM WASMも同じ固定SDKへ切り替えた。FIFO／timer・DAC／duty・状態復元とborrowed PCMを比較した。
+配布用PWM sourceも固定SDKのstandalone recipeへ揃え、source単体で再buildした生成物の一致を確認した。
+詳細は[32X PWM WASMのSDK移行](wasm_sdk_pwm32x_adoption_01.md)を参照。
 その後、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1190,8 +1193,29 @@ Python71件・既存RF／Mega CD試験53件、両Browserの主PCM／追加RFの4
 詳細と最終結果・hashは[RF移行記録](wasm_sdk_rf5c164_adoption_01.md)とそのJSONを参照する。
 個別catalogのchip_state.h列挙漏れは固定SDKに残し、全manifest検証と改変拒否試験で保護する。
 
-固定SDKへ切り替えたWASMは計14 artifact。次は32X PWM用WASMへの展開が候補。
-残り13 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
+この節はRF5C164移行時の記録。続く32X PWM移行は次の節に記載する。
+SDK原本とTauriリポジトリも変更していない。
+npm／アプリの公開とremote CI実行は未実施。
+
+### 完了した作業 — 32X PWM WASMの固定SDK参照
+
+`scripts/build_pwm32x_wasm.sh`も同梱SDK `0.1.1`のWASMレシピを使う。
+固定379ファイルとpin、公開API／Mixer値を保持し、先行14音源の記録・28生成物も維持した。
+C++14／O2・ffp-contract=off・23 C exportとU8/U16/F32を維持する。
+配布済み・旧手順再ビルド・SDK・docs・webのJS／WASMはすべてbyte一致した。
+
+旧再ビルド／配布済み版との各864比較・2,607,960主比較フレームで差0。
+16 routing・FIFO／timer／DAC／duty、own状態復元336回・raw相互復元216回・reset／再演奏312回を確認した。
+raw Stateは72byte構造体でpadding／未使用slotを含むため、有効fieldとPCMを比較する。portable stateとは扱わない。
+clock／rate／gain／mode／muteはsnapshot外。標準GenesisAudioEngineのSimplePwm defaultは維持する。
+Python75件・既存PWM／Genesis試験は最終51件、両Browserの実Worklet4経路とpackage runtimeが成功した。
+WAV比較の手組み参照に校正Mixerが抜けていた既存試験だけを修正し、音源とMixer値は変更していない。
+配布sourceはmain shimへの依存を除き、pin検証済みSDKのstandalone recipeと7入力を同梱する。
+source単体の実buildとJS／WASM一致、改変拒否、最終npm／Analyzer ZIPの収録も確認済み。
+詳細と最終結果・hashは[PWM移行記録](wasm_sdk_pwm32x_adoption_01.md)とそのJSONを参照する。
+
+固定SDKへ切り替えたWASMは計15 artifact。次はPC EngineのHuC6280用WASMへの展開が候補。
+残り12 artifactは今回一括移行していない。SDK原本とTauriリポジトリも変更していない。
 npm／アプリの公開とremote CI実行は未実施。
 
 ### その他の作業候補と未着手範囲

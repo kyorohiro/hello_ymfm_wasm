@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readSource,renderSource} from '../cli/index.js';
 import {getNodePlaybackFactory} from '../cli/render.js';
 import {GenesisAudioEngine} from '../docs/js/genesisaudioengine.js';
-import {createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
+import {createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
+import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
 import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 const fixture=name=>new URL(`./fixtures/pwm-${name}.vgz`,import.meta.url);
@@ -20,10 +21,13 @@ test('32X PWM direct/stream/stereo and Genesis combinations match Browser engine
       pwmModel:'mame',pwmClock:h.pwmClock,
     });
     try{
+      // Match the calibrated source mixer installed by CLI/Analyzer creation.
+      const mixer=installPlaybackMixer(e,selectPlaybackConfiguration(new Ym2612VGM(source)));
       const p=createPlaybackPlayer(e,source);
       if(name==='stereo'){p.play();const l=new Float32Array(100),r=new Float32Array(100);p.process(l,r,100);
-        assert(l[0]-r[0]>0&&l[0]-r[0]<1,'first FIFO value waits for the PWM timer');
-        for(let i=1;i<100;i++)assert(Math.abs(l[i]-r[i]-1)<1e-6);}
+        const expectedDifference=mixer.get('pwm').gain;
+        assert(l[0]-r[0]>0&&l[0]-r[0]<expectedDifference,'first FIFO value waits for the PWM timer');
+        for(let i=1;i<100;i++)assert(Math.abs(l[i]-r[i]-expectedDifference)<1e-6);}
       for(let run=0;run<2;run++){p.reset();p.play();assert.deepEqual(result.bytes,(await renderVgmToWav(p,{maxSeconds:.05})).bytes);}
       if(name==='all')for(const mute of [()=>e.setPwmMuted(true),()=>e.setPcmMuted(true),()=>e.setPsgMuted(true)]){
         p.reset();mute();p.play();assert.notDeepEqual(result.bytes,(await renderVgmToWav(p,{maxSeconds:.05})).bytes);

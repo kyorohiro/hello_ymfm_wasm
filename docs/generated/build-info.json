@@ -130,6 +130,65 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "pwm32x",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "ceda285a5e29f09417616f930b2d85ee2dd59ea85e6292aa81a0a5ba9d17717d",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_pwm32x_wasm.sh",
+          "sha256": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e",
+          "size": 1064
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/mame-32x-pwm/upstream/mega32x.cpp",
+          "sha256": "17490105d503cb3229090639debd80a31acc400221085ddddb32145b16ead91a",
+          "size": 55449
+        },
+        {
+          "path": "vendor/mame-32x-pwm/upstream/mega32x.h",
+          "sha256": "fcb83da0eda963035d444eca408e1bc870a0eb723277db7c38219d6aa2348c0a",
+          "size": 8280
+        },
+        {
+          "path": "wasm/pwm32x_core.h",
+          "sha256": "5ad3e58e1d0133d676ffcc2e332840fb57f19d97cc52b6302b1914b084b8927c",
+          "size": 5581
+        },
+        {
+          "path": "wasm/pwm32x_wasm.cpp",
+          "sha256": "9ed05d4cab51ad0565d0a9f1da96e97e204007660482e567938f1c0f003d24bb",
+          "size": 4159
+        }
+      ],
+      "outputs": [
+        {
+          "path": "pwm32x_wasm.js",
+          "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643",
+          "size": 12398
+        },
+        {
+          "path": "pwm32x_wasm.wasm",
+          "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c",
+          "size": 10636
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "rf5c164",
       "format": "emscripten-es-module",
       "sourceFingerprint": "e42d5e922402facea35563f03bb1c7fd9b60ec789bb7d079d38cc631ca55a96c",
