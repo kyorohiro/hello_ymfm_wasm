@@ -27,7 +27,7 @@ PlaygroundのSpeaker補正やMixer校正をSDK coreへ移していない。
 - 既存YM2612も配布版と展開ソースからの再ビルドで、同期read・発音・save/loadのPCM継続・resetのsmokeが成功。
 - 最終ZIPの監査・hash・対応ソース埋め込み・Node実行が成功。Nativeをビルドしたソースとの差は、その結果を追記した`docs/verification.md`だけ。
 
-今回はmacOS上のローカル検証。SDK 0.1.4の新しい7ジョブをremoteで実行した結果ではなく、実機精度・聴感・callback期限の測定でもない。
+上記は公開準備時のmacOS上のローカル検証。後述のタグCIでも7構成が成功した。実機精度・聴感・callback期限の測定ではない。
 WASMの他26 artifactは今回再ビルドしていない。
 
 ## 配布準備物
@@ -40,11 +40,26 @@ WASMの他26 artifactは今回再ビルドしていない。
   SHA256 `35887ba7847882ee4f974a5165391183f30cba97cfaefeb1000939c657798631`。
 
 詳細は[JSON記録](wonderswan_sdk_014_01.json)。SDK内の`docs/verification.md`にも英文で記録した。
-SDKのcommit／push／tag・GitHub Release／npm公開は行っていない。本体とTauriの固定SDKは0.1.2のまま維持する。
+準備後、ユーザーのcommit／push／tagを経てGitHub Releaseが自動公開された（下記）。npm公開は行っていない。本体とTauriの固定SDKは0.1.2のまま維持する。
+
+## タグCIと正式公開の確認
+
+ユーザーがSDK `6f8b872b6f35f5df619b2468d58da57037c96e07`（`SDK 0.1.4 WonderSwan`）へcommit／pushし、`v0.1.4`タグを付けた。
+remoteタグとローカルタグが同commitを指すことを確認した。
+
+[Verify SDK run 40384846634](https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40384846634)は
+`completed / success`。NativeのLinux x86_64／ARM64・Windows x86_64・macOS ARM64／Intelと、YM2612／WonderSwan WASMの全7構成が成功した。
+後続の`Publish GitHub Release`も成功し、[v0.1.4](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.4)が2026-10-26 19:17:45 UTCに公開された。
+
+正式添付のソースZIP（1,051,025 bytes）と`SHA256SUMS`を取得し、チェックサムを照合した。
+SHA256は上記ローカル検証済みZIPと一致する`f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e`。
+公開ZIPを独立展開したarchive監査（395ファイル・23 IDs／28 recipes）とJS参照10項目も成功。
+取得先は`/private/tmp/ws-sdk-014-published/`。公開添付はソースZIPとチェックサムで、WASM ZIPはローカル検証物。
+アプリへの固定取り込みとTauri Native backend接続はまだ行っていない。
 
 ## 次の作業
 
-1. SDK側をcommit／pushし、`v0.1.4`タグで既存Actionsの自動公開を行う。新Native 5構成・WASM 2構成の結果を確認する。
+1. SDKの`v0.1.4`タグCIと自動公開の確認は完了。
 2. 正式source ZIPを本体とTauriへ固定取り込みする。本体のSDK検証を28 artifact／55出力へ拡張し、全receiptを新SDKから生成し直す。WonderSwanの一時的な独立receiptもSDK由来へ移行して比較する。
 3. 固定SDKのWonderSwanを利用して、Tauri Native backendの主音源・追加音源・Speaker補正・Keyboard／Inspector・停止／所有管理を接続する。
 

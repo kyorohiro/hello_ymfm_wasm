@@ -13,9 +13,11 @@ WonderSwanをSDK原本へ集約し、`w/tetorica-soundchip-native`の0.1.4を準
 原本6ファイル・WASM wrapperは本体とbyte一致。Native raw C++公開API `tetorica::wonderswan`、fixture・WAV例・28番目のWASM recipeを追加。
 23 IDs／28 recipes／20 libraries、Python67件・ソースZIPからのNative25 CTest／19 WAVが成功。
 WonderSwanの配布／独立再build WASM各52,228frames、既存YM2612の配布／独立再build smoke、最終archive監査も成功。
-SDK Native5＋WASM2のCIを用意したが、新SDKのremote CI／公開はまだ。SDK側の変更は未commit／未push。
+ユーザーがSDK `6f8b872b6f35f5df619b2468d58da57037c96e07`へcommit／pushし、`v0.1.4`タグもpush済み。
+タグCI run `40384846634`はNative5＋WASM2の全7構成と自動公開が`completed / success`。
+正式[GitHub Release v0.1.4](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.4)のソースZIPと`SHA256SUMS`を取得し、hash一致・独立archive監査・JS10項目を確認した。
 最終ソースZIPは395ファイル、SHA256 `f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e`。
-本体／Tauriの固定SDK0.1.2・Mixerは維持。次はSDK側commit/push→`v0.1.4`タグ公開→正式ZIP固定取り込み→Tauri Native接続。
+本体／Tauriの固定SDK0.1.2・Mixerは維持。次は公開済み正式ZIPの固定取り込み→Tauri Native接続。
 28 artifact採用時は本体の全receipt再生成とWASM検証拡張も必要。詳細は[wonderswan_sdk_014_01.md](wonderswan_sdk_014_01.md)とJSON。
 
 WonderSwan commit `92b1ba87...`のWASM SDK CI #10が、独立WonderSwanの2出力を余剰と判定して前段3件で失敗した。
@@ -35,7 +37,7 @@ rawコアは維持し、スピーカー出力側にDC補正を置く。Mixerは�
 ZIPは`release/hello_ymfm_wasm_wonderswan-dev_itch_playground.zip`、SHA256 `1bb95a493cbb645a05e9670199cceaaeff1f7d380d9a608e30771cd579000905`。
 詳細と最終成果物は[playground_wonderswan_mode_01.md](playground_wonderswan_mode_01.md)とJSONを参照。
 固定SDK 0.1.2と既存27 artifactは維持。次はSDK原本への集約・新版の固定取り込み・Tauri Native backend接続。
-Playground側は本体`92b1ba87...`・Tauri`6e9c2b8...`へユーザーcommit済み。SDK0.1.4の準備作業は未commit／未公開。
+Playground側は本体`92b1ba87...`・Tauri`6e9c2b8...`へユーザーcommit済み。SDK0.1.4も上記のタグCI経由で公開済み。
 
 ### 直前の作業記録
 

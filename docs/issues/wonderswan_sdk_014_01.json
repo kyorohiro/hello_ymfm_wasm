@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "recordedDate": "2026-10-27",
   "passed": true,
-  "scope": "Prepare SDK 0.1.4 sources and standalone Native/WASM builds; no application fixed-pin/backend migration or publication.",
+  "scope": "Prepare SDK 0.1.4 sources and standalone Native/WASM builds, then verify the user's tag CI and automatic GitHub Release; no application fixed-pin/backend migration or npm publication.",
   "origin": {
     "applicationCommit": "23f1328260d38a67aad74894fe914b54a6578c81",
     "sdkBaseCommit": "303f0450ed3c2fc286fecb29f6d51768d3efd0f6",
@@ -440,12 +440,49 @@
         "wonderswan"
       ]
     },
-    "newSdkRemoteJobsRun": false
+    "newSdkRemoteJobsRun": true,
+    "tagRun": {
+      "id": 40384846634,
+      "commit": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+      "tag": "v0.1.4",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40384846634",
+      "successfulValidationJobs": [
+        "Native / linux-x86_64",
+        "Native / linux-arm64",
+        "Native / windows-x86_64",
+        "Native / macos-arm64",
+        "Native / macos-x86_64",
+        "WASM / ym2612",
+        "WASM / wonderswan"
+      ],
+      "publishJobConclusion": "success"
+    }
   },
-  "published": false,
-  "committedOrPushed": false,
+  "published": true,
+  "committedOrPushed": true,
+  "release": {
+    "id": 424661280,
+    "url": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.4",
+    "publishedAt": "2026-10-26T19:17:45Z",
+    "draft": false,
+    "prerelease": false,
+    "sourceZip": {
+      "path": "/private/tmp/ws-sdk-014-published/tetorica-soundchip-native-0.1.4-sources.zip",
+      "assetId": 679190017,
+      "sha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+      "bytes": 1051025,
+      "files": 395,
+      "matchesLocalVerifiedArchive": true,
+      "checksumFileVerified": true,
+      "standaloneArchiveAuditPassed": true,
+      "javascriptReferenceChecksPassed": 10
+    },
+    "wasmZipPublished": false
+  },
   "limitations": [
-    "Local macOS validation; SDK 0.1.4 Windows/Linux/other Mac CI not run.",
+    "SDK 0.1.4 Native five-platform and two-artifact WASM CI passed; application fixed-pin migration is still pending.",
     "Raw preliminary headphone synthesis only; no hardware/listening/deadline benchmark.",
     "No Tauri Native Audio integration, DMA, Hyper Voice, CPU/BIOS/ROM or save state."
   ],
