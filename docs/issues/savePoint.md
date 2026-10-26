@@ -16,7 +16,13 @@ WonderSwanも固定SDKの通常recipe／中央`build-info.json`へ統合し、�
 Importer19件・build route113件・receipt／CLI95件、npm配布物のinstall／実行／型、最終flat ZIPのChromium／WebKitが成功。
 TauriはPython22／Node31件・Rust726成功＋4ignored、既存22mode・追加混合／16台制限／Stop予算0が成功。
 frontend918ファイルとNative22固定記録・対応ソースZIP1,851ファイルも照合済み。Mixer・音声bytes・Native対応範囲は維持。
-本体／Tauriの今回の変更は未commit。新しいconsumer CIはまだ実行していない。次はcommit／push後のCI確認→WonderSwanのTauri Native Audio接続。
+ユーザーが本体`a72c44cf5569ad8f9a628ee380987fe3d5a735ef`／Tauri`d3885716a152994b7c483ab4675a5a9e3e6aa37f`へcommit／push済み。
+本体の全28 WASM CI run `40391153310`は成功。取得した成果物も両28／55 receipt・170入力・全40,360比較を照合した。
+Tauriのmain手動dispatch run `40391737139`も全5構成success。Windows／Linux x86_64・ARM64／macOS Intel・ARM64で検証とinstaller生成が成功した。
+全5構成の検証artifact（計15 JSON）を取得し、SDK0.1.4／395ファイル・22固定記録・frontend・22mode／追加混合／16台制限／Stop予算0を照合した。
+対応sourceZIPは全構成1,851ファイル、Windowsのhashは他4構成と異なるが各job内の照合は成功。installerの起動／実聴は行っていない。
+WonderSwan Native接続の読み取り調査を[実装計画](native_wonderswan_01.md)へ記録した。音声接続コードはまだ変更していない。
+次は[WonderSwanのTauri Native Audio接続](native_wonderswan_01.md)。CI結果と計画の追記のみ未commitで、今回音声接続コードは変更していない。
 詳細とhashは[sdk_014_adoption_01.md](sdk_014_adoption_01.md)とJSONを参照。SDK原本と公開タグは変更していない。
 
 ### 直前のSDK公開とPlayground接続

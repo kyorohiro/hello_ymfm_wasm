@@ -108,8 +108,32 @@ reports, browser results and Tauri logs.
 
 ## Next checkpoint
 
-Application/Tauri changes are uncommitted; no consumer CI run was dispatched
-against these local changes. Commit/push both consumers and verify their CI
-before continuing with WonderSwan's Tauri Native Audio integration.
+The user committed/pushed the application at
+`a72c44cf5569ad8f9a628ee380987fe3d5a735ef` and Tauri at
+`d3885716a152994b7c483ab4675a5a9e3e6aa37f`.
+The [main WASM CI](https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40391153310)
+completed successfully. Its downloaded artifact independently passed the current
+fixed SDK pin, both 28-artifact/55-output receipts, 170 input hashes and all
+40,360 reported comparisons and per-core report hashes.
+
+The [Tauri five-platform CI](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40391737139)
+was dispatched against `main` and completed with **success on all five
+platforms**, including installer generation. No new tag or release was published.
+Downloaded validation artifacts for Linux x86_64/ARM64, Windows x86_64 and
+macOS Intel/ARM64 contain 15 JSON reports. Each verifies the same SDK 0.1.4
+and 395 files, 22 source pins, expected frontend archive, 22-mode lifecycle
+with 604,032 frames and 88 Run/Stop transitions, three extra-chip mixtures,
+seven solo sources, sixteen slots and zero reserved budget after Stop.
+
+Every corresponding-source bundle contains 1,851 files. Windows reports SHA-256
+`632119f520902e381ec3af0dd0ef0f6640f6164d5de2eff3260cf0a9c9200039`;
+the other four report the local `3933ab31...` hash above. Each job's bundle
+verification passed. The JSON results were audited; the installer/source ZIP
+binaries themselves were not downloaded or executed, and the cause of that
+cross-platform hash difference was not independently investigated.
+
+These CI results target the committed consumer heads above. Subsequent local
+changes only record the results and the read-only design for
+[WonderSwan's Native Audio integration](native_wonderswan_01.md).
 The SDK tag's previously successful seven-platform/artifact checks are
 separate evidence; they do not replace the consumer CI.

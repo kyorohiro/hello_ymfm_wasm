@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "date": "2026-10-27",
-  "status": "complete-local-validation-consumer-ci-pending",
+  "status": "complete-local-and-ci-passed",
   "initialHeads": {
     "main": "731cd6ea7903948098f015fd81bba39ace53bed1",
     "sdk": "6f8b872b6f35f5df619b2468d58da57037c96e07",
@@ -910,16 +910,221 @@
     "sourcePinCount": 22,
     "nativeWonderSwanAudioEnabled": false
   },
-  "consumerChangesCommitted": false,
-  "consumerCiDispatched": false,
+  "consumerChangesCommitted": true,
+  "consumerCiDispatched": true,
   "limitations": [
-    "Local macOS adoption validation; consumer Windows/Linux/Intel Mac CI and installer execution pending.",
+    "Consumer all28 WASM and Tauri five-platform CI passed and validation artifacts audited; installer execution and physical listening not performed.",
     "Automated PCM/API and muted browser capture; no physical listening, hardware-accuracy or callback deadline benchmark.",
     "Frame counters retain their different scopes and are not summed.",
     "WonderSwan Tauri Native Audio adapter remains a separate next task."
   ],
   "next": [
-    "Commit/push consumer changes and confirm main28-artifact and Tauri5-platform CI.",
-    "Connect WonderSwan primary/additional Native Audio adapters using the fixedSDKcore."
-  ]
+    "Connect WonderSwan primary/additional Native Audio adapters using the fixed SDK core; see docs/issues/native_wonderswan_01.md."
+  ],
+  "committedHeads": {
+    "main": "a72c44cf5569ad8f9a628ee380987fe3d5a735ef",
+    "tauri": "d3885716a152994b7c483ab4675a5a9e3e6aa37f"
+  },
+  "ci": {
+    "main": {
+      "id": 40391153310,
+      "headSha": "a72c44cf5569ad8f9a628ee380987fe3d5a735ef",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40391153310",
+      "artifactAudit": {
+        "passed": true,
+        "pin": {
+          "schemaVersion": 1,
+          "name": "tetorica-soundchip-native",
+          "version": "0.1.4",
+          "sourceCommit": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+          "archiveName": "tetorica-soundchip-native-0.1.4-sources.zip",
+          "archiveSha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+          "manifestSha256": "61354b939961eea8c2c058ca08c682fb1fdc48cf58373a45da2b468455227924",
+          "fileCount": 395
+        },
+        "artifactId": 12684641531,
+        "artifacts": 28,
+        "outputs": 55,
+        "sourceInputs": 170,
+        "exactComparisons": 40360,
+        "referenceAndRebuiltReceiptsVerified": true,
+        "reportHashesAndAllCasesVerified": true
+      }
+    },
+    "tauri": {
+      "id": 40391737139,
+      "headSha": "d3885716a152994b7c483ab4675a5a9e3e6aa37f",
+      "event": "workflow_dispatch",
+      "ref": "main",
+      "status": "completed",
+      "url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40391737139",
+      "conclusion": "success",
+      "artifactAudit": {
+        "passed": true,
+        "runId": 40391737139,
+        "headSha": "d3885716a152994b7c483ab4675a5a9e3e6aa37f",
+        "conclusion": "success",
+        "platforms": [
+          {
+            "platform": "linux-x86_64",
+            "artifactId": 12686400367,
+            "artifactZipSha256": "00ebf7a0d3b5a6d6ef314c0f3d6e68ce1a467e9203b6475b9560ea25a2ffd423",
+            "jobConclusion": "success",
+            "sourcePins": 22,
+            "sdk": "SDK 0.1.4: 395 pinned files verified offline (archive SHA256 f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e)",
+            "sourceBundle": {
+              "status": "passed",
+              "archive": "native-source-bundle/application-sources.zip",
+              "sha256": "3933ab31e95fac188bc2acb67776b10d658a067ffa2f3f5258cf563a0e0b973a",
+              "files": 1851,
+              "applicationVersion": "0.91.1",
+              "frontendArchiveSha256": "fd73d44799dfe7819dba99967331bb3a0d0fab4d545fae8e6ee20fc6b1a0cc54"
+            },
+            "nativePrimary": {
+              "modes": 22,
+              "frames": 604032,
+              "runStopTransitions": 88,
+              "passed": true
+            },
+            "nativeExtra": {
+              "mixtures": 3,
+              "soloSources": 7,
+              "slots": 16,
+              "rejectedSeventeenth": true,
+              "reservedBytesAfterStop": 0,
+              "passed": true
+            },
+            "deviceOpened": false
+          },
+          {
+            "platform": "windows-x86_64",
+            "artifactId": 12685910947,
+            "artifactZipSha256": "bde3849713e20b6dcffeebccf5aff58aa516a7f5164d145434fd7a167b72c5b9",
+            "jobConclusion": "success",
+            "sourcePins": 22,
+            "sdk": "SDK 0.1.4: 395 pinned files verified offline (archive SHA256 f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e)",
+            "sourceBundle": {
+              "status": "passed",
+              "archive": "native-source-bundle\\application-sources.zip",
+              "sha256": "632119f520902e381ec3af0dd0ef0f6640f6164d5de2eff3260cf0a9c9200039",
+              "files": 1851,
+              "applicationVersion": "0.91.1",
+              "frontendArchiveSha256": "fd73d44799dfe7819dba99967331bb3a0d0fab4d545fae8e6ee20fc6b1a0cc54"
+            },
+            "nativePrimary": {
+              "modes": 22,
+              "frames": 604032,
+              "runStopTransitions": 88,
+              "passed": true
+            },
+            "nativeExtra": {
+              "mixtures": 3,
+              "soloSources": 7,
+              "slots": 16,
+              "rejectedSeventeenth": true,
+              "reservedBytesAfterStop": 0,
+              "passed": true
+            },
+            "deviceOpened": false
+          },
+          {
+            "platform": "linux-arm64",
+            "artifactId": 12685555976,
+            "artifactZipSha256": "afa9b1dc5791cdf76f8bed85e45ed7fe7dfaa6172bdddb548c6c0f2c21193ec0",
+            "jobConclusion": "success",
+            "sourcePins": 22,
+            "sdk": "SDK 0.1.4: 395 pinned files verified offline (archive SHA256 f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e)",
+            "sourceBundle": {
+              "status": "passed",
+              "archive": "native-source-bundle/application-sources.zip",
+              "sha256": "3933ab31e95fac188bc2acb67776b10d658a067ffa2f3f5258cf563a0e0b973a",
+              "files": 1851,
+              "applicationVersion": "0.91.1",
+              "frontendArchiveSha256": "fd73d44799dfe7819dba99967331bb3a0d0fab4d545fae8e6ee20fc6b1a0cc54"
+            },
+            "nativePrimary": {
+              "modes": 22,
+              "frames": 604032,
+              "runStopTransitions": 88,
+              "passed": true
+            },
+            "nativeExtra": {
+              "mixtures": 3,
+              "soloSources": 7,
+              "slots": 16,
+              "rejectedSeventeenth": true,
+              "reservedBytesAfterStop": 0,
+              "passed": true
+            },
+            "deviceOpened": false
+          },
+          {
+            "platform": "macos-arm64",
+            "artifactId": 12685535841,
+            "artifactZipSha256": "c5a4b0658638f70c3f1a6a4e77c54bd5cbc5b5913d66b7f9562edc9708edae37",
+            "jobConclusion": "success",
+            "sourcePins": 22,
+            "sdk": "SDK 0.1.4: 395 pinned files verified offline (archive SHA256 f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e)",
+            "sourceBundle": {
+              "status": "passed",
+              "archive": "native-source-bundle/application-sources.zip",
+              "sha256": "3933ab31e95fac188bc2acb67776b10d658a067ffa2f3f5258cf563a0e0b973a",
+              "files": 1851,
+              "applicationVersion": "0.91.1",
+              "frontendArchiveSha256": "fd73d44799dfe7819dba99967331bb3a0d0fab4d545fae8e6ee20fc6b1a0cc54"
+            },
+            "nativePrimary": {
+              "modes": 22,
+              "frames": 604032,
+              "runStopTransitions": 88,
+              "passed": true
+            },
+            "nativeExtra": {
+              "mixtures": 3,
+              "soloSources": 7,
+              "slots": 16,
+              "rejectedSeventeenth": true,
+              "reservedBytesAfterStop": 0,
+              "passed": true
+            },
+            "deviceOpened": false
+          },
+          {
+            "platform": "macos-x86_64",
+            "artifactId": 12684683450,
+            "artifactZipSha256": "81418ff36522a62771aaa23be8e91d8a1a27eccb7b529e03c1b9001dcedd219f",
+            "jobConclusion": "success",
+            "sourcePins": 22,
+            "sdk": "SDK 0.1.4: 395 pinned files verified offline (archive SHA256 f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e)",
+            "sourceBundle": {
+              "status": "passed",
+              "archive": "native-source-bundle/application-sources.zip",
+              "sha256": "3933ab31e95fac188bc2acb67776b10d658a067ffa2f3f5258cf563a0e0b973a",
+              "files": 1851,
+              "applicationVersion": "0.91.1",
+              "frontendArchiveSha256": "fd73d44799dfe7819dba99967331bb3a0d0fab4d545fae8e6ee20fc6b1a0cc54"
+            },
+            "nativePrimary": {
+              "modes": 22,
+              "frames": 604032,
+              "runStopTransitions": 88,
+              "passed": true
+            },
+            "nativeExtra": {
+              "mixtures": 3,
+              "soloSources": 7,
+              "slots": 16,
+              "rejectedSeventeenth": true,
+              "reservedBytesAfterStop": 0,
+              "passed": true
+            },
+            "deviceOpened": false
+          }
+        ],
+        "scope": "Downloaded validation JSON and fields audited; installer/source ZIP binaries themselves were not downloaded or executed."
+      }
+    }
+  }
 }
