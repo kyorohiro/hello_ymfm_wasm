@@ -414,7 +414,10 @@ node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
+
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/ for authors and licenses.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 NES/FDS shared WASM port: Apache-2.0 and MIT. See licenses/tetorica-nes/ and sources/NES-FDS.md for source and rebuilding.

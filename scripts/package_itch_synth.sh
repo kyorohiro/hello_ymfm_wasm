@@ -257,7 +257,10 @@ cp "${ROOT_DIR}/third_party/mame-rf5c164/LICENSE" "${ROOT_DIR}/third_party/mame-
 
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 
+node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
+
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.
 NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.

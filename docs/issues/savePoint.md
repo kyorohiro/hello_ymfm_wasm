@@ -9,6 +9,15 @@ Last updated: 2026-10-26
 
 ### 現在地
 
+Sega PSGの原本分離を実施した。本体は`third_party/tetorica_sega_psg/`、SDK原本は
+`vendor/tetorica_sega_psg/`へ移し、BSD-3-Clause・kyorohiroの著作権表示とSMS Powerの資料参照を追加した。
+確認した履歴・公式MAMEソースの範囲では、MAME特有のコード／コメントのコピーは見つからなかった。
+ユーザー選択により**固定SDK 0.1.1は今回更新しない**。本体・Tauriの各379ファイル、pin、生成物は維持している。
+新配置を取り込むには次回SDK release／importが必要。SDKのversionはまだ0.1.1の作業ツリーで、公開はしていない。
+新SDK原本の実WASM build・7,074比較は差0、Native fixture・109固定SDK試験・npm配布物検証・3種itch ZIPも成功。
+旧本体パスは互換includeで残し、Tauriの将来用collectorと配布用source／notice収録先を修正した。
+詳細と再開用記録は[segapsg_provenance_layout_01.md](segapsg_provenance_layout_01.md)を参照。
+
 現在は代替Nuked YM2612のSDK移行・ローカル検証・5構成CIまで完了した。SDK `0.1.1`の単体ターゲットを追加し、
 TauriのGenesis Nuked／32X Nukedと独立追加Nukedのビルド入力を固定SDKへ切り替えた。最終同梱数は379ファイル。
 今回着手時の本体`f22249959...`、Tauri`baec0b9a...`、SDK`affd1059...`はすべてclean。

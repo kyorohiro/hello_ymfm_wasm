@@ -150,9 +150,16 @@ Aaron Gilesによる[ymfm](https://github.com/aaronsgiles/ymfm)を使用して�
 
 次のファイル・ディレクトリーはymfmに由来します。
 
-- `src/`（`src/segapsg.h`、`src/segapsg.cpp`を除く）
+- `src/ymfm*`（互換includeの`src/segapsg.*`と`src/chip_state.h`はTetorica独自の追加）
 - `examples/`
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
+
+### Tetorica Sega PSG
+
+独自のSega PSGコアは[third_party/tetorica_sega_psg](third_party/tetorica_sega_psg/README.md)に分離し、
+kyorohiro名義のBSD-3-Clauseライセンスを明記しています。upstream ymfmのファイルではありません。
+[SMS Power!のSN76489資料](https://www.smspower.org/Development/SN76489)をハードウェア仕様の参考元として記載しています。
+組み込み方法、由来の確認結果、固定SDKの既存配置を維持する方針は、同ディレクトリーのREADMEを参照してください。
 
 ### LilyPondエクスポート
 

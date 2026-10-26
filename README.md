@@ -255,9 +255,17 @@ This repository includes the license text in `LICENSE`, and the packaged release
 
 The following files and directories in this repository are ymfm-originated works:
 
-- `src/` except `src/segapsg.h` and `src/segapsg.cpp`
+- `src/ymfm*` (the `src/segapsg.*` compatibility includes and `src/chip_state.h` are Tetorica additions)
 - `examples/`
 - [GeneralInfo.md](https://github.com/aaronsgiles/ymfm/blob/main/GeneralInfo.md)
+
+### Tetorica Sega PSG
+
+The original Sega PSG core is in [third_party/tetorica_sega_psg](third_party/tetorica_sega_psg/README.md),
+under its own BSD-3-Clause notice, copyright kyorohiro. It is separate from
+upstream ymfm and credits [SMS Power!'s SN76489 documentation](https://www.smspower.org/Development/SN76489)
+as a hardware reference. Its README describes embedding, provenance and the
+unchanged pinned SDK layout.
 
 ### LilyPond export
 

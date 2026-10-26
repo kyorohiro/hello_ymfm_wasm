@@ -575,7 +575,10 @@ done
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${DOCS_JS_DIR}/msfa_dx7/package.json")
+node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
+
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
+Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
 SNES S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
 Nuked OPN2: LGPL-2.1-or-later. See licenses/nuked-opn2/ and sources/Nuked-OPN2.md for corresponding source and rebuilding.
 JavaScript import parser: es-module-lexer 3.0.3, MIT. See vendor/es-module-lexer-LICENSE.

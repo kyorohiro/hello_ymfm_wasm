@@ -1,0 +1,1122 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-26",
+  "scope": "Separate authoritative Sega PSG sources and notices; retain both fixed SDK 0.1.1 snapshots and deployed outputs. No release, commit, push or listening test.",
+  "initialHeads": {
+    ".": "bc85574b27e2a9d84ae4a7d90ac4280fa05b8627",
+    "w/tetorica-soundchip-native": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+    "w/tetorica-fm2612-playground-tauri": "7056a96100b30c1ddd6418b2f4dda5adcd995c00"
+  },
+  "originalFiles": {
+    "src/segapsg.cpp": {
+      "bytes": 7696,
+      "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612"
+    },
+    "src/segapsg.h": {
+      "bytes": 2033,
+      "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7"
+    },
+    "src/chip_state.h": {
+      "bytes": 521,
+      "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+    }
+  },
+  "sourceBodiesUnchangedExceptFourLinePrefix": true,
+  "mainAndSdkCoreCopiesIdentical": true,
+  "provenanceAudit": {
+    "schemaVersion": 1,
+    "auditDate": "2026-10-26",
+    "projectCommit": "bc85574b27e2a9d84ae4a7d90ac4280fa05b8627",
+    "sdkCommit": "e4b7d7ecef60e3927ac04815cd9f985f62c82f04",
+    "scope": "Read-only source provenance audit; snapshots captured from HEAD, project history, local SDK and pinned official MAME source. No repository files changed.",
+    "references": [
+      {
+        "commit": "6ec57cdad916c9879251f64dc20412304bb14e24",
+        "role": "current official master observed 2026-10-26",
+        "files": [
+          {
+            "url": "https://raw.githubusercontent.com/mamedev/mame/6ec57cdad916c9879251f64dc20412304bb14e24/src/devices/sound/sn76496.cpp",
+            "path": "/private/tmp/tetorica-segapsg-provenance/mame-sn76496.cpp",
+            "bytes": 17585,
+            "sha256": "eb4db2fa887fecc07aa1c8f890446966cbd5ca74040d02b21f9dabb3dcaee6d5"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/mamedev/mame/6ec57cdad916c9879251f64dc20412304bb14e24/src/devices/sound/sn76496.h",
+            "path": "/private/tmp/tetorica-segapsg-provenance/mame-sn76496.h",
+            "bytes": 5714,
+            "sha256": "4d00be703e2fc6f7bd5b2c54ab546b621412e1799e1c9830ec218ea234af4043"
+          }
+        ]
+      },
+      {
+        "commit": "783ee569f268dc60af4b05add5f444dfe69a98fc",
+        "role": "official master just before local first creation (2026-08-14T16:17:47Z)",
+        "files": [
+          {
+            "url": "https://raw.githubusercontent.com/mamedev/mame/783ee569f268dc60af4b05add5f444dfe69a98fc/src/devices/sound/sn76496.cpp",
+            "path": "/private/tmp/tetorica-segapsg-provenance/mame-at-creation-sn76496.cpp",
+            "bytes": 17585,
+            "sha256": "eb4db2fa887fecc07aa1c8f890446966cbd5ca74040d02b21f9dabb3dcaee6d5"
+          },
+          {
+            "url": "https://raw.githubusercontent.com/mamedev/mame/783ee569f268dc60af4b05add5f444dfe69a98fc/src/devices/sound/sn76496.h",
+            "path": "/private/tmp/tetorica-segapsg-provenance/mame-at-creation-sn76496.h",
+            "bytes": 5714,
+            "sha256": "4d00be703e2fc6f7bd5b2c54ab546b621412e1799e1c9830ec218ea234af4043"
+          }
+        ]
+      }
+    ],
+    "snapshots": [
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/project-current-segapsg.cpp",
+        "bytes": 7696,
+        "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612"
+      },
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/project-created-segapsg.cpp",
+        "bytes": 5295,
+        "sha256": "1eafad09b1a03ee58fc25a943d2d4b0d38d76ac0fd12fc9b60228218d715da90"
+      },
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/sdk-segapsg.cpp",
+        "bytes": 7696,
+        "sha256": "0b88b85801461c18a744cacb1349624886b42383d90c957ae30849dcb1d42612"
+      },
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/project-current-segapsg.h",
+        "bytes": 2033,
+        "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7"
+      },
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/project-created-segapsg.h",
+        "bytes": 1181,
+        "sha256": "69d274d968dbeff472028a169fa684240ec735e202b1aa803c46530f4deffac4"
+      },
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/sdk-segapsg.h",
+        "bytes": 2033,
+        "sha256": "f91b444add9dc9a2769d440dd95bd76056a53ebb0b69f1a09ab16944b806dbf7"
+      },
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/project-current-chip_state.h",
+        "bytes": 521,
+        "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+      },
+      {
+        "path": "/private/tmp/tetorica-segapsg-provenance/sdk-chip_state.h",
+        "bytes": 521,
+        "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+      }
+    ],
+    "history": [
+      {
+        "commit": "54e2aa8da61ec098a22215e5c193268a7b28eca7",
+        "path": "/private/tmp/tetorica-segapsg-provenance/history-54e2aa8d.patch",
+        "bytes": 7274,
+        "sha256": "81214ed70d9ebe0c2fa2c17cfc33e70f4b73be53af08ae493fb1f59457154a80"
+      },
+      {
+        "commit": "cbc42183e2f7514a475ee40777b680bd8c273a87",
+        "path": "/private/tmp/tetorica-segapsg-provenance/history-cbc42183.patch",
+        "bytes": 8586,
+        "sha256": "cb9376aa324a7e05551f2b17f7e6c89db18673d2990404f65b03c02c1157b181"
+      },
+      {
+        "commit": "25a2fe3a1f407d6444e090f906577f6b1a8ee9c9",
+        "path": "/private/tmp/tetorica-segapsg-provenance/history-25a2fe3a.patch",
+        "bytes": 1829,
+        "sha256": "40860b7564859f01c6c0173dbdeee8c5cf5eac59ee5f4949bd50bb3b0a5846f5"
+      },
+      {
+        "commit": "6a32398b76a4880a3c41981e72c95b18d496080d",
+        "path": "/private/tmp/tetorica-segapsg-provenance/history-6a32398b.patch",
+        "bytes": 1778,
+        "sha256": "3e9c3e8fc0df8615a8ac2063564243bba2722325131ff4aba933cc11f920f906"
+      },
+      {
+        "commit": "14db588e864fd20f2a4fb287a15869ee8115dfd7",
+        "path": "/private/tmp/tetorica-segapsg-provenance/history-14db588e.patch",
+        "bytes": 2934,
+        "sha256": "30f0241e034bd087d7adef44aa45bc0eac2ccfba7af47f4fe152d02c53cafe11"
+      }
+    ],
+    "comparisons": [
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 11,
+        "projectLine": 115,
+        "referenceLine": 355,
+        "longestTokens": ") | ( ( data & 0x3f ) << 4 )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 42,
+        "referenceLine": 40,
+        "longestTokens": "( ) ; } void",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 11,
+        "projectLine": 115,
+        "referenceLine": 355,
+        "longestTokens": ") | ( ( data & 0x3f ) << 4 )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 42,
+        "referenceLine": 40,
+        "longestTokens": "( ) ; } void",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 4,
+        "projectLine": 42,
+        "referenceLine": 439,
+        "longestTokens": "[ 3 ] ;",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 16,
+        "referenceLine": 41,
+        "longestTokens": ") ; void write (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 4,
+        "projectLine": 42,
+        "referenceLine": 439,
+        "longestTokens": "[ 3 ] ;",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 16,
+        "referenceLine": 41,
+        "longestTokens": ") ; void write (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 11,
+        "projectLine": 129,
+        "referenceLine": 355,
+        "longestTokens": ") | ( ( data & 0x3f ) << 4 )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 43,
+        "referenceLine": 40,
+        "longestTokens": "( ) ; } void",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 11,
+        "projectLine": 129,
+        "referenceLine": 355,
+        "longestTokens": ") | ( ( data & 0x3f ) << 4 )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 43,
+        "referenceLine": 40,
+        "longestTokens": "( ) ; } void",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 4,
+        "projectLine": 37,
+        "referenceLine": 255,
+        "longestTokens": "m_stereo_mask = 0xff ;",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 17,
+        "referenceLine": 41,
+        "longestTokens": ") ; void write (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 4,
+        "projectLine": 37,
+        "referenceLine": 255,
+        "longestTokens": "m_stereo_mask = 0xff ;",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 5,
+        "projectLine": 17,
+        "referenceLine": 41,
+        "longestTokens": ") ; void write (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 5,
+        "projectLine": 9,
+        "referenceLine": 339,
+        "longestTokens": ") ; } else {",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 3,
+        "projectLine": 2,
+        "referenceLine": 6,
+        "longestTokens": "# pragma once",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-sn76496.cpp",
+        "mode": "exact",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 5,
+        "projectLine": 9,
+        "referenceLine": 339,
+        "longestTokens": ") ; } else {",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-sn76496.h",
+        "mode": "exact",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 3,
+        "projectLine": 2,
+        "referenceLine": 6,
+        "longestTokens": "# pragma once",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 13,
+        "projectLine": 63,
+        "referenceLine": 313,
+        "longestTokens": "; } void IDENT :: IDENT ( IDENT IDENT ) { if (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 7,
+        "projectLine": 42,
+        "referenceLine": 40,
+        "longestTokens": "IDENT ( ) ; } void IDENT",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 13,
+        "projectLine": 63,
+        "referenceLine": 313,
+        "longestTokens": "; } void IDENT :: IDENT ( IDENT IDENT ) { if (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.cpp",
+        "reference": "mame-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 929,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 7,
+        "projectLine": 42,
+        "referenceLine": 40,
+        "longestTokens": "IDENT ( ) ; } void IDENT",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 6,
+        "projectLine": 18,
+        "referenceLine": 164,
+        "longestTokens": "* IDENT , IDENT IDENT )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 13,
+        "projectLine": 36,
+        "referenceLine": 67,
+        "longestTokens": "; IDENT IDENT ; IDENT IDENT ; IDENT IDENT ; IDENT IDENT [",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 6,
+        "projectLine": 18,
+        "referenceLine": 164,
+        "longestTokens": "* IDENT , IDENT IDENT )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-created-segapsg.h",
+        "reference": "mame-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 184,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 13,
+        "projectLine": 36,
+        "referenceLine": 67,
+        "longestTokens": "; IDENT IDENT ; IDENT IDENT ; IDENT IDENT ; IDENT IDENT [",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 13,
+        "projectLine": 67,
+        "referenceLine": 313,
+        "longestTokens": "; } void IDENT :: IDENT ( IDENT IDENT ) { if (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 7,
+        "projectLine": 43,
+        "referenceLine": 40,
+        "longestTokens": "IDENT ( ) ; } void IDENT",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 13,
+        "projectLine": 67,
+        "referenceLine": 313,
+        "longestTokens": "; } void IDENT :: IDENT ( IDENT IDENT ) { if (",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.cpp",
+        "reference": "mame-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 1062,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 7,
+        "projectLine": 43,
+        "referenceLine": 40,
+        "longestTokens": "IDENT ( ) ; } void IDENT",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 7,
+        "projectLine": 19,
+        "referenceLine": 306,
+        "longestTokens": "IDENT ( IDENT IDENT ) { IDENT",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 13,
+        "projectLine": 18,
+        "referenceLine": 41,
+        "longestTokens": "void IDENT ( IDENT IDENT ) ; void IDENT ( IDENT IDENT )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 7,
+        "projectLine": 19,
+        "referenceLine": 306,
+        "longestTokens": "IDENT ( IDENT IDENT ) { IDENT",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-segapsg.h",
+        "reference": "mame-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 371,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 13,
+        "projectLine": 18,
+        "referenceLine": 41,
+        "longestTokens": "void IDENT ( IDENT IDENT ) ; void IDENT ( IDENT IDENT )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-at-creation-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 7,
+        "projectLine": 7,
+        "referenceLine": 397,
+        "longestTokens": "IDENT ; IDENT IDENT = NUM0 ;",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-at-creation-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 7,
+        "projectLine": 8,
+        "referenceLine": 52,
+        "longestTokens": "void IDENT ( IDENT & IDENT )",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-sn76496.cpp",
+        "mode": "anonymized",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 2207,
+        "longestContiguousTokens": 7,
+        "projectLine": 7,
+        "referenceLine": 397,
+        "longestTokens": "IDENT ; IDENT IDENT = NUM0 ;",
+        "matchingRunsAtLeast20": []
+      },
+      {
+        "project": "project-current-chip_state.h",
+        "reference": "mame-sn76496.h",
+        "mode": "anonymized",
+        "projectTokenCount": 128,
+        "referenceTokenCount": 614,
+        "longestContiguousTokens": 7,
+        "projectLine": 8,
+        "referenceLine": 52,
+        "longestTokens": "void IDENT ( IDENT & IDENT )",
+        "matchingRunsAtLeast20": []
+      }
+    ],
+    "identicalLocalAndSDK": {
+      "segapsg.cpp": true,
+      "segapsg.h": true,
+      "chip_state.h": true
+    },
+    "notes": [
+      "Token matching strips comments; exact mode preserves identifiers and literals; anonymized mode replaces non-keyword identifiers and normalizes integer spelling. This is a reproducible similarity aid, not a legal classifier or proof that no historical source was ever consulted.",
+      "Exact source/comment/control-flow review found no nontrivial copied MAME-specific block; register masks, divider values, tap positions and 2 dB volume ratios describe hardware or mathematics.",
+      "ChipStateIO was introduced locally in 25a2fe3a with vector/field encoding, unlike MAME save_item(NAME(...)); no evidence of MAME ancestry found for the state helper.",
+      "User explicitly authorized BSD separation for project-authored code. Git local first creation is corroboration of local integration history, not independently conclusive authorship proof.",
+      "SMS Power documentation supports the implemented hardware model, but git creation has no per-file design source citation. User recollection is the basis for historical reference credit; documentation was separately verified for technical consistency."
+    ]
+  },
+  "wasm": {
+    "buildReceipt": {
+      "schemaVersion": 1,
+      "artifacts": [
+        {
+          "id": "segapsg",
+          "format": "emscripten-es-module",
+          "sourceFingerprint": "3c6c86414f69005afdcc85ef72e927b5abf8d5ff8b3f6136449a4d5713d295d8",
+          "sourceFiles": [
+            {
+              "path": "scripts/build-wasm.sh",
+              "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+              "size": 1653
+            },
+            {
+              "path": "scripts/build_segapsg_wasm.sh",
+              "sha256": "9fb197e92a6993bb43c24aa75f16209f5e5a6144a6821cfb58340b742db2dc3f",
+              "size": 891
+            },
+            {
+              "path": "scripts/record_wasm_build.mjs",
+              "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+              "size": 1891
+            },
+            {
+              "path": "vendor/tetorica_sega_psg/segapsg.cpp",
+              "sha256": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e",
+              "size": 7819
+            },
+            {
+              "path": "vendor/tetorica_sega_psg/segapsg.h",
+              "sha256": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e",
+              "size": 2156
+            },
+            {
+              "path": "vendor/ymfm/chip_state.h",
+              "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+              "size": 521
+            },
+            {
+              "path": "wasm/segapsg_wasm.cpp",
+              "sha256": "4ce18ea3f2167d6c0b81abc809948bd21f7a540fbe6aa50ef6f5db1961c97e8e",
+              "size": 1392
+            }
+          ],
+          "outputs": [
+            {
+              "path": "segapsg_wasm.js",
+              "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7",
+              "size": 33978
+            },
+            {
+              "path": "segapsg_wasm.wasm",
+              "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+              "size": 27286
+            }
+          ],
+          "compiler": {
+            "command": "em++",
+            "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+          },
+          "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+        }
+      ]
+    },
+    "comparison": {
+      "passed": true,
+      "clocks": [
+        100000,
+        3579545,
+        4000000
+      ],
+      "outputRates": [
+        44100,
+        48000,
+        96000
+      ],
+      "ownStateLoads": 414,
+      "crossStateLoads": 324,
+      "resetReplayExecutions": 432,
+      "maximumDifference": 0,
+      "totalOutputStereoFrames": 32864256,
+      "totalWrapperSelfCheckOutputStereoFrames": 392930,
+      "totalPlayerGeneratedEngineOutputStereoFrames": 758694
+    },
+    "cases": 7074,
+    "completeReport": {
+      "path": "/private/tmp/tetorica-segapsg-layout/wasm-comparison.json",
+      "sha256": "67c638c6537ee970afafc73d957c5127e32c28c6beee565264af3de2c4cb450f"
+    },
+    "byteIdenticalToDeployed": true
+  },
+  "native": {
+    "configureAndBuild": "cmake -S w/tetorica-soundchip-native/native -B /private/tmp/tetorica-segapsg-layout/native -DCMAKE_BUILD_TYPE=Release -DTETORICA_NATIVE_BUILD_EXAMPLES=OFF; cmake --build /private/tmp/tetorica-segapsg-layout/native --target tetorica_segapsg_fixture -j 4",
+    "test": "ctest --test-dir /private/tmp/tetorica-segapsg-layout/native -R ^tetorica.segapsg.self_test$ --output-on-failure",
+    "passed": true,
+    "tests": 1,
+    "canonicalAndCompatibilityCompile": true
+  },
+  "sdkCollection": {
+    "passed": true,
+    "chips": 22,
+    "wasmRecipes": 27,
+    "snapshotRecords": 278
+  },
+  "fixedSdkRegression": {
+    "command": "python3 -m unittest discover -s test -p 'test_ym2612_sdk_build.py'",
+    "passed": true,
+    "tests": 109
+  },
+  "fmPackage": {
+    "command": "node scripts/check_fm2612_package.mjs",
+    "passed": true,
+    "files": 816,
+    "compressedBytes": 1598866,
+    "unpackedBytes": 5962016,
+    "includes": "Source/notice payload, installed real-core runtime, declarations and existing checks. Refreshed README copies after successful package checks; executable files unchanged."
+  },
+  "packaging": {
+    "passed": true,
+    "standaloneRebuildByteIdentical": true,
+    "outputs": [
+      {
+        "stage": "release/itch_playground_segapsg-source-check",
+        "sourceFiles": 11,
+        "pairUnchanged": true,
+        "archive": "release/hello_ymfm_wasm_segapsg-source-check_itch_playground.zip",
+        "sha256": "bfcd0caacd66f59c22db19134bb766f560978bb2735101ea2de7b0c6c7065d31"
+      },
+      {
+        "stage": "release/itch_synth_segapsg-source-check",
+        "sourceFiles": 11,
+        "pairUnchanged": true,
+        "archive": "release/hello_ymfm_wasm_segapsg-source-check_itch_synth.zip",
+        "sha256": "aa97f48b09f7e72a2db8b541f22b54526d8a0cbe8bd2f010a6c9d7b067cd0135"
+      },
+      {
+        "stage": "release/itch_vgm_analyzer_segapsg-source-check",
+        "sourceFiles": 11,
+        "pairUnchanged": true,
+        "archive": "release/hello_ymfm_wasm_segapsg-source-check_itch_vgm_analyzer.zip",
+        "sha256": "d2dac5e5826d7e04017dcd91a5739df78f640d8fe5ae7460d871299c84b13cff"
+      },
+      {
+        "stage": "dist/fm2612",
+        "sourceFiles": 11,
+        "pairUnchanged": true
+      }
+    ]
+  },
+  "tauriCollectors": {
+    "pass": true,
+    "fixturePath": "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04",
+    "invocations": 13,
+    "checks": [
+      "Canonical PSG core copied instead of compatibility forwarders",
+      "Flat provider retains include-compatible file basenames",
+      "Separate ymfm LICENSE and PSG LICENSE.segapsg retained with canonical source keys",
+      "Future Genesis, Game Gear and Master System sync + source-aware check pass",
+      "All three checks reject changed PSG license",
+      "Missing canonical source fails before Genesis snapshot mutation"
+    ],
+    "results": [
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py",
+          "--source",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Genesis snapshot synchronized (17 files)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py",
+          "--check",
+          "--source",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Genesis snapshot verified (17 files)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_game_gear.py",
+          "--source",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Game Gear synchronized (7 files, 4 shared sources)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_game_gear.py",
+          "--check",
+          "--source",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Game Gear snapshot verified (7 files, 4 shared sources)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_master_system.py",
+          "--source",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Master System synchronized (12 files, 10 shared sources)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_master_system.py",
+          "--check",
+          "--source",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Master System snapshot verified (12 files, 10 shared sources)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py",
+          "--check"
+        ],
+        "expectedSuccess": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Native chip snapshot changed: /private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/src-tauri/native-genesis/LICENSE.segapsg"
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_game_gear.py",
+          "--check"
+        ],
+        "expectedSuccess": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Game Gear shared PSG provider differs: third_party/tetorica_sega_psg/LICENSE"
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_master_system.py",
+          "--check"
+        ],
+        "expectedSuccess": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Master System shared Native provider differs: third_party/tetorica_sega_psg/LICENSE"
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py",
+          "--check"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Genesis snapshot verified (17 files)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_game_gear.py",
+          "--check"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Game Gear snapshot verified (7 files, 4 shared sources)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_master_system.py",
+          "--check"
+        ],
+        "expectedSuccess": true,
+        "exitCode": 0,
+        "stdout": "Native Master System snapshot verified (12 files, 10 shared sources)",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python3",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py",
+          "--source",
+          "/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream"
+        ],
+        "expectedSuccess": false,
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py\", line 59, in <module>\n    main()\n    ~~~~^^\n  File \"/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py\", line 50, in main\n    hashes = {name: digest(source / name) for name in FILES}\n                    ~~~~~~^^^^^^^^^^^^^^^\n  File \"/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/consumer/scripts/sync_native_genesis.py\", line 27, in digest\n    return hashlib.sha256(path.read_bytes()).hexdigest()\n                          ~~~~~~~~~~~~~~~^^\n  File \"/opt/anaconda3/lib/python3.13/pathlib/_abc.py\", line 625, in read_bytes\n    with self.open(mode='rb') as f:\n         ~~~~~~~~~^^^^^^^^^^^\n  File \"/opt/anaconda3/lib/python3.13/pathlib/_local.py\", line 537, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/private/tmp/tetorica-segapsg-provenance/tauri-sync-qw0wdt04/upstream/third_party/tetorica_sega_psg/segapsg.cpp'"
+      }
+    ],
+    "futureCounts": {
+      "genesisFiles": 17,
+      "gameGearShared": 4,
+      "masterSystemShared": 10
+    }
+  },
+  "fixedSdkSnapshots": [
+    {
+      "path": "third_party/tetorica-soundchip-native",
+      "files": 379,
+      "sortedPathHashesSha256": "924128283d37018e7b32896308dcb83ad634132cb7d0bd9da22a7cd7d407db5f",
+      "unchanged": true
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/src-tauri/vendor/tetorica-soundchip-native",
+      "files": 379,
+      "sortedPathHashesSha256": "924128283d37018e7b32896308dcb83ad634132cb7d0bd9da22a7cd7d407db5f",
+      "unchanged": true
+    }
+  ],
+  "generatedFiles": {
+    "count": 54,
+    "unchanged": true,
+    "sortedPathHashesSha256": "95b20a486fd213fd0a7a6a5125f38daa8910ee47be23872f948d224865543312"
+  },
+  "savePointHistoricalTail": {
+    "unchanged": true,
+    "sha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7"
+  },
+  "sourceRecords": [
+    {
+      "path": "src/segapsg.cpp",
+      "bytes": 218,
+      "sha256": "f0d0f6281adb7f0583af883525410f887b1e5f57dd34d461434b2d9005a098f4"
+    },
+    {
+      "path": "src/segapsg.h",
+      "bytes": 229,
+      "sha256": "be6a54e354fb83c3260b92c471ba319dbebb4712639409e635c09b2bd9b5de38"
+    },
+    {
+      "path": "src/chip_state.h",
+      "bytes": 521,
+      "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+    },
+    {
+      "path": "wasm/segapsg_wasm.cpp",
+      "bytes": 1392,
+      "sha256": "4ce18ea3f2167d6c0b81abc809948bd21f7a540fbe6aa50ef6f5db1961c97e8e"
+    },
+    {
+      "path": "scripts/copy_segapsg_sources.mjs",
+      "bytes": 5879,
+      "sha256": "4134c4801cf9ae8e9789c426134b9e5aa48d0c6639d40d18118ccc2058bb84a1"
+    },
+    {
+      "path": "scripts/copy_full_web_runtime.mjs",
+      "bytes": 7889,
+      "sha256": "361a7aac42567d117b1d370865827e0933aa56ea92438bc9064db047c6354f94"
+    },
+    {
+      "path": "scripts/build_fm2612_package.mjs",
+      "bytes": 4061,
+      "sha256": "181b405dc1091f334babb0b60aeaa0cd1f8c4eeec46a630c8f5e97f217790064"
+    },
+    {
+      "path": "scripts/check_fm2612_package.mjs",
+      "bytes": 31185,
+      "sha256": "33362fd57eded80ba969758ad42ef0232367d803440d2dfd2e375e87ef8c50d6"
+    },
+    {
+      "path": "scripts/package_itch_playground.sh",
+      "bytes": 19830,
+      "sha256": "26ea0dd23264e05990641dd69183cd0f53eba3592bfb6779fb3b124f7a74e022"
+    },
+    {
+      "path": "scripts/package_itch_synth.sh",
+      "bytes": 11466,
+      "sha256": "583ee7609af59108094bcad15d5fca2a08cad054e88aca8cdff30c010d2f101c"
+    },
+    {
+      "path": "scripts/package_itch_vgm_analyzer.sh",
+      "bytes": 14853,
+      "sha256": "507a966128b508b53bb2334401c328d0946782747b5d9a8f4d045bb76f653098"
+    },
+    {
+      "path": "third_party/tetorica_sega_psg/segapsg.cpp",
+      "bytes": 7819,
+      "sha256": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e"
+    },
+    {
+      "path": "third_party/tetorica_sega_psg/segapsg.h",
+      "bytes": 2156,
+      "sha256": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e"
+    },
+    {
+      "path": "third_party/tetorica_sega_psg/LICENSE",
+      "bytes": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "third_party/tetorica_sega_psg/README.md",
+      "bytes": 2550,
+      "sha256": "9df8e53fd0b70ae29b277ebeb7af3231c71e1f67566083e6b600e31625705a32"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/scripts/sync_native_genesis.py",
+      "bytes": 2522,
+      "sha256": "976064f20a9ef7cdb815e44a45fc5cc37726cea96bda07ff8965617a24cf8787"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/scripts/sync_native_game_gear.py",
+      "bytes": 3775,
+      "sha256": "f95d699746cc41b0141cc24e1c765d32ca5bb51a4bac830895c8909367334c00"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/scripts/sync_native_master_system.py",
+      "bytes": 4043,
+      "sha256": "4cdbdc81d00b90e7154e12d8f4082c2ca2f708d128fad1441efeb7476c30667c"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/native/CMakeLists.txt",
+      "bytes": 33151,
+      "sha256": "79cb36cd7cd4cb250558d7a680d7fd6d464ab9ff9c72eb68fdd700f453044260"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/scripts/build_segapsg_wasm.sh",
+      "bytes": 891,
+      "sha256": "9fb197e92a6993bb43c24aa75f16209f5e5a6144a6821cfb58340b742db2dc3f"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/catalog/source_inventory.json",
+      "bytes": 116451,
+      "sha256": "81da8789b8cf1489146175d50adbbb90704f494a5e725f0a228b2b61e2b0a7af"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/catalog/native_inventory.json",
+      "bytes": 43099,
+      "sha256": "3bd0b8e4b0df63d6c4e964c364e3b94bc81bd71f1e713c91496208446b4c1ac5"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/catalog/chips.json",
+      "bytes": 87485,
+      "sha256": "16e70dbfaa72418a99d8966031e389580793ab02a2217f8a80c5c85716f66023"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/vendor/tetorica_sega_psg/segapsg.cpp",
+      "bytes": 7819,
+      "sha256": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/vendor/tetorica_sega_psg/segapsg.h",
+      "bytes": 2156,
+      "sha256": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/vendor/tetorica_sega_psg/LICENSE",
+      "bytes": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "w/tetorica-soundchip-native/vendor/tetorica_sega_psg/README.md",
+      "bytes": 1912,
+      "sha256": "9536875b83eac226b00d6e183a1040db9903a0a118b093183a7edd02a7c2e38e"
+    }
+  ]
+}

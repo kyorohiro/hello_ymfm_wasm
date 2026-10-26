@@ -16,6 +16,12 @@ try {
   for (const file of ['soundchip_mixer.js', 'soundchip_mixer.d.ts', 'soundchip_mixer_presets.js', 'soundchip_mixer_presets.d.ts']) {
     assert.ok(packedPaths.has(file), `Optional Mixer calibration payload missing ${file}`);
   }
+  for (const file of ['licenses/tetorica_sega_psg/LICENSE', 'licenses/tetorica_sega_psg/README.md',
+    'sources/third_party/tetorica_sega_psg/segapsg.cpp', 'sources/third_party/tetorica_sega_psg/segapsg.h',
+    'sources/third_party/tetorica_sega_psg/LICENSE', 'sources/third_party/tetorica_sega_psg/README.md',
+    'sources/src/chip_state.h', 'sources/wasm/segapsg_wasm.cpp', 'sources/scripts/build_segapsg_wasm.sh', 'sources/SegaPSG.md']) {
+    assert.ok(packedPaths.has(file), `Original Sega PSG source or notice missing ${file}`);
+  }
   for (const file of ['msm5205audioengine.js', 'licenses/libvgm-msm5205/README.md', 'licenses/libvgm-msm5205/LICENSE']) {
     assert.ok(packedPaths.has(file), `MSM5205 reference renderer notice missing ${file}`);
   }
