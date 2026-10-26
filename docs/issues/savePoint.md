@@ -93,6 +93,9 @@ JS／WASMは配布済み版・旧手順再ビルド・SDK版・通常出力が�
 続くNuked OPN2 WASMも固定SDKへ切り替えた。旧版／SDK／対応ソース単独buildの生成JS／WASMがbyte一致し、各462比較で差0。
 配布ソースをSDK由来のstandalone recipeへ揃え、coreのLGPLとwrapper／recipeのBSD表記を保持した。
 詳細は[Nuked OPN2 WASMのSDK移行](wasm_sdk_nuked_opn2_adoption_01.md)を参照。
+最後のDX7／MSFA WASMも固定SDKへ切り替えた。全27 artifact（26 JS／WASM pair＋DX7 standalone）の参照元が揃った。
+旧配布・旧再build・SDK・中央／Web／docs出力がbyte一致し、各360比較で差0。既存JS／型・Mixer値は維持した。
+詳細は[DX7／MSFA WASMのSDK移行](wasm_sdk_dx7_adoption_01.md)を参照。WASM移行の残りはない。
 既存の音量調整では、Game BoyのMixer初期値をユーザー指定の`0.36`へ調整した。
 Playground Systemの主音源／追加音源とAnalyzer、npm向けcalibrated presetへ適用し、元の測定値は保持した。
 内容と検証は[gameboy_mixer_balance_01.md](gameboy_mixer_balance_01.md)を参照。
@@ -1475,7 +1478,29 @@ Chromium／WebKitで実6CH／Mixer・各Playground12captureとPCkey、実Analyze
 最終FM npm805ファイル・26WASM・942参照と型／実install、Analyzer378／Synth190ファイルのpair・対応source・license68項目を検証した。
 詳細は[Nuked OPN2移行](wasm_sdk_nuked_opn2_adoption_01.md)と[検証JSON](wasm_sdk_nuked_opn2_adoption_01.json)。証拠は`/private/tmp/tetorica-nuked-opn2-wasm-sdk/`。
 
-固定SDKへ切り替えたWASMは計26／27 artifact。残りは`dx7`。次はDX7。
+この節はNuked OPN2移行時の記録。続くDX7移行は次の節に記載する。
+
+### 完了した作業 — DX7／MSFA WASMの固定SDK参照
+
+`scripts/build_dx7_wasm.sh`を追加し、SDK `0.1.1`の`dx7`ターゲットを使う。revisionは先行26件と同じ`e4b7d7ec...`、379ファイル。
+着手時の本体は`2871c96dd54bf21fd982203dd805a2e5dcc5056f`でclean。編集前108記録と先行26receipt・全52生成JS／WASMを保持した。
+別DX7 checkoutは`176aea739...`に既存の文書・package metadata変更があった。HEAD／dirty状態を保持し、一時領域の凍結ソースで旧手順を再buildした。
+実compiler入力は14翻訳単位＋18 quoted headerの32件で旧／SDK byte一致。C++17／scalar・wrapv／alias／fp flagsを維持した。
+DX7はgenerated JS loaderなしのstandalone。12 C export、fixed16MiB／stack1MiB、内部44100Hz mono・公開44100／48000出力を維持する。
+既定buildは中央`docs/generated/msfa.wasm`＋27番目のreceiptを作り、既存Web／docsのruntime位置へ同じbinaryをコピーする。custom出力は隔離する。
+`sync_dx7_runtime.mjs --wasm`もJS同期後に同じ固定SDKbuildを呼ぶ。外部checkoutのcompiledWASMコピーを廃止し、通常JS同期はWASMを保持する。今回そのJS同期は実行していない。
+旧配布Web／docs・旧再build・SDK・通常中央／Web／docsの7コピーは32,084bytes／SHA f5de761e...で一致した。
+最終107記録をfreezeし、両比較前後に原本とコピーを再hash。各360比較・752render実行でPCM／257frameprobe／API観測の差0。panic再演奏32回を含む。
+両build合計7,654,140mono出力frame（本文6,160,384＋probe193,264＋wrapper/raw1,300,492）。内部prefetchは数えない。両報告は同じcoverageで重複加算しない。
+32algorithm／6operator、SysEx、16voice・再利用、live level／frequency／feedbackとidentity、panic／release、owned／Into・独立instanceを確認した。native snapshot／register／heap-growth APIはない。
+Python109＋importer16＝125件、Node132件・CLI155実行成功。Chromium／WebKitでpublic両rate4ケース・主mode4・Operators4・実npm追加DX7両rate8ケースとPCkey／pointerを確認した。最初のdestination接続前からzeroGainを使った。
+active66sourceguard・3generatorcheck・runtime数値27ファイル・既存11level記録を維持。追加／主DX7×3周波数×両browserの12half peak-to-peak amplitude captureは、旧raw基準へChromium全一致・WebKit最大相対差約0.006222%。Mixer値は変更していない。
+最終FM npm805ファイル・26pair＋DX7 standalone・942参照、型／installが成功。tar1,592,512bytes／展開5,937,815bytes、version0.2.28は据え置き。
+Playground ZIP886ファイル、DX7payload25＋vendor noteの26項目とApache noticesを照合。古いnotice0.1.0は同梱metadataの0.3.1へ訂正した。元package25ファイルとmirrorは不変。
+Analyzer／YM2612SynthにDX7再生経路はなく、そのZIPの追加buildはしていない。receiptは中央だけ、SDKに完全sourceを保持する。
+詳細は[DX7移行](wasm_sdk_dx7_adoption_01.md)と[検証JSON](wasm_sdk_dx7_adoption_01.json)。証拠は`/private/tmp/tetorica-dx7-wasm-sdk/`。
+
+固定SDKへ切り替えたWASMは全27／27 artifact。WASM移行の残りはない。次は全27件をまとめたビルド／配布確認の手順整理が候補。
 SPCのWebKit初期化中closeは引き続き未解決。SDK原本とTauri、Mixer数値は変更していない。
 commit／push・公開・remote CIは実施していない。
 

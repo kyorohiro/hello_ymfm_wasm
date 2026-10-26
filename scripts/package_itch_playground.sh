@@ -574,6 +574,7 @@ done
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
+DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${DOCS_JS_DIR}/msfa_dx7/package.json")
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 SNES S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
 Nuked OPN2: LGPL-2.1-or-later. See licenses/nuked-opn2/ and sources/Nuked-OPN2.md for corresponding source and rebuilding.
@@ -585,7 +586,7 @@ NES APU: JSNES, Apache-2.0. See licenses/jsnes/.
 FDS: fixNES-derived, MIT. See licenses/fixnes-fds/.
 The default NES/FDS WASM uses the shared C++ port. See licenses/tetorica-nes/ and sources/NES-FDS.md for source and rebuilding.
 
-DX7: tetorica-msfa-dx7-wasm 0.1.0 / Google MSFA, Apache-2.0.
+DX7: tetorica-msfa-dx7-wasm ${DX7_VERSION} / Google MSFA, Apache-2.0.
 See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.
 
 32X PWM: MAME-derived FIFO/timer core, BSD-3-Clause. See licenses/mame-32x-pwm/.

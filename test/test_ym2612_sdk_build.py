@@ -16,7 +16,7 @@ ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288', 'ymf278b',
-             'nuked_opn2')
+             'nuked_opn2', 'dx7')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -37,6 +37,19 @@ NUKED_OPN2_EXPORTS = [
     '_ym2612_sample_rate', '_ym2612_generate',
     '_ym2612_generate_with_internal_envelope', '_malloc', '_free',
 ]
+DX7_EXPORTS = [
+    '_dx7_create', '_dx7_destroy', '_dx7_voice_ptr', '_dx7_set_voice',
+    '_dx7_output_ptr', '_dx7_select_voice', '_dx7_edit_voice',
+    '_dx7_note_on', '_dx7_note_off', '_dx7_all_notes_off', '_dx7_panic',
+    '_dx7_render',
+]
+DX7_CORE_SOURCES = ['vendor/msfa/' + name + '.cc' for name in (
+    'dx7note', 'env', 'exp2', 'fm_core', 'fm_op_kernel', 'freqlut', 'lfo',
+    'patch', 'pitchenv', 'resofilter', 'ringbuffer', 'sin', 'synth_unit')]
+DX7_CORE_HEADERS = ['vendor/msfa/' + name + '.h' for name in (
+    'aligned_buf', 'controllers', 'dx7note', 'env', 'exp2', 'fm_core',
+    'fm_op_kernel', 'freqlut', 'lfo', 'module', 'patch', 'pitchenv',
+    'resofilter', 'ringbuffer', 'sin', 'synth', 'synth_unit')]
 YM2203_EXPORTS = [
     '_ym2203_create', '_ym2203_destroy', '_ym2203_reset', '_ym2203_write',
     '_ym2203_read', '_ym2203_read_status', '_ym2203_get_irq',
@@ -240,7 +253,7 @@ class SdkBuildRouteMixin:
         # an installed Emscripten compiler cannot accidentally satisfy a test.
         tools = self.work / 'host tools'
         tools.mkdir()
-        for name in ('sh', 'python3', 'node', 'dirname', 'mkdir', 'perl'):
+        for name in ('sh', 'python3', 'node', 'dirname', 'mkdir', 'perl', 'cp'):
             command = shutil.which(name)
             self.assertIsNotNone(command, 'Missing host tool: ' + name)
             (tools / name).symlink_to(command)
@@ -936,7 +949,171 @@ class NukedOpn2SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
         self.assertEqual(info['artifacts'][0]['compiler']['command'], self.environment['EMCC'])
 
     def test_shared_output_preserves_all_twenty_five_existing_build_records(self):
-        self.assert_shared_output_preserves(list(ARTIFACTS[:-1]))
+        self.assert_shared_output_preserves(list(ARTIFACTS[:ARTIFACTS.index(self.artifact)]))
+
+
+class Dx7SdkBuildTests(SdkBuildRouteMixin, unittest.TestCase):
+    """The existing DX7 JS host consumes a standalone module, not ES glue."""
+
+    artifact = 'dx7'
+    wrapper_source = 'wasm/dx7/dx7.cc'
+    vendor_sources = DX7_CORE_SOURCES
+    core_header = 'vendor/msfa/synth_unit.h'
+    extra_tamper_dependencies = (
+        *DX7_CORE_SOURCES, *DX7_CORE_HEADERS, 'wasm/dx7/dx7.h',
+        'vendor/msfa/COPYING', 'vendor/msfa/LICENSE',
+        'vendor/msfa/THIRD_PARTY_NOTICES.md', 'vendor/msfa/UPSTREAM.md',
+    )
+    active_binaries = ('web/msfa_dx7/wasm/msfa.wasm',
+                       'docs/js/msfa_dx7/wasm/msfa.wasm')
+
+    def assert_standalone_receipt(self, output):
+        info = json.loads((output / 'build-info.json').read_text())
+        artifact = next(entry for entry in info['artifacts'] if entry['id'] == 'dx7')
+        self.assertEqual(artifact['format'], 'standalone-wasm')
+        self.assertEqual(artifact['compiler'], {
+            'command': self.environment['EMXX'],
+            'version': 'Fake Emscripten SDK build-route test 1.0',
+        })
+        inventory = json.loads((self.sdk / 'catalog/source_inventory.json').read_text())
+        recipe = next(entry for entry in inventory['artifacts'] if entry['id'] == 'dx7')
+        expected_inputs = sorted(set(recipe['sourceFiles'] + recipe['buildFiles']))
+        self.assertEqual([entry['path'] for entry in artifact['sourceFiles']], expected_inputs)
+        for name in [*self.sources, *DX7_CORE_HEADERS, 'wasm/dx7/dx7.h',
+                     'scripts/build-wasm.sh', 'scripts/build_dx7_wasm.sh',
+                     'scripts/record_wasm_build.mjs']:
+            self.assertIn(name, expected_inputs)
+        for entry in artifact['sourceFiles']:
+            data = (self.sdk / entry['path']).read_bytes()
+            self.assertEqual(entry['sha256'], sha256(data))
+            self.assertEqual(entry['size'], len(data))
+        self.assertEqual(artifact['sourceFingerprint'], sha256(json.dumps(
+            artifact['sourceFiles'], separators=(',', ':')).encode()))
+        self.assertEqual(artifact['outputs'], [{
+            'path': 'msfa.wasm', 'sha256': sha256((output / 'msfa.wasm').read_bytes()),
+            'size': (output / 'msfa.wasm').stat().st_size,
+        }])
+        self.assertEqual((output / 'msfa.wasm').read_bytes(), b'\x00asm\x01\x00\x00\x00')
+        self.assertFalse((output / 'msfa.js').exists())
+        self.assertFalse((output / 'dx7_wasm.js').exists())
+
+    def test_external_caller_relative_output_uses_only_sdk_and_records_real_hashes(self):
+        result = self.build('relative output')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        pin = json.loads((self.checkout / RECEIPT).read_text())
+        self.assertIn(str(pin['fileCount']) + ' pinned files verified offline', result.stdout)
+        output = self.caller / 'relative output'
+        self.assertFalse((self.checkout / 'relative output').exists())
+        self.assertFalse((self.checkout / 'docs').exists())
+        self.assertFalse((self.checkout / 'web').exists())
+        compile_call, version_call = self.calls()
+        self.assertEqual(compile_call['cwd'], str(self.sdk))
+        self.assertEqual(version_call['cwd'], str(self.sdk))
+        self.assertEqual(version_call['args'], ['--version'])
+        self.assertEqual(compile_call['compiler'], 'fake em++')
+        arguments = compile_call['args']
+        self.assertEqual([value for value in arguments
+                          if Path(value).suffix in ('.c', '.cc', '.cpp')], self.sources)
+        self.assertEqual([value for value in arguments if value.startswith('-I')],
+                         ['-Ivendor/msfa', '-Iwasm/dx7'])
+        for flag in ('-std=c++17', '-O2', '-DMSFA_FORCE_SCALAR', '-fwrapv',
+                     '-fno-strict-aliasing', '-ffp-contract=off', '--no-entry',
+                     '-sSTANDALONE_WASM=1', '-sFILESYSTEM=0',
+                     '-sALLOW_MEMORY_GROWTH=0', '-sINITIAL_MEMORY=16777216',
+                     '-sSTACK_SIZE=1048576', '-sSUPPORT_LONGJMP=0',
+                     '-sDISABLE_EXCEPTION_CATCHING=1'):
+            self.assertIn(flag, arguments)
+        for prefix in ('-sMODULARIZE=', '-sEXPORT_ES6=', '-sEXPORTED_RUNTIME_METHODS=',
+                       '-sINCOMING_MODULE_JS_API=', '-sENVIRONMENT=', '-sEXPORT_ALL=',
+                       '-sASSERTIONS='):
+            self.assertFalse(any(value.startswith(prefix) for value in arguments), prefix)
+        self.assertEqual([value for value in arguments if value.startswith('-D')],
+                         ['-DMSFA_FORCE_SCALAR'])
+        self.assertEqual([value for value in arguments if value.startswith('-std=')],
+                         ['-std=c++17'])
+        self.assertEqual([value for value in arguments if value.startswith('-ffp-contract=')],
+                         ['-ffp-contract=off'])
+        actual_exports = next(value.split('=', 1)[1] for value in arguments
+                              if value.startswith('-sEXPORTED_FUNCTIONS='))
+        self.assertEqual(json.loads(actual_exports), DX7_EXPORTS)
+        self.assertEqual(arguments[-2:], ['-o', str(output / 'msfa.wasm')])
+        self.assertTrue(Path(arguments[-1]).is_absolute())
+
+        # Resolve all quoted dependencies using the real standalone include
+        # paths; the complete source closure is present in the pinned bundle.
+        manifest = json.loads((self.sdk / 'RELEASE-MANIFEST.json').read_text())
+        pending, visited = list(self.sources), set()
+        while pending:
+            source = pending.pop()
+            if source in visited:
+                continue
+            visited.add(source)
+            self.assertEqual(manifest['files'][source]['sha256'],
+                             sha256((self.sdk / source).read_bytes()))
+            for include in re.findall(r'^\s*#\s*include\s*"([^"]+)"',
+                                      (self.sdk / source).read_text(), re.M):
+                candidates = [Path(source).parent / include,
+                              Path('vendor/msfa') / include, Path('wasm/dx7') / include]
+                dependency = next((path.as_posix() for path in candidates
+                                   if (self.sdk / path).is_file()), None)
+                self.assertIsNotNone(dependency, source + ': ' + include)
+                pending.append(dependency)
+        self.assertEqual(visited, {*self.sources, *DX7_CORE_HEADERS, 'wasm/dx7/dx7.h'})
+        self.assert_standalone_receipt(output)
+
+    def test_default_output_is_in_fresh_checkout_and_does_not_modify_pinned_sdk(self):
+        for _ in range(2):
+            result = self.build()
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        output = self.checkout / 'docs/generated'
+        self.assert_standalone_receipt(output)
+        self.assertEqual([entry['id'] for entry in json.loads(
+            (output / 'build-info.json').read_text())['artifacts']], ['dx7'])
+        for name in self.active_binaries:
+            self.assertEqual((self.checkout / name).read_bytes(), (output / 'msfa.wasm').read_bytes())
+            self.assertFalse((self.checkout / name).with_name('build-info.json').exists())
+        self.assertFalse((self.caller / 'docs').exists())
+        self.assertEqual(len(self.calls()), 4)
+        result = subprocess.run(['python3', str(self.checkout / IMPORT_SCRIPT), '--check'],
+                                cwd=self.caller, env=self.environment,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(len(self.calls()), 4)
+
+    def test_custom_output_preserves_existing_active_binaries_and_central_receipt(self):
+        self.assertEqual(self.build().returncode, 0)
+        protected = [self.checkout / 'docs/generated/msfa.wasm',
+                     self.checkout / 'docs/generated/build-info.json',
+                     *(self.checkout / name for name in self.active_binaries)]
+        before = {path: path.read_bytes() for path in protected}
+        result = self.build(str(self.caller / 'absolute isolated output'))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_standalone_receipt(self.caller / 'absolute isolated output')
+        for path, data in before.items():
+            self.assertEqual(path.read_bytes(), data)
+
+    def test_shared_output_preserves_all_twenty_six_existing_build_records(self):
+        previous_artifacts = ARTIFACTS[:ARTIFACTS.index(self.artifact)]
+        for artifact in previous_artifacts:
+            result = self.build_artifact(artifact)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        output = self.checkout / 'docs/generated'
+        previous_records = json.loads((output / 'build-info.json').read_text())['artifacts']
+        previous_outputs = {
+            path: path.read_bytes() for path in output.iterdir()
+        }
+        for _ in range(2):
+            result = self.build()
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            info = json.loads((output / 'build-info.json').read_text())
+            self.assertEqual([entry['id'] for entry in info['artifacts']], sorted(ARTIFACTS))
+            for previous in previous_records:
+                self.assertEqual(next(entry for entry in info['artifacts']
+                                      if entry['id'] == previous['id']), previous)
+            for path, data in previous_outputs.items():
+                if path.name != 'build-info.json':
+                    self.assertEqual(path.read_bytes(), data)
+            self.assert_standalone_receipt(output)
 
 
 if __name__ == '__main__':

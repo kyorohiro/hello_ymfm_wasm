@@ -2,14 +2,13 @@
 // or changing the pinned WASM/MSFA engine unless --wasm is explicitly supplied.
 // Normal builds use the checked-in copy.
 import {cp,readFile,writeFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 const root=new URL('../',import.meta.url);
 const source=new URL('w/tetorica-msfa-dx7-wasm/',root);
 for(const location of ['web/msfa_dx7/','docs/js/msfa_dx7/']){
   const target=new URL(location,root);
   await cp(new URL('src/',source),new URL('src/',target),{recursive:true});
-  if (process.argv.includes('--wasm')) {
-    await cp(new URL('wasm/msfa.wasm',source),new URL('wasm/msfa.wasm',target));
-  }
   for (const name of ['package.json', 'README.md', 'README.ja.md', 'LICENSE',
     'THIRD_PARTY_NOTICES.md', 'docs/research.md', 'docs/verification.md',
     'vendor/msfa/COPYING', 'vendor/msfa/UPSTREAM.md']) {
@@ -37,5 +36,8 @@ if(declarations.includes(start)){
 }
 await writeFile(globals,declarations);
 await cp(new URL('web/msfa_dx7/README.vendor.md',root),new URL('docs/js/msfa_dx7/README.vendor.md',root));
+if(process.argv.includes('--wasm')) {
+  execFileSync('sh',[fileURLToPath(new URL('scripts/build_dx7_wasm.sh',root))],{stdio:'inherit'});
+}
 console.log('Synced DX7 JS, metadata and docs to web/docs, and declarations to Monaco; WASM '
-  + (process.argv.includes('--wasm') ? 'refreshed explicitly.' : 'unchanged.'));
+  + (process.argv.includes('--wasm') ? 'rebuilt explicitly from the fixed SDK.' : 'unchanged.'));

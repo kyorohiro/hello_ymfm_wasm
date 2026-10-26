@@ -35,6 +35,7 @@ download or synchronized edit of another repository is required.
 | YMF288 | `scripts/build_ymf288_wasm.sh` | `ymf288_wasm` |
 | YMF278B | `scripts/build_ymf278b_wasm.sh` | `ymf278b_wasm` |
 | YM2612 (Nuked OPN2) | `scripts/build_nuked_opn2_wasm.sh` | `nuked_opn2_wasm` |
+| DX7 / MSFA | `scripts/build_dx7_wasm.sh` | `msfa` (standalone WASM) |
 
 Install Emscripten and Python 3, then run:
 
@@ -66,17 +67,23 @@ sh scripts/build_ymf276_wasm.sh
 sh scripts/build_ymf288_wasm.sh
 sh scripts/build_ymf278b_wasm.sh
 sh scripts/build_nuked_opn2_wasm.sh
+sh scripts/build_dx7_wasm.sh
 ```
 
 Each build verifies the snapshot before invoking the SDK's original chip
-recipe. Each module basename in the table produces a `.js` / `.wasm` pair
-under `docs/generated/`.
+recipe. The 26 ES-module recipes produce a `.js` / `.wasm` pair under
+`docs/generated/`. DX7 produces only the standalone `msfa.wasm`, with no
+generated JS loader. Its default build also copies that same output to
+`web/msfa_dx7/wasm/msfa.wasm` and `docs/js/msfa_dx7/wasm/msfa.wasm`, retaining
+the existing runtime URLs. All 27 build receipts share `docs/generated/build-info.json`.
 The YM2203, YM2610B, YM2151, OKIM6258, SPC and Sega PCM recipes retain their generated-glue whitespace cleanup using Perl.
 With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
 output hashes. Building one chip preserves the other chips' existing records.
-These are build records; consumers still load the same JS/WASM pairs through
-the existing `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `SegaPcm`, `K051649`, `Ym3438`, `Ymf276`, `Ymf288` and `Ymf278b` APIs.
+These are build records; consumers retain the existing
+`Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `SegaPcm`, `K051649`, `Ym3438`, `Ymf276`, `Ymf288` and `Ymf278b` APIs.
+DX7 retains the separate `msfa_dx7/src/index.js` `createDX7()` API and its JS
+Worklet/Playground adapters; this does not add DX7 to the generic chip factory.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -115,13 +122,20 @@ sh /path/to/checkout/scripts/build_ymf276_wasm.sh ./ymf276-output
 sh /path/to/checkout/scripts/build_ymf288_wasm.sh ./ymf288-output
 sh /path/to/checkout/scripts/build_ymf278b_wasm.sh ./ymf278b-output
 sh /path/to/checkout/scripts/build_nuked_opn2_wasm.sh ./nuked-output
+sh /path/to/checkout/scripts/build_dx7_wasm.sh ./dx7-output
 ```
+
+With an explicit DX7 output directory, only `msfa.wasm` and its receipt are
+written there; neither runtime copy is changed. `sync_dx7_runtime.mjs --wasm`
+first performs its explicit JS/metadata sync, then invokes the same fixed-SDK
+build. Ordinary JS sync leaves WASM unchanged and the SDK build itself needs
+no external DX7 checkout.
 
 Set `EMXX` to select an installed Emscripten C++ compiler; Nuked uses `EMCC` for C.
 The SDK recipes retain
 O2, the existing exports and memory growth settings. AY, Game Boy, NES, Sega PCM and K051649 use C++17
 without `EXPORT_ALL`, retaining ten, eleven, eighteen, thirteen and nine exports respectively.
-Nuked uses C11; the other recipes above use C++14.
+DX7 also uses C++17. Nuked uses C11; the other recipes above use C++14.
 YM2612, YM2203, YM2608, YM2610B, YM2413, Sega PSG, RF5C164, SPC and Nuked recipes retain their explicit `ASSERTIONS=1`; AY, Game Boy, NES, Sega PCM, K051649, YM3438, YMF276, YMF288, YMF278B, PWM, HuC6280, OPM/OPP, OKIM6258, Y8950 and the OPL1/2/3 recipes retain
 their existing compiler-default assertion setting.
 The OPN/OPM/OPLL/OPL synchronous `read()` / `generateStereo()` and OKIM6258
@@ -240,6 +254,14 @@ Distribution source bundles use verified SDK inputs with only two source paths
 relocated to `third_party/nuked-opn2`. They rebuild without the SDK dispatcher
 or Python importer. See `sources/Nuked-OPN2.md`, the core's LGPL notice and
 `sources/LICENSE.tetorica` for the original wrapper/build recipe's BSD notice.
+DX7 retains the scalar MSFA path, `-fwrapv`, `-fno-strict-aliasing` and
+`-ffp-contract=off`. Its standalone WASM has 12 DX7 C exports, no filesystem,
+fixed 16 MiB memory with a 1 MiB stack, and no memory growth. Internal synthesis
+remains mono at 44,100 Hz; the unchanged JS API also provides 48,000 Hz output
+using its existing interpolation. SysEx, 16-voice allocation, six operators,
+32 algorithms, live edits, `render()` / `renderInto()`, panic and disposal are
+unchanged. There is no register/status API, native snapshot API or Emscripten
+`cwrap`/heap-view loader for this artifact.
 
 ## Fixed source and updates
 
@@ -256,6 +278,8 @@ corresponding modified source; its license is not applied to other chip cores.
 The optional Nuked OPN2 module separately retains LGPL-2.1-or-later core terms,
 complete modified source and provenance. The original Tetorica wrapper/recipe
 BSD notice is included separately; the 23 BSD module recipes remain distinct.
+DX7 separately retains Apache-2.0 for the MSFA core and Tetorica adapter, with
+the existing package LICENSE, COPYING, THIRD_PARTY_NOTICES and upstream revision.
 The original Tetorica Sega PSG and state helper also retain BSD-3-Clause;
 their location under `vendor/ymfm/` does not make them ymfm-originated code.
 
@@ -383,6 +407,10 @@ node scripts/check_nuked_opn2_wasm_sdk.mjs \
   --legacy-dir /path/to/previous-nuked-build \
   --sdk-dir /path/to/sdk-nuked-build \
   --out /tmp/nuked-comparison.json
+node scripts/check_dx7_wasm_sdk.mjs \
+  --legacy-dir /path/to/previous-dx7-build \
+  --sdk-dir /path/to/sdk-dx7-build \
+  --out /tmp/dx7-comparison.json
 ```
 
 The Python tests verify offline imports and a fresh-copy build route using a
@@ -498,10 +526,14 @@ clock advancement, reset, owned/borrowed PCM and the zero-filled envelope
 interface through the existing `Ym2612` wrapper. It also exercises the actual
 Synth and Genesis/PSG Player replay path without assuming native snapshots or
 ymfm's output scale. Standalone source rebuilds are verified separately.
+The DX7 checker compares real standalone WASM through the unchanged public
+API at both output rates, including synthetic single/bank SysEx, polyphony,
+live edits, panic, owned output and caller buffers. Its frame counts are mono;
+fixed memory is verified without inventing heap-growth or state APIs.
 The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-The twenty-six module recipes above have switched to this build source. DX7
-continues using its existing inputs. Local `src/`, `wasm/` and `third_party/`
-reference copies remain available for comparison builds.
+All 27 module recipes now use the fixed SDK: 26 ES-module pairs and one DX7
+standalone WASM. Local `src/`, `wasm/`, `third_party/` and optional DX7 source
+checkouts remain reference inputs; ordinary SDK builds do not depend on them.

@@ -66,6 +66,200 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
+      "id": "dx7",
+      "format": "standalone-wasm",
+      "sourceFingerprint": "62cceee387d5dd67a6784fd92969fd216133a10dd5da7c1866c3ec0b4d0f9f95",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "75b6c3d0b078fb1f8930d28ed4f73f60c29febbc6da464909493f4e515ad955f",
+          "size": 1653
+        },
+        {
+          "path": "scripts/build_dx7_wasm.sh",
+          "sha256": "163f066357a06596e6b8109641aed62748a65432dd4a4a3e7b6ebed8d9567598",
+          "size": 1026
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "14e47e073469c5eb29ff85b32519df4cf7d91001ff5e874368143233c6e77129",
+          "size": 1891
+        },
+        {
+          "path": "vendor/msfa/aligned_buf.h",
+          "sha256": "802aefb025fb3c93584a0550be0b67a5b1fc77f003df15627104cc0a4caa5dac",
+          "size": 1177
+        },
+        {
+          "path": "vendor/msfa/controllers.h",
+          "sha256": "68bf695b3b3176bf618a919f840093909a89325c57057c73bf8eee5fc8ae61b9",
+          "size": 795
+        },
+        {
+          "path": "vendor/msfa/dx7note.cc",
+          "sha256": "551e1553962021625768b0f14741af59e6e3901ec3675c5128c8945cb174595d",
+          "size": 7917
+        },
+        {
+          "path": "vendor/msfa/dx7note.h",
+          "sha256": "fa4d2a3972597c6b1ca828b7e78d8553baf97567f7877d2396d243f626dd52a3",
+          "size": 2079
+        },
+        {
+          "path": "vendor/msfa/env.cc",
+          "sha256": "ef739bf4aacc5b6a8076ac3bf3142c172dda54022f2209bd627271be113367cd",
+          "size": 4909
+        },
+        {
+          "path": "vendor/msfa/env.h",
+          "sha256": "ac12c10d59d2ce9ae888f6ca063caf564c4c7d3a2971c3bf04be2977ab65c340",
+          "size": 2539
+        },
+        {
+          "path": "vendor/msfa/exp2.cc",
+          "sha256": "fe7dc02d600fcaf198ca32b10edfb28ff695d107b401c3fa92a7ac73d2e9096f",
+          "size": 2004
+        },
+        {
+          "path": "vendor/msfa/exp2.h",
+          "sha256": "23aa480e221e5d1f928a5ccab654a9c01a80eb0b610fd66d9364af09d18cdda8",
+          "size": 2066
+        },
+        {
+          "path": "vendor/msfa/fm_core.cc",
+          "sha256": "1ae2ec59f2a353eab6ebbe558f6e4f0a3b7d5f7308a7a002c1fb792c9e9a54ee",
+          "size": 5482
+        },
+        {
+          "path": "vendor/msfa/fm_core.h",
+          "sha256": "8b44690d4965cffe82f71dd12125b7d3b63fb59556c4cac0472cc984cd29a1ea",
+          "size": 982
+        },
+        {
+          "path": "vendor/msfa/fm_op_kernel.cc",
+          "sha256": "e91aa1e067bf67c799871344eb1f3cdd92c2c0e4797b2efc2403ac7bb7113af5",
+          "size": 13659
+        },
+        {
+          "path": "vendor/msfa/fm_op_kernel.h",
+          "sha256": "62bfcbbccf445504dd195a6beb05179b9e03235e8e4b19e661b761ddc0e80603",
+          "size": 1384
+        },
+        {
+          "path": "vendor/msfa/freqlut.cc",
+          "sha256": "963e0b6fbb94b9a614d2376e3a4f753dc7c71b1d23b454af31f01fade150032f",
+          "size": 1981
+        },
+        {
+          "path": "vendor/msfa/freqlut.h",
+          "sha256": "d319ee2d35e8e8e2c860b6fc2a2d1382bf5782d1d147264914325ca41f89f00b",
+          "size": 710
+        },
+        {
+          "path": "vendor/msfa/lfo.cc",
+          "sha256": "47a34fc38eab4cfc46376732a6ddfd24631b8ef27a67ec4177300a264e5ff867",
+          "size": 2387
+        },
+        {
+          "path": "vendor/msfa/lfo.h",
+          "sha256": "f88ba2fbd63626483c7a028537a0434aec3b7a159fee154efc0451f8b784dba2",
+          "size": 1079
+        },
+        {
+          "path": "vendor/msfa/module.h",
+          "sha256": "a03078ae9e62aeb8808df4b8dd02fdb941dc90e04f4840dcf25af6c785e0427d",
+          "size": 921
+        },
+        {
+          "path": "vendor/msfa/patch.cc",
+          "sha256": "b4a70d7812052dc52621c2d80f480dcc17b6ff0044cc6e215caae88df41d07b7",
+          "size": 1864
+        },
+        {
+          "path": "vendor/msfa/patch.h",
+          "sha256": "2ddf975db873de9071adcec6bf8539a38f98e35e5f2b220045cff658e489b020",
+          "size": 711
+        },
+        {
+          "path": "vendor/msfa/pitchenv.cc",
+          "sha256": "da4d85e5957f103e9aae7418fc803ecc61933b42c1d4add67f4ea1dcc8b597e3",
+          "size": 2622
+        },
+        {
+          "path": "vendor/msfa/pitchenv.h",
+          "sha256": "5701a2dcaf13e1ba7141cfc605ba6163ddffd73a91a0362d31b18a4f99fcd72d",
+          "size": 1200
+        },
+        {
+          "path": "vendor/msfa/resofilter.cc",
+          "sha256": "2c1a61601aad45804f02995b1f665a43bd865f76029a84d826669a0202a3bc76",
+          "size": 10782
+        },
+        {
+          "path": "vendor/msfa/resofilter.h",
+          "sha256": "c83bbae6fde4c498d4b9c5116aee52295798184fc09bb79c3fdc04aa79332dec",
+          "size": 1197
+        },
+        {
+          "path": "vendor/msfa/ringbuffer.cc",
+          "sha256": "4337739745ed3696ba4d599bd185cedea9ebe7a64a3dc8c8e79b0f6e19fe4fe6",
+          "size": 2334
+        },
+        {
+          "path": "vendor/msfa/ringbuffer.h",
+          "sha256": "7a3505e990d8e27d4c4ab697d5bef51a18b2aa0c6e88866c33e100616adaac3d",
+          "size": 1374
+        },
+        {
+          "path": "vendor/msfa/sin.cc",
+          "sha256": "06ac6f168f6e63f73e6195bbd4a1a65713f01594aeccef469f9c36e9e22e1d11",
+          "size": 4173
+        },
+        {
+          "path": "vendor/msfa/sin.h",
+          "sha256": "77486d3ac19d53514a8d26cd2164374ceceab9b15f8d98f876d4db7647321cc2",
+          "size": 1705
+        },
+        {
+          "path": "vendor/msfa/synth.h",
+          "sha256": "06d955a1fb369aa80e53fbaf0e09dcbebef0de664bb517dcb2003f8ec2703a42",
+          "size": 2127
+        },
+        {
+          "path": "vendor/msfa/synth_unit.cc",
+          "sha256": "5b74290c49e7b3ea240f02520d00eaeb006bc9365140252adaa85dc01ff12d5f",
+          "size": 11206
+        },
+        {
+          "path": "vendor/msfa/synth_unit.h",
+          "sha256": "e9d1c1fc7d1ddfe7ab006fb93fa04d56e806d584b2d1f453d28961e6153f5063",
+          "size": 3076
+        },
+        {
+          "path": "wasm/dx7/dx7.cc",
+          "sha256": "49c1beb44b0f44a5f7638b338f5af97fbe81b4efaba6d6ac78b540391d184d14",
+          "size": 2714
+        },
+        {
+          "path": "wasm/dx7/dx7.h",
+          "sha256": "1b59c5dc4a39f884b8937a8ea8b1c9a393f13e2851f4d88e5c4f90fc185c13df",
+          "size": 772
+        }
+      ],
+      "outputs": [
+        {
+          "path": "msfa.wasm",
+          "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f",
+          "size": 32084
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
       "id": "gameboy_apu",
       "format": "emscripten-es-module",
       "sourceFingerprint": "a2cede68ef04bd35eb6831b7db89b37f8909bf5581ddb240ccae207c0d2430e2",
