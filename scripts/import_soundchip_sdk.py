@@ -43,7 +43,7 @@ REQUIRED = {
     'scripts/build_huc6280_wasm.sh', 'scripts/build_gameboy_apu_wasm.sh',
     'scripts/build_nesapu_wasm.sh', 'scripts/build_spc_wasm.sh',
     'scripts/build_k051649_wasm.sh', 'scripts/build_ym3438_wasm.sh',
-    'scripts/build_ymf276_wasm.sh',
+    'scripts/build_ymf276_wasm.sh', 'scripts/build_ymf288_wasm.sh',
     'scripts/build_opn_variant_wasm.sh',
     'vendor/mame-32x-pwm/LICENSE',
     'vendor/mame-ay8910/LICENSE', 'vendor/mame-ay8910/ay8910.cpp',

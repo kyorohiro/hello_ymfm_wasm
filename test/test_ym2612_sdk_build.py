@@ -15,7 +15,7 @@ SDK_PATH = Path('third_party/tetorica-soundchip-native')
 ARTIFACTS = ('ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
-             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276')
+             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276', 'ymf288')
 IMPORT_SCRIPT = Path('scripts/import_soundchip_sdk.py')
 RECEIPT = Path('third_party/soundchip-sdk.json')
 YM2612_EXPORTS = [
@@ -842,6 +842,18 @@ class Ymf276SdkBuildTests(OpnVariantSdkBuildRouteMixin, unittest.TestCase):
              'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
              'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
              'spc', 'segapcm', 'k051649', 'ym3438'])
+
+
+class Ymf288SdkBuildTests(OpnVariantSdkBuildRouteMixin, unittest.TestCase):
+    artifact = 'ymf288'
+    compile_definitions = ['-DOPN_VARIANT=ymf288', '-DOPN_HAS_SSG']
+
+    def test_shared_output_preserves_all_twenty_three_existing_build_records(self):
+        self.assert_shared_output_preserves(
+            ['ym2612', 'ym2203', 'ym2608', 'ym2610b', 'ym2151', 'okim6258',
+             'ym2413', 'ym3526', 'ym3812', 'ymf262', 'y8950', 'ay8910',
+             'segapsg', 'rf5c164', 'pwm32x', 'huc6280', 'gameboy_apu', 'nesapu',
+             'spc', 'segapcm', 'k051649', 'ym3438', 'ymf276'])
 
 
 if __name__ == '__main__':
