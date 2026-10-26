@@ -7,6 +7,10 @@ import {receiveChipInspector} from './playground_chip_inspector_state.js?v=audio
 class Processor extends AudioWorkletProcessor{
   constructor({processorOptions:{clock=1789773,type=0,flags=1,wasmBinary}}){
     super();this.baseClock=this.clock=clock;this.type=type;this.flags=flags;this.chip=null;this.dead=false;this.registers=new Uint8Array(16);this.mutedChannels=new Set([0,1,2]);this.resampler=new ChipClockResampler();
+    // The normalized YM DAC has a -0.125 baseline per voice. Hard muting that
+    // baseline at each key edge creates a louder step than a quiet tone itself.
+    // Restore its zero at this speaker boundary; raw chip PCM stays unchanged.
+    this.centerSpeaker=type===0x10&&!!(flags&1);this.speakerOffset=0;
     this.performance=createProcessorPerformance({chip:'ay8910',getAyRegisters:()=>this.registers,immediate:['stopVoices'],apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage=({data})=>{
@@ -32,7 +36,7 @@ class Processor extends AudioWorkletProcessor{
     if(this.performance.receive(data,port)){if(stopping){this.stopVoices();this.performance.clear();}return;}
     this.apply(data,port);
   }
-  updateMuteMask(){let mask=0;for(const ch of this.mutedChannels)mask|=1<<ch;this.chip?.setMuteMask(mask);}
+  updateMuteMask(){let mask=0;for(const ch of this.mutedChannels)mask|=1<<ch;this.chip?.setMuteMask(mask);this.speakerOffset=this.centerSpeaker?Math.fround((3-this.mutedChannels.size)*0.125/3):0;}
   writeRegister(register,value){
     this.chip.writeRegister(register,value);this.registers[register]=value;this.inspector?.observeWrite(register,value);
     if(register>=8&&register<=10){if(value&31)this.mutedChannels.delete(register-8);else this.mutedChannels.add(register-8);this.updateMuteMask();}
@@ -58,6 +62,11 @@ class Processor extends AudioWorkletProcessor{
     }catch(error){if(data.id!==undefined)port.postMessage({type:data.type==='chip-clock'?'chip-clock-result':undefined,id:data.id,error:error.message});}
   }
   process(inputs,outputs){if(this.dead)return false;const [left,right]=outputs[0];this.performance.render(left,right,this.renderSegment);return true;}
-  renderSegment(left,right){if(this.chip)this.resampler.render(this.chip,left,right);else{left.fill(0);right.fill(0);}}
+  generateStereo(frames){
+    const pcm=this.chip.generateStereo(frames),offset=this.speakerOffset;
+    if(offset)for(let i=0;i<frames;i++){pcm.left[i]+=offset;pcm.right[i]+=offset;}
+    return pcm;
+  }
+  renderSegment(left,right){if(this.chip)this.resampler.render(this,left,right);else{left.fill(0);right.fill(0);}}
 }
 registerProcessor('tetorica-ay8910',Processor);

@@ -1,0 +1,248 @@
+{
+  "date": "2026-10-26",
+  "passed": true,
+  "scope": "Normalized YM2149 speaker profile only; raw core and legacy AY output unchanged. Offline rendering is not a listening judgment.",
+  "method": "Actual old/new Worklet Processor classes in VM, unchanged actual WASM, exact checked-in Atari ST index.js executed in VM. Beat calls advance ideal audio frames. Both stereo channels validated. No device/listening/host timing claims.",
+  "sources": {
+    "starter": "62eae08a184ef1ee9beabdb921f1074f346109c0f1b38410c1013e33e612c15e",
+    "before": "c46f26bdd88b9d6567672b419d33ccd873593b5fb76c3b40ff05891c55f707a5",
+    "after": "aa4c3209e67d118f4dced9e4c11d02a0c6be61f4ca15d4419a82402b118884e5",
+    "wasm": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+  },
+  "rates": [
+    {
+      "rate": 44100,
+      "frames": 273420,
+      "boundaryCount": 24,
+      "beforeMaxJump": 0.125,
+      "afterMaxJump": 0.03537940979003906,
+      "maximumSteadyDemeanedDifference": 6.938893903907228e-18,
+      "partitionExact": true,
+      "registersExact": true,
+      "profileExact": true,
+      "sha256": {
+        "before": "c7407105cda6f014e48e7f7daffc24cbaac98c6ebb365b53730ea12b2080318c",
+        "after": "1054dfd955fe1af3730f1ed5563bebbb88cd5e202bf9bd4e9e39279069f15cdf"
+      }
+    },
+    {
+      "rate": 48000,
+      "frames": 297600,
+      "boundaryCount": 24,
+      "beforeMaxJump": 0.125,
+      "afterMaxJump": 0.03537940979003906,
+      "maximumSteadyDemeanedDifference": 6.938893903907228e-18,
+      "partitionExact": true,
+      "registersExact": true,
+      "profileExact": true,
+      "sha256": {
+        "before": "3273640587a0cc970a74d4c43ecadd02f447960c6c02461b8f14bba8569b9550",
+        "after": "e86e6b4363a357f40be68b8645bc65e7e89e95cd78c0b3530482e2a62e12240c"
+      }
+    }
+  ],
+  "legacyProfiles": [
+    {
+      "type": 0,
+      "flags": 1,
+      "frames": 297600,
+      "pcmExact": true
+    },
+    {
+      "type": 0,
+      "flags": 0,
+      "frames": 297600,
+      "pcmExact": true
+    },
+    {
+      "type": 16,
+      "flags": 0,
+      "frames": 297600,
+      "pcmExact": true
+    }
+  ],
+  "browserBefore": {
+    "browser": "chromium",
+    "starterStepPeak": 0.10207069665193558,
+    "expectedRegressionFailure": true
+  },
+  "browsers": {
+    "after-browser": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "profile": {
+          "clock": 2000000,
+          "type": 16,
+          "flags": 1
+        },
+        "starterGates": {
+          "channels": [
+            {
+              "rms": 0.010794325508454296,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.02527972124516964,
+              "finite": true,
+              "hz": 259.89529430166755
+            },
+            {
+              "rms": 0.010794325508454296,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.02527972124516964,
+              "finite": true,
+              "hz": 259.89529430166755
+            }
+          ],
+          "difference": 0,
+          "frames": 48000,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.13501353995144,
+            "monoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.13702558305494,
+            "monoDifference": 0
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "profile": {
+          "clock": 2000000,
+          "type": 16,
+          "flags": 1
+        },
+        "starterGates": {
+          "channels": [
+            {
+              "rms": 0.010810235514062428,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.030072499066591263,
+              "finite": true,
+              "hz": 257.67054155071844
+            },
+            {
+              "rms": 0.010810235514062428,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.030072499066591263,
+              "finite": true,
+              "hz": 257.67054155071844
+            }
+          ],
+          "difference": 0,
+          "frames": 48000,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.1445070093107,
+            "monoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.1423961841093,
+            "monoDifference": 0
+          }
+        ]
+      }
+    ],
+    "package-browser": [
+      {
+        "browser": "chromium",
+        "passed": true,
+        "profile": {
+          "clock": 2000000,
+          "type": 16,
+          "flags": 1
+        },
+        "starterGates": {
+          "channels": [
+            {
+              "rms": 0.010803180159179198,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.02385194189264439,
+              "finite": true,
+              "hz": 257.7085811122261
+            },
+            {
+              "rms": 0.010803180159179198,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.02385194189264439,
+              "finite": true,
+              "hz": 257.7085811122261
+            }
+          ],
+          "difference": 0,
+          "frames": 48000,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.13793708344053,
+            "monoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.14237645762995,
+            "monoDifference": 0
+          }
+        ]
+      },
+      {
+        "browser": "webkit",
+        "passed": true,
+        "profile": {
+          "clock": 2000000,
+          "type": 16,
+          "flags": 1
+        },
+        "starterGates": {
+          "channels": [
+            {
+              "rms": 0.01080056274456042,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.02310921438038349,
+              "finite": true,
+              "hz": 255.3204874401721
+            },
+            {
+              "rms": 0.01080056274456042,
+              "peak": 0.030072499066591263,
+              "stepPeak": 0.02310921438038349,
+              "finite": true,
+              "hz": 255.3204874401721
+            }
+          ],
+          "difference": 0,
+          "frames": 48000,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "hz": 440.143086623434,
+            "monoDifference": 0
+          },
+          {
+            "execution": "worker",
+            "hz": 440.1353572074481,
+            "monoDifference": 0
+          }
+        ]
+      }
+    ]
+  },
+  "package": {
+    "path": "release/hello_ymfm_wasm_atari-st-click-dev_itch_playground.zip",
+    "sha256": "092733c6756ecba7f00af3d71d5b6b75933b6e9f366e7a77c53394b8fa46f21f",
+    "tauriFiles": 901
+  }
+}

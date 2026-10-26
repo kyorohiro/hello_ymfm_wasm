@@ -9,6 +9,13 @@ Last updated: 2026-10-26
 
 ### 現在地
 
+Atari ST初期コードの発音／消音時のプチ音について、normalized DACの固定バイアスとhard muteの段差を実WASMで再現した。
+新YM2149 speaker profileだけ、その基準値をクロック変換前に補正する。raw PCM／既存AY／Native／Mixer値／index.jsは維持。
+44.1／48kHzの初期コード3周で最大段差0.125→0.0353794（約72%減）、定常AC・レジスター・分割PCM一致。
+修正前Browserで失敗する段差の回帰試験を追加。通常docs／最終flat ZIPのChromium・WebKitが成功、関連122件と重複あり70件も成功。
+cacheは`atari-st-mode-2`。Tauriへ901ファイルを取り込み済み。ZIP SHA256は`092733c6756ecba7f00af3d71d5b6b75933b6e9f366e7a77c53394b8fa46f21f`。
+聴感上の最終確認はユーザー側。変更は未commit／未公開。[作業記録](playground_atari_st_click_01.md)とJSONを参照。
+
 Playgroundに`Atari ST` mode（`atari-st`）を追加した。YM2149 type16／flags1／2MHz、
 `ay`の3CH・共有noise／envelopeを使う。初期コード・3 Example・型／補完・YM2149タブ・Keyboardを接続した。
 BrowserとTauriのWeb Audio対応。固定Native AY adapterはAY-3-8910専用なので、Native一覧には追加しない。

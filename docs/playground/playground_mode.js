@@ -92,7 +92,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.engine === 'msx') return {
     chip:mode.chip,clock:mode.clock,segaPsgWasmUrl:null,megaCD:false,mega32X:false,
-    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-1',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
+    ayOptions:{workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-2',base).href,wasmUrl:new URL('ay8910_wasm.wasm',generated).href},
     opllOptions:{workletUrl:new URL('./playground_ym2413_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('ym2413_wasm.wasm',generated).href},
     ...(mode.chip === 'msx-audio' ? {oplOptions:{workletUrl:new URL('./playground_opl_worklet.js?v=y8950-adpcm-ui-1',base).href,wasmUrl:new URL('y8950_wasm.wasm',generated).href}} : {}),
   };
@@ -107,7 +107,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   };
   if (mode.chip === 'ay8910') return {
     chip:mode.chip, clock:mode.clock, type:0x10, flags:1,
-    workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-1',base).href,
+    workletUrl:new URL('./playground_ay8910_worklet.js?v=atari-st-mode-2',base).href,
     wasmUrl:new URL('ay8910_wasm.wasm',generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };

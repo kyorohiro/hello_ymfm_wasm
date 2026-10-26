@@ -15,7 +15,7 @@ import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
 import {createPWM32XAudio} from './playground_pwm_audio.js?v=y8950-adpcm-ui-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=y8950-adpcm-ui-1';
 import {createYm2151Audio} from './playground_ym2151_audio.js?v=y8950-adpcm-ui-1';
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=atari-st-mode-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=atari-st-mode-2';
 import {createYm2413Audio} from './playground_ym2413_audio.js?v=y8950-adpcm-ui-1';
 import {createOplAudio} from './playground_opl_audio.js?v=y8950-adpcm-ui-1';
 import {OPL_CHIPS} from './playground_opl.js?v=y8950-adpcm-ui-1';
@@ -56,7 +56,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=y8950-adpcm-ui-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=atari-st-mode-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=atari-st-mode-2";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";

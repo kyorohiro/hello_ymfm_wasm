@@ -1,5 +1,5 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=atari-st-mode-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=atari-st-mode-2';
 import {createAy8910Client} from './playground_ay8910.js?v=y8950-adpcm-ui-1';
 import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=y8950-adpcm-ui-1';
 import {createNesAudio} from './playground_nes_audio.js?v=y8950-adpcm-ui-1';

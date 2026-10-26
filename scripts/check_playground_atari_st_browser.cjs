@@ -38,7 +38,8 @@ class AtariStereoCapture extends AudioWorkletProcessor {
   constructor() {
     super(); this.capture = null;
     this.port.onmessage = ({data}) => {
-      this.capture = {id:data.id,index:0,left:new Float32Array(8192),right:new Float32Array(8192)};
+      const frames = data.frames ?? 8192;
+      this.capture = {id:data.id,index:0,left:new Float32Array(frames),right:new Float32Array(frames)};
     };
   }
   process(inputs,outputs) {
@@ -121,27 +122,28 @@ async function installCapture(page) {
       pending.delete(data.id); clearTimeout(waiter.timer);
       const channels = [data.left,data.right].map(values => {
         const mean = values.reduce((sum,value) => sum + value,0) / values.length;
-        let square = 0,peak = 0,finite = true; const crossings = [];
+        let square = 0,peak = 0,stepPeak = 0,finite = true; const crossings = [];
         for (let i = 0; i < values.length; i++) {
           const value = values[i]; square += (value-mean)**2; peak = Math.max(peak,Math.abs(value));
+          if (i) stepPeak = Math.max(stepPeak,Math.abs(value-values[i-1]));
           finite = finite && Number.isFinite(value);
           if (i && values[i-1] < mean && value >= mean) crossings.push(i-1+(mean-values[i-1])/(value-values[i-1]));
         }
-        return {rms:Math.sqrt(square/values.length),peak,finite,
+        return {rms:Math.sqrt(square/values.length),peak,stepPeak,finite,
           hz:crossings.length>2?(crossings.length-1)*context.sampleRate/(crossings.at(-1)-crossings[0]):0};
       });
       let difference = 0;
       for (let i = 0; i < data.left.length; i++) difference = Math.max(difference,Math.abs(data.left[i]-data.right[i]));
       waiter.resolve({channels,difference,frames:data.left.length,sampleRate:context.sampleRate});
     };
-    state.capture = () => new Promise((resolve,reject) => {
+    state.capture = frames => new Promise((resolve,reject) => {
       const id = ++sequence;
       const timer = setTimeout(() => {pending.delete(id); reject(Error('PCM capture timed out'));},5000);
-      pending.set(id,{resolve,timer}); node.port.postMessage({id});
+      pending.set(id,{resolve,timer}); node.port.postMessage({id,frames});
     });
   });
 }
-const capture = page => page.evaluate(() => window.__atariSTCheck.capture());
+const capture = (page,frames) => page.evaluate(frames => window.__atariSTCheck.capture(frames),frames);
 async function audible(page,label,hz) {
   let pcm;
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -243,7 +245,13 @@ async function check(page,base,browserName) {
     };
   });
   await page.click('#runButton'); await page.waitForFunction(() => window.__atariSTCheck.megaDrive.isReady());
-  await installCapture(page); await audible(page,'mode starter'); await stop(page);
+  await installCapture(page); await audible(page,'mode starter');
+  // A full second crosses both note gates. The old normalized-DAC hard mute
+  // creates steps above 0.1 here, despite a much smaller tone signal.
+  const starterGates = await capture(page,48000);
+  assert(starterGates.channels.every(channel=>channel.stepPeak<.05),
+    'starter contains an excessive gate discontinuity: '+JSON.stringify(starterGates));
+  await stop(page);
   const primaries = await page.evaluate(() => ({
     chips:window.__atariSTCheck.runtime.chipInspector.list().map(entry=>[entry.id,entry.kind]),
     endpoints:window.__atariSTCheck.megaDrive.primaryEndpoints.map(entry=>entry.name),
@@ -288,7 +296,7 @@ async function check(page,base,browserName) {
     examples.push({path:example.path,execution});
   }
   assert(!await page.locator('#consoleOutput').evaluate(node=>/Playback failed|ReferenceError|TypeError:|Error: Wrong|Error: Implicit/.test(node.textContent)),await page.locator('#consoleOutput').textContent());
-  return {browser:browserName,passed:true,profile:expectedProfile,primaries,types,executions,keyboard:true,
+  return {browser:browserName,passed:true,profile:expectedProfile,primaries,types,starterGates,executions,keyboard:true,
     editor:{tone:true,noise:true,envelope:true,retainedAfterRun:true},examples,physicalOutputMuted:true};
 }
 
