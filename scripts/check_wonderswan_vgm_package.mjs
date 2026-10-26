@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createWonderSwanVgm} from '../test/helpers/wonderswan_vgm_fixture.mjs';
+import {createWonderSwanSampleVgm} from '../test/helpers/wonderswan_sample_vgm_fixture.mjs';
 
 assert(process.argv[2],'Pass an existing tetorica-vgm .tgz; this check does not rebuild or publish it.');
 const tarball=resolve(process.argv[2]),directory=await mkdtemp(join(tmpdir(),'tetorica-wonderswan-package-'));
@@ -18,7 +19,8 @@ try {
   const api=await import(pathToFileURL(require.resolve('tetorica-vgm')).href);
   const installed=join(directory,'node_modules/tetorica-vgm');
   for(const name of ['docs/generated/wonderswan_wasm.js','docs/generated/wonderswan_wasm.wasm',
-    'docs/js/wonderswanaudioengine.js','docs/vgm_analyzer/wonderswan_notes.js','licenses/mame-wonderswan.txt']) {
+    'docs/js/wonderswanaudioengine.js','docs/vgm_analyzer/wonderswan_notes.js',
+    'docs/vgm_analyzer/wonderswan_waves.js','licenses/mame-wonderswan.txt']) {
     assert((await stat(join(installed,name))).size>0,'Missing packed WonderSwan asset: '+name);
   }
   assert.match(await readFile(join(installed,'licenses/mame-wonderswan.txt'),'utf8'),/Redistribution and use/);
@@ -46,5 +48,15 @@ try {
   assert.equal(support.render.engine,'wonderswan');
   run(process.execPath,[cli,'render',input,'--max-seconds','.1','--output',output]);
   assert((await readFile(output)).subarray(44).some(Boolean));
-  console.log(JSON.stringify({passed:true,offlineInstall:true,cli:true,exports:['midi','musicxml','lilypond'],modes:rows,physicalAudioTested:false}));
+  const waveSource=createWonderSwanSampleVgm(),inventory=await api.listSourceSamples(waveSource);
+  assert.equal(inventory.samples.length,2);assert(inventory.samples.every(s=>s.representation==='written-wave-ram'));
+  const exported=await api.exportSourceSamples(waveSource,{id:1});
+  const wave=JSON.parse(new TextDecoder().decode(exported.bytes));assert.deepEqual(wave.waveform.slice(0,6),[1,2,3,4,5,6]);
+  assert.equal(wave.packedBytes[0],0x21);assert(wave.observations.some(e=>e.channel===2));
+  const preview=await api.exportNodeSamples(waveSource,{id:1,format:'wav',occurrence:2});
+  assert.equal(preview.seconds,1);assert.equal(preview.bytes.length,176444);assert(preview.bytes.subarray(44).some(Boolean));
+  const waveInput=join(directory,'wave-source.vgm'),waveOutput=join(directory,'wave.json');await writeFile(waveInput,waveSource);
+  run(process.execPath,[cli,'samples',waveInput,'--id','1','--output',waveOutput]);
+  assert.deepEqual(new Uint8Array(await readFile(waveOutput)),exported.bytes);
+  console.log(JSON.stringify({passed:true,offlineInstall:true,cli:true,exports:['midi','musicxml','lilypond'],waveSamples:{count:2,json:true,previewWav:true,cli:true},modes:rows,physicalAudioTested:false}));
 } finally {await rm(directory,{recursive:true,force:true});}

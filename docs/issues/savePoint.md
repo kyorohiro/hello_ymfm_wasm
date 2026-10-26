@@ -9,11 +9,39 @@ Last updated: 2026-10-27
 
 ### 現在地
 
+WonderSwanのWave RAM抽出をVGM AnalyzerのSample ExplorerとNode／CLIへ追加した。
+16KiB RAMへの既知writeだけを追跡し、1波形16byte／32点・low nibble firstで保存する。
+同一波形は重複排除し、CH・時刻・bank・物理アドレス・基本音程の観測履歴を保持する。
+未write領域を0で補完せず、Voice PCM／Noise区間は波形抽出から除外。Sweepは書き込まれた基本波形だけを保存する。
+Sample Explorerで波形表示・履歴選択・`ws.setWaveform()`コードコピー・JSON保存・1秒試聴・試聴WAV保存を対応。
+試聴は既存の実WASM音源を使い、選択した観測の基本音程を固定して中央定位で鳴らす。
+元の楽器名・発音長・曲中の音量／pan／Sweep推移を復元する機能ではない。Voice PCM captureは次段階。
+
+関連全体試験940件中939成功＋既存1skip。その後の最終focused31件は全て成功（重複あり）。
+コピーしたコードをPlaygroundの実Synth／WASMへ戻し、RAMのpacked bytesが元波形と一致した。
+通常docsと最終flat ZIPのChromium／WebKitで抽出・表示・Copy・JSON・WAV・実PCM試聴・Stop／file切替を確認した。
+最終ZIPの従来再生も両Browserで4CH mute・Noise／Sweep／Voice PCM・seek／Stopが成功。
+測定出力はdownstreamで0にしており、実聴・実機精度・実Tauri WebView音声は未確認。
+browserが読んだ通常186／flat184ファイルのhashを現行ソースと照合し、flat184件はZIP内容とも一致した。
+
+最終ZIPは`release/hello_ymfm_wasm_wonderswan-waves-dev_itch_vgm_analyzer.zip`、SHA256
+`b53c76ccac9893d491aec93e46fe8b4d51738f2c4602c6b45852f134e8117ba9`。
+Analyzer Tauriへ398ファイルを取り込み、import照合・Python6／Node4件が成功した。
+VGM npm配布物のbuild・隔離offline install・実行・CLI／JSON／WAV exportも成功。版は0.2.14のまま未公開。
+固定SDK0.1.4・55 WASM出力・音源engine・従来再生core・Mixer値を変更していない。再校正guardも成功した。
+本体とAnalyzer Tauriの今回変更は未commit。SDK原本とPlayground Tauriは変更していない。
+次は実際のWonderSwan VGM／VGZでSample Explorerを試聴し、本体／Analyzer Tauriをcommit／pushしてCIを確認する。
+Voice PCM captureは別段階で、波形snapshotを元のPCMサンプルと誤認しない形で検討する。
+詳細・hash・再現手順は[wonderswan_wave_samples_01.md](wonderswan_wave_samples_01.md)とJSONを参照。
+
+### 直前のWonderSwan Analyzer再生接続
+
 WonderSwanをVGM Analyzerと共通Node／CLI再生へ接続した。
 VGM1.71 header0xC0・BC相対レジスター・C6 big-endian RAM・PCM stream0x21／0xA1を対応。
 4CH Wave／Noise／Sweep／Voice PCM、4CH mute、通常seek再構築、Stop再演奏、Mixer unity1.0を確認した。
 Live／Song Note-ishとMIDI／MusicXML／LilyPondは波形の基本音程のみ。Voice PCM／Sweep／Noiseの区間は音符にしない。
-Hyper Voice／DMA・dual／variant・音色／サンプル抽出は対象外を明記し、対応外レジスターは明示エラー。
+この接続段階ではHyper Voice／DMA・dual／variant・音色／サンプル抽出は対象外とし、対応外レジスターは明示エラーにした。
+Wave RAM抽出は上記の後続作業で追加済み。
 他chipとのmixedは従来どおりchipごとのMixer／mute／WAVを対応し、混合音符解析は無効にする。
 cacheは`wonderswan-vgm-1`。固定SDK0.1.4と55 WASM出力、既存Mixer数値は変更していない。
 
@@ -32,8 +60,9 @@ FM npm配布物のbuild／install／runtime／型と、VGM tarballの隔離offli
 最終ZIPは`release/hello_ymfm_wasm_wonderswan-dev_itch_vgm_analyzer.zip`、SHA256
 `d9e068525898ec91a54d65af850f547152785a18d29c0882f6a2d9ede3630c06`。
 `w/tetorica-fm2612-vgm-analyzer-tauri`へ396fileを取り込み、Python6／Node4件・import照合成功。
-本体とAnalyzer Tauriの今回変更は未commit。Playground Tauri／SDK原本はこのターンでは変更していない。
-次は実際のWonderSwan VGM／VGZを聴き、本体とAnalyzer Tauriをcommit／pushして新HEADのCIを確認する。
+この接続作業の後、本体`3dbee68137067c6b51d4efe9464ee811ad512f67`／
+Analyzer Tauri`eb0344e106bb6277f9b95f413cbdaed1f35097a2`へユーザーがcommit済み。
+Playground Tauri／SDK原本はこの接続ターンでは変更していない。旧記録の試験・ZIPは接続段階のもの。
 詳細・hash・再現用scriptは[vgm_analyzer_wonderswan_01.md](vgm_analyzer_wonderswan_01.md)とJSONを参照。
 
 ### 直前のWonderSwan Native接続

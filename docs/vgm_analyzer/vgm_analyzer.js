@@ -22,7 +22,7 @@ import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKi
 import { mountMusicSheet } from "./music_sheet.js?v=snes-score-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js?v=snes-score-1";
-import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=wonderswan-vgm-1";
+import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=wonderswan-waves-1";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
 import {mountSbiInfo} from './sbi_info.js';
@@ -34,7 +34,7 @@ import { msxMuteControls, applyMsxMute } from './msx_mutes.js';
 import {mountAy8910Monitor} from './ay8910_monitor.js?v=common-mutes-1';
 import {mountYm2413Monitor} from './ym2413_monitor.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
-import { mountSampleExplorer } from './sample_explorer.js?v=gb-info-perf-1';
+import { mountSampleExplorer } from './sample_explorer.js?v=wonderswan-waves-1';
 import { renderAllFretboard } from './fretboard_all.js';
 import { createNoteTimeline } from './note_timeline_view.js?v=wonderswan-vgm-1';
 import { seekPlayback } from './seek_playback.js';
@@ -43,7 +43,7 @@ import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js';
 import { midiChipKind } from "./vgm_notes.js?v=wonderswan-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=wonderswan-vgm-1";
+import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=wonderswan-waves-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
 import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=wonderswan-vgm-1";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
@@ -3007,7 +3007,7 @@ function updateChipSupport() {
   const ayWithOpll = ay && Boolean(noteishHeader.ym2413Clock & 0x3fffffff);
   const playbackOnly = ['mixed', 'wonderswan', 'huc6280', 'okim6295', 'okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'segapcm', 'ym2151', 'ym2413', 'nes', 'gameboy'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
-    tab.disabled = !((['ymf278b','gameboy'].includes(currentChipKind) || (['segapcm', 'ym2151', 'okim6258'].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tab === sampleTab) && playbackOnly && !((ay || opll || opl || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll || opl || ['msx','wonderswan','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind)) && tab === noteishTab));
+    tab.disabled = !((['ymf278b','gameboy','wonderswan'].includes(currentChipKind) || (['segapcm', 'ym2151', 'okim6258'].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tab === sampleTab) && playbackOnly && !((ay || opll || opl || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll || opl || ['msx','wonderswan','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind)) && tab === noteishTab));
     if (sbi && tab === tfiInfoTab) tab.disabled = !currentBuffer || !!(noteishHeader[currentChipKind+'Clock'] & 0xc0000000);
     tab.title = tab.disabled ? 'Support coming soon.' : '';
   }
@@ -4071,7 +4071,7 @@ function selectedOutputTab() {
 function setOutputTab(tabName) {
   if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
-  if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+  if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy","wonderswan"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }

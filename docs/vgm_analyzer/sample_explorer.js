@@ -1,12 +1,13 @@
 import {appendGameboyVoice} from './gameboy_voice_view.js?v=gb-info-perf-1';
 import {appendGameboyWave} from './gameboy_wave_view.js?v=gb-info-perf-1';
+import {appendWonderSwanWave} from './wonderswan_wave_view.js?v=wonderswan-waves-1';
 import {decodeYmf278bSample} from './ymf278b_samples.js';
-import {samplePreviewWav} from './sample_render.js';
-import {renderSamplePreview} from './sample_render.js';
-export {configureSamplePreview} from './sample_render.js';
+import {samplePreviewWav} from './sample_render.js?v=wonderswan-waves-1';
+import {renderSamplePreview} from './sample_render.js?v=wonderswan-waves-1';
+export {configureSamplePreview} from './sample_render.js?v=wonderswan-waves-1';
 import { pwmCaptureWav } from './pwm_samples.js';
-import {sampleFile,extractSamples} from './sample_core.js?v=gb-voice-1';
-export {extractSamples} from './sample_core.js?v=gb-voice-1';
+import {sampleFile,extractSamples} from './sample_core.js?v=wonderswan-waves-1';
+export {extractSamples} from './sample_core.js?v=wonderswan-waves-1';
 
 export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
   let controller, audio, playing, previewSerial = 0, gameboyMode = false;
@@ -36,6 +37,25 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
       let group;
       for (const s of visible) {
         const uses = eventsBySample.get(s.id) ?? [];
+        if(s.chip==='wonderswan'&&s.kind==='wave'){
+          const options={getFactory:async()=> (await import('../generated/wonderswan_wasm.js')).default};
+          appendWonderSwanWave(output,s,uses,uses,{
+            signal:own.signal,onStop:stop,
+            onWav:(sample,event)=>samplePreviewWav(sample,event,options),
+            onPreview:async(sample,event)=>{
+              if(own.signal.aborted)return;
+              stop();const serial=previewSerial;
+              audio??=new AudioContext();await audio.resume();
+              if(own.signal.aborted||serial!==previewSerial)return;
+              const pcm=await renderSamplePreview(sample,event,options);
+              if(own.signal.aborted||serial!==previewSerial)return;
+              const buffer=audio.createBuffer(2,pcm.left.length,pcm.sampleRate);
+              buffer.copyToChannel(pcm.left,0);buffer.copyToChannel(pcm.right,1);
+              playing=audio.createBufferSource();playing.buffer=buffer;playing.connect(audio.destination);playing.start();
+            },
+          });
+          continue;
+        }
         if (gameboyMode && group !== (s.channel ?? 3)) {
           group = s.channel ?? 3;
           const heading = document.createElement('h3');

@@ -94,7 +94,7 @@ async function runBrowser(name,type,origin,createFixture) {
       assert.match(await page.locator('#detectedChips').innerText(),/WonderSwan/i);
       assert.equal(await page.locator('#inlineMonitorToggles [data-monitor-toggle-kind="opm-channel"]').count(),4);
       assert.equal(await page.locator('#noteishTab').isDisabled(),false,'Wave base-pitch Note-ish must be available');
-      for(const selector of ['#operatorInfoTab','#tfiInfoTab','#sampleExplorerTab'])assert.equal(await page.locator(selector).isDisabled(),true,selector+' should not promise unsupported instrument extraction');
+      for(const selector of ['#operatorInfoTab','#tfiInfoTab'])assert.equal(await page.locator(selector).isDisabled(),true,selector+' should not promise unsupported instrument extraction');
       return state;
     };
     const play=async()=>{const before=await snapshot(page);await page.locator('#inlinePlayButton').click();await page.waitForFunction(before=>{const s=window.__wsAnalyzerTest.snapshot();return s.mode==='worklet'&&s.worklets>before.worklets&&s.frames>before.frames;},{worklets:before.worklets,frames:before.frames});};

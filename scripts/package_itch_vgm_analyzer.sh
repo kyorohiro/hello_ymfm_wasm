@@ -61,6 +61,8 @@ gameboy_waves.js
 gameboy_voices.js
 gameboy_voice_view.js
 gameboy_wave_view.js
+wonderswan_waves.js
+wonderswan_wave_view.js
 sample_render.js
 ymf278b_samples.js
 rf5c164_samples.js

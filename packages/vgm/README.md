@@ -541,8 +541,8 @@ Mixer default is unity (`1.0`), matching Playground; this chip is not calibrated
 Live/Song Note-ish and MIDI / MusicXML / LilyPond export use wavetable base
 pitches. CH2 Voice PCM, CH3 Sweep and CH4 Noise intervals are omitted from
 notes, as are waveform harmonics and RAM rewriting. Score channel IDs are
-`wonderswan-ch1` through `wonderswan-ch4`. Instrument/sample extraction and
-TFI/VGI/SBI export are unavailable.
+`wonderswan-ch1` through `wonderswan-ch4`. Voice PCM capture, instrument conversion and TFI/VGI/SBI export are unavailable.
+Written wave RAM snapshots are available as described below.
 
 ```sh
 node cli/main.js render test/fixtures/wonderswan-tone.vgz --output wonderswan.wav
@@ -551,3 +551,31 @@ node cli/main.js export test/fixtures/wonderswan-tone.vgz --format midi --output
 
 The original fixture contains no game or ROM data. This repository's shared
 Browser/Node paths are updated together; this addition is not yet npm-published.
+
+
+## WonderSwan waveform snapshots
+
+Sample Explorer can extract complete 16-byte wave RAM snapshots as 32 unsigned
+4-bit points, low nibble first. Identical wave contents share one definition;
+observations retain the written time, channel, physical bank/address and base
+pitch. Missing bytes remain unknown and incomplete waveforms are omitted.
+These are RAM snapshots, not recovered instrument boundaries or Voice PCM.
+
+The Browser provides a waveform graph, reusable `ws.setWaveform(channel, [...])`
+code, JSON, a one-second isolated preview and preview WAV. Preview uses the
+selected observation's fixed base pitch (A4 when no active pitch was written),
+centered volume 9/9 and short fades. Original pan, volume automation, Sweep,
+Noise, Voice PCM and song timing are not replayed. WAV is an audition of the
+looping waveform, not a detected original sample length.
+
+```sh
+node cli/main.js samples song.vgz --json
+node cli/main.js samples song.vgz --id 1 --output wave.json
+node cli/main.js samples song.vgz --all --output waves.zip
+node cli/main.js samples song.vgz --id 1 --format wav --occurrence 1 --output wave.wav
+```
+
+JSON uses `schemaVersion: 1`, `chip: "wonderswan"`, `kind: "wave"`,
+`representation: "written-wave-ram"`, `waveform`, `packedBytes` and
+`observations` in original 44,100 Hz VGM sample time. The ZIP includes a shared
+manifest. This addition is not yet npm-published.

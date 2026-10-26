@@ -4,6 +4,7 @@ import {SegaPcm} from '../js/segapcm.js';
 import {Rf5c164} from '../js/rf5c164.js';
 import {Ym2608} from '../js/ym2608.js';
 import {Ym2610B} from '../js/ym2610b.js';
+import {WonderSwanAudioEngine} from '../js/wonderswanaudioengine.js';
 import {renderDacPreview} from './dac_samples.js';
 import {renderPwmPreview} from './pwm_samples.js';
 import {encodeStereoWav} from './vgm_wav.js';
@@ -11,6 +12,7 @@ import {encodeStereoWav} from './vgm_wav.js';
 export async function renderSamplePreview(sample,event,{getFactory}={}) {
   if(sample.chip==='gameboy')throw new Error('Game Boy wave RAM and voice settings export as JSON; full playback is not reconstructed');
   if(!sample.data)throw new Error('Sample has missing/partial data');
+  if(sample.chip==='wonderswan')return renderWonderSwanPreview(sample,event,{getFactory});
   if(sample.chip==='okim6258')return renderOki6258Preview(sample,{getFactory});
   if(sample.chip==='ymf278b'){
     const data=decodeYmf278bSample(sample),rate=event.rate;
@@ -46,6 +48,35 @@ export async function renderSamplePreview(sample,event,{getFactory}={}) {
     // Engine buffers may be backed by WASM memory; copy before disposal.
     return {left:pcm.left.slice(),right:pcm.right.slice(),sampleRate};
   }finally{chip.dispose();}
+}
+
+// An isolated wave, at the selected observation's base pitch. Sweep, noise,
+// song timing and the original pan/level are deliberately not reconstructed.
+export function wonderswanPreviewPitch(event={}) {
+  const clock=Number.isInteger(event.clock)&&event.clock>=128&&event.clock<=0x3fffffff?event.clock:3072000;
+  const effectiveClock=Math.floor(clock/128)*128;
+  const observed=Boolean(event.enabled)&&event.frequencyKnown!==false&&Number.isInteger(event.frequency)&&event.frequency>=0&&event.frequency<=2047;
+  const frequency=observed?event.frequency:Math.max(0,Math.min(2047,Math.round(2048-effectiveClock/(32*440))));
+  return {clock,frequency,frequencyHz:effectiveClock/(32*(2048-frequency)),observed};
+}
+
+async function renderWonderSwanPreview(sample,event,{getFactory}) {
+  if(sample.kind!=='wave'||sample.data.length!==16)throw new Error('WonderSwan wave preview requires 16 packed bytes');
+  const factory=await getFactory?.('wonderswan');
+  if(!factory)throw new Error('Missing sample factory: wonderswan');
+  const pitch=wonderswanPreviewPitch(event);
+  const chip=await WonderSwanAudioEngine.create({moduleFactory:factory,clock:pitch.clock,outputSampleRate:44100});
+  try {
+    chip.loadWonderSwanMemory(sample.data,0);
+    for(const [register,value] of [[15,0],[0,pitch.frequency&255],[1,pitch.frequency>>8],[8,0x99],[17,8],[16,1]])chip.writeWonderSwan(register,value);
+    const pcm=chip.processFrames(44100);
+    // Short fades make the bounded audition start/stop without introducing clicks.
+    const fade=220;
+    for(let i=0;i<fade;i++)for(const channel of [pcm.left,pcm.right]){
+      const gain=i/(fade-1);channel[i]*=gain;channel[channel.length-1-i]*=gain;
+    }
+    return {...pcm,sampleRate:44100};
+  } finally {chip.dispose();}
 }
 export async function samplePreviewWav(sample,event,options){
   const pcm=await renderSamplePreview(sample,event,options);
