@@ -1,4 +1,4 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 const DEFAULT_OPERATOR_PRESET = Object.freeze({
   multi: 1,
   dt: 0,

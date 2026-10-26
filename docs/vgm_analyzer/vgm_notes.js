@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "../js/ym2612vgm.js?v=ym2610-vgm-2";
+import { Ym2612VGM } from "../js/ym2612vgm.js?v=wonderswan-vgm-1";
 
 /** Extract unquantized FM note intervals in 44100 Hz sample time. */
 export function midiChipKind(header) {
@@ -12,6 +12,7 @@ export function midiChipKind(header) {
     ?? (['ym3526','ym3812','y8950'].find(kind => header[`${kind}Clock`] & 0x3fffffff) ?? null)
     ?? ((header.psgClock & 0x3fffffff) ? 'psg' : null)
     ?? ((header.huc6280Clock & 0x3fffffff) ? 'huc6280' : null)
+    ?? ((header.wonderswanClock & 0x3fffffff) ? 'wonderswan' : null)
     ?? ((header.nesApuClock & 0x3fffffff) ? 'nes' : null)
     ?? ((header.gameBoyDmgClock & 0x3fffffff) ? 'gameboy' : null);
 }

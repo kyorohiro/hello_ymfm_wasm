@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readSource,renderSource} from '../cli/index.js';
 import {getNodePlaybackFactory} from '../cli/render.js';
 import {Ym2608AudioEngine} from '../docs/js/ym2608audioengine.js';
-import {createPlaybackPlayer} from '../docs/vgm_analyzer/playback_core.js';
+import {Ym2612VGM} from '../docs/js/ym2612vgm.js';
+import {createPlaybackPlayer,selectPlaybackConfiguration} from '../docs/vgm_analyzer/playback_core.js';
+import {installPlaybackMixer} from '../docs/vgm_analyzer/playback_mixer.js';
 import {renderVgmToWav} from '../docs/vgm_analyzer/vgm_wav.js';
 const fixture=name=>new URL(`./fixtures/ym2608-${name}.vgz`,import.meta.url);
 // Authored test pattern; not a copy of the hardware rhythm ROM.
@@ -17,6 +19,9 @@ test('YM2608 FM, SSG, embedded ADPCM-B and external rhythm render through shared
     assert(result.bytes.subarray(44).some(v=>v!==0),name);
     const engine=await Ym2608AudioEngine.create({ym2608ModuleFactory:await getNodePlaybackFactory('ym2608'),ym2608Clock:8000000});
     try {
+      // CLI rendering applies the System Mixer preset; the explicit reference
+      // must use that same boundary rather than compare against raw unity PCM.
+      installPlaybackMixer(engine,selectPlaybackConfiguration(new Ym2612VGM(source)));
       if(name==='rhythm')engine.loadAdpcmARom(rom);
       const player=createPlaybackPlayer(engine,source);player.play();
       assert.deepEqual(result.bytes,(await renderVgmToWav(player,{maxSeconds:.1})).bytes);

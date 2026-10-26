@@ -10,4 +10,4 @@
 export {
   Ym2612VGM as Ym2203VGM,
   exportYm2203VgmToPlaygroundJavaScript,
-} from "./ym2612vgm.js?v=vgm-frequency-order-2";
+} from "./ym2612vgm.js?v=wonderswan-vgm-1";

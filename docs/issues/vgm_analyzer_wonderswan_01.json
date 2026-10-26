@@ -1,0 +1,2953 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "status": "locally-verified",
+  "physicalAudioTested": false,
+  "scope": {
+    "chip": "wonderswan",
+    "vgmVersion": "1.71",
+    "waveChannels": 4,
+    "noise": true,
+    "sweep": true,
+    "voicePcm": true,
+    "dacStreams": true,
+    "waveRam": true,
+    "normalSeekReplay": true,
+    "dspCheckpoints": false,
+    "noteish": true,
+    "scoreExports": [
+      "midi",
+      "musicxml",
+      "lilypond"
+    ],
+    "hyperVoiceDma": false,
+    "dualVariantHeaders": false,
+    "cacheVersion": "wonderswan-vgm-1"
+  },
+  "baseCommits": {
+    "main": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+    "analyzerTauri": "33c4a4148fee0d8352041c235d8d1b3859369225"
+  },
+  "protocol": {
+    "clockOffset": "0xC0",
+    "registerOpcode": "0xBC",
+    "ramOpcode": "0xC6",
+    "ramAddressEndian": "big",
+    "registerOffsets": "relative to 0x80",
+    "ramBytes": 16384,
+    "streamChipTypes": [
+      "0x21",
+      "0xA1"
+    ],
+    "inventedRamBlockType": false
+  },
+  "speakerParity": {
+    "configurations": 24,
+    "rates": [
+      44100,
+      48000,
+      96000
+    ],
+    "clocks": [
+      3072000,
+      3579545
+    ],
+    "stereoFrames": 72864,
+    "maximumDifference": 0,
+    "actualWorkletSource": true,
+    "focusedTestsPassed": 11
+  },
+  "integrationTests": {
+    "analyzerAndEditorPassed": 9,
+    "allClockMixedPassed": 4,
+    "analyzerSuitePassed": 554,
+    "analyzerSuiteSkipped": 1,
+    "coreWebTotal": 3571,
+    "coreWebFinalBroadPassed": 3569,
+    "coreWebWorkerTimeouts": 2,
+    "isolatedWorkerTestsPassed": 59,
+    "countsOverlap": true
+  },
+  "ym2608ReferenceCorrection": {
+    "status": "pass",
+    "baselineHead": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+    "baselinePlaybackCoreSha256": "0eda72704fe1e04fe7b32004f2a0aabd06f631fe2c5146e3e7379e179a4af597",
+    "method": "Import HEAD playback_core.js offline with dependencies resolved to unchanged chip/mixer implementation; compare current CLI and explicitly calibrated direct engine. No physical audio or new compiler build.",
+    "reason": "Existing test compared calibrated CLI at gain 1.03357 with raw unity direct engine.",
+    "cases": [
+      {
+        "fixture": "fm",
+        "currentSha256": "76e2be64413c44a2e6a2a436f6c9d83ef624ddabe12a5a73e22049de6d2b900a",
+        "baselineHeadSha256": "76e2be64413c44a2e6a2a436f6c9d83ef624ddabe12a5a73e22049de6d2b900a",
+        "calibratedDirectSha256": "76e2be64413c44a2e6a2a436f6c9d83ef624ddabe12a5a73e22049de6d2b900a",
+        "allIdentical": true,
+        "gain": 1.03357
+      },
+      {
+        "fixture": "ssg",
+        "currentSha256": "ba65e1f6f9422ca6de9248de3bb46abf886b72e37c4436b5b4b2ded92acf7a8b",
+        "baselineHeadSha256": "ba65e1f6f9422ca6de9248de3bb46abf886b72e37c4436b5b4b2ded92acf7a8b",
+        "calibratedDirectSha256": "ba65e1f6f9422ca6de9248de3bb46abf886b72e37c4436b5b4b2ded92acf7a8b",
+        "allIdentical": true,
+        "gain": 1.03357
+      },
+      {
+        "fixture": "adpcm",
+        "currentSha256": "595e2525680167d3ab8c432ac5a387e24b65d49a9cb7412e87322e07baed5593",
+        "baselineHeadSha256": "595e2525680167d3ab8c432ac5a387e24b65d49a9cb7412e87322e07baed5593",
+        "calibratedDirectSha256": "595e2525680167d3ab8c432ac5a387e24b65d49a9cb7412e87322e07baed5593",
+        "allIdentical": true,
+        "gain": 1.03357
+      },
+      {
+        "fixture": "rhythm",
+        "currentSha256": "48dc07f70cb51418b45e2752c957a917dce4bf8e8254babf58b0896014653921",
+        "baselineHeadSha256": "48dc07f70cb51418b45e2752c957a917dce4bf8e8254babf58b0896014653921",
+        "calibratedDirectSha256": "48dc07f70cb51418b45e2752c957a917dce4bf8e8254babf58b0896014653921",
+        "allIdentical": true,
+        "gain": 1.03357
+      }
+    ]
+  },
+  "wasmRegression": {
+    "passed": true,
+    "artifacts": 28,
+    "outputs": 55,
+    "comparisons": 40360,
+    "maximumDifference": 0,
+    "repositoryInputsUnchanged": true,
+    "reusedRebuiltSdk014": true,
+    "report": {
+      "path": "/private/tmp/ws-analyzer-wasm-regression/summary.json",
+      "sha256": "1ece4de1ddcf1f76f0515bdee96b6b5fce2dffd1326983e80d8211b207931a51"
+    }
+  },
+  "unchangedMixerModules": [
+    {
+      "path": "web/soundchip_mixer_presets.js",
+      "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "docs/vgm_analyzer/playback_mixer.js",
+      "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+      "unchangedFromHead": true
+    },
+    {
+      "path": "docs/vgm_analyzer/mixer_calibration_data.js",
+      "sha256": "3ed9a0e23a6a766f736d1bfa174be003b24bd9f83a3b7db7c3cd9431d35da0fc",
+      "unchangedFromHead": true
+    }
+  ],
+  "calibration": [
+    {
+      "path": "docs/issues/analyzer_extra_levels_03.json",
+      "captures": 18,
+      "sha256": "070f9459eaad680623d36b9eb98841675520162b120f8e05c0f8b86ecdf6a3d8",
+      "measurementsAndDefaultsUnchanged": true,
+      "sourceHashesRefreshed": true
+    },
+    {
+      "path": "docs/issues/analyzer_psg_levels_04.json",
+      "captures": 12,
+      "sha256": "b4db84f3047e22d1f2699d4d9f32fe775cc1e46aefb241c7b14c4853c7a78fc5",
+      "measurementsAndDefaultsUnchanged": true,
+      "sourceHashesRefreshed": true
+    }
+  ],
+  "unchangedWasmOutputs": [
+    {
+      "path": "ay8910_wasm.js",
+      "bytes": 12113,
+      "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+    },
+    {
+      "path": "ay8910_wasm.wasm",
+      "bytes": 13549,
+      "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+    },
+    {
+      "path": "msfa.wasm",
+      "bytes": 32084,
+      "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f"
+    },
+    {
+      "path": "gameboy_apu_wasm.js",
+      "bytes": 11497,
+      "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+    },
+    {
+      "path": "gameboy_apu_wasm.wasm",
+      "bytes": 13782,
+      "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+    },
+    {
+      "path": "huc6280_wasm.js",
+      "bytes": 13612,
+      "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f"
+    },
+    {
+      "path": "huc6280_wasm.wasm",
+      "bytes": 8935,
+      "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+    },
+    {
+      "path": "k051649_wasm.js",
+      "bytes": 11133,
+      "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7"
+    },
+    {
+      "path": "k051649_wasm.wasm",
+      "bytes": 9399,
+      "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c"
+    },
+    {
+      "path": "nesapu_wasm.js",
+      "bytes": 16041,
+      "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+    },
+    {
+      "path": "nesapu_wasm.wasm",
+      "bytes": 30410,
+      "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+    },
+    {
+      "path": "nuked_opn2_wasm.js",
+      "bytes": 32804,
+      "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+    },
+    {
+      "path": "nuked_opn2_wasm.wasm",
+      "bytes": 21071,
+      "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1"
+    },
+    {
+      "path": "okim6258_wasm.js",
+      "bytes": 14797,
+      "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+    },
+    {
+      "path": "okim6258_wasm.wasm",
+      "bytes": 20173,
+      "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+    },
+    {
+      "path": "pwm32x_wasm.js",
+      "bytes": 12398,
+      "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+    },
+    {
+      "path": "pwm32x_wasm.wasm",
+      "bytes": 10636,
+      "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c"
+    },
+    {
+      "path": "rf5c164_wasm.js",
+      "bytes": 35162,
+      "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+    },
+    {
+      "path": "rf5c164_wasm.wasm",
+      "bytes": 27583,
+      "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+    },
+    {
+      "path": "segapcm_wasm.js",
+      "bytes": 12513,
+      "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5"
+    },
+    {
+      "path": "segapcm_wasm.wasm",
+      "bytes": 13966,
+      "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f"
+    },
+    {
+      "path": "segapsg_wasm.js",
+      "bytes": 33978,
+      "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+    },
+    {
+      "path": "segapsg_wasm.wasm",
+      "bytes": 27286,
+      "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+    },
+    {
+      "path": "spc_wasm.js",
+      "bytes": 41458,
+      "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699"
+    },
+    {
+      "path": "spc_wasm.wasm",
+      "bytes": 63074,
+      "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408"
+    },
+    {
+      "path": "wonderswan_wasm.js",
+      "bytes": 11356,
+      "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+    },
+    {
+      "path": "wonderswan_wasm.wasm",
+      "bytes": 10321,
+      "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+    },
+    {
+      "path": "y8950_wasm.js",
+      "bytes": 15461,
+      "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+    },
+    {
+      "path": "y8950_wasm.wasm",
+      "bytes": 22425,
+      "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+    },
+    {
+      "path": "ym2151_wasm.js",
+      "bytes": 15584,
+      "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+    },
+    {
+      "path": "ym2151_wasm.wasm",
+      "bytes": 31322,
+      "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26"
+    },
+    {
+      "path": "ym2203_wasm.js",
+      "bytes": 35153,
+      "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e"
+    },
+    {
+      "path": "ym2203_wasm.wasm",
+      "bytes": 45306,
+      "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13"
+    },
+    {
+      "path": "ym2413_wasm.js",
+      "bytes": 32911,
+      "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+    },
+    {
+      "path": "ym2413_wasm.wasm",
+      "bytes": 33469,
+      "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04"
+    },
+    {
+      "path": "ym2608_wasm.js",
+      "bytes": 36356,
+      "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+    },
+    {
+      "path": "ym2608_wasm.wasm",
+      "bytes": 53893,
+      "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f"
+    },
+    {
+      "path": "ym2610b_wasm.js",
+      "bytes": 36296,
+      "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879"
+    },
+    {
+      "path": "ym2610b_wasm.wasm",
+      "bytes": 51172,
+      "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316"
+    },
+    {
+      "path": "ym2612_wasm.js",
+      "bytes": 34902,
+      "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+    },
+    {
+      "path": "ym2612_wasm.wasm",
+      "bytes": 40357,
+      "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+    },
+    {
+      "path": "ym3438_wasm.js",
+      "bytes": 11466,
+      "sha256": "023cf6770e2cd0b9983f7a6793d55cc21c2de47750a19458567b6ccb11c3f81e"
+    },
+    {
+      "path": "ym3438_wasm.wasm",
+      "bytes": 18778,
+      "sha256": "a6c49e22d9b5ff703a7f4da6df877e067dd494dc3e4354987e23151297b1d984"
+    },
+    {
+      "path": "ym3526_wasm.js",
+      "bytes": 14274,
+      "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+    },
+    {
+      "path": "ym3526_wasm.wasm",
+      "bytes": 18894,
+      "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11"
+    },
+    {
+      "path": "ym3812_wasm.js",
+      "bytes": 14274,
+      "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+    },
+    {
+      "path": "ym3812_wasm.wasm",
+      "bytes": 19058,
+      "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6"
+    },
+    {
+      "path": "ymf262_wasm.js",
+      "bytes": 14274,
+      "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+    },
+    {
+      "path": "ymf262_wasm.wasm",
+      "bytes": 21377,
+      "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+    },
+    {
+      "path": "ymf276_wasm.js",
+      "bytes": 11466,
+      "sha256": "76bef5969998cf45fe3d1452592b5bc74f9f1c363740a9b011f8d5462ddd096c"
+    },
+    {
+      "path": "ymf276_wasm.wasm",
+      "bytes": 18813,
+      "sha256": "c5c06bc94d0dec355c9acea7c408bb85c82b169666fdc47cc9bc7f0f6033bc01"
+    },
+    {
+      "path": "ymf278b_wasm.js",
+      "bytes": 15707,
+      "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48"
+    },
+    {
+      "path": "ymf278b_wasm.wasm",
+      "bytes": 26827,
+      "sha256": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30"
+    },
+    {
+      "path": "ymf288_wasm.js",
+      "bytes": 11466,
+      "sha256": "9e98de8c8649cce49f8a8dcb12bbd0679f0f591a0d1c0c16a1c4c82ce263dd86"
+    },
+    {
+      "path": "ymf288_wasm.wasm",
+      "bytes": 23819,
+      "sha256": "34b4211983b0af5bc7479809d949693164b34e2a94e01db1a77abe545d6f4f23"
+    }
+  ],
+  "browser": {
+    "normal": {
+      "format": "tetorica-wonderswan-analyzer-browser-1",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+      "physicalOutput": "zeroed by downstream measurement AudioWorklet",
+      "sourceFiles": {
+        "generated/nuked_opn2_wasm.js": {
+          "bytes": 32804,
+          "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+        },
+        "generated/segapsg_wasm.js": {
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+        },
+        "generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "generated/ym2612_wasm.js": {
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+        },
+        "js/audio_decode.js": {
+          "bytes": 1955,
+          "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+        },
+        "js/ay8910.js": {
+          "bytes": 6276,
+          "sha256": "8c5e331d7f560badaa55b33ce30b847d2c28c412d942514f6f386fcccbbb4e5d"
+        },
+        "js/ay8910audioengine.js": {
+          "bytes": 5482,
+          "sha256": "87dd4a6bf5ee16a0884c67e9ace29a0dfeffffe555f99e78b9ffe0167ff04748"
+        },
+        "js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "js/gameboyapu.js": {
+          "bytes": 7148,
+          "sha256": "60f4d8ac36798d4cd2ed523538c63fc433c87c616a5752b5e633a84dc7b2643a"
+        },
+        "js/gameboyapuaudioengine.js": {
+          "bytes": 5639,
+          "sha256": "8dd2dccbe3f140768eede862b4f95b9bf715148ac5b7223927873111c60b2785"
+        },
+        "js/genesisaudioengine.js": {
+          "bytes": 14827,
+          "sha256": "d3a6ca2ddbb93672d00649e158cad0ab5c5e6f33c93b4af10deff407e07cd06a"
+        },
+        "js/huc6280audioengine.js": {
+          "bytes": 6279,
+          "sha256": "6a55b18aa0791d69861997d1cedc51ce0de47198b86c15a12251f2e44b14e7ae"
+        },
+        "js/k051649.js": {
+          "bytes": 5770,
+          "sha256": "ee162222ed9751b925216264036c6e50f2c654acf201712beca6728b8846d5b1"
+        },
+        "js/k051649audioengine.js": {
+          "bytes": 4691,
+          "sha256": "380c17fda347cc18a807e9a83487cfe3e1d97faf5503eb31e50cbee1a6e744e7"
+        },
+        "js/looper.js": {
+          "bytes": 24025,
+          "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+        },
+        "js/megasynth_fx.js": {
+          "bytes": 62352,
+          "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+        },
+        "js/megasynth_recording.js": {
+          "bytes": 10125,
+          "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/megasynth.js": {
+          "bytes": 33466,
+          "sha256": "da42682a217f84af661270d079b5e627efb72cd980e471270b5760f25e1037a1"
+        },
+        "js/msm5205audioengine.js": {
+          "bytes": 3560,
+          "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5"
+        },
+        "js/msxaudioengine.js": {
+          "bytes": 8017,
+          "sha256": "54e7adacb95e01c9e5fe8a4ea2fbf2f0392463fd6fd17fffd69ec30fdfe72c82"
+        },
+        "js/multichipaudioengine.js": {
+          "bytes": 4698,
+          "sha256": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_sample.js": {
+          "bytes": 3649,
+          "sha256": "e5eb88ac93a37eacdb126164d3f7e522531a96b659afeb0301056d4bc5a4aca4"
+        },
+        "js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "js/okim6258audioengine.js": {
+          "bytes": 8204,
+          "sha256": "569a0553582fc5942886d3cb424934289c3904ccd0924e536e3c3bdf2ff9ffe3"
+        },
+        "js/okim6295audioengine.js": {
+          "bytes": 6878,
+          "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2"
+        },
+        "js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "js/playground_audio_endpoint.js": {
+          "bytes": 2002,
+          "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+        },
+        "js/playground_chip_clock.js": {
+          "bytes": 5174,
+          "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+        },
+        "js/playground_pwm_audio.js": {
+          "bytes": 2576,
+          "sha256": "d359c687c9fe747fe2a1dca3f2db7334492a91e4b93fbb3e14c3c034fd8fae4f"
+        },
+        "js/playground_rf5c164_audio.js": {
+          "bytes": 2622,
+          "sha256": "14ec87336229e7238174706864c1a8c2535b2a7caffa99e17552d83a2b283335"
+        },
+        "js/playground_rf5c164.js": {
+          "bytes": 5153,
+          "sha256": "3432eb5ce42cdf98f7d7051c708c42752590655cbfe06f26108556f4779d2239"
+        },
+        "js/pwm32x_playback.js": {
+          "bytes": 9070,
+          "sha256": "b8da69052e4f46f1f0f6ed447021e937c145211879a92518c679da36444a37ad"
+        },
+        "js/pwm32x_wasm.js": {
+          "bytes": 12449,
+          "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+        },
+        "js/pwm32x.js": {
+          "bytes": 6893,
+          "sha256": "35c6aee8ea212d4cad8a79d474be9cfe7f53cd6565c5df048add52c2a0b36473"
+        },
+        "js/rf5c164_pcm.js": {
+          "bytes": 1537,
+          "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+        },
+        "js/rf5c164.js": {
+          "bytes": 10232,
+          "sha256": "ea396fdbbdf11e608ad49b69cde90b3918d660b11635b54f53161051ea4e24e3"
+        },
+        "js/rf5c164synth.js": {
+          "bytes": 4836,
+          "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+        },
+        "js/s98_file.js": {
+          "bytes": 5878,
+          "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+        },
+        "js/segapcm.js": {
+          "bytes": 8604,
+          "sha256": "8a3c88358a74592c737b4545368c06c806e04fe7670d246ca2c3bf9e4b5401ef"
+        },
+        "js/segapcmaudioengine.js": {
+          "bytes": 6171,
+          "sha256": "22119d1c63b99df4f0e0f4eb83fa057274cb8fc1fd9a5a9b14b919ffd153a80c"
+        },
+        "js/segapsg_api.js": {
+          "bytes": 1086,
+          "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+        },
+        "js/segapsg.js": {
+          "bytes": 10157,
+          "sha256": "3cd98a25012a2e330fbaacd0db1635c18b814e0a4faa49d680fe97a57a5afbfe"
+        },
+        "js/segapsgsynth.js": {
+          "bytes": 10444,
+          "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+        },
+        "js/snes_brr.js": {
+          "bytes": 11140,
+          "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+        },
+        "js/soundchip_mixer_presets.js": {
+          "bytes": 2986,
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+        },
+        "js/soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/spc_file.js": {
+          "bytes": 8896,
+          "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+        },
+        "js/tetorica_audio_runtime.js": {
+          "bytes": 35718,
+          "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+        },
+        "js/tfi.js": {
+          "bytes": 9704,
+          "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+        },
+        "js/vgi.js": {
+          "bytes": 4366,
+          "sha256": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "js/vgm-output-worklet.js": {
+          "bytes": 8316,
+          "sha256": "3c4f6b55ee88b4da9e85ccc536fba2f0e159c8e6d02422faf8fa5a63e229462f"
+        },
+        "js/vgmplayer.js": {
+          "bytes": 24008,
+          "sha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33"
+        },
+        "js/wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "js/wonderswan.js": {
+          "bytes": 7520,
+          "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+        },
+        "js/wonderswanaudioengine.js": {
+          "bytes": 5844,
+          "sha256": "8e291088c98356b191a98ffbddc538fce3b9f951654b5486fd33f18f6569d3d3"
+        },
+        "js/y8950.js": {
+          "bytes": 11098,
+          "sha256": "0bf3ccdcb08391fe2308736d2891918505c46735f3b4e11a308caf864c217d7f"
+        },
+        "js/y8950audioengine.js": {
+          "bytes": 7971,
+          "sha256": "7aa22d6c12ac699ef0b55772bb7b18b813f2f9713889bbc9626365e44dc67383"
+        },
+        "js/ym2151.js": {
+          "bytes": 11523,
+          "sha256": "ff525423f5bd4e6cb3062c780530115caa1bfcfbd1c6fae5ddf091527b8cc871"
+        },
+        "js/ym2151audioengine.js": {
+          "bytes": 11450,
+          "sha256": "00af972232330c156239811ed9255bba9122bfa6bb20dfb8f95a498f84358ba4"
+        },
+        "js/ym2203.js": {
+          "bytes": 12769,
+          "sha256": "e3676fb1018b18f8b794865874fcef156c4224843d63e58e6fa6fa983afc06dc"
+        },
+        "js/ym2203audioengine.js": {
+          "bytes": 8828,
+          "sha256": "806e407e6ae1f467ea0b7cb3335bf5a2dc5c0fb0eafb8efe2700bbd4bfd0fe9f"
+        },
+        "js/ym2413.js": {
+          "bytes": 9517,
+          "sha256": "450f5d8c6bc1628786764580add007966cfbf96b2e5766fe2aed9453f062bb18"
+        },
+        "js/ym2413audioengine.js": {
+          "bytes": 7166,
+          "sha256": "7b44f8c7f28be7e5f7eb878aee5c3a5e251128d7df443984df461d85283cada6"
+        },
+        "js/ym2608.js": {
+          "bytes": 15651,
+          "sha256": "686c794f54f6262e2182bb0d2ac77e0691640549f40d96b05b20bff6309a8c12"
+        },
+        "js/ym2608audioengine.js": {
+          "bytes": 9972,
+          "sha256": "303faaa082b149f401ac24782b9fa181063076b1a88d84f2dc365eeee8714cf5"
+        },
+        "js/ym2610b.js": {
+          "bytes": 11188,
+          "sha256": "94ef9b2a1cd61ad1b0077c5f0edf86d9225dd93384e35860131c0be0ebd4c400"
+        },
+        "js/ym2610baudioengine.js": {
+          "bytes": 7793,
+          "sha256": "adcb6e2add9ee950fea2459ae18744e5ee0560a846cf9aadd480c5b73812df60"
+        },
+        "js/ym2612_dac.js": {
+          "bytes": 7251,
+          "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+        },
+        "js/ym2612.js": {
+          "bytes": 22574,
+          "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+        },
+        "js/ym2612synth.js": {
+          "bytes": 38602,
+          "sha256": "275f949205b867dddeac047e54991bc49a6e5c2062dc10dd6646184ed69d1b9c"
+        },
+        "js/ym2612vgm.js": {
+          "bytes": 115343,
+          "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+        },
+        "js/ym3526.js": {
+          "bytes": 9490,
+          "sha256": "2a34ac4217ac70f82b45d6807a33f49397f7cc1a3ebc2b047b458030eeefcec5"
+        },
+        "js/ym3526audioengine.js": {
+          "bytes": 7345,
+          "sha256": "dfb5db9db4df74854245338184807711f186bd381edd20876f69c8effbf42f6c"
+        },
+        "js/ym3812.js": {
+          "bytes": 9490,
+          "sha256": "7fb22258a5a5ec0857b5aa4b0d19524474c15160434b2aaf976d4537944f9075"
+        },
+        "js/ym3812audioengine.js": {
+          "bytes": 7345,
+          "sha256": "3885d9c10e7a9cb733c7fe32b01ad6366318732f737653a52e7ac5fa411d4f32"
+        },
+        "js/ymf262.js": {
+          "bytes": 10324,
+          "sha256": "41d9e00eb40972485e8f3273d61da8e221bb9465bf2bc4f07dcb7b6619e5da68"
+        },
+        "js/ymf262audioengine.js": {
+          "bytes": 7658,
+          "sha256": "dfd0f682601455fdea7ea4929cf3cd53cb4ec20cdccb7db99bbb2b0abc45c260"
+        },
+        "js/ymf278b.js": {
+          "bytes": 11579,
+          "sha256": "4945d261d1428970f0a77b6e32d5d98d684b7d62fe559518d8853e83162ebbb0"
+        },
+        "js/ymf278baudioengine.js": {
+          "bytes": 8621,
+          "sha256": "29491a7c325e0d05e72beb0e4a2a2590a6ed43644e5fa1b83435786fe3a72ac2"
+        },
+        "playground/playground_operator_keyboard.js": {
+          "bytes": 21207,
+          "sha256": "6a86d9b8dd336662b86a5846eb93b02bf23053dda6e4cff5a39285471f14b636"
+        },
+        "playground/playground_operator_tab.js": {
+          "bytes": 31863,
+          "sha256": "fd1cb186f995bf8093a927f3ff6515d42745f4e037a746315bad7737bbd5680e"
+        },
+        "playground/playground_operator_visual.js": {
+          "bytes": 158,
+          "sha256": "aa98e3e1f34d6d8cefe11c053bb26902daedb7130c48bfaf242ea8bf76dfffe8"
+        },
+        "playground/playground_tfi_editor.js": {
+          "bytes": 5634,
+          "sha256": "1bea9f9914f83ae93432c2a4a2e2eb3c969754715a7dc41662a7ed94a7b4273b"
+        },
+        "playground/playground_vgm_presets.js": {
+          "bytes": 2815,
+          "sha256": "5cde95ca9dd3a367d072411a5ad47ef8e872af028177569fec61ce78ddfb94fa"
+        },
+        "sw-register.js": {
+          "bytes": 1409,
+          "sha256": "ed68ef1e216da9bbfe4b8a9a8706bc76b6ba4c7306f6e0d30f3d14f1b2b0e22c"
+        },
+        "synth/synth_controls.js": {
+          "bytes": 10018,
+          "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+        },
+        "synth/synth_envelope.js": {
+          "bytes": 13551,
+          "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 9982,
+          "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+        },
+        "synth/synth_operator_envelope.js": {
+          "bytes": 9649,
+          "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+        },
+        "vgm_analyzer.webmanifest": {
+          "bytes": 451,
+          "sha256": "c567f6bb2e69441950767277fb7246549857a84d13c81c941e84008e089dab23"
+        },
+        "vgm_analyzer/analyzer_core.js": {
+          "bytes": 9668,
+          "sha256": "2c7bb76c14deec0eb833d7de6a54b316bac480f8d015b9ac71d031df8c4bd1db"
+        },
+        "vgm_analyzer/analyzer_theme.css": {
+          "bytes": 15774,
+          "sha256": "42d4ac870aa932afd34186126cdd562bafb0849cc14cf37b7e0c5430b70c6e39"
+        },
+        "vgm_analyzer/audio_preferences.js": {
+          "bytes": 2988,
+          "sha256": "4892291d9036ca44d6d5e3810698b67a98dd34011b250205ba1729b4c82b6bcd"
+        },
+        "vgm_analyzer/ay8910_monitor.js": {
+          "bytes": 2811,
+          "sha256": "758944b97710d653e9eeeb4abfd0fdbea32307cc5d8064f1e6faac88eb85e721"
+        },
+        "vgm_analyzer/command_editor.js": {
+          "bytes": 8295,
+          "sha256": "52afddf28769e6cffe561a5a807c6a7f18e136a7bf88c3b57eadb9dd9ae513fc"
+        },
+        "vgm_analyzer/dac_samples.js": {
+          "bytes": 1924,
+          "sha256": "282043a4342058fae916b1f0f6a13ddc794e32239af9c7f51e026056e33b8697"
+        },
+        "vgm_analyzer/desktop_interface.js": {
+          "bytes": 505,
+          "sha256": "ea9ef9390ccef87e26a6dc7bdc986a582dfc77b0f1ccac2eb7f0b003a540cc75"
+        },
+        "vgm_analyzer/export_tempo.js": {
+          "bytes": 1002,
+          "sha256": "d8935af29483f40ea64eb60af85b8d52a903fc1c09ccabecfd284d31c265436d"
+        },
+        "vgm_analyzer/fm_snapshot.js": {
+          "bytes": 2872,
+          "sha256": "56158cff49ed5f99c401694d7cc7037fdf15561e4a9a53abd8588d007660658e"
+        },
+        "vgm_analyzer/fretboard_all.js": {
+          "bytes": 4125,
+          "sha256": "2038728738aacfc082efff2c86e70cfa32d0391af5aaf9886440b74127f7454f"
+        },
+        "vgm_analyzer/fretboard.js": {
+          "bytes": 13046,
+          "sha256": "cf9628fc08d8ba34b1e7cf85fd5f61c50031a7e3eea312f008572acc4a5d13fa"
+        },
+        "vgm_analyzer/gameboy_notes.js": {
+          "bytes": 4364,
+          "sha256": "04939cc3e783a3f64b318d2732b607f03d9945132299116660794a9ad360cb70"
+        },
+        "vgm_analyzer/gameboy_voice_view.js": {
+          "bytes": 4410,
+          "sha256": "9f2b2ae8efc568901225b77351b9f09283f843c4f7077c6c90c34e278dd555e9"
+        },
+        "vgm_analyzer/gameboy_voices.js": {
+          "bytes": 4702,
+          "sha256": "0769eaaa8150529c9a2e76d50e7857e519737da9c0a552e9f2a63eb0f165cb8a"
+        },
+        "vgm_analyzer/gameboy_wave_view.js": {
+          "bytes": 2739,
+          "sha256": "3ee3e36c5e7e0cb62770e1bdb993d05d819e404ca9561773ae8e534919e477f1"
+        },
+        "vgm_analyzer/gameboy_waves.js": {
+          "bytes": 2475,
+          "sha256": "0ed850aab97071d70a9285640d5886ba28f181d45ef9ba6cf93c1937ca456dc2"
+        },
+        "vgm_analyzer/huc6280_notes.js": {
+          "bytes": 4024,
+          "sha256": "d6d4417a7baeafd7dff4b407cf1602afaec678210131410b6504a1eded1614e6"
+        },
+        "vgm_analyzer/index.html": {
+          "bytes": 60564,
+          "sha256": "45a9496988194588d81337fe0daf1ade3f4a0ac9863d4bde5f4f3697292a051b"
+        },
+        "vgm_analyzer/mdx_export.js": {
+          "bytes": 5300,
+          "sha256": "6ef643255c3bb7373490cca2811793256b927d4ae2bd8612c51351f80f24e4e7"
+        },
+        "vgm_analyzer/mgsdrv_mml.js": {
+          "bytes": 8662,
+          "sha256": "b5b697a0a31e3b6de2e45dd8cdaaba3067e0c4252ed2d0f6e127e5f54436d4a3"
+        },
+        "vgm_analyzer/mixer_calibration_data.js": {
+          "bytes": 631,
+          "sha256": "3ed9a0e23a6a766f736d1bfa174be003b24bd9f83a3b7db7c3cd9431d35da0fc"
+        },
+        "vgm_analyzer/mixer_defaults.js": {
+          "bytes": 1948,
+          "sha256": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28"
+        },
+        "vgm_analyzer/mixer_ui.js": {
+          "bytes": 3726,
+          "sha256": "c4c8d3ff4e3a176fb6c26be5b68d16d63ddf11c61b9e23eebad427bad40171dd"
+        },
+        "vgm_analyzer/msx_mutes.js": {
+          "bytes": 2061,
+          "sha256": "5df0f6d0e77337efd4fd58616ae842830eb2cb45d474edf3d6bad5032bc5a307"
+        },
+        "vgm_analyzer/msx_notes.js": {
+          "bytes": 6223,
+          "sha256": "6b95a40cb99568a9301ece3c802f02849699875b0dffded97be46d01131734eb"
+        },
+        "vgm_analyzer/music_sheet.js": {
+          "bytes": 6602,
+          "sha256": "8174477eb8a66ea3a051b7ff428d5df736998e00453965d201a29e1dffea1066"
+        },
+        "vgm_analyzer/nes_notes.js": {
+          "bytes": 3343,
+          "sha256": "6caa3c59e0253e21af6d500a7ffefababe5b46212585f80982da42430f420b94"
+        },
+        "vgm_analyzer/note_timeline_view.js": {
+          "bytes": 9901,
+          "sha256": "eb1ffd28a448f2fd3ae9b3cae46eb00b116a68f7d29d82ba5bbd36b739d07662"
+        },
+        "vgm_analyzer/note_timeline.js": {
+          "bytes": 1700,
+          "sha256": "91def311626b5f11767c285ad71ce82d1924d563bf4a1737e0f3aa1d9a12799d"
+        },
+        "vgm_analyzer/noteish_dom.js": {
+          "bytes": 1195,
+          "sha256": "732a07d7dece06de4463cbf0a719dfe843a75ee26b5d88d4cb6a3cb54ea980eb"
+        },
+        "vgm_analyzer/oki6258_samples.js": {
+          "bytes": 2871,
+          "sha256": "d0ba906cc3f880a083c4394fa575e1e2aa935fa1e1de314267f69dc42236517d"
+        },
+        "vgm_analyzer/opl_monitor.js": {
+          "bytes": 1926,
+          "sha256": "9e8fdd142ff3ca6c603dca965c2ac7c5e1399a5025fb63eeeddea3a71c09a61a"
+        },
+        "vgm_analyzer/opl_notes.js": {
+          "bytes": 4198,
+          "sha256": "50711f827604e4718dc6efb5e59c98da7ec6cc56d3301c90f6bddc540e5c82d8"
+        },
+        "vgm_analyzer/opm_export.js": {
+          "bytes": 4747,
+          "sha256": "3ea138b9f8c6d4d51f99c0ee500c7a79564ba46173f13c873e956b909369345b"
+        },
+        "vgm_analyzer/opm_info.js": {
+          "bytes": 6649,
+          "sha256": "00537f853696e0ce5f1959c72f192a24d5d5054c3b2ce11257b9287f9a9e2a58"
+        },
+        "vgm_analyzer/opm_mml.js": {
+          "bytes": 3580,
+          "sha256": "50264f6986acfbe1c673158214a94e521000295a37c403a029f77623e4599b56"
+        },
+        "vgm_analyzer/opm_monitor.js": {
+          "bytes": 7175,
+          "sha256": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7"
+        },
+        "vgm_analyzer/opm_notes.js": {
+          "bytes": 3912,
+          "sha256": "bd1f27abd3b1ba84f3211c899009a2928504600e93132c8a2c7a175040cf6991"
+        },
+        "vgm_analyzer/opm_tfi.js": {
+          "bytes": 3081,
+          "sha256": "40270e2654ee43db0897a89bfbefb146cec8413313ab96acb5a24b798c91798c"
+        },
+        "vgm_analyzer/playback_core.js": {
+          "bytes": 26389,
+          "sha256": "d57e5a644434e8825c4b345e7bd3cb5499df70647182fad64b8fd5744ed8bbf1"
+        },
+        "vgm_analyzer/playback_mixer.js": {
+          "bytes": 4433,
+          "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd"
+        },
+        "vgm_analyzer/psg_monitor.js": {
+          "bytes": 3454,
+          "sha256": "092bc0fdfea5c48eea8c1a016a772e14389cda02c7345d6eed2ede31d8c75e1f"
+        },
+        "vgm_analyzer/pwm_samples.js": {
+          "bytes": 3734,
+          "sha256": "a9406ad97828779beec4231ad5824bba4866c1a84f4f3b23265cee7a9e51f4de"
+        },
+        "vgm_analyzer/rf5c164_monitor.js": {
+          "bytes": 2542,
+          "sha256": "188d00f67df1ac1ed46600e396c317d8e2a4c1311274723b6c392fc9f858d91f"
+        },
+        "vgm_analyzer/rf5c164_samples.js": {
+          "bytes": 3728,
+          "sha256": "88721185dade0c3ed70f2b7bf5441798eb1149e8c1094d7472505885ad220211"
+        },
+        "vgm_analyzer/sample_core.js": {
+          "bytes": 17063,
+          "sha256": "413d3796d6c4a56e3a27b8f8e51a2c6e7cde4de79216c13527c02393fc3dfba0"
+        },
+        "vgm_analyzer/sample_explorer.js": {
+          "bytes": 11440,
+          "sha256": "ec57fbac40a3bd1c4c81b9210192b784e2974b966bf97759efe1430d7971747c"
+        },
+        "vgm_analyzer/sample_render.js": {
+          "bytes": 6718,
+          "sha256": "a87f82e35aa3174709300079fdc116d544f7a398286984a692d016f06d439103"
+        },
+        "vgm_analyzer/sbi_export.js": {
+          "bytes": 6313,
+          "sha256": "183c267ce2b54ac54fb560fe0428ef56d12e718bad5cc796b68bda57bc511050"
+        },
+        "vgm_analyzer/sbi_info.js": {
+          "bytes": 8736,
+          "sha256": "434a311ca8469d663bb1ccb8856c2093ca47a3723a93d14d292150cdf218e140"
+        },
+        "vgm_analyzer/sbi_ui.js": {
+          "bytes": 2796,
+          "sha256": "945aa193300573b14711321059b77d735222b417a9f021587a824826a3e353cd"
+        },
+        "vgm_analyzer/scc_notes.js": {
+          "bytes": 1930,
+          "sha256": "150d78f6dd46e03887ab498d75aa1e84ff4310d6d66ffd52b8c7c9b79f535e08"
+        },
+        "vgm_analyzer/score_group_ui.js": {
+          "bytes": 2934,
+          "sha256": "49c137b9647bf340154e3ecb081e935133c53b702e5736decbc56448c7d154ce"
+        },
+        "vgm_analyzer/score_groups.js": {
+          "bytes": 2975,
+          "sha256": "bee506765793d9a6d94a686386932091ae0ce17958826897ad3d5a3abdd9c430"
+        },
+        "vgm_analyzer/seek_playback.js": {
+          "bytes": 1837,
+          "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+        },
+        "vgm_analyzer/segapcm_samples.js": {
+          "bytes": 6264,
+          "sha256": "c2bd8624e44ea28618e04dfd5d327089377bad8032013ec8eed627338cd4505b"
+        },
+        "vgm_analyzer/snes_notes.js": {
+          "bytes": 12923,
+          "sha256": "6630cbefa5ac2d62d03812915814e315fd538174bd8ccb4565ca497ef6eaa425"
+        },
+        "vgm_analyzer/snes_score.js": {
+          "bytes": 1746,
+          "sha256": "81f6f76d5e372db0e373993dfc1a0a6bb3070f6846bea0e7c3fdce1642f8321f"
+        },
+        "vgm_analyzer/source_mutes.js": {
+          "bytes": 2145,
+          "sha256": "68e8471f2b11b28c027b0da0ff4d9d60d623cae6a3bdc68ae14e44058e8f2544"
+        },
+        "vgm_analyzer/spc_analyzer.js": {
+          "bytes": 21976,
+          "sha256": "160207c4c8b1bbbcb8daa3c17539ce88ce411e7fc43aaccd135a3d569d3efa36"
+        },
+        "vgm_analyzer/spc_brr_candidates.js": {
+          "bytes": 5300,
+          "sha256": "fc32ce7d70b63a34e36665e53897ea976e0323615ab3ebc84ad24a62f44deedd"
+        },
+        "vgm_analyzer/spc_noteish.js": {
+          "bytes": 15837,
+          "sha256": "9eb5803179f112a41fb0d9692085f8dbfb559a3dbe39f7ccc34fa14af4fd164e"
+        },
+        "vgm_analyzer/stored_zip.js": {
+          "bytes": 4446,
+          "sha256": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968"
+        },
+        "vgm_analyzer/tfi_archive.js": {
+          "bytes": 4066,
+          "sha256": "1c0b481559711c6f8068ef406fc0529218e29d079777b0ab7bd32335bae0e3ea"
+        },
+        "vgm_analyzer/tfi_extract.js": {
+          "bytes": 6520,
+          "sha256": "28526c6447156f0a6a4682ddbfdfcfc295f0dec6203b738d4ac0fdf884516963"
+        },
+        "vgm_analyzer/tfi_info.css": {
+          "bytes": 13888,
+          "sha256": "d2ec7df313ec813184e888887227e2e9dc34df1e2fb0d25c662c8313d176bf9e"
+        },
+        "vgm_analyzer/tfi_info.js": {
+          "bytes": 4418,
+          "sha256": "d624dbc2367b0dfd8e9207b4c670167c1e7dd07bd1506f12bf528953c2133b00"
+        },
+        "vgm_analyzer/tone_notes.js": {
+          "bytes": 3717,
+          "sha256": "402275a4c4d775bece4760488ead7173d04e57b1477181ed83af914321037157"
+        },
+        "vgm_analyzer/vgm_analyzer.js": {
+          "bytes": 211925,
+          "sha256": "6d1a20b661f96dd3589a6efb0bf5d8a332ee8b3871a7e0c5a887773177c22f4a"
+        },
+        "vgm_analyzer/vgm_json.js": {
+          "bytes": 3479,
+          "sha256": "316c8aa6fbeee8ce0fbaafa258fb65d51fe8ad2fdee004e15cb162bdc5741827"
+        },
+        "vgm_analyzer/vgm_lilypond.js": {
+          "bytes": 10038,
+          "sha256": "77ba1b5378c648189c8ef36cc69976212ae2c1c060f75771a256bd833c1faaa2"
+        },
+        "vgm_analyzer/vgm_midi.js": {
+          "bytes": 13375,
+          "sha256": "3468109578df997b01bf6df5e37b2832043c2e631c50f1464e3231db8546f85e"
+        },
+        "vgm_analyzer/vgm_mml_music.js": {
+          "bytes": 8057,
+          "sha256": "2a99983d938d38be2f72ef5d5ab77123318d4dd1a23481902a17f0ecd959bed2"
+        },
+        "vgm_analyzer/vgm_mml.js": {
+          "bytes": 9175,
+          "sha256": "7a0dc7d60398139aa1f589ec274c80a6ea69876f870bedde0f3570e03e507c51"
+        },
+        "vgm_analyzer/vgm_musicxml.js": {
+          "bytes": 5447,
+          "sha256": "68e91c6ca3cfaf4b1cc415990a1f98627826837d3838aced6513c76871b867aa"
+        },
+        "vgm_analyzer/vgm_notes.js": {
+          "bytes": 8179,
+          "sha256": "d9f4afb7738b236def6b670d62b1d86129711b7e28884b166f66901dc7408616"
+        },
+        "vgm_analyzer/vgm_wav.js": {
+          "bytes": 4415,
+          "sha256": "63556dfb8b75b3ba131a2663eb201c7c442139acad1ee26d4893be3ca7c05aad"
+        },
+        "vgm_analyzer/wonderswan_notes.js": {
+          "bytes": 3432,
+          "sha256": "ec9d6fed5e9456ce823c2ee136e5f48bb9cb9829170d5d86b2aecea20d0db12d"
+        },
+        "vgm_analyzer/ym2413_monitor.js": {
+          "bytes": 3550,
+          "sha256": "309261dd9a98af20dbbd0f84281651f4aa4db42ec219d1ec6b925f453650fd12"
+        },
+        "vgm_analyzer/ym2413_notes.js": {
+          "bytes": 2326,
+          "sha256": "34cd547e6e4d4ce176774b96dbd17d304f7fa3a105a8d9bdd7d066f939ff39e9"
+        },
+        "vgm_analyzer/ymf262_notes.js": {
+          "bytes": 3988,
+          "sha256": "3f38a56a8496feebe056607ac9c1c006da92fa35a5ee56084276c60d769da9dd"
+        },
+        "vgm_analyzer/ymf278b_samples.js": {
+          "bytes": 4483,
+          "sha256": "f8afd3d93515c330e9ace1ab212c9dc33778ac6d01bd74fa7cffbe7f296f3eed"
+        }
+      },
+      "testSources": {
+        "scripts/check_wonderswan_analyzer_browser.cjs": "37e72f68362e92981bcac303a40677af978b033cef74e6b332c74e260764eaeb",
+        "test/helpers/wonderswan_vgm_fixture.mjs": "f4c04f084c72ad7d665fe489fa2b0d7f89a1c7fefcca9a2ce263dcf4f52d8103"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "scenes": [
+            {
+              "channel": 1,
+              "audible": {
+                "count": 16128,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00035422188895089287,
+                "acRms": 0.10986271020628423
+              },
+              "muted": {
+                "count": 13312,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12544,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.00014013173628826532,
+                "acRms": 0.10986319188023387
+              }
+            },
+            {
+              "channel": 2,
+              "audible": {
+                "count": 12288,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0005364418029785156,
+                "acRms": 0.1098619715698231
+              },
+              "muted": {
+                "count": 12544,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12032,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0004382843666888298,
+                "acRms": 0.10986240700908805
+              }
+            },
+            {
+              "channel": 3,
+              "audible": {
+                "count": 13056,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0010434318991268381,
+                "acRms": 0.10985832611544964
+              },
+              "muted": {
+                "count": 12288,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12544,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00045542814293686223,
+                "acRms": 0.10986233727817382
+              }
+            },
+            {
+              "channel": 4,
+              "audible": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0010986328125,
+                "acRms": 0.10985778794860153
+              },
+              "muted": {
+                "count": 12288,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12288,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0006794929504394531,
+                "acRms": 0.10986117993334545
+              }
+            }
+          ],
+          "modes": [
+            {
+              "mode": "noise",
+              "pcm": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.0076904296875,
+                "acRms": 0.10959378567345057
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Noise",
+                  "reason": "Noise"
+                }
+              ]
+            },
+            {
+              "mode": "sweep",
+              "pcm": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.0004119873046875,
+                "acRms": 0.10986250877108795
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Sweep",
+                  "reason": "Sweep"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            },
+            {
+              "mode": "voice",
+              "pcm": {
+                "count": 13824,
+                "peak": 0.09423828125,
+                "bad": 0,
+                "mean": 0.00037977430555555556,
+                "acRms": 0.09374993720660833
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Voice PCM",
+                  "reason": "Voice PCM"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            }
+          ],
+          "transport": {
+            "pause": true,
+            "resume": true,
+            "seekSamples": 88200,
+            "stopReplay": true
+          },
+          "pageErrors": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "scenes": [
+            {
+              "channel": 1,
+              "audible": {
+                "count": 12288,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0012159347534179688,
+                "acRms": 0.10985655223832592
+              },
+              "muted": {
+                "count": 13056,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12544,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.00010509880221619898,
+                "acRms": 0.1098632309795155
+              }
+            },
+            {
+              "channel": 2,
+              "audible": {
+                "count": 13568,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.00016194469523879716,
+                "acRms": 0.10986316189211143
+              },
+              "muted": {
+                "count": 12544,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 13312,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 3.3011803260216344e-05,
+                "acRms": 0.10986327629029387
+              }
+            },
+            {
+              "channel": 3,
+              "audible": {
+                "count": 12032,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0011322346139461437,
+                "acRms": 0.10985744677442483
+              },
+              "muted": {
+                "count": 12288,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.000858306884765625,
+                "acRms": 0.10985992843757074
+              }
+            },
+            {
+              "channel": 4,
+              "audible": {
+                "count": 12288,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0011444091796875,
+                "acRms": 0.10985732062382574
+              },
+              "muted": {
+                "count": 12800,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12288,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0006079673767089844,
+                "acRms": 0.10986159903572067
+              }
+            }
+          ],
+          "modes": [
+            {
+              "mode": "noise",
+              "pcm": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.0076904296875,
+                "acRms": 0.10959378567345057
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Noise",
+                  "reason": "Noise"
+                }
+              ]
+            },
+            {
+              "mode": "sweep",
+              "pcm": {
+                "count": 13056,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00013463637408088236,
+                "acRms": 0.10986319875219079
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Sweep",
+                  "reason": "Sweep"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            },
+            {
+              "mode": "voice",
+              "pcm": {
+                "count": 13824,
+                "peak": 0.09423828125,
+                "bad": 0,
+                "mean": 0.00016276041666666666,
+                "acRms": 0.09374943485796096
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Voice PCM",
+                  "reason": "Voice PCM"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            }
+          ],
+          "transport": {
+            "pause": true,
+            "resume": true,
+            "seekSamples": 88200,
+            "stopReplay": true
+          },
+          "pageErrors": []
+        }
+      ]
+    },
+    "flat": {
+      "format": "tetorica-wonderswan-analyzer-browser-1",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_vgm_analyzer_wonderswan-dev",
+      "physicalOutput": "zeroed by downstream measurement AudioWorklet",
+      "sourceFiles": {
+        "analyzer_core.js": {
+          "bytes": 9665,
+          "sha256": "e705c567217d96d954eea1a4f96537ec2c652336b2745421924c8b53447f23bd"
+        },
+        "analyzer_theme.css": {
+          "bytes": 15774,
+          "sha256": "42d4ac870aa932afd34186126cdd562bafb0849cc14cf37b7e0c5430b70c6e39"
+        },
+        "audio_preferences.js": {
+          "bytes": 2988,
+          "sha256": "4892291d9036ca44d6d5e3810698b67a98dd34011b250205ba1729b4c82b6bcd"
+        },
+        "ay8910_monitor.js": {
+          "bytes": 2811,
+          "sha256": "758944b97710d653e9eeeb4abfd0fdbea32307cc5d8064f1e6faac88eb85e721"
+        },
+        "command_editor.js": {
+          "bytes": 8294,
+          "sha256": "270d1e58e51b9d5e4a54959bbeb16dd935c5e1ac12da280be4b0b95751c86af4"
+        },
+        "dac_samples.js": {
+          "bytes": 1924,
+          "sha256": "282043a4342058fae916b1f0f6a13ddc794e32239af9c7f51e026056e33b8697"
+        },
+        "desktop_interface.js": {
+          "bytes": 505,
+          "sha256": "ea9ef9390ccef87e26a6dc7bdc986a582dfc77b0f1ccac2eb7f0b003a540cc75"
+        },
+        "export_tempo.js": {
+          "bytes": 1002,
+          "sha256": "d8935af29483f40ea64eb60af85b8d52a903fc1c09ccabecfd284d31c265436d"
+        },
+        "fm_snapshot.js": {
+          "bytes": 2871,
+          "sha256": "8edcd46571dbf1276d39fd3790f6da968b8bd0009d34ebe537b4af677254c6c6"
+        },
+        "fretboard_all.js": {
+          "bytes": 4125,
+          "sha256": "2038728738aacfc082efff2c86e70cfa32d0391af5aaf9886440b74127f7454f"
+        },
+        "fretboard.js": {
+          "bytes": 13046,
+          "sha256": "cf9628fc08d8ba34b1e7cf85fd5f61c50031a7e3eea312f008572acc4a5d13fa"
+        },
+        "gameboy_notes.js": {
+          "bytes": 4363,
+          "sha256": "fccbc3803b378d8403f673df721a62f4a6729a53e060caa97456bffd21854618"
+        },
+        "gameboy_voice_view.js": {
+          "bytes": 4410,
+          "sha256": "9f2b2ae8efc568901225b77351b9f09283f843c4f7077c6c90c34e278dd555e9"
+        },
+        "gameboy_voices.js": {
+          "bytes": 4702,
+          "sha256": "0769eaaa8150529c9a2e76d50e7857e519737da9c0a552e9f2a63eb0f165cb8a"
+        },
+        "gameboy_wave_view.js": {
+          "bytes": 2739,
+          "sha256": "3ee3e36c5e7e0cb62770e1bdb993d05d819e404ca9561773ae8e534919e477f1"
+        },
+        "gameboy_waves.js": {
+          "bytes": 2475,
+          "sha256": "0ed850aab97071d70a9285640d5886ba28f181d45ef9ba6cf93c1937ca456dc2"
+        },
+        "generated/nuked_opn2_wasm.js": {
+          "bytes": 32804,
+          "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+        },
+        "generated/segapsg_wasm.js": {
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+        },
+        "generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "generated/ym2612_wasm.js": {
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+        },
+        "huc6280_notes.js": {
+          "bytes": 4023,
+          "sha256": "c7e675bcc39b605b5712cef78e7094ee25aeb9d397817a1af8a02714913f54d6"
+        },
+        "index.html": {
+          "bytes": 60338,
+          "sha256": "568ab06fc4a5a7519ff67a73af6683b3965e550c45024437b72d94fb571b0708"
+        },
+        "js/audio_decode.js": {
+          "bytes": 1955,
+          "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+        },
+        "js/ay8910.js": {
+          "bytes": 6276,
+          "sha256": "8c5e331d7f560badaa55b33ce30b847d2c28c412d942514f6f386fcccbbb4e5d"
+        },
+        "js/ay8910audioengine.js": {
+          "bytes": 5482,
+          "sha256": "87dd4a6bf5ee16a0884c67e9ace29a0dfeffffe555f99e78b9ffe0167ff04748"
+        },
+        "js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "js/gameboyapu.js": {
+          "bytes": 7148,
+          "sha256": "60f4d8ac36798d4cd2ed523538c63fc433c87c616a5752b5e633a84dc7b2643a"
+        },
+        "js/gameboyapuaudioengine.js": {
+          "bytes": 5639,
+          "sha256": "8dd2dccbe3f140768eede862b4f95b9bf715148ac5b7223927873111c60b2785"
+        },
+        "js/genesisaudioengine.js": {
+          "bytes": 14827,
+          "sha256": "d3a6ca2ddbb93672d00649e158cad0ab5c5e6f33c93b4af10deff407e07cd06a"
+        },
+        "js/huc6280audioengine.js": {
+          "bytes": 6279,
+          "sha256": "6a55b18aa0791d69861997d1cedc51ce0de47198b86c15a12251f2e44b14e7ae"
+        },
+        "js/k051649.js": {
+          "bytes": 5770,
+          "sha256": "ee162222ed9751b925216264036c6e50f2c654acf201712beca6728b8846d5b1"
+        },
+        "js/k051649audioengine.js": {
+          "bytes": 4691,
+          "sha256": "380c17fda347cc18a807e9a83487cfe3e1d97faf5503eb31e50cbee1a6e744e7"
+        },
+        "js/looper.js": {
+          "bytes": 24025,
+          "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+        },
+        "js/megasynth_fx.js": {
+          "bytes": 62352,
+          "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+        },
+        "js/megasynth_recording.js": {
+          "bytes": 10125,
+          "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/megasynth.js": {
+          "bytes": 33466,
+          "sha256": "da42682a217f84af661270d079b5e627efb72cd980e471270b5760f25e1037a1"
+        },
+        "js/msm5205audioengine.js": {
+          "bytes": 3560,
+          "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5"
+        },
+        "js/msxaudioengine.js": {
+          "bytes": 8017,
+          "sha256": "54e7adacb95e01c9e5fe8a4ea2fbf2f0392463fd6fd17fffd69ec30fdfe72c82"
+        },
+        "js/multichipaudioengine.js": {
+          "bytes": 4698,
+          "sha256": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_sample.js": {
+          "bytes": 3649,
+          "sha256": "e5eb88ac93a37eacdb126164d3f7e522531a96b659afeb0301056d4bc5a4aca4"
+        },
+        "js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "js/okim6258audioengine.js": {
+          "bytes": 8204,
+          "sha256": "569a0553582fc5942886d3cb424934289c3904ccd0924e536e3c3bdf2ff9ffe3"
+        },
+        "js/okim6295audioengine.js": {
+          "bytes": 6878,
+          "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2"
+        },
+        "js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "js/playground_audio_endpoint.js": {
+          "bytes": 2002,
+          "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+        },
+        "js/playground_chip_clock.js": {
+          "bytes": 5174,
+          "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+        },
+        "js/playground_pwm_audio.js": {
+          "bytes": 2576,
+          "sha256": "d359c687c9fe747fe2a1dca3f2db7334492a91e4b93fbb3e14c3c034fd8fae4f"
+        },
+        "js/playground_rf5c164_audio.js": {
+          "bytes": 2622,
+          "sha256": "14ec87336229e7238174706864c1a8c2535b2a7caffa99e17552d83a2b283335"
+        },
+        "js/playground_rf5c164.js": {
+          "bytes": 5153,
+          "sha256": "3432eb5ce42cdf98f7d7051c708c42752590655cbfe06f26108556f4779d2239"
+        },
+        "js/pwm32x_playback.js": {
+          "bytes": 9070,
+          "sha256": "b8da69052e4f46f1f0f6ed447021e937c145211879a92518c679da36444a37ad"
+        },
+        "js/pwm32x_wasm.js": {
+          "bytes": 12449,
+          "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+        },
+        "js/pwm32x.js": {
+          "bytes": 6893,
+          "sha256": "35c6aee8ea212d4cad8a79d474be9cfe7f53cd6565c5df048add52c2a0b36473"
+        },
+        "js/rf5c164_pcm.js": {
+          "bytes": 1537,
+          "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+        },
+        "js/rf5c164.js": {
+          "bytes": 10232,
+          "sha256": "ea396fdbbdf11e608ad49b69cde90b3918d660b11635b54f53161051ea4e24e3"
+        },
+        "js/rf5c164synth.js": {
+          "bytes": 4836,
+          "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+        },
+        "js/s98_file.js": {
+          "bytes": 5878,
+          "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+        },
+        "js/segapcm.js": {
+          "bytes": 8604,
+          "sha256": "8a3c88358a74592c737b4545368c06c806e04fe7670d246ca2c3bf9e4b5401ef"
+        },
+        "js/segapcmaudioengine.js": {
+          "bytes": 6171,
+          "sha256": "22119d1c63b99df4f0e0f4eb83fa057274cb8fc1fd9a5a9b14b919ffd153a80c"
+        },
+        "js/segapsg_api.js": {
+          "bytes": 1086,
+          "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+        },
+        "js/segapsg.js": {
+          "bytes": 10157,
+          "sha256": "3cd98a25012a2e330fbaacd0db1635c18b814e0a4faa49d680fe97a57a5afbfe"
+        },
+        "js/segapsgsynth.js": {
+          "bytes": 10444,
+          "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+        },
+        "js/snes_brr.js": {
+          "bytes": 11140,
+          "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+        },
+        "js/soundchip_mixer_presets.js": {
+          "bytes": 2986,
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+        },
+        "js/soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/spc_file.js": {
+          "bytes": 8896,
+          "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+        },
+        "js/tetorica_audio_runtime.js": {
+          "bytes": 35718,
+          "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+        },
+        "js/tfi.js": {
+          "bytes": 9704,
+          "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+        },
+        "js/vgi.js": {
+          "bytes": 4326,
+          "sha256": "3d4212ba18485d250607060b1eef3e7e4e78491e12a952e85738d2c0a5c1226f"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "js/vgm-output-worklet.js": {
+          "bytes": 8316,
+          "sha256": "3c4f6b55ee88b4da9e85ccc536fba2f0e159c8e6d02422faf8fa5a63e229462f"
+        },
+        "js/vgmplayer.js": {
+          "bytes": 24008,
+          "sha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33"
+        },
+        "js/wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "js/wonderswan.js": {
+          "bytes": 7520,
+          "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+        },
+        "js/wonderswanaudioengine.js": {
+          "bytes": 5844,
+          "sha256": "8e291088c98356b191a98ffbddc538fce3b9f951654b5486fd33f18f6569d3d3"
+        },
+        "js/y8950.js": {
+          "bytes": 11098,
+          "sha256": "0bf3ccdcb08391fe2308736d2891918505c46735f3b4e11a308caf864c217d7f"
+        },
+        "js/y8950audioengine.js": {
+          "bytes": 7971,
+          "sha256": "7aa22d6c12ac699ef0b55772bb7b18b813f2f9713889bbc9626365e44dc67383"
+        },
+        "js/ym2151.js": {
+          "bytes": 11523,
+          "sha256": "ff525423f5bd4e6cb3062c780530115caa1bfcfbd1c6fae5ddf091527b8cc871"
+        },
+        "js/ym2151audioengine.js": {
+          "bytes": 11450,
+          "sha256": "00af972232330c156239811ed9255bba9122bfa6bb20dfb8f95a498f84358ba4"
+        },
+        "js/ym2203.js": {
+          "bytes": 12769,
+          "sha256": "e3676fb1018b18f8b794865874fcef156c4224843d63e58e6fa6fa983afc06dc"
+        },
+        "js/ym2203audioengine.js": {
+          "bytes": 8828,
+          "sha256": "806e407e6ae1f467ea0b7cb3335bf5a2dc5c0fb0eafb8efe2700bbd4bfd0fe9f"
+        },
+        "js/ym2413.js": {
+          "bytes": 9517,
+          "sha256": "450f5d8c6bc1628786764580add007966cfbf96b2e5766fe2aed9453f062bb18"
+        },
+        "js/ym2413audioengine.js": {
+          "bytes": 7166,
+          "sha256": "7b44f8c7f28be7e5f7eb878aee5c3a5e251128d7df443984df461d85283cada6"
+        },
+        "js/ym2608.js": {
+          "bytes": 15651,
+          "sha256": "686c794f54f6262e2182bb0d2ac77e0691640549f40d96b05b20bff6309a8c12"
+        },
+        "js/ym2608audioengine.js": {
+          "bytes": 9972,
+          "sha256": "303faaa082b149f401ac24782b9fa181063076b1a88d84f2dc365eeee8714cf5"
+        },
+        "js/ym2610b.js": {
+          "bytes": 11188,
+          "sha256": "94ef9b2a1cd61ad1b0077c5f0edf86d9225dd93384e35860131c0be0ebd4c400"
+        },
+        "js/ym2610baudioengine.js": {
+          "bytes": 7793,
+          "sha256": "adcb6e2add9ee950fea2459ae18744e5ee0560a846cf9aadd480c5b73812df60"
+        },
+        "js/ym2612_dac.js": {
+          "bytes": 7251,
+          "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+        },
+        "js/ym2612.js": {
+          "bytes": 22574,
+          "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+        },
+        "js/ym2612synth.js": {
+          "bytes": 38602,
+          "sha256": "275f949205b867dddeac047e54991bc49a6e5c2062dc10dd6646184ed69d1b9c"
+        },
+        "js/ym2612vgm.js": {
+          "bytes": 115343,
+          "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+        },
+        "js/ym3526.js": {
+          "bytes": 9490,
+          "sha256": "2a34ac4217ac70f82b45d6807a33f49397f7cc1a3ebc2b047b458030eeefcec5"
+        },
+        "js/ym3526audioengine.js": {
+          "bytes": 7345,
+          "sha256": "dfb5db9db4df74854245338184807711f186bd381edd20876f69c8effbf42f6c"
+        },
+        "js/ym3812.js": {
+          "bytes": 9490,
+          "sha256": "7fb22258a5a5ec0857b5aa4b0d19524474c15160434b2aaf976d4537944f9075"
+        },
+        "js/ym3812audioengine.js": {
+          "bytes": 7345,
+          "sha256": "3885d9c10e7a9cb733c7fe32b01ad6366318732f737653a52e7ac5fa411d4f32"
+        },
+        "js/ymf262.js": {
+          "bytes": 10324,
+          "sha256": "41d9e00eb40972485e8f3273d61da8e221bb9465bf2bc4f07dcb7b6619e5da68"
+        },
+        "js/ymf262audioengine.js": {
+          "bytes": 7658,
+          "sha256": "dfd0f682601455fdea7ea4929cf3cd53cb4ec20cdccb7db99bbb2b0abc45c260"
+        },
+        "js/ymf278b.js": {
+          "bytes": 11579,
+          "sha256": "4945d261d1428970f0a77b6e32d5d98d684b7d62fe559518d8853e83162ebbb0"
+        },
+        "js/ymf278baudioengine.js": {
+          "bytes": 8621,
+          "sha256": "29491a7c325e0d05e72beb0e4a2a2590a6ed43644e5fa1b83435786fe3a72ac2"
+        },
+        "mdx_export.js": {
+          "bytes": 5300,
+          "sha256": "6ef643255c3bb7373490cca2811793256b927d4ae2bd8612c51351f80f24e4e7"
+        },
+        "mgsdrv_mml.js": {
+          "bytes": 8661,
+          "sha256": "a85377480ee5bfd063fdc105bf40db9da99cbd8e07d8fd0d53366417984f64a2"
+        },
+        "mixer_calibration_data.js": {
+          "bytes": 631,
+          "sha256": "3ed9a0e23a6a766f736d1bfa174be003b24bd9f83a3b7db7c3cd9431d35da0fc"
+        },
+        "mixer_defaults.js": {
+          "bytes": 1947,
+          "sha256": "e639ca55f5472d104f54da7587761c15f31b38c13e3b95dadaa31fbe974c2086"
+        },
+        "mixer_ui.js": {
+          "bytes": 3726,
+          "sha256": "c4c8d3ff4e3a176fb6c26be5b68d16d63ddf11c61b9e23eebad427bad40171dd"
+        },
+        "msx_mutes.js": {
+          "bytes": 2061,
+          "sha256": "5df0f6d0e77337efd4fd58616ae842830eb2cb45d474edf3d6bad5032bc5a307"
+        },
+        "msx_notes.js": {
+          "bytes": 6222,
+          "sha256": "248ffde1c64b3e50e96ed49d4555e8211618d9d600b57483afd5acf3e936c4cc"
+        },
+        "music_sheet.js": {
+          "bytes": 6602,
+          "sha256": "8174477eb8a66ea3a051b7ff428d5df736998e00453965d201a29e1dffea1066"
+        },
+        "nes_notes.js": {
+          "bytes": 3341,
+          "sha256": "2d35ea725b263792cad4c922da78b0bce5a61cba473194b4f2288c25a57a3d34"
+        },
+        "note_timeline_view.js": {
+          "bytes": 9901,
+          "sha256": "eb1ffd28a448f2fd3ae9b3cae46eb00b116a68f7d29d82ba5bbd36b739d07662"
+        },
+        "note_timeline.js": {
+          "bytes": 1700,
+          "sha256": "91def311626b5f11767c285ad71ce82d1924d563bf4a1737e0f3aa1d9a12799d"
+        },
+        "noteish_dom.js": {
+          "bytes": 1195,
+          "sha256": "732a07d7dece06de4463cbf0a719dfe843a75ee26b5d88d4cb6a3cb54ea980eb"
+        },
+        "oki6258_samples.js": {
+          "bytes": 2871,
+          "sha256": "d0ba906cc3f880a083c4394fa575e1e2aa935fa1e1de314267f69dc42236517d"
+        },
+        "opl_monitor.js": {
+          "bytes": 1926,
+          "sha256": "9e8fdd142ff3ca6c603dca965c2ac7c5e1399a5025fb63eeeddea3a71c09a61a"
+        },
+        "opl_notes.js": {
+          "bytes": 4197,
+          "sha256": "e3cea7b29c98f873bd2b2a9cf679d99f361e01e67b67635c5aaf6b55dae3d95d"
+        },
+        "opm_export.js": {
+          "bytes": 4746,
+          "sha256": "4dba32e57ba03f10d1bc2576f61f975afcfeba0a98ebc0667a6662aeac82ba07"
+        },
+        "opm_info.js": {
+          "bytes": 6646,
+          "sha256": "98909766cad116be6fb7e3f0d179323e34b2bd2d9f13442a08d01494db6ab7f8"
+        },
+        "opm_mml.js": {
+          "bytes": 3580,
+          "sha256": "50264f6986acfbe1c673158214a94e521000295a37c403a029f77623e4599b56"
+        },
+        "opm_monitor.js": {
+          "bytes": 7175,
+          "sha256": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7"
+        },
+        "opm_notes.js": {
+          "bytes": 3911,
+          "sha256": "3db11a11bba27724d58850a04549ca65e7d3128f142d083092e7b665e0b0b90b"
+        },
+        "opm_tfi.js": {
+          "bytes": 3080,
+          "sha256": "2e3be120db66a4064ffa5675934b17760690688cd52342e5c8a13465d4687890"
+        },
+        "playback_core.js": {
+          "bytes": 26366,
+          "sha256": "a7fbaf227f332b7f3d179ac5917dc9f980955312be052503923149ac12eb15ef"
+        },
+        "playback_mixer.js": {
+          "bytes": 4432,
+          "sha256": "85b9a5285b82b56efe11036fc686d94584119b4875e8013ee9e61e5fd2a556ad"
+        },
+        "playground/playground_operator_keyboard.js": {
+          "bytes": 21207,
+          "sha256": "6a86d9b8dd336662b86a5846eb93b02bf23053dda6e4cff5a39285471f14b636"
+        },
+        "playground/playground_operator_tab.js": {
+          "bytes": 31863,
+          "sha256": "fd1cb186f995bf8093a927f3ff6515d42745f4e037a746315bad7737bbd5680e"
+        },
+        "playground/playground_operator_visual.js": {
+          "bytes": 158,
+          "sha256": "aa98e3e1f34d6d8cefe11c053bb26902daedb7130c48bfaf242ea8bf76dfffe8"
+        },
+        "playground/playground_tfi_editor.js": {
+          "bytes": 5634,
+          "sha256": "1bea9f9914f83ae93432c2a4a2e2eb3c969754715a7dc41662a7ed94a7b4273b"
+        },
+        "playground/playground_vgm_presets.js": {
+          "bytes": 2815,
+          "sha256": "5cde95ca9dd3a367d072411a5ad47ef8e872af028177569fec61ce78ddfb94fa"
+        },
+        "psg_monitor.js": {
+          "bytes": 3454,
+          "sha256": "092bc0fdfea5c48eea8c1a016a772e14389cda02c7345d6eed2ede31d8c75e1f"
+        },
+        "pwm_samples.js": {
+          "bytes": 3733,
+          "sha256": "bc7c184d8e9696f570c406ae0f8debc777fbf2d677fc0170cb603398285f33ae"
+        },
+        "rf5c164_monitor.js": {
+          "bytes": 2542,
+          "sha256": "188d00f67df1ac1ed46600e396c317d8e2a4c1311274723b6c392fc9f858d91f"
+        },
+        "rf5c164_samples.js": {
+          "bytes": 3728,
+          "sha256": "88721185dade0c3ed70f2b7bf5441798eb1149e8c1094d7472505885ad220211"
+        },
+        "sample_core.js": {
+          "bytes": 17062,
+          "sha256": "cb7a141f7d559e9db033b069917490ccfeffa02b9d643bcf65ef1e006f286ccf"
+        },
+        "sample_explorer.js": {
+          "bytes": 11432,
+          "sha256": "c7200c52b32ec521f8b41dac92e8fee0172ec36587f08421f6a08f82e1807434"
+        },
+        "sample_render.js": {
+          "bytes": 6713,
+          "sha256": "e882c00199abc8f95d697a7e60201ea33ea605fe194496086c1cedbb7f05e923"
+        },
+        "sbi_export.js": {
+          "bytes": 6312,
+          "sha256": "f6a8b269e2109b375840b7592617867e1acab9b6ed584c69b902b20e33434349"
+        },
+        "sbi_info.js": {
+          "bytes": 8733,
+          "sha256": "b3a6fdda38ae8fea9fc7ffd6a7b671344840c13e31763ad0c8f5a0e8b00dd58d"
+        },
+        "sbi_ui.js": {
+          "bytes": 2796,
+          "sha256": "945aa193300573b14711321059b77d735222b417a9f021587a824826a3e353cd"
+        },
+        "scc_notes.js": {
+          "bytes": 1930,
+          "sha256": "150d78f6dd46e03887ab498d75aa1e84ff4310d6d66ffd52b8c7c9b79f535e08"
+        },
+        "score_group_ui.js": {
+          "bytes": 2934,
+          "sha256": "49c137b9647bf340154e3ecb081e935133c53b702e5736decbc56448c7d154ce"
+        },
+        "score_groups.js": {
+          "bytes": 2975,
+          "sha256": "bee506765793d9a6d94a686386932091ae0ce17958826897ad3d5a3abdd9c430"
+        },
+        "seek_playback.js": {
+          "bytes": 1837,
+          "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+        },
+        "segapcm_samples.js": {
+          "bytes": 6264,
+          "sha256": "c2bd8624e44ea28618e04dfd5d327089377bad8032013ec8eed627338cd4505b"
+        },
+        "snes_notes.js": {
+          "bytes": 12923,
+          "sha256": "6630cbefa5ac2d62d03812915814e315fd538174bd8ccb4565ca497ef6eaa425"
+        },
+        "snes_score.js": {
+          "bytes": 1746,
+          "sha256": "81f6f76d5e372db0e373993dfc1a0a6bb3070f6846bea0e7c3fdce1642f8321f"
+        },
+        "source_mutes.js": {
+          "bytes": 2145,
+          "sha256": "68e8471f2b11b28c027b0da0ff4d9d60d623cae6a3bdc68ae14e44058e8f2544"
+        },
+        "spc_analyzer.js": {
+          "bytes": 21973,
+          "sha256": "261288618541e4d90762dedbbb433f0f4efc716d42df537234784d862dde2287"
+        },
+        "spc_brr_candidates.js": {
+          "bytes": 5299,
+          "sha256": "8f8db94bc5bd096dd3276969b47a20ddd99917c838a9704f5486f1a4e471ea20"
+        },
+        "spc_noteish.js": {
+          "bytes": 15836,
+          "sha256": "664bc5d9ca4c214e26ab5f5f8fa85e5182a2906d96dad31c8a7e470b96dd49ef"
+        },
+        "stored_zip.js": {
+          "bytes": 4446,
+          "sha256": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968"
+        },
+        "synth/synth_controls.js": {
+          "bytes": 10018,
+          "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+        },
+        "synth/synth_envelope.js": {
+          "bytes": 13551,
+          "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 9982,
+          "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+        },
+        "synth/synth_operator_envelope.js": {
+          "bytes": 9649,
+          "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+        },
+        "tfi_archive.js": {
+          "bytes": 4063,
+          "sha256": "b8925cf07b9aea2294b9675f26e4cafb79bfd0eef7c9c0d17ecb095893ee525e"
+        },
+        "tfi_extract.js": {
+          "bytes": 6519,
+          "sha256": "4674eb016c7823b170c36ae2a63397e676c1cf6151e704c1f2c17bdc6a043635"
+        },
+        "tfi_info.css": {
+          "bytes": 13888,
+          "sha256": "d2ec7df313ec813184e888887227e2e9dc34df1e2fb0d25c662c8313d176bf9e"
+        },
+        "tfi_info.js": {
+          "bytes": 4412,
+          "sha256": "44b477db26b0d7aa80f48374f98351831d4c04efe60e7c9d9ae5d1b019300efa"
+        },
+        "tone_notes.js": {
+          "bytes": 3716,
+          "sha256": "5572ef16e214ae4b6decaf1632ae16a7fc1d5c23a5fd4a8753c0b259762d28bb"
+        },
+        "vgm_analyzer.js": {
+          "bytes": 211895,
+          "sha256": "ca341a3b40034a70de3cd877af218eb245c4d4b1956d54fa6296a35ce7696471"
+        },
+        "vgm_json.js": {
+          "bytes": 3478,
+          "sha256": "de403a20371d5fefb04392e452aec5d2853b7013a6c96fc39fbd82a963596114"
+        },
+        "vgm_lilypond.js": {
+          "bytes": 10037,
+          "sha256": "b2b5f3e1a0c5c34e0ae0d6f03fdb59dc70f4cf26d9ced3c657eb48f1fbf9fb89"
+        },
+        "vgm_midi.js": {
+          "bytes": 13374,
+          "sha256": "9cf815ef42e5c3667b9fe33b01c63892fcaf0c63f15e8b24d9834f022dfd1da4"
+        },
+        "vgm_mml_music.js": {
+          "bytes": 8057,
+          "sha256": "2a99983d938d38be2f72ef5d5ab77123318d4dd1a23481902a17f0ecd959bed2"
+        },
+        "vgm_mml.js": {
+          "bytes": 9175,
+          "sha256": "7a0dc7d60398139aa1f589ec274c80a6ea69876f870bedde0f3570e03e507c51"
+        },
+        "vgm_musicxml.js": {
+          "bytes": 5447,
+          "sha256": "68e91c6ca3cfaf4b1cc415990a1f98627826837d3838aced6513c76871b867aa"
+        },
+        "vgm_notes.js": {
+          "bytes": 8178,
+          "sha256": "6b18ecc65ab30142ce42547a4f3feeca028dde3ce8871a2b9016772f741c4a80"
+        },
+        "vgm_wav.js": {
+          "bytes": 4414,
+          "sha256": "1afff1cc2540c706a4e69693828c9ed1a3787ede2a0e5c2e7f13492fec3706f9"
+        },
+        "wonderswan_notes.js": {
+          "bytes": 3431,
+          "sha256": "908a76298eff73f03e80384f2d8f681c757e8a3dd951fc48acfd1d718aef6629"
+        },
+        "ym2413_monitor.js": {
+          "bytes": 3550,
+          "sha256": "309261dd9a98af20dbbd0f84281651f4aa4db42ec219d1ec6b925f453650fd12"
+        },
+        "ym2413_notes.js": {
+          "bytes": 2325,
+          "sha256": "b2ed0b150b492c19beac4ee6ba9fe7d720a33cf3f07937117339e4a04409d54c"
+        },
+        "ymf262_notes.js": {
+          "bytes": 3987,
+          "sha256": "85f81b249abe4b2fe22af430678f657baadeba3e3d921d95b1df5b8ea63c8842"
+        },
+        "ymf278b_samples.js": {
+          "bytes": 4483,
+          "sha256": "f8afd3d93515c330e9ace1ab212c9dc33778ac6d01bd74fa7cffbe7f296f3eed"
+        }
+      },
+      "testSources": {
+        "scripts/check_wonderswan_analyzer_browser.cjs": "37e72f68362e92981bcac303a40677af978b033cef74e6b332c74e260764eaeb",
+        "test/helpers/wonderswan_vgm_fixture.mjs": "f4c04f084c72ad7d665fe489fa2b0d7f89a1c7fefcca9a2ce263dcf4f52d8103"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "scenes": [
+            {
+              "channel": 1,
+              "audible": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00116729736328125,
+                "acRms": 0.10985707980773146
+              },
+              "muted": {
+                "count": 12288,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0012359619140625,
+                "acRms": 0.10985632874424481
+              }
+            },
+            {
+              "channel": 2,
+              "audible": {
+                "count": 12288,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0004649162292480469,
+                "acRms": 0.10986229753612649
+              },
+              "muted": {
+                "count": 12544,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.000240325927734375,
+                "acRms": 0.10986301839320209
+              }
+            },
+            {
+              "channel": 3,
+              "audible": {
+                "count": 12288,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0009655952453613281,
+                "acRms": 0.1098590378295693
+              },
+              "muted": {
+                "count": 12544,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00089263916015625,
+                "acRms": 0.109859654843561
+              }
+            },
+            {
+              "channel": 4,
+              "audible": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0010986328125,
+                "acRms": 0.10985778794860153
+              },
+              "muted": {
+                "count": 12544,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 13568,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0001943336342865566,
+                "acRms": 0.10986310937459938
+              }
+            }
+          ],
+          "modes": [
+            {
+              "mode": "noise",
+              "pcm": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.006145477294921875,
+                "acRms": 0.10969126526681239
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Noise",
+                  "reason": "Noise"
+                }
+              ]
+            },
+            {
+              "mode": "sweep",
+              "pcm": {
+                "count": 12544,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00021019760443239795,
+                "acRms": 0.10986308016792398
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Sweep",
+                  "reason": "Sweep"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            },
+            {
+              "mode": "voice",
+              "pcm": {
+                "count": 13312,
+                "peak": 0.09423828125,
+                "bad": 0,
+                "mean": 0.0006291316105769231,
+                "acRms": 0.09374989419287856
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Voice PCM",
+                  "reason": "Voice PCM"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            }
+          ],
+          "transport": {
+            "pause": true,
+            "resume": true,
+            "seekSamples": 88200,
+            "stopReplay": true
+          },
+          "pageErrors": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "scenes": [
+            {
+              "channel": 1,
+              "audible": {
+                "count": 13312,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00046216524564302887,
+                "acRms": 0.10986230914331958
+              },
+              "muted": {
+                "count": 12032,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00089263916015625,
+                "acRms": 0.109859654843561
+              }
+            },
+            {
+              "channel": 2,
+              "audible": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.0001373291015625,
+                "acRms": 0.109863195419278
+              },
+              "muted": {
+                "count": 12288,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 13824,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.00012715657552083334,
+                "acRms": 0.10986320766399414
+              }
+            },
+            {
+              "channel": 3,
+              "audible": {
+                "count": 17664,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.0006592792019480418,
+                "acRms": 0.09770856706734393
+              },
+              "muted": {
+                "count": 13056,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00116729736328125,
+                "acRms": 0.10985707980773146
+              }
+            },
+            {
+              "channel": 4,
+              "audible": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.00116729736328125,
+                "acRms": 0.10985707980773146
+              },
+              "muted": {
+                "count": 12288,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              "resumed": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": -0.000926971435546875,
+                "acRms": 0.10985937051965244
+              }
+            }
+          ],
+          "modes": [
+            {
+              "mode": "noise",
+              "pcm": {
+                "count": 12544,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.0077072454958545915,
+                "acRms": 0.10959260437585755
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Noise",
+                  "reason": "Noise"
+                }
+              ]
+            },
+            {
+              "mode": "sweep",
+              "pcm": {
+                "count": 12800,
+                "peak": 0.10986328125,
+                "bad": 0,
+                "mean": 0.000274658203125,
+                "acRms": 0.10986293792670965
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Sweep",
+                  "reason": "Sweep"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            },
+            {
+              "mode": "voice",
+              "pcm": {
+                "count": 12288,
+                "peak": 0.09423828125,
+                "bad": 0,
+                "mean": 0.00048828125,
+                "acRms": 0.09375
+              },
+              "notes": [
+                {
+                  "channel": 0,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 1,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Voice PCM",
+                  "reason": "Voice PCM"
+                },
+                {
+                  "channel": 2,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                },
+                {
+                  "channel": 3,
+                  "keyOn": false,
+                  "midi": null,
+                  "kind": "Wave",
+                  "reason": "Off"
+                }
+              ]
+            }
+          ],
+          "transport": {
+            "pause": true,
+            "resume": true,
+            "seekSamples": 88200,
+            "stopReplay": true
+          },
+          "pageErrors": []
+        }
+      ]
+    }
+  },
+  "packages": {
+    "fmRuntimeAndDeclarationsPassed": true,
+    "vgmOfflineInstalledCheckPassed": true,
+    "versionsChanged": false,
+    "published": false,
+    "vgmTarball": {
+      "path": "/private/tmp/ws-analyzer-vgm-package/tetorica-vgm-0.2.14.tgz",
+      "sha256": "09de85a84bff4f184c8b27b75c4d25d824365383e1511bb9e909ec593d70a621"
+    }
+  },
+  "distribution": {
+    "archive": "release/hello_ymfm_wasm_wonderswan-dev_itch_vgm_analyzer.zip",
+    "sha256": "d9e068525898ec91a54d65af850f547152785a18d29c0882f6a2d9ede3630c06",
+    "files": 396,
+    "tauriReceiptSha256": "dfe5b6e8254a715f442a720ef82d80be07555a23b736f97a3c574fd4a0d25380",
+    "pythonTestsPassed": 6,
+    "nodeTestsPassed": 4,
+    "nativeShellChanged": false
+  },
+  "logs": {
+    "ws-analyzer-core-regression.log": {
+      "path": "/private/tmp/ws-analyzer-core-regression.log",
+      "sha256": "431f705f4f4efbffe88ce974aacffe3ed00e4589ed6b9801b2fcae8b11a343c9"
+    },
+    "ws-analyzer-core-regression-fixed.log": {
+      "path": "/private/tmp/ws-analyzer-core-regression-fixed.log",
+      "sha256": "0b063cd9ac5b3929537e10265ad3f7b88c7b0d00cc05b238791f04e830e9d232"
+    },
+    "ws-analyzer-opl-repeat.log": {
+      "path": "/private/tmp/ws-analyzer-opl-repeat.log",
+      "sha256": "331898258593e6a1d15ae7bb8aac50773bfdc076fcfbef39508c6c8628fea3b2"
+    },
+    "ws-analyzer-opl3-repeat.log": {
+      "path": "/private/tmp/ws-analyzer-opl3-repeat.log",
+      "sha256": "803f405bffaf9f5adb203ff70d2b78627a28a1513cf789edc50bd8b007f45941"
+    },
+    "ws-analyzer-cache-regression.log": {
+      "path": "/private/tmp/ws-analyzer-cache-regression.log",
+      "sha256": "917b2b7b831b098380845e2a4a26736cad8ceb02e0c9fe58aed24bb314d66beb"
+    },
+    "ws-vgm-integration.log": {
+      "path": "/private/tmp/ws-vgm-integration.log",
+      "sha256": "f447dc12730253e2cf2cac1100309e84b027fbf09f5e6afcb2299b8436d755b8"
+    },
+    "ws-vgm-header-mixer.log": {
+      "path": "/private/tmp/ws-vgm-header-mixer.log",
+      "sha256": "38aff2725b6d520b2718c0df7c3adcf59eb11ebc3e63b312d909f5202da0e997"
+    },
+    "ws-analyzer-fm-package-final.log": {
+      "path": "/private/tmp/ws-analyzer-fm-package-final.log",
+      "sha256": "9075fb73b0f56dc1518a934087b25112f1d166b6794bd39867068b9261725a5a"
+    },
+    "ws-analyzer-vgm-package-check.log": {
+      "path": "/private/tmp/ws-analyzer-vgm-package-check.log",
+      "sha256": "48008051fc261f75ca38aa4cbfdce80a62e1dcf72bfce0dd5db3e584b9aefdeb"
+    },
+    "ws-analyzer-tauri-tests.log": {
+      "path": "/private/tmp/ws-analyzer-tauri-tests.log",
+      "sha256": "7c6d0efb890e03c9e0bec8dbc6e97f1bff0d61a2dd50fd71d4ab4ad86b168065"
+    }
+  },
+  "sdkReceipt": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.4",
+    "sourceCommit": "6f8b872b6f35f5df619b2468d58da57037c96e07",
+    "archiveName": "tetorica-soundchip-native-0.1.4-sources.zip",
+    "archiveSha256": "f173092241badd27c84d6846a69bd175375f080a57fdaf4983c56751c201f65e",
+    "manifestSha256": "61354b939961eea8c2c058ca08c682fb1fdc48cf58373a45da2b468455227924",
+    "fileCount": 395
+  },
+  "limits": [
+    "All automated music fixtures are original synthetic VGM; no real game soundtrack was tested.",
+    "Browser output PCM is captured while a downstream Worklet emits zeros to physical output.",
+    "Actual Tauri WebView playback, listening, hardware accuracy and real-time deadlines remain unverified.",
+    "Two existing Worker tests timed out in a loaded broad run and passed independently without altered deadlines."
+  ],
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "npmPublished": false,
+    "tagged": false,
+    "ciRunForNewCode": false
+  },
+  "next": [
+    "Audition a real WonderSwan VGM/VGZ",
+    "Commit/push main and Analyzer Tauri changes",
+    "Run CI on those new commits"
+  ]
+}

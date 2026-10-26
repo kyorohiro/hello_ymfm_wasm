@@ -34,7 +34,7 @@ function encodePcm16(left, right, frames) {
  * in `blockFrames`-sized steps, so a natural track end may pad up to
  * `blockFrames - 1` trailing silent samples (negligible at the default size).
  *
- * @param {import('../js/vgmplayer.js').VgmPlayer} player
+ * @param {import('../js/vgmplayer.js?v=wonderswan-vgm-1').VgmPlayer} player
  * @param {{maxSeconds?: number, startSeconds?: number, blockFrames?: number, onProgress?: (fraction: number) => void}} [options]
  * @returns {Promise<{bytes: Uint8Array, seconds: number, truncated: boolean}>}
  */

@@ -57,6 +57,7 @@ wav.js
 audio_decode.js
 huc6280audioengine.js
 wonderswan.js
+wonderswanaudioengine.js
 wonderswansynth.js
 playground_wonderswan.js
 playground_wonderswan_audio.js

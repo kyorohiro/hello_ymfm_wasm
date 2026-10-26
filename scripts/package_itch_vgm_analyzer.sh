@@ -87,6 +87,7 @@ vgm_notes.js
 tone_notes.js
 gameboy_notes.js
 huc6280_notes.js
+wonderswan_notes.js
 nes_notes.js
 fretboard.js
 fretboard_all.js
@@ -154,6 +155,8 @@ playground_pwm_audio.js
 playground_pwm_worklet.js
 pwm32x_playback.js
 huc6280audioengine.js
+wonderswan.js
+wonderswanaudioengine.js
 okim6258audioengine.js
 okim6295audioengine.js
 ym2610b.js
@@ -246,6 +249,8 @@ spc_wasm.js
 spc_wasm.wasm
 huc6280_wasm.js
 huc6280_wasm.wasm
+wonderswan_wasm.js
+wonderswan_wasm.wasm
 okim6258_wasm.js
 okim6258_wasm.wasm
 ym2610b_wasm.js
@@ -409,6 +414,9 @@ cp "${ROOT_DIR}/third_party/mame-segapcm/LICENSE" "${ROOT_DIR}/third_party/mame-
 mkdir -p "${STAGE_DIR}/licenses/mame-gameboy"
 cp "${ROOT_DIR}/third_party/mame-gameboy/LICENSE" "${ROOT_DIR}/third_party/mame-gameboy/README.md" "${STAGE_DIR}/licenses/mame-gameboy/"
 
+mkdir -p "${STAGE_DIR}/licenses/mame-wonderswan"
+cp "${ROOT_DIR}/third_party/mame-wonderswan/LICENSE" "${ROOT_DIR}/third_party/mame-wonderswan/README.md" "${STAGE_DIR}/licenses/mame-wonderswan/"
+
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
@@ -436,6 +444,8 @@ K051649 (Konami SCC): MAME adaptation by Bryan McPhail, BSD-3-Clause. See licens
 Sega PCM (315-5218): MAME adaptation by Hiromitsu Shioya, Olivier Galibert, BSD-3-Clause. See licenses/mame-segapcm/LICENSE and README.md.
 
 Game Boy APU (LR35902 DMG): MAME adaptation by Wilbert Pol, Anthony Kruize, BSD-3-Clause. See licenses/mame-gameboy/LICENSE and README.md.
+
+WonderSwan: MAME adaptation, BSD-3-Clause. See licenses/mame-wonderswan/LICENSE and README.md.
 
 MAME 32X PWM adaptation: BSD-3-Clause. See licenses/mame-32x-pwm/.
 
@@ -465,7 +475,7 @@ cp -R "${ROOT_DIR}/docs/vgm_analyzer/vendor/osmd/." "${STAGE_DIR}/vendor/osmd/"
 perl -0pi -e 's#<a class="link-button" href="\.\./index\.html">Back</a>##g' "${STAGE_DIR}/index.html"
 perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./generated/#g" \
   "${STAGE_DIR}/tfi_extract.js" "${STAGE_DIR}/tfi_archive.js" "${STAGE_DIR}/index.html" "${STAGE_DIR}/analyzer_core.js" "${STAGE_DIR}/playback_core.js" "${STAGE_DIR}/playback_mixer.js" "${STAGE_DIR}/mixer_defaults.js" "${STAGE_DIR}/vgm_analyzer.js" "${STAGE_DIR}/spc_analyzer.js" "${STAGE_DIR}/spc_brr_candidates.js" "${STAGE_DIR}/spc_brr_preview.js" "${STAGE_DIR}/vgm_mml.js" \
-  "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/gameboy_notes.js" "${STAGE_DIR}/huc6280_notes.js" "${STAGE_DIR}/nes_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
+  "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/gameboy_notes.js" "${STAGE_DIR}/huc6280_notes.js" "${STAGE_DIR}/wonderswan_notes.js" "${STAGE_DIR}/nes_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
   "${STAGE_DIR}/spc_noteish.js" "${STAGE_DIR}/spc_noteish_worker.js" "${STAGE_DIR}/snes_notes.js" "${STAGE_DIR}/snes_score.js" \
   "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_render.js" "${STAGE_DIR}/sample_core.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/pwm_samples.js" "${STAGE_DIR}/ym2413_monitor.js" "${STAGE_DIR}/ym2413_notes.js" "${STAGE_DIR}/mgsdrv_mml.js" \
   "${STAGE_DIR}/fm_snapshot.js" "${STAGE_DIR}/vgm_json.js" "${STAGE_DIR}/command_editor.js" "${STAGE_DIR}/ymf262_notes.js" "${STAGE_DIR}/opl_notes.js" "${STAGE_DIR}/msx_notes.js" "${STAGE_DIR}/sbi_export.js"

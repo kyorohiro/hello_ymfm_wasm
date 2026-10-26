@@ -51,3 +51,10 @@ clock 3579545 Hz. No game data; `generate_huc6280.mjs` regenerates it separately
 `test/standalone-chip-fixtures.test.mjs` checks VGM/VGZ equivalence,
 deterministic audible rendering, channel mute, score channel counts and
 MIDI / MusicXML / LilyPond export via the shared CLI/Analyzer entry points.
+
+`wonderswan-tone` is an original half-second A4 square wavetable with unequal
+left/right volumes. It writes waveform RAM at physical `0x1200` using the VGM
+`0xC6` big-endian address and programs the sound ports with `0xBC` offsets.
+`generate_wonderswan.mjs` regenerates the VGM and VGZ; no game, BIOS or ROM data
+is included. Additional wave/Noise/Sweep/Voice PCM fixtures for browser tests
+are generated in memory by `test/helpers/wonderswan_vgm_fixture.mjs`.

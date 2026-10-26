@@ -3,7 +3,7 @@
  * 実行環境: Browser / Node.js
  * 依存: VGM パーサーと注入された音声エンジン。PCM 生成にはエンジンが必要。AudioContext は不要。
  */
-import { Ym2612VGM } from "./ym2612vgm.js?v=vgm-frequency-order-2";
+import { Ym2612VGM } from "./ym2612vgm.js?v=wonderswan-vgm-1";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -30,6 +30,8 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=vgm-frequency-order-2";
  *   writeK051649?(port: number, register: number, value: number): void,
  *   writeSegaPcm?(offset: number, value: number): void,
  *   writeGameboyApu?(register: number, value: number): void,
+ *   writeWonderSwan?(register: number, value: number): void,
+ *   writeWonderSwanMemory?(offset: number, value: number): void,
  *   writeY8950?(register: number, value: number): void,
  *   writeYmf278b?(port: number, register: number, value: number): void,
  *   loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void,
@@ -112,6 +114,7 @@ export class VgmPlayer {
     this.engine.clearAdpcmBMemory?.();
     this.engine.clearAdpcmRoms?.();
     this.engine.clearRf5c164Memory?.();
+    this.engine.clearWonderSwanMemory?.();
     this.waitAccumulator = 0;
     this.chunkQueue = [];
     this.queuedFrames = 0;
@@ -617,6 +620,11 @@ export function createVgmTargets(engine) {
   } : undefined;
   return {
     resolveChip: engine.getVgmTarget?.bind(engine),
+    wonderswan: typeof engine.writeWonderSwan === 'function' ? {
+      writeRegister:(register,value)=>engine.writeWonderSwan(register,value),
+      writeMemory:(offset,value)=>engine.writeWonderSwanMemory(offset,value),
+      loadMemory:(data,offset)=>engine.loadWonderSwanMemory(data,offset),
+    } : undefined,
     msm5205,
     pwm: { writeRegister: (register, value) => engine.writePwm?.(register, value) },
     rf5c164: rf5c164Target,

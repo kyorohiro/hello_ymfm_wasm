@@ -1,12 +1,13 @@
+import {createWonderSwanMonitor,applyWonderSwanWrite,describeWonderSwanNotes,extractWonderSwanNotes} from './wonderswan_notes.js?v=wonderswan-vgm-1';
 import {createAudioPreferences, effectDefaults} from './audio_preferences.js';
 import {mountSpcAnalyzer} from './spc_analyzer.js?v=voice-preview-1';
 import {mountSpcNoteish} from './spc_noteish.js?v=snes-score-1';
 import {prepareSnesScore} from './snes_score.js?v=snes-score-1';
-import {createMixerUi} from './mixer_ui.js';
+import {createMixerUi} from './mixer_ui.js?v=wonderswan-vgm-1';
 import {connectDesktop} from './desktop_interface.js';
 import {exportFmRegisterSnapshot} from './fm_snapshot.js';
 import {updateNoteishHtml, updateNoteishGraph} from './noteish_dom.js';
-import {mountCommandEditor} from './command_editor.js';
+import {mountCommandEditor} from './command_editor.js?v=wonderswan-vgm-1';
 import {createMsxNoteMonitor, describeMsxNotes, observeMsxNotes} from './msx_notes.js';
 import {createHuc6280Monitor,applyHuc6280Write,describeHuc6280Notes,extractHuc6280Notes} from './huc6280_notes.js';
 import {isOpl,createOplMonitor,applyOplWrite,describeOplNotes} from './opl_notes.js';
@@ -17,11 +18,11 @@ import {createOpl3Monitor,applyOpl3Write,describeOpl3Notes} from './ymf262_notes
 import {createNesMonitor,applyNesWrite,describeNesNotes} from './nes_notes.js';
 import {createDefaultTfiPreset, findOperatorFromSlotOffset, cloneTfiPreset, presetSignature, decodeKeyOnChannel, extractTfiPatchesFromVgm} from './tfi_extract.js';
 import {createStoredZipBytes} from './stored_zip.js';
-import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=msm5205-3';
+import { createPlaybackEngine, selectPlaybackConfiguration, detectPlaybackChipKindFromVgm, detectPlaybackChipKind } from './playback_core.js?v=wonderswan-vgm-1';
 import { mountMusicSheet } from "./music_sheet.js?v=snes-score-1";
 import { renderVgmToWav } from "./vgm_wav.js";
 import { createExportTempoSettings } from "./export_tempo.js?v=snes-score-1";
-import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=snes-score-1";
+import { analyzeLilyPondSource as analyzeScoreSource, exportLilyPondAnalysis } from "./analyzer_core.js?v=wonderswan-vgm-1";
 import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
 import {mountOpmInfo} from './opm_info.js?v=keyboard-layout-2';
 import {mountSbiInfo} from './sbi_info.js';
@@ -35,23 +36,23 @@ import {mountYm2413Monitor} from './ym2413_monitor.js';
 import { mountTfiInfo } from "./tfi_info.js?v=concurrent-audition-1";
 import { mountSampleExplorer } from './sample_explorer.js?v=gb-info-perf-1';
 import { renderAllFretboard } from './fretboard_all.js';
-import { createNoteTimeline } from './note_timeline_view.js?v=snes-noteish-1';
+import { createNoteTimeline } from './note_timeline_view.js?v=wonderswan-vgm-1';
 import { seekPlayback } from './seek_playback.js';
 import { timelinePlaybackPosition } from './note_timeline.js';
 import { describeToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { createGameboyMonitor, applyGameboyWrite, describeGameboyNotes } from './gameboy_notes.js';
-import { midiChipKind } from "./vgm_notes.js?v=ym2610-vgm-2";
+import { midiChipKind } from "./vgm_notes.js?v=wonderswan-vgm-1";
 import { renderFretboard, FRET_TRAIL_MS, createFretboardTracker } from "./fretboard.js?v=hand-position-2";
-import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=snes-score-1";
+import { exportAnalysisMidi, exportNoteAnalysisMidi } from "./analyzer_core.js?v=wonderswan-vgm-1";
 import { createRf5c164Monitor, describeRf5c164Monitor, observeRf5c164Engine } from "./rf5c164_monitor.js";
-import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=msm5205-2";
+import { sourcesForChip, applySourceMutes, allSourcesMuted } from "./source_mutes.js?v=wonderswan-vgm-1";
 import { createPsgMonitor, describePsgMonitor, observePsgEngine, applySsgWrite } from "./psg_monitor.js?v=ym2610-vgm-2";
 import { exportMucomMml, exportOpnavoidMml } from "./vgm_mml.js?v=mml-formats-1";
 import { exportMdx } from "./mdx_export.js?v=mdx-1";
 import { exportMgsdrvMml } from "./mgsdrv_mml.js";
 import {
   Ym2612VGM,
-} from "../js/ym2612vgm.js?v=msm5205-1";
+} from "../js/ym2612vgm.js?v=wonderswan-vgm-1";
 import { createTfiFromPreset } from "../js/tfi.js";
 import { createVgiFromPreset } from "../js/vgi.js";
 import ym2612ModuleFactory from "../generated/ym2612_wasm.js";
@@ -59,7 +60,7 @@ import nukedOpn2ModuleFactory from "../generated/nuked_opn2_wasm.js";
 import segaPsgModuleFactory from "../generated/segapsg_wasm.js?v=channel-mute-1";
 const segaPsgWasmUrl = new URL('../generated/segapsg_wasm.wasm?v=channel-mute-1', import.meta.url);
 const gameboyApuWasmUrl = new URL('../generated/gameboy_apu_wasm.wasm?v=seek-state-1', import.meta.url);
-import { VgmPlayer } from "../js/vgmplayer.js?v=msm5205-2";
+import { VgmPlayer } from "../js/vgmplayer.js?v=wonderswan-vgm-1";
 import { looksLikeS98, convertS98ToVgm } from "../js/s98_file.js";
 import { maybeDecodeVgmFile, parseVgmMetadata, VGM_METADATA_FIELDS } from "../js/vgm_file.js";
 
@@ -549,6 +550,7 @@ const ym3812ChannelMutes = Array(9).fill(false);
 const ymf278bFmChannelMutes = Array(18).fill(false);
 const ymf278bPcmChannelMutes = Array(24).fill(false);
 const gameboyChannelMutes = Array(4).fill(false);
+const wonderswanChannelMutes = Array(4).fill(false);
 const huc6280ChannelMutes = Array(6).fill(false);
 const nesChannelMutes = Array(6).fill(false);
 let mixedPlaybackParts = [];
@@ -565,12 +567,13 @@ function effectiveSourceMutes() {
   }
   return sourceMutes;
 }
-const CHANNEL_MUTE_CHIPS = ['huc6280', 'ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812', 'gameboy', 'nes'];
+const CHANNEL_MUTE_CHIPS = ['wonderswan', 'huc6280', 'ym2151', 'ymf262', 'ym2413', 'ym3526', 'ym3812', 'gameboy', 'nes'];
 function channelMutesForChip(chipKind) {
   return chipKind === 'ym2413' ? opllChannelMutes
     : chipKind === 'ymf262' ? opl3ChannelMutes
     : chipKind === 'ym3526' ? ym3526ChannelMutes
     : chipKind === 'ym3812' ? ym3812ChannelMutes
+    : chipKind === 'wonderswan' ? wonderswanChannelMutes
     : chipKind === 'huc6280' ? huc6280ChannelMutes
     : chipKind === 'nes' ? nesChannelMutes
     : chipKind === 'gameboy' ? gameboyChannelMutes
@@ -803,6 +806,7 @@ function renderMonitorToggles() {
       button.setAttribute('data-monitor-toggle-kind', 'opm-channel');
       if (currentChipKind === 'ym2413') button.title = 'Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
       if (currentChipKind === 'ymf262') button.title = '4-op: either channel mutes the pair. Rhythm: CH7 bass drum, CH8 hi-hat/snare, CH9 tom/cymbal.';
+      if (currentChipKind === 'wonderswan') button.title = 'CH1 wave; CH2 wave / Voice PCM; CH3 wave / Sweep; CH4 wave / Noise.';
       if (['gameboy','nes'].includes(currentChipKind)) button.title = currentChipKind==='nes'?'CH1/CH2 pulse, CH3 triangle, CH4 noise, CH5 DMC, CH6 FDS (when present).':'CH1/CH2 square, CH3 wave, CH4 noise.';
       button.setAttribute('data-channel-index', String(index));
       monitorToggles.append(button);
@@ -900,7 +904,7 @@ function ensureMonitorToggleHandler() {
 function createChannelMonitorState() {
   // PSG-only / PWM-only inputs share the Genesis renderer, but have no FM channels.
   if (currentChipKind === 'ym2612' && !(noteishHeader.ym2612Clock & 0x3fffffff)) return [];
-  if (["mixed", "huc6280", "okim6295", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
+  if (["mixed", "wonderswan", "huc6280", "okim6295", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind)) return [];
   const channelCount = currentChipKind === "ym2203" ? 3 : 6;
   return Array.from({ length: channelCount }, (_, index) => buildMonitorChannel(index));
 }
@@ -1148,14 +1152,14 @@ function noteishChannels() {
   }
   if (currentChipKind === "ym2151") return opmNoteChannels;
   if (currentChipKind === "ym2413") return ym2413NoteChannels;
-  if (["msx","y8950","huc6280","gameboy","nes","ymf278b","ymf262","ym3526","ym3812"].includes(currentChipKind)) return apuNoteChannels;
+  if (["msx","y8950","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262","ym3526","ym3812"].includes(currentChipKind)) return apuNoteChannels;
   const fm = noteishHeader.psgClock && !noteishHeader[`${currentChipKind}Clock`] ? [] : channelMonitor;
   const opllExtra = currentChipKind === "ay8910" && (noteishHeader.ym2413Clock & 0x3fffffff) ? ym2413NoteChannels : [];
   return [...fm.filter(ch=>!ch.unavailable), ...toneChannels, ...opllExtra];
 }
 
 function updateToneMonitor() {
-  if (["mixed", "huc6280", "okim6295", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413"].includes(currentChipKind)) { toneChannels = []; return; }
+  if (["mixed", "wonderswan", "huc6280", "okim6295", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413"].includes(currentChipKind)) { toneChannels = []; return; }
   const clock = (psgMonitor.kind === 'ssg' ? noteishHeader[`${currentChipKind}Clock`] : noteishHeader.psgClock) & 0x3fffffff;
   if (!clock) { toneChannels = []; return; }
   if (!toneChannels.length) toneChannels = Array.from({length:3}, (_,index)=>({...buildMonitorChannel(index), tone:true, toneMidi:null}));
@@ -1206,14 +1210,14 @@ function resetYm2413NoteChannels() {
 }
 
 function updateApuNoteMonitor() {
-  if (!apuNoteChannels.length) apuNoteChannels = Array.from({length:currentChipKind==='msx'?describeMsxNotes(apuNoteMonitor).length:currentChipKind==='huc6280'?6:isOpl(currentChipKind)?9:['ymf262','ymf278b'].includes(currentChipKind)?18:currentChipKind==='nes'&&(noteishHeader.nesApuClock&0x80000000)?4:3}, (_,index)=>({...buildMonitorChannel(index), apu:true, toneMidi:null, label:`${isOpl(currentChipKind)?currentChipKind.toUpperCase():['ymf262','ymf278b'].includes(currentChipKind)?`${currentChipKind.toUpperCase()}${currentChipKind==='ymf278b'?' FM':''}`:currentChipKind==='nes'?'NES':'GB'} CH${index+1}`, apuType: index===2?(currentChipKind==='nes'?'Triangle':'Wave'):(currentChipKind==='nes'?'Pulse':'Square')}));
+  if (!apuNoteChannels.length) apuNoteChannels = Array.from({length:currentChipKind==='msx'?describeMsxNotes(apuNoteMonitor).length:currentChipKind==='wonderswan'?4:currentChipKind==='huc6280'?6:isOpl(currentChipKind)?9:['ymf262','ymf278b'].includes(currentChipKind)?18:currentChipKind==='nes'&&(noteishHeader.nesApuClock&0x80000000)?4:3}, (_,index)=>({...buildMonitorChannel(index), apu:true, toneMidi:null, label:`${isOpl(currentChipKind)?currentChipKind.toUpperCase():['ymf262','ymf278b'].includes(currentChipKind)?`${currentChipKind.toUpperCase()}${currentChipKind==='ymf278b'?' FM':''}`:currentChipKind==='nes'?'NES':'GB'} CH${index+1}`, apuType: index===2?(currentChipKind==='nes'?'Triangle':'Wave'):(currentChipKind==='nes'?'Pulse':'Square')}));
   const now = songTimeMs();
-  (currentChipKind==='msx'?describeMsxNotes(apuNoteMonitor):currentChipKind==='huc6280'?describeHuc6280Notes(apuNoteMonitor,noteishHeader.huc6280Clock & 0x3fffffff):isOpl(currentChipKind)?describeOplNotes(apuNoteMonitor,noteishHeader[`${currentChipKind}Clock`]&0x3fffffff):['ymf262','ymf278b'].includes(currentChipKind)?describeOpl3Notes(apuNoteMonitor,noteishHeader[`${currentChipKind}Clock`] & 0x3fffffff,currentChipKind):currentChipKind==='nes'?describeNesNotes(apuNoteMonitor,noteishHeader.nesApuClock & 0x3fffffff):describeGameboyNotes(apuNoteMonitor)).forEach((note,i)=>{
+  (currentChipKind==='msx'?describeMsxNotes(apuNoteMonitor):currentChipKind==='wonderswan'?describeWonderSwanNotes(apuNoteMonitor,noteishHeader.wonderswanClock & 0x3fffffff):currentChipKind==='huc6280'?describeHuc6280Notes(apuNoteMonitor,noteishHeader.huc6280Clock & 0x3fffffff):isOpl(currentChipKind)?describeOplNotes(apuNoteMonitor,noteishHeader[`${currentChipKind}Clock`]&0x3fffffff):['ymf262','ymf278b'].includes(currentChipKind)?describeOpl3Notes(apuNoteMonitor,noteishHeader[`${currentChipKind}Clock`] & 0x3fffffff,currentChipKind):currentChipKind==='nes'?describeNesNotes(apuNoteMonitor,noteishHeader.nesApuClock & 0x3fffffff):describeGameboyNotes(apuNoteMonitor)).forEach((note,i)=>{
     const ch = apuNoteChannels[i];
     if(currentChipKind==='nes'||currentChipKind==='msx'){ch.label=note.name;ch.apuType=note.type;}
-    const modeChanged = currentChipKind === "huc6280" && ch.apuType !== note.type;
-    if (currentChipKind === "huc6280") {
-      ch.huc6280=true; ch.label=note.name; ch.apuType=note.type; ch.reason=note.reason; ch.audible=note.audible;
+    const modeChanged = ["wonderswan","huc6280"].includes(currentChipKind) && ch.apuType !== note.type;
+    if (["wonderswan","huc6280"].includes(currentChipKind)) {
+      ch.huc6280=currentChipKind === "huc6280"; ch.wonderswan=currentChipKind === "wonderswan"; ch.label=note.name; ch.apuType=note.type; ch.reason=note.reason; ch.audible=note.audible;
     }
     ch.unavailable = !!(note.slave || note.percussion || note.csm);
     if(isOpl(currentChipKind)||['ymf262','ymf278b'].includes(currentChipKind))ch.apuType=note.csm?'CSM (omitted)':note.slave?'4op partner':note.percussion?'Rhythm (omitted)':note.paired?'4op':'2op';
@@ -1233,7 +1237,7 @@ function updateApuNoteMonitor() {
 
 function resetApuNoteChannels() {
   if(currentChipKind==='nes'){nesChannelMutes.length=(noteishHeader.nesApuClock&0x80000000)?6:5;if(nesChannelMutes.length===6)nesChannelMutes[5]??=false;}
-  apuNoteMonitor = currentChipKind==='msx'?createMsxNoteMonitor(noteishHeader):currentChipKind==='huc6280'?createHuc6280Monitor():isOpl(currentChipKind)?createOplMonitor():['ymf262','ymf278b'].includes(currentChipKind)?createOpl3Monitor():currentChipKind==='nes'?createNesMonitor(!!(noteishHeader.nesApuClock & 0x80000000)):createGameboyMonitor();
+  apuNoteMonitor = currentChipKind==='msx'?createMsxNoteMonitor(noteishHeader):currentChipKind==='wonderswan'?createWonderSwanMonitor():currentChipKind==='huc6280'?createHuc6280Monitor():isOpl(currentChipKind)?createOplMonitor():['ymf262','ymf278b'].includes(currentChipKind)?createOpl3Monitor():currentChipKind==='nes'?createNesMonitor(!!(noteishHeader.nesApuClock & 0x80000000)):createGameboyMonitor();
   apuNoteChannels = [];
   updateApuNoteMonitor();
   requestNoteishRender();
@@ -1257,7 +1261,7 @@ function renderChannelMonitor() {
   if (currentChipKind === "ay8910") { renderMonitorToggles(); ayMonitor.render(); if (noteishHeader.ym2413Clock & 0x3fffffff) ym2413Monitor.render(); return; }
   if (currentChipKind === "ym2413") { renderMonitorToggles(); ym2413Monitor.render(); return; }
   if (isOpl(currentChipKind)) { renderMonitorToggles(); oplMonitor.render(); return; }
-  if (["msx","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind)) { renderMonitorToggles(); return; }
+  if (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind)) { renderMonitorToggles(); return; }
   renderPsgMonitor();
   renderPcmMonitor();
   channelGrid.innerHTML = "";
@@ -1345,7 +1349,7 @@ function estimateChannelNoteish(channel) {
   }
   if (channel.tone || channel.apu) {
     const midi = channel.toneMidi;
-    return { midiFloat:midi, note:midi === null ? (channel.huc6280 ? channel.reason || 'No pitch' : 'No pitch') : `~${midiToNoteName(Math.round(midi))}`,
+    return { midiFloat:midi, note:midi === null ? ((channel.huc6280 || channel.wonderswan) ? channel.reason || 'No pitch' : 'No pitch') : `~${midiToNoteName(Math.round(midi))}`,
       cents:midi === null ? null : Math.round((midi-Math.round(midi))*100) };
   }
   if (channel.fnum <= 0) {
@@ -1838,12 +1842,12 @@ function renderNoteishGrid() {
       if (node.textContent !== value) node.textContent = value;
     };
     text('.noteish-title', channel.label ?? `CH${channel.channel + 1}`);
-    text('.noteish-state', channel.snes ? (channel.muted?'muted':channel.keyOn?'key on':channel.reason||'key off') : channel.huc6280 ? (channel.audible ? channel.apuType : channel.reason) : channel.keyOn ? 'key on' : 'key off');
+    text('.noteish-state', channel.snes ? (channel.muted?'muted':channel.keyOn?'key on':channel.reason||'key off') : (channel.huc6280 || channel.wonderswan) ? (channel.audible ? channel.apuType : channel.reason) : channel.keyOn ? 'key on' : 'key off');
     text('.noteish-note', estimated.note);
     text('.noteish-cents', centsText);
     updateNoteishHtml(card.querySelector('.noteish-meta'), `
         RANGE ${rangeText}<br>
-        ${channel.snes ? `SRCN ${channel.sourceNumber??'—'} / BRR ${channel.sampleId??'—'} · PITCH ${channel.pitch??0}<br>${channel.referenceKind??'provisional'} reference${Number.isFinite(channel.referenceHz)?` · ${channel.referenceHz.toFixed(2)} Hz at PITCH 4096`:''}${channel.pitchModulation?' · before pitch modulation':''}${channel.inferred?' · inferred initial note':''}<br>Key requests; audible envelope/release and echo are not transcribed.` : channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.opll ? `FNUM ${channel.fnum} / BLOCK ${channel.block}<br>Instrument ${channel.instrument === 0 ? "Custom" : channel.instrument} / Volume ${channel.volume}${channel.isRhythmChannel ? "<br>Repurposed for rhythm; base pitch not shown." : ""}` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : channel.apu ? `${channel.apuType} · FREQ ${channel.freq}<br>${channel.huc6280 ? "Base pitch only; PCM/DDA, noise and LFO intervals have no note." : (currentChipKind === "msx" || isOpl(currentChipKind) || ["ymf262","ymf278b"].includes(currentChipKind)) ? "Base pitch only; rhythm, timbre, modulation and release omitted." : "Length counter and channel 1 sweep are time-based and not reconstructed."}` : `BLOCK ${channel.block}<br>
+        ${channel.snes ? `SRCN ${channel.sourceNumber??'—'} / BRR ${channel.sampleId??'—'} · PITCH ${channel.pitch??0}<br>${channel.referenceKind??'provisional'} reference${Number.isFinite(channel.referenceHz)?` · ${channel.referenceHz.toFixed(2)} Hz at PITCH 4096`:''}${channel.pitchModulation?' · before pitch modulation':''}${channel.inferred?' · inferred initial note':''}<br>Key requests; audible envelope/release and echo are not transcribed.` : channel.opm ? `KC ${channel.kc} / KF ${channel.kf}<br>Base pitch; LFO/DT/MUL and audible release are not reconstructed.` : channel.opll ? `FNUM ${channel.fnum} / BLOCK ${channel.block}<br>Instrument ${channel.instrument === 0 ? "Custom" : channel.instrument} / Volume ${channel.volume}${channel.isRhythmChannel ? "<br>Repurposed for rhythm; base pitch not shown." : ""}` : channel.tone ? `PERIOD ${channel.period}<br>Envelope ${channel.envelope ? "on (estimated)" : "off"} / Noise ${channel.noise ? "mixed" : "off"}` : channel.apu ? `${channel.apuType} · FREQ ${channel.freq}<br>${channel.wonderswan ? "Wavetable base pitch only; Voice PCM, sweep and noise intervals have no note. Waveform harmonics are not inferred." : channel.huc6280 ? "Base pitch only; PCM/DDA, noise and LFO intervals have no note." : (currentChipKind === "msx" || isOpl(currentChipKind) || ["ymf262","ymf278b"].includes(currentChipKind)) ? "Base pitch only; rhythm, timbre, modulation and release omitted." : "Length counter and channel 1 sweep are time-based and not reconstructed."}` : `BLOCK ${channel.block}<br>
         FNUM ${channel.fnum}<br>
         ALG ${channel.algorithm} / FB ${channel.feedback}`}
     `);
@@ -2031,6 +2035,7 @@ function renderHeader(header) {
     `ym2151Clock: ${header.ym2151Clock}`,
     `segaPcmClock: ${header.segaPcmClock}, bankShift: ${header.segaPcmBankShift}, bankMask: ${formatHex(header.segaPcmBankMask)}`,
     `gameBoyDmgClock: ${header.gameBoyDmgClock}`,
+    `wonderswanClock: ${header.wonderswanClock}`,
     `huc6280Clock: ${header.huc6280Clock}`,
     `msm5205Clock: ${header.msm5205Clock}`,
     `msm5205Flags: ${header.msm5205Flags}`,
@@ -2080,6 +2085,7 @@ const HEADER_CHIP_FIELDS = [
   ['k051649Clock', 'K051649 (SCC)'],
   ['segaPcmClock', 'Sega PCM'],
   ['gameBoyDmgClock', 'Game Boy DMG'],
+  ['wonderswanClock', 'WonderSwan'],
   ['huc6280Clock', 'HuC6280'],
   ['msm5205Clock', 'MSM5205 ADPCM'],
   ['nesApuClock', 'NES APU'],
@@ -2674,7 +2680,7 @@ function downloadSnapshotVgiZip() {
 
 async function ensurePlaybackReady(vgm) {
   const nextChipKind = selectPlaybackConfiguration(vgm).kind;
-  const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6295Clock, vgm.header.huc6280Clock, vgm.header.msm5205Clock, vgm.header.msm5205Flags, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
+  const nextClockKey = JSON.stringify([nextChipKind, vgm.header.okim6295Clock, vgm.header.wonderswanClock, vgm.header.huc6280Clock, vgm.header.msm5205Clock, vgm.header.msm5205Flags, vgm.header.okim6258Clock, vgm.header.okim6258Flags, vgm.header.ym2612Clock, vgm.header.psgClock,
     vgm.header.ymf278bClock, vgm.header.ym3526Clock, vgm.header.ym3812Clock, vgm.header.ymf262Clock, vgm.header.segaPcmClock, vgm.header.segaPcmBankShift, vgm.header.segaPcmBankMask, vgm.header.nesApuClock, vgm.header.gameBoyDmgClock, vgm.header.ym2151Clock, vgm.header.ay8910Clock, vgm.header.ay8910Type, vgm.header.ay8910Flags, vgm.header.y8950Clock, vgm.header.k051649Clock, vgm.header.ym2413Clock, vgm.header.rf5c164Clock, vgm.header.ym2203Clock, vgm.header.ym2608Clock, vgm.header.ym2610Clock]);
 
   if (engine && (currentChipKind !== nextChipKind || engineClockKey !== nextClockKey)) {
@@ -2700,7 +2706,7 @@ async function ensurePlaybackReady(vgm) {
   if (!engine) {
     engine = await createPlaybackEngine(vgm, {getFactory: getBrowserPlaybackFactory, masterVolume, allowMissingYm2608RhythmRom: true,
       roms: {ym2608AdpcmA:ym2608AdpcmARomBytes, ymf278bWave:ymf278bWaveRomBytes}});
-    if (["msx", "huc6280", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy"].includes(currentChipKind)) {
+    if (["msx", "wonderswan", "huc6280", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy"].includes(currentChipKind)) {
       const chip = currentChipKind;
 
       if (chip === 'msx') observeMsxNotes(engine, () => apuNoteMonitor, updateApuNoteMonitor, resetApuNoteChannels);
@@ -2714,6 +2720,11 @@ async function ensurePlaybackReady(vgm) {
         const method=chip === 'ymf278b' ? 'writeYmf278b' : 'writeYmf262';
         const write=engine[method].bind(engine), reset=engine.reset.bind(engine);
         engine[method]=(p,r,v)=>{write(p,r,v);if(p===0||p===1){applyOpl3Write(apuNoteMonitor,r,v,p);updateApuNoteMonitor();}};
+        engine.reset=()=>{reset();resetApuNoteChannels();};
+      }
+      if (chip === 'wonderswan') {
+        const write=engine.writeWonderSwan.bind(engine), reset=engine.reset.bind(engine);
+        engine.writeWonderSwan=(r,v)=>{write(r,v);if(applyWonderSwanWrite(apuNoteMonitor,r,v))updateApuNoteMonitor();};
         engine.reset=()=>{reset();resetApuNoteChannels();};
       }
       if (chip === 'huc6280') {
@@ -2994,9 +3005,9 @@ function updateChipSupport() {
   const opll = currentChipKind === 'ym2413';
   const opl = isOpl(currentChipKind);
   const ayWithOpll = ay && Boolean(noteishHeader.ym2413Clock & 0x3fffffff);
-  const playbackOnly = ['mixed', 'huc6280', 'okim6295', 'okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'segapcm', 'ym2151', 'ym2413', 'nes', 'gameboy'].includes(currentChipKind) || ay;
+  const playbackOnly = ['mixed', 'wonderswan', 'huc6280', 'okim6295', 'okim6258', 'msx', 'y8950', 'ymf278b', 'ym3526', 'ym3812', 'ymf262', 'segapcm', 'ym2151', 'ym2413', 'nes', 'gameboy'].includes(currentChipKind) || ay;
   for (const tab of [operatorInfoTab, noteishTab, tfiInfoTab, sampleTab]) {
-    tab.disabled = !((['ymf278b','gameboy'].includes(currentChipKind) || (['segapcm', 'ym2151', 'okim6258'].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tab === sampleTab) && playbackOnly && !((ay || opll || opl || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll || opl || ['msx','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind)) && tab === noteishTab));
+    tab.disabled = !((['ymf278b','gameboy'].includes(currentChipKind) || (['segapcm', 'ym2151', 'okim6258'].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tab === sampleTab) && playbackOnly && !((ay || opll || opl || currentChipKind === 'ym2151') && tab === operatorInfoTab) && !((currentChipKind === 'ym2151' && (tab === noteishTab || tab === tfiInfoTab)) || ((ay || opll || opl || ['msx','wonderswan','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind)) && tab === noteishTab));
     if (sbi && tab === tfiInfoTab) tab.disabled = !currentBuffer || !!(noteishHeader[currentChipKind+'Clock'] & 0xc0000000);
     tab.title = tab.disabled ? 'Support coming soon.' : '';
   }
@@ -3032,9 +3043,9 @@ function updateChipSupport() {
       button.title = currentChipKind === 'msx' ? 'MSX base pitches; ADPCM, noise and original timbres omitted. More than 15 channels require multi-port MIDI support.' : ['ymf262','ymf278b'].includes(currentChipKind) ? 'FM base pitches; PCM and rhythm omitted. MIDI playback requires multi-port support.' : 'OPL base pitches; rhythm, CSM and original timbres are omitted.';
       continue;
     }
-    if (['huc6280','gameboy','nes'].includes(currentChipKind) && button === exportMidiButton) {
+    if (['wonderswan','huc6280','gameboy','nes'].includes(currentChipKind) && button === exportMidiButton) {
       button.disabled = !currentBuffer || !midiExportAvailable;
-      button.title = currentChipKind === 'huc6280' ? 'Export six-channel wavetable base pitches; PCM/DDA, noise and LFO intervals are omitted.' : 'Export base-pitch CH1/CH2 (square) and CH3 (wave) notes; CH4 noise, length counter and channel 1 sweep are not reproduced.';
+      button.title = currentChipKind === 'wonderswan' ? 'Export four-channel wavetable base pitches; CH2 Voice PCM, CH3 sweep and CH4 noise intervals are omitted.' : currentChipKind === 'huc6280' ? 'Export six-channel wavetable base pitches; PCM/DDA, noise and LFO intervals are omitted.' : 'Export base-pitch CH1/CH2 (square) and CH3 (wave) notes; CH4 noise, length counter and channel 1 sweep are not reproduced.';
       continue;
     }
     if (playbackOnly) button.disabled = true;
@@ -3042,7 +3053,7 @@ function updateChipSupport() {
   }
   const notice = document.getElementById('chipSupportNotice');
   notice.hidden = !playbackOnly;
-  notice.textContent = currentChipKind === 'msx' ? 'MSX AY / OPLL / Y8950 / SCC / SCC+ / OPM / OPP: Live and Song Note-ish, Sheet Music, MIDI / MusicXML / LilyPond use base pitches. ADPCM, noise, partial OPM keys, CSM, timbre and modulation are omitted. SCC waveform harmonics and rewriting are not transcribed. More than 15 channels require multi-port MIDI playback.' : currentChipKind === 'ymf278b' ? 'YMF278B FM Note-ish: 18-channel 2op/4op base pitches; pairs use the leading CH. PCM voices, rhythm, timbre, modulation and release are omitted. FM Sheet Music / MIDI / MusicXML / LilyPond export available. PCM Sample Explorer provides key-on snapshots, waveform, raw preview and WAV; load Wave ROM when required.' : currentChipKind === 'huc6280' ? 'HuC6280 Note-ish: 6-channel wavetable base pitches. PCM/DDA, noise and LFO CH1/CH2 intervals are omitted from notes. MIDI / MusicXML / LilyPond and WAV export available. Original timbres and PCM pitch are not reconstructed; instrument editing: Support coming soon.' : opl ? 'OPL / OPL2 / Y8950: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9, CSM and Y8950 ADPCM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MIDI / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI playback requires multi-port support.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML / MDX file export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU / FDS: pulse, triangle and optional FDS base-pitch notes, MIDI and Music Sheet. FDS modulation and envelope timing are not transcribed. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
+  notice.textContent = currentChipKind === 'wonderswan' ? 'WonderSwan Note-ish: four-channel wavetable base pitches, Live / Song, Sheet Music, MIDI / MusicXML / LilyPond and WAV. CH2 Voice PCM, CH3 sweep and CH4 noise intervals are omitted from notes. Waveform harmonics and RAM rewriting are not inferred. Instrument / sample export and editing are unavailable; normal seeking only. Hyper Voice / DMA and dual-chip / variant files are unsupported.' : currentChipKind === 'msx' ? 'MSX AY / OPLL / Y8950 / SCC / SCC+ / OPM / OPP: Live and Song Note-ish, Sheet Music, MIDI / MusicXML / LilyPond use base pitches. ADPCM, noise, partial OPM keys, CSM, timbre and modulation are omitted. SCC waveform harmonics and rewriting are not transcribed. More than 15 channels require multi-port MIDI playback.' : currentChipKind === 'ymf278b' ? 'YMF278B FM Note-ish: 18-channel 2op/4op base pitches; pairs use the leading CH. PCM voices, rhythm, timbre, modulation and release are omitted. FM Sheet Music / MIDI / MusicXML / LilyPond export available. PCM Sample Explorer provides key-on snapshots, waveform, raw preview and WAV; load Wave ROM when required.' : currentChipKind === 'huc6280' ? 'HuC6280 Note-ish: 6-channel wavetable base pitches. PCM/DDA, noise and LFO CH1/CH2 intervals are omitted from notes. MIDI / MusicXML / LilyPond and WAV export available. Original timbres and PCM pitch are not reconstructed; instrument editing: Support coming soon.' : opl ? 'OPL / OPL2 / Y8950: 9-channel base-pitch Note-ish, MIDI, MusicXML and LilyPond. Rhythm CH7–9, CSM and Y8950 ADPCM are omitted. Voice / Operator Info includes a register-state JSON snapshot export; no TFI/VGI conversion or instrument editing.' : currentChipKind === 'ymf262' ? 'YMF262 Note-ish / Sheet Music / MIDI / MusicXML / LilyPond: 2op and 4op base pitches; pairs use the leading CH. Rhythm, timbre, modulation and release are omitted. MIDI playback requires multi-port support.' : currentChipKind === 'ym2151' ? 'YM2151 register monitor available. Base-pitch Note-ish available; noise/partial keys/CSM are omitted. MIDI base-pitch export available. OPM snapshots are available in the Export group. MXDRV MML / MDX file export available. Instrument editing: Support coming soon.' : ay ? 'AY / YM2149 register monitor and base-pitch Note-ish available; noise/envelope shape are omitted. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : opll ? 'YM2413 register monitor and base-pitch Note-ish available: FNUM/BLOCK base pitch, instrument number, volume and rhythm mode state; rhythm channels other than Bass Drum have no single pitch. MIDI and LilyPond/Music Sheet base-pitch export available. Instrument editing and MML export: Support coming soon.' : ['gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) ? (currentChipKind==='nes'?'NES APU / FDS: pulse, triangle and optional FDS base-pitch notes, MIDI and Music Sheet. FDS modulation and envelope timing are not transcribed. Noise/DMC are omitted from scores; time-based modulation is approximate.': 'Game Boy DMG base-pitch Note-ish available for CH1/CH2 (square) and CH3 (wave); CH4 (noise) has no pitch, and length counter/CH1 sweep are not reconstructed. MIDI and LilyPond/Music Sheet base-pitch export available. Register monitor, instrument editing and MML export: Support coming soon.') : `${currentChipKind.toUpperCase()} analysis and instrument editing: Support coming soon.`;
   oplMonitorRoot.hidden = !opl;
   opnMonitorRoot.hidden = currentChipKind==='mixed' || opl || ay || opll || currentChipKind === 'ym2151';
   if(currentChipKind==='mixed')notice.textContent='Multi-chip playback: '+mixedPlaybackParts.map(p=>p.chips.join(' + ')).join(' + ')+'. Source mute and WAV export are available. Combined note/instrument analysis and seek checkpoints are not available.';
@@ -3056,7 +3067,7 @@ function updateChipSupport() {
   if (sbi && !tfiInfoTab.disabled && tfiInfoTab.getAttribute('aria-selected') === 'true') return;
   if (!sampleTab.disabled && sampleTab.getAttribute('aria-selected') === 'true') return;
   if (['mixed', 'okim6295', 'okim6258', 'segapcm'].includes(currentChipKind)) setOutputTab('parsed-output');
-  else if (['msx','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) && noteishTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true' && !(currentChipKind === 'ymf278b' && sampleTab.getAttribute('aria-selected') === 'true')) setOutputTab('noteish');
+  else if (['msx','wonderswan','huc6280','gameboy','nes','ymf278b','ymf262'].includes(currentChipKind) && noteishTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true' && !(currentChipKind === 'ymf278b' && sampleTab.getAttribute('aria-selected') === 'true')) setOutputTab('noteish');
   else if (((ay || opll || opl || currentChipKind === 'ym2151') && noteishTab.getAttribute('aria-selected') !== 'true' && (tfiInfoTab.disabled || tfiInfoTab.getAttribute('aria-selected') !== 'true')) && operatorInfoTab.getAttribute('aria-selected') !== 'true' && parsedOutputTab.getAttribute('aria-selected') !== 'true') setOutputTab('operator-info');
 }
 
@@ -3574,7 +3585,7 @@ async function handleFile(file, preserveEditor = false) {
   if (currentChipKind === "ym2151") resetOpmNotes(vgm.header.ym2151Clock & 0x3fffffff);
   if (currentChipKind === "ay8910") ayMonitor.load(vgm.header);
   if (currentChipKind === "ym2413") { ym2413Monitor.load(vgm.header); resetYm2413NoteChannels(); }
-  if (["msx","y8950","huc6280","gameboy","nes","ymf278b","ymf262","ym3526","ym3812"].includes(currentChipKind)) resetApuNoteChannels();
+  if (["msx","y8950","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262","ym3526","ym3812"].includes(currentChipKind)) resetApuNoteChannels();
   currentHasPcm = Boolean(vgm.header.rf5c164Clock);
   currentPcmClock = vgm.header.rf5c164Clock & 0x3fffffff;
   channelMonitor = createChannelMonitorState();
@@ -3609,13 +3620,13 @@ async function handleFile(file, preserveEditor = false) {
   playbackSeek.max = String(Math.max(0, vgm.header.totalSamples));
   renderSeekPosition(0);
   midiExportAvailable = currentChipKind!=='mixed' && Boolean(midiChipKind(vgm.header) || ((vgm.header.ym2151Clock & 0x3fffffff) && !(vgm.header.ym2151Clock & 0x40000000)));
-  if ((isOpl(currentChipKind) || ['ymf262','ymf278b'].includes(currentChipKind)) && (vgm.header[`${currentChipKind}Clock`]&0xc0000000)) midiExportAvailable = false;
+  if ((isOpl(currentChipKind) || ['wonderswan','ymf262','ymf278b'].includes(currentChipKind)) && (vgm.header[`${currentChipKind}Clock`]&0xc0000000)) midiExportAvailable = false;
   lastParseInfo = buildParseInfo(buffer, file.name, vgm);
   if (sourceHeader) {
     lastParseInfo.sourceHeader = sourceHeader;
     lastParseInfo.commandFormat = "VGM (normalized from S98)";
   }
-  extractedTfiPatches = ["mixed", "huc6280", "okim6295", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
+  extractedTfiPatches = ["mixed", "wonderswan", "huc6280", "okim6295", "okim6258", "msx", "y8950", "ymf278b", "ym3526", "ym3812", "ymf262", "segapcm", "nes", "gameboy", "ym2151", "ym2413", "ay8910"].includes(currentChipKind) ? [] : extractTfiPatchesFromVgm(buffer);
   tfiInfo.loadVgm(buffer, file.name);
   opmInfo.loadVgm(currentChipKind === 'ym2151' ? buffer : null);
   sbiInfo.loadVgm(['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind) ? buffer : null);
@@ -4060,7 +4071,7 @@ function selectedOutputTab() {
 function setOutputTab(tabName) {
   if (spcView.active && !['parsed-output', 'samples', 'noteish', 'sheet-music'].includes(tabName)) tabName = 'parsed-output';
   const sbi = ['ym3526','ym3812','y8950','ymf262','ymf278b'].includes(currentChipKind);
-  if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
+  if (!(sbi && tabName === 'tfi-info' && currentBuffer && !(noteishHeader[currentChipKind+'Clock'] & 0xc0000000)) && !((["ymf278b","gameboy"].includes(currentChipKind) || (["segapcm", "ym2151", "okim6258"].includes(currentChipKind) && (noteishHeader.segaPcmClock || noteishHeader.okim6258Clock))) && tabName === "samples") && !(tabName === "sheet-music" && currentBuffer && (midiExportAvailable || (currentChipKind === 'ymf262' && !(noteishHeader.ymf262Clock & 0xc0000000)))) && ((["mixed", "okim6295", "okim6258", "segapcm"].includes(currentChipKind) && tabName !== "parsed-output") || (["msx","wonderswan","huc6280","gameboy","nes","ymf278b","ymf262"].includes(currentChipKind) && !["parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ay8910" && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || ((currentChipKind === "ym2413" || isOpl(currentChipKind)) && !["operator-info", "parsed-output", "noteish"].includes(tabName)) || (currentChipKind === "ym2151" && !["operator-info", "parsed-output", "noteish", "tfi-info"].includes(tabName)))) {
     setStatus('Analysis and instrument editing: Support coming soon.');
     tabName = "parsed-output";
   }
@@ -4215,7 +4226,7 @@ const commandEditor = mountCommandEditor(document.getElementById('commandEditor'
 
 mountScoreGroups({getTrack:()=>({buffer:scoreExportBuffer()}), getAnalysis:buffer=>{
   if(spcView.active){if(!spcScore)throw new Error('Analyze this SPC in Note-ish or Sheet Music first.');return spcScore;}
-  return currentChipKind === 'huc6280' ? extractHuc6280Notes(buffer) : exportTempo.getAnalysis(buffer);
+  return currentChipKind === 'wonderswan' ? extractWonderSwanNotes(buffer) : currentChipKind === 'huc6280' ? extractHuc6280Notes(buffer) : exportTempo.getAnalysis(buffer);
 },
   onChange:()=>{if(currentBuffer)songTimeline.load(currentBuffer);setStatus('Groups updated. Regenerate the sheet to apply changes.');},setStatus});
 musicSheet = mountMusicSheet({getTrack: () => ({buffer:scoreExportBuffer(), source:scoreExportSource(),available:scoreExportAvailable(),fileName:lastLoadedFileName}), tempoSettings:exportTempo, setStatus});
@@ -4431,6 +4442,7 @@ async function createAnalyzerSegaPsgModule(options = {}) {
 
 async function getBrowserPlaybackFactory(name) {
   const loaders = {
+    wonderswan: async () => (await import('../generated/wonderswan_wasm.js')).default,
     huc6280: async () => (await import('../generated/huc6280_wasm.js')).default,
     okim6258: async () => (await import('../generated/okim6258_wasm.js')).default,
     ay8910: async () => (await import('../generated/ay8910_wasm.js')).default,

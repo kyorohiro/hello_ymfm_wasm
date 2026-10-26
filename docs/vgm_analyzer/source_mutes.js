@@ -11,7 +11,7 @@ const SOURCES = {
   segapcm: { key: "segapcm", label: "Sega PCM", method: "setSegaPcmMuted" },
 };
 export function sourcesForChip(chip, hasOki = false, hasOki6295 = false, hasMsm5205 = false) {
-  if (chip === 'msx' || chip === 'gameboy' || chip === 'nes') return [];
+  if (chip === 'msx' || chip === 'gameboy' || chip === 'nes' || chip === 'wonderswan') return [];
   if (chip === 'huc6280') return [...(hasOki ? [SOURCES.oki] : []),...(hasMsm5205 ? [SOURCES.msm5205] : [])];
   if (chip === 'okim6295') return [SOURCES.oki6295, ...(hasOki ? [SOURCES.oki] : [])];
   if (chip === 'okim6258') return [SOURCES.oki];

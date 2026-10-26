@@ -1,4 +1,4 @@
-import {suggestLilyPondTempo} from './vgm_lilypond.js?v=snes-score-1';
+import {suggestLilyPondTempo} from './vgm_lilypond.js?v=wonderswan-vgm-1';
 
 // Reuse the Note-ish observation and its exact tuning choices. This adapter
 // neither runs the SPC CPU again nor changes the audible player.

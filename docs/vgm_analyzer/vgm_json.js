@@ -1,4 +1,4 @@
-import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js';
+import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 
 const hex = bytes => {
   const chunks=[];

@@ -1,6 +1,6 @@
 import {mixerDefaults} from './playback_mixer.js';
 
-const names = {psg: 'Sega PSG', gameBoyDmg: 'Game Boy', segaPcm: 'Sega PCM', nesApu: 'NES APU',
+const names = {wonderswan: 'WonderSwan', psg: 'Sega PSG', gameBoyDmg: 'Game Boy', segaPcm: 'Sega PCM', nesApu: 'NES APU',
   rf5c164: 'RF5C164', pwm: 'PWM', k051649: 'SCC / SCC+', ay8910: 'AY8910'};
 export function createMixerUi({container, resetButton, onChange, preferences, onReset = () => {}}) {
   let mixer = null;

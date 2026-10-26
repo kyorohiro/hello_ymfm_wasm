@@ -1,4 +1,4 @@
-import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 
 // Live note-ish tracking for Game Boy DMG channels 1-3 (square, square, wave).
 // Channel 4 (noise) has no pitch and is intentionally not tracked here,

@@ -1,4 +1,4 @@
-import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js';
+import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 
 // Keep the original bytes and sparse scalar edits, never a JSON object per command.
 export class CommandEditor {
@@ -15,7 +15,7 @@ export class CommandEditor {
     const op = this.bytes[offset];
     const wait = op === 0x61;
     const writable = wait || op === 0x50 || (op >= 0x51 && op <= 0x5f) || op === 0xa0
-      || [0xb3,0xb4,0xb8,0xb9,0xd0,0xd2].includes(op);
+      || [0xb3,0xb4,0xb8,0xb9,0xbc,0xd0,0xd2].includes(op);
     const original = wait ? this.parser.view.getUint16(offset+1,true) : this.bytes[offset+length-1];
     const preview = Array.from(this.bytes.subarray(offset,offset+Math.min(length,12)),b=>b.toString(16).padStart(2,'0')).join(' ');
     return {offset,length,op,writable,wait,original,value:this.edits.get(offset) ?? original,

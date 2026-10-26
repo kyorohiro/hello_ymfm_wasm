@@ -60,7 +60,7 @@ test('Genesis native output rate is adapted; OPN and PSG remain audible across c
  assert((await pcm(bytes,{mute:['genesis','ym2203']}))[0].every(v=>v===0));
 });
 test('all supported clocks instantiate with isolated targets; unknown chips/dual reject',async()=>{
- const header={ym2612Clock:7670454,psgClock:3579545,ym2203Clock:4000000,ym2608Clock:8000000,ym2610Clock:8000000,ym2151Clock:4000000,ym2413Clock:3579545,ym3526Clock:3579545,ym3812Clock:3579545,ymf262Clock:14318180,ymf278bClock:33868800,y8950Clock:3579545,ay8910Clock:1789773,k051649Clock:1789773,huc6280Clock:3579545,nesApuClock:1789773,gameBoyDmgClock:4194304,segaPcmClock:4000000,rf5c164Clock:12500000,pwmClock:23011361,okim6258Clock:4000000,okim6258Flags:4,okim6295Clock:1320000};
+ const header={ym2612Clock:7670454,psgClock:3579545,ym2203Clock:4000000,ym2608Clock:8000000,ym2610Clock:8000000,ym2151Clock:4000000,ym2413Clock:3579545,ym3526Clock:3579545,ym3812Clock:3579545,ymf262Clock:14318180,ymf278bClock:33868800,y8950Clock:3579545,ay8910Clock:1789773,k051649Clock:1789773,huc6280Clock:3579545,wonderswanClock:3072000,nesApuClock:1789773,gameBoyDmgClock:4194304,segaPcmClock:4000000,rf5c164Clock:12500000,pwmClock:23011361,okim6258Clock:4000000,okim6258Flags:4,okim6295Clock:1320000};
  const vgm={header,analyzeCommandUsage:()=>new Map([['0xb3',1],['0xc0',1]]),requiresYm2608RhythmRom:()=>true,requiresYmf278bWaveRom:()=>true};
  const c=selectPlaybackConfiguration(vgm);assert.equal(c.kind,'mixed');
  assert.deepEqual(c.parts.flatMap(p=>p.chips).sort(),c.chips.map(p=>p.id).sort());

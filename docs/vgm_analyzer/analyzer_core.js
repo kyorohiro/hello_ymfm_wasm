@@ -2,23 +2,23 @@ export {exportFmRegisterSnapshot} from './fm_snapshot.js';
 import {groupScoreChannels,parseScoreGroups} from './score_groups.js';
 import {exportSamples,listSamples} from './sample_core.js';
 export {vgmToJson, jsonToVgm} from './vgm_json.js';
-import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js?v=scc-plus-1';
+import {selectPlaybackConfiguration, playbackMuteControls} from './playback_core.js?v=wonderswan-vgm-1';
 import {exportSbiSnapshot, exportSbiZip} from './sbi_export.js';
 import {exportOpmZip} from './opm_export.js';
 import {exportVoiceSnapshot,exportTfiZip,exportVgiZip} from './tfi_archive.js';
 // Environment-neutral API shared by the browser, Node adapter and future MCP server.
 import { looksLikeS98, convertS98ToVgm } from '../js/s98_file.js';
-import { Ym2612VGM } from '../js/ym2612vgm.js';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import { maybeDecodeVgmFile, parseVgmMetadata } from '../js/vgm_file.js';
-import { analyzeLilyPondSource, createLilyPondScore } from './vgm_lilypond.js?v=snes-score-1';
+import { analyzeLilyPondSource, createLilyPondScore } from './vgm_lilypond.js?v=wonderswan-vgm-1';
 import { createMusicXmlScore } from './vgm_musicxml.js?v=snes-score-1';
-import { exportAnalysisMidi } from './vgm_midi.js?v=snes-score-1';
+import { exportAnalysisMidi } from './vgm_midi.js?v=wonderswan-vgm-1';
 import { exportMucomMml, exportOpnavoidMml } from './vgm_mml.js';
 import { exportMxdrvMml } from './opm_mml.js';
 import { exportMdx } from './mdx_export.js';
 import { exportMgsdrvMml } from './mgsdrv_mml.js';
-export { analyzeLilyPondSource, exportLilyPondAnalysis } from './vgm_lilypond.js?v=snes-score-1';
-export { exportAnalysisMidi, exportNoteAnalysisMidi } from './vgm_midi.js?v=snes-score-1';
+export { analyzeLilyPondSource, exportLilyPondAnalysis } from './vgm_lilypond.js?v=wonderswan-vgm-1';
+export { exportAnalysisMidi, exportNoteAnalysisMidi } from './vgm_midi.js?v=wonderswan-vgm-1';
 export { createMusicXmlScore } from './vgm_musicxml.js?v=snes-score-1';
 export { renderVgmToWav } from './vgm_wav.js';
 export const exportFormats = Object.freeze(['sbi', 'sbi-zip', 'tfi', 'vgi', 'opm', 'tfi-zip', 'vgi-zip', 'opm-zip', 'midi', 'musicxml', 'lilypond', 'mucom', 'opnavoid', 'mxdrv', 'mdx', 'mgsdrv']);
@@ -82,7 +82,7 @@ export function exportSource(source, { format, bpm, fileName = 'VGM', atSeconds,
   return { text: exporters[format](source, options) };
 }
 
-export { playbackMuteControls, applyPlaybackMutes, selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js?v=scc-plus-1';
+export { playbackMuteControls, applyPlaybackMutes, selectPlaybackConfiguration, createPlaybackEngine, createPlaybackPlayer, PlaybackError } from './playback_core.js?v=wonderswan-vgm-1';
 
 
 export function listSourceSamples(source, options = {}) {

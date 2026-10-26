@@ -1,3 +1,4 @@
+import {extractWonderSwanNotes} from './wonderswan_notes.js?v=wonderswan-vgm-1';
 import {extractMsxNotes} from './msx_notes.js';
 import {extractYmf278bFmNotes, extractOpl3Notes} from './ymf262_notes.js';
 import {extractHuc6280Notes} from './huc6280_notes.js';
@@ -7,8 +8,8 @@ import { extractOpmNotes } from './opm_notes.js';
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { extractOpllNotes } from './ym2413_notes.js';
 import { extractGameboyNotes } from './gameboy_notes.js';
-import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
-import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=midi-onset-1';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=wonderswan-vgm-1';
 
 const PPQN = 960;
 const utf8 = text => new TextEncoder().encode(text);
@@ -53,17 +54,20 @@ export function exportAnalysisMidi(source, { bpm = 120, fileName = 'VGM' } = {})
   const tempo = midiTempo(bpm);
   const parserHeader = new Ym2612VGM(source).header;
   const chipKind = midiChipKind(parserHeader) === 'msx' ? 'msx' : parserHeader.ym2151Clock & 0x3fffffff ? 'ym2151' : midiChipKind(parserHeader);
-  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / PSG or NES APU / HuC6280 / Game Boy DMG');
-  const fm = chipKind === 'msx' ? extractMsxNotes(source) : chipKind === 'ymf262' ? extractOpl3Notes(source) : chipKind === 'ymf278b' ? extractYmf278bFmNotes(source) : isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'huc6280' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
-  const tones = chipKind === 'msx' ? {channels:[],warnings:new Map(),time:0} : chipKind === 'huc6280' ? extractHuc6280Notes(source) : chipKind === 'nes' ? extractNesNotes(source) : chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
+  if (!chipKind) throw new Error('MIDI requires YM2151 / YM2612 / YM2203 / YM2608 / YM2610 / AY-3-8910 / YM2413 / YM3526 / YM3812 / Y8950 / YMF262 / YMF278B / PSG or NES APU / HuC6280 / WonderSwan / Game Boy DMG');
+  const fm = chipKind === 'msx' ? extractMsxNotes(source) : chipKind === 'ymf262' ? extractOpl3Notes(source) : chipKind === 'ymf278b' ? extractYmf278bFmNotes(source) : isOpl(chipKind) ? extractOplNotes(source) : chipKind === 'ym2151' ? extractOpmNotes(source) : chipKind === 'psg' || chipKind === 'ay8910' || chipKind === 'ym2413' || chipKind === 'wonderswan' || chipKind === 'huc6280' || chipKind === 'nes' || chipKind === 'gameboy' ? {channels:[],warnings:new Map()} : extractOpnNotes(source);
+  const tones = chipKind === 'msx' ? {channels:[],warnings:new Map(),time:0} : chipKind === 'wonderswan' ? extractWonderSwanNotes(source) : chipKind === 'huc6280' ? extractHuc6280Notes(source) : chipKind === 'nes' ? extractNesNotes(source) : chipKind === 'gameboy' ? extractGameboyNotes(source) : extractToneNotes(source, chipKind);
   const opll = chipKind !== 'msx' && (parserHeader.ym2413Clock & 0x3fffffff) ? extractOpllNotes(source) : {channels:[],warnings:new Map(),time:0};
   const channels = [...fm.channels, ...tones.channels, ...opll.channels];
   const time = Math.max(fm.time ?? 0, tones.time, opll.time);
-  const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind === 'huc6280' ? 'HuC6280' : chipKind === 'gameboy' ? 'Game Boy DMG' : chipKind.toUpperCase();
+  const chipName = chipKind === 'ym2610' && (parserHeader.ym2610Clock & 0x80000000) ? 'YM2610B' : chipKind === 'wonderswan' ? 'WonderSwan' : chipKind === 'huc6280' ? 'HuC6280' : chipKind === 'gameboy' ? 'Game Boy DMG' : chipKind.toUpperCase();
   const extractionWarnings = new Map([...(fm.warnings ?? []), ...tones.warnings, ...opll.warnings]);
   if (['ym2203','ym2608','ym2610'].includes(chipKind)) extractionWarnings.delete('SSG writes omitted');
   if (parserHeader.psgClock & 0x3fffffff) extractionWarnings.delete('PSG writes omitted');
-  const warnings = chipKind === 'huc6280' ? [
+  const warnings = chipKind === 'wonderswan' ? [
+    'WonderSwan wavetable base pitches; CH2 voice PCM, CH3 sweep, CH4 noise and original timbres are not reproduced.',
+    'Pitch changes become Pitch Bend. Velocity is fixed at 100.',
+  ] : chipKind === 'huc6280' ? [
     'HuC6280 wavetable base pitches; PCM/DDA, noise, LFO CH1/CH2 intervals and original timbres are not reproduced.',
     'Pitch changes become Pitch Bend. Velocity is fixed at 100.',
   ] : ['FM and SSG/PSG tone notes; PCM, noise and original timbres are not reproduced.',

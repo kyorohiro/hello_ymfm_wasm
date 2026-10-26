@@ -1,5 +1,5 @@
 import {snapshotOpmState,exportOpm} from './opm_export.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import {createVgiFromPreset} from '../js/vgi.js';
 import {createTfiFromPreset} from '../js/tfi.js';
 import {snapshotTfiPresets,extractTfiPatchesFromVgm} from './tfi_extract.js';

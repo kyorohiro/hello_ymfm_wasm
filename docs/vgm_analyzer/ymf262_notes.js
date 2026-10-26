@@ -1,4 +1,4 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=ym2610-vgm-2';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 
 export const createOpl3Monitor = () => new Uint8Array(512);
 export function applyOpl3Write(regs, register, value, port=0) {

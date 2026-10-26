@@ -917,3 +917,28 @@ MDX binary fields and commands follow the
 Exported files were opened and rendered with the independent
 [mdxmini player](https://github.com/mistydemeo/mdxmini).
 MDX export is available starting with tetorica-vgm 0.2.9.
+
+
+## WonderSwan
+
+Single-chip WonderSwan VGM 1.71 playback supports four wavetable channels,
+Noise, Sweep and direct/streamed Voice PCM. Register commands (`0xBC`) and
+big-endian physical RAM writes (`0xC6`) use the shared WASM core. No external
+ROM is required. Normal seeking replays the chip state; there are no DSP seek
+checkpoints. Hyper Voice / DMA and dual-chip / variant headers are unsupported.
+
+Channel mute IDs are `wonderswan-ch-1` through `wonderswan-ch-4`. The source
+Mixer default is unity (`1.0`), matching Playground; this chip is not calibrated.
+Live/Song Note-ish and MIDI / MusicXML / LilyPond export use wavetable base
+pitches. CH2 Voice PCM, CH3 Sweep and CH4 Noise intervals are omitted from
+notes, as are waveform harmonics and RAM rewriting. Score channel IDs are
+`wonderswan-ch1` through `wonderswan-ch4`. Instrument/sample extraction and
+TFI/VGI/SBI export are unavailable.
+
+```sh
+node cli/main.js render test/fixtures/wonderswan-tone.vgz --output wonderswan.wav
+node cli/main.js export test/fixtures/wonderswan-tone.vgz --format midi --output wonderswan.mid
+```
+
+The original fixture contains no game or ROM data. This repository's shared
+Browser/Node paths are updated together; this addition is not yet npm-published.

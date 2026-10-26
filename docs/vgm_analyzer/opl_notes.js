@@ -1,4 +1,4 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 
 export const isOpl = kind => kind === 'ym3526' || kind === 'ym3812' || kind === 'y8950';
 export const oplChipKind = header => ['ym3526','ym3812','y8950'].find(k => header[`${k}Clock`] & 0x3fffffff) ?? null;

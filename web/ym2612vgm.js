@@ -28,6 +28,7 @@ import {
  * @property {number} ym2203Clock
  * @property {number} ym2608Clock
  * @property {number} rf5c164Clock
+ * @property {number} wonderswanClock
  * @property {number} psgClock
  * @property {number} ym2610Clock
  * @property {number} totalSamples
@@ -277,6 +278,7 @@ export class Ym2612VGM {
     const ay8910Flags = version >= 0x151 ? headerByte(0x79) : 0;
     const y8950Clock = version >= 0x151 ? extendedClock(0x58) : 0;
     const huc6280Clock = version >= 0x161 ? extendedClock(0xa4) : 0;
+    const wonderswanClock = version >= 0x171 ? extendedClock(0xc0) : 0;
     const msm5205Clock = version >= 0x172 ? extendedClock(0xf0) : 0;
     const msm5205Flags = version >= 0x172 ? headerByte(0xd7) : 0;
     const okim6295Clock = version >= 0x161 ? extendedClock(0x98) : 0;
@@ -294,7 +296,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       segaPcmBankShift, segaPcmBankMask,
-      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, msm5205Clock, msm5205Flags, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
+      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, wonderswanClock, msm5205Clock, msm5205Flags, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
@@ -651,6 +653,23 @@ export class Ym2612VGM {
         this.position+=3;
         return {type:"okim6258-write",register:r&0x7f,value,chipIndex:r>>>7};
       }
+      case 0xbc: {
+        // VGM 1.71: relative I/O register; bit 7 selects the second chip.
+        this.#ensureAvailable(3);
+        const address = this.bytes[this.position + 1], value = this.bytes[this.position + 2];
+        this.position += 3;
+        return {type:'wonderswan-write', register:address & 0x7f, value, chipIndex:address >>> 7};
+      }
+      case 0xc6: {
+        // Unlike RF5C164, this command's address is big endian. The first
+        // address byte carries the second-instance bit (not RAM address bit15).
+        this.#ensureAvailable(4);
+        const high = this.bytes[this.position + 1], low = this.bytes[this.position + 2];
+        const offset = ((high & 0x7f) << 8) | low, value = this.bytes[this.position + 3];
+        if (offset >= 0x4000) throw new RangeError('WonderSwan RAM write exceeds 16 KiB');
+        this.position += 4;
+        return {type:'wonderswan-memory-write', offset, value, chipIndex:high >>> 7};
+      }
       case 0xc2: {
         this.#ensureAvailable(4);
         const offset = readUint16LE(this.view, this.position + 1);
@@ -844,6 +863,15 @@ export class Ym2612VGM {
    */
   playStep(targets) {
     const event = this.step();
+    if (event.type === 'wonderswan-write' || event.type === 'wonderswan-memory-write') {
+      const target = typeof targets.resolveChip === 'function'
+        ? targets.resolveChip('wonderswan', event.chipIndex) : targets.wonderswan;
+      if (!targets.resolveChip && event.chipIndex) throw new Error('Second WonderSwan chip: Support coming soon.');
+      if (!target) throw new Error('WonderSwan event requires a playback target');
+      if (event.type === 'wonderswan-write') target.writeRegister(event.register, event.value);
+      else target.writeMemory(event.offset, event.value);
+      return event;
+    }
     if (typeof targets.resolveChip === 'function') {
       const chip = event.type === 'opl-sample-data' ? event.chip :
         ({'ay8910-write':'ay8910', 'ym2413-write':'ym2413', 'y8950-write':'y8950'})[event.type];
@@ -1192,6 +1220,12 @@ export class Ym2612VGM {
     if (command === 0xb9) {
       return `cmd=0xb9 huc6280 chip=${this.bytes[position+1]>>>7} register=${formatHexNumber(this.bytes[position+1]&0x7f)} value=${formatHexNumber(this.bytes[position+2])}`;
     }
+    if (command === 0xbc) {
+      return `cmd=0xbc wonderswan chip=${this.bytes[position+1]>>>7} register=${formatHexNumber(this.bytes[position+1]&0x7f)} value=${formatHexNumber(this.bytes[position+2])}`;
+    }
+    if (command === 0xc6) {
+      return `cmd=0xc6 wonderswan chip=${this.bytes[position+1]>>>7} offset=${formatHexNumber(((this.bytes[position+1]&0x7f)<<8)|this.bytes[position+2],4)} value=${formatHexNumber(this.bytes[position+3])}`;
+    }
     if (command === 0xb4) {
       return `cmd=0xb4 nes-apu chip=${this.bytes[position + 1] >>> 7} register=${formatHexNumber(this.bytes[position + 1] & 0x7f)} value=${formatHexNumber(this.bytes[position + 2])}`;
     }
@@ -1315,8 +1349,8 @@ export class Ym2612VGM {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
-      // Only these first-instance destinations have a stream writer.
-      stream.disabled = ![0x00, 0x02, 0x11, 0x17, 0x1b].includes(stream.chipType);
+      // WonderSwan additionally resolves its second instance independently.
+      stream.disabled = ![0x00, 0x02, 0x11, 0x17, 0x1b, 0x21, 0xa1].includes(stream.chipType);
       stream.active = false;
       if (stream.disabled) {
         const names = {0x00:'PSG',0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY',0x17:'OKIM6258',0x18:'OKIM6295',0x1b:'HuC6280'};
@@ -1408,7 +1442,7 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #startStream(stream, data, start, mode, length) {
-    if (stream.disabled || ![0x00, 0x02, 0x11, 0x17, 0x1b].includes(stream.chipType)) { stream.active = false; return; }
+    if (stream.disabled || ![0x00, 0x02, 0x11, 0x17, 0x1b, 0x21, 0xa1].includes(stream.chipType)) { stream.active = false; return; }
     if ((stream.chipType & 0x7f) === 0x11) {
       if (start === 0xffffffff) start = stream.pwmStart || 0;
       stream.pwmStart = start;
@@ -1570,7 +1604,13 @@ export class Ym2612VGM {
     const width = stream.chipType === 0 && !(stream.register & 0x10) ? 2 : 1;
     const dataIndex = stream.dataOffset + index * stream.stepSize * width;
     const value = stream.data[dataIndex];
-    if (stream.chipType === 0x1b) {
+    if ((stream.chipType & 0x7f) === 0x21) {
+      const chipIndex = stream.chipType >>> 7;
+      const target = typeof targets.resolveChip === 'function' ? targets.resolveChip('wonderswan', chipIndex) : targets.wonderswan;
+      if (!targets.resolveChip && chipIndex) throw new Error('Second WonderSwan chip: Support coming soon.');
+      if (!target?.writeRegister) throw new Error('WonderSwan stream requires a playback target');
+      target.writeRegister(stream.register, value);
+    } else if (stream.chipType === 0x1b) {
       if (!targets.huc6280?.writeStream) {stream.active=false;this.#warn("HuC6280 stream requires a playback target");return;}
       targets.huc6280.writeStream(stream.port,stream.register,value);
     } else if (stream.chipType === 0x17) {

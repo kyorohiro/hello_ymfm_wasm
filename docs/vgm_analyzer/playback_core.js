@@ -2,6 +2,7 @@ import {installPlaybackMixer} from './playback_mixer.js';
 import {Msm5205AudioEngine,attachMsm5205} from '../js/msm5205audioengine.js';
 import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
+import {createWonderSwanAudioEngine} from '../js/wonderswanaudioengine.js';
 import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js?v=seek-state-1';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
@@ -20,7 +21,7 @@ import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import {MultiChipAudioEngine} from "../js/multichipaudioengine.js";
-import { VgmPlayer, createVgmTargets } from "../js/vgmplayer.js?v=msm5205-2";
+import { VgmPlayer, createVgmTargets } from "../js/vgmplayer.js?v=wonderswan-vgm-1";
 export function detectPlaybackChipKind(header) {
   if ((header.ym2151Clock & 0x3fffffff) && ['ay8910','ym2413','y8950','k051649'].some(kind => header[`${kind}Clock`] & 0x3fffffff)) return 'msx';
   if (header.k051649Clock & 0x3fffffff) return "msx";
@@ -60,6 +61,7 @@ export function detectPlaybackChipKind(header) {
   if (header.segaPcmClock & 0x3fffffff) return "segapcm";
   if (header.nesApuClock & 0x3fffffff) return "nes";
   if (header.gameBoyDmgClock & 0x3fffffff) return "gameboy";
+  if (header.wonderswanClock & 0x3fffffff) return "wonderswan";
   return "ym2612";
 }
 
@@ -113,7 +115,7 @@ const composition = {
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
   ym3812: ['ym3812','psg','okim6295'], ymf262: ['ymf262','psg'],
-  huc6280: ['huc6280','msm5205'], msm5205:['msm5205'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], okim6258: ['okim6258'], okim6295: ['okim6295'],
+  huc6280: ['huc6280','msm5205'], msm5205:['msm5205'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], wonderswan: ['wonderswan'], okim6258: ['okim6258'], okim6295: ['okim6295'],
 };
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
@@ -183,7 +185,7 @@ function atOutputRate(engine,rate){
       return {left,right};
     },
   };
-  for(const method of ['clearSampleMemory','clearAdpcmBMemory','clearAdpcmRoms','clearRf5c164Memory','clearOki6295Rom','loadAdpcmARom','loadWaveRom','setRhythmMuted']){
+  for(const method of ['clearSampleMemory','clearAdpcmBMemory','clearAdpcmRoms','clearRf5c164Memory','clearWonderSwanMemory','clearOki6295Rom','loadAdpcmARom','loadWaveRom','setRhythmMuted']){
     if(typeof engine[method]==='function')adapter[method]=engine[method].bind(engine);
   }
   return adapter;
@@ -206,6 +208,7 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
   clearAdpcmBMemory(){for(const {engine} of this.entries.values())engine.clearAdpcmBMemory?.();}
   clearAdpcmRoms(){for(const {engine} of this.entries.values())engine.clearAdpcmRoms?.();}
   clearRf5c164Memory(){for(const {engine} of this.entries.values())engine.clearRf5c164Memory?.();}
+  clearWonderSwanMemory(){for(const {engine} of this.entries.values())engine.clearWonderSwanMemory?.();}
   clearOki6295Rom(){for(const {engine} of this.entries.values())engine.clearOki6295Rom?.();}
   loadAdpcmARom(data){this.entries.get('ym2608:0')?.engine.loadAdpcmARom(data);}
   loadWaveRom(data){this.entries.get('ymf278b:0')?.engine.loadWaveRom(data);}
@@ -226,6 +229,7 @@ const recipes = {
   msm5205: async (vgm,resource,masterVolume) => new Msm5205AudioEngine({clock:vgm.header.msm5205Clock,flags:vgm.header.msm5205Flags,masterVolume}),
   okim6295: async (vgm, resource, masterVolume) => new Oki6295AudioEngine({clock:vgm.header.okim6295Clock,masterVolume}),
   huc6280: async (vgm, resource, masterVolume) => Huc6280AudioEngine.create({moduleFactory:await resource("huc6280"),clock:vgm.header.huc6280Clock,masterVolume}),
+  wonderswan: async (vgm, resource, masterVolume) => createWonderSwanAudioEngine({moduleFactory:await resource('wonderswan'),clock:vgm.header.wonderswanClock & 0x3fffffff,masterVolume}),
   nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,fds:!!(vgm.header.nesApuClock & 0x80000000),masterVolume}),
   okim6258: async (vgm, resource, masterVolume) => Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume}),
   msx: async (vgm, resource, masterVolume) => createMsxAudioEngine({
@@ -380,7 +384,7 @@ export function playbackMuteControls(configuration) {
   const {kind,header:h}=configuration, controls=[];
   const add=(id,method,...args)=>controls.push({id,method,args});
   const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
-  const counts={huc6280:6,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
+  const counts={huc6280:6,wonderswan:4,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');
   if(h.psgClock){add('psg','setPsgMuted');channels('psg-ch',4,'setPsgChannelMuted');}

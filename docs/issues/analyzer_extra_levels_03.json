@@ -1002,12 +1002,12 @@
       "size": 13907
     },
     "cli/render.js": {
-      "sha256": "59d7d908da66b502b461473d94fd171ae19d7f8bcb97a48692a12af89e4b69f0",
-      "size": 3326
+      "sha256": "96ec4da30d536540581349b5c209f2ec6bb303a5efd8dd1ea4299e1dc6e1e0aa",
+      "size": 3401
     },
     "docs/vgm_analyzer/playback_core.js": {
-      "sha256": "0eda72704fe1e04fe7b32004f2a0aabd06f631fe2c5146e3e7379e179a4af597",
-      "size": 25885
+      "sha256": "d57e5a644434e8825c4b345e7bd3cb5499df70647182fad64b8fd5744ed8bbf1",
+      "size": 26389
     },
     "docs/vgm_analyzer/playback_mixer.js": {
       "sha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
@@ -1022,20 +1022,20 @@
       "size": 26367
     },
     "docs/js/vgmplayer.js": {
-      "sha256": "5932160e421e9c394f9fbf1265ee52037f6cfe462f81f86a225ffa9890ca9783",
-      "size": 23528
+      "sha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33",
+      "size": 24008
     },
     "docs/js/opl_synth.js": {
       "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48",
       "size": 20452
     },
     "docs/js/segapcmaudioengine.js": {
-      "sha256": "5d194d606214d2e277d67a42cbc046f4f713e9e850f114698140ec59a5b3229b",
-      "size": 6162
+      "sha256": "22119d1c63b99df4f0e0f4eb83fa057274cb8fc1fd9a5a9b14b919ffd153a80c",
+      "size": 6171
     },
     "docs/js/segapcm.js": {
-      "sha256": "fca8ecbbf5dd94e43047b84719764017a44bb01a6f2d516148355a52289bfb74",
-      "size": 8595
+      "sha256": "8a3c88358a74592c737b4545368c06c806e04fe7670d246ca2c3bf9e4b5401ef",
+      "size": 8604
     },
     "docs/generated/segapcm_wasm.js": {
       "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5",
@@ -1046,16 +1046,16 @@
       "size": 13966
     },
     "docs/js/msxaudioengine.js": {
-      "sha256": "5ddee9e0fba521df1b729b554fec45f35863b8622c12f0746c9986acd74f73a9",
-      "size": 7992
+      "sha256": "54e7adacb95e01c9e5fe8a4ea2fbf2f0392463fd6fd17fffd69ec30fdfe72c82",
+      "size": 8017
     },
     "docs/js/k051649audioengine.js": {
-      "sha256": "5b2a8ccd306123afb1dbb3f31c2a004674bc9231f1edeb29d3cfdefb87d47422",
-      "size": 4685
+      "sha256": "380c17fda347cc18a807e9a83487cfe3e1d97faf5503eb31e50cbee1a6e744e7",
+      "size": 4691
     },
     "docs/js/k051649.js": {
-      "sha256": "70f3c89f07a9080cc03e24a3ec20fea80765425059538344e48f0f1f221e7215",
-      "size": 5761
+      "sha256": "ee162222ed9751b925216264036c6e50f2c654acf201712beca6728b8846d5b1",
+      "size": 5770
     },
     "docs/generated/k051649_wasm.js": {
       "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7",
@@ -1066,12 +1066,12 @@
       "size": 9399
     },
     "docs/js/ymf278baudioengine.js": {
-      "sha256": "acdc77d3a6590c9e167d30905280beffe4b307f20ce103811188cde8223e73ba",
-      "size": 8612
+      "sha256": "29491a7c325e0d05e72beb0e4a2a2590a6ed43644e5fa1b83435786fe3a72ac2",
+      "size": 8621
     },
     "docs/js/ymf278b.js": {
-      "sha256": "327726244d46e80dcf6deb50f7fa57799bd3af20d7e791cef3cd511986eeacba",
-      "size": 11573
+      "sha256": "4945d261d1428970f0a77b6e32d5d98d684b7d62fe559518d8853e83162ebbb0",
+      "size": 11579
     },
     "docs/generated/ymf278b_wasm.js": {
       "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48",

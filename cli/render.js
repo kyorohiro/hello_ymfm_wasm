@@ -21,8 +21,9 @@ import ym3526 from '../docs/generated/ym3526_wasm.js';
 import ym3812 from '../docs/generated/ym3812_wasm.js';
 import ay8910 from '../docs/generated/ay8910_wasm.js';
 import gameboy from '../docs/generated/gameboy_apu_wasm.js';
+import wonderswan from '../docs/generated/wonderswan_wasm.js';
 
-const factories = { huc6280, k051649, segapcm, ymf278b, y8950, okim6258, ym2610b, ym2608, ym2203, rf5c164, ym2612, segapsg, ym2413, ym2151, ymf262, ym3526, ym3812, ay8910, gameboy_apu: gameboy };
+const factories = { huc6280, wonderswan, k051649, segapcm, ymf278b, y8950, okim6258, ym2610b, ym2608, ym2203, rf5c164, ym2612, segapsg, ym2413, ym2151, ymf262, ym3526, ym3812, ay8910, gameboy_apu: gameboy };
 export async function getNodePlaybackFactory(name) {
   if (!factories[name]) return undefined;
   const wasmBinary = await readFile(new URL(`../docs/generated/${name}_wasm.wasm`, import.meta.url));

@@ -2,7 +2,7 @@ import {validateNesApuClock} from '../js/nesapu.js?v=nes-wasm-1';
 import {ym2203HighOperation} from './ym2203_high.js';
 import {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=vgm-frequency-order-2';
 export {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=vgm-frequency-order-2';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=vgm-frequency-order-2';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {looksLikeS98, convertS98ToVgm} from '../js/s98_file.js';
 

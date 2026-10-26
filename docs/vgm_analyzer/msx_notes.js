@@ -1,5 +1,5 @@
 import {createOpmNoteTracker} from './opm_notes.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import {createSccMonitor, applySccWrite, describeSccNotes} from './scc_notes.js';
 import {createPsgMonitor, applySsgWrite} from './psg_monitor.js';
 import {describeToneNotes} from './tone_notes.js';

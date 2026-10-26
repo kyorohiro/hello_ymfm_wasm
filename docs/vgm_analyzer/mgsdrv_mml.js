@@ -1,4 +1,4 @@
-import { Ym2612VGM } from '../js/ym2612vgm.js?v=ym2610-vgm-2';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
 import { quantizeSixteenthNotes } from './vgm_mml_music.js?v=sixteenth-1';
 import { describeYm2413 } from './ym2413_monitor.js';

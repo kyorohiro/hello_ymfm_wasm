@@ -1,4 +1,4 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import {isOpl, describeOplNotes} from './opl_notes.js';
 import {applyOpl3Write, describeOpl3Notes} from './ymf262_notes.js';
 import {createStoredZipBytes} from './stored_zip.js';

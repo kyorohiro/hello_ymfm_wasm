@@ -9,6 +9,35 @@ Last updated: 2026-10-27
 
 ### 現在地
 
+WonderSwanをVGM Analyzerと共通Node／CLI再生へ接続した。
+VGM1.71 header0xC0・BC相対レジスター・C6 big-endian RAM・PCM stream0x21／0xA1を対応。
+4CH Wave／Noise／Sweep／Voice PCM、4CH mute、通常seek再構築、Stop再演奏、Mixer unity1.0を確認した。
+Live／Song Note-ishとMIDI／MusicXML／LilyPondは波形の基本音程のみ。Voice PCM／Sweep／Noiseの区間は音符にしない。
+Hyper Voice／DMA・dual／variant・音色／サンプル抽出は対象外を明記し、対応外レジスターは明示エラー。
+他chipとのmixedは従来どおりchipごとのMixer／mute／WAVを対応し、混合音符解析は無効にする。
+cacheは`wonderswan-vgm-1`。固定SDK0.1.4と55 WASM出力、既存Mixer数値は変更していない。
+
+実Workletと24構成・72,864ステレオframesでPCM完全一致。新parser／engine11件、共通再生／Editor9件成功。
+Analyzer554成功＋既存1skip。Core／Web3,571件の試験では既存YM2608参照の未補正unityをSystem gain1.03357へ修正した。
+HEAD／現行／補正済み参照はFM／SSG／ADPCM-B／rhythm4パターンでbyte一致、音源処理は変更していない。
+修正後の全体試験3,569成功、既存Worker2件は負荷中の時間切れ。該当2fileの単独再試験59件はすべて成功、deadlineは変更しない。
+全28 WASM／55出力の回帰40,360比較は差0・入力snapshot不変。過去に実再buildしたSDK成果物を再利用した。
+Analyzer音量の18＋12captureを再測定し、全測定数値／既定gainが旧記録と一致。guardを維持してsource hashのみ更新。
+FM npm配布物のbuild／install／runtime／型と、VGM tarballの隔離offline install・4音源mode／mute／CLI／楽譜出力が成功した。
+公開版番号は変更せず、npm公開・commit／pushは行っていない。
+
+通常docs／最終flat ZIPのChromium・WebKitで実WASM＋実output WorkletのPCMを確認。
+4CH muteは全てpeak0。RAM0x1200・音符表示・Noise／Sweep／Voice PCM・pause／resume／2秒seek／Stop再演奏が成功。
+測定用downstream Workletで物理出力は0にしたため、実聴・実機精度・deadline・実Tauri WebView音声は未確認。
+最終ZIPは`release/hello_ymfm_wasm_wonderswan-dev_itch_vgm_analyzer.zip`、SHA256
+`d9e068525898ec91a54d65af850f547152785a18d29c0882f6a2d9ede3630c06`。
+`w/tetorica-fm2612-vgm-analyzer-tauri`へ396fileを取り込み、Python6／Node4件・import照合成功。
+本体とAnalyzer Tauriの今回変更は未commit。Playground Tauri／SDK原本はこのターンでは変更していない。
+次は実際のWonderSwan VGM／VGZを聴き、本体とAnalyzer Tauriをcommit／pushして新HEADのCIを確認する。
+詳細・hash・再現用scriptは[vgm_analyzer_wonderswan_01.md](vgm_analyzer_wonderswan_01.md)とJSONを参照。
+
+### 直前のWonderSwan Native接続
+
 WonderSwanのTauri Native Audio接続を実装し、ローカル検証と配布物の取り込みを完了した。
 選択中`wonderswan` modeと独立した`createSoundChip('wonderswan')`、Main／Worker、4CH Keyboard、
 波形／pan／Noise／SweepのInspectorを接続。Web Audioが既定のまま、Nativeの対応modeにWonderSwanを追加した。
@@ -32,8 +61,8 @@ Tauriへ920ファイルを取り込み、Python22／Node31件・frontend照合�
 新adapter・SDK原典・BSDライセンスを含む対応sourceZIPは1,861ファイル、SHA256
 `c9dafaca455a09a743065a3ebe9ecb7a4dc4c8eeccd3415ef530cfbcc247530f`で照合済み。
 
-本体とTauriの今回の変更は未commit。SDK原本／公開tag・npm版は変更していない。
-次は本体とTauriをcommit／pushし、その新HEADでTauriの5構成CIを実行して、実アプリでNative WonderSwanを聴く。
+この記録直後に本体`637da3fa...`／Playground Tauri`9836c13...`へユーザーがcommit済み。SDK原本／公開tag・npm版は変更していない。
+Native接続の5構成CIと実アプリの実聴が後続作業。このAnalyzer対応のターンではNative CIを新たに実行していない。
 今回の実装はローカルmacOS ARM64の検証で、物理音声・実時間deadline・聴感ノイズ・新コードの他OS動作は未確認。
 実装と再現手順・hashは[native_wonderswan_01.md](native_wonderswan_01.md)とJSONを参照。
 

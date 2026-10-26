@@ -1,14 +1,15 @@
+import {extractWonderSwanNotes} from './wonderswan_notes.js?v=wonderswan-vgm-1';
 import {extractHuc6280Notes} from './huc6280_notes.js';
-import {analyzeLilyPondSource} from './vgm_lilypond.js';
+import {analyzeLilyPondSource} from './vgm_lilypond.js?v=wonderswan-vgm-1';
 import {groupScoreChannels} from './score_groups.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import {packTimeline,timelineWindow} from './note_timeline.js';
 let channels=[];
 self.onmessage=({data})=>{
   try{
     if(data.type==='load'){
       const header=new Ym2612VGM(data.buffer).header;
-      const score=header.huc6280Clock ? extractHuc6280Notes(data.buffer) : analyzeLilyPondSource(data.buffer);
+      const score=header.wonderswanClock ? extractWonderSwanNotes(data.buffer) : header.huc6280Clock ? extractHuc6280Notes(data.buffer) : analyzeLilyPondSource(data.buffer);
       const raw=groupScoreChannels(score.channels,data.groups);
       channels=raw.map(ch=>{
         const keys=new Map(),sources={};

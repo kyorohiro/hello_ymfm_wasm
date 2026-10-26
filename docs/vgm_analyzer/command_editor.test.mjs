@@ -12,6 +12,12 @@ test('wait changes recompute total and loop samples without moving loop or metad
  const b=source([0x61,10,0,0x61,20,0,0x62,0x63,0x70,0x83,0x66],3),m=new CommandEditor(b);m.page(0);m.edit(256,100);m.edit(259,200);
  const out=await m.build(),v=new DataView(out.buffer);assert.equal(v.getUint32(0x18,true),100+200+735+882+1+3);assert.equal(v.getUint32(0x20,true),200+735+882+1+3);assert.equal(v.getUint32(0x1c,true),new DataView(b.buffer).getUint32(0x1c,true));assert.deepEqual(out.slice(262),b.slice(262));
 });
+test('WonderSwan register data edits preserve RAM writes and command boundaries',async()=>{
+ const b=source([0xc6,0x12,0,0xff,0xbc,0x10,1,0x61,32,0,0x66]),m=new CommandEditor(b);
+ const rows=m.page(0).rows;assert.equal(rows[0].writable,false);assert.equal(rows[1].writable,true);
+ m.edit(260,3);const out=await m.build();assert.equal(out[262],3);
+ out[262]=1;assert.deepEqual(out,b);
+});
 test('large data blocks are skipped, pages and history remain compact',async()=>{
  const payload=1024*1024,cmd=new Uint8Array(7+payload+600+1);cmd.set([0x67,0x66,0]);new DataView(cmd.buffer).setUint32(3,payload,true);for(let p=7+payload;p<cmd.length-1;p+=3)cmd.set([0x52,0x22,8],p);cmd[cmd.length-1]=0x66;
  const m=new CommandEditor(source(cmd)),page=m.page(0);assert.equal(page.rows.length,100);assert(page.rows[0].preview.length<100);assert.equal(page.rows[0].writable,false);assert.equal(m.starts.length,2);
