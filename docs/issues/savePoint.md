@@ -16,7 +16,11 @@ Sega PSGの分離先`vendor/tetorica_sega_psg/`と専用BSD noticeが固定SDK�
 独立展開で19 library／CTest24件／WAV18本／JS10項目成功。WASM27件を実再buildし53出力は旧版とbyte一致、
 新receiptの全入力hash検証後にcentral build-infoを更新し、39,982比較が成功した。音声bytes・Mixer値は維持。
 Tauriは`fe391fb...`へcommit／push済み。Cargo726成功＋4ignored、22mode、追加混合／制限／Stop予算0とsourceZIP照合が成功。
-SDKのCI `40297659488`とTauri5構成CI `40297874215`を開始済み。完了結果と本体CIは後続で記録する。
+SDKのCI `40297659488`（Native5構成＋WASM）、Tauriの`40297874215`（全5構成の検証／installer）、
+本体の`40298606800`（全27 WASM）がすべてcompleted／successで完了した。
+対象はSDK `53b33a15...`、Tauri `fe391fb543280a8a3cc2f11c319268c3d538d24e`、
+本体 `38d520955bdc853e33dd8fef49687c0b090c9cd7`。run／job API結果を保存し対象HEADを照合した。
+CI artifact内容の独立再照合・installer起動／聴音は行っていない。後続はCI結果の文書追記のみで音源コード変更はない。
 詳細は[sdk_012_adoption_01.md](sdk_012_adoption_01.md)。SDKのタグ／GitHub Releaseやnpm公開は行っていない。
 
 SPC初期化中closeのWebKit問題を修正した。`close()`直後はclosedでも、その後runningへ戻る動きを

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "date": "2026-10-26",
-  "status": "local-validation-passed-ci-running",
+  "status": "complete-local-and-ci-passed",
   "initialHeads": {
     "main": "2c0b40e0c53c8899fdb3a6de92434d6f1ee17c42",
     "sdk": "0e9379bf7e6ae2951ad0e3d8ea2db24cfca55415",
@@ -444,16 +444,139 @@
       "runId": 40297659488,
       "headSha": "53b33a15f5c4b919b185cb912016eccfbbb6d3a6",
       "url": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40297659488",
-      "status": "awaiting-final-audit"
+      "status": "completed",
+      "conclusion": "success",
+      "runAttempt": 1,
+      "jobs": [
+        {
+          "id": 121487548327,
+          "name": "Native / linux-x86_64",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:11:37Z",
+          "completedAt": "2026-10-26T09:12:51Z"
+        },
+        {
+          "id": 121487548671,
+          "name": "Native / linux-arm64",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:11:39Z",
+          "completedAt": "2026-10-26T09:12:46Z"
+        },
+        {
+          "id": 121487548674,
+          "name": "Native / macos-x86_64",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:11:40Z",
+          "completedAt": "2026-10-26T09:14:39Z"
+        },
+        {
+          "id": 121487548839,
+          "name": "WASM / YM2612",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:11:37Z",
+          "completedAt": "2026-10-26T09:12:43Z"
+        },
+        {
+          "id": 121487548862,
+          "name": "Native / macos-arm64",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:11:38Z",
+          "completedAt": "2026-10-26T09:12:56Z"
+        },
+        {
+          "id": 121487549033,
+          "name": "Native / windows-x86_64",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:11:38Z",
+          "completedAt": "2026-10-26T09:13:34Z"
+        }
+      ],
+      "rawRun": {
+        "path": "/private/tmp/tetorica-sdk-012-adoption/ci/sdk-run.json",
+        "sha256": "1e60ba9dcfa5254e7fed4c969fbe192ec89c261a3fbc7998b32aedf2a9a2c205"
+      },
+      "rawJobs": {
+        "path": "/private/tmp/tetorica-sdk-012-adoption/ci/sdk-jobs.json",
+        "sha256": "563246ea5b5f94d1b4c0f23b20f81629a6fd69ad82bcd1381c134a7b4a47d7cf"
+      }
     },
     "tauri": {
       "runId": 40297874215,
       "headSha": "fe391fb543280a8a3cc2f11c319268c3d538d24e",
       "url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40297874215",
-      "status": "awaiting-final-audit"
+      "status": "completed",
+      "conclusion": "success",
+      "runAttempt": 1,
+      "jobs": [
+        {
+          "id": 121488270447,
+          "name": "build (macos-x86_64, macos-15-intel, dmg)",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:13:24Z",
+          "completedAt": "2026-10-26T09:35:17Z"
+        },
+        {
+          "id": 121488270809,
+          "name": "build (linux-arm64, ubuntu-24.04-arm, deb,appimage)",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:13:24Z",
+          "completedAt": "2026-10-26T09:24:27Z"
+        },
+        {
+          "id": 121488270818,
+          "name": "build (linux-x86_64, ubuntu-24.04, deb,appimage)",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:13:21Z",
+          "completedAt": "2026-10-26T09:21:11Z"
+        },
+        {
+          "id": 121488270868,
+          "name": "build (windows-x86_64, windows-latest, nsis)",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:13:22Z",
+          "completedAt": "2026-10-26T09:28:38Z"
+        },
+        {
+          "id": 121488270967,
+          "name": "build (macos-arm64, macos-14, dmg)",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:13:28Z",
+          "completedAt": "2026-10-26T09:23:43Z"
+        }
+      ],
+      "rawRun": {
+        "path": "/private/tmp/tetorica-sdk-012-adoption/ci/tauri-run.json",
+        "sha256": "795e87d9ec1471762b1ee9199fa83b74823aa450f0b1c32e5453686f654a460d"
+      },
+      "rawJobs": {
+        "path": "/private/tmp/tetorica-sdk-012-adoption/ci/tauri-jobs.json",
+        "sha256": "a0d5375361c0ed860cdd826198342463ad842a1b54f8b40077b8ed5ab888330c"
+      }
     },
     "main": {
-      "status": "pending-adoption-commit"
+      "runId": 40298606800,
+      "headSha": "38d520955bdc853e33dd8fef49687c0b090c9cd7",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40298606800",
+      "status": "completed",
+      "conclusion": "success",
+      "runAttempt": 1,
+      "jobs": [
+        {
+          "id": 121490677184,
+          "name": "All 27 WASM builds",
+          "conclusion": "success",
+          "startedAt": "2026-10-26T09:19:10Z",
+          "completedAt": "2026-10-26T09:24:18Z"
+        }
+      ],
+      "rawRun": {
+        "path": "/private/tmp/tetorica-sdk-012-adoption/ci/main-run.json",
+        "sha256": "e259c7426e30a943ea0f1e48e42a56b89cf7ffdab26a005ea39eb5adef5c672f"
+      },
+      "rawJobs": {
+        "path": "/private/tmp/tetorica-sdk-012-adoption/ci/main-jobs.json",
+        "sha256": "84b06d6a6ab28822b4a29c2c1156c2bf4dd6ef1565b5c22a24b360c0ea573725"
+      }
     }
   },
   "mainInputs": [
@@ -514,5 +637,7 @@
     }
   ],
   "publishedSdkTagOrRelease": false,
-  "evidenceDirectory": "/private/tmp/tetorica-sdk-012-adoption"
+  "evidenceDirectory": "/private/tmp/tetorica-sdk-012-adoption",
+  "ciArtifactContentsIndependentlyAudited": false,
+  "savePointHistoricalTailUnchanged": true
 }

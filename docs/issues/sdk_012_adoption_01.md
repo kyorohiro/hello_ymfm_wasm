@@ -91,8 +91,19 @@ These counters retain their different units and are not combined.
   targets the SDK source commit above.
 - [Tauri run 40297874215](https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40297874215)
   targets `fe391fb...`, started by `workflow_dispatch`, without a tag or release.
-- Main-repository CI will target the subsequent adoption commit. Final job
-  conclusions are recorded below once the runs finish; dispatch alone is not success.
+- [Main run 40298606800](https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40298606800)
+  targets `38d520955bdc853e33dd8fef49687c0b090c9cd7`.
+
+All three runs completed with **success**, at the exact commits above. SDK
+Native five-platform verification and its WASM job passed; the main all-27 build
+and comparison job passed; Tauri's five Native validation and desktop installer
+jobs passed. No release tag was created, and Tauri's draft-release attachment
+step was skipped for the manual main-branch run.
+
+The final run/job API records were checked and retained in the evidence
+directory. Validation artifact contents were not independently downloaded and
+re-audited; local archive/input audits and the CI step/job conclusions remain
+separate evidence. Installer execution and listening were not performed.
 
 Machine-readable evidence: [sdk_012_adoption_01.json](sdk_012_adoption_01.json).
 Full local logs and per-core reports are under `/private/tmp/tetorica-sdk-012-adoption/`.
