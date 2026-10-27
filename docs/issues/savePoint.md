@@ -7,6 +7,20 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### npm共通factoryのWonderSwan Direct対応 — 2026-10-27
+
+npm入口の`createSoundChip('wonderswan')`を追加。既存loaderと生coreを使い、独立handle・readonly ID・同期register/RAM/PCM APIを返す。
+clock/sampleRate/moduleFactory/moduleOptions/assetBaseUrl/signalを共通規則で転送する。raw wrapperのJSDocを補い、数値read・RAM bytes・mute・PCM引数の型を明示。
+READMEへSynth波形→A4→WAVの実行可能Example、生成RUNTIME案内も追加。汎用Worklet・Playground専用endpointの変更は今回に含めない。
+source39test（新factory7件を含む）、293module/27pair/339宣言build、NodeNext/Bundler/Node型なしBrowserの型確認、隔離package/実WASM27種が成功。
+最終local archive841fileをstage/隔離installと全byte照合。Chromium153/WebKit26.6のWindow/実module Workerで26,648 PCM比較が差0、14 served fileがarchiveと一致。
+README Exampleも同archiveのconsumerで実行成功。音声device/AudioContext/Workletを開いていない。
+入口変更で失効したPSG校正receiptは実測18件＋過去loader/current PCMの完全一致で02へ更新。Mixer値/生成preset/WASM/core/SDKは変更なし。
+local tgzは`/private/tmp/wonderswan-direct-factory/tetorica-fm2612-0.2.29.tgz`、SHA256 `8a47f4dc0d86b9a8579a397c9f216154ee275b9c57403e5be8bf6e31093f2c59`。
+versionは0.2.29据え置きで未公開。この追加は公開済みnpm0.2.29には含まれない。commit/push/CI/Tauri/itch.io操作なし。
+詳細は[wonderswan_factory_direct_01.md](wonderswan_factory_direct_01.md)と同名JSON。
+次の候補は汎用Worklet対応（専用Playground経路とは別）か、予定していた新音源Atari POKEY。
+
 ### WASM SDK CI修正 — 2026-10-27
 
 GitHub Actionsのrun40431173080/40432531260は、全28音源のbuild後、7番目Nuked OPN2のWeb/docs同期確認で失敗。

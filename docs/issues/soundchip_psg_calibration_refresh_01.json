@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "reason": "Adding direct WonderSwan factory loading changes a tracked shared loader; existing PSG measurements must be repeated before strict source-hash validation accepts the new loader.",
+  "historicalReport": {
+    "path": "docs/issues/soundchip_psg_levels_01.json",
+    "sha256": "2b92f8286b9dee25994972b146f9ee2c145df883434d5971d2a01f620b39d2f6"
+  },
+  "refreshedReport": {
+    "path": "docs/issues/soundchip_psg_levels_02.json",
+    "sha256": "77f1824c65e495f6bc139be3797b4093fa0d6f703d396db25475f4e28f9e317f"
+  },
+  "historicalLoader": {
+    "revision": "29af5c6bf3bf5fcb77487e07c6a6ca242d0e0dad",
+    "path": "web/soundchip.js",
+    "sha256": "e3a54fde96f502bf2d8d2d22663d6006b47c185aef323203182bda7c2304e02c"
+  },
+  "currentLoader": {
+    "path": "web/soundchip.js",
+    "sha256": "fabcd553ac956a08755a0a1ecf42f97aa0bc4d6362b8fe90a0add100de13c55c"
+  },
+  "changedSources": [
+    "web/soundchip.js"
+  ],
+  "measurementBodyExcludingSourcesIdentical": true,
+  "measurementBodySha256": "3bef97ea26e2938a5f926cabc5b9783b4299f117a225f739dc873db76d55e50d",
+  "method": "Re-run the unchanged public factory WASM measurement script for all 18 captures. Recover the exact historical shared-loader bytes from Git and verify their SHA256 against the old receipt. Replay the same captures through historical and current loaders with all other tracked source/WASM hashes unchanged; compare every stereo Float32 sample and metric. No physical audio output.",
+  "pcmByteOrder": "LE",
+  "comparedCaptures": 18,
+  "defaultsUnchanged": {
+    "segapsg": 0.45542,
+    "ay8910": 1.100331,
+    "nes": 1.514209
+  },
+  "generatedPresets": [
+    {
+      "path": "web/soundchip_mixer_presets.js",
+      "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6"
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+    }
+  ],
+  "gainChanges": false,
+  "sourceHashGuardBypassed": false,
+  "rows": [
+    {
+      "kind": "segapsg",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "4a1150ad16be289a22e74e6ba69268df445866d8bd65bac03f9184ff9d12a576",
+        "right": "4a1150ad16be289a22e74e6ba69268df445866d8bd65bac03f9184ff9d12a576"
+      },
+      "currentPcmSha256": {
+        "left": "4a1150ad16be289a22e74e6ba69268df445866d8bd65bac03f9184ff9d12a576",
+        "right": "4a1150ad16be289a22e74e6ba69268df445866d8bd65bac03f9184ff9d12a576"
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "8c1d0a9974ed82b3dc58ba854210d2962da557c032a070b7a7d72e2202d0df0c",
+        "right": "8c1d0a9974ed82b3dc58ba854210d2962da557c032a070b7a7d72e2202d0df0c"
+      },
+      "currentPcmSha256": {
+        "left": "8c1d0a9974ed82b3dc58ba854210d2962da557c032a070b7a7d72e2202d0df0c",
+        "right": "8c1d0a9974ed82b3dc58ba854210d2962da557c032a070b7a7d72e2202d0df0c"
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "995e27a469ca5937223ccd388c2fd7e54a1b8e6b29f7455a4fea93b8fcb4162c",
+        "right": "995e27a469ca5937223ccd388c2fd7e54a1b8e6b29f7455a4fea93b8fcb4162c"
+      },
+      "currentPcmSha256": {
+        "left": "995e27a469ca5937223ccd388c2fd7e54a1b8e6b29f7455a4fea93b8fcb4162c",
+        "right": "995e27a469ca5937223ccd388c2fd7e54a1b8e6b29f7455a4fea93b8fcb4162c"
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "23f7f9ff77e114d2e4a2c019f60344186be654a9e4143c97998dee8f62d7d599",
+        "right": "23f7f9ff77e114d2e4a2c019f60344186be654a9e4143c97998dee8f62d7d599"
+      },
+      "currentPcmSha256": {
+        "left": "23f7f9ff77e114d2e4a2c019f60344186be654a9e4143c97998dee8f62d7d599",
+        "right": "23f7f9ff77e114d2e4a2c019f60344186be654a9e4143c97998dee8f62d7d599"
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "b1edf63d10d6fdb38db3145b8b83af5c2339db653724770157df5cd0684ebb7e",
+        "right": "b1edf63d10d6fdb38db3145b8b83af5c2339db653724770157df5cd0684ebb7e"
+      },
+      "currentPcmSha256": {
+        "left": "b1edf63d10d6fdb38db3145b8b83af5c2339db653724770157df5cd0684ebb7e",
+        "right": "b1edf63d10d6fdb38db3145b8b83af5c2339db653724770157df5cd0684ebb7e"
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "7f3f234b77728f9f7eb415e0cffc42cf7cd228559405a8993f24ababd4854330",
+        "right": "7f3f234b77728f9f7eb415e0cffc42cf7cd228559405a8993f24ababd4854330"
+      },
+      "currentPcmSha256": {
+        "left": "7f3f234b77728f9f7eb415e0cffc42cf7cd228559405a8993f24ababd4854330",
+        "right": "7f3f234b77728f9f7eb415e0cffc42cf7cd228559405a8993f24ababd4854330"
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "57a06c10860657bab05d3562d76b141a76abeeff6bbd757837b01eba417f96a1",
+        "right": "57a06c10860657bab05d3562d76b141a76abeeff6bbd757837b01eba417f96a1"
+      },
+      "currentPcmSha256": {
+        "left": "57a06c10860657bab05d3562d76b141a76abeeff6bbd757837b01eba417f96a1",
+        "right": "57a06c10860657bab05d3562d76b141a76abeeff6bbd757837b01eba417f96a1"
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "445346a8542548d05b0ccb6b7d00108a0a8ac16193ab1ed4b5209a6821dd2f93",
+        "right": "445346a8542548d05b0ccb6b7d00108a0a8ac16193ab1ed4b5209a6821dd2f93"
+      },
+      "currentPcmSha256": {
+        "left": "445346a8542548d05b0ccb6b7d00108a0a8ac16193ab1ed4b5209a6821dd2f93",
+        "right": "445346a8542548d05b0ccb6b7d00108a0a8ac16193ab1ed4b5209a6821dd2f93"
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "frames": 44100,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "3ff4c4873327cad27db4403a1e8145bc10fda184370e2e2197eeb17ba27e0c23",
+        "right": "3ff4c4873327cad27db4403a1e8145bc10fda184370e2e2197eeb17ba27e0c23"
+      },
+      "currentPcmSha256": {
+        "left": "3ff4c4873327cad27db4403a1e8145bc10fda184370e2e2197eeb17ba27e0c23",
+        "right": "3ff4c4873327cad27db4403a1e8145bc10fda184370e2e2197eeb17ba27e0c23"
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "c6cd11c1f4a92ed01e6b64ff9ddd09e98faa59cc7d450fba6c3678b0518bcc8b",
+        "right": "c6cd11c1f4a92ed01e6b64ff9ddd09e98faa59cc7d450fba6c3678b0518bcc8b"
+      },
+      "currentPcmSha256": {
+        "left": "c6cd11c1f4a92ed01e6b64ff9ddd09e98faa59cc7d450fba6c3678b0518bcc8b",
+        "right": "c6cd11c1f4a92ed01e6b64ff9ddd09e98faa59cc7d450fba6c3678b0518bcc8b"
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "22c5f048e422625cb956d30a72e60c323474ad22607ec0e01f5cf15876fad46a",
+        "right": "22c5f048e422625cb956d30a72e60c323474ad22607ec0e01f5cf15876fad46a"
+      },
+      "currentPcmSha256": {
+        "left": "22c5f048e422625cb956d30a72e60c323474ad22607ec0e01f5cf15876fad46a",
+        "right": "22c5f048e422625cb956d30a72e60c323474ad22607ec0e01f5cf15876fad46a"
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "bf7b2cf442aae40967eef54b2235f91516a6561facfc72e9ae6312590fa55fd7",
+        "right": "bf7b2cf442aae40967eef54b2235f91516a6561facfc72e9ae6312590fa55fd7"
+      },
+      "currentPcmSha256": {
+        "left": "bf7b2cf442aae40967eef54b2235f91516a6561facfc72e9ae6312590fa55fd7",
+        "right": "bf7b2cf442aae40967eef54b2235f91516a6561facfc72e9ae6312590fa55fd7"
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "e5daca5c00d9b5873ccba0f982fcecbfb84051fec84212478973d77d248b4d96",
+        "right": "e5daca5c00d9b5873ccba0f982fcecbfb84051fec84212478973d77d248b4d96"
+      },
+      "currentPcmSha256": {
+        "left": "e5daca5c00d9b5873ccba0f982fcecbfb84051fec84212478973d77d248b4d96",
+        "right": "e5daca5c00d9b5873ccba0f982fcecbfb84051fec84212478973d77d248b4d96"
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "cff3eb5d1cceb28d776586abac326210c86f1e13ff54337e8173cd04bb7a46e2",
+        "right": "cff3eb5d1cceb28d776586abac326210c86f1e13ff54337e8173cd04bb7a46e2"
+      },
+      "currentPcmSha256": {
+        "left": "cff3eb5d1cceb28d776586abac326210c86f1e13ff54337e8173cd04bb7a46e2",
+        "right": "cff3eb5d1cceb28d776586abac326210c86f1e13ff54337e8173cd04bb7a46e2"
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "baa739cdc0461192e8aedadea026a54917fae2683e334deb6a44c5f5c2433521",
+        "right": "baa739cdc0461192e8aedadea026a54917fae2683e334deb6a44c5f5c2433521"
+      },
+      "currentPcmSha256": {
+        "left": "baa739cdc0461192e8aedadea026a54917fae2683e334deb6a44c5f5c2433521",
+        "right": "baa739cdc0461192e8aedadea026a54917fae2683e334deb6a44c5f5c2433521"
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "f227700f8966e138e9a681d70526d7cde9bec3f4d196b8b30703f77e801d5117",
+        "right": "f227700f8966e138e9a681d70526d7cde9bec3f4d196b8b30703f77e801d5117"
+      },
+      "currentPcmSha256": {
+        "left": "f227700f8966e138e9a681d70526d7cde9bec3f4d196b8b30703f77e801d5117",
+        "right": "f227700f8966e138e9a681d70526d7cde9bec3f4d196b8b30703f77e801d5117"
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "517c766e5f3bb7044ad760e32d0297e8380bdd22e18001ef83008d067c294d76",
+        "right": "517c766e5f3bb7044ad760e32d0297e8380bdd22e18001ef83008d067c294d76"
+      },
+      "currentPcmSha256": {
+        "left": "517c766e5f3bb7044ad760e32d0297e8380bdd22e18001ef83008d067c294d76",
+        "right": "517c766e5f3bb7044ad760e32d0297e8380bdd22e18001ef83008d067c294d76"
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "frames": 48000,
+      "maximumAbsoluteDifference": 0,
+      "historicalPcmSha256": {
+        "left": "905a3ca5835e5bf947b9ef14d8c317bbbb271a774b02188ac3403e7e0fd20be4",
+        "right": "905a3ca5835e5bf947b9ef14d8c317bbbb271a774b02188ac3403e7e0fd20be4"
+      },
+      "currentPcmSha256": {
+        "left": "905a3ca5835e5bf947b9ef14d8c317bbbb271a774b02188ac3403e7e0fd20be4",
+        "right": "905a3ca5835e5bf947b9ef14d8c317bbbb271a774b02188ac3403e7e0fd20be4"
+      }
+    }
+  ]
+}

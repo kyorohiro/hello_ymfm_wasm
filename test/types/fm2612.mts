@@ -20,6 +20,8 @@ import {YM3812Synth, YM3812DirectTransport} from 'tetorica-fm2612/ym3812synth.js
 import {OPLAudifyTransport} from 'tetorica-fm2612/node/transports';
 import {YM2413Synth,YM2413DirectTransport,YM2413_INSTRUMENTS,YM2413_USER_PRESETS} from 'tetorica-fm2612/ym2413synth.js';
 import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth.js';
+import {WonderSwan} from 'tetorica-fm2612/wonderswan.js';
+import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth.js';
 const calibratedOptions: SoundChipMixerOptions = mixerPresetsSubpath.calibrated;
 const calibratedMixer = new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
 new SoundChipMixer(calibratedOptions);
@@ -41,6 +43,42 @@ ay.adoptRegisterSnapshot(ay.getRegisterSnapshot());void ayPeriod;
 ay.setVoice(0,{instrument:1});
 // @ts-expect-error AY noise has a period rather than a pitched note
 ay.noise(0,{note:'C4'});
+
+const wsChip=await createSoundChip('wonderswan',{clock:3200011,sampleRate:48000,id:'ws-direct'});
+const wsRaw:WonderSwan=wsChip;
+const wsIsAny:0 extends (1 & typeof wsChip)?true:false=false;
+const wsId:string=wsChip.id;
+const wsRegister:number=wsChip.readRegister(0x90),wsMemory:number=wsChip.readMemory(0x3fff);
+wsChip.writeRegister(0x91,8);wsChip.writeMemory(0x3fff,0xab);
+wsChip.loadMemory(new Uint8Array([0x10,0x32]),0);
+wsChip.setChannelMuted(3,true);wsChip.reserveFrames(128);
+const wsPcm:{left:Float32Array;right:Float32Array}=wsChip.generateStereo(128);
+const wsView:{readonly left:Float32Array;readonly right:Float32Array}=wsChip.generateStereoView(128);
+wsChip.generateStereoInto(new Float32Array(128),new Float32Array(128),128);
+const wsRate:number=wsChip.sampleRate(),wsClock:number=wsChip.clock;
+const ws=new WonderSwanSynth({transport:new WonderSwanDirectTransport(wsChip),clock:wsChip.clock});
+ws.initialize();ws.setWaveform(0,new Uint8Array(32));ws.noteOn(0,'A4');ws.keyOff(0);
+ws.setVoiceMode(true);ws.writeVoice(128);
+const wsExplicit=await createSoundChip('wonderswan',{execution:'direct'});
+wsExplicit.readMemory(0).toFixed();
+void [wsRaw,wsIsAny,wsId,wsRegister,wsMemory,wsPcm,wsView,wsRate,wsClock];
+// @ts-expect-error Direct WonderSwan IDs are readonly.
+wsChip.id='other';
+// @ts-expect-error The synchronous WonderSwan core has no output node.
+wsChip.node.connect(new AudioContext().destination);
+// @ts-expect-error A generic WonderSwan Worklet endpoint is not implemented.
+await createSoundChip('wonderswan',{execution:'worklet'});
+// @ts-expect-error Packed wave memory requires bytes, not ordinary number arrays.
+wsChip.loadMemory([0,1,2]);
+// @ts-expect-error Register reads retain their numeric type.
+wsChip.readRegister(0x90).toUpperCase();
+// @ts-expect-error RAM reads retain their numeric type too.
+wsChip.readMemory(0).toUpperCase();
+// @ts-expect-error PCM frame counts are numbers.
+wsChip.generateStereo('128');
+// @ts-expect-error Channel monitoring mutes are boolean.
+wsChip.setChannelMuted(0,1);
+
 const opllChip=await createSoundChip('ym2413');
 const opll=new YM2413Synth({transport:new YM2413DirectTransport(opllChip)});
 opll.initialize();opll.setUserPatch(YM2413_USER_PRESETS.sine);opll.setInstrument(0,0,4);opll.noteOn(0,'A4');

@@ -4,6 +4,21 @@ import {YM2612Synth, YM2612WorkletTransport} from 'tetorica-fm2612/ym2612synth';
 import {MegaSynth} from 'tetorica-fm2612/megasynth';
 import {Playground} from 'tetorica-fm2612/playground_runtime';
 import {createDeadlineScheduler} from 'tetorica-fm2612/playground_clock';
+import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth';
+const wsChip=await createSoundChip('wonderswan',{sampleRate:48000,clock:3072000});
+const wsId:string=wsChip.id;
+wsChip.loadMemory(new Uint8Array([0x10,0x32]),0);
+wsChip.writeRegister(0x91,8);wsChip.writeMemory(0x3fff,0xab);
+const wsByte:number=wsChip.readMemory(0x3fff),wsRegister:number=wsChip.readRegister(0x91);
+const wsPcm:{left:Float32Array;right:Float32Array}=wsChip.generateStereo(128);
+new WonderSwanSynth({transport:new WonderSwanDirectTransport(wsChip)}).initialize();
+void [wsId,wsByte,wsRegister,wsPcm];
+// @ts-expect-error Generic WonderSwan creation currently supports direct execution only.
+await createSoundChip('wonderswan',{execution:'worklet'});
+// @ts-expect-error Direct chips do not expose an AudioWorklet output node.
+wsChip.node.connect(new AudioContext().destination);
+// @ts-expect-error Browser direct IDs are readonly too.
+wsChip.id='other';
 const chip = await createSoundChip('ym2612', {execution: 'worklet'});
 const fm = new YM2612Synth({transport: new YM2612WorkletTransport(chip)});
 fm.noteOn(0, 4, 553);

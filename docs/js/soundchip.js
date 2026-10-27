@@ -80,6 +80,11 @@ async function loadModule(name, options = {}) {
 }
 
 const loaders = {
+  /** @param {SoundChipOptions} [options] */
+  wonderswan: async (options) => {
+    const {WonderSwan} = await import('./wonderswan.js');
+    return WonderSwan.create(await loadModule('wonderswan', options));
+  },
   nes: async options => {
     options.signal?.throwIfAborted();
     const {NesApu} = await import('./nesapu.js?v=nes-wasm-1');
@@ -181,6 +186,7 @@ const loaders = {
  */
 const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
+ *   wonderswan: import('./wonderswan.js').WonderSwan,
  *   gameboy: import('./gameboyapu.js?v=audio-stability-2').GameboyApu,
  *   segapsg: import('./segapsg.js?v=audio-numeric-bindings-1').SegaPSG,
  *   pwm: import('./pwm32x.js?v=pwm-wasm-1').PWM32X | import('./pwm32x_wasm.js?v=pwm-wasm-1').PWM32XWasm,

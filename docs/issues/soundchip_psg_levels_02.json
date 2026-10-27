@@ -1,0 +1,1422 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "sampleRate": 44100,
+  "referenceFrequencyHz": 440,
+  "frequencies": [
+    220,
+    440,
+    880
+  ],
+  "comparisonSampleRates": [
+    44100,
+    48000
+  ],
+  "warmupSeconds": 0.25,
+  "captureSeconds": 1,
+  "maximumGain": 2,
+  "reference": {
+    "id": "ym2608",
+    "gain": 1.03357,
+    "unityAcRms": 0.08812558474495402,
+    "targetAcRms": 0.09108396077488734,
+    "sourceReport": "docs/issues/analyzer_psg_levels_01.json"
+  },
+  "method": "Public createSoundChip/direct WASM output, one steady full-level channel, 44100/48000Hz; AC RMS with DC removed. No output Mixer/master/FX or audio device. Only canonical44100Hz/440Hz rows derive fixed six-decimal defaults.",
+  "normalization": "None during PCM generation. Defaults are output-policy fallbacks, not modifications to raw generateStereo(). The separate npm Worklet endpoint gain (default .25) remains outside this reference.",
+  "limitations": [
+    "Only segapsg, normalized AY type0 flags1 and NES WASM pulse50% are measured; no other chip/engine or internal OPN FM/SSG/ADPCM/rhythm gain is changed.",
+    "AY flags0/other models retain their native DAC law and are not separately RMS normalized. NES pulse/TND nonlinear mixing, other duties, FDS and DMC do not receive separate gains.",
+    "Analyzer NES uses a separate JavaScript renderer: its1.512236 gain is not reused. Public npm async NES factory is explicitly checked for backend wasm.",
+    "Steady AC RMS is not perceived loudness, music/track normalization, envelope weighting, polyphony correction or limiting. 48000Hz and220/880Hz captures are response comparisons only."
+  ],
+  "defaults": {
+    "segapsg": 0.45542,
+    "ay8910": 1.100331,
+    "nes": 1.514209
+  },
+  "sources": {
+    "scripts/measure_soundchip_psg_levels.mjs": "28042f3ce459c787e2e8c88a6f02f11a7508f6ac8c04686ca679b7803a554404",
+    "docs/issues/analyzer_psg_levels_01.json": "6a234c9833d6889e704b436f48b50bba75d18ccf2760272df37f869ab6076ab3",
+    "web/soundchip.js": "fabcd553ac956a08755a0a1ecf42f97aa0bc4d6362b8fe90a0add100de13c55c",
+    "web/soundchip_factory.js": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca",
+    "web/segapsg.js": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed",
+    "web/ay8910.js": "9682007689d87b7cdf27b138f269e8c5c4fb478df909cac95a4dc80ce88267e6",
+    "web/nesapu.js": "ec75bf1e9f51676892b9399283731a0e7dfc754ae61845453109f1597dc24028",
+    "web/nesapu_wasm.js": "f1b256734769b72d95ab4a7cf48ed3d37336c3116d68626e994579d289b75529",
+    "web/nesapusynth.js": "29e45e817b0d419ef875a537333802516bcf508103161d08a6f07d1ece01bde6",
+    "docs/generated/segapsg_wasm.wasm": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+    "docs/generated/ay8910_wasm.wasm": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
+    "docs/generated/nesapu_wasm.wasm": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+  },
+  "rows": [
+    {
+      "kind": "segapsg",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 440.39677657480314,
+      "reference": {
+        "clock": 3579545,
+        "period": 254,
+        "waveform": "square",
+        "channel": 0,
+        "attenuation": 0,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "value": 159
+        },
+        {
+          "value": 191
+        },
+        {
+          "value": 223
+        },
+        {
+          "value": 255
+        },
+        {
+          "value": 142
+        },
+        {
+          "value": 15
+        },
+        {
+          "value": 144
+        }
+      ],
+      "rawAcRms": 0.1999999207099459,
+      "amplitude": 0.20000000298023224,
+      "rawDc": -0.00018140589839476848,
+      "rawPeakToPeak": 0.4000000059604645,
+      "unity": {
+        "minimum": -0.20000000298023224,
+        "maximum": 0.20000000298023224,
+        "peak": 0.20000000298023224,
+        "peakToPeak": 0.4000000059604645,
+        "amplitude": 0.20000000298023224,
+        "dc": -0.00018140589839476848,
+        "rms": 0.20000000298021153,
+        "acRms": 0.1999999207099459,
+        "measuredFrequencyHz": 440.3980891719745
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 0.644089,
+      "after": {
+        "rawGain": 0.45542,
+        "acRms": 0.09108396388972356,
+        "ratioToTarget": 1.0000000341974173,
+        "relativeToPrevious": 0.7070761959915477
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 440.3968996062992,
+      "reference": {
+        "clock": 1789773,
+        "period": 254,
+        "waveform": "square",
+        "channel": 0,
+        "volume": 15,
+        "type": 0,
+        "flags": 1,
+        "envelope": false,
+        "noise": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "register": 0,
+          "value": 254
+        },
+        {
+          "register": 1,
+          "value": 0
+        },
+        {
+          "register": 7,
+          "value": 62
+        },
+        {
+          "register": 8,
+          "value": 15
+        },
+        {
+          "register": 9,
+          "value": 0
+        },
+        {
+          "register": 10,
+          "value": 0
+        }
+      ],
+      "rawAcRms": 0.08277869162251522,
+      "amplitude": 0.08333333395421505,
+      "rawDc": -0.04174176869346114,
+      "rawPeakToPeak": 0.1666666679084301,
+      "unity": {
+        "minimum": -0.125,
+        "maximum": 0.0416666679084301,
+        "peak": 0.125,
+        "peakToPeak": 0.1666666679084301,
+        "amplitude": 0.08333333395421505,
+        "dc": -0.04174176869346114,
+        "rms": 0.0927075349709714,
+        "acRms": 0.08277869162251522,
+        "measuredFrequencyHz": 440.39745644686883
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 1.545813,
+      "after": {
+        "rawGain": 1.100331,
+        "acRms": 0.09108396053169379,
+        "ratioToTarget": 0.9999999973300069,
+        "relativeToPrevious": 0.7118137834265852
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 440,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 440.3968996062992,
+      "reference": {
+        "clock": 1789773,
+        "timer": 253,
+        "waveform": "pulse",
+        "channel": 0,
+        "duty": 0.5,
+        "volume": 15,
+        "envelope": false,
+        "sweep": false,
+        "lengthHalt": true,
+        "fds": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 253
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "rawAcRms": 0.06015282111922288,
+      "amplitude": 0.0642208382487297,
+      "rawDc": -0.000054301594195532656,
+      "rawPeakToPeak": 0.1284416764974594,
+      "unity": {
+        "minimum": -0.06436125934123993,
+        "maximum": 0.06408041715621948,
+        "peak": 0.06436125934123993,
+        "peakToPeak": 0.1284416764974594,
+        "amplitude": 0.0642208382487297,
+        "dc": -0.000054301594195532656,
+        "rms": 0.06015284562898382,
+        "acRms": 0.06015282111922288,
+        "measuredFrequencyHz": 440.39069619089935
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 2,
+      "after": {
+        "rawGain": 1.514209,
+        "acRms": 0.09108394311411734,
+        "ratioToTarget": 0.9999998061045012,
+        "relativeToPrevious": 0.7571045
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 220.19838828740157,
+      "reference": {
+        "clock": 3579545,
+        "period": 508,
+        "waveform": "square",
+        "channel": 0,
+        "attenuation": 0,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "value": 159
+        },
+        {
+          "value": 191
+        },
+        {
+          "value": 223
+        },
+        {
+          "value": 255
+        },
+        {
+          "value": 140
+        },
+        {
+          "value": 31
+        },
+        {
+          "value": 144
+        }
+      ],
+      "rawAcRms": 0.1999999207099459,
+      "amplitude": 0.20000000298023224,
+      "rawDc": -0.00018140589839476848,
+      "rawPeakToPeak": 0.4000000059604645,
+      "unity": {
+        "minimum": -0.20000000298023224,
+        "maximum": 0.20000000298023224,
+        "peak": 0.20000000298023224,
+        "peakToPeak": 0.4000000059604645,
+        "amplitude": 0.20000000298023224,
+        "dc": -0.00018140589839476848,
+        "rms": 0.20000000298021153,
+        "acRms": 0.1999999207099459,
+        "measuredFrequencyHz": 220.1983584131327
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 0.644089,
+      "after": {
+        "rawGain": 0.45542,
+        "acRms": 0.09108396388972356,
+        "ratioToTarget": 1.0000000341974173,
+        "relativeToPrevious": 0.7070761959915477
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 220.1984498031496,
+      "reference": {
+        "clock": 1789773,
+        "period": 508,
+        "waveform": "square",
+        "channel": 0,
+        "volume": 15,
+        "type": 0,
+        "flags": 1,
+        "envelope": false,
+        "noise": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "register": 0,
+          "value": 252
+        },
+        {
+          "register": 1,
+          "value": 1
+        },
+        {
+          "register": 7,
+          "value": 62
+        },
+        {
+          "register": 8,
+          "value": 15
+        },
+        {
+          "register": 9,
+          "value": 0
+        },
+        {
+          "register": 10,
+          "value": 0
+        }
+      ],
+      "rawAcRms": 0.08305646493059969,
+      "amplitude": 0.08333333395421505,
+      "rawDc": -0.041741768685484314,
+      "rawPeakToPeak": 0.1666666679084301,
+      "unity": {
+        "minimum": -0.125,
+        "maximum": 0.0416666679084301,
+        "peak": 0.125,
+        "peakToPeak": 0.1666666679084301,
+        "amplitude": 0.08333333395421505,
+        "dc": -0.041741768685484314,
+        "rms": 0.09295564329162816,
+        "acRms": 0.08305646493059969,
+        "measuredFrequencyHz": 220.19840470056252
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 1.545813,
+      "after": {
+        "rawGain": 1.100331,
+        "acRms": 0.09138960311355168,
+        "ratioToTarget": 1.0033556109776531,
+        "relativeToPrevious": 0.7118137834265852
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 220,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 220.1984498031496,
+      "reference": {
+        "clock": 1789773,
+        "timer": 507,
+        "waveform": "pulse",
+        "channel": 0,
+        "duty": 0.5,
+        "volume": 15,
+        "envelope": false,
+        "sweep": false,
+        "lengthHalt": true,
+        "fds": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 251
+        },
+        {
+          "address": 16387,
+          "value": 9
+        },
+        {
+          "address": 16387,
+          "value": 9
+        }
+      ],
+      "rawAcRms": 0.06033836947251515,
+      "amplitude": 0.06788013502955437,
+      "rawDc": -0.00000809944962054204,
+      "rawPeakToPeak": 0.13576027005910873,
+      "unity": {
+        "minimum": -0.0679655373096466,
+        "maximum": 0.06779473274946213,
+        "peak": 0.0679655373096466,
+        "peakToPeak": 0.13576027005910873,
+        "amplitude": 0.06788013502955437,
+        "dc": -0.00000809944962054204,
+        "rms": 0.060338370016125166,
+        "acRms": 0.06033836947251515,
+        "measuredFrequencyHz": 220.19523920699066
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 2,
+      "after": {
+        "rawGain": 1.514209,
+        "acRms": 0.09136490210060769,
+        "ratioToTarget": 1.0030844214868377,
+        "relativeToPrevious": 0.7571045
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 880.7935531496063,
+      "reference": {
+        "clock": 3579545,
+        "period": 127,
+        "waveform": "square",
+        "channel": 0,
+        "attenuation": 0,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "value": 159
+        },
+        {
+          "value": 191
+        },
+        {
+          "value": 223
+        },
+        {
+          "value": 255
+        },
+        {
+          "value": 143
+        },
+        {
+          "value": 7
+        },
+        {
+          "value": 144
+        }
+      ],
+      "rawAcRms": 0.1999999929021058,
+      "amplitude": 0.20000000298023224,
+      "rawDc": 0.00006349206443816896,
+      "rawPeakToPeak": 0.4000000059604645,
+      "unity": {
+        "minimum": -0.20000000298023224,
+        "maximum": 0.20000000298023224,
+        "peak": 0.20000000298023224,
+        "peakToPeak": 0.4000000059604645,
+        "amplitude": 0.20000000298023224,
+        "dc": 0.00006349206443816896,
+        "rms": 0.20000000298021153,
+        "acRms": 0.1999999929021058,
+        "measuredFrequencyHz": 880.7989105764866
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 0.644089,
+      "after": {
+        "rawGain": 0.45542,
+        "acRms": 0.09108399676747701,
+        "ratioToTarget": 1.0000003951583722,
+        "relativeToPrevious": 0.7070761959915477
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 880.7937992125984,
+      "reference": {
+        "clock": 1789773,
+        "period": 127,
+        "waveform": "square",
+        "channel": 0,
+        "volume": 15,
+        "type": 0,
+        "flags": 1,
+        "envelope": false,
+        "noise": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "register": 0,
+          "value": 127
+        },
+        {
+          "register": 1,
+          "value": 0
+        },
+        {
+          "register": 7,
+          "value": 62
+        },
+        {
+          "register": 8,
+          "value": 15
+        },
+        {
+          "register": 9,
+          "value": 0
+        },
+        {
+          "register": 10,
+          "value": 0
+        }
+      ],
+      "rawAcRms": 0.0822198620204698,
+      "amplitude": 0.08333333395421505,
+      "rawDc": -0.0416478787742034,
+      "rawPeakToPeak": 0.1666666679084301,
+      "unity": {
+        "minimum": -0.125,
+        "maximum": 0.0416666679084301,
+        "peak": 0.125,
+        "peakToPeak": 0.1666666679084301,
+        "amplitude": 0.08333333395421505,
+        "dc": -0.0416478787742034,
+        "rms": 0.0921664337872299,
+        "acRms": 0.0822198620204698,
+        "measuredFrequencyHz": 880.7959549355319
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 1.545813,
+      "after": {
+        "rawGain": 1.100331,
+        "acRms": 0.09046906299684555,
+        "ratioToTarget": 0.9932491102405889,
+        "relativeToPrevious": 0.7118137834265852
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 880,
+      "sampleRate": 44100,
+      "canonical": true,
+      "backend": "wasm",
+      "frames": 44100,
+      "hardwareFrequencyHz": 880.7937992125984,
+      "reference": {
+        "clock": 1789773,
+        "timer": 126,
+        "waveform": "pulse",
+        "channel": 0,
+        "duty": 0.5,
+        "volume": 15,
+        "envelope": false,
+        "sweep": false,
+        "lengthHalt": true,
+        "fds": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 126
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "rawAcRms": 0.05975158095384492,
+      "amplitude": 0.06245771050453186,
+      "rawDc": -0.0001437757164715048,
+      "rawPeakToPeak": 0.12491542100906372,
+      "unity": {
+        "minimum": -0.062674380838871,
+        "maximum": 0.06224104017019272,
+        "peak": 0.062674380838871,
+        "peakToPeak": 0.12491542100906372,
+        "amplitude": 0.06245771050453186,
+        "dc": -0.0001437757164715048,
+        "rms": 0.05975175393191843,
+        "acRms": 0.05975158095384492,
+        "measuredFrequencyHz": 880.7816433488092
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 2,
+      "after": {
+        "rawGain": 1.514209,
+        "acRms": 0.09047638164454055,
+        "ratioToTarget": 0.9933294608054166,
+        "relativeToPrevious": 0.7571045
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 440.39677657480314,
+      "reference": {
+        "clock": 3579545,
+        "period": 254,
+        "waveform": "square",
+        "channel": 0,
+        "attenuation": 0,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "value": 159
+        },
+        {
+          "value": 191
+        },
+        {
+          "value": 223
+        },
+        {
+          "value": 255
+        },
+        {
+          "value": 142
+        },
+        {
+          "value": 15
+        },
+        {
+          "value": 144
+        }
+      ],
+      "rawAcRms": 0.19999999863993348,
+      "amplitude": 0.20000000298023224,
+      "rawDc": -0.00004166666728754838,
+      "rawPeakToPeak": 0.4000000059604645,
+      "unity": {
+        "minimum": -0.20000000298023224,
+        "maximum": 0.20000000298023224,
+        "peak": 0.20000000298023224,
+        "peakToPeak": 0.4000000059604645,
+        "amplitude": 0.20000000298023224,
+        "dc": -0.00004166666728754838,
+        "rms": 0.20000000298021137,
+        "acRms": 0.19999999863993348,
+        "measuredFrequencyHz": 440.394582845678
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 0.644089,
+      "after": {
+        "rawGain": 0.45542,
+        "acRms": 0.09108399938059851,
+        "ratioToTarget": 1.000000423847523,
+        "relativeToPrevious": 0.7070761959915477
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 440.3968996062992,
+      "reference": {
+        "clock": 1789773,
+        "period": 254,
+        "waveform": "square",
+        "channel": 0,
+        "volume": 15,
+        "type": 0,
+        "flags": 1,
+        "envelope": false,
+        "noise": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "register": 0,
+          "value": 254
+        },
+        {
+          "register": 1,
+          "value": 0
+        },
+        {
+          "register": 7,
+          "value": 62
+        },
+        {
+          "register": 8,
+          "value": 15
+        },
+        {
+          "register": 9,
+          "value": 0
+        },
+        {
+          "register": 10,
+          "value": 0
+        }
+      ],
+      "rawAcRms": 0.08282048951126907,
+      "amplitude": 0.08333333395421505,
+      "rawDc": -0.041741768691946166,
+      "rawPeakToPeak": 0.1666666679084301,
+      "unity": {
+        "minimum": -0.125,
+        "maximum": 0.0416666679084301,
+        "peak": 0.125,
+        "peakToPeak": 0.1666666679084301,
+        "amplitude": 0.08333333395421505,
+        "dc": -0.041741768691946166,
+        "rms": 0.09274485827482927,
+        "acRms": 0.08282048951126907,
+        "measuredFrequencyHz": 440.3973496306553
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 1.545813,
+      "after": {
+        "rawGain": 1.100331,
+        "acRms": 0.0911299520444242,
+        "ratioToTarget": 1.000504932692272,
+        "relativeToPrevious": 0.7118137834265852
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 440,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 440.3968996062992,
+      "reference": {
+        "clock": 1789773,
+        "timer": 253,
+        "waveform": "pulse",
+        "channel": 0,
+        "duty": 0.5,
+        "volume": 15,
+        "envelope": false,
+        "sweep": false,
+        "lengthHalt": true,
+        "fds": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 253
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "rawAcRms": 0.06018898480714845,
+      "amplitude": 0.06441444531083107,
+      "rawDc": -0.000048338587051754685,
+      "rawPeakToPeak": 0.12882889062166214,
+      "unity": {
+        "minimum": -0.06453868001699448,
+        "maximum": 0.06429021060466766,
+        "peak": 0.06453868001699448,
+        "peakToPeak": 0.12882889062166214,
+        "amplitude": 0.06441444531083107,
+        "dc": -0.000048338587051754685,
+        "rms": 0.06018900421783156,
+        "acRms": 0.06018898480714845,
+        "measuredFrequencyHz": 440.38719104269416
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 2,
+      "after": {
+        "rawGain": 1.514209,
+        "acRms": 0.09113870249584745,
+        "ratioToTarget": 1.0006010028603762,
+        "relativeToPrevious": 0.7571045
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 220.19838828740157,
+      "reference": {
+        "clock": 3579545,
+        "period": 508,
+        "waveform": "square",
+        "channel": 0,
+        "attenuation": 0,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "value": 159
+        },
+        {
+          "value": 191
+        },
+        {
+          "value": 223
+        },
+        {
+          "value": 255
+        },
+        {
+          "value": 140
+        },
+        {
+          "value": 31
+        },
+        {
+          "value": 144
+        }
+      ],
+      "rawAcRms": 0.19999992641769557,
+      "amplitude": 0.20000000298023224,
+      "rawDc": -0.0001750000026077032,
+      "rawPeakToPeak": 0.4000000059604645,
+      "unity": {
+        "minimum": -0.20000000298023224,
+        "maximum": 0.20000000298023224,
+        "peak": 0.20000000298023224,
+        "peakToPeak": 0.4000000059604645,
+        "amplitude": 0.20000000298023224,
+        "dc": -0.0001750000026077032,
+        "rms": 0.20000000298021137,
+        "acRms": 0.19999992641769557,
+        "measuredFrequencyHz": 220.1973229435053
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 0.644089,
+      "after": {
+        "rawGain": 0.45542,
+        "acRms": 0.09108396648914692,
+        "ratioToTarget": 1.000000062736178,
+        "relativeToPrevious": 0.7070761959915477
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 220.1984498031496,
+      "reference": {
+        "clock": 1789773,
+        "period": 508,
+        "waveform": "square",
+        "channel": 0,
+        "volume": 15,
+        "type": 0,
+        "flags": 1,
+        "envelope": false,
+        "noise": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "register": 0,
+          "value": 252
+        },
+        {
+          "register": 1,
+          "value": 1
+        },
+        {
+          "register": 7,
+          "value": 62
+        },
+        {
+          "register": 8,
+          "value": 15
+        },
+        {
+          "register": 9,
+          "value": 0
+        },
+        {
+          "register": 10,
+          "value": 0
+        }
+      ],
+      "rawAcRms": 0.08308268756886293,
+      "amplitude": 0.08333333395421505,
+      "rawDc": -0.04174176868642826,
+      "rawPeakToPeak": 0.1666666679084301,
+      "unity": {
+        "minimum": -0.125,
+        "maximum": 0.0416666679084301,
+        "peak": 0.125,
+        "peakToPeak": 0.1666666679084301,
+        "amplitude": 0.08333333395421505,
+        "dc": -0.04174176868642826,
+        "rms": 0.09297907413357359,
+        "acRms": 0.08308268756886293,
+        "measuredFrequencyHz": 220.19813724012377
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 1.545813,
+      "after": {
+        "rawGain": 1.100331,
+        "acRms": 0.09141845669533451,
+        "ratioToTarget": 1.0036723910291283,
+        "relativeToPrevious": 0.7118137834265852
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 220,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 220.1984498031496,
+      "reference": {
+        "clock": 1789773,
+        "timer": 507,
+        "waveform": "pulse",
+        "channel": 0,
+        "duty": 0.5,
+        "volume": 15,
+        "envelope": false,
+        "sweep": false,
+        "lengthHalt": true,
+        "fds": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 251
+        },
+        {
+          "address": 16387,
+          "value": 9
+        },
+        {
+          "address": 16387,
+          "value": 9
+        }
+      ],
+      "rawAcRms": 0.06035948907839772,
+      "amplitude": 0.06817291304469109,
+      "rawDc": -0.0000044639051189581856,
+      "rawPeakToPeak": 0.13634582608938217,
+      "unity": {
+        "minimum": -0.06822483241558075,
+        "maximum": 0.06812099367380142,
+        "peak": 0.06822483241558075,
+        "peakToPeak": 0.13634582608938217,
+        "amplitude": 0.06817291304469109,
+        "dc": -0.0000044639051189581856,
+        "rms": 0.06035948924346248,
+        "acRms": 0.06035948907839772,
+        "measuredFrequencyHz": 220.19350936756445
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 2,
+      "after": {
+        "rawGain": 1.514209,
+        "acRms": 0.09139688159791153,
+        "ratioToTarget": 1.0034355205939887,
+        "relativeToPrevious": 0.7571045
+      }
+    },
+    {
+      "kind": "segapsg",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 880.7935531496063,
+      "reference": {
+        "clock": 3579545,
+        "period": 127,
+        "waveform": "square",
+        "channel": 0,
+        "attenuation": 0,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "value": 159
+        },
+        {
+          "value": 191
+        },
+        {
+          "value": 223
+        },
+        {
+          "value": 255
+        },
+        {
+          "value": 143
+        },
+        {
+          "value": 7
+        },
+        {
+          "value": 144
+        }
+      ],
+      "rawAcRms": 0.20000000280660027,
+      "amplitude": 0.20000000298023224,
+      "rawDc": 0.000008333333457509677,
+      "rawPeakToPeak": 0.4000000059604645,
+      "unity": {
+        "minimum": -0.20000000298023224,
+        "maximum": 0.20000000298023224,
+        "peak": 0.20000000298023224,
+        "peakToPeak": 0.4000000059604645,
+        "amplitude": 0.20000000298023224,
+        "dc": 0.000008333333457509677,
+        "rms": 0.20000000298021137,
+        "acRms": 0.20000000280660027,
+        "measuredFrequencyHz": 880.7890401818296
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 0.644089,
+      "after": {
+        "rawGain": 0.45542,
+        "acRms": 0.09108400127818189,
+        "ratioToTarget": 1.000000444680866,
+        "relativeToPrevious": 0.7070761959915477
+      }
+    },
+    {
+      "kind": "ay8910",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 880.7937992125984,
+      "reference": {
+        "clock": 1789773,
+        "period": 127,
+        "waveform": "square",
+        "channel": 0,
+        "volume": 15,
+        "type": 0,
+        "flags": 1,
+        "envelope": false,
+        "noise": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "register": 0,
+          "value": 127
+        },
+        {
+          "register": 1,
+          "value": 0
+        },
+        {
+          "register": 7,
+          "value": 62
+        },
+        {
+          "register": 8,
+          "value": 15
+        },
+        {
+          "register": 9,
+          "value": 0
+        },
+        {
+          "register": 10,
+          "value": 0
+        }
+      ],
+      "rawAcRms": 0.08230796322751906,
+      "amplitude": 0.08333333395421505,
+      "rawDc": -0.04164787876976667,
+      "rawPeakToPeak": 0.1666666679084301,
+      "unity": {
+        "minimum": -0.125,
+        "maximum": 0.0416666679084301,
+        "peak": 0.125,
+        "peakToPeak": 0.1666666679084301,
+        "amplitude": 0.08333333395421505,
+        "dc": -0.04164787876976667,
+        "rms": 0.09224503572921315,
+        "acRms": 0.08230796322751906,
+        "measuredFrequencyHz": 880.7919985843262
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 1.545813,
+      "after": {
+        "rawGain": 1.100331,
+        "acRms": 0.09056600348609926,
+        "ratioToTarget": 0.9943134083719942,
+        "relativeToPrevious": 0.7118137834265852
+      }
+    },
+    {
+      "kind": "nes",
+      "frequencyHz": 880,
+      "sampleRate": 48000,
+      "canonical": false,
+      "backend": "wasm",
+      "frames": 48000,
+      "hardwareFrequencyHz": 880.7937992125984,
+      "reference": {
+        "clock": 1789773,
+        "timer": 126,
+        "waveform": "pulse",
+        "channel": 0,
+        "duty": 0.5,
+        "volume": 15,
+        "envelope": false,
+        "sweep": false,
+        "lengthHalt": true,
+        "fds": false,
+        "otherChannels": "silent"
+      },
+      "writes": [
+        {
+          "address": 16405,
+          "value": 0
+        },
+        {
+          "address": 16407,
+          "value": 64
+        },
+        {
+          "address": 16384,
+          "value": 184
+        },
+        {
+          "address": 16388,
+          "value": 184
+        },
+        {
+          "address": 16392,
+          "value": 255
+        },
+        {
+          "address": 16396,
+          "value": 56
+        },
+        {
+          "address": 16398,
+          "value": 6
+        },
+        {
+          "address": 16384,
+          "value": 191
+        },
+        {
+          "address": 16385,
+          "value": 0
+        },
+        {
+          "address": 16386,
+          "value": 126
+        },
+        {
+          "address": 16387,
+          "value": 8
+        },
+        {
+          "address": 16387,
+          "value": 8
+        }
+      ],
+      "rawAcRms": 0.05982278665836148,
+      "amplitude": 0.06260623969137669,
+      "rawDc": -0.00014144131535310104,
+      "rawPeakToPeak": 0.12521247938275337,
+      "unity": {
+        "minimum": -0.06285634636878967,
+        "maximum": 0.0623561330139637,
+        "peak": 0.06285634636878967,
+        "peakToPeak": 0.12521247938275337,
+        "amplitude": 0.06260623969137669,
+        "dc": -0.00014144131535310104,
+        "rms": 0.05982295386569875,
+        "acRms": 0.05982278665836148,
+        "measuredFrequencyHz": 880.7768882508468
+      },
+      "downstreamTrim": 1,
+      "previousRawGain": 2,
+      "after": {
+        "rawGain": 1.514209,
+        "acRms": 0.09058420196317087,
+        "ratioToTarget": 0.9945132072928666,
+        "relativeToPrevious": 0.7571045
+      }
+    }
+  ]
+}

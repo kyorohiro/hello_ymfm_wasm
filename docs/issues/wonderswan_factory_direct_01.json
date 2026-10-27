@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "scope": "Public npm createSoundChip wonderswan direct factory, typed raw API and runnable README example.",
+  "implementation": {
+    "entry": "createSoundChip('wonderswan', options)",
+    "execution": "direct",
+    "defaultClock": 3072000,
+    "defaultSampleRate": 44100,
+    "workletAdded": false,
+    "sharedLoaderOptions": [
+      "assetBaseUrl",
+      "moduleFactory",
+      "moduleOptions",
+      "signal"
+    ],
+    "independentHandlesAndImmutableIds": true,
+    "wrapperChanges": "JSDoc only; executable code unchanged."
+  },
+  "sources": {
+    "web/soundchip.js": {
+      "path": "web/soundchip.js",
+      "bytes": 12386,
+      "sha256": "fabcd553ac956a08755a0a1ecf42f97aa0bc4d6362b8fe90a0add100de13c55c"
+    },
+    "docs/js/soundchip.js": {
+      "path": "docs/js/soundchip.js",
+      "bytes": 13180,
+      "sha256": "2861820370854c79f35dfd76741fbca7897d807197ce5302b9f44ba89b2d7de8"
+    },
+    "web/wonderswan.js": {
+      "path": "web/wonderswan.js",
+      "bytes": 8889,
+      "sha256": "1006c5013a88172dbf6d67cba687e87020051f0ee39807e4080a79096faf92a7"
+    },
+    "docs/js/wonderswan.js": {
+      "path": "docs/js/wonderswan.js",
+      "bytes": 8889,
+      "sha256": "1006c5013a88172dbf6d67cba687e87020051f0ee39807e4080a79096faf92a7"
+    },
+    "packages/fm2612/README.md": {
+      "path": "packages/fm2612/README.md",
+      "bytes": 70438,
+      "sha256": "0b06872b959c1d4dcfca02b3c0c1d6dda969c3fda8495afac76e1af7e6cd7fab"
+    },
+    "scripts/check_fm2612_package.mjs": {
+      "path": "scripts/check_fm2612_package.mjs",
+      "bytes": 35524,
+      "sha256": "be6ffc5cc5a049d78f8468e4d7ac6629e4aa255e7b7ef8b1d3c17c7903ed5998"
+    },
+    "scripts/check_wonderswan_factory_browser.cjs": {
+      "path": "scripts/check_wonderswan_factory_browser.cjs",
+      "bytes": 16972,
+      "sha256": "077fb22676116263f86ee809b81e39fc9d69584114fa065d44e814d44853f3d9"
+    },
+    "test/wonderswan-factory.test.mjs": {
+      "path": "test/wonderswan-factory.test.mjs",
+      "bytes": 6406,
+      "sha256": "b7eb9dd9b7f956bf275162f25604974582673cd2fdc94a9e696564e5fb644cb5"
+    },
+    "test/types/fm2612.mts": {
+      "path": "test/types/fm2612.mts",
+      "bytes": 17793,
+      "sha256": "b3aea3ab71a676a31eab4970fadcc2794c0c37fa260416bb17ecfa44a784dc64"
+    },
+    "test/types/fm2612-browser.mts": {
+      "path": "test/types/fm2612-browser.mts",
+      "bytes": 13104,
+      "sha256": "2d15ff8e200c4df332e6966d568d269bccd836a353d10c04e93a8ff249f6d880"
+    }
+  },
+  "validation": {
+    "sourceTests": {
+      "passed": 39,
+      "failed": 0,
+      "includesNewFactoryCases": 7,
+      "log": {
+        "path": "/private/tmp/wonderswan-factory-unit-tests.log",
+        "bytes": 3975,
+        "sha256": "a4bf4b48b49e5b2d3f4b6a66a60585c171268c63a9b9481ca7b2abaa5c8949a3"
+      }
+    },
+    "build": {
+      "modules": 293,
+      "generatedEnginePairs": 27,
+      "declarations": 339,
+      "log": {
+        "path": "/private/tmp/ws-factory-fm2612-build.log",
+        "bytes": 165,
+        "sha256": "a4a66b2c6c440d354de590cc217c286cef81b0b8db2803ef3ca5b756b09d1ac5"
+      }
+    },
+    "types": {
+      "passed": true,
+      "resolutions": [
+        "NodeNext",
+        "Bundler",
+        "Browser without Node ambient types"
+      ],
+      "positiveAndNegativeCases": true,
+      "log": {
+        "path": "/private/tmp/ws-factory-fm2612-types.log",
+        "bytes": 112,
+        "sha256": "0b9a5c38ad6d981429e66217030eeebe42f40ba000d7b115cdf7b159aa24e234"
+      }
+    },
+    "installedPackage": {
+      "passed": true,
+      "references": 981,
+      "renderers": 15,
+      "wasmEngines": 27,
+      "log": {
+        "path": "/private/tmp/wonderswan-direct-factory/package-check.log",
+        "bytes": 1472,
+        "sha256": "607e5da674f6f77c5cf9374dd1bcbac32b370b01b4acc54f6cab22783bf63e49"
+      }
+    },
+    "exactArchive": {
+      "passed": true,
+      "archive": {
+        "path": "/private/tmp/wonderswan-direct-factory/tetorica-fm2612-0.2.29.tgz",
+        "bytes": 1633171,
+        "sha256": "8a47f4dc0d86b9a8579a397c9f216154ee275b9c57403e5be8bf6e31093f2c59"
+      },
+      "files": 841,
+      "allPackedFilesEqualStageAndInstalled": true,
+      "published": false
+    },
+    "browser": {
+      "schemaVersion": 1,
+      "passed": true,
+      "package": {
+        "name": "tetorica-fm2612",
+        "version": "0.2.29",
+        "directory": "/private/tmp/wonderswan-direct-factory/consumer/node_modules/tetorica-fm2612"
+      },
+      "method": "Default public createSoundChip asset loading; exact Float32 PCM/register/RAM comparison between Node, browser Window and real module DedicatedWorker.",
+      "audioContextCreated": false,
+      "audioWorkletCreated": false,
+      "physicalAudioDeviceOpened": false,
+      "engines": [
+        {
+          "name": "chromium",
+          "version": "153.0.8010.12",
+          "realm": "Window",
+          "passed": true,
+          "scenarios": 2,
+          "stereoFrames": 3331,
+          "sampleComparisons": 6662,
+          "maximumDifference": 0,
+          "audioAttempts": [],
+          "pcmSha256": [
+            {
+              "clock": 3072000,
+              "sampleRate": 44100,
+              "first": {
+                "left": "fb3856504d0432747829c329a185b98541086202006e2b7a69795eea08bdb68a",
+                "right": "1d8aa85b2a92df46db54dd7e857e51a59c197afc33a3dbae8379d6b81e5f06c2"
+              },
+              "second": {
+                "left": "bfca3d2bb80a4a10632dfc91eb96a05dc2e24481e701453851c020d2d48d0ffb",
+                "right": "4d9abd2cf8980c0b381775cf333f4272b65db000da3dc994d324ee6473eaa168"
+              }
+            },
+            {
+              "clock": 3200011,
+              "sampleRate": 48000,
+              "first": {
+                "left": "95a9fe2f74796d9aaf10649f262735e31838baba5e09028c4e515e5846266fb9",
+                "right": "f0e787269a104a5985e0ae340ff09619e33912c23448c83e38b8445d7f0369e6"
+              },
+              "second": {
+                "left": "65b50067bc7ae044c9e5cbfa96cdf3d04e9a3ce671809aa69587765b144e8840",
+                "right": "3eafd21783b0ffe9fe0576c0ff9d5fb124dd8111bd312e3512312e7a32acc0ab"
+              }
+            }
+          ]
+        },
+        {
+          "name": "chromium",
+          "version": "153.0.8010.12",
+          "realm": "DedicatedWorker",
+          "passed": true,
+          "scenarios": 2,
+          "stereoFrames": 3331,
+          "sampleComparisons": 6662,
+          "maximumDifference": 0,
+          "audioAttempts": [],
+          "pcmSha256": [
+            {
+              "clock": 3072000,
+              "sampleRate": 44100,
+              "first": {
+                "left": "fb3856504d0432747829c329a185b98541086202006e2b7a69795eea08bdb68a",
+                "right": "1d8aa85b2a92df46db54dd7e857e51a59c197afc33a3dbae8379d6b81e5f06c2"
+              },
+              "second": {
+                "left": "bfca3d2bb80a4a10632dfc91eb96a05dc2e24481e701453851c020d2d48d0ffb",
+                "right": "4d9abd2cf8980c0b381775cf333f4272b65db000da3dc994d324ee6473eaa168"
+              }
+            },
+            {
+              "clock": 3200011,
+              "sampleRate": 48000,
+              "first": {
+                "left": "95a9fe2f74796d9aaf10649f262735e31838baba5e09028c4e515e5846266fb9",
+                "right": "f0e787269a104a5985e0ae340ff09619e33912c23448c83e38b8445d7f0369e6"
+              },
+              "second": {
+                "left": "65b50067bc7ae044c9e5cbfa96cdf3d04e9a3ce671809aa69587765b144e8840",
+                "right": "3eafd21783b0ffe9fe0576c0ff9d5fb124dd8111bd312e3512312e7a32acc0ab"
+              }
+            }
+          ]
+        },
+        {
+          "name": "webkit",
+          "version": "26.6",
+          "realm": "Window",
+          "passed": true,
+          "scenarios": 2,
+          "stereoFrames": 3331,
+          "sampleComparisons": 6662,
+          "maximumDifference": 0,
+          "audioAttempts": [],
+          "pcmSha256": [
+            {
+              "clock": 3072000,
+              "sampleRate": 44100,
+              "first": {
+                "left": "fb3856504d0432747829c329a185b98541086202006e2b7a69795eea08bdb68a",
+                "right": "1d8aa85b2a92df46db54dd7e857e51a59c197afc33a3dbae8379d6b81e5f06c2"
+              },
+              "second": {
+                "left": "bfca3d2bb80a4a10632dfc91eb96a05dc2e24481e701453851c020d2d48d0ffb",
+                "right": "4d9abd2cf8980c0b381775cf333f4272b65db000da3dc994d324ee6473eaa168"
+              }
+            },
+            {
+              "clock": 3200011,
+              "sampleRate": 48000,
+              "first": {
+                "left": "95a9fe2f74796d9aaf10649f262735e31838baba5e09028c4e515e5846266fb9",
+                "right": "f0e787269a104a5985e0ae340ff09619e33912c23448c83e38b8445d7f0369e6"
+              },
+              "second": {
+                "left": "65b50067bc7ae044c9e5cbfa96cdf3d04e9a3ce671809aa69587765b144e8840",
+                "right": "3eafd21783b0ffe9fe0576c0ff9d5fb124dd8111bd312e3512312e7a32acc0ab"
+              }
+            }
+          ]
+        },
+        {
+          "name": "webkit",
+          "version": "26.6",
+          "realm": "DedicatedWorker",
+          "passed": true,
+          "scenarios": 2,
+          "stereoFrames": 3331,
+          "sampleComparisons": 6662,
+          "maximumDifference": 0,
+          "audioAttempts": [],
+          "pcmSha256": [
+            {
+              "clock": 3072000,
+              "sampleRate": 44100,
+              "first": {
+                "left": "fb3856504d0432747829c329a185b98541086202006e2b7a69795eea08bdb68a",
+                "right": "1d8aa85b2a92df46db54dd7e857e51a59c197afc33a3dbae8379d6b81e5f06c2"
+              },
+              "second": {
+                "left": "bfca3d2bb80a4a10632dfc91eb96a05dc2e24481e701453851c020d2d48d0ffb",
+                "right": "4d9abd2cf8980c0b381775cf333f4272b65db000da3dc994d324ee6473eaa168"
+              }
+            },
+            {
+              "clock": 3200011,
+              "sampleRate": 48000,
+              "first": {
+                "left": "95a9fe2f74796d9aaf10649f262735e31838baba5e09028c4e515e5846266fb9",
+                "right": "f0e787269a104a5985e0ae340ff09619e33912c23448c83e38b8445d7f0369e6"
+              },
+              "second": {
+                "left": "65b50067bc7ae044c9e5cbfa96cdf3d04e9a3ce671809aa69587765b144e8840",
+                "right": "3eafd21783b0ffe9fe0576c0ff9d5fb124dd8111bd312e3512312e7a32acc0ab"
+              }
+            }
+          ]
+        }
+      ],
+      "sources": {
+        "generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "playground_chip_clock.js": {
+          "bytes": 5174,
+          "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+        },
+        "pwm32x.js": {
+          "bytes": 6836,
+          "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+        },
+        "soundchip_factory.js": {
+          "bytes": 809,
+          "sha256": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca"
+        },
+        "soundchip_mixer_presets.js": {
+          "bytes": 2967,
+          "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6"
+        },
+        "soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "soundchip_worklet.js": {
+          "bytes": 6238,
+          "sha256": "ecb5492d8b309d9dedcf1f80ea5b0185213071f2a55c24b5c70beb237365f05b"
+        },
+        "soundchip.js": {
+          "bytes": 12324,
+          "sha256": "860d3c3a4ad2f568a4ca7854eedc653cdb19b33c2ab1e322d0b96b4d56270718"
+        },
+        "wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "wonderswan_timeline.js": {
+          "bytes": 6966,
+          "sha256": "f3a2f04c22dd975138d1d1c19c36f5f043411a989842f88cfe4d208452c93c4d"
+        },
+        "wonderswan.js": {
+          "bytes": 8889,
+          "sha256": "1006c5013a88172dbf6d67cba687e87020051f0ee39807e4080a79096faf92a7"
+        },
+        "wonderswansynth.js": {
+          "bytes": 16416,
+          "sha256": "fd48439901691ee29c40c9b248528b99490f6d49dbf1f6a22a5bbdfa58c32ed5"
+        }
+      },
+      "limits": [
+        "Direct synchronous factory only; no real-time scheduling, physical listening or hardware-accuracy claim. Worker timeout bounds the test; no timer drives PCM."
+      ],
+      "checkerSha256": "077fb22676116263f86ee809b81e39fc9d69584114fa065d44e814d44853f3d9"
+    },
+    "readmeExample": {
+      "passed": true,
+      "codeExtractedVerbatimFrom": "packages/fm2612/README.md#WonderSwan direct rendering",
+      "ranInExactArchiveConsumer": true
+    },
+    "psgCalibrationRefresh": {
+      "path": "docs/issues/soundchip_psg_calibration_refresh_01.json",
+      "sha256": "889475fef4c03043e6ad0aae12f1a0846951e6cd83cd945b97fa0c0d783ada59",
+      "actualCapturesRepeated": 18,
+      "allPcmAndGainsUnchanged": true,
+      "guardBypassed": false
+    }
+  },
+  "unchanged": [
+    "C++ sound core",
+    "Fixed SDK sources",
+    "Generated WASM outputs",
+    "Mixer levels",
+    "Playground dedicated audio endpoints",
+    "Public package version0.2.29"
+  ],
+  "notPerformed": [
+    "npm publish",
+    "Version bump",
+    "Git commit",
+    "Git push",
+    "CI dispatch",
+    "Tauri import",
+    "itch.io release",
+    "Physical listening",
+    "Hardware comparison"
+  ]
+}

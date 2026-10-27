@@ -5,6 +5,7 @@
  */
 export const WONDERSWAN_CLOCK = 3072000;
 
+/** @param {number} value @param {number} minimum @param {number} maximum @param {string} label @returns {number} */
 function integer(value, minimum, maximum, label) {
   if (!Number.isInteger(value) || value < minimum || value > maximum) {
     throw new RangeError(`Invalid WonderSwan ${label}: expected ${minimum}..${maximum}`);
@@ -21,7 +22,9 @@ export class WonderSwan {
   #view = Object.freeze({left:new Float32Array(0), right:new Float32Array(0)});
   #empty = Object.freeze({left:new Float32Array(0), right:new Float32Array(0)});
 
-  /** @param {{moduleFactory:Function,moduleOptions?:object,clock?:number,sampleRate?:number}} options */
+  /** @param {{moduleFactory:Function,moduleOptions?:object,clock?:number,sampleRate?:number}} options
+   * @returns {Promise<WonderSwan>}
+   */
   static async create({moduleFactory, moduleOptions, clock = WONDERSWAN_CLOCK, sampleRate = 44100} = {}) {
     integer(clock, 128, 100000000, 'clock');
     integer(sampleRate, 8000, 384000, 'sample rate');
@@ -40,39 +43,59 @@ export class WonderSwan {
 
   /** Prefer create(); this instance owns its handle and output buffer.
    * The WASM module may be shared with other independent chip instances.
+   * @param {*} module Instantiated Emscripten WonderSwan module.
+   * @param {number} handle Owned native sound-core handle.
+   * @param {number} clock Input clock in Hz.
+   * @param {number} rate Output sample rate in Hz.
    */
   constructor(module, handle, clock, rate) {
     this.#module = module; this.#handle = handle; this.#clock = clock; this.#rate = rate;
   }
   #alive() { if (!this.#handle) throw new Error('WonderSwan is disposed'); }
+  /** @returns {number} Input clock in Hz. */
   get clock() { return this.#clock; }
+  /** @returns {number} Output sample rate in Hz. */
   sampleRate() { this.#alive(); return this.#rate; }
 
-  /** Deterministic cold reset: RAM, registers, counters, held PCM and mutes. */
+  /** Deterministic cold reset: RAM, registers, counters, held PCM and mutes.
+   * @returns {void}
+   */
   reset() { this.#alive(); this.#module._wonderswan_reset(this.#handle); }
 
   /** Absolute byte addresses 0x80..0x9f, not VGM-relative register numbers.
    * Hyper Voice, DMA and CPU-side ports are outside this API's first version.
+   * @param {number} address
+   * @param {number} value
+   * @returns {void}
    */
   writeRegister(address, value) {
     this.#alive(); integer(address, 0x80, 0x9f, 'register address'); integer(value, 0, 255, 'register byte');
     this.#module._wonderswan_write(this.#handle, address, value);
   }
+  /** @param {number} address @returns {number} Register byte. */
   readRegister(address) {
     this.#alive(); integer(address, 0x80, 0x9f, 'register address');
     return this.#module._wonderswan_read(this.#handle, address);
   }
-  /** Write one byte of the sound core's owned 16 KiB wave RAM. */
+  /** Write one byte of the sound core's owned 16 KiB wave RAM.
+   * @param {number} address
+   * @param {number} value
+   * @returns {void}
+   */
   writeMemory(address, value) {
     this.#alive(); integer(address, 0, 0x3fff, 'RAM address'); integer(value, 0, 255, 'RAM byte');
     this.#module._wonderswan_write_memory(this.#handle, address, value);
   }
+  /** @param {number} address @returns {number} Packed RAM byte. */
   readMemory(address) {
     this.#alive(); integer(address, 0, 0x3fff, 'RAM address');
     return this.#module._wonderswan_read_memory(this.#handle, address);
   }
   /** Copy packed wave RAM bytes. Each channel uses 16 bytes / 32 four-bit
    * samples, low nibble first, at (register 0x8f << 6) + channel * 16.
+   * @param {Uint8Array} bytes
+   * @param {number} [offset=0]
+   * @returns {void}
    */
   loadMemory(bytes, offset = 0) {
     this.#alive();
@@ -81,14 +104,21 @@ export class WonderSwan {
     if (bytes.length > 0x4000 - offset) throw new RangeError('WonderSwan RAM upload exceeds 16 KiB');
     for (let i = 0; i < bytes.length; i++) this.#module._wonderswan_write_memory(this.#handle, offset + i, bytes[i]);
   }
-  /** Monitoring mute suppresses output while the voice continues advancing. */
+  /** Monitoring mute suppresses output while the voice continues advancing.
+   * @param {number} channel Physical channel 0..3.
+   * @param {boolean} muted
+   * @returns {void}
+   */
   setChannelMuted(channel, muted) {
     this.#alive(); integer(channel, 0, 3, 'channel');
     if (typeof muted !== 'boolean') throw new TypeError('Expected boolean WonderSwan mute');
     this.#module._wonderswan_mute(this.#handle, channel, Number(muted));
   }
 
-  /** Reserve output memory before a real-time render loop. Capacity is retained. */
+  /** Reserve output memory before a real-time render loop. Capacity is retained.
+   * @param {number} frames
+   * @returns {void}
+   */
   reserveFrames(frames) {
     this.#alive(); integer(frames, 0, 0x1000000, 'frame count');
     if (frames <= this.#capacity) return;
@@ -102,6 +132,8 @@ export class WonderSwan {
    * expansion, heap growth or dispose invalidates their contents/lifetime.
    * No output gain is applied.
    * With fixed frame size and stable WASM memory, views and buffers are reused.
+   * @param {number} frames
+   * @returns {Readonly<{left:Float32Array,right:Float32Array}>}
    */
   generateStereoView(frames) {
     this.#alive(); integer(frames, 0, 0x1000000, 'frame count');
@@ -117,12 +149,20 @@ export class WonderSwan {
     }
     return this.#view;
   }
-  /** Owned PCM copies, valid after subsequent renders and disposal. */
+  /** Owned PCM copies, valid after subsequent renders and disposal.
+   * @param {number} frames
+   * @returns {{left:Float32Array,right:Float32Array}}
+   */
   generateStereo(frames) {
     const view = this.generateStereoView(frames);
     return {left:new Float32Array(view.left), right:new Float32Array(view.right)};
   }
-  /** Render into caller-owned, separate stereo buffers. */
+  /** Render into caller-owned, separate stereo buffers.
+   * @param {Float32Array} left
+   * @param {Float32Array} right
+   * @param {number} [frames=left.length]
+   * @returns {void}
+   */
   generateStereoInto(left, right, frames = left?.length) {
     this.#alive(); integer(frames, 0, 0x1000000, 'frame count');
     if (!(left instanceof Float32Array) || !(right instanceof Float32Array) || left.length < frames || right.length < frames) {
@@ -137,6 +177,7 @@ export class WonderSwan {
     const view = this.generateStereoView(frames);
     left.set(view.left); right.set(view.right);
   }
+  /** @returns {void} */
   dispose() {
     if (this.#pointer) this.#module._free(this.#pointer);
     if (this.#handle) this.#module._wonderswan_destroy(this.#handle);

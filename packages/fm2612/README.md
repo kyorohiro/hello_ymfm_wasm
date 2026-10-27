@@ -144,6 +144,40 @@ start with the task table above when choosing an application API. See the
 [runnable examples](https://github.com/kyorohiro/tetorica-fm2612-examples) for
 complete setup, playback and cleanup.
 
+### WonderSwan direct rendering
+
+The current development build supports `createSoundChip('wonderswan')` for
+synchronous register, 16 KiB wave RAM and stereo PCM access in Browser,
+Worker and Node.js. The default clock is 3,072,000 Hz and the default output
+sample rate is 44,100 Hz; both can be specified when creating the chip.
+Each call creates an independent instance with its own `id` and `dispose()`.
+
+```js
+import {createSoundChip, encodeWav} from 'tetorica-fm2612';
+import {WonderSwanSynth, WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth.js';
+
+const chip = await createSoundChip('wonderswan', {sampleRate:48000});
+try {
+  const ws = new WonderSwanSynth({transport:new WonderSwanDirectTransport(chip)});
+  ws.initialize();
+  ws.setWaveform(0, Array.from({length:32}, (_, i) => i < 16 ? i : 31 - i));
+  ws.setVolume(0, 9, 9);
+  ws.noteOn(0, 'A4');
+  const pcm = chip.generateStereo(Math.round(chip.sampleRate() * 0.5));
+  ws.keyOff(0);
+  const wav = encodeWav({...pcm, sampleRate:chip.sampleRate()});
+  // Save wav to a file, or send pcm to your own output.
+} finally { chip.dispose(); }
+```
+
+The direct factory opens no audio device and returns raw PCM without Mixer
+gain or a DC filter. It supports the shared `assetBaseUrl`, `moduleFactory`,
+`moduleOptions` and `signal` loader settings. Ship
+`generated/wonderswan_wasm.js` and `generated/wonderswan_wasm.wasm` when copying
+a smaller deployment. Generic `execution:'worklet'` is not available for this
+chip; Playground uses its existing dedicated WonderSwan audio endpoint.
+This factory addition is not included in the published 0.2.29 package.
+
 ### NES + FDS WASM
 
 Available in `tetorica-fm2612@0.2.24` and later.

@@ -75,8 +75,11 @@ import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
 import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_synth';
 import {YM2413Synth,YM2413DirectTransport,YM2413_USER_PRESETS,YM2413_INSTRUMENTS} from 'tetorica-fm2612/ym2413synth';
 import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth';
+import {WonderSwan,WONDERSWAN_CLOCK} from 'tetorica-fm2612/wonderswan.js';
+import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 import ym2612ModuleFactory from 'tetorica-fm2612/generated/ym2612_wasm.js';
+import wonderswanModuleFactory from 'tetorica-fm2612/generated/wonderswan_wasm.js';
 assert.equal(SOUNDCHIP_MIXER_PRESETS, subpathPresets);
 assert.equal(SOUNDCHIP_MIXER_PRESETS, extensionlessPresets);
 const calibratedPreset = SOUNDCHIP_MIXER_PRESETS.calibrated;
@@ -194,6 +197,62 @@ try {
   assert.deepEqual(pcm.left,pcm.right,'AY mono is copied to both output channels');
   synth.allNotesOff();
 } finally {ayChip.dispose();}
+// Exercise the public generic entry with the actual installed WASM. Two
+// additional chips deliberately share one Emscripten module, not one handle.
+const wsChip=await createSoundChip('wonderswan');
+let wsCustom,wsSibling;
+try {
+  assert(wsChip instanceof WonderSwan,'Generic WonderSwan creation must return the raw core wrapper');
+  assert.equal(wsChip.clock,WONDERSWAN_CLOCK);assert.equal(wsChip.sampleRate(),44100);
+  assert.equal(wsChip.mixer,undefined,'Direct WonderSwan PCM is not implicitly calibrated');
+  assert.equal(typeof wsChip.id,'string');
+  assert.equal(Object.getOwnPropertyDescriptor(wsChip,'id').writable,false);
+  assert.throws(()=>{wsChip.id='replacement';},TypeError);
+  const module=await wonderswanModuleFactory({wasmBinary:await readFile(runtimeAssetUrl('generated/wonderswan_wasm.wasm'))});
+  const moduleOptions={tetoricaPackageFixture:true};
+  let injectedCalls=0;
+  const injectedFactory=options=>{
+    assert.notEqual(options,moduleOptions,'The wrapper must not pass the caller-owned options object');
+    assert.equal(options.tetoricaPackageFixture,true);injectedCalls++;return module;
+  };
+  wsCustom=await createSoundChip('wonderswan',{execution:'direct',moduleFactory:injectedFactory,moduleOptions,clock:3200011,sampleRate:48000,id:'installed-ws-custom'});
+  wsSibling=await createSoundChip('wonderswan',{moduleFactory:injectedFactory,moduleOptions});
+  assert.equal(injectedCalls,2,'The supplied factory is used for each creation');
+  assert.equal(wsCustom.clock,3200011);assert.equal(wsCustom.sampleRate(),48000);
+  assert.equal(wsCustom.id,'installed-ws-custom');
+  assert.equal(new Set([wsChip.id,wsCustom.id,wsSibling.id]).size,3,'Created chips have distinct IDs');
+  wsCustom.loadMemory(new Uint8Array([0x10,0x32,0x54,0x76]),0x3ffc);
+  wsCustom.writeMemory(0x3fff,0xab);wsCustom.writeRegister(0x8f,0x3f);
+  assert.equal(wsCustom.readMemory(0x3fff),0xab);assert.equal(wsCustom.readRegister(0x8f),0x3f);
+  assert.equal(wsSibling.readMemory(0x3fff),0,'Shared-module handles own independent RAM');
+  assert.equal(wsSibling.readRegister(0x8f),0,'Shared-module handles own independent registers');
+  const wave=Array.from({length:32},(_,index)=>index<16?index:31-index);
+  const synths=[wsChip,wsCustom,wsSibling].map(core=>new WonderSwanSynth({transport:new WonderSwanDirectTransport(core),clock:core.clock}));
+  for(let index=0;index<synths.length;index++){
+    const core=[wsChip,wsCustom,wsSibling][index],synth=synths[index];
+    synth.initialize();synth.setWaveform(0,wave);synth.noteOn(0,'A4');
+    assert.equal(core.readMemory(0),0x10,'Synth uploads packed low-nibble-first wave RAM');
+    const pcm=core.generateStereo(4096);
+    assert(pcm.left.every(Number.isFinite)&&pcm.right.every(Number.isFinite));
+    assert(Math.max(...pcm.left)-Math.min(...pcm.left)>.001,'Installed WonderSwan must render audible AC PCM');
+    assert.deepEqual(pcm.left,pcm.right,'Equal headphone volumes render centered PCM');
+  }
+  wsCustom.writeMemory(0,0x76);assert.equal(wsSibling.readMemory(0),0x10);
+  wsChip.setChannelMuted(0,true);
+  assert(wsChip.generateStereo(256).left.every(value=>value===0),'Channel monitoring mute suppresses the only active voice');
+  wsChip.setChannelMuted(0,false);
+  const view=wsChip.generateStereoView(128);
+  assert.equal(view.left.length,128);assert.equal(view.right.length,128);
+  wsChip.generateStereoInto(new Float32Array(128),new Float32Array(128),128);
+  synths[0].dispose();
+  assert.equal(wsChip.sampleRate(),44100,'Disposing a DirectTransport synth does not destroy its borrowed core');
+  wsCustom.dispose();wsCustom.dispose();
+  assert.throws(()=>wsCustom.readMemory(0),/disposed/);
+  assert.throws(()=>wsCustom.generateStereo(128),/disposed/);
+  const survivingPcm=wsSibling.generateStereo(512);
+  assert(Math.max(...survivingPcm.left)-Math.min(...survivingPcm.left)>.001,'Disposing a shared-module peer leaves this chip playing');
+  synths[1].dispose();synths[2].dispose();
+} finally {wsChip.dispose();wsCustom?.dispose();wsSibling?.dispose();}
 assert.equal(typeof globalThis.AudioContext, 'undefined');
 const {MegaSynthNode} = await import('tetorica-fm2612/node');
 const nodeSynth = new MegaSynthNode();
