@@ -1,0 +1,1798 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "implemented and locally verified; not committed or published",
+  "feature": "Mega-CD mode: YM2612 + Sega PSG + RF5C164 + shared CD-DA",
+  "baseCommits": {
+    "main": "524552ea5ad6be9f7b03cba24ca47f8095336ff4",
+    "tauri": "764816fc9344b4a2ba35742b4b7fbe23b2ca2a1e"
+  },
+  "cacheRevision": "mega-cd-cdda-1",
+  "productionAudioRuntimeChanged": false,
+  "unchangedArtifacts": {
+    "passed": true,
+    "samplerByteIdentical": true,
+    "samplerSha256": "b26075d5ba859f6fa52da130bd6932b31bb356cf242ee51ca9a01356ea869dee",
+    "allGeneratedWasmAndLoadersUnchanged": true,
+    "sdkPinUnchanged": true
+  },
+  "nativeProductionIdentity": {
+    "passed": true,
+    "onlyChangedRustFile": "src-tauri/src/native_genesis_cdda.rs",
+    "productionBeforeCfgTestUnchanged": true,
+    "fileSha256": "57d3b5e17f321839639b474fe9b06e9cdee781a2623556a3aa874276b48a9b37"
+  },
+  "validation": {
+    "modeDeclarationKeyboardPanels": {
+      "passed": 56,
+      "failed": 0
+    },
+    "runtime": {
+      "passed": 142,
+      "failed": 0
+    },
+    "examplesCatalogHistory": {
+      "passed": 44,
+      "failed": 0
+    },
+    "allModeTypes": "passed including selected Mega-CD CD-DA positive/negative fixture",
+    "generatedExamples": "node scripts/build_playground_examples.mjs --check: passed",
+    "browser": {
+      "passed": true,
+      "receipt": "megacd_cdda_01_browser.json",
+      "receiptSha256": "2eaa85c33b52592dd14bc19d8f21af632724607941ffc1e5c87ef40c0b2f775e",
+      "checker": "scripts/check_megacd_cdda_browser.cjs",
+      "checkerSha256": "3a30912a7cde9bd2b24631d1bd5e98e64da86406d8033752b4cee9192980eab2",
+      "servedSources": 292,
+      "modeRegressions": [
+        {
+          "browser": "chromium",
+          "mode": "pc-engine-cd",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": true,
+              "label": "HUC6280"
+            },
+            "segapsgTab": {
+              "hidden": true,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": true,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": true,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": false,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": false,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": false,
+              "label": "CD-DA"
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "mode": "genesis",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": false,
+              "label": "YM2612"
+            },
+            "segapsgTab": {
+              "hidden": false,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": true,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": true,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": true,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": true,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": true,
+              "label": "CD-DA"
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "mode": "genesis-full",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": false,
+              "label": "YM2612"
+            },
+            "segapsgTab": {
+              "hidden": false,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": false,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": false,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": true,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": true,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": true,
+              "label": "CD-DA"
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "mode": "genesis-full-nuked",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": false,
+              "label": "YM2612"
+            },
+            "segapsgTab": {
+              "hidden": false,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": false,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": false,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": true,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": true,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": true,
+              "label": "CD-DA"
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "mode": "pc-engine-cd",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": true,
+              "label": "HUC6280"
+            },
+            "segapsgTab": {
+              "hidden": true,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": true,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": true,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": false,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": false,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": false,
+              "label": "CD-DA"
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "mode": "genesis",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": false,
+              "label": "YM2612"
+            },
+            "segapsgTab": {
+              "hidden": false,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": true,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": true,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": true,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": true,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": true,
+              "label": "CD-DA"
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "mode": "genesis-full",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": false,
+              "label": "YM2612"
+            },
+            "segapsgTab": {
+              "hidden": false,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": false,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": false,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": true,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": true,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": true,
+              "label": "CD-DA"
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "mode": "genesis-full-nuked",
+          "tabs": {
+            "operatorTabButton": {
+              "hidden": false,
+              "label": "YM2612"
+            },
+            "segapsgTab": {
+              "hidden": false,
+              "label": "Sega PSG"
+            },
+            "rf5c164Tab": {
+              "hidden": false,
+              "label": "RF5C164"
+            },
+            "pwmTab": {
+              "hidden": false,
+              "label": "32X PWM"
+            },
+            "huc6280Tab": {
+              "hidden": true,
+              "label": "HuC6280"
+            },
+            "msm5205Tab": {
+              "hidden": true,
+              "label": "MSM5205"
+            },
+            "cddaTab": {
+              "hidden": true,
+              "label": "CD-DA"
+            }
+          }
+        }
+      ],
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "before": {
+            "contexts": 0,
+            "worklets": 0,
+            "messages": 0
+          },
+          "inspection": {
+            "messages": [
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              },
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              }
+            ],
+            "reads": 5
+          },
+          "systemMix": [
+            {
+              "id": "ym2612",
+              "expected": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "segapsg",
+              "expected": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "rf5c164",
+              "expected": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "cdda",
+              "expected": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            }
+          ],
+          "starter": {
+            "sampleRate": 48000,
+            "frames": 192000,
+            "peak": 0.2313983291387558,
+            "leftPeak": 0.2256895899772644,
+            "rightPeak": 0.2313983291387558,
+            "rms": 0.07759485267946556,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0.0001293972798160926,
+              0.026086386919937376,
+              0.010111336273383823,
+              1.7141873077333988e-05,
+              0.00015743586942225247
+            ],
+            "right": [
+              0.00016740719728862847,
+              0.019437593141574963,
+              0.00831764230423862,
+              0.0092931411683684,
+              0.00016120186351130112
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.775938,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.35,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.280286,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "cdda",
+                "volume": 1,
+                "muted": false,
+                "pan": 0
+              }
+            ],
+            "preview": {
+              "file": "/private/tmp/megacd-cdda-preview.wav",
+              "bytes": 1536044,
+              "sha256": "45007595e5132fed8563b686f60f19a66002cfb8ffb6f4875c036ec3e95450f1",
+              "format": "stereo Float32 RIFF WAV",
+              "normalized": false
+            }
+          },
+          "starterState": {
+            "state": "playing",
+            "frame": 5644,
+            "positionFrames": 5644,
+            "durationFrames": 176400,
+            "phase": 38400,
+            "frames": 176400,
+            "sampleRate": 48000,
+            "sourceRate": 44100,
+            "outputFrames": 199680,
+            "gain": 1,
+            "muted": false,
+            "positionSeconds": 0.128,
+            "durationSeconds": 4,
+            "volume": 1,
+            "mute": false,
+            "track": 1,
+            "outputFrame": 807168,
+            "pan": 0,
+            "title": "",
+            "tracks": [
+              {
+                "number": 1,
+                "title": "",
+                "startFrame": 0
+              }
+            ]
+          },
+          "globalStop": {
+            "sampleRate": 48000,
+            "frames": 8192,
+            "peak": 0,
+            "leftPeak": 0,
+            "rightPeak": 0,
+            "rms": 0,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "right": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              }
+            ]
+          },
+          "physicalOutputMuted": true,
+          "idleScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/chromium-main-idle-desktop.png",
+            "sha256": "a133f094e905a01285e23e540139d94228c473cd4775fbac97e165e16df63332"
+          },
+          "screenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/chromium-main-four-tabs-cdda.png",
+            "sha256": "52fad198e6d00dc004545eb00b9fa8c9e4516a9cec72661f273c3ba4bf428761"
+          },
+          "starterDesktopScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/chromium-main-starter-desktop.png",
+            "sha256": "e9cf154ab72a68dd6c3144a33afecadb6cb2504949855f86234017d96630a228"
+          }
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "before": {
+            "contexts": 0,
+            "worklets": 0,
+            "messages": 0
+          },
+          "inspection": {
+            "messages": [
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              },
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              }
+            ],
+            "reads": 5
+          },
+          "systemMix": [
+            {
+              "id": "ym2612",
+              "expected": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "segapsg",
+              "expected": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "rf5c164",
+              "expected": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "cdda",
+              "expected": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            }
+          ],
+          "starter": {
+            "sampleRate": 48000,
+            "frames": 8192,
+            "peak": 0.1867143213748932,
+            "leftPeak": 0.1867143213748932,
+            "rightPeak": 0.18180790543556213,
+            "rms": 0.09544410305760184,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0.002417893385115978,
+              0.00265806848599806,
+              0.0020956412571337527,
+              0.0004328102923694314,
+              0.0005407849296062287
+            ],
+            "right": [
+              0.0007571004069222048,
+              0.028413304910771067,
+              0.0008754540163982644,
+              0.0003963238881778834,
+              0.0001342466229656776
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.775938,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.35,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.280286,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "cdda",
+                "volume": 1,
+                "muted": false,
+                "pan": 0
+              }
+            ]
+          },
+          "starterState": {
+            "state": "playing",
+            "frame": 38572,
+            "positionFrames": 38572,
+            "durationFrames": 176400,
+            "phase": 38400,
+            "frames": 176400,
+            "sampleRate": 48000,
+            "sourceRate": 44100,
+            "outputFrames": 42240,
+            "gain": 1,
+            "muted": false,
+            "positionSeconds": 0.8746666666666667,
+            "durationSeconds": 4,
+            "volume": 1,
+            "mute": false,
+            "track": 1,
+            "outputFrame": 682240,
+            "pan": 0,
+            "title": "",
+            "tracks": [
+              {
+                "number": 1,
+                "title": "",
+                "startFrame": 0
+              }
+            ]
+          },
+          "globalStop": {
+            "sampleRate": 48000,
+            "frames": 8192,
+            "peak": 0,
+            "leftPeak": 0,
+            "rightPeak": 0,
+            "rms": 0,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "right": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              }
+            ]
+          },
+          "physicalOutputMuted": true,
+          "idleScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/chromium-worker-idle-desktop.png",
+            "sha256": "a133f094e905a01285e23e540139d94228c473cd4775fbac97e165e16df63332"
+          },
+          "screenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/chromium-worker-four-tabs-cdda.png",
+            "sha256": "6244d7f77839cfc8018f906a428cfee9cc1628d4975af539d4bf16c72e6f8675"
+          },
+          "starterDesktopScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/chromium-worker-starter-desktop.png",
+            "sha256": "889529e140f8f31887d95374d0e0ba5c96e277b9edb0921f9dff09a3c7c4f14d"
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "before": {
+            "contexts": 0,
+            "worklets": 0,
+            "messages": 0
+          },
+          "inspection": {
+            "messages": [
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              },
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              }
+            ],
+            "reads": 5
+          },
+          "systemMix": [
+            {
+              "id": "ym2612",
+              "expected": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "segapsg",
+              "expected": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "rf5c164",
+              "expected": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "cdda",
+              "expected": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            }
+          ],
+          "starter": {
+            "sampleRate": 48000,
+            "frames": 8192,
+            "peak": 0.18602189421653748,
+            "leftPeak": 0.1670403629541397,
+            "rightPeak": 0.18602189421653748,
+            "rms": 0.0829092380365889,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0.0023881397790357184,
+              0.001712332729243206,
+              0.00175905282282047,
+              0.0004156057918975758,
+              0.0005101814285520841
+            ],
+            "right": [
+              0.0013204123606419687,
+              0.028785739237277334,
+              0.0002486030153956997,
+              0.0007637410183340485,
+              0.0004259395262054244
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.775938,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.35,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.280286,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "cdda",
+                "volume": 1,
+                "muted": false,
+                "pan": 0
+              }
+            ]
+          },
+          "starterState": {
+            "state": "playing",
+            "frame": 9408,
+            "positionFrames": 9408,
+            "durationFrames": 176400,
+            "phase": 0,
+            "frames": 176400,
+            "sampleRate": 48000,
+            "sourceRate": 44100,
+            "outputFrames": 11008,
+            "gain": 1,
+            "muted": false,
+            "positionSeconds": 0.21333333333333335,
+            "durationSeconds": 4,
+            "volume": 1,
+            "mute": false,
+            "track": 1,
+            "outputFrame": 620672,
+            "pan": 0,
+            "title": "",
+            "tracks": [
+              {
+                "number": 1,
+                "title": "",
+                "startFrame": 0
+              }
+            ]
+          },
+          "globalStop": {
+            "sampleRate": 48000,
+            "frames": 8192,
+            "peak": 0,
+            "leftPeak": 0,
+            "rightPeak": 0,
+            "rms": 0,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "right": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              }
+            ]
+          },
+          "physicalOutputMuted": true,
+          "idleScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/webkit-main-idle-desktop.png",
+            "sha256": "4520815f82535da41462ad406d07d67dc49236ad4c09a125f2ab2ea84c43d5d7"
+          },
+          "screenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/webkit-main-four-tabs-cdda.png",
+            "sha256": "c2b8039f72ee1549dfb74971e5f4e24d1f5f66cbb255b0cee0349d2f7b70f0a7"
+          },
+          "starterDesktopScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/webkit-main-starter-desktop.png",
+            "sha256": "3dd444e189eb37c6b8b19f89a50851e6aef10f0787c85d21dc8d19b3b879a451"
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "before": {
+            "contexts": 0,
+            "worklets": 0,
+            "messages": 0
+          },
+          "inspection": {
+            "messages": [
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              },
+              {
+                "node": "tetorica-cdda",
+                "type": "state"
+              }
+            ],
+            "reads": 5
+          },
+          "systemMix": [
+            {
+              "id": "ym2612",
+              "expected": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.775938,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "segapsg",
+              "expected": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.35,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "rf5c164",
+              "expected": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 0.280286,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            },
+            {
+              "id": "cdda",
+              "expected": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              },
+              "actual": {
+                "volume": 1,
+                "pan": 0,
+                "muted": false,
+                "solo": false
+              }
+            }
+          ],
+          "starter": {
+            "sampleRate": 48000,
+            "frames": 8192,
+            "peak": 0.19387686252593994,
+            "leftPeak": 0.17760983109474182,
+            "rightPeak": 0.19387686252593994,
+            "rms": 0.0843839614796669,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0.002714748993727684,
+              0.0011057332033603704,
+              0.001746541495002608,
+              0.00021336201694079385,
+              0.00042865391562233184
+            ],
+            "right": [
+              0.0017459540123572156,
+              0.029398908786505955,
+              0.0013710925898640877,
+              0.0007073851285819197,
+              0.00015083924748017895
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.775938,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.35,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.280286,
+                "muted": false,
+                "pan": 0
+              },
+              {
+                "id": "cdda",
+                "volume": 1,
+                "muted": false,
+                "pan": 0
+              }
+            ]
+          },
+          "starterState": {
+            "state": "playing",
+            "frame": 39748,
+            "positionFrames": 39748,
+            "durationFrames": 176400,
+            "phase": 38400,
+            "frames": 176400,
+            "sampleRate": 48000,
+            "sourceRate": 44100,
+            "outputFrames": 43648,
+            "gain": 1,
+            "muted": false,
+            "positionSeconds": 0.9013333333333334,
+            "durationSeconds": 4,
+            "volume": 1,
+            "mute": false,
+            "track": 1,
+            "outputFrame": 693248,
+            "pan": 0,
+            "title": "",
+            "tracks": [
+              {
+                "number": 1,
+                "title": "",
+                "startFrame": 0
+              }
+            ]
+          },
+          "globalStop": {
+            "sampleRate": 48000,
+            "frames": 8192,
+            "peak": 0,
+            "leftPeak": 0,
+            "rightPeak": 0,
+            "rms": 0,
+            "frequencies": [
+              220,
+              330,
+              440,
+              660,
+              880
+            ],
+            "left": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "right": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "strips": [
+              {
+                "id": "ym2612",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "segapsg",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              },
+              {
+                "id": "rf5c164",
+                "volume": 0.25,
+                "muted": true,
+                "pan": 0
+              }
+            ]
+          },
+          "physicalOutputMuted": true,
+          "idleScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/webkit-worker-idle-desktop.png",
+            "sha256": "4520815f82535da41462ad406d07d67dc49236ad4c09a125f2ab2ea84c43d5d7"
+          },
+          "screenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/webkit-worker-four-tabs-cdda.png",
+            "sha256": "882385c87f685b497ff746a3256163ce0d5e709a597ec647ed53bb7fb8ddb284"
+          },
+          "starterDesktopScreenshot": {
+            "path": "/private/tmp/megacd-cdda-visual/webkit-worker-starter-desktop.png",
+            "sha256": "d0d43698c47fbe4a52903a51dc243b284244e793f7077a2de50669dac39d7a29"
+          }
+        }
+      ]
+    },
+    "chromiumFourSecondQuality": {
+      "checker": "scripts/check_playground_megacd_browser.cjs",
+      "checkerSha256": "8241de1ec211a290f33d8e62a9be620d220c496bac9d2dedec06e1aada9176b2",
+      "results": [
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "case": "exact-starter",
+          "sampleRate": 48000,
+          "frames": 192000,
+          "seconds": 4,
+          "analysisWindow": {
+            "startSeconds": 0.5,
+            "endSeconds": 4,
+            "frames": 168000,
+            "excludes": "first 0.5 s of startup and preceding release"
+          },
+          "peak": 0.23239287734031677,
+          "rms": 0.07948364150464642,
+          "dc": -0.0016249590481941148,
+          "clipped": 0,
+          "nonFinite": 0,
+          "maxDerivative": 0.020122947171330452,
+          "jumpsAbovePointOne": 0
+        },
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "case": "fm-only",
+          "sampleRate": 48000,
+          "frames": 192000,
+          "seconds": 4,
+          "analysisWindow": {
+            "startSeconds": 0.5,
+            "endSeconds": 4,
+            "frames": 168000,
+            "excludes": "first 0.5 s of startup and preceding release"
+          },
+          "peak": 0.11041866987943649,
+          "rms": 0.06281471410597084,
+          "dc": -0.0016211938824496992,
+          "clipped": 0,
+          "nonFinite": 0,
+          "maxDerivative": 0.012183230835944414,
+          "jumpsAbovePointOne": 0
+        },
+        {
+          "browser": "chromium",
+          "execution": "main",
+          "case": "pcm-only-gated",
+          "sampleRate": 48000,
+          "frames": 192000,
+          "seconds": 4,
+          "analysisWindow": {
+            "startSeconds": 0.5,
+            "endSeconds": 4,
+            "frames": 168000,
+            "excludes": "first 0.5 s of startup and preceding release"
+          },
+          "peak": 0.03287167847156525,
+          "rms": 0.015973769916900388,
+          "dc": -3.068413280960245e-05,
+          "clipped": 0,
+          "nonFinite": 0,
+          "maxDerivative": 0.002010107971727848,
+          "jumpsAbovePointOne": 0
+        },
+        {
+          "browser": "chromium",
+          "execution": "worker",
+          "case": "exact-starter",
+          "sampleRate": 48000,
+          "frames": 192000,
+          "seconds": 4,
+          "analysisWindow": {
+            "startSeconds": 0.5,
+            "endSeconds": 4,
+            "frames": 168000,
+            "excludes": "first 0.5 s of startup and preceding release"
+          },
+          "peak": 0.23483243584632874,
+          "rms": 0.07646372824635306,
+          "dc": -0.00161484986952334,
+          "clipped": 0,
+          "nonFinite": 0,
+          "maxDerivative": 0.020084775984287262,
+          "jumpsAbovePointOne": 0
+        },
+        {
+          "browser": "chromium",
+          "execution": "worker",
+          "case": "fm-only",
+          "sampleRate": 48000,
+          "frames": 192000,
+          "seconds": 4,
+          "analysisWindow": {
+            "startSeconds": 0.5,
+            "endSeconds": 4,
+            "frames": 168000,
+            "excludes": "first 0.5 s of startup and preceding release"
+          },
+          "peak": 0.11041866987943649,
+          "rms": 0.06271001520352229,
+          "dc": -0.001606308827882458,
+          "clipped": 0,
+          "nonFinite": 0,
+          "maxDerivative": 0.01193459378555417,
+          "jumpsAbovePointOne": 0
+        },
+        {
+          "browser": "chromium",
+          "execution": "worker",
+          "case": "pcm-only-gated",
+          "sampleRate": 48000,
+          "frames": 192000,
+          "seconds": 4,
+          "analysisWindow": {
+            "startSeconds": 0.5,
+            "endSeconds": 4,
+            "frames": 168000,
+            "excludes": "first 0.5 s of startup and preceding release"
+          },
+          "peak": 0.03287167847156525,
+          "rms": 0.01609113624759338,
+          "dc": -2.8527441732529993e-05,
+          "clipped": 0,
+          "nonFinite": 0,
+          "maxDerivative": 0.002010107971727848,
+          "jumpsAbovePointOne": 0
+        }
+      ],
+      "note": "Mechanical captured PCM checks only; no human listening verdict."
+    },
+    "native": {
+      "status": "passed",
+      "physicalAudioDeviceOpened": false,
+      "baseCommit": "764816fc9344b4a2ba35742b4b7fbe23b2ca2a1e",
+      "changeStatus": "uncommitted test-only; not included in baseline CI",
+      "productionRustChanged": false,
+      "testSource": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-fm2612-playground-tauri/src-tauri/src/native_genesis_cdda.rs",
+      "testSourceSha256": "57d3b5e17f321839639b474fe9b06e9cdee781a2623556a3aa874276b48a9b37",
+      "test": "native_genesis::cdda::tests::mega_cd_four_sources_sum_on_one_clock_and_keep_transport_and_global_stop_separate",
+      "rates": {
+        "44100": {
+          "peak": 0.06980935,
+          "isolatedFMPSGRFEnergy": [
+            0.0029522944150032005,
+            0.0022097936601029183,
+            0.04011664547509509
+          ]
+        },
+        "48000": {
+          "peak": 0.06974526,
+          "isolatedFMPSGRFEnergy": [
+            0.0029938801617660884,
+            0.0022151681075940483,
+            0.040183021967190743
+          ]
+        }
+      },
+      "fixtureMasterGain": 0.5,
+      "sumTolerance": 2e-06,
+      "cdDaTransportMuteStopPreservesOtherSources": true,
+      "globalStopCancelsFuturePlayAndEndsExactlySilent": true,
+      "globalStopRFMask": 255,
+      "selectedCargoModule": {
+        "command": "cargo test --locked --manifest-path src-tauri/Cargo.toml native_genesis::cdda::tests:: -- --test-threads=1",
+        "passed": 8,
+        "failed": 0
+      },
+      "existingNativeJavaScript": {
+        "passed": 37,
+        "failed": 0,
+        "files": [
+          "web/cdda_native.test.mjs",
+          "web/native_genesis_rf5c164.test.mjs",
+          "web/native_genesis_borrowed_worker_runtime.test.mjs",
+          "web/native_genesis_nuked_runtime.test.mjs"
+        ]
+      },
+      "artifactRegenerated": true,
+      "artifactRegenerationNote": "Root regenerated and verified the source ZIP after this test-only change."
+    },
+    "screenshotsReviewed": [
+      "chromium-main-starter-desktop.png",
+      "chromium-main-starter-compact.png"
+    ]
+  },
+  "baselineCI": {
+    "scope": "Remote baseline commits only; excludes all new local Mega-CD changes and the added Rust test.",
+    "main": {
+      "repository": "kyorohiro/hello_ymfm_wasm",
+      "head": "524552ea5ad6be9f7b03cba24ca47f8095336ff4",
+      "workflows": [
+        {
+          "conclusion": "success",
+          "event": "push",
+          "head_sha": "524552ea5ad6be9f7b03cba24ca47f8095336ff4",
+          "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596020078",
+          "id": 40596020078,
+          "name": "WASM SDK build and parity",
+          "status": "completed",
+          "jobs": [
+            {
+              "conclusion": "success",
+              "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596020078/job/122512007138",
+              "id": 122512007138,
+              "name": "All 31 fixed SDK WASM builds",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596020078/job/122512007511",
+              "id": 122512007511,
+              "name": "CD-DA and PC Engine CD ADPCM",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "event": "push",
+          "head_sha": "524552ea5ad6be9f7b03cba24ca47f8095336ff4",
+          "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596019934",
+          "id": 40596019934,
+          "name": "VGM parser and player tests",
+          "status": "completed",
+          "jobs": [
+            {
+              "conclusion": "success",
+              "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596019934/job/122512006946",
+              "id": 122512006946,
+              "name": "vgm-mock",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "event": "push",
+          "head_sha": "524552ea5ad6be9f7b03cba24ca47f8095336ff4",
+          "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596020220",
+          "id": 40596020220,
+          "name": "SBI export tests",
+          "status": "completed",
+          "jobs": [
+            {
+              "conclusion": "success",
+              "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596020220/job/122512007439",
+              "id": 122512007439,
+              "name": "sbi",
+              "status": "completed"
+            }
+          ]
+        },
+        {
+          "conclusion": "success",
+          "event": "dynamic",
+          "head_sha": "524552ea5ad6be9f7b03cba24ca47f8095336ff4",
+          "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596019063",
+          "id": 40596019063,
+          "name": "pages build and deployment",
+          "status": "completed",
+          "jobs": [
+            {
+              "conclusion": "success",
+              "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596019063/job/122512010753",
+              "id": 122512010753,
+              "name": "build",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596019063/job/122512268076",
+              "id": 122512268076,
+              "name": "report-build-status",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "html_url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40596019063/job/122512268262",
+              "id": 122512268262,
+              "name": "deploy",
+              "status": "completed"
+            }
+          ]
+        }
+      ]
+    },
+    "tauri": {
+      "run": {
+        "conclusion": "success",
+        "created_at": "2026-10-27T22:44:03Z",
+        "event": "workflow_dispatch",
+        "head_branch": "main",
+        "head_sha": "764816fc9344b4a2ba35742b4b7fbe23b2ca2a1e",
+        "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40597042397",
+        "id": 40597042397,
+        "run_started_at": "2026-10-27T22:44:03Z",
+        "status": "completed",
+        "updated_at": "2026-10-27T23:04:01Z"
+      },
+      "jobs": [
+        {
+          "name": "build (macos-x86_64, macos-15-intel, dmg)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40597042397/job/122515480170"
+        },
+        {
+          "name": "build (linux-arm64, ubuntu-24.04-arm, deb,appimage)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40597042397/job/122515480395"
+        },
+        {
+          "name": "build (windows-x86_64, windows-latest, nsis)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40597042397/job/122515480425"
+        },
+        {
+          "name": "build (linux-x86_64, ubuntu-24.04, deb,appimage)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40597042397/job/122515480445"
+        },
+        {
+          "name": "build (macos-arm64, macos-14, dmg)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40597042397/job/122515480469"
+        }
+      ]
+    }
+  },
+  "distribution": {
+    "playground": {
+      "passed": true,
+      "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_mega-cd-cdda-dev_itch_playground.zip",
+      "bytes": 36785410,
+      "sha256": "3205170c9dbbd67203ce6cc075e7a83f65d45ee6d942b047fc1884bdeeb76125",
+      "fileCount": 1005,
+      "allStageBytesMatch": true,
+      "newEntryCacheVersion": "mega-cd-cdda-1"
+    },
+    "applicationAudioSourceBundles": {
+      "passed": true,
+      "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_playground_mega-cd-cdda-dev",
+      "sdkVersion": "0.1.5",
+      "sourceCommit": "3bb8d9ceffa50ad183d1ab856e031fe649425bca",
+      "results": [
+        {
+          "id": "cdda",
+          "sdkInputs": 6,
+          "bundleFiles": 8,
+          "wasmSha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc",
+          "rebuilt": null
+        },
+        {
+          "id": "msm5205",
+          "sdkInputs": 6,
+          "bundleFiles": 8,
+          "wasmSha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9",
+          "rebuilt": null
+        }
+      ]
+    },
+    "tauriEffectiveFrontendFiles": 1004,
+    "tauriOfflineCheck": {
+      "schemaVersion": 1,
+      "deviceOpened": false,
+      "networkUsed": false,
+      "platform": "darwin",
+      "snapshots": [
+        {
+          "script": "sync_native_cdda.py",
+          "status": "passed",
+          "summary": "Native cdda SDK 0.1.5: verified fixed release (4 C/header/license/provenance files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_dx7.py",
+          "status": "passed",
+          "summary": "Native DX7 snapshot verified (32 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_game_gear.py",
+          "status": "passed",
+          "summary": "Native Game Gear snapshot verified (7 files, 3 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_gameboy.py",
+          "status": "passed",
+          "summary": "Native Game Boy source verified (5 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis.py",
+          "status": "passed",
+          "summary": "Native Genesis snapshot verified (16 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_fx.py",
+          "status": "passed",
+          "summary": "Native FX snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_livefx.py",
+          "status": "passed",
+          "summary": "Native LiveFX snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_noise.py",
+          "status": "passed",
+          "summary": "Native noise snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_huc6280.py",
+          "status": "passed",
+          "summary": "Native HuC6280 verified (6 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_master_system.py",
+          "status": "passed",
+          "summary": "Native Master System snapshot verified (12 files, 9 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_megacd.py",
+          "status": "passed",
+          "summary": "Native RF5C164 snapshot verified (6 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msm5205.py",
+          "status": "passed",
+          "summary": "Native msm5205 SDK 0.1.5: verified fixed release (4 C/header/license/provenance files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msx.py",
+          "status": "passed",
+          "summary": "Native MSX snapshot verified (10 files, 5 shared OPLL sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msx_audio.py",
+          "status": "passed",
+          "summary": "Native MSX Audio snapshot verified (7 files, 6 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_nes.py",
+          "status": "passed",
+          "summary": "Native NES verified (15 pinned reference files, 2 C++ mirrors)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_nuked.py",
+          "status": "passed",
+          "summary": "Native Nuked snapshot verified (9 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_opl.py",
+          "status": "passed",
+          "summary": "Native DOS OPL snapshot verified (11 files, 4 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_pwm.py",
+          "status": "passed",
+          "summary": "Native PWM source verified (3 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_snes.py",
+          "status": "passed",
+          "summary": "Native SNES verified (34 exact source files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_x68000.py",
+          "status": "passed",
+          "summary": "Native X68000 snapshot verified (11 files, 5 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2203.py",
+          "status": "passed",
+          "summary": "Native YM2203 snapshot verified (9 files, 9 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2608.py",
+          "status": "passed",
+          "summary": "Native YM2608 snapshot verified (4 files, 11 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2610b.py",
+          "status": "passed",
+          "summary": "Native YM2610B snapshot verified (3 files, 11 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "import_soundchip_sdk.py",
+          "status": "passed",
+          "summary": "SDK 0.1.5: 431 pinned files verified offline (archive SHA256 e37be75316a35a4159d8760afa9e4b86a9a4b8d4d24f674cc15e3e5e52c44309)",
+          "error": ""
+        }
+      ],
+      "sourceBundle": {
+        "status": "passed",
+        "archive": "native-source-bundle/application-sources.zip",
+        "sha256": "7c62a289ed86115b2805aa8589fa41fceb5b32c0ea853a9180aec26b109bc123",
+        "files": 1996,
+        "applicationVersion": "0.91.1",
+        "frontendArchiveSha256": "3205170c9dbbd67203ce6cc075e7a83f65d45ee6d942b047fc1884bdeeb76125"
+      },
+      "status": "passed",
+      "elapsedSeconds": 1.359
+    }
+  },
+  "limitations": [
+    "No Tauri GUI listening or hardware comparison.",
+    "Browser physical output was muted.",
+    "Consumer commits, push and CI for the new commit are pending."
+  ],
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "npm": false,
+    "sdk": false,
+    "itchIo": false,
+    "desktopApp": false
+  }
+}

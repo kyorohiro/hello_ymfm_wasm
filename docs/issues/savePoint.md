@@ -1,3 +1,14 @@
+## 2026-10-28 — Mega-CD CD-DA／4音源デモ追加完了
+
+- Mega CD modeにCD-DAタブ。YM2612／Sega PSG／RF5C164／CD-DAの4系統を表示する。既存の共通API／read-only panelを再利用し、定期pollingや音声書込は追加しない。Genesis／32X／PC Engineの構成は維持。
+- New Cassetteの初期コードと`examples/mega-cd/megacd-four-sources.js`で4音源を合奏。PCM／4秒stereo WAVはコード内で生成、外部disc／BIOS／ROM不要。fade・無音loop・連続end markerでPCM終端を保護。index.jsにMixer指定なし。既存samplerはbyte一致、編集済みCassetteを保持。
+- UI等56／runtime142／Example等44／全mode型／Native JS37／Rust CD-DA8件が成功。実Native coreの44.1／48 kHzで4音源の和、master1回、CD-DA単独Stopと全体Stopを確認。Rustは`#[cfg(test)]`追加だけでproduction prefix一致。
+- Chromium153／WebKit26.6 × Main／Worker全4構成＋他mode8回帰が成功。実4音源寄与・個別Mute・CD-DA transport・全体Stop後exact zero・再実行・System Mixer値を確認。4秒録音6件でもclip／非有限値／振幅差0.1超jumpなし。物理出力mute、実聴／Tauri GUI／実機比較は未実施。
+- 作業前の本体`524552e`は4workflow成功。Tauri`764816f`のBuild Desktop run40597042397もmacOS Intel／ARM・Windows x64・Linux x64／ARMの5構成成功。今回の未commit変更はこのCIに含まれない。
+- Playground ZIP1005files／SHA256 `3205170c9dbbd67203ce6cc075e7a83f65d45ee6d942b047fc1884bdeeb76125`。`release/hello_ymfm_wasm_mega-cd-cdda-dev_itch_playground.zip`。Tauriへ1004effective files取込済み、source ZIP1996files／SHA256 `7c62a289ed86115b2805aa8589fa41fceb5b32c0ea853a9180aec26b109bc123`。全stage byte／24offline snapshot／固定SDK431files／source ZIPを検証済み。
+- Cacheは`mega-cd-cdda-1`。音声runtime／DSP／Mixer値／固定SDK0.1.5／WASMは変更なし。本体・Tauriは未commit／未push、npm／SDK／itch.io／app公開なし。次は実聴後のconsumer commitと、そのcommitのCI確認。
+- 詳細：[megacd_cdda_01.md](megacd_cdda_01.md)／[JSON](megacd_cdda_01.json)／[Browser](megacd_cdda_01_browser.json)。これより下は各時点の履歴。
+
 ## 2026-10-28 — SDK 0.1.5公開／本体・Tauriの固定SDK移行完了
 
 - SDK集約commit `52062d0`のCIはNative5platform＋WASM5構成が成功。公開metadataを整えた`3bb8d9ceffa50ad183d1ab856e031fe649425bca`をcommit／pushし、`v0.1.5`を作成。タグCIも全10構成＋公開job成功、[SDK 0.1.5](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.5)は公開済み。SDK repoはclean。

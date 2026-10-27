@@ -128,7 +128,7 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(getPlaygroundMode(id).declarationChip, 'mega-cd', `${id} shares primary PCM ownership types`);
   }
   const megaCD = getPlaygroundMode('mega-cd');
-  assert.deepEqual(megaCD.chipTabs, ['operator', 'segapsg', 'rf5c164']);
+  assert.deepEqual(megaCD.chipTabs, ['operator', 'segapsg', 'rf5c164', 'cdda']);
   assert.equal(megaCD.declarationChip, 'mega-cd');
   assert.equal(megaCD.legacyDraftKey, 'mega-cd', 'a fresh Mega-CD mode does not inherit an old Genesis draft');
   assert.equal(createModeSynthOptions(megaCD).megaCD, true);
@@ -137,6 +137,23 @@ test('modes select native chips, clocks and console expansions', () => {
   assert.deepEqual(gameboy.chipTabs, ['gameboy']);
   assert.equal(gameboy.fmChannels, 0);
   assert.match(createModeSynthOptions(gameboy).workletUrl, /playground_gameboy_worklet\.js\?/);
+});
+
+test('Mega-CD adds the shared CD-DA inspector without changing Genesis or 32X hardware', () => {
+  const megaCD = getPlaygroundMode('mega-cd');
+  assert.match(megaCD.details, /CD-DA/);
+  assert.deepEqual(megaCD.chipTabs, ['operator', 'segapsg', 'rf5c164', 'cdda']);
+  const options = createModeSynthOptions(megaCD);
+  assert.equal(options.chip, 'ym2612'); assert.equal(options.megaCD, true); assert.equal(options.mega32X, false);
+  assert.equal(megaCD.pcEngineCd, undefined); assert.equal(options.pcEngineCd, undefined);
+  assert(!megaCD.chipTabs.includes('msm5205')); assert(!megaCD.chipTabs.includes('huc6280'));
+  assert.deepEqual(getPlaygroundMode('genesis').chipTabs, ['operator', 'segapsg']);
+  for (const id of ['genesis-full', 'genesis-full-nuked']) {
+    assert.deepEqual(getPlaygroundMode(id).chipTabs, ['operator', 'segapsg', 'rf5c164', 'pwm']);
+    const full = createModeSynthOptions(getPlaygroundMode(id));
+    assert.equal(full.megaCD, true); assert.equal(full.mega32X, true);
+  }
+  assert.deepEqual(getPlaygroundMode('pc-engine-cd').chipTabs, ['huc6280', 'msm5205', 'cdda']);
 });
 
 test('every visible mode and the legacy Nuked mode have their own starter catalog', () => {

@@ -819,6 +819,9 @@ type PlaygroundCddaAPI = {
   getState():Promise<PlaygroundCddaState>;
   list():Promise<ReadonlyArray<PlaygroundCddaTrack>>;
 };
+/** Shared CD-DA track playback, including Mega CD and PC Engine CD-ROM².
+ * The endpoint is created by audio operations, never by opening its inspector.
+ */
 declare const cdda: PlaygroundCddaAPI;
 type PlaygroundMsm5205Rate = 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15;
 type PlaygroundMsm5205PCM = {channels:ArrayLike<number>[];sampleRate:number};

@@ -32,6 +32,7 @@ mode を切り替えると、ダイアログでコードの扱いを選べる。
 | basic | グローバル fm・psg・dac と、liveLoop・context・FX・MIDI・noise・samples |
 | chip-raw | 音源レジスタを直接操作する例 |
 | genesis | 独立 Sega PSG・Mega CD PCM（RF5C164） |
+| mega-cd | Mega CD の FM・PSG・RF5C164 PCM・CD-DA、8音 PCM とサンプラー |
 | gameboy | Game Boy mode の標準 pulse、独立音源の wave・noise・複数音源の設定 |
 | nes | NES APU の pulse・triangle・noise、FDS 波形と変調、DMC サンプル |
 | snes | SNES mode の BRR サンプル、8ch の演奏とステレオ配置、独立 S-DSP の例 |
@@ -58,6 +59,21 @@ Mega-CD・Game Boy・PC-98・Neo Geo の `*-sampler.js` は、Sample Editor で�
 `/samples/sampler.sample.json` を Keyboard の楽器にします。Mega-CD は8音の RF5C164、
 Game Boy は選択した1周期を32点・4 bitの wave RAM、PC-98 / Neo Geo は1音の ADPCM-B を使います。
 ADPCM-B のループはサンプル全体の繰り返しです。
+
+`Mega CD` mode の初期コードと `mega-cd/megacd-four-sources.js` は、YM2612 FM・Sega PSG・
+RF5C164 PCM・ステレオ CD-DA の4つを同時に鳴らします。伴奏の4秒間の44.1 kHz PCM16 WAVと、
+短い PCM ベースをコード内で生成するので、ゲームディスクや BIOS、外部 ROM は不要です。
+PCM はフェード後の無音部分だけをループし、末尾に32個の `0xff` を置いてピッチ変更時の
+マーカー飛び越しを防ぎます。CD-DA は8拍ごとに先頭から再生します。
+`megacd-pcm-loop.js`・`megacd-sampler.js` と合わせた3例を同梱し、既存のサンプラーは維持しています。
+以前の `megacd-fm-pcm.js` も原本と保存済み Cassette で引き続き使えます。
+
+CD-DA の `cdda.load()`・`play()`・`pause()`・`resume()`・`seek()` は PC Engine CD-ROM² と共通で、
+Web Audio / Native、Main / Worker で同じコードを使います。自分の Virtual File を鳴らすには
+生成 WAV の読み込みを `await cdda.load('/audio/track02.wav')` に置き換えます。
+ファイルは44.1 kHz・ステレオ・非圧縮 PCM16 WAV にしてください。
+音量は Mixer で調整し、初期コードは Mixer の設定を上書きしません。
+CD-DA タブで状態・位置を確認でき、Stop は4つの音源と反復演奏をすべて止めます。
 
 `NES + FDS` mode は `../defaults/nes/index.js` と、`nes-mode-pulse.js`・
 `nes-mode-fds.js`・`nes-mode-rhythm.js` を使います。標準の `nes` は FDS を有効にしています。
@@ -103,7 +119,7 @@ ADPCM はコード内で作るテスト用の符号化済みパターンを使�
 音名やMIDI番号を渡すnoteOnと、Hzを渡すsetFrequencyは別の入口です。
 
 `genesis/mixed-chip-stability.js` は独立した YM2612・RF5C164・DX7 を混ぜる40秒の反復曲です。
-Genesis / Mega CD / 32X の examples から同じソースを開き、Web Audio / Native、Main / Worker を切り替えて比較できます。
+Genesis / 32X の examples から同じソースを開き、Web Audio / Native、Main / Worker を切り替えて比較できます。
 素材はコードで生成する短いベース音と自作の音色だけです。Run 後の Keyboard は `scene-fm` の CH2–6 を演奏し、曲の CH1 と分かれています。
 Mixer の `scene-fm` / `scene-pcm` / `scene-dx7` で各音源を Solo / Mute して確認できます。コード内の音量はこの曲の初期バランスで、共通初期値は変更しません。
 長時間再生・メニュー操作・Keyboard・Stop 後の再 Run を実際に聴いて比較してください。録音や自動検査だけでは、出力機器でのノイズの有無を断定できません。

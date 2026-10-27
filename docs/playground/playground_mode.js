@@ -4,8 +4,8 @@ import {CHIP_CLOCKS} from '../js/playground_chip_clock.js?v=pokey-prepare-1';
 const definitions = [
   {id:'genesis', label:'Genesis', chip:'ym2612'},
   {id:'mega-cd', label:'Mega CD', chip:'ym2612', declarationChip:'mega-cd',
-    megaCD:true, mega32X:false, legacyDraftKey:'mega-cd', chipTabs:['operator', 'segapsg', 'rf5c164'],
-    details:'YM2612 + Sega PSG + RF5C164 · 8 PCM voices · 64 KiB RAM'},
+    megaCD:true, mega32X:false, legacyDraftKey:'mega-cd', chipTabs:['operator', 'segapsg', 'rf5c164', 'cdda'],
+    details:'YM2612 + Sega PSG + RF5C164 · 8 PCM voices · 64 KiB RAM + CD-DA'},
   {id:'genesis-full', label:'32X', chip:'ym2612', declarationChip:'mega-cd', full:true},
   {id:'genesis-full-nuked', label:'32X Nuked', chip:'ym2612', declarationChip:'mega-cd', full:true, engine:'nuked'},
   {id:'pc98-26', label:'PC-98 (YM2203 / OPN)', chip:'ym2203'},

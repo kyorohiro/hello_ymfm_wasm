@@ -13,9 +13,9 @@ import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
   installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=pcengine-cd-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=cdrom2-panels-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=mega-cd-cdda-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-pcm-timeline-1';
-import {reconcileModeProject} from './playground_mode_starters.js?v=wonderswan-pcm-timeline-1';
+import {reconcileModeProject} from './playground_mode_starters.js?v=mega-cd-cdda-1';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
@@ -65,7 +65,7 @@ import {
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=pokey-voice-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=pokey-prepare-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=wonderswan-pcm-timeline-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=mega-cd-cdda-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=pcengine-cd-1";
 import {
   decodeBase64Bytes,
@@ -2049,9 +2049,12 @@ chipTabs = createPlaygroundChipTabs({
   onError: error => setStatus(`Sound chip: ${error.message}`),
 });
 cdrom2AudioPanels=createPlaygroundCdrom2AudioPanels({
-  roots:Object.fromEntries(['msm5205','cdda'].map(kind=>[kind,document.getElementById(`${kind}Panel`)])),
+  // Mega-CD shares the lazy CD-DA source, while CD-ROM² also exposes MSM5205.
+  // Only build the selected mode's read-only panels; opening one never starts audio.
+  roots:Object.fromEntries(['msm5205','cdda'].filter(kind=>selectedMode.chipTabs.includes(kind))
+    .map(kind=>[kind,document.getElementById(`${kind}Panel`)])),
   readState:kind=>runtime.getSystemAudioState(kind),
-  onError:error=>setStatus(`CD-ROM² audio: ${error.message}`),
+  onError:error=>setStatus(`Disc audio: ${error.message}`),
 });
 const pageLifecycle = installPlaygroundPageLifecycle({
   target: window,

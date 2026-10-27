@@ -1,6 +1,6 @@
 // Mega-CD built-ins, examples, input dialog and sampled keyboard in real browsers.
 // Self-hosts docs; --webkit includes WebKit and --webkit-only selects it alone.
-// --quality-only records the exact starter and FM/PCM isolation cases for four
+// --quality-only records the current four-source starter and FM/PCM isolation cases for four
 // seconds each, in Main and Worker, without analyser polling or microphone input.
 // Finite loadSample starters assert smooth PCM/combined output after 0.5 s.
 // --quality-assert-envelope requires that finite starter; --quality-baseline
@@ -231,10 +231,14 @@ async function checkQuality(page,browserName) {
   const finiteSample = /\bpcm\.loadSample\(/.test(starter);
   if (process.argv.includes('--quality-assert-envelope')) assert(finiteSample,'--quality-assert-envelope requires the updated finite loadSample starter');
   const assertEnvelope = finiteSample && !process.argv.includes('--quality-baseline');
+  // The current starter includes PSG/CD-DA as well as FM/PCM. Explicit strips
+  // prevent those siblings leaking into either older FM/PCM isolation case,
+  // and reset persisted mute choices before each Main/Worker starter run.
+  const isolated=(source,enabled)=>`for(const id of ['ym2612','segapsg','rf5c164','cdda'])await mixer.set(id,{muted:!${JSON.stringify(enabled)}.includes(id)});\n`+source;
   const cases = [
-    {name:'exact-starter',source:starter},
-    {name:'fm-only',source:starter.replaceAll('await pcm.keyOn(0);','// PCM keyOn omitted for isolation.')},
-    {name:'pcm-only-gated',source:starter.replaceAll('await play(note, {channel: CH1, beats: 0.8});','await beat(0.8);')},
+    {name:'exact-starter',source:isolated(starter,['ym2612','segapsg','rf5c164','cdda'])},
+    {name:'fm-only',source:isolated(starter.replaceAll('await pcm.keyOn(0);','// PCM keyOn omitted for isolation.'),['ym2612'])},
+    {name:'pcm-only-gated',source:isolated(starter.replaceAll('await play(note, {channel: CH1, beats: 0.8});','await beat(0.8);'),['rf5c164'])},
     ...(!finiteSample ? [{name:'pcm-only-sustained',source:starter.slice(0,starter.indexOf("liveLoop('fm-and-pcm'")) + "await pcm.setPitch(0, stepFor(48));\nawait pcm.keyOn(0);\nliveLoop('quality-hold', async () => {await beat(8);});\n"}] : []),
   ];
   const summaries = [];
@@ -274,6 +278,11 @@ async function checkBrowser(name,type,base) {
   const browser = await type.launch({headless:true,...(name === 'chromium' ? {args:['--autoplay-policy=no-user-gesture-required']} : {})});
   const context = await browser.newContext({serviceWorkers:'block',viewport:{width:1320,height:960}});
   await context.addInitScript(() => {
+    const connect=AudioNode.prototype.connect,gates=new WeakMap();
+    AudioNode.prototype.connect=function(destination,...rest){
+      if(destination===this.context.destination){let gate=gates.get(this.context);if(!gate){gate=this.context.createGain();gate.gain.value=0;gates.set(this.context,gate);connect.call(gate,destination);}return connect.call(this,gate,...rest);}
+      return connect.call(this,destination,...rest);
+    };
     window.__testCapture = {requests:0,stopped:0,defer:false};
     Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async () => {
       window.__testCapture.requests++;

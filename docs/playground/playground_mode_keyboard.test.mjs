@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlaygroundModeKeyboard,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js';
+import {getPlaygroundMode} from './playground_mode.js';
 
 for (const [chip,id] of [['pokey','pokey'],['wonderswan','wonderswan'],['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['msx','ym2413'],['msx-audio','y8950'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(chip => [chip,chip])]) {
   test(`${chip} keyboard borrows only the mode's primary instrument`, async () => {
@@ -27,6 +28,11 @@ test('multi-chip environments expose physical primary IDs before preparation',()
   assert.deepEqual(playgroundPrimaryKeyboardChips({id:'atari-st',chip:'ay8910'}),[{id:'ay8910',kind:'ay8910',label:'YM2149 (primary)'}]);
   assert.deepEqual(ids({chip:'x68000'}),[['ym2151','ym2151'],['okim6258','okim6258']]);
   assert.deepEqual(ids({chip:'ym2612',full:true},{psg:true,pcm:true}),[['ym2612','ym2612'],['segapsg','segapsg'],['rf5c164','rf5c164'],['pwm','pwm']]);
+});
+
+test('Mega-CD CD-DA is an inspector source and never becomes an instrument Keyboard target', () => {
+  assert.deepEqual(playgroundPrimaryKeyboardChips(getPlaygroundMode('mega-cd'), {psg:true,pcm:true})
+    .map(({id})=>id), ['ym2612','segapsg','rf5c164']);
 });
 test('release during an unacknowledged key-on still releases exactly that identity', async () => {
   const calls = [];let acknowledge;

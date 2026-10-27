@@ -1,4 +1,4 @@
-import {isSimplePlaygroundLayout} from './playground_mode.js?v=cdrom2-panels-1';
+import {isSimplePlaygroundLayout} from './playground_mode.js?v=mega-cd-cdda-1';
 
 /** Arrange Files beside an editor and independently selectable bottom tools. */
 export function installPlaygroundWorkbench(root, {storage, search = window.location.search} = {}) {

@@ -17,7 +17,7 @@ const opnbExamples = [
 ];
 const definitions = {
   genesis: null,
-  'mega-cd': ['/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-fm-pcm.js', '/examples/mega-cd/megacd-sampler.js', mixedChipScene, chipComparison, ym2612EngineComparison],
+  'mega-cd': ['/examples/mega-cd/megacd-four-sources.js', '/examples/mega-cd/megacd-pcm-loop.js', '/examples/mega-cd/megacd-sampler.js'],
   'genesis-full': fullExamples,
   'genesis-full-nuked': fullExamples,
   'pc98-26': ['/examples/pc98/pc98-opn-melody.js', '/examples/pc98/pc98-opn-ssg.js'],
@@ -57,6 +57,7 @@ const nativeExamples = new Set(Object.entries(definitions)
   .filter(([id]) => !id.startsWith('genesis') && id !== 'dx7').flatMap(([, examples]) => examples ?? []));
 // Keep the old mode-only example usable in saved cassettes without adding it to Genesis.
 nativeExamples.add('/examples/gameboy/gameboy-mode-noise.js');
+nativeExamples.add('/examples/mega-cd/megacd-fm-pcm.js');
 // Independent chips make this one source usable across the Genesis modes.
 nativeExamples.delete(mixedChipScene);
 nativeExamples.delete(chipComparison);

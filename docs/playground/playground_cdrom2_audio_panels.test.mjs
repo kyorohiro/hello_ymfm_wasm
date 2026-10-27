@@ -44,6 +44,19 @@ test('hardware identities render without initializing or reading audio; only Ref
   await f.panel.refresh();await f.panel.setVisible(null);assert.deepEqual(f.reads,[]);f.panel.dispose();
 });
 
+test('Mega-CD can mount only CD-DA, while modes without disc sources mount no panels', async () => {
+  for (const enabled of [false, true]) {
+    const doc = new Document(), root = doc.createElement('section'), reads = [];
+    const panel = createPlaygroundCdrom2AudioPanels({roots: enabled ? {cdda:root} : {},
+      readState: kind => {reads.push(kind); return null;}});
+    assert.deepEqual(reads, []); assert.equal(root.children.length, enabled ? 1 : 0);
+    await panel.setVisible('msm5205'); await panel.refresh(); assert.deepEqual(reads, []);
+    await panel.setVisible('cdda'); assert.deepEqual(reads, enabled ? ['cdda'] : []);
+    await panel.setVisible('cdda'); await flush(); assert.equal(reads.length, enabled ? 1 : 0);
+    panel.dispose(); assert.equal(root.children.length, 0);
+  }
+});
+
 test('MSM5205 snapshot shows Native-compatible rates, bounded RAM and nibble addresses; same tab does not poll',async()=>{
   const state={state:'playing',mode:'driver',sourceBytes:4000,clock:1536000,rate:12,positionNibbles:120,
     offset:20,length:7800,volume:.35,mute:false};

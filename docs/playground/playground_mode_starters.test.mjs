@@ -174,7 +174,7 @@ test('canonical historical starters are bundled only for supported modes and cur
   assert.deepEqual(Object.keys(history).sort(),['dx7','genesis-full','genesis-full-nuked','master-system','mega-cd','msx','neogeo','pc-engine','pc98','pc98-26','snes']);
   for (const [id, sources] of Object.entries(history)) {
     assert.ok(Object.hasOwn(MODE_DEFAULT_CODES,id),id);
-    assert.equal(sources.length,1,`${id} records its previous starter`);
+    assert.equal(sources.length,id === 'mega-cd' ? 2 : 1,`${id} records its previous starters`);
     assert.notEqual(sources[0],MODE_DEFAULT_CODES[id]);
     assert.equal(bundledDefaults[id][0],MODE_DEFAULT_CODES[id]);
     const result = reconcileModeProject(project([], {modeId:id,files:[]}),{

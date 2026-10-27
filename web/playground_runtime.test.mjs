@@ -113,6 +113,77 @@ function attachPrimaryPcm(megaDrive) {
   return {writes,memory};
 }
 
+test('Mega-CD CD-DA stays lazy through inspection/preparation and uses the shared Run-owned source', async t => {
+  const devices = [], strips = new Map();
+  const createRuntime = await runtimeWithOpnAudio(async context => {
+    const device = {context, calls: [], state: 'empty', frames: 0, position: 0, disposed: false};
+    devices.push(device);
+    return {
+      node: {},
+      async prepare(pcm, track) {
+        assert(!device.disposed); device.calls.push(['prepare', track, pcm.length]);
+        device.frames = pcm.length / 4; device.position = 0; device.state = 'ready';
+      },
+      async command(action, timing) {
+        assert(!device.disposed); device.calls.push([action.type, timing]);
+        if (action.type === 'play') {device.state = 'playing'; device.position = action.sourceFrame;}
+        if (action.type === 'pause') device.state = 'paused';
+        if (action.type === 'resume') device.state = 'playing';
+        if (action.type === 'seek') device.position = action.sourceFrame;
+        if (action.type === 'stop') {device.state = device.frames ? 'ready' : 'empty'; device.position = 0;}
+        return {state: device.state, positionFrames: device.position, durationFrames: device.frames,
+          sampleRate: 48000, sourceRate: 44100};
+      },
+      dispose() {device.disposed = true;},
+    };
+  }, 'createCddaAudio');
+  const {runtime, megaDrive} = setup(t, {chip:'ym2612', fmChannels:6, psg:true, dac:true}, {}, createRuntime);
+  megaDrive.mode = 'mega-cd'; megaDrive.audio = {masterInputNode: {}};
+  megaDrive.mixer = {
+    connect(id, kind, node, destination, context) {
+      assert.equal(id, 'cdda'); assert.equal(kind, 'cdda'); assert.equal(context, megaDrive.audioContext);
+      strips.set(id, {volume:1, pan:0, muted:false}); return () => strips.delete(id);
+    },
+    get: id => strips.get(id), list: () => [...strips].map(([id, settings]) => ({id,...settings})),
+  };
+  assert.equal(await runtime.getSystemAudioState('cdda'), null);
+  assert.equal(await runtime.getSystemAudioState('msm5205'), null);
+  assert.equal(megaDrive.state, 'idle'); assert.equal(devices.length, 0);
+  await runtime.initialize();
+  assert.equal(megaDrive.state, 'ready'); assert.equal(devices.length, 0, 'Preparing FM does not create CD-DA');
+  assert.equal(await runtime.getSystemAudioState('cdda'), null);
+
+  const wav = new Uint8Array(44 + 16 * 4), view = new DataView(wav.buffer);
+  wav.set(new TextEncoder().encode('RIFF')); wav.set(new TextEncoder().encode('WAVEfmt '), 8);
+  view.setUint32(4, wav.length - 8, true); view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); view.setUint16(22, 2, true); view.setUint32(24, 44100, true);
+  view.setUint32(28, 176400, true); view.setUint16(32, 4, true); view.setUint16(34, 16, true);
+  wav.set(new TextEncoder().encode('data'), 36); view.setUint32(40, 16 * 4, true);
+  globalThis.playgroundReview = {wav};
+  const source = `
+    if(cdda!==pg.cdda||typeof fm.setPreset!=='function'||!psg)throw Error('Missing Mega-CD API');
+    if(typeof pce!=='undefined'||typeof adpcm!=='undefined')throw Error('PC Engine globals leaked');
+    await livePrepare('disc-api',api=>{if(api.cdda!==cdda)throw Error('Missing prepared CD-DA API');return true;});
+    context.oldCdda=cdda;
+    await cdda.load(globalThis.playgroundReview.wav);await cdda.play();
+    await cdda.pause({at:1});await cdda.seek(5/44100,{at:1.1});await cdda.resume({at:1.2});
+  `;
+  await runtime.playSource(source);
+  assert.equal(devices.length, 1); assert.deepEqual([...strips.keys()], ['cdda']);
+  assert.equal(devices[0].context, megaDrive.audioContext);
+  assert.deepEqual(devices[0].calls.find(([name]) => name === 'prepare'), ['prepare','1',64]);
+  const state = await runtime.getSystemAudioState('cdda');
+  assert.equal(state.state, 'playing'); assert.equal(state.positionFrames, 5); assert.equal(state.track, 1);
+  assert.equal(await runtime.getSystemAudioState('msm5205'), null, 'Mega-CD never prepares an MSM5205 source');
+  const retired = runtime.context.oldCdda;
+  runtime.stop(); assert.equal(devices[0].disposed, true); assert.equal(strips.size, 0);
+  assert.equal(await runtime.getSystemAudioState('cdda'), null);
+  await assert.rejects(retired.play(), /Run stopped/);
+  await runtime.playSource(source);
+  assert.equal(devices.length, 2); assert.equal(devices[1].disposed, false);
+  assert.equal((await runtime.getSystemAudioState('cdda')).track, 1);
+});
+
 test('Mega CD useSoundChip borrows primary PCM, keeps RAM and tuning across Stop, and accepts decoded PCM',async t=>{
   const {runtime,megaDrive}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true});
   const {writes,memory}=attachPrimaryPcm(megaDrive);
