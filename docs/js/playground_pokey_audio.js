@@ -1,6 +1,6 @@
 import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-mode-1';
-import {validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 
 
 const nativeFetch = globalThis.fetch?.bind(globalThis);
@@ -16,7 +16,7 @@ export async function createPokeyAudio(context, destination, options = {}) {
   // loading assets or allocating a node. The creation clock is fixed.
   if(!Number.isInteger(context?.sampleRate)||context.sampleRate<8000||context.sampleRate>384000)throw new RangeError('Invalid POKEY output sample rate');
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('POKEY requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_pokey_worklet.js?v=pokey-import-1', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_pokey_worklet.js?v=pokey-prepare-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }

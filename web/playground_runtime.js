@@ -451,7 +451,7 @@ export function createPlaygroundRuntime(
   }
   function ownPokeyMain(raw) {
     if(wonderSwanMainOwners.has(raw))return wonderSwanMainOwners.get(raw);
-    const owners=new Map(),previousObserve=raw._observe;let timelineOwner;
+    const owners=new Map(),previousObserve=raw._observe;let timelineOwner,preparationOwner;
     raw._beforeWrite=(address,value)=>{
       const loop=currentLoopContext;if(!releasingWonderSwan&&loop?.stopped)return false;
       if(address>=8||!(address&1))return true;
@@ -460,14 +460,16 @@ export function createPlaygroundRuntime(
       if(on)owners.set(ch,voiceOwner(loop));else owners.delete(ch);return true;
     };
     raw._observe=event=>{
-      if(event.method==='reset'){owners.clear();timelineOwner=undefined;}
+      if(event.method==='reset'){owners.clear();timelineOwner=undefined;preparationOwner=undefined;}
+      if(event.method==='prepareTimeline')preparationOwner=voiceOwner(currentLoopContext);
       if(event.method==='playTimeline'){
         if(currentLoopContext?.stopped)throw new DOMException('POKEY Run stopped','AbortError');
         timelineOwner=voiceOwner(currentLoopContext);
       }
       previousObserve?.(event);
     };
-    const control={clear(){owners.clear();timelineOwner=undefined;},releaseOwner(owner){
+    const control={clear(){owners.clear();timelineOwner=undefined;preparationOwner=undefined;},releaseOwner(owner){
+      if(preparationOwner===owner){preparationOwner=undefined;raw._cancelPreparation?.();}
       if(timelineOwner===owner){timelineOwner=undefined;Promise.resolve(raw._cancelTimeline?.()).catch(()=>{});}
       const before=releasingWonderSwan;releasingWonderSwan=true;
       try{for(const[ch,held]of owners)if(held===owner){owners.delete(ch);raw.keyOff(ch);}}finally{releasingWonderSwan=before;}

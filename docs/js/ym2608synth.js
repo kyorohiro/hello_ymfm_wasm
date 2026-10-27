@@ -24,7 +24,7 @@ export class YM2608DirectTransport extends OPNDirectTransport {
 }
 
 export class YM2608WorkletTransport extends OPNWorkletTransport {
-  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=pokey-mode-1').WorkletSoundChip} endpoint */
+  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=pokey-prepare-1').WorkletSoundChip} endpoint */
   constructor(endpoint) {super(endpoint, {chipName: 'YM2608', portCount: 2});}
 }
 
@@ -290,7 +290,7 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 6,
       portCount: 2,
       processorName: "ym2608-processor",
-      workletUrl: "./ym2608-worklet.js?v=pokey-mode-1",
+      workletUrl: "./ym2608-worklet.js?v=pokey-prepare-1",
       wasmUrl: "../generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),

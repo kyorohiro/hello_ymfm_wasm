@@ -1,13 +1,13 @@
 import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
 import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
-import {validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 
 const nativeFetch=globalThis.fetch?.bind(globalThis),modules=new WeakMap();
 /** Create the audio endpoint; performance commands use its dedicated MessagePort. */
 export async function createWonderSwanAudio(context,destination,options={}){
   options.signal?.throwIfAborted();const clock=validateChipClock(options.clock??WONDERSWAN_CLOCK);
   if(!context?.audioWorklet||context.state==='closed')throw new Error('WonderSwan requires an open AudioContext with AudioWorklet');
-  const workletUrl=String(options.workletUrl??new URL('./playground_wonderswan_worklet.js?v=pokey-mode-1',import.meta.url));
+  const workletUrl=String(options.workletUrl??new URL('./playground_wonderswan_worklet.js?v=pokey-prepare-1',import.meta.url));
   let cache=modules.get(context);if(!cache)modules.set(context,cache=new Map());let module=cache.get(workletUrl);
   if(!module){module=context.audioWorklet.addModule(workletUrl);cache.set(workletUrl,module);module.catch(()=>cache.delete(workletUrl));}
   const wait=promise=>{const signal=options.signal;if(!signal)return promise;signal.throwIfAborted();return new Promise((resolve,reject)=>{const abort=()=>reject(signal.reason);signal.addEventListener('abort',abort,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));});};

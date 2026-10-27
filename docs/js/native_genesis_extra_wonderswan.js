@@ -1,5 +1,5 @@
-import {WONDERSWAN_CLOCK} from './wonderswansynth.js?v=pokey-mode-1';
-import {createNativeGenesisWonderSwan} from './native_genesis_wonderswan.js?v=pokey-mode-1';
+import {WONDERSWAN_CLOCK} from './wonderswansynth.js?v=pokey-prepare-1';
+import {createNativeGenesisWonderSwan} from './native_genesis_wonderswan.js?v=pokey-prepare-1';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
 
 export function createNativeGenesisExtraWonderSwan(synth,options={}) {

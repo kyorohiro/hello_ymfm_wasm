@@ -1,6 +1,6 @@
 /** Register transports: Synth stays on the caller thread, chip runs in AudioWorklet. */
 export class ChipWorkletTransport {
-  /** @param {import("./soundchip_worklet.js?v=pokey-mode-1").WorkletSoundChip | MessagePort} endpoint */
+  /** @param {import("./soundchip_worklet.js?v=pokey-prepare-1").WorkletSoundChip | MessagePort} endpoint */
   constructor(endpoint) {
     this.endpoint = endpoint?.execution === 'worklet' ? endpoint : null;
     this.port = endpoint?.port ?? endpoint;
@@ -43,7 +43,7 @@ function wonderSwanInteger(value, minimum, maximum, label) {
  */
 export class WonderSwanWorkletTransport extends ChipWorkletTransport {
   #pending = new Map(); #failure; #message; #messageError;
-  /** @param {import('./soundchip_worklet.js?v=pokey-mode-1').WorkletSoundChip | MessagePort} endpoint */
+  /** @param {import('./soundchip_worklet.js?v=pokey-prepare-1').WorkletSoundChip | MessagePort} endpoint */
   constructor(endpoint) {
     super(endpoint);
     if (this.endpoint && this.endpoint.name !== 'wonderswan') throw new TypeError('Expected WonderSwan worklet endpoint');
@@ -171,7 +171,7 @@ function pokeyInteger(value, minimum, maximum, label) {
  */
 export class PokeyWorkletTransport extends ChipWorkletTransport {
   #pending = new Map(); #failure; #message; #messageError;
-  /** @param {import('./soundchip_worklet.js?v=pokey-mode-1').WorkletSoundChip | MessagePort} endpoint */
+  /** @param {import('./soundchip_worklet.js?v=pokey-prepare-1').WorkletSoundChip | MessagePort} endpoint */
   constructor(endpoint) {
     super(endpoint);
     if (this.endpoint && this.endpoint.name !== 'pokey') throw new TypeError('Expected Pokey worklet endpoint');

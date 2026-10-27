@@ -1,5 +1,5 @@
 import {noteToHz} from './soundchip_pitch.js';
-import {validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=pokey-mode-1';
 
 const integer=(v,max,label)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`${label} must be 0..${max}`);return v;};

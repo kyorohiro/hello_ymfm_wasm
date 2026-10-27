@@ -4,7 +4,7 @@
  */
 import {WonderSwan, WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
 
-/** @typedef {{moduleFactory?: import('./soundchip.js?v=pokey-mode-1').WasmModuleFactory,
+/** @typedef {{moduleFactory?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory,
  * moduleOptions?: object, clock?: number, outputSampleRate?: number,
  * masterVolume?: number}} WonderSwanAudioEngineOptions */
 export class WonderSwanAudioEngine {

@@ -68,6 +68,7 @@ pokey.js
 pokeysynth.js
 pokeyaudioengine.js
 pokey_timeline.js
+pokey_timeline_upload.js
 pokey_timeline_builder.js
 playground_pokey.js
 playground_pokey_audio.js

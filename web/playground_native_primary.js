@@ -81,7 +81,7 @@ export function createNativeWorkerApis(connections, performance, observe, lifecy
   const raw = new Map(), apis = {};
   for (const connection of connections) {
     const port = performance.port(connection.port, 'independent');
-    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','y8950'].includes(connection.name)?lifecycle:{});
+    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','pokey','y8950'].includes(connection.name)?lifecycle:{});
     raw.set(connection.globalName, client);
     let queued = false;
     const changed = () => {

@@ -43,14 +43,15 @@ checks and ownership rules remain enforced. Native control-side completion
 checks use status snapshots; audio generation and event timing stay in the
 Native callback.
 
-Browser preparation still validates and copies the complete trace on the
-Worklet thread. A local warm Node timing check took about 32–35 ms for an
-8 MiB / 2.8-million-write trace; this is not a Browser deadline guarantee.
-Generated imports prepare while their owned chips are silent, then start only
-after all preparation acknowledgements. Applications preparing a large score
-while other chips are already playing can still interrupt their audio.
-Incremental, bounded Worklet upload/validation is follow-up work; the render
-cursor's per-quantum limit does not bound this preparation cost.
+At the completion of this import step, Browser preparation validated and copied
+the complete trace on the Worklet thread. A local warm Node timing check took
+about 32–35 ms for an 8 MiB / 2.8-million-write trace; this was not a Browser
+deadline guarantee. Generated imports prepared while their owned chips were
+silent, then started after all acknowledgements. Preparing a large score while
+other chips were playing could still interrupt their audio: the render cursor's
+per-quantum limit did not bound preparation cost. The subsequent
+[incremental preparation change](pokey_timeline_prepare_01.md) addresses this
+limitation with bounded upload and validation.
 
 ## Bounds and unsupported input
 

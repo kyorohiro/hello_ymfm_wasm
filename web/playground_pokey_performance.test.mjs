@@ -51,15 +51,33 @@ test('POKEY held manual audition blocks its channel and shared clock modes while
 const runtimeSource=await readFile(new URL('./playground_runtime.js',import.meta.url),'utf8');
 const ownerStart=runtimeSource.indexOf('  function ownPokeyMain(raw) {'),ownerEnd=runtimeSource.indexOf('\n  function wonderSwanExtraApi(',ownerStart);
 assert(ownerStart>=0&&ownerEnd>ownerStart);
-function mainOwnerFixture(){
+function mainOwnerFixture({chunkedTimeline=false}={}){
   const runtime=vm.runInNewContext(`(()=>{const wonderSwanMainOwners=new WeakMap();let releasingWonderSwan=false,currentLoopContext=null,currentRunToken=7;const voiceOwner=context=>context?.keyboard?context.keyboardOwner:context;
     ${runtimeSource.slice(ownerStart,ownerEnd)}
     return {ownPokeyMain,setPokeyTimelineLifecycle,setContext(value){currentLoopContext=value;},getContext(){return currentLoopContext;},nextRun(){currentRunToken++;},isReleasing(){return releasingWonderSwan;}};})()`,{DOMException,Promise});
-  const calls=[],writes=[],observed=[];let pendingPlay;
-  const client=createPokeyRegisterClient((method,args)=>writes.push({method,args}),{request(method,args){calls.push({method,args});if(method==='playTimeline')return new Promise((resolve,reject)=>{pendingPlay={resolve,reject};});if(method==='stopTimeline'){pendingPlay?.reject(new DOMException('POKEY timeline cancelled','AbortError'));pendingPlay=null;}return Promise.resolve({loaded:true});}});
+  const calls=[],writes=[],observed=[];let pendingPlay,holdPreparation=false,finishPreparation;
+  const client=createPokeyRegisterClient((method,args)=>{writes.push({method,args});if(method==='abortTimelineUpload')calls.push({method,args});},{chunkedTimeline,request(method,args){calls.push({method,args});if(method==='beginTimelineUpload'&&holdPreparation)return new Promise(resolve=>{finishPreparation=resolve;});if(method==='playTimeline')return new Promise((resolve,reject)=>{pendingPlay={resolve,reject};});if(method==='stopTimeline'){pendingPlay?.reject(new DOMException('POKEY timeline cancelled','AbortError'));pendingPlay=null;}return Promise.resolve({loaded:true});}});
   client._observe=event=>observed.push(event.method);const control=runtime.ownPokeyMain(client);client.initialize();
-  return {client,control,calls,writes,observed,runtime,async prepare(){await client.prepareTimeline(client.createTimeline().finish(100));},finish(){pendingPlay?.resolve({ended:true});pendingPlay=null;}};
+  return {client,control,calls,writes,observed,runtime,async prepare(){await client.prepareTimeline(client.createTimeline().finish(100));},holdPreparation(){holdPreparation=true;},finishPreparation(){finishPreparation?.({});},finish(){pendingPlay?.resolve({ended:true});pendingPlay=null;}};
 }
+
+test('POKEY Main owner cancellation aborts pending preparation and retains its prior ready score',async()=>{
+ const f=mainOwnerFixture({chunkedTimeline:true}),old={name:'preparing'},other={name:'other'};
+ try{
+  f.runtime.setPokeyTimelineLifecycle(f.client);await f.prepare();
+  const commits=()=>f.calls.filter(call=>call.method==='commitTimelineUpload').length;
+  assert.equal(commits(),1);f.runtime.setContext(old);f.holdPreparation();
+  const pending=f.prepare(),cancelled=assert.rejects(pending,{name:'AbortError'});
+  f.runtime.setContext(other);f.control.releaseOwner(other);
+  assert.equal(f.calls.filter(call=>call.method==='abortTimelineUpload').length,0);
+  old.stopped=true;f.control.releaseOwner(old);await cancelled;
+  assert.equal(f.calls.filter(call=>call.method==='abortTimelineUpload').length,1);
+  f.finishPreparation();await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(commits(),1,'late preparation ACK does not commit');
+  f.runtime.setContext(other);const playing=f.client.playTimeline();f.finish();await playing;
+  assert.equal(f.calls.filter(call=>call.method==='playTimeline').length,1,'previously prepared score remains available');
+ }finally{f.client.dispose();}
+});
 test('POKEY Main timeline cancellation owns one loop and never retires a different owner',async()=>{
   const f=mainOwnerFixture(),old={name:'old'},other={name:'other'};try{await f.prepare();f.runtime.setContext(old);const playing=f.client.playTimeline({startFrame:1024}),cancelled=assert.rejects(playing,error=>error.name==='AbortError');
     assert.equal(f.runtime.ownPokeyMain(f.client),f.control,'adapter installation is idempotent');f.control.releaseOwner(other);assert.equal(f.calls.filter(call=>call.method==='stopTimeline').length,0);

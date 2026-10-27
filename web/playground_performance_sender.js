@@ -3,6 +3,7 @@
  */
 /** Default script lead; UI audition bypasses this transport. In seconds. */
 export const DEFAULT_WORKER_LOOKAHEAD_SECONDS = 0.5;
+const timelineUploadMethods=new Set(['beginTimelineUpload','appendTimelineChunk','commitTimelineUpload','abortTimelineUpload']);
 
 export function validateWorkerLookahead(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0 || seconds > 2) {
@@ -22,7 +23,7 @@ function immediate(command, kind) {
       'sample-writes', 'sample-dac-bank'].includes(command.type);
   }
   if (kind === 'fx') return command.op === 'sample' && command.action === 'load';
-  return ['stopTimeline', 'getTimelineState', 'loadBRR', 'readDsp', 'snapshot', 'loadSysex', 'memory', 'rom', 'loadMemory', 'prepareTimeline', 'getState',
+  return timelineUploadMethods.has(command.method)||['stopTimeline', 'getTimelineState', 'loadBRR', 'readDsp', 'snapshot', 'loadSysex', 'memory', 'rom', 'loadMemory', 'prepareTimeline', 'getState',
     'getPreset', 'read', 'status', 'getIrq'].includes(command.method);
 }
 
@@ -99,6 +100,7 @@ export function createPerformanceSender({getLoop = () => null, restoreLoop = () 
       if (immediate(command, kind)) {
         flush();
         if(leaseUntimed)port.postMessage({nativePerformance:{session:configuration.session,owner},commands:[command]},transfer);
+        else if(timelineUploadMethods.has(command.method))port.postMessage({performance:{session:configuration.session,owner,time},commands:[command]},transfer);
         else port.postMessage(Array.isArray(data) ? [command] : command, transfer);
       }
       else pending.push(command);

@@ -3,15 +3,17 @@ import {PokeyAudioEngine} from './pokeyaudioengine.js?v=pokey-mode-1';
 import factory from '../generated/pokey_wasm.js';
 import {createProcessorPerformance,performanceNoteRelease} from './playground_performance_processor.js?v=pokey-mode-1';
 import {PokeyVoiceInspector} from './playground_pokey_inspector.js?v=pokey-mode-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-mode-1';
-import {preparePokeyTimeline,createPokeyTimelineCursor} from './pokey_timeline.js?v=pokey-import-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {POKEY_TIMELINE_CHUNK_BYTES,POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM,createPokeyTimelineUpload,createPokeyChunkTimelineCursor} from './pokey_timeline_upload.js?v=pokey-prepare-1';
+
+const timelineMethods=new Set(['beginTimelineUpload','appendTimelineChunk','commitTimelineUpload','abortTimelineUpload','prepareTimeline','playTimeline','stopTimeline','getTimelineState']);
 
 class Processor extends AudioWorkletProcessor{
   constructor({processorOptions:{clock=1789790,wasmBinary}}){
     super();this.clock=clock;this.chip=null;this.speaker=null;this.dead=false;
-    this.timelineData=null;this.timelineCursor=null;this.timelineCompletion=null;this.timelineToken=0;this.timelinePositionSamples=0;this.timelineEnded=false;this.timelineCancelled=false;this.renderedFrame=0;this.applyTimelineWrite=this.writeRegister.bind(this);
+    this.timelineData=null;this.timelineCursor=null;this.timelineCompletion=null;this.timelineUpload=null;this.timelineToken=0;this.timelinePositionSamples=0;this.timelineEnded=false;this.timelineCancelled=false;this.renderedFrame=0;this.applyTimelineWrite=this.writeRegister.bind(this);
     this.performance=createProcessorPerformance({validate:data=>{this.validateCommand(data);},chip:'pokey',getPokeyRegisters:()=>this.speaker?.registers,immediate:['stopVoices','readRegister','setChannelMuted'],
-      prepare:(data,port,metadata)=>{if(['prepareTimeline','playTimeline','stopTimeline','getTimelineState','stopVoices','readRegister','setChannelMuted'].includes(data.method)){this.apply(data,port,undefined,metadata);return null;}if(data.id===undefined)return data;const {id,...command}=data;port.postMessage({id,value:true});return command;},
+      prepare:(data,port,metadata)=>{if(timelineMethods.has(data.method)||['stopVoices','readRegister','setChannelMuted'].includes(data.method)){this.apply(data,port,undefined,metadata);return null;}if(data.id===undefined)return data;const {id,...command}=data;port.postMessage({id,value:true});return command;},
       releaseNote:key=>performanceNoteRelease('pokey',key),apply:(data,port,frame,metadata)=>this.apply(data,port,frame,metadata)});
     this.renderSegment=this.renderSegment.bind(this);
     this.port.onmessage=({data})=>{
@@ -34,8 +36,10 @@ class Processor extends AudioWorkletProcessor{
     if(data?.type==='chip-inspector'){receiveChipInspector(data,port,this.inspector?(action,method,args)=>{if(action!=='read'&&this.timelineCursor)throw new Error('Stop the POKEY timeline before editing its voices');const value=action==='read'?this.inspector.read():this.inspector.invoke(method,args);if(action!=='read')this.publishState();return value;}:null);return;}
     const stopping=data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession;
     const replacing=data?.type==='performance-start'&&Number.isSafeInteger(data.session)&&data.session>this.performance.getStats().latestSession;
-    const cancelling=data?.type==='performance-cancel-owner'&&data.session===this.performance.getStats().activeSession&&this.timelineCompletion?.metadata?.session===data.session&&this.timelineCompletion?.metadata?.owner===data.owner;
-    if(stopping||replacing||cancelling)this.cancelTimeline('POKEY performance stopped');
+    const cancelling=data?.type==='performance-cancel-owner'&&data.session===this.performance.getStats().activeSession;
+    if(stopping||replacing)this.cancelTimeline('POKEY performance stopped');
+    if(cancelling){if(this.timelineUpload?.metadata?.session===data.session&&this.timelineUpload.metadata.owner===data.owner)this.cancelTimelineUpload('POKEY performance owner cancelled');if(this.timelineCompletion?.metadata?.session===data.session&&this.timelineCompletion.metadata.owner===data.owner)this.cancelTimeline('POKEY performance stopped');}
+    if(['reset','stopTimeline','stopVoices','allNotesOff','dispose'].includes(data?.method)||data?.type==='clear-scheduled-writes')this.cancelTimelineUpload('POKEY timeline preparation cancelled');
     if(stopping||data?.method==='stopVoices')this.inspector?.invoke('auditionAllOff');
     if(this.performance.receive(data,port)){if(stopping){this.stopVoices();this.performance.clear();}return;}
     this.apply(data,port);
@@ -44,28 +48,58 @@ class Processor extends AudioWorkletProcessor{
   forceKeyOff(channel){if(!Number.isInteger(channel)||channel<0||channel>3)throw new RangeError('POKEY channel must be 0..3');this.writeRegister(channel*2+1,this.speaker.registers[channel*2+1]&240);}
   stopVoices(){if(!this.chip)return;for(let ch=0;ch<4;ch++)this.forceKeyOff(ch);}
   nowFrame(){return Number.isSafeInteger(globalThis.currentFrame)?globalThis.currentFrame:this.renderedFrame;}
-  timelineState(){const position=this.timelineCursor?Math.max(0,Math.min(this.timelineData.durationSamples,Math.floor((this.nowFrame()-this.timelineStartFrame)*44100/sampleRate))):this.timelinePositionSamples;return {loaded:!!this.timelineData,playing:!!this.timelineCursor,ended:this.timelineEnded,cancelled:this.timelineCancelled,positionSamples:position,durationSamples:this.timelineData?.durationSamples??0,token:this.timelineToken,startFrame:this.timelineStartFrame??0,currentFrame:this.nowFrame(),sampleRate};}
+  timelineState(){const position=this.timelineCursor?Math.max(0,Math.min(this.timelineData.durationSamples,Math.floor((this.nowFrame()-this.timelineStartFrame)*44100/sampleRate))):this.timelinePositionSamples,upload=this.timelineUpload;return {loaded:!!this.timelineData,playing:!!this.timelineCursor,preparing:!!upload,bytesReceived:upload?.validation.receivedBytes??0,bytesValidated:upload?.validation.validatedBytes??0,ended:this.timelineEnded,cancelled:this.timelineCancelled,positionSamples:position,durationSamples:this.timelineData?.durationSamples??0,token:this.timelineToken,startFrame:this.timelineStartFrame??0,currentFrame:this.nowFrame(),sampleRate};}
   finishTimeline(message){
     const completion=this.timelineCompletion;this.timelineCompletion=null;
     if(completion?.id!==undefined)completion.port.postMessage(message?{id:completion.id,error:message,name:'AbortError'}:{id:completion.id,value:{...this.timelineState(),state:this.inspector.getState()}});
   }
-  cancelTimeline(message){if(!this.timelineCursor&&!this.timelineCompletion)return;this.timelinePositionSamples=this.timelineState().positionSamples;this.timelineCursor=null;this.timelineCancelled=true;this.timelineEnded=false;this.stopVoices();this.finishTimeline(message);}
+  cancelTimelineUpload(message){const upload=this.timelineUpload;if(!upload)return;this.timelineUpload=null;const pending=upload.pending;upload.pending=null;if(pending?.id!==undefined)pending.port.postMessage({id:pending.id,error:message,name:'AbortError'});}
+  cancelTimeline(message){this.cancelTimelineUpload(message);if(!this.timelineCursor&&!this.timelineCompletion)return;this.timelinePositionSamples=this.timelineState().positionSamples;this.timelineCursor=null;this.timelineCancelled=true;this.timelineEnded=false;this.stopVoices();this.finishTimeline(message);}
+  assertTimelineAdmission(){if(this.timelineCursor)throw new Error('POKEY timeline is busy');if(this.inspector.auditions.size)throw new Error('POKEY is held by a manual audition');}
+  uploadIdentity(data,port,metadata){const upload=this.timelineUpload,id=data.args?.[0]?.uploadId;if(!upload||upload.uploadId!==id||upload.port!==port||upload.metadata?.session!==metadata?.session||upload.metadata?.owner!==metadata?.owner)throw new Error('POKEY timeline upload identity does not match');return upload;}
+  beginTimelineUpload(header,port,metadata,legacy=false){
+    this.assertTimelineAdmission();if(this.timelineUpload)throw new Error('POKEY timeline preparation is busy');
+    if(!legacy&&(!Number.isSafeInteger(header?.uploadId)||header.uploadId<1))throw new TypeError('POKEY timeline upload ID must be a positive safe integer');
+    const validation=createPokeyTimelineUpload(header,{sampleRate});if(header.clock!==this.clock)throw new Error('POKEY timeline clock must match its instance');
+    return this.timelineUpload={uploadId:header.uploadId,port,metadata:metadata?{session:metadata.session,owner:metadata.owner}:undefined,validation,pending:null,legacy};
+  }
+  commitTimelineUpload(upload){this.assertTimelineAdmission();const prepared=upload.validation.finish();this.timelineUpload=null;this.timelineData=prepared;this.timelinePositionSamples=0;this.timelineEnded=false;this.timelineCancelled=false;this.timelineStartFrame=0;return this.timelineState();}
+  advanceTimelineUpload(){
+    const upload=this.timelineUpload;if(!upload?.pending)return;
+    try{
+      const progress=upload.validation.step(POKEY_TIMELINE_VALIDATE_WRITES_PER_QUANTUM);if(!progress.chunkDone)return;
+      const pending=upload.pending;
+      const value=upload.legacy?this.commitTimelineUpload(upload):{uploadId:upload.uploadId,...progress};
+      upload.pending=null;
+      if(pending.id!==undefined)pending.port.postMessage({id:pending.id,value});
+    }catch(error){const pending=upload.pending;upload.pending=null;if(this.timelineUpload===upload)this.timelineUpload=null;if(pending?.id!==undefined)pending.port.postMessage({id:pending.id,error:error.message,name:error.name});}
+  }
   validateCommand(data){
     if((data.method==='clock'||data.type==='chip-clock')&&(data.clock??data.args?.[0])!==this.clock)throw new Error('Create a new POKEY instance to change its clock');
-    if(this.timelineCursor&&!['stopTimeline','getTimelineState','readRegister','setChannelMuted','stopVoices','reset','allNotesOff','dispose'].includes(data.method)&&data.type!=='clear-scheduled-writes')throw new Error('Stop/reset the POKEY timeline before editing its voices');
+    if(this.timelineCursor&&!timelineMethods.has(data.method)&&!['readRegister','setChannelMuted','stopVoices','reset','allNotesOff','dispose'].includes(data.method)&&data.type!=='clear-scheduled-writes')throw new Error('Stop/reset the POKEY timeline before editing its voices');
   }
   apply(data,port=this.port,frame,metadata){
     try{
       if(data.method==='dispose'){this.dispose();return;}if(!this.chip)throw new Error('POKEY not ready');let value=true;
-      if(data.method==='prepareTimeline'){
-        if(this.timelineCursor)throw new Error('POKEY timeline is busy');if(this.inspector.auditions.size)throw new Error('POKEY is held by a manual audition');
-        const prepared=preparePokeyTimeline(data.args[0],{sampleRate});if(prepared.clock!==this.clock)throw new Error('POKEY timeline clock must match its instance');
-        this.timelineData=prepared;this.timelinePositionSamples=0;this.timelineEnded=false;this.timelineCancelled=false;this.timelineStartFrame=0;value=this.timelineState();
+      if(data.method==='beginTimelineUpload'){
+        const upload=this.beginTimelineUpload(data.args?.[0],port,metadata);value={uploadId:upload.uploadId};
+      }else if(data.method==='appendTimelineChunk'){
+        const upload=this.uploadIdentity(data,port,metadata),chunk=data.args[0];
+        if(upload.pending)throw new Error('POKEY timeline chunk validation is busy');if(chunk.offset!==upload.validation.receivedBytes)throw new Error('POKEY timeline chunk offset does not match');
+        try{upload.validation.append(chunk.data);}catch(error){this.timelineUpload=null;throw error;}upload.pending={id:data.id,port};return;
+      }else if(data.method==='commitTimelineUpload'){
+        const upload=this.uploadIdentity(data,port,metadata);if(upload.pending)throw new Error('POKEY timeline chunk validation is busy');value=this.commitTimelineUpload(upload);
+      }else if(data.method==='abortTimelineUpload'){
+        const upload=this.uploadIdentity(data,port,metadata);this.cancelTimelineUpload('POKEY timeline preparation aborted');value={uploadId:upload.uploadId};
+      }else if(data.method==='prepareTimeline'){
+        const trace=data.args?.[0];if(trace?.data?.byteLength>POKEY_TIMELINE_CHUNK_BYTES)throw new RangeError('POKEY bulk timeline preparation exceeds the 16 KiB limit; use a chunk upload');
+        const upload=this.beginTimelineUpload({version:trace?.version,clock:trace?.clock,durationSamples:trace?.durationSamples,byteLength:trace?.data?.byteLength},port,metadata,true);
+        try{if(!(trace.data instanceof Uint8Array))throw new TypeError('POKEY timeline: expected Uint8Array data');if(trace.data.byteLength)upload.validation.append(trace.data);upload.pending={id:data.id,port};return;}catch(error){this.timelineUpload=null;throw error;}
       }else if(data.method==='getTimelineState')value=this.timelineState();
       else if(data.method==='playTimeline'){
-        if(this.timelineCursor)throw new Error('POKEY timeline is busy');if(!this.timelineData)throw new Error('Prepare a POKEY timeline before playback');if(this.inspector.auditions.size)throw new Error('POKEY is held by a manual audition');
+        this.assertTimelineAdmission();if(this.timelineUpload)throw new Error('POKEY timeline preparation is incomplete');if(!this.timelineData)throw new Error('Prepare a POKEY timeline before playback');
         const options=data.args?.[0]??{};if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(key=>key!=='startFrame'))throw new TypeError('Invalid POKEY timeline playback options');
-        const now=this.nowFrame(),startFrame=options.startFrame??(metadata?Math.round(metadata.time*sampleRate):now),cursor=createPokeyTimelineCursor(this.timelineData,sampleRate);
+        const now=this.nowFrame(),startFrame=options.startFrame??(metadata?Math.round(metadata.time*sampleRate):now),cursor=createPokeyChunkTimelineCursor(this.timelineData,sampleRate);
         if(!Number.isSafeInteger(startFrame)||startFrame<now||!Number.isSafeInteger(startFrame+cursor.durationFrames))throw new RangeError('POKEY timeline start frame is invalid or late');
         this.performance.clear();this.stopVoices();this.timelineCursor=cursor;this.timelineStarted=false;this.timelineStartFrame=startFrame;this.timelineEndFrame=startFrame+cursor.durationFrames;this.timelinePositionSamples=0;this.timelineEnded=false;this.timelineCancelled=false;this.timelineToken++;this.timelineCompletion={id:data.id,port,metadata};return;
       }else if(data.method==='stopTimeline'){this.cancelTimeline('POKEY timeline stopped');value=this.timelineState();}
@@ -89,7 +123,7 @@ class Processor extends AudioWorkletProcessor{
       if(data.id!==undefined)port.postMessage({type:data.type==='chip-clock'?'chip-clock-result':undefined,id:data.id,value});
     }catch(error){if(data.id!==undefined)port.postMessage({type:data.type==='chip-clock'?'chip-clock-result':undefined,id:data.id,error:error.message,name:error.name});}
   }
-  process(inputs,outputs){if(this.dead)return false;const [left,right]=outputs[0];this.performance.render(left,right,this.renderSegment);return true;}
+  process(inputs,outputs){if(this.dead)return false;const [left,right]=outputs[0];this.advanceTimelineUpload();this.performance.render(left,right,this.renderSegment);return true;}
   renderSegment(left,right,frame=this.renderedFrame){
     if(!this.speaker){left.fill(0);right.fill(0);return;}let offset=0;
     while(offset<left.length){

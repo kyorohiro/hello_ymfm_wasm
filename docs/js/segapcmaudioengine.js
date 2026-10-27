@@ -15,7 +15,7 @@ import {SegaPSG} from './segapsg.js?v=audio-numeric-bindings-1';
 export class SegaPcmAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js?v=pokey-mode-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=pokey-mode-1').WasmModuleOptions, clock?: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: import('./soundchip.js?v=pokey-mode-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleOptions, clock?: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<SegaPcmAudioEngine>} Initialized engine owned by the caller.

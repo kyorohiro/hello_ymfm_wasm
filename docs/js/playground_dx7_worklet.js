@@ -2,7 +2,7 @@ import {createDX7, createInitVoice, createVoiceSysex,parseSysex} from './msfa_dx
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
 import {createProcessorPerformance} from './playground_performance_processor.js?v=pokey-mode-1';
 import {Dx7VoiceInspector} from './playground_dx7_inspector.js?v=pokey-mode-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-mode-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 
 const errorMessage = error => String(error?.message ?? error);
 

@@ -1,6 +1,6 @@
 import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=pokey-mode-1';
-import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-mode-1';
-import {validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {PsgInspectorState, receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';
 import {createOpnAuditionGuard, receiveOpnAuditionCommand, createPsgAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {YM2612DacPlayer, receiveDacCommand} from "./ym2612_dac.js";

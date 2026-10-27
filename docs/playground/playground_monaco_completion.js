@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=pokey-mode-1";
+} from "../js/megasynth.js?v=pokey-prepare-1";
 
 const SCALE_NAMES = [
   "major",

@@ -132,6 +132,22 @@ test('resource preparations bypass the lead while sample starts remain scheduled
  assert.equal(raw.messages[1].data.performance.time,10.15);assert.equal(other.messages[1].data.performance.time,10.15);
 });
 
+test('incremental POKEY preparation retains one owner and transfers each chunk once',()=>{
+ const f=fixture(),port=f.sender.port(f.port,'independent');f.setLoop({performanceOwner:'preparing'});
+ const methods=['beginTimelineUpload','appendTimelineChunk','commitTimelineUpload','abortTimelineUpload'];
+ for(let i=0;i<methods.length;i++){
+  const data=Uint8Array.of(0,1,168),command={method:methods[i],id:`upload:${i}`,args:[{uploadId:7,...(i===1?{offset:0,data}:{})}]};
+  port.postMessage(command,i===1?[data.buffer]:undefined);
+  if(i===1)assert.equal(data.byteLength,0,'the caller relinquishes exactly the chunk buffer');
+  assert.deepEqual(f.sent.at(-1).performance,{session:1,owner:'preparing',time:3.15});
+  assert.equal(f.sent.at(-1).commands.length,1);assert.equal(f.sent.at(-1).commands[0].method,methods[i]);
+ }
+ assert.deepEqual([...f.sent[1].commands[0].args[0].data],[0,1,168]);
+ f.sender.cancelOwner('preparing');const before=f.sent.length;
+ assert.throws(()=>port.postMessage({method:'commitTimelineUpload',id:'late',args:[{uploadId:7}]}),{name:'AbortError'});
+ assert.equal(f.sent.length,before,'late preparation cannot commit after owner cancellation');
+});
+
 test('zero lead and rejected clock configurations do not mutate the active anchor',()=>{
  const f=rpcFixture();f.sender.configure({session:2,audioSeconds:10,performanceEpochMs:100000,lookaheadSeconds:0});
  assert.equal(f.sender.timestamp().time,10);

@@ -1,4 +1,4 @@
-import {validateWorkerLookahead} from './playground_performance_sender.js?v=y8950-adpcm-ui-1';
+import {validateWorkerLookahead} from './playground_performance_sender.js?v=pokey-prepare-1';
 
 // One module-wide sequence also fences a retired Runtime sharing the same node.
 let nextSession = Date.now() * 1000;

@@ -46,7 +46,7 @@ export class ChipClockResampler {
  * @template T
  * @param {T} client @param {MessagePort} port @param {number} initialClock
  * @param {{primary?:boolean, batch?:boolean, onApplied?:(hz:number)=>void}} [options]
- * @returns {T & {readonly clock:number, setClock(hz:number):Promise<void>, _requestControl(method:string,args?:any[]):Promise<any>}}
+ * @returns {T & {readonly clock:number, setClock(hz:number):Promise<void>, _requestControl(method:string,args?:any[],transfer?:Transferable[]):Promise<any>}}
  */
 export function attachChipClock(client, port, initialClock, {primary = false, batch = false, onApplied = () => {}} = {}) {
   let clock = initialClock, sequence = 0, disposed = false;
@@ -75,11 +75,11 @@ export function attachChipClock(client, port, initialClock, {primary = false, ba
       catch (error) { pending.delete(id); throw error; }
     } catch (error) { reject(error); }
   });
-  Object.defineProperty(client,'_requestControl',{value:(method,args=[])=>new Promise((resolve,reject)=>{
+  Object.defineProperty(client,'_requestControl',{value:(method,args=[],transfer)=>new Promise((resolve,reject)=>{
     try{
       if(disposed)throw new Error('Chip disposed');
       const id=`chip-control:${++sequence}`;pending.set(id,{resolve,reject});
-      try{port.postMessage({method,args,id});}catch(error){pending.delete(id);throw error;}
+      try{port.postMessage({method,args,id},transfer);}catch(error){pending.delete(id);throw error;}
     }catch(error){reject(error);}
   })});
   Object.defineProperty(client, '_cancelClockRequests', {value: reason => {

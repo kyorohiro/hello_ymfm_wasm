@@ -1,4 +1,4 @@
-import {validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 
 export const POKEY_TIMELINE_MAX_BYTES=8*1024*1024;
 export const POKEY_TIMELINE_MAX_WRITES_PER_QUANTUM=512;

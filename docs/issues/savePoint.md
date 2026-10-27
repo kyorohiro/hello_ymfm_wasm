@@ -7,6 +7,35 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### POKEY timeline準備の分割 — 2026-10-27
+
+ユーザーの「すすめて」で、演奏中の大trace prepareによるWorklet集中負荷を軽減。
+Browser clientは呼出側でsnapshot後、最大16KiBのowned chunkをtransferし、検証ACKごとに次を送る。
+Workletはprocess1回あたり最大1024writes/16KiBを検証。render分割の回数では増やさない。
+chunk列を保持したままO(1)commitし、playback cursorも連結copy/イベントごとのtyped view生成なし。
+準備中は既存の通常voice/commit済scoreを保ち、Stop/reset/allNotesOff/dispose/owner/session/port置換でstageを取り消す。
+別loopへの準備置換では元ownerのidentityでACKなしabortを送り、古い遅延ACKからの再開を防ぐ。
+Nativeは従来のcontrol側prepare RPCを継続。SDK/core/生成WASM/Mixer値・Rust/DSP変更なし。
+cacheは`pokey-prepare-1`。4SDK checkerの既知cache keyも追加し、実Web/docs21組の正規化を確認。
+
+全Web/Playground4531件、helper/Worklet/timeline26件、mode型が成功（重複あり）。
+package305module/28pair/352declaration、隔離consumer/実WASM28種/型3構成が成功。
+local tgz880file全byteがstageと一致。version0.2.30据置の未公開候補。公開npm0.2.30にPOKEYは未収録。
+tgzは`/private/tmp/pokey-prepare-package/tetorica-fm2612-0.2.30.tgz`、SHA256
+`c795d9e4689bb1dbeb79bd0ba6da483eed12f37f4c5422abaeec6d33c4ba2bb5`。
+docsのChromium/WebKit×44.1/48kHz×Main/Worker全8routeで、別POKEYの演奏中にprepare/取消を確認。
+最大8MiBの4routeは512chunk/同時pending ACK最大1、約8.2秒でprepare完了。
+300KiBは約0.325–0.356秒。全1762432framesが独立WASM基準と差0、stereo/非有限値/欠けたcapture quantumも0。
+stage取消48caseと取消後の短いscore再生も成功。物理sinkは測定後mute、実聴/OS出力deadline保証は含まない。
+ZIPは`release/hello_ymfm_wasm_pokey-prepare-dev_itch_playground.zip`、958file全byteがstageと一致。
+ZIP SHA256 `34404c07c2ba398a3f8485dc8850dc7305db3d9c4e2af0df8611b8af367bc834`。
+Tauriへ957effective payload取込済み。source ZIP1918file/22pins・Python24/Node31件が成功。
+source ZIP SHA256 `bd07482e8c7ffba7faf037260792eed91185a6891c1aba9f0c026fa3fe84be82`。今回はCargo再実行なし。
+追加のflat Browser/取り込みUI再試験は、実行要求がsession/outputを返さず起動待ちとなったため中止。拒否の通知はなくrunnerも残っていない。
+完了済docs Browserが実際に読んだ25runtime assetは全て最終ZIPとSHA256一致。flatでの追加capture成功とは扱わない。
+詳細・配布検証は[pokey_timeline_prepare_01.md](pokey_timeline_prepare_01.md)と同名JSON。
+commit/push/tag/remoteCI/npm/itch.io公開操作なし。
+
 ### Playground POKEY VGM import完了 — 2026-10-27
 
 ユーザーの「進めて」で単体/dual POKEY-only VGM/VGZの取り込みを実装。

@@ -1,0 +1,4635 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "scope": "Bounded Browser POKEY timeline preparation with backpressure, atomic commit, cancellation and unchanged Native control-side preparation.",
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "remoteCi": false,
+    "npm": false,
+    "itchIo": false
+  },
+  "unchanged": [
+    "SDK sources",
+    "POKEY core",
+    "generated WASM binaries",
+    "Mixer values",
+    "Native Rust/DSP"
+  ],
+  "bounds": {
+    "chunkBytes": 16384,
+    "validationWritesPerProcess": 1024,
+    "validationBytesPerProcess": 16384,
+    "pendingAppendAcksPerUpload": 1,
+    "maximumTraceBytes": 8388608,
+    "sameSampleWrites": 512,
+    "rollingWritesPer128OutputFrames": 512
+  },
+  "tests": {
+    "webAndPlayground": {
+      "passed": 4531,
+      "failed": 0,
+      "command": "node --test --test-concurrency=4 web/*.test.mjs docs/playground/*.test.mjs"
+    },
+    "focusedHelperWorkletTimeline": 26,
+    "focusedClient": 16,
+    "modeTypes": true,
+    "sdkCheckerActualWrapperNormalizationPairs": 21,
+    "cargoRun": false,
+    "cargoReason": "No Rust/DSP or native compiler input changed."
+  },
+  "browser": {
+    "report": {
+      "path": "/private/tmp/pokey-prepare-browser-docs.json",
+      "sha256": "0c0bdb0f765ea09203def138f8ed147fae5ca1859e46308f7f4ea410dd66a7fc",
+      "bytes": 123618
+    },
+    "completed": {
+      "schemaVersion": 1,
+      "passed": true,
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs",
+      "results": [
+        {
+          "browser": "chromium",
+          "traceBytes": 307200,
+          "execution": "main",
+          "sampleRate": 44100,
+          "toneStartFrame": 7424,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 11904,
+            "sampleRate": 44100
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 43904,
+            "sampleRate": 44100
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 27648,
+            "sampleRate": 44100
+          },
+          "prepareDurationMs": 356.19999998807907,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 19,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 19,
+            "chunkBytes": 307200,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 19,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 19
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 27648,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 27904,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 27904,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 27904,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 27904,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 43776,
+                  "sampleRate": 44100
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 43776,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 43776,
+                "sampleRate": 44100
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 43776,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 43904,
+                "sampleRate": 44100
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 11648,
+            "index": 32256,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 32255,
+            "peak": 0.0942460149526596,
+            "last": 0.09060054272413254,
+            "quanta": 252,
+            "endFrame": 43904,
+            "stopMessageFrame": 43904
+          },
+          "score": {
+            "startFrame": 49792,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 49792,
+              "currentFrame": 57856,
+              "sampleRate": 44100,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 44416,
+              "index": 13696,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 13695,
+              "peak": 0.09412066638469696,
+              "last": 0.08867184072732925,
+              "quanta": 107,
+              "endFrame": 58112,
+              "stopMessageFrame": 58112
+            },
+            "independentPcm": {
+              "framesCompared": 8192,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "c66dd1a94e0f3662d48af6c0d51555cbd68d24c00b98c91f9bd2d89d92aefdb1"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 32256,
+            "offsetFrames": 4224,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "0602618169fbb8d787717162d82777b387554ee2acbc212988f60e719f849407"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        },
+        {
+          "browser": "chromium",
+          "traceBytes": 307200,
+          "execution": "worker",
+          "sampleRate": 44100,
+          "toneStartFrame": 7680,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 12160,
+            "sampleRate": 44100
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 44416,
+            "sampleRate": 44100
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 27904,
+            "sampleRate": 44100
+          },
+          "prepareDurationMs": 355.30000001192093,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 19,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 19,
+            "chunkBytes": 307200,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 19,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 19
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 27904,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 27904,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28416,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 44160,
+                  "sampleRate": 44100
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 44160,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 44160,
+                "sampleRate": 44100
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 6144,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 44416,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 44416,
+                "sampleRate": 44100
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 11904,
+            "index": 32512,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 32511,
+            "peak": 0.0942460149526596,
+            "last": -0.09050609916448593,
+            "quanta": 254,
+            "endFrame": 44416,
+            "stopMessageFrame": 44416
+          },
+          "score": {
+            "startFrame": 50304,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 50304,
+              "currentFrame": 58368,
+              "sampleRate": 44100,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 44928,
+              "index": 13696,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 13695,
+              "peak": 0.09412066638469696,
+              "last": -0.08857941627502441,
+              "quanta": 107,
+              "endFrame": 58624,
+              "stopMessageFrame": 58624
+            },
+            "independentPcm": {
+              "framesCompared": 8192,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "c66dd1a94e0f3662d48af6c0d51555cbd68d24c00b98c91f9bd2d89d92aefdb1"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 32512,
+            "offsetFrames": 4224,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "12b582a44d7dcf876d3e5d11b3a8c630027fbbcdfcc500c71c61100fd53c116a"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        },
+        {
+          "browser": "chromium",
+          "traceBytes": 8388608,
+          "execution": "main",
+          "sampleRate": 48000,
+          "toneStartFrame": 7808,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 12288,
+            "sampleRate": 48000
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 420864,
+            "sampleRate": 48000
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 89494880,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 406016,
+            "sampleRate": 48000
+          },
+          "prepareDurationMs": 8202.399999976158,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 512,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 512,
+            "chunkBytes": 8388608,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 512,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 512
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406016,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406016,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 6144,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 420608,
+                  "sampleRate": 48000
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420608,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420608,
+                "sampleRate": 48000
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 6144,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420864,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420864,
+                "sampleRate": 48000
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 12032,
+            "index": 408832,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 408831,
+            "peak": 0.09436852484941483,
+            "last": -0.0923958271741867,
+            "quanta": 3194,
+            "endFrame": 420864,
+            "stopMessageFrame": 420864
+          },
+          "score": {
+            "startFrame": 429440,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 429440,
+              "currentFrame": 438272,
+              "sampleRate": 48000,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 423680,
+              "index": 14848,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 14847,
+              "peak": 0.09412158280611038,
+              "last": -0.09322104603052139,
+              "quanta": 116,
+              "endFrame": 438528,
+              "stopMessageFrame": 438528
+            },
+            "independentPcm": {
+              "framesCompared": 8917,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "de09a7ae1c199306ad94607efc0121fb1f6c01277d6fd5a1de6a7849d4baa8ec"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 408832,
+            "offsetFrames": 4224,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "5de972ee687cf5f29f66d056af4f726d6948b7d4e5ba9ff3213c0e79f593cf76"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        },
+        {
+          "browser": "chromium",
+          "traceBytes": 8388608,
+          "execution": "worker",
+          "sampleRate": 48000,
+          "toneStartFrame": 7808,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 12544,
+            "sampleRate": 48000
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 420864,
+            "sampleRate": 48000
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 89494880,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 406016,
+            "sampleRate": 48000
+          },
+          "prepareDurationMs": 8196.899999976158,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 512,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 512,
+            "chunkBytes": 8388608,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 512,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 512
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406016,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406016,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 6144,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406272,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 420608,
+                  "sampleRate": 48000
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420608,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420864,
+                "sampleRate": 48000
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420864,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420864,
+                "sampleRate": 48000
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 12288,
+            "index": 408576,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 408575,
+            "peak": 0.09429647028446198,
+            "last": -0.0923958271741867,
+            "quanta": 3192,
+            "endFrame": 420864,
+            "stopMessageFrame": 420864
+          },
+          "score": {
+            "startFrame": 429696,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 429696,
+              "currentFrame": 438528,
+              "sampleRate": 48000,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 423936,
+              "index": 14848,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 14847,
+              "peak": 0.09412158280611038,
+              "last": -0.08919510245323181,
+              "quanta": 116,
+              "endFrame": 438784,
+              "stopMessageFrame": 438784
+            },
+            "independentPcm": {
+              "framesCompared": 8917,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "de09a7ae1c199306ad94607efc0121fb1f6c01277d6fd5a1de6a7849d4baa8ec"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 408576,
+            "offsetFrames": 4480,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "2954071a2b9bc81ea3606a349824acd2c7c84c7123ff1ee8808241b0adc771bf"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        },
+        {
+          "browser": "webkit",
+          "traceBytes": 307200,
+          "execution": "main",
+          "sampleRate": 44100,
+          "toneStartFrame": 7680,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 12288,
+            "sampleRate": 44100
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 43264,
+            "sampleRate": 44100
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 27904,
+            "sampleRate": 44100
+          },
+          "prepareDurationMs": 355,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 19,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 19,
+            "chunkBytes": 307200,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 19,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 19
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 3072,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28032,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28032,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28160,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28288,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28288,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 28416,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 42752,
+                  "sampleRate": 44100
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 42752,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 43008,
+                "sampleRate": 44100
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 43136,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 43264,
+                "sampleRate": 44100
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 12160,
+            "index": 31104,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 31103,
+            "peak": 0.09422575682401657,
+            "last": 0.08768416196107864,
+            "quanta": 243,
+            "endFrame": 43264,
+            "stopMessageFrame": 43264
+          },
+          "score": {
+            "startFrame": 49152,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 49152,
+              "currentFrame": 57216,
+              "sampleRate": 44100,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 43776,
+              "index": 13568,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 13567,
+              "peak": 0.09412066638469696,
+              "last": 0.0890425592660904,
+              "quanta": 106,
+              "endFrame": 57344,
+              "stopMessageFrame": 57344
+            },
+            "independentPcm": {
+              "framesCompared": 8192,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "03705a2d69a4cb5393d817ee6c4e28bacbc0345f90fce099897fc3b1dd3e7172"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 31104,
+            "offsetFrames": 4480,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "49b428205992a2005a7e43abcc4a69f88de60bf233f925e6e1868eada50c87e6"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        },
+        {
+          "browser": "webkit",
+          "traceBytes": 307200,
+          "execution": "worker",
+          "sampleRate": 44100,
+          "toneStartFrame": 7168,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 11776,
+            "sampleRate": 44100
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 41344,
+            "sampleRate": 44100
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 26112,
+            "sampleRate": 44100
+          },
+          "prepareDurationMs": 325,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 19,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 19,
+            "chunkBytes": 307200,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 19,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 19
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 26240,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 26240,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 26240,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 26240,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 26368,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 26496,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 3072,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 26624,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 40960,
+                  "sampleRate": 44100
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 40960,
+                "sampleRate": 44100
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 41216,
+                "sampleRate": 44100
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 41216,
+                "sampleRate": 44100
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 41216,
+                "sampleRate": 44100
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 11648,
+            "index": 29696,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 29695,
+            "peak": 0.09422575682401657,
+            "last": -0.09145502001047134,
+            "quanta": 232,
+            "endFrame": 41344,
+            "stopMessageFrame": 41344
+          },
+          "score": {
+            "startFrame": 47104,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 47104,
+              "currentFrame": 55168,
+              "sampleRate": 44100,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 41728,
+              "index": 13568,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 13567,
+              "peak": 0.09412054717540741,
+              "last": 0.0896015539765358,
+              "quanta": 106,
+              "endFrame": 55296,
+              "stopMessageFrame": 55296
+            },
+            "independentPcm": {
+              "framesCompared": 8192,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "03705a2d69a4cb5393d817ee6c4e28bacbc0345f90fce099897fc3b1dd3e7172"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 29696,
+            "offsetFrames": 4480,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "9bf0d20613612d4212a0b1f7d1cb5ea73f3846c064c440239bfdd9757e1c7b0c"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        },
+        {
+          "browser": "webkit",
+          "traceBytes": 8388608,
+          "execution": "main",
+          "sampleRate": 48000,
+          "toneStartFrame": 7552,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 11776,
+            "sampleRate": 48000
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 420864,
+            "sampleRate": 48000
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 89494880,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 405376,
+            "sampleRate": 48000
+          },
+          "prepareDurationMs": 8200,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 512,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 512,
+            "chunkBytes": 8388608,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 512,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 512
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 405504,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 405632,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 3072,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 405760,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 405760,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 405888,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406016,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 3072,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 406144,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 420480,
+                  "sampleRate": 48000
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420480,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420608,
+                "sampleRate": 48000
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420736,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 420864,
+                "sampleRate": 48000
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 11648,
+            "index": 409216,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 409215,
+            "peak": 0.09440599381923676,
+            "last": -0.08840549737215042,
+            "quanta": 3197,
+            "endFrame": 420864,
+            "stopMessageFrame": 420864
+          },
+          "score": {
+            "startFrame": 428544,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 428544,
+              "currentFrame": 437376,
+              "sampleRate": 48000,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 422784,
+              "index": 14720,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 14719,
+              "peak": 0.09412158280611038,
+              "last": -0.09201362729072571,
+              "quanta": 115,
+              "endFrame": 437504,
+              "stopMessageFrame": 437504
+            },
+            "independentPcm": {
+              "framesCompared": 8917,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "7518c704d1b2354dc45ceb16c5607b5e7b53f57ce99ac24bc45660bca565cdf3"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 409216,
+            "offsetFrames": 4096,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "6f6eec40e129f73a121d632078ebb2828274e2c5a0aaa97471d87740fb9ee2d2"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        },
+        {
+          "browser": "webkit",
+          "traceBytes": 8388608,
+          "execution": "worker",
+          "sampleRate": 48000,
+          "toneStartFrame": 7808,
+          "before": {
+            "loaded": false,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 0,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 12288,
+            "sampleRate": 48000
+          },
+          "after": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 3276864,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 422400,
+            "sampleRate": 48000
+          },
+          "prepared": {
+            "loaded": true,
+            "playing": false,
+            "preparing": false,
+            "bytesReceived": 0,
+            "bytesValidated": 0,
+            "ended": false,
+            "cancelled": false,
+            "positionSamples": 0,
+            "durationSamples": 89494880,
+            "token": 0,
+            "startFrame": 0,
+            "currentFrame": 406912,
+            "sampleRate": 48000
+          },
+          "prepareDurationMs": 8221,
+          "prepareStats": {
+            "methods": {
+              "beginTimelineUpload": 1,
+              "appendTimelineChunk": 512,
+              "commitTimelineUpload": 1
+            },
+            "chunks": 512,
+            "chunkBytes": 8388608,
+            "maximumChunkBytes": 16384,
+            "maximumPendingAppends": 1,
+            "pendingAppends": 0,
+            "appendAcks": 512,
+            "appendErrors": 0,
+            "uploadIds": [
+              1
+            ],
+            "chunksTransferred": 512
+          },
+          "cancelled": [
+            {
+              "kind": "stopTimeline",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 3072,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 407040,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation cancelled"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 407040,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "stopTimeline": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  2
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "reset",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 89494880,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 407168,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline reset"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 407296,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "reset": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  3
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "performance-stop",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 407296,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance stopped"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "after": {
+                "loaded": false,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 407424,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 1,
+                  "appendTimelineChunk": 2,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 1
+                },
+                "chunks": 2,
+                "chunkBytes": 16387,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 1,
+                "pendingAppends": 0,
+                "appendAcks": 2,
+                "appendErrors": 2,
+                "uploadIds": [
+                  4
+                ],
+                "chunksTransferred": 1
+              }
+            },
+            {
+              "kind": "replacement",
+              "staged": {
+                "loaded": false,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 0,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 407424,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY timeline preparation replaced"
+              },
+              "staleCommit": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "staleChunk": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "replacementOutcome": {
+                "ok": true,
+                "value": {
+                  "loaded": true,
+                  "playing": false,
+                  "preparing": false,
+                  "bytesReceived": 0,
+                  "bytesValidated": 0,
+                  "ended": false,
+                  "cancelled": false,
+                  "positionSamples": 0,
+                  "durationSamples": 3276864,
+                  "token": 0,
+                  "startFrame": 0,
+                  "currentFrame": 421888,
+                  "sampleRate": 48000
+                }
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 421888,
+                "sampleRate": 48000
+              },
+              "stats": {
+                "methods": {
+                  "beginTimelineUpload": 2,
+                  "appendTimelineChunk": 21,
+                  "abortTimelineUpload": 1,
+                  "commitTimelineUpload": 2
+                },
+                "chunks": 21,
+                "chunkBytes": 323587,
+                "maximumChunkBytes": 16384,
+                "maximumPendingAppends": 2,
+                "pendingAppends": 0,
+                "appendAcks": 21,
+                "appendErrors": 2,
+                "uploadIds": [
+                  5,
+                  6
+                ],
+                "chunksTransferred": 20
+              }
+            },
+            {
+              "kind": "performance-cancel-owner",
+              "wrongOwner": {
+                "ok": false,
+                "name": "Error",
+                "message": "POKEY timeline upload identity does not match"
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY performance owner cancelled"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 422272,
+                "sampleRate": 48000
+              }
+            },
+            {
+              "kind": "port-replaced",
+              "staged": {
+                "loaded": true,
+                "playing": false,
+                "preparing": true,
+                "bytesReceived": 16384,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 422400,
+                "sampleRate": 48000
+              },
+              "aborted": {
+                "ok": false,
+                "name": "AbortError",
+                "message": "POKEY port replaced"
+              },
+              "after": {
+                "loaded": true,
+                "playing": false,
+                "preparing": false,
+                "bytesReceived": 0,
+                "bytesValidated": 0,
+                "ended": false,
+                "cancelled": false,
+                "positionSamples": 0,
+                "durationSamples": 3276864,
+                "token": 0,
+                "startFrame": 0,
+                "currentFrame": 422400,
+                "sampleRate": 48000
+              }
+            }
+          ],
+          "capture": {
+            "firstFrame": 12160,
+            "index": 410240,
+            "pairMaximumDifference": 0,
+            "pairMismatches": 0,
+            "stereoMismatches": 0,
+            "nonFinite": 0,
+            "frameGaps": 0,
+            "firstGap": null,
+            "transitions": 410239,
+            "peak": 0.09431469440460205,
+            "last": 0.08818314969539642,
+            "quanta": 3205,
+            "endFrame": 422400,
+            "stopMessageFrame": 422400
+          },
+          "score": {
+            "startFrame": 430080,
+            "durationSamples": 8192,
+            "completion": {
+              "loaded": true,
+              "playing": false,
+              "preparing": false,
+              "bytesReceived": 0,
+              "bytesValidated": 0,
+              "ended": true,
+              "cancelled": false,
+              "positionSamples": 8192,
+              "durationSamples": 8192,
+              "token": 1,
+              "startFrame": 430080,
+              "currentFrame": 438912,
+              "sampleRate": 48000,
+              "state": {
+                "clock": 1789790,
+                "initialized": true,
+                "registers": [
+                  41,
+                  160,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  3
+                ],
+                "levels": [
+                  8,
+                  8,
+                  8,
+                  8
+                ]
+              }
+            },
+            "capture": {
+              "firstFrame": 424320,
+              "index": 14720,
+              "pairMaximumDifference": 0,
+              "pairMismatches": 0,
+              "stereoMismatches": 0,
+              "nonFinite": 0,
+              "frameGaps": 0,
+              "firstGap": null,
+              "transitions": 14719,
+              "peak": 0.09412158280611038,
+              "last": 0.09178220480680466,
+              "quanta": 115,
+              "endFrame": 439040,
+              "stopMessageFrame": 439040
+            },
+            "independentPcm": {
+              "framesCompared": 8917,
+              "maximumDifference": 0,
+              "mismatchedSamples": 0,
+              "pcmSha256": "7518c704d1b2354dc45ceb16c5607b5e7b53f57ce99ac24bc45660bca565cdf3"
+            }
+          },
+          "independentPcm": {
+            "reference": "fresh independent WASM core, reset once, uninterrupted absolute-frame rendering",
+            "framesCompared": 410240,
+            "offsetFrames": 4352,
+            "maximumDifference": 0,
+            "mismatchedSamples": 0,
+            "firstMismatch": null,
+            "pcmSha256": "83c7cabb03bc416adc3428f6bb8059f6c17f778d46effe08d9b4b79f18d6deda"
+          },
+          "physicalOutputZeroedAfterCapture": true
+        }
+      ],
+      "sources": {
+        "js/chip_worklet_transport.js": {
+          "bytes": 15514,
+          "sha256": "4adcc8a58773fb970700a9846e628fcfea20e5d16b43778ea80d0e083b630a7b",
+          "served": true
+        },
+        "js/playground_audio_endpoint.js": {
+          "bytes": 2002,
+          "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd",
+          "served": true
+        },
+        "js/playground_chip_clock.js": {
+          "bytes": 5232,
+          "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc",
+          "served": true
+        },
+        "js/playground_chip_inspector_state.js": {
+          "bytes": 13144,
+          "sha256": "926c7852e5e1346ee00ff4418efbd63ebe020bc8d2bcc72fabc55513fca174a0",
+          "served": true
+        },
+        "js/playground_keyboard_channels.js": {
+          "bytes": 5381,
+          "sha256": "30671a69eb64b15c1440b64284ee5b749a78cabb50e6d6ece2cc478561bb4521",
+          "served": true
+        },
+        "js/playground_performance_processor.js": {
+          "bytes": 29133,
+          "sha256": "50490a133469dd2112ffb39d6c861d427754d9866a6226377ad7d7fa39cd35dc",
+          "served": true
+        },
+        "js/playground_performance_queue.js": {
+          "bytes": 9950,
+          "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5",
+          "served": true
+        },
+        "js/playground_pokey.js": {
+          "bytes": 10894,
+          "sha256": "8248db8d2c4dfc15369f1cf2ca7087d5c4b59772da8277e37fef1689d1d1f71f",
+          "served": true
+        },
+        "js/playground_pokey_audio.js": {
+          "bytes": 4491,
+          "sha256": "1e10745e07598faee37af2b580172ca47a1ea8d355a31570fe6797b92f643df4",
+          "served": true
+        },
+        "js/playground_pokey_inspector.js": {
+          "bytes": 4368,
+          "sha256": "7cad204b0f3c6628145bd806c263f90d81efadd7df2674dec585126c217e7990",
+          "served": true
+        },
+        "js/playground_pokey_worklet.js": {
+          "bytes": 17766,
+          "sha256": "6f3b9184fb74b6e4ec1d618a94f57d2fa5ef653e96fcd25119c184c2d4fcfe24",
+          "served": true
+        },
+        "js/pokey.js": {
+          "bytes": 8390,
+          "sha256": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1",
+          "served": true
+        },
+        "js/pokey_timeline.js": {
+          "bytes": 3833,
+          "sha256": "44a329a4466f03296a73af4b75ebb81c509b17b0e453e9973ee33cbee9536b49",
+          "served": true
+        },
+        "js/pokey_timeline_builder.js": {
+          "bytes": 4708,
+          "sha256": "5958de9ded6382ed394214b2db96e970d8de255ed74a3613106f96ed69b54433",
+          "served": true
+        },
+        "js/pokey_timeline_upload.js": {
+          "bytes": 6186,
+          "sha256": "9badf689dd3b51b87c871cca24f1e5ce10759925ee62878d40142002fffa6314",
+          "served": true
+        },
+        "js/pokeyaudioengine.js": {
+          "bytes": 3482,
+          "sha256": "18ad1710e13e7df9cb9e23f67a1db158e2c3d871e439a461b7e17dd00fe87208",
+          "served": true
+        },
+        "js/pokeysynth.js": {
+          "bytes": 8323,
+          "sha256": "d92b79feb1e4696f06fa865094c251ae3eb47f4d6cdf97256e5c557ec66e1259",
+          "served": true
+        },
+        "js/rf5c164_pcm.js": {
+          "bytes": 1537,
+          "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a",
+          "served": true
+        },
+        "js/rf5c164synth.js": {
+          "bytes": 4836,
+          "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a",
+          "served": true
+        },
+        "js/segapsg.js": {
+          "bytes": 10149,
+          "sha256": "c482525bb445b73b03ed35832ca3855f25d29c145267b16ecb9687e0e8e72c46",
+          "served": true
+        },
+        "js/segapsg_api.js": {
+          "bytes": 1086,
+          "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa",
+          "served": true
+        },
+        "js/segapsgsynth.js": {
+          "bytes": 10444,
+          "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9",
+          "served": true
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+          "served": true
+        },
+        "generated/pokey_wasm.js": {
+          "bytes": 15128,
+          "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d",
+          "served": true
+        },
+        "generated/pokey_wasm.wasm": {
+          "bytes": 18676,
+          "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22",
+          "served": true
+        }
+      },
+      "checkerSha256": "1224118b5456e3b863774356e210a65b733a19f4334a564726456cff9fd2cfb4",
+      "syntheticFixtures": true,
+      "physicalOutputZeroedAfterCapture": true,
+      "listeningPerformed": false
+    },
+    "heldFramesCompared": 1762432,
+    "postCancellationScoreFramesCompared": 68436,
+    "cancellationCases": 48,
+    "maximumDifference": 0,
+    "actuallyServedAssetsMatchFinalZip": 25,
+    "runtimeBrowserVersionsRecorded": false
+  },
+  "archive": {
+    "path": "release/hello_ymfm_wasm_pokey-prepare-dev_itch_playground.zip",
+    "sha256": "34404c07c2ba398a3f8485dc8850dc7305db3d9c4e2af0df8611b8af367bc834",
+    "bytes": 36699937,
+    "fileMembers": 958,
+    "allMembersMatchStage": true,
+    "actuallyServedBrowserAssetsMatchZip": 25
+  },
+  "npmCandidate": {
+    "passed": true,
+    "archive": "/private/tmp/pokey-prepare-package/tetorica-fm2612-0.2.30.tgz",
+    "sha256": "c795d9e4689bb1dbeb79bd0ba6da483eed12f37f4c5422abaeec6d33c4ba2bb5",
+    "files": 880,
+    "allMembersMatchStaging": true,
+    "version": "0.2.30",
+    "published": false,
+    "modules": 305,
+    "chipEnginePairs": 28,
+    "declarations": 352,
+    "isolatedConsumerPassed": true,
+    "realWasmEngines": 28,
+    "typeConfigurations": [
+      "NodeNext",
+      "Bundler",
+      "Browser without Node ambient types"
+    ],
+    "publicVersionContainsPokey": false
+  },
+  "tauri": {
+    "schemaVersion": 1,
+    "status": "passed",
+    "frontendArchive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_pokey-prepare-dev_itch_playground.zip",
+    "frontendArchiveSha256": "34404c07c2ba398a3f8485dc8850dc7305db3d9c4e2af0df8611b8af367bc834",
+    "frontendArchiveBytes": 36699937,
+    "zipFileMembers": 958,
+    "effectivePayloadFiles": 957,
+    "effectivePayloadBytes": 42362486,
+    "stageFiles": 957,
+    "tauriDistFiles": 957,
+    "allZipMembersMatchStageBytes": true,
+    "allEffectivePayloadMatchesTauriDistBytes": true,
+    "releaseLockMatchesAllPayloadHashes": true,
+    "tauriReleaseVersion": "sha256-34404c07c2ba",
+    "nativeSourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "bd07482e8c7ffba7faf037260792eed91185a6891c1aba9f0c026fa3fe84be82",
+      "files": 1918,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "34404c07c2ba398a3f8485dc8850dc7305db3d9c4e2af0df8611b8af367bc834"
+    },
+    "nativeSourceManifestSha256": "ed1771b7468aac011fdd356d0ada868a799360442c087581a5097665d330c44e",
+    "nativeSourceManifestFiles": 1918,
+    "nativeSnapshotsPassed": 22,
+    "pythonTests": 24,
+    "nodeTests": 31,
+    "rustDspFilesChanged": [],
+    "cargoRun": false,
+    "tauriChangedTrackedFiles": 151,
+    "logs": {
+      "prepare": "/private/tmp/pokey-prepare-tauri-prepare.log",
+      "nativeSources": "/private/tmp/pokey-prepare-tauri-native-sources.log",
+      "python": "/private/tmp/pokey-prepare-tauri-python.log",
+      "node": "/private/tmp/pokey-prepare-tauri-node.log"
+    },
+    "metadataMembersStageBytesMatch": true,
+    "ignoredTauriMetadataMembers": [
+      "samples/.DS_Store"
+    ]
+  },
+  "optionalFlatBrowserChecks": {
+    "status": "not-run",
+    "reason": "exec_command did not return session/output and no checker process launched. Root cancelled pending dispatch attempts after 277.9 s and 75.6 s. Whether approval or dispatch was blocked was not confirmed; no rejection was returned. No additional attempts remain running.",
+    "requestedRoutes": [
+      "Chromium 44100 Main preparation",
+      "WebKit 48000 Worker preparation",
+      "Chromium 44100 import UI",
+      "WebKit 48000 import UI"
+    ],
+    "docsMatrixComplete": true,
+    "actuallyTestedAssetsMatchFinalZip": true,
+    "details": {
+      "path": "/private/tmp/pokey-prepare-browser-flat-pending-dispatch.log",
+      "sha256": "637e045f356be14aa6291940029be25ff8daee519cdd862db7f8c9df61642252",
+      "bytes": 1897
+    }
+  },
+  "productionInputs": {
+    "web/pokey_timeline_upload.js": {
+      "sha256": "38eb30ee6b2097c74f992f68671e32f1fe442fe57e09e9f83935919b6700978b",
+      "bytes": 6150
+    },
+    "web/playground_pokey.js": {
+      "sha256": "0e2cbcad872d707e750241c981ce4e00f99cdc612c470812d64b4710fda2574b",
+      "bytes": 10789
+    },
+    "web/playground_pokey_worklet.js": {
+      "sha256": "d06c145a73d9b90780393c3ba77cf9a0f9febda2ae3a92276ead2e4db29783e1",
+      "bytes": 17669
+    },
+    "web/playground_chip_clock.js": {
+      "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc",
+      "bytes": 5232
+    },
+    "web/playground_performance_sender.js": {
+      "sha256": "f6a9c5ea0d345aa163a42dfa02d9fcb56959f0f5cbc42a34e5d828d34a273000",
+      "bytes": 9262
+    },
+    "web/playground_native_primary.js": {
+      "sha256": "6345df4221f1291f3b8070a6c0feb44b63537ed7da86b36e31b2d61244d46b85",
+      "bytes": 6722
+    },
+    "web/playground_runtime.js": {
+      "sha256": "ab0c3c9db27428ff882d037d6abb6fb25e30435d4284145b57d458d40d007a6c",
+      "bytes": 146574
+    },
+    "web/pokey_timeline_upload.test.mjs": {
+      "sha256": "b939c588120153e9e209e2efa8f8d53faf9e07bf55ec323e7031abfb0a588611",
+      "bytes": 13163
+    },
+    "web/playground_pokey_upload_client.test.mjs": {
+      "sha256": "615b56271f8e404696a18bfcc32f1c15ad347a01c8316d5bcc8f8013f7443ef8",
+      "bytes": 22251
+    },
+    "web/playground_pokey_performance.test.mjs": {
+      "sha256": "2cab4667fe8888305afbf0874ccf328281e728b2f38b08c98f85ecf4496ce3c4",
+      "bytes": 12064
+    },
+    "web/playground_pokey_timeline.test.mjs": {
+      "sha256": "de81a6254df5fbd7094ca4484d9a0115aa4393a087e9cd15af3e0a2e7af9f2a2",
+      "bytes": 9535
+    },
+    "web/playground_performance_sender.test.mjs": {
+      "sha256": "8ccbb8d5b6de69a32c7fd44bb075ef98649dd4a4207a3fecf0b0fdd3999e95d2",
+      "bytes": 15581
+    },
+    "web/native_genesis_pokey.test.mjs": {
+      "sha256": "7adb382f2382915340be35871157e3a30b7d3cffbbdaf88028add463622b99d5",
+      "bytes": 16820
+    },
+    "test/pokey-worklet-upload.test.mjs": {
+      "sha256": "d7c61ffc334ed30c93f07e83d5b9e1a879ffe1b70c7afc788d5a18fd7533f9e9",
+      "bytes": 13309
+    },
+    "test/helpers/pokey_worklet_fixture.mjs": {
+      "sha256": "2576e972f4c8b533a1a9730e46f698ec7a2298dc6fa3d4340f219bbe748955ed",
+      "bytes": 3865
+    },
+    "scripts/check_playground_pokey_prepare_browser.cjs": {
+      "sha256": "1224118b5456e3b863774356e210a65b733a19f4334a564726456cff9fd2cfb4",
+      "bytes": 26194
+    },
+    "scripts/version_playground_runtime.mjs": {
+      "sha256": "8f297cc33c11cc625dca57d8ea490a100655fe546ac09e99b78a71e99b73c0f1",
+      "bytes": 29943
+    },
+    "scripts/sync_web_js_to_docs.sh": {
+      "sha256": "c68cfb6c6165f4df7994247258080b7834cd105887a3436de0aac137a33f5e8d",
+      "bytes": 13570
+    },
+    "scripts/package_itch_playground.sh": {
+      "sha256": "ce86fa1049b00651d5aa4e0b7e05be42c5014d123cc72c91bec7aa7e890b5b8f",
+      "bytes": 21068
+    },
+    "scripts/check_playground_package.mjs": {
+      "sha256": "56ccabd1f7dee6a18985636beb3e7f99ceae3e8a56d2dfcb3a13ed5a6de31ffd",
+      "bytes": 9933
+    },
+    "scripts/check_fm2612_package.mjs": {
+      "sha256": "02eddf2864d5417ff00943cc1af3f5446b426b3bfd6e18af46eae5f808d18ab9",
+      "bytes": 38411
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "sha256": "2561741d0b3da603bb296efb9e32421593a0e4bfd1a9db5d9d2f3e659aad09ce",
+      "bytes": 115535
+    },
+    "scripts/check_nuked_opn2_wasm_sdk.mjs": {
+      "sha256": "07193aded5f55850bcecc797262023ef9eb54ff0987b580abc69729d839fd655",
+      "bytes": 38366
+    },
+    "scripts/check_ym3438_wasm_sdk.mjs": {
+      "sha256": "2e4087574b60d6b06c963686803072d01e196b8f68b7dea7d84abf3042c3ea52",
+      "bytes": 30413
+    },
+    "scripts/check_ymf276_wasm_sdk.mjs": {
+      "sha256": "496f88a77e8dbc0479c7370ab26a2b6469795aa716db9e3d6bdbbbc135953e71",
+      "bytes": 36186
+    },
+    "scripts/check_ymf288_wasm_sdk.mjs": {
+      "sha256": "a44c4cc2b3dad5f628946b6dbb0c32814766834f3a2d7005b11c0d31062c2b72",
+      "bytes": 41456
+    }
+  },
+  "logs": [
+    {
+      "path": "/private/tmp/pokey-prepare-source-tests-final.log",
+      "sha256": "b8b5545c1b84bedae765dbe1781f4bf6de19806f3308bb739d3767d032298cce",
+      "bytes": 445310
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-package-build.log",
+      "sha256": "8709465ce653d2605e15bf721a98e6331e24d6b309bd25687c5bf5c95040df11",
+      "bytes": 165
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-package-check.log",
+      "sha256": "e478dc65847d226c88a8f1711e46d686c335fafcbd632e569d7ac00889396bbb",
+      "bytes": 1473
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-types.log",
+      "sha256": "e95d806821e5367b2bbb21463239b2c8fb8f696a687efe48b2dda9fb4a1768ae",
+      "bytes": 123
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-flat-build.log",
+      "sha256": "91aaabda7958dcd8c0f6448ebf43175e656dbdaf6b7c6d1cdd6e4041ae519975",
+      "bytes": 58236
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-browser-docs.log",
+      "sha256": "451bf394c75dee1f7ffe2af86476375d7b54ba4d36a4227da8c449fed4fb0da0",
+      "bytes": 1454
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-browser-flat-pending-dispatch.log",
+      "sha256": "637e045f356be14aa6291940029be25ff8daee519cdd862db7f8c9df61642252",
+      "bytes": 1897
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-tauri-prepare.log",
+      "sha256": "91ed6e2ab38fb87554c9376eaa63dc66f104f9280471d313c274ccbc13216afa",
+      "bytes": 121
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-tauri-native-sources.log",
+      "sha256": "7226bb861524019f838b858a87f7a16ef4ef72fa4196e57ec90a15b6dde3a3a9",
+      "bytes": 1323
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-tauri-python.log",
+      "sha256": "3809bb2d57fe02157c54b23cd9966e56d0d5f1bda0d0200610287b484669ad17",
+      "bytes": 1505
+    },
+    {
+      "path": "/private/tmp/pokey-prepare-tauri-node.log",
+      "sha256": "a58c6e948228a454123899a6339e32361037c95d55edba4198e801784b91b642",
+      "bytes": 3100
+    }
+  ],
+  "limits": [
+    "The calling Main/Worker thread still takes a full byte snapshot before its first await.",
+    "Preparation of a maximum trace now takes about 8.2 seconds in the measured Browser fixtures; work is spread over audio quanta.",
+    "Automatic capture zeroed the physical output downstream of measurement. Human listening and hardware comparison were not performed.",
+    "PCM equality and capture continuity do not guarantee operating-system audio-device deadlines.",
+    "Optional flat Browser launches did not start. All 25 actual docs Browser runtime assets nevertheless match the final ZIP exactly."
+  ]
+}

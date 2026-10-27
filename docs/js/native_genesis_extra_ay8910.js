@@ -1,8 +1,8 @@
-import {createAy8910RegisterClient} from './playground_ay8910.js?v=pokey-mode-1';
+import {createAy8910RegisterClient} from './playground_ay8910.js?v=pokey-prepare-1';
 import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=pokey-mode-1';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-mode-1';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=pokey-mode-1';
-import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=pokey-mode-1';
+import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=pokey-prepare-1';
 import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
 
 export const EXTRA_AY8910_CLOCK_HELD_ERROR='Release the manually held additional AY8910 voices before changing the clock';

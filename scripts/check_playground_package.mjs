@@ -8,7 +8,7 @@ walk(root);
 for(const file of [
   ...['pokey','pokey-dual'].flatMap(mode=>[`tetorica-playground-${mode}.d.ts`,`defaults/${mode}/index.js`]),
   'js/pokey.js','js/pokeysynth.js','js/pokeyaudioengine.js','js/playground_pokey.js',
-  'pokey_vgm_import.js','js/pokey_timeline.js','js/pokey_timeline_builder.js',
+  'pokey_vgm_import.js','js/pokey_timeline.js','js/pokey_timeline_upload.js','js/pokey_timeline_builder.js',
   'js/playground_pokey_audio.js','js/playground_pokey_worklet.js','js/playground_pokey_inspector.js',
   'js/native_genesis_pokey.js','js/native_genesis_extra_pokey.js',
   'generated/pokey_wasm.js','generated/pokey_wasm.wasm',

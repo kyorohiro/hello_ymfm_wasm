@@ -1,17 +1,17 @@
-import {createPokeyClient} from './playground_pokey.js?v=pokey-import-1';
-import {createAy8910Client} from './playground_ay8910.js?v=pokey-mode-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-mode-1';
-import {createNesClient} from './playground_nes.js?v=pokey-mode-1';
+import {createPokeyClient} from './playground_pokey.js?v=pokey-prepare-1';
+import {createAy8910Client} from './playground_ay8910.js?v=pokey-prepare-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-prepare-1';
+import {createNesClient} from './playground_nes.js?v=pokey-prepare-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
-import {createYm2151Client} from './playground_ym2151.js?v=pokey-mode-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=pokey-mode-1';
-import {createWonderSwanClient} from './playground_wonderswan.js?v=pokey-mode-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=pokey-mode-1';
-import {createOki6258Client} from './playground_okim6258.js?v=pokey-mode-1';
-import {createYm2413Client} from './playground_ym2413.js?v=pokey-mode-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=pokey-mode-1';
+import {createYm2151Client} from './playground_ym2151.js?v=pokey-prepare-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=pokey-prepare-1';
+import {createWonderSwanClient} from './playground_wonderswan.js?v=pokey-prepare-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=pokey-prepare-1';
+import {createOki6258Client} from './playground_okim6258.js?v=pokey-prepare-1';
+import {createYm2413Client} from './playground_ym2413.js?v=pokey-prepare-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=pokey-prepare-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
-import {createGameboyClient} from './playground_gameboy.js?v=pokey-mode-1';
+import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true, settle = result => result) {
@@ -81,7 +81,7 @@ export function createNativeWorkerApis(connections, performance, observe, lifecy
   const raw = new Map(), apis = {};
   for (const connection of connections) {
     const port = performance.port(connection.port, 'independent');
-    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','y8950'].includes(connection.name)?lifecycle:{});
+    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','pokey','y8950'].includes(connection.name)?lifecycle:{});
     raw.set(connection.globalName, client);
     let queued = false;
     const changed = () => {

@@ -1,5 +1,5 @@
 import {PokeySynth,POKEY_CLOCK} from './pokeysynth.js?v=pokey-mode-1';
-import {preparePokeyTimeline,readPokeyTimelinePoint,pokeyTimelineInteger,POKEY_TIMELINE_MAX_BYTES} from './pokey_timeline.js?v=pokey-import-1';
+import {preparePokeyTimeline,readPokeyTimelinePoint,pokeyTimelineInteger,POKEY_TIMELINE_MAX_BYTES} from './pokey_timeline.js?v=pokey-prepare-1';
 
 /** Offline authoring using the ordinary POKEY register/high-level API. No
  * audio is generated and adoptRegisterState() never inserts reset writes. */

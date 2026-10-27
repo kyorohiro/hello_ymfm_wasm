@@ -1,14 +1,14 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-mode-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 /** Worker/Node: selected-primary performance state and register generation.
  * No DOM, AudioNode or main-thread RPC. Observers are fire-and-forget.
  */
 import {GameboySynth} from './gameboysynth.js?v=audio-stability-2';
-import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-mode-1';
+import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {YM2203Synth} from './ym2203synth.js?v=pokey-mode-1';
+import {YM2203Synth} from './ym2203synth.js?v=pokey-prepare-1';
 import {OPNFMSynth} from './opn_fm_synth.js?v=audio-stability-2';
-import {YM2608Synth} from './ym2608synth.js?v=pokey-mode-1';
-import {YM2610BSynth} from './ym2610bsynth.js?v=pokey-mode-1';
+import {YM2608Synth} from './ym2608synth.js?v=pokey-prepare-1';
+import {YM2610BSynth} from './ym2610bsynth.js?v=pokey-prepare-1';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 /**
  * Create Worker-side primary controls that send ordered writes to a Worklet port.

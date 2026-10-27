@@ -2315,6 +2315,9 @@ interface PlaygroundPokeyTimeline {
   readonly data:Uint8Array;
 }
 interface PlaygroundPokeyTimelineState {
+  readonly preparing?:boolean;
+  readonly bytesReceived?:number;
+  readonly bytesValidated?:number;
   readonly currentFrame:number;
   readonly sampleRate:number;
   readonly loaded:boolean;
