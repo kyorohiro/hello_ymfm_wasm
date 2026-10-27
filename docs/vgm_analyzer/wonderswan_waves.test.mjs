@@ -157,3 +157,37 @@ test('invalid event addresses and unsupported second-chip input cannot alias pri
   assert.equal(state.samples.length, 0);
   assert.equal(state.warnings.size, 0);
 });
+
+test('wave usage requires a positive interval with gate, headphone output and nonzero hardware volume',()=>{
+  const state=createWonderSwanWaves();upload(state,0);write(state,16,1);write(state,17,8);state.flush(0);
+  assert.equal(state.samples[0].usedInPlayback,false);assert(state.events.every(event=>event.audible===false));
+  state.advance(10);assert.equal(state.samples[0].usedInPlayback,false,'a zero-volume enabled voice is not used');
+  write(state,8,0x99,10);write(state,16,0,10);state.advance(20);assert.equal(state.samples[0].usedInPlayback,false,'zero-wait key-on/off is not a playback interval');
+  write(state,16,1,20);write(state,17,1,20);state.advance(30);assert.equal(state.samples[0].usedInPlayback,false,'the current core does not render speaker-only output');
+  write(state,17,8,30);state.advance(40);
+  assert.equal(state.samples[0].usedInPlayback,true);
+  const audible=state.events.filter(event=>event.audible);assert.equal(audible.length,1);assert.equal(audible[0].startTime,30);assert.equal(audible[0].audibleDurationSamples,10);
+  assert.equal(audible[0].audibleStartTime,30);assert.equal(audible[0].audibleEndTime,40);
+  memory(state,0,0x11,40);state.flush(40);assert.equal(state.samples.at(-1).usedInPlayback,false,'a final zero-duration RAM write stays a candidate');
+  assert.equal(JSON.parse(wonderswanWaveJson(state.samples[0],state.events)).usedInPlayback,true);
+});
+
+test('final same-time frequency, volume and output replace stale key-on metadata, and later settings get new observations',()=>{
+  const state=createWonderSwanWaves();upload(state,0);write(state,16,1);
+  write(state,0,0x4c);write(state,1,6);write(state,8,0x99);write(state,17,8);state.flush(0);
+  assert.equal(state.events.length,1);const first=state.events[0];
+  assert.equal(first.frequency,0x64c);assert.equal(first.frequencyKnown,true);assert.deepEqual(first.pan,{left:9,right:9});assert.equal(first.output.headphones,true);assert.equal(first.audible,false);
+  state.advance(10);write(state,0,0xa6,10);state.flush(10);
+  assert.equal(state.events.length,2);const second=state.events[1];assert.equal(second.frequency,0x6a6);assert.equal(second.audible,false);assert.equal(first.audibleDurationSamples,10);
+  for(let time=11;time<=100;time++)state.advance(time);
+  assert.equal(state.events.length,2,'ordinary waits do not create another definition or observation');assert.equal(second.audibleDurationSamples,90);
+  write(state,8,0,100);state.advance(110);assert.equal(state.events.at(-1).audible,false);assert.equal(second.audibleDurationSamples,90);
+});
+
+test('zero-wait bank and mode transitions retain RAM candidates without marking them as played',()=>{
+  const state=createWonderSwanWaves();upload(state,0);upload(state,64,packedWave(1));write(state,8,0x99);write(state,17,8);write(state,16,1);
+  write(state,15,1);write(state,15,0);state.advance(100);
+  assert.equal(state.samples.length,2);assert.equal(state.samples[0].usedInPlayback,true);assert.equal(state.samples[1].usedInPlayback,false);
+  assert(state.events.filter(event=>event.bank===1).every(event=>event.audible===false));
+  assert.throws(()=>state.advance(99),/backwards/);
+});

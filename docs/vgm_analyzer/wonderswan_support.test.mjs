@@ -15,6 +15,7 @@ test('WonderSwan opens Note-ish, enables score exports and disables unsupported 
   for(const key of ['operatorInfoTab','tfiInfoTab','exportMmlButton','exportSnapshotButton'])assert.equal(context[key].disabled,true,key);
   for(const key of ['sampleTab','noteishTab','sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,false,key);
   assert.match(context.document.getElementById('chipSupportNotice').textContent,/CH2 Voice PCM, CH3 sweep and CH4 noise/);
+  assert.match(context.document.getElementById('chipSupportNotice').textContent,/Sample Explorer exports Wave RAM and timed Voice PCM/);
   context.currentBuffer=null;context.updateChipSupport();
   for(const key of ['sheetMusicTab','exportMidiButton','exportLilyPondButton'])assert.equal(context[key].disabled,true,key);
   context.currentChipKind='ym2612';context.updateChipSupport();assert.equal(context.operatorInfoTab.disabled,false);
@@ -40,13 +41,13 @@ test('header display and Song file loading identify WonderSwan',()=>{
 test('deployed Analyzer entry, Worker, player and score graph invalidate older parsers together',()=>{
   const read=name=>readFileSync(new URL(name,import.meta.url),'utf8');
   const token='wonderswan-vgm-1';
-  assert.match(read('./index.html'),new RegExp('vgm_analyzer\\.js\\?v=wonderswan-waves-1'));
+  assert.match(read('./index.html'),new RegExp('vgm_analyzer\\.js\\?v=wonderswan-voice-samples-1'));
   assert.match(read('./note_timeline_view.js'),new RegExp('note_timeline_worker\\.js\\?v='+token));
   for(const file of ['./vgm_analyzer.js','./playback_core.js','./analyzer_core.js','./note_timeline_worker.js',
     './vgm_lilypond.js','./vgm_midi.js','./vgm_notes.js','./wonderswan_notes.js','./command_editor.js','../js/vgmplayer.js']){
     const text=read(file);
     for(const ref of text.matchAll(/['"]([^'"\n]*(?:ym2612vgm|vgmplayer|playback_core|analyzer_core|vgm_lilypond|vgm_midi|vgm_notes|wonderswan_notes|source_mutes|command_editor|note_timeline_view)\.js)(?:\?([^'"\n]*))?['"]/g)){
-      assert.equal(ref[2],'v='+(ref[1].endsWith('/analyzer_core.js')?'wonderswan-waves-1':token),`${file}: ${ref[1]}`);
+      assert.equal(ref[2],'v='+(ref[1].endsWith('/analyzer_core.js')?'wonderswan-voice-samples-1':token),`${file}: ${ref[1]}`);
     }
   }
   // The website revision must not create a second package class identity.

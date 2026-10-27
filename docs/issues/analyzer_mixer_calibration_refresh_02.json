@@ -1,0 +1,291 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "scope": "Analyzer calibration receipts only; no DSP, Mixer gain or listening-policy changes",
+  "cause": "Fourteen recorded source files changed only JSDoc type-import cache queries from wonderswan-native-1 to wonderswan-pcm-timeline-1. The strict whole-file source-hash guard correctly rejected stale receipts.",
+  "sourceAudit": [
+    {
+      "path": "docs/js/segapcmaudioengine.js",
+      "report": "analyzer_extra_levels_03",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "22119d1c63b99df4f0e0f4eb83fa057274cb8fc1fd9a5a9b14b919ffd153a80c",
+      "currentSha256": "d30f58a3ab98ad3d1717ddf9a7cfd80ee1ec2eee9aa2eed2b63df4d1927bca51",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {{moduleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, clock?: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ],
+      "afterChanged": [
+        "   * @param {{moduleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, clock?: number, bankShift?: number, bankMask?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ]
+    },
+    {
+      "path": "docs/js/segapcm.js",
+      "report": "analyzer_extra_levels_03",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "8a3c88358a74592c737b4545368c06c806e04fe7670d246ca2c3bf9e4b5401ef",
+      "currentSha256": "5bfd23c7c7fab99065e1d85a3a951120af957e626d379d2df10850d5363083c2",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {import(\"./soundchip.js?v=wonderswan-native-1\").SoundChipOptions & {bankShift?: number, bankMask?: number}} [options={}] Chip and Emscripten initialization settings.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ],
+      "afterChanged": [
+        "   * @param {import(\"./soundchip.js?v=wonderswan-pcm-timeline-1\").SoundChipOptions & {bankShift?: number, bankMask?: number}} [options={}] Chip and Emscripten initialization settings.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ]
+    },
+    {
+      "path": "docs/js/msxaudioengine.js",
+      "report": "analyzer_extra_levels_03",
+      "baselineCommit": "3dbee68137067c6b51d4efe9464ee811ad512f67",
+      "beforeSha256": "54e7adacb95e01c9e5fe8a4ea2fbf2f0392463fd6fd17fffd69ec30fdfe72c82",
+      "currentSha256": "65625d4fe5bdd6a6f4279d94c6e863bfc67d8f248845067aa5cb80aa19ed8db4",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {{chips?:MsxChipDescriptor[],outputSampleRate?:number,masterVolume?:number, ym2151ModuleFactory?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ym2151ModuleOptions?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ym2151Clock?:number, ayModuleFactory?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ayModuleOptions?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ayClock?:number, ym2413ModuleFactory?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ym2413ModuleOptions?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ym2413Clock?:number, y8950ModuleFactory?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, y8950ModuleOptions?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, y8950Clock?:number, k051649ModuleFactory?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, k051649ModuleOptions?:import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, k051649Clock?:number,ym2151Variant?:'ym2151'|'ym2164',ayType?:number,ayFlags?:number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ],
+      "afterChanged": [
+        "   * @param {{chips?:MsxChipDescriptor[],outputSampleRate?:number,masterVolume?:number, ym2151ModuleFactory?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ym2151ModuleOptions?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ym2151Clock?:number, ayModuleFactory?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ayModuleOptions?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ayClock?:number, ym2413ModuleFactory?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ym2413ModuleOptions?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ym2413Clock?:number, y8950ModuleFactory?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, y8950ModuleOptions?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, y8950Clock?:number, k051649ModuleFactory?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, k051649ModuleOptions?:import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, k051649Clock?:number,ym2151Variant?:'ym2151'|'ym2164',ayType?:number,ayFlags?:number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ]
+    },
+    {
+      "path": "docs/js/k051649audioengine.js",
+      "report": "analyzer_extra_levels_03",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "380c17fda347cc18a807e9a83487cfe3e1d97faf5503eb31e50cbee1a6e744e7",
+      "currentSha256": "c0bec23f6072a041b54fc8e14d3beaafeffe90ef0c1c2b1ccb5bc8b825c23798",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {{moduleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ],
+      "afterChanged": [
+        "   * @param {{moduleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ]
+    },
+    {
+      "path": "docs/js/k051649.js",
+      "report": "analyzer_extra_levels_03",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "ee162222ed9751b925216264036c6e50f2c654acf201712beca6728b8846d5b1",
+      "currentSha256": "6f63ab59a241db7a88b19d231c741ca3f1f35767c73732ad3e9947f107798f1b",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {import(\"./soundchip.js?v=wonderswan-native-1\").SoundChipOptions & {bankShift?: number, bankMask?: number}} [options={}] Chip and Emscripten initialization settings.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ],
+      "afterChanged": [
+        "   * @param {import(\"./soundchip.js?v=wonderswan-pcm-timeline-1\").SoundChipOptions & {bankShift?: number, bankMask?: number}} [options={}] Chip and Emscripten initialization settings.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ]
+    },
+    {
+      "path": "docs/js/ymf278baudioengine.js",
+      "report": "analyzer_extra_levels_03",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "29491a7c325e0d05e72beb0e4a2a2590a6ed43644e5fa1b83435786fe3a72ac2",
+      "currentSha256": "3164337ddc05c62fb5b9b93c90a6976221c1e7f19a0df883bcc072b124d55ba4",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {{ymf278bModuleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ymf278bModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ymf278bClock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ],
+      "afterChanged": [
+        "   * @param {{ymf278bModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ymf278bModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ymf278bClock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ]
+    },
+    {
+      "path": "docs/js/ymf278b.js",
+      "report": "analyzer_extra_levels_03",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "4945d261d1428970f0a77b6e32d5d98d684b7d62fe559518d8853e83162ebbb0",
+      "currentSha256": "14f4dc5bb1c88ed1ac00a096fc7b202dfddd79842c0ae85c457780e60780a6b1",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ],
+      "afterChanged": [
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ]
+    },
+    {
+      "path": "docs/js/ym2608audioengine.js",
+      "report": "analyzer_psg_levels_04",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "303faaa082b149f401ac24782b9fa181063076b1a88d84f2dc365eeee8714cf5",
+      "currentSha256": "0d68c4623218f71932d0acc7d465629c92085a5703919cc2795f5e8d56169bcf",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ],
+      "afterChanged": [
+        "   * @param {{ym2608ModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ym2608ModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ym2608Clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ]
+    },
+    {
+      "path": "docs/js/genesisaudioengine.js",
+      "report": "analyzer_psg_levels_04",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "d3a6ca2ddbb93672d00649e158cad0ab5c5e6f33c93b4af10deff407e07cd06a",
+      "currentSha256": "b93985a0501cd2c3aca66d427640d1e868d78dad63e1e41c0a413d0e2a394495",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {{ym2612ModuleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: \"legacy\"|\"mame\", pwmOutputMode?: \"dac\"|\"duty\", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ],
+      "afterChanged": [
+        "   * @param {{ym2612ModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: \"legacy\"|\"mame\", pwmOutputMode?: \"dac\"|\"duty\", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ]
+    },
+    {
+      "path": "docs/js/ay8910audioengine.js",
+      "report": "analyzer_psg_levels_04",
+      "baselineCommit": "3dbee68137067c6b51d4efe9464ee811ad512f67",
+      "beforeSha256": "87dd4a6bf5ee16a0884c67e9ace29a0dfeffffe555f99e78b9ffe0167ff04748",
+      "currentSha256": "a96172582b64ea31699faaff34c9177ae635bc316227a7b91a63caa793f5cda2",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {{moduleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, clock?: number, type?: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ],
+      "afterChanged": [
+        "   * @param {{moduleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, clock?: number, type?: number, flags?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+      ]
+    },
+    {
+      "path": "docs/js/nesapusynth.js",
+      "report": "analyzer_psg_levels_04",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "cadb69dcaf6ac9986031966283b237ac83e2a84c12b3d4bcc7789c364264d674",
+      "currentSha256": "194339029ade432d0cc4e701619a35654cae6979b5f410e4d205e0a3f5b83313",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        " /** @param {import('./soundchip_worklet.js?v=wonderswan-native-1').WorkletSoundChip | MessagePort} endpoint */"
+      ],
+      "afterChanged": [
+        " /** @param {import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip | MessagePort} endpoint */"
+      ]
+    },
+    {
+      "path": "docs/js/ym2608.js",
+      "report": "analyzer_psg_levels_04",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "686c794f54f6262e2182bb0d2ac77e0691640549f40d96b05b20bff6309a8c12",
+      "currentSha256": "d90489958661e7f007c595060c84cf2976a8ae9b45887ccf060d3f9ebd38dadd",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ],
+      "afterChanged": [
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ]
+    },
+    {
+      "path": "docs/js/ay8910.js",
+      "report": "analyzer_psg_levels_04",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "8c5e331d7f560badaa55b33ce30b847d2c28c412d942514f6f386fcccbbb4e5d",
+      "currentSha256": "c18db167ffc900df5f62c8ff35d07f4f343dcacd11775fcdbc933234b790a4c6",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {import(\"./soundchip.js?v=wonderswan-native-1\").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ],
+      "afterChanged": [
+        "   * @param {import(\"./soundchip.js?v=wonderswan-pcm-timeline-1\").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ]
+    },
+    {
+      "path": "docs/js/segapsg.js",
+      "report": "analyzer_psg_levels_04",
+      "baselineCommit": "637da3fa2b1405a40fbc9d18e65c5703b6d78794",
+      "beforeSha256": "3cd98a25012a2e330fbaacd0db1635c18b814e0a4faa49d680fe97a57a5afbfe",
+      "currentSha256": "41a7d377d6becc2a5645c6fdb41e44447fe5c479f8a4ce3ab944995938746022",
+      "cacheQueriesOnly": true,
+      "beforeChanged": [
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ],
+      "afterChanged": [
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+        "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+      ]
+    }
+  ],
+  "measurements": [
+    {
+      "previous": "docs/issues/analyzer_extra_levels_03.json",
+      "current": "docs/issues/analyzer_extra_levels_04.json",
+      "measurementBodyIdentical": true,
+      "rows": 18,
+      "defaults": {
+        "segaPcm": 0.261709,
+        "k051649": 1.103844,
+        "ymf278b": 1.465915,
+        "msm5205": 0.128849,
+        "okim6295": 0.128849
+      },
+      "sha256": "92b9421999fb4f290f9b9a5467431656cc8a5bd3e8e0f0ea35bee599308be595"
+    },
+    {
+      "previous": "docs/issues/analyzer_psg_levels_04.json",
+      "current": "docs/issues/analyzer_psg_levels_05.json",
+      "measurementBodyIdentical": true,
+      "rows": 12,
+      "defaults": {
+        "psg": 0.45542,
+        "ay8910": 1.100331,
+        "nesApu": 1.512236
+      },
+      "sha256": "79bbde6029778bd7d3788622026943b49a5b34280f60b72e80bb42490e05e0de"
+    }
+  ],
+  "allMeasurementBodiesIdentical": true,
+  "changedSourcesCommentOnly": true,
+  "strictSourceHashCheckRetained": true,
+  "nesReceiptUnchanged": "docs/issues/analyzer_nes_levels_01.json",
+  "generatedDefaults": {
+    "path": "docs/vgm_analyzer/mixer_calibration_data.js",
+    "beforeSha256": "3ed9a0e23a6a766f736d1bfa174be003b24bd9f83a3b7db7c3cd9431d35da0fc",
+    "afterSha256": "d940890fbae1a615de0818717cfddf613806daf23a66cf9ca72336c381f8fac7",
+    "runtimeBodyIdentical": true,
+    "changes": "Two provenance comment paths only"
+  },
+  "validation": {
+    "relatedTests": 12,
+    "actualAnalyzerRoutes": 8,
+    "maxGainError": 2.8610229518832853e-8,
+    "pcmWavResetChecksPassed": true,
+    "generatorCheckPassed": true
+  },
+  "logs": [
+    {
+      "path": "/private/tmp/analyzer-extra-levels-ws-refresh.log",
+      "bytes": 197,
+      "sha256": "ad685279a8536c245ae4075c128f38eb710c1f1798f568fd67b1bc5e5aee34bf"
+    },
+    {
+      "path": "/private/tmp/analyzer-psg-levels-ws-refresh.log",
+      "bytes": 644,
+      "sha256": "46c0b87fe65367e1384dd7b0449df1543b7697bda577efce26562aa8c4f718ee"
+    },
+    {
+      "path": "/private/tmp/analyzer-calibration-ws-tests.log",
+      "bytes": 1297,
+      "sha256": "8eb71d9b35a505939434317edcf08fb37f17916d1f0104b32bb85d2714e47d3b"
+    },
+    {
+      "path": "/private/tmp/analyzer-calibration-ws-runtime.log",
+      "bytes": 137,
+      "sha256": "b7e71e960bb2e6ef910685fa2a60187054b1417886a7d7f04881a3daacbd3f46"
+    }
+  ]
+}

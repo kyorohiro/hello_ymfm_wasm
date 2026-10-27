@@ -1,5 +1,5 @@
-import {wonderswanWaveCode,wonderswanWaveJson} from './wonderswan_waves.js?v=wonderswan-waves-1';
-import {wonderswanPreviewPitch} from './sample_render.js?v=wonderswan-waves-1';
+import {wonderswanWaveCode,wonderswanWaveJson} from './wonderswan_waves.js?v=wonderswan-voice-samples-1';
+import {wonderswanPreviewPitch} from './sample_render.js?v=wonderswan-voice-samples-1';
 
 function download(bytes,type,name){
   const url=URL.createObjectURL(new Blob([bytes],{type}));
@@ -13,7 +13,10 @@ export function appendWonderSwanWave(output,sample,events,uses=events.filter(e=>
 }={}){
   const row=document.createElement('details'),title=document.createElement('summary');
   row.setAttribute('data-wonderswan-wave-id',String(sample.id));
-  title.textContent=`Wave ${sample.id} · WonderSwan · 32 points (0–15) · ${uses.length} observations`;
+  const used=sample.usedInPlayback===true||uses.some(event=>event.audible===true);
+  row.setAttribute('data-wonderswan-wave-usage',used?'used':'unused');
+  title.textContent=used?`Wave ${sample.id} · WonderSwan · used in playback · 32 points (0–15) · ${uses.length} observations`
+    :`Unplayed RAM candidate ${sample.id} · WonderSwan · 32 points (0–15) · ${uses.length} observations`;
   row.append(title);
   const canvas=document.createElement('canvas');
   canvas.width=512;canvas.height=120;canvas.style.maxWidth='100%';
@@ -35,10 +38,11 @@ export function appendWonderSwanWave(output,sample,events,uses=events.filter(e=>
   for(const [index,event] of uses.slice(0,500).entries()){
     const option=document.createElement('option');option.value=String(index);
     const pitch=wonderswanPreviewPitch(event);
-    option.textContent=`${(event.startTime/44100).toFixed(3)} s / CH${event.channel} / ${pitch.observed?`${pitch.frequencyHz.toFixed(2)} Hz`:'A4 preview'} / ${event.mode}`;
+    option.textContent=`${(event.startTime/44100).toFixed(3)} s / CH${event.channel} / ${pitch.observed?`${pitch.frequencyHz.toFixed(2)} Hz`:'A4 test tone'} / ${event.mode} / ${event.audible?'used in playback':'unplayed RAM observation'}`;
     selection.append(option);
   }
-  if(!uses.length){const option=document.createElement('option');option.value='0';option.textContent='A4 preview (no pitch observation)';selection.append(option);}
+  if(!uses.length){const option=document.createElement('option');option.value='0';option.textContent='A4 test tone (unplayed RAM candidate; no pitch observation)';selection.append(option);}
+  const firstUsed=uses.slice(0,500).findIndex(event=>event.audible===true);if(firstUsed>=0)selection.value=String(firstUsed);
   const selected=()=>uses[Number(selection.value)||0];
   const code=document.createElement('textarea');code.readOnly=true;code.rows=4;code.style.width='100%';
   code.setAttribute('aria-label','WonderSwan setWaveform JavaScript');
@@ -61,7 +65,7 @@ export function appendWonderSwanWave(output,sample,events,uses=events.filter(e=>
   listen.onclick=async()=>{
     if(signal?.aborted)return;
     listen.disabled=true;
-    try{await onPreview(sample,selected());report('Isolated wave preview: centered volume, base pitch; sweep and song timing are not replayed.');}
+    try{await onPreview(sample,selected());report(selected()?.audible?'Isolated wave preview: centered volume, written base pitch; sweep and song timing are not replayed.':'Isolated RAM candidate test tone. This RAM observation was not used for audible wave playback; it is not the sound of the song.');}
     catch(error){report(`Preview failed: ${error.message}`);}
     finally{listen.disabled=!onPreview;}
   };
@@ -76,9 +80,10 @@ export function appendWonderSwanWave(output,sample,events,uses=events.filter(e=>
     finally{wav.disabled=!onWav;}
   };
   const help=document.createElement('p');
-  help.textContent='Use with a WonderSwan chip named ws. setWaveform uses a zero-based channel and stops that voice; set its note and volume, then keyOn(). Preview isolates the 32-point wave for one second at the selected base pitch (A4 when no active pitch is known), with centered volume 9/9. Noise, sweep, Voice PCM and song timing are not replayed. Observations are RAM/register state, not detected note boundaries.';
+  help.textContent=(used?'Wave RAM used while a channel and its headphone output were enabled at nonzero volume for a positive interval. ':'Unplayed RAM candidate: no positive-duration wave playback was observed with enabled headphone output and nonzero volume. The test tone deliberately makes this stored RAM audible. ')
+    +'Use with a WonderSwan chip named ws. setWaveform uses a zero-based channel and stops that voice; set its note and volume, then keyOn(). Preview isolates the 32-point wave for one second at the selected written base pitch (an A4 test tone when no active pitch is known), with centered volume 9/9. Noise, sweep, Voice PCM and song timing are not replayed. Observations are RAM/register state, not detected note boundaries.';
   const history=document.createElement('pre');
-  history.textContent=uses.slice(0,500).map(event=>`${(event.startTime/44100).toFixed(3)} s · CH${event.channel} · bank ${event.bank} · RAM 0x${event.address.toString(16)} · ${event.mode} · ${event.enabled?'enabled':'disabled'} · ${event.reason}`).join('\n');
+  history.textContent=uses.slice(0,500).map(event=>`${(event.startTime/44100).toFixed(3)} s · CH${event.channel} · bank ${event.bank} · RAM 0x${event.address.toString(16)} · ${event.mode} · ${event.enabled?'enabled':'disabled'} · ${event.audible?'used in playback':'unplayed RAM observation'} · ${event.reason}`).join('\n');
   if(uses.length>500)history.textContent+='\nShowing first 500 observations.';
   row.append(canvas,selection,code,copy,save,listen,wav,status,help,history);
   output.append(row);

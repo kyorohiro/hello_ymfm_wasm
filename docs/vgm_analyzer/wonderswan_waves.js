@@ -20,7 +20,8 @@ export function createWonderSwanWaves(clock = DEFAULT_CLOCK, limits = {}) {
   const ram = new Uint8Array(RAM_SIZE), known = new Uint8Array(RAM_SIZE), dirty = new Uint8Array(RAM_SIZE / 16);
   const registers = new Uint8Array(32), registerKnown = new Uint8Array(32);
   const samples = [], events = [], warnings = new Set(), definitions = new Map();
-  let retainedBytes = 0, observationTime = -1;
+  const metadataDirty = new Uint8Array(4), selectedObservations = Array(4).fill(null);
+  let retainedBytes = 0, observationTime = -1, currentTime = 0;
   const observationsAtTime = new Map();
 
   function waveMode(channel) {
@@ -31,19 +32,20 @@ export function createWonderSwanWaves(clock = DEFAULT_CLOCK, limits = {}) {
   function capture(channel, time, reason, force = false) {
     const address = ((registers[15] << 6) + channel * 16) & 0x3fff;
     const index = address >> 4;
-    if ((!dirty[index] && !force) || !waveMode(channel)) return;
+    if (!waveMode(channel)) { selectedObservations[channel] = null; return; }
+    if (!dirty[index] && !force) return selectedObservations[channel];
     // A later bank/mode/key-on observation can retry an incomplete snapshot.
     dirty[index] = 0;
     for (let offset = 0; offset < 16; offset++) if (!known[address + offset]) {
       warnings.add('WonderSwan: incomplete wave RAM snapshots are omitted; unwritten bytes are unknown.');
-      return;
+      selectedObservations[channel] = null; return;
     }
     const packed = ram.subarray(address, address + 16), key = [...packed].join(',');
     let sample = definitions.get(key);
     if (!sample) {
       if (samples.length >= budget.maxDefinitions) throw new Error(`WonderSwan waveform analysis exceeds ${budget.maxDefinitions} definitions`);
       if (retainedBytes + 16 > budget.maxPayloadBytes) throw new Error(`WonderSwan waveform analysis exceeds the ${budget.maxPayloadBytes}-byte payload limit`);
-      sample = {id: samples.length + 1, chip: 'wonderswan', kind: 'wave', representation: 'written-wave-ram',
+      sample = {id: samples.length + 1, chip: 'wonderswan', kind: 'wave', representation: 'written-wave-ram', usedInPlayback:false,
         size: 16, available: 16, data: packed.slice(), waveform: [...packed].flatMap(value => [value & 15, value >> 4])};
       samples.push(sample); definitions.set(key, sample); retainedBytes += 16;
     }
@@ -54,6 +56,7 @@ export function createWonderSwanWaves(clock = DEFAULT_CLOCK, limits = {}) {
       frequencyKnown: Boolean(registerKnown[channel * 2] && registerKnown[channel * 2 + 1]),
       frequencyHz: Math.floor(clock / 128) * 128 / (32 * (2048 - frequency)),
       pan: {left: pan >> 4, right: pan & 15}, mode: waveMode(channel), enabled: Boolean(registers[16] & (1 << channel)),
+      audible:false, audibleDurationSamples:0,
       output: {register: output, headphones: Boolean(output & 8), speaker: Boolean(output & 1), speakerVolume: output >> 1 & 3}};
     if (time !== observationTime) { observationsAtTime.clear(); observationTime = time; }
     const observationKey = `${sample.id}:${channel}:${address}`;
@@ -63,18 +66,40 @@ export function createWonderSwanWaves(clock = DEFAULT_CLOCK, limits = {}) {
       // at this instant. Different selected banks retain their own provenance.
       const reasons = new Set([...previous.reason.split('; '), reason]);
       Object.assign(previous, observation, {reason: [...reasons].join('; ')});
-      return;
+      metadataDirty[channel] = 0; selectedObservations[channel] = previous; return previous;
     }
     if (events.length >= budget.maxEvents) throw new Error(`WonderSwan waveform analysis exceeds ${budget.maxEvents} observations`);
     events.push(observation); observationsAtTime.set(observationKey, observation);
+    metadataDirty[channel] = 0; selectedObservations[channel] = observation; return observation;
   }
   function captureSelected(time, reason, force = false) {
     for (let channel = 0; channel < 4; channel++) capture(channel, time, reason, force);
+  }
+  function flush(time) {
+    for (let channel = 0; channel < 4; channel++) capture(channel, time,
+      metadataDirty[channel] ? 'wave settings change' : 'wave RAM write batch', Boolean(metadataDirty[channel]));
+  }
+  function advance(time) {
+    integer(time, 0, Number.MAX_SAFE_INTEGER, 'observation time');
+    if (time < currentTime) throw new RangeError('WonderSwan observation time cannot move backwards');
+    if (time === currentTime) return;
+    // Reconcile the entire zero-wait write batch before declaring any wave
+    // used. A key-on immediately followed by key-off never sounds a note.
+    flush(currentTime);
+    for (let channel = 0; channel < 4; channel++) {
+      const event = selectedObservations[channel];
+      if (!event || !waveMode(channel) || !(registers[16] & (1 << channel)) || !(registers[17] & 8) || !(registers[8 + channel] & 255)) continue;
+      event.audible = true; event.audibleDurationSamples += time - currentTime;
+      event.audibleStartTime ??= currentTime; event.audibleEndTime = time;
+      samples[event.sampleId - 1].usedInPlayback = true;
+    }
+    currentTime = time;
   }
   return {samples, events, warnings,
     apply(event, time) {
       if (event.type !== 'wonderswan-write' && event.type !== 'wonderswan-memory-write') return;
       integer(time, 0, Number.MAX_SAFE_INTEGER, 'observation time');
+      advance(time);
       if (event.chipIndex) throw new Error('Second WonderSwan wave RAM is not analyzed.');
       const value = integer(event.value, 0, 255, 'byte');
       if (event.type === 'wonderswan-memory-write') {
@@ -84,15 +109,24 @@ export function createWonderSwanWaves(clock = DEFAULT_CLOCK, limits = {}) {
         return;
       }
       const register = integer(event.register, 0, 31, 'relative register');
-      const previous = registers[register];
+      const previous = registers[register], wasKnown = registerKnown[register];
       // Flush the old physical bank before selecting another, including writes
       // made immediately before this register in the same zero-wait batch.
       if (register === 15 && previous !== value) captureSelected(time, 'wave bank change (previous bank)');
-      const oldModes = [0, 1, 2, 3].map(waveMode);
+      const oldModes = register === 16 ? [0, 1, 2, 3].map(waveMode) : null;
       registers[register] = value; registerKnown[register] = 1;
+      if (previous !== value || !wasKnown) {
+        if (register <= 7) metadataDirty[register >> 1] = 1;
+        else if (register >= 8 && register <= 11) metadataDirty[register - 8] = 1;
+        else if (register === 15 || register === 17) metadataDirty.fill(1);
+        else if (register === 16) for (let channel = 0; channel < 4; channel++) {
+          if (!wasKnown || ((previous ^ value) & ((1 << channel) | [0,32,64,128][channel]))) metadataDirty[channel] = 1;
+        }
+        else if (register === 12 || register === 13) metadataDirty[2] = 1;
+      }
       if (register === 15 && previous !== value) captureSelected(time, 'wave bank change', true);
       if (register === 16) {
-        if (value & 0x20) warnings.add('WonderSwan: Voice PCM is not extracted as a wavetable; timed PCM capture is not included.');
+        if (value & 0x20) warnings.add('WonderSwan: Voice PCM is not extracted as a wavetable; see separate timed Voice PCM captures.');
         for (let channel = 0; channel < 4; channel++) {
           const keyOn = (value & (1 << channel)) && !(previous & (1 << channel));
           const becameWave = !oldModes[channel] && waveMode(channel);
@@ -102,10 +136,8 @@ export function createWonderSwanWaves(clock = DEFAULT_CLOCK, limits = {}) {
         }
       }
     },
-    flush(time) {
-      integer(time, 0, Number.MAX_SAFE_INTEGER, 'observation time');
-      captureSelected(time, 'wave RAM write batch');
-    },
+    flush(time) { advance(time); flush(time); },
+    advance,
   };
 }
 
@@ -116,6 +148,6 @@ export function wonderswanWaveCode(sample, channel = 0) {
 }
 export function wonderswanWaveJson(sample, events) {
   return JSON.stringify({schemaVersion: 1, chip: 'wonderswan', kind: 'wave', representation: 'written-wave-ram',
-    waveform: sample.waveform, packedBytes: [...sample.data], timebase: 44100,
+    waveform: sample.waveform, packedBytes: [...sample.data], usedInPlayback:Boolean(sample.usedInPlayback), timebase: 44100,
     observations: events.filter(event => event.sampleId === sample.id)}, null, 2);
 }

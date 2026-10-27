@@ -9,6 +9,37 @@ Last updated: 2026-10-27
 
 ### 現在地
 
+VGM AnalyzerのWonderSwan Sample Explorerへ時間付きVoice PCM抽出を追加。
+Cat Songの以前の6波形/11観測はすべて未使用RAMで、実際のCH2 Voice PCMが抽出対象外だった。
+今は元byte/time、gate/mode/output/routing、current/last-tick registers/source phaseを捕捉し、
+Voice off/CH2 off/EOF/10秒windowで区切る。固定12kHzへ丸めず、元の3/4samples間隔を保持する。
+位相と保持値を2秒以下のpre-rollで復元し、Voiceだけの試聴・JSON・44.1kHz stereo WAVを提供。
+未使用Wave RAMは別の閉じた候補groupへ移動。Waveの発音後/同時刻の周波数・音量・出力変更も反映する。
+usedInPlayback/audibleは正の時間、gate/headphone/音量の条件による使用区間であり、実音量の測定や楽器境界推定ではない。
+
+実曲はVoice10区間+未使用RAM6件、PCM1,151,160bytes。
+全byteのSHA256は元sourceと同一の`dde01930a60baf9da477565c7ed9561a4b43924b33fe6b3d435243ae1c1ebf52`。
+全Analyzer/API試験599成功+既存1skip。新実WASM比較9件（重複あり）、Node/npm隔離offlineのAPI/CLI/JSON/ZIP/WAV検証成功。
+最終flatのChromium153/WebKit26.6で実曲0秒/10秒地点の各0.5秒(22,050frames/ch)が独立CH2出力と差分0、WAV PCM16差分0。
+全10区間JSON/ZIPのbyte/timehashが元VGMと一致。UI JSONはZIP内ファイルと同一。
+通常docs機能確認も両Browser成功（その後support案内文のみ訂正）。現行正本は最終flat証跡。
+flat187served fileのhashを最終ZIPと照合、ZIP401fileはstageとbyte一致。Analyzer Tauriへ同401file取り込み済み、Python6/Node4件成功。
+最終AnalyzerZIPは`release/hello_ymfm_wasm_wonderswan-voice-dev_itch_vgm_analyzer.zip`、SHA256
+`e9e43bbb75131ce853006062daca111c1c18a0621bdceb1d52da86ff89e29bd5`。
+local npm tgz SHA256は`f9a893540c7fe8beabeccd92dd33a352d4ecd3ddda396f7f01735f6a1daeae2b`。
+README/CLIを含む主要17sourceが現行原本と一致。
+
+cacheは`wonderswan-voice-samples-1`。更新Analyzerを再読み込みし、同じVGZをLoad→Samples→Analyze samplesする。
+同一音源の元出力を検証しているが、previewは外側のMixerと先行Wave出力を含まない。実機比較/人による実聴は未実施。
+元C++/SDK固定ソース/55 WASM出力は不変。配布時の既存校正receiptのJSDoc cache URL差分は、
+実測30件の完全一致を確認して新receiptへ更新。Mixer値/計算式は変更していない。
+
+Analyzer/Samplesの本体変更とAnalyzer Tauriへの取り込みが未commit。npm版は0.2.14のままlocal pack検証のみ、公開・tag・CI操作なし。
+次は更新Analyzerを再読み込みし、同じVGZから抽出したVoice PCMをユーザー環境で実聴する。
+詳細は[wonderswan_voice_samples_01.md](wonderswan_voice_samples_01.md)。最終配布証跡は同名JSONへ保存済み。
+
+### 直前のPlayground WonderSwan PCM再生タイミング修正
+
 WonderSwanの取り込み自体は成功するが曲が崩れるという報告を調査。Voice PCMの値／時刻の解析は正しく、
 JSのwaitUntil→即時writeでは同じ音声量子へ複数値が到着して途中の値が鳴らない問題だった。
 AnalyzerのWave RAM抽出はVoice PCMを対象外にしており、抽出失敗と再生のPCM認識は別問題。

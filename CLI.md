@@ -932,7 +932,7 @@ Mixer default is unity (`1.0`), matching Playground; this chip is not calibrated
 Live/Song Note-ish and MIDI / MusicXML / LilyPond export use wavetable base
 pitches. CH2 Voice PCM, CH3 Sweep and CH4 Noise intervals are omitted from
 notes, as are waveform harmonics and RAM rewriting. Score channel IDs are
-`wonderswan-ch1` through `wonderswan-ch4`. Voice PCM capture, instrument conversion and TFI/VGI/SBI export are unavailable.
+`wonderswan-ch1` through `wonderswan-ch4`. Timed Voice PCM capture is available through the samples API / CLI; instrument conversion and TFI/VGI/SBI export are unavailable.
 Written wave RAM snapshots are available as described below.
 
 ```sh
@@ -970,3 +970,28 @@ JSON uses `schemaVersion: 1`, `chip: "wonderswan"`, `kind: "wave"`,
 `representation: "written-wave-ram"`, `waveform`, `packedBytes` and
 `observations` in original 44,100 Hz VGM sample time. The ZIP includes a shared
 manifest. This addition is not yet npm-published.
+
+## WonderSwan timed Voice PCM captures
+
+Sample analysis also captures CH2 Voice PCM, including original byte times,
+CH2 gating and live headphone output / sample-routing settings. Captures split
+at Voice disable, CH2 key-off, end of file or 10-second display windows. These
+are timed channel-output captures, not inferred original instruments.
+
+```sh
+node cli/main.js samples song.vgz --json
+node cli/main.js samples song.vgz --id 1 --output voice.json
+node cli/main.js samples song.vgz --id 1 --format wav --output voice.wav
+node cli/main.js samples song.vgz --all --output samples.zip
+```
+
+Voice JSON uses `kind: "voice-pcm"` and `representation: "timed-voice-pcm"`,
+with source start, duration, current/held register snapshots, and timed writes.
+The 44.1 kHz stereo WAV follows the captured hardware routing and source DAC
+phase, before the playback Mixer. Prior wavetable output is excluded.
+
+Wave RAM definitions remain available separately. `usedInPlayback` and each
+observation's `audible` fields distinguish enabled, nonzero-volume headphone
+playback intervals from unplayed RAM candidates; they do not simulate waveform
+audibility or infer note boundaries. Wave preview remains an isolated,
+fixed-pitch audition.

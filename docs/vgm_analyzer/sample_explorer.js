@@ -1,20 +1,21 @@
 import {appendGameboyVoice} from './gameboy_voice_view.js?v=gb-info-perf-1';
 import {appendGameboyWave} from './gameboy_wave_view.js?v=gb-info-perf-1';
-import {appendWonderSwanWave} from './wonderswan_wave_view.js?v=wonderswan-waves-1';
+import {appendWonderSwanWave} from './wonderswan_wave_view.js?v=wonderswan-voice-samples-1';
+import {appendWonderSwanVoice} from './wonderswan_voice_view.js?v=wonderswan-voice-samples-1';
 import {decodeYmf278bSample} from './ymf278b_samples.js';
-import {samplePreviewWav} from './sample_render.js?v=wonderswan-waves-1';
-import {renderSamplePreview} from './sample_render.js?v=wonderswan-waves-1';
-export {configureSamplePreview} from './sample_render.js?v=wonderswan-waves-1';
+import {samplePreviewWav} from './sample_render.js?v=wonderswan-voice-samples-1';
+import {renderSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
+export {configureSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 import { pwmCaptureWav } from './pwm_samples.js';
-import {sampleFile,extractSamples} from './sample_core.js?v=wonderswan-waves-1';
-export {extractSamples} from './sample_core.js?v=wonderswan-waves-1';
+import {sampleFile,extractSamples} from './sample_core.js?v=wonderswan-voice-samples-1';
+export {extractSamples} from './sample_core.js?v=wonderswan-voice-samples-1';
 
 export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
-  let controller, audio, playing, previewSerial = 0, gameboyMode = false;
+  let controller, audio, playing, voicePreviewController, previewSerial = 0, gameboyMode = false;
   const button = document.createElement('button'); button.textContent = 'Analyze samples';
   const output = document.createElement('div');
   panel.append(button, output);
-  const stop = () => { previewSerial++; playing?.stop(); playing = null; };
+  const stop = () => { previewSerial++; voicePreviewController?.abort(); voicePreviewController=null; playing?.stop(); playing = null; };
   const reset = () => { controller?.abort(); stop(); output.replaceChildren(); button.disabled = false; };
   button.onclick = async () => {
     reset(); const source = getSource();
@@ -34,12 +35,40 @@ export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
         if (!uses) eventsBySample.set(event.sampleId, uses = []);
         uses.push(event);
       }
-      let group;
-      for (const s of visible) {
+      let group, unusedWaves;
+      const ordered=[...visible.filter(s=>!(s.chip==='wonderswan'&&s.kind==='wave'&&!s.usedInPlayback)),
+        ...visible.filter(s=>s.chip==='wonderswan'&&s.kind==='wave'&&!s.usedInPlayback)];
+      for (const s of ordered) {
         const uses = eventsBySample.get(s.id) ?? [];
+        if(s.chip==='wonderswan'&&s.kind==='voice-pcm'){
+          const options={getFactory:async()=> (await import('../generated/wonderswan_wasm.js')).default,signal:own.signal};
+          appendWonderSwanVoice(output,s,uses,{
+            signal:own.signal,onStop:stop,
+            onWav:(sample,event)=>samplePreviewWav(sample,event,options),
+            onPreview:async(sample,event)=>{
+              if(own.signal.aborted)return;
+              stop();const serial=previewSerial,renderController=voicePreviewController=new AbortController();
+              audio??=new AudioContext();await audio.resume();
+              if(own.signal.aborted||serial!==previewSerial)throw new DOMException('Preview stopped','AbortError');
+              const pcm=await renderSamplePreview(sample,event,{...options,signal:renderController.signal});
+              if(own.signal.aborted||serial!==previewSerial)throw new DOMException('Preview stopped','AbortError');
+              const buffer=audio.createBuffer(2,pcm.left.length,pcm.sampleRate);
+              buffer.copyToChannel(pcm.left,0);buffer.copyToChannel(pcm.right,1);
+              playing=audio.createBufferSource();playing.buffer=buffer;playing.connect(audio.destination);playing.start();
+            },
+          });
+          continue;
+        }
         if(s.chip==='wonderswan'&&s.kind==='wave'){
           const options={getFactory:async()=> (await import('../generated/wonderswan_wasm.js')).default};
-          appendWonderSwanWave(output,s,uses,uses,{
+          let container=output;
+          if(!s.usedInPlayback){
+            if(!unusedWaves){unusedWaves=document.createElement('details');unusedWaves.setAttribute('data-wonderswan-unused-waves','');
+              const summary=document.createElement('summary');summary.textContent=`Unplayed WonderSwan RAM candidates (${visible.filter(x=>x.chip==='wonderswan'&&x.kind==='wave'&&!x.usedInPlayback).length})`;
+              unusedWaves.append(summary);output.append(unusedWaves);}
+            container=unusedWaves;
+          }
+          appendWonderSwanWave(container,s,uses,uses,{
             signal:own.signal,onStop:stop,
             onWav:(sample,event)=>samplePreviewWav(sample,event,options),
             onPreview:async(sample,event)=>{

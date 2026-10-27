@@ -5,14 +5,17 @@ import {Rf5c164} from '../js/rf5c164.js';
 import {Ym2608} from '../js/ym2608.js';
 import {Ym2610B} from '../js/ym2610b.js';
 import {WonderSwanAudioEngine} from '../js/wonderswanaudioengine.js';
+import {renderWonderSwanVoicePreview} from './wonderswan_voice_render.js?v=wonderswan-voice-samples-1';
 import {renderDacPreview} from './dac_samples.js';
 import {renderPwmPreview} from './pwm_samples.js';
 import {encodeStereoWav} from './vgm_wav.js';
 
-export async function renderSamplePreview(sample,event,{getFactory}={}) {
+export async function renderSamplePreview(sample,event,{getFactory,signal}={}) {
   if(sample.chip==='gameboy')throw new Error('Game Boy wave RAM and voice settings export as JSON; full playback is not reconstructed');
   if(!sample.data)throw new Error('Sample has missing/partial data');
-  if(sample.chip==='wonderswan')return renderWonderSwanPreview(sample,event,{getFactory});
+  if(sample.chip==='wonderswan')return sample.kind==='voice-pcm'
+    ? renderWonderSwanVoicePreview(sample,{getFactory,signal})
+    : renderWonderSwanPreview(sample,event,{getFactory});
   if(sample.chip==='okim6258')return renderOki6258Preview(sample,{getFactory});
   if(sample.chip==='ymf278b'){
     const data=decodeYmf278bSample(sample),rate=event.rate;

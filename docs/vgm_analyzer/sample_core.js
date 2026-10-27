@@ -1,9 +1,10 @@
 import {createGameboyVoices, gameboyVoiceJson} from './gameboy_voices.js';
 import {createGameboyWaves, gameboyWaveJson} from './gameboy_waves.js';
-import {createWonderSwanWaves, wonderswanWaveJson} from './wonderswan_waves.js?v=wonderswan-waves-1';
+import {createWonderSwanWaves, wonderswanWaveJson} from './wonderswan_waves.js?v=wonderswan-voice-samples-1';
+import {createWonderSwanVoiceSamples, wonderswanVoiceSampleJson} from './wonderswan_voice_samples.js?v=wonderswan-voice-samples-1';
 import {createOki6258Samples,oki6258CaptureJson} from './oki6258_samples.js';
 import {createYmf278bSamples} from './ymf278b_samples.js';
-import {samplePreviewWav} from './sample_render.js?v=wonderswan-waves-1';
+import {samplePreviewWav} from './sample_render.js?v=wonderswan-voice-samples-1';
 import {createStoredZipBytes} from './stored_zip.js';
 import {createDacSamples} from './dac_samples.js';
 import {pwmCaptureJson,createPwmSamples} from './pwm_samples.js';
@@ -21,6 +22,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   const dac = createDacSamples();
   const gb = createGameboyWaves();
   const ws = parser.header.wonderswanClock ? createWonderSwanWaves(parser.header.wonderswanClock & 0x3fffffff) : null;
+  const wsVoice = parser.header.wonderswanClock ? createWonderSwanVoiceSamples(parser.header.wonderswanClock & 0x3fffffff) : null;
   const gbVoices = createGameboyVoices();
   const pwm = createPwmSamples();
   const rf = createRf5c164Samples(parser.header.rf5c164Clock & 0x3fffffff);
@@ -162,6 +164,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
       writeRegister(register,value) {
         if(!ws)throw new Error('WonderSwan waveform extraction requires a declared clock');
         ws.apply({type:'wonderswan-write',register,value},time);
+        wsVoice.write(register,value,time);
       },
       writeMemory(offset,value) {
         if(!ws)throw new Error('WonderSwan waveform extraction requires a declared clock');
@@ -184,7 +187,7 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
     const e = parser.playStep(targets);
     if (e.type === 'wait' || e.type === 'end') {gb.flush(time);ws?.flush(time);}
     if (e.type === 'end') break;
-    if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;dac.advance(time);pwm.advance(time);sega.advance(time);});
+    if (e.type === 'wait') parser.consumeWait(targets,e.samples,n=>{time+=n;ws?.advance(time);wsVoice?.advance(time);dac.advance(time);pwm.advance(time);sega.advance(time);});
     else if (e.type === 'rf5c164-data') {} // applied through playback target
     else apply(e);
     if (count % 4096 === 4095) await new Promise(resolve => setTimeout(resolve, 0));
@@ -235,11 +238,17 @@ export async function extractSamples(source, { signal, roms = {} } = {}) {
   for (const w of gbVoices.warnings) warnings.add(w);
   if (gbVoices.samples.length) warnings.add('Game Boy Pulse/Noise: trigger-time settings and subsequent writes only. Hardware envelope/sweep/length evolution and audible note ends are not simulated.');
   if (ws) {
+    wsVoice.finish(time,'VGM end');
+    const voiceBase=samples.length;
+    for (const sample of wsVoice.samples) samples.push({...sample,id:sample.id+voiceBase});
+    for (const event of wsVoice.events) events.push({...event,sampleId:event.sampleId+voiceBase});
+    for (const warning of wsVoice.warnings) warnings.add(warning);
+    ws.advance(time);
     const base=samples.length;
     for (const sample of ws.samples) samples.push({...sample,id:sample.id+base});
     for (const event of ws.events) events.push({...event,sampleId:event.sampleId+base});
     for (const warning of ws.warnings) warnings.add(warning);
-    warnings.add('WonderSwan waveforms are written RAM snapshots: 32 unsigned 4-bit points, low nibble first. Observations do not detect original instruments or audible durations. Preview isolates the waveform at a fixed base pitch; Voice PCM and Noise output are not extracted.');
+    warnings.add('WonderSwan waveforms are written RAM snapshots: 32 unsigned 4-bit points, low nibble first. Unplayed RAM candidates are listed separately. Wave preview is an isolated fixed-pitch audition, not song playback; Noise output is not extracted.');
   }
   return { samples, events, clock, warnings: [...warnings], time };
 }
@@ -254,7 +263,9 @@ function sampleInventory(result) {
   return {schemaVersion:1,timebase:44100,time:result.time,warnings:result.warnings,
     samples:result.samples.map(({data,times,registers,values,...metadata})=>({
       ...metadata,exportable:data!==null && data!==undefined,
-      representation:metadata.chip==='wonderswan'?'written-wave-ram':metadata.chip==='gameboy'?(metadata.kind==='wave'?'written-wave-ram':'trigger-register-settings'):metadata.chip==='okim6258'?'timed-adpcm':metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':['ymf278b','segapcm'].includes(metadata.chip)?'raw-pcm':'raw-adpcm',
+      ...(metadata.chip==='wonderswan'&&metadata.kind==='voice-pcm'?{initial:{...metadata.initial,
+        registers:[...metadata.initial.registers],heldRegisters:[...metadata.initial.heldRegisters]}}:{}),
+      representation:metadata.chip==='wonderswan'?(metadata.kind==='voice-pcm'?'timed-voice-pcm':'written-wave-ram'):metadata.chip==='gameboy'?(metadata.kind==='wave'?'written-wave-ram':'trigger-register-settings'):metadata.chip==='okim6258'?'timed-adpcm':metadata.kind==='dac'||metadata.kind==='pwm'?'timed-output':metadata.chip==='rf5c164'?'ram-snapshot':['ymf278b','segapcm'].includes(metadata.chip)?'raw-pcm':'raw-adpcm',
     })),events:result.events};
 }
 
@@ -262,7 +273,9 @@ function sampleInventory(result) {
 // Native Browser save format: raw ADPCM/RAM bytes or timed output JSON.
 export function sampleFile(sample, events) {
   if (!sample.data) throw new Error('Sample '+sample.id+' has missing/partial data');
-  if (sample.chip === 'wonderswan') return {name:`wonderswan-wave-${sample.id}.json`,bytes:new TextEncoder().encode(wonderswanWaveJson(sample,events))};
+  if (sample.chip === 'wonderswan') return sample.kind==='voice-pcm'
+    ? {name:`wonderswan-voice-${sample.id}.json`,bytes:new TextEncoder().encode(wonderswanVoiceSampleJson(sample,events))}
+    : {name:`wonderswan-wave-${sample.id}.json`,bytes:new TextEncoder().encode(wonderswanWaveJson(sample,events))};
   if (sample.chip === 'gameboy' && sample.kind !== 'wave') return {name: `gameboy-${sample.kind}-${sample.id}.json`, bytes: new TextEncoder().encode(gameboyVoiceJson(sample, events))};
   if (sample.chip === 'gameboy') return {name: `gameboy-wave-${sample.id}.json`, bytes: new TextEncoder().encode(gameboyWaveJson(sample, events))};
   const first=events.find(e=>e.sampleId===sample.id);
@@ -287,7 +300,9 @@ export async function exportSamples(bytes,{id,all=false,signal,format='native',o
     const uses=result.events.filter(e=>e.sampleId===id),event=uses[occurrence-1];
     if(!event)throw new Error('Unknown sample occurrence');
     const wav=await samplePreviewWav(selected[0],event,{getFactory});
-    return {...wav,warnings:[...result.warnings,selected[0].chip==='wonderswan'
+    return {...wav,warnings:[...result.warnings,selected[0].chip==='wonderswan'&&selected[0].kind==='voice-pcm'
+      ? 'WonderSwan Voice PCM WAV preserves byte timing and observed hardware output/routing, before the playback Mixer. Each capture is at most 10 seconds and is not an inferred original instrument.'
+      : selected[0].chip==='wonderswan'
       ? 'WonderSwan WAV is a one-second isolated waveform preview at its observed base pitch (A4 if unavailable), centered volume 9/9 with short fades. Sweep, Noise, Voice PCM and song timing are not replayed.'
       : 'WAV follows Browser preview: centered ADPCM/RF5C164, stereo Sega PCM/PWM/OKIM6258, at most 10 seconds; duration is a preview estimate, not detected sample end. RF5C164 loop markers may repeat within this window.']};
   }

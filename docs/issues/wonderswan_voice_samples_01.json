@@ -1,0 +1,3481 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "scope": "WonderSwan timed Voice PCM extraction, replay and exports; used/unplayed Wave RAM distinction.",
+  "source": {
+    "name": "04 Cat Song ~ Theme of UPA.vgz",
+    "bytes": 1510590,
+    "sha256": "4c18a899a8beb7d38c8f91f1bf40aae26968163526186addd50cfd36d372ee70",
+    "sourceAudit": {
+      "durationSamples": 4231606,
+      "totalPcmWrites": 1151160,
+      "clock": 3072000,
+      "windows": [
+        {
+          "startTime": 0,
+          "durationSamples": 441000,
+          "pcmCount": 119702,
+          "firstPcmTime": 1096,
+          "lastPcmTime": 440998,
+          "pcmSha256": "b58b66a428bd08f0e03c166bfd433d30bc65f356bf3af7a9efa43e08e7f77e0c",
+          "timingSha256": "156d8cffd6e0ee3cdf13280466056734f6f09c4edd58d4b1c17c1288daa16fbe"
+        },
+        {
+          "startTime": 441000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 441001,
+          "lastPcmTime": 881998,
+          "pcmSha256": "d79844cdd6c73174bc7a39b340755e4575c7e21315d763d07cfc9f417e060ed6",
+          "timingSha256": "fc59a62a02d293f9e4e95879629836f42de01536add039e7d341ed224743f962"
+        },
+        {
+          "startTime": 882000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 882001,
+          "lastPcmTime": 1322997,
+          "pcmSha256": "3c2c87a24aeea2b75c221999c0eb750a36940d3ad7844976a2fe8bc92b765dbf",
+          "timingSha256": "faa0bfca5c0f6b2ba5eff6e5455e657b6ae305a3dd70ef00ae98d8889b4f716c"
+        },
+        {
+          "startTime": 1323000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 1323001,
+          "lastPcmTime": 1763998,
+          "pcmSha256": "3aaf341724eb7831275b15357d7e9ab77eebf29cd852846f25398adf130e9bea",
+          "timingSha256": "ea3a4c96f4eac94cfef35cf5d6651210e2a473a342f295cd4be9c84bfa19c0e2"
+        },
+        {
+          "startTime": 1764000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 1764001,
+          "lastPcmTime": 2204997,
+          "pcmSha256": "916d32ed2c22e56ebb6306bcec4eaa9c036112b3cd99cff069a42f439c4a6e4e",
+          "timingSha256": "1332c560d4568209b89d155321b53e6b5b3760eb5f8cbbec68d7f6d82b6d08b2"
+        },
+        {
+          "startTime": 2205000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 2205001,
+          "lastPcmTime": 2645997,
+          "pcmSha256": "4409d749a2e388ed91b97711729af70a5a92e490049646ce16a3be4dcde8fae3",
+          "timingSha256": "499ac5279bd3ab5c2bfb045a4a10f4fcb6fc82d3a76ce6e9efe90a7c01b1e4e2"
+        },
+        {
+          "startTime": 2646000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 2646001,
+          "lastPcmTime": 3086997,
+          "pcmSha256": "2595425e1fe446a85657f513392a367f5a721930ee553a338a8823c2288b03e3",
+          "timingSha256": "a684e36973ab10d60568e70f1f78695e74cdda19ec0d797d8be01b32ebf34157"
+        },
+        {
+          "startTime": 3087000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 3087001,
+          "lastPcmTime": 3527997,
+          "pcmSha256": "039bd84e8db5658e14cb189a3c7e3c386e693acfbdc353952823041807e2001a",
+          "timingSha256": "efbaee5d2430de4aa96c243c3f0f536f24db91a90c3dd4ad979f1d048fc32259"
+        },
+        {
+          "startTime": 3528000,
+          "durationSamples": 441000,
+          "pcmCount": 120000,
+          "firstPcmTime": 3528001,
+          "lastPcmTime": 3968997,
+          "pcmSha256": "568f453fec61789466cb399f0715408859dba29b351a814e6965b1eefa0a7b19",
+          "timingSha256": "ec120812cdac3ab19197ad12436504ed2c9815ca2ffe5f1ba6b1d2ca8afe032f"
+        },
+        {
+          "startTime": 3969000,
+          "durationSamples": 262606,
+          "pcmCount": 71458,
+          "firstPcmTime": 3969001,
+          "lastPcmTime": 4231606,
+          "pcmSha256": "1d9a6593f9367af067be150339e72a23b9b77885577e99493e34235563c358ce",
+          "timingSha256": "556d0cfdfa8ba384f7e21d20e5ed57e89b6b1dc3c1ece672283e38edfad1f01a"
+        }
+      ]
+    },
+    "copiedIntoRepository": false
+  },
+  "captures": {
+    "sourceSha256": "45f7e2ee1b9235e15be683192cc9f5f65edaa5a488fdcf458d4ad902a883aebf",
+    "durationSamples": 4231606,
+    "seconds": 95.95478458049887,
+    "writes": 1151171,
+    "pcm": 1151160,
+    "stats": {
+      "retainedBytes": 8068366,
+      "stagingBytes": 0,
+      "writeCount": 1151164,
+      "pcmWriteCount": 1151160,
+      "intervals": 10
+    },
+    "dataHash": "dde01930a60baf9da477565c7ed9561a4b43924b33fe6b3d435243ae1c1ebf52",
+    "allSourcePcmHash": "dde01930a60baf9da477565c7ed9561a4b43924b33fe6b3d435243ae1c1ebf52",
+    "captures": [
+      {
+        "id": 1,
+        "start": 0,
+        "duration": 441000,
+        "pcm": 119702,
+        "writes": 119703,
+        "boundary": "10-second window",
+        "initial": 0,
+        "held": 0,
+        "phase": {
+          "sourceStartSample": 0,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 2,
+        "start": 441000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 65,
+        "held": 65,
+        "phase": {
+          "sourceStartSample": 441000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 3,
+        "start": 882000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 134,
+        "held": 134,
+        "phase": {
+          "sourceStartSample": 882000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 4,
+        "start": 1323000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 76,
+        "held": 76,
+        "phase": {
+          "sourceStartSample": 1323000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 5,
+        "start": 1764000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 88,
+        "held": 88,
+        "phase": {
+          "sourceStartSample": 1764000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 6,
+        "start": 2205000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 126,
+        "held": 126,
+        "phase": {
+          "sourceStartSample": 2205000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 7,
+        "start": 2646000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 112,
+        "held": 112,
+        "phase": {
+          "sourceStartSample": 2646000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 8,
+        "start": 3087000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 129,
+        "held": 129,
+        "phase": {
+          "sourceStartSample": 3087000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 9,
+        "start": 3528000,
+        "duration": 441000,
+        "pcm": 120000,
+        "writes": 120000,
+        "boundary": "10-second window",
+        "initial": 151,
+        "held": 151,
+        "phase": {
+          "sourceStartSample": 3528000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      },
+      {
+        "id": 10,
+        "start": 3969000,
+        "duration": 262606,
+        "pcm": 71458,
+        "writes": 71458,
+        "boundary": "end",
+        "initial": 132,
+        "held": 132,
+        "phase": {
+          "sourceStartSample": 3969000,
+          "timebase": 44100,
+          "nativeTickRate": 24000,
+          "periodSamples": 147
+        }
+      }
+    ],
+    "warnings": [
+      "WonderSwan Voice PCM captures preserve timed CH2 writes and held output, split at Voice disable, CH2 key-off, end, or 10-second display windows. These are not detected original samples or instruments."
+    ]
+  },
+  "browser": {
+    "report": {
+      "path": "/private/tmp/ws-voice-flat-browser.json",
+      "bytes": 101826,
+      "sha256": "2a523ff6512666178b854696e6337eb08da58ff8eb0a6937581f54e590b190b6"
+    },
+    "finalDistribution": true,
+    "reportData": {
+      "format": "tetorica-wonderswan-samples-browser-2",
+      "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_vgm_analyzer_wonderswan-voice-dev",
+      "physicalOutput": "zero-gain destination; actual preview AudioBuffer compared before device resampling",
+      "fixture": {
+        "bytes": 576,
+        "sha256": "b3e76ba34f62c47ea57890914e30229e3a3fdd04719544ec76c2d03497245b06"
+      },
+      "localFile": {
+        "name": "04 Cat Song ~ Theme of UPA.vgz",
+        "bytes": 1510590,
+        "sha256": "4c18a899a8beb7d38c8f91f1bf40aae26968163526186addd50cfd36d372ee70",
+        "sourceAudit": {
+          "durationSamples": 4231606,
+          "totalPcmWrites": 1151160,
+          "clock": 3072000,
+          "windows": [
+            {
+              "startTime": 0,
+              "durationSamples": 441000,
+              "pcmCount": 119702,
+              "firstPcmTime": 1096,
+              "lastPcmTime": 440998,
+              "pcmSha256": "b58b66a428bd08f0e03c166bfd433d30bc65f356bf3af7a9efa43e08e7f77e0c",
+              "timingSha256": "156d8cffd6e0ee3cdf13280466056734f6f09c4edd58d4b1c17c1288daa16fbe"
+            },
+            {
+              "startTime": 441000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 441001,
+              "lastPcmTime": 881998,
+              "pcmSha256": "d79844cdd6c73174bc7a39b340755e4575c7e21315d763d07cfc9f417e060ed6",
+              "timingSha256": "fc59a62a02d293f9e4e95879629836f42de01536add039e7d341ed224743f962"
+            },
+            {
+              "startTime": 882000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 882001,
+              "lastPcmTime": 1322997,
+              "pcmSha256": "3c2c87a24aeea2b75c221999c0eb750a36940d3ad7844976a2fe8bc92b765dbf",
+              "timingSha256": "faa0bfca5c0f6b2ba5eff6e5455e657b6ae305a3dd70ef00ae98d8889b4f716c"
+            },
+            {
+              "startTime": 1323000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 1323001,
+              "lastPcmTime": 1763998,
+              "pcmSha256": "3aaf341724eb7831275b15357d7e9ab77eebf29cd852846f25398adf130e9bea",
+              "timingSha256": "ea3a4c96f4eac94cfef35cf5d6651210e2a473a342f295cd4be9c84bfa19c0e2"
+            },
+            {
+              "startTime": 1764000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 1764001,
+              "lastPcmTime": 2204997,
+              "pcmSha256": "916d32ed2c22e56ebb6306bcec4eaa9c036112b3cd99cff069a42f439c4a6e4e",
+              "timingSha256": "1332c560d4568209b89d155321b53e6b5b3760eb5f8cbbec68d7f6d82b6d08b2"
+            },
+            {
+              "startTime": 2205000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 2205001,
+              "lastPcmTime": 2645997,
+              "pcmSha256": "4409d749a2e388ed91b97711729af70a5a92e490049646ce16a3be4dcde8fae3",
+              "timingSha256": "499ac5279bd3ab5c2bfb045a4a10f4fcb6fc82d3a76ce6e9efe90a7c01b1e4e2"
+            },
+            {
+              "startTime": 2646000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 2646001,
+              "lastPcmTime": 3086997,
+              "pcmSha256": "2595425e1fe446a85657f513392a367f5a721930ee553a338a8823c2288b03e3",
+              "timingSha256": "a684e36973ab10d60568e70f1f78695e74cdda19ec0d797d8be01b32ebf34157"
+            },
+            {
+              "startTime": 3087000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 3087001,
+              "lastPcmTime": 3527997,
+              "pcmSha256": "039bd84e8db5658e14cb189a3c7e3c386e693acfbdc353952823041807e2001a",
+              "timingSha256": "efbaee5d2430de4aa96c243c3f0f536f24db91a90c3dd4ad979f1d048fc32259"
+            },
+            {
+              "startTime": 3528000,
+              "durationSamples": 441000,
+              "pcmCount": 120000,
+              "firstPcmTime": 3528001,
+              "lastPcmTime": 3968997,
+              "pcmSha256": "568f453fec61789466cb399f0715408859dba29b351a814e6965b1eefa0a7b19",
+              "timingSha256": "ec120812cdac3ab19197ad12436504ed2c9815ca2ffe5f1ba6b1d2ca8afe032f"
+            },
+            {
+              "startTime": 3969000,
+              "durationSamples": 262606,
+              "pcmCount": 71458,
+              "firstPcmTime": 3969001,
+              "lastPcmTime": 4231606,
+              "pcmSha256": "1d9a6593f9367af067be150339e72a23b9b77885577e99493e34235563c358ce",
+              "timingSha256": "556d0cfdfa8ba384f7e21d20e5ed57e89b6b1dc3c1ece672283e38edfad1f01a"
+            }
+          ]
+        },
+        "copiedIntoRepository": false
+      },
+      "sourceFiles": {
+        "analyzer_core.js": {
+          "bytes": 9694,
+          "sha256": "9cf27e6717d111fe8d60fc44f048f80a9d87b139bbe7d98fddbdeaf8af756a1b"
+        },
+        "analyzer_theme.css": {
+          "bytes": 15774,
+          "sha256": "42d4ac870aa932afd34186126cdd562bafb0849cc14cf37b7e0c5430b70c6e39"
+        },
+        "audio_preferences.js": {
+          "bytes": 2988,
+          "sha256": "4892291d9036ca44d6d5e3810698b67a98dd34011b250205ba1729b4c82b6bcd"
+        },
+        "ay8910_monitor.js": {
+          "bytes": 2811,
+          "sha256": "758944b97710d653e9eeeb4abfd0fdbea32307cc5d8064f1e6faac88eb85e721"
+        },
+        "command_editor.js": {
+          "bytes": 8294,
+          "sha256": "270d1e58e51b9d5e4a54959bbeb16dd935c5e1ac12da280be4b0b95751c86af4"
+        },
+        "dac_samples.js": {
+          "bytes": 1924,
+          "sha256": "282043a4342058fae916b1f0f6a13ddc794e32239af9c7f51e026056e33b8697"
+        },
+        "desktop_interface.js": {
+          "bytes": 505,
+          "sha256": "ea9ef9390ccef87e26a6dc7bdc986a582dfc77b0f1ccac2eb7f0b003a540cc75"
+        },
+        "export_tempo.js": {
+          "bytes": 1002,
+          "sha256": "d8935af29483f40ea64eb60af85b8d52a903fc1c09ccabecfd284d31c265436d"
+        },
+        "fm_snapshot.js": {
+          "bytes": 2871,
+          "sha256": "8edcd46571dbf1276d39fd3790f6da968b8bd0009d34ebe537b4af677254c6c6"
+        },
+        "fretboard_all.js": {
+          "bytes": 4125,
+          "sha256": "2038728738aacfc082efff2c86e70cfa32d0391af5aaf9886440b74127f7454f"
+        },
+        "fretboard.js": {
+          "bytes": 13046,
+          "sha256": "cf9628fc08d8ba34b1e7cf85fd5f61c50031a7e3eea312f008572acc4a5d13fa"
+        },
+        "gameboy_notes.js": {
+          "bytes": 4363,
+          "sha256": "fccbc3803b378d8403f673df721a62f4a6729a53e060caa97456bffd21854618"
+        },
+        "gameboy_voice_view.js": {
+          "bytes": 4410,
+          "sha256": "9f2b2ae8efc568901225b77351b9f09283f843c4f7077c6c90c34e278dd555e9"
+        },
+        "gameboy_voices.js": {
+          "bytes": 4702,
+          "sha256": "0769eaaa8150529c9a2e76d50e7857e519737da9c0a552e9f2a63eb0f165cb8a"
+        },
+        "gameboy_wave_view.js": {
+          "bytes": 2739,
+          "sha256": "3ee3e36c5e7e0cb62770e1bdb993d05d819e404ca9561773ae8e534919e477f1"
+        },
+        "gameboy_waves.js": {
+          "bytes": 2475,
+          "sha256": "0ed850aab97071d70a9285640d5886ba28f181d45ef9ba6cf93c1937ca456dc2"
+        },
+        "generated/nuked_opn2_wasm.js": {
+          "bytes": 32804,
+          "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+        },
+        "generated/segapsg_wasm.js": {
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+        },
+        "generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "generated/ym2612_wasm.js": {
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+        },
+        "huc6280_notes.js": {
+          "bytes": 4023,
+          "sha256": "c7e675bcc39b605b5712cef78e7094ee25aeb9d397817a1af8a02714913f54d6"
+        },
+        "index.html": {
+          "bytes": 60722,
+          "sha256": "50da17d910c8f124a3aefb1665780a4ddf4fa462ed476b9f40921fa54bc86363"
+        },
+        "js/audio_decode.js": {
+          "bytes": 1955,
+          "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+        },
+        "js/ay8910.js": {
+          "bytes": 6294,
+          "sha256": "c18db167ffc900df5f62c8ff35d07f4f343dcacd11775fcdbc933234b790a4c6"
+        },
+        "js/ay8910audioengine.js": {
+          "bytes": 5494,
+          "sha256": "a96172582b64ea31699faaff34c9177ae635bc316227a7b91a63caa793f5cda2"
+        },
+        "js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "js/gameboyapu.js": {
+          "bytes": 7166,
+          "sha256": "fe0e2eb6d31a2ef9f80bc8fc7a76978fb37fa79281b7c79b300bace7402de548"
+        },
+        "js/gameboyapuaudioengine.js": {
+          "bytes": 5651,
+          "sha256": "9f24b7c254ea815788247b76c39d0de33a5652afbf4b2eab819430f52a92b5eb"
+        },
+        "js/genesisaudioengine.js": {
+          "bytes": 14863,
+          "sha256": "b93985a0501cd2c3aca66d427640d1e868d78dad63e1e41c0a413d0e2a394495"
+        },
+        "js/huc6280audioengine.js": {
+          "bytes": 6291,
+          "sha256": "e1b56f67dd3d9fe1a0c87efed35901b4aaa201ed06f3d1f7b7ea6ba5649c63e2"
+        },
+        "js/k051649.js": {
+          "bytes": 5788,
+          "sha256": "6f63ab59a241db7a88b19d231c741ca3f1f35767c73732ad3e9947f107798f1b"
+        },
+        "js/k051649audioengine.js": {
+          "bytes": 4703,
+          "sha256": "c0bec23f6072a041b54fc8e14d3beaafeffe90ef0c1c2b1ccb5bc8b825c23798"
+        },
+        "js/looper.js": {
+          "bytes": 24025,
+          "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+        },
+        "js/megasynth_fx.js": {
+          "bytes": 62352,
+          "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+        },
+        "js/megasynth_recording.js": {
+          "bytes": 10125,
+          "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/megasynth.js": {
+          "bytes": 33508,
+          "sha256": "272344444704aee156f35dc8657f11a4d192e8a05d94722732666b06dc73fa62"
+        },
+        "js/msm5205audioengine.js": {
+          "bytes": 3560,
+          "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5"
+        },
+        "js/msxaudioengine.js": {
+          "bytes": 8077,
+          "sha256": "65625d4fe5bdd6a6f4279d94c6e863bfc67d8f248845067aa5cb80aa19ed8db4"
+        },
+        "js/multichipaudioengine.js": {
+          "bytes": 4698,
+          "sha256": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_sample.js": {
+          "bytes": 3655,
+          "sha256": "1fbfe157702bdb315e340991deb347389b25bed3821faf43601f317228937834"
+        },
+        "js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "js/okim6258audioengine.js": {
+          "bytes": 8216,
+          "sha256": "4aa1274b6c4ad5dbe8630a7e6ed8b912e320ab1c3dde94da642314f588fcc237"
+        },
+        "js/okim6295audioengine.js": {
+          "bytes": 6878,
+          "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2"
+        },
+        "js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "js/playground_audio_endpoint.js": {
+          "bytes": 2002,
+          "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+        },
+        "js/playground_chip_clock.js": {
+          "bytes": 5174,
+          "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+        },
+        "js/playground_pwm_audio.js": {
+          "bytes": 2582,
+          "sha256": "c4606a11392ae7025ece4311783eb74ab83d44dda50cf3103b7276901518e921"
+        },
+        "js/playground_rf5c164_audio.js": {
+          "bytes": 2628,
+          "sha256": "89f9386a61693d010384e23129b60bf659d3ab7dc88923b6e5c7e0af606f8452"
+        },
+        "js/playground_rf5c164.js": {
+          "bytes": 5159,
+          "sha256": "df2f5d3aaca4e1ffb7df6e24a7e12563e394f8d2b0d084707e652f177cc0d0f0"
+        },
+        "js/pwm32x_playback.js": {
+          "bytes": 9076,
+          "sha256": "5c70d0074e0e2d6d2f01ddbf7d974c192241dabf818ef5f8de99000b6d87bff7"
+        },
+        "js/pwm32x_wasm.js": {
+          "bytes": 12449,
+          "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+        },
+        "js/pwm32x.js": {
+          "bytes": 6905,
+          "sha256": "3214fa25f11fff13b708cb336c3895e3f1a8b1462c392523c54e8be9e149a9f6"
+        },
+        "js/rf5c164_pcm.js": {
+          "bytes": 1537,
+          "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+        },
+        "js/rf5c164.js": {
+          "bytes": 10244,
+          "sha256": "df9e9d39b380996602449035685e94052ec940cdecdd2b5b1b988f4990134d7c"
+        },
+        "js/rf5c164synth.js": {
+          "bytes": 4836,
+          "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+        },
+        "js/s98_file.js": {
+          "bytes": 5878,
+          "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+        },
+        "js/segapcm.js": {
+          "bytes": 8622,
+          "sha256": "5bfd23c7c7fab99065e1d85a3a951120af957e626d379d2df10850d5363083c2"
+        },
+        "js/segapcmaudioengine.js": {
+          "bytes": 6189,
+          "sha256": "d30f58a3ab98ad3d1717ddf9a7cfd80ee1ec2eee9aa2eed2b63df4d1927bca51"
+        },
+        "js/segapsg_api.js": {
+          "bytes": 1086,
+          "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+        },
+        "js/segapsg.js": {
+          "bytes": 10169,
+          "sha256": "41a7d377d6becc2a5645c6fdb41e44447fe5c479f8a4ce3ab944995938746022"
+        },
+        "js/segapsgsynth.js": {
+          "bytes": 10444,
+          "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+        },
+        "js/snes_brr.js": {
+          "bytes": 11140,
+          "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+        },
+        "js/soundchip_mixer_presets.js": {
+          "bytes": 2986,
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+        },
+        "js/soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/spc_file.js": {
+          "bytes": 8896,
+          "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+        },
+        "js/tetorica_audio_runtime.js": {
+          "bytes": 35718,
+          "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+        },
+        "js/tfi.js": {
+          "bytes": 9704,
+          "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+        },
+        "js/vgi.js": {
+          "bytes": 4326,
+          "sha256": "3d4212ba18485d250607060b1eef3e7e4e78491e12a952e85738d2c0a5c1226f"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "js/vgmplayer.js": {
+          "bytes": 24008,
+          "sha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33"
+        },
+        "js/wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "js/wonderswan.js": {
+          "bytes": 7520,
+          "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+        },
+        "js/wonderswanaudioengine.js": {
+          "bytes": 5856,
+          "sha256": "8ca29f96e47e0f300b4ab827a6171dd7481d4ce3f353e52072b35f9f1f8c41e5"
+        },
+        "js/y8950.js": {
+          "bytes": 11110,
+          "sha256": "8df7aca08ba5e1eb31ac3bbe1bd3241e0d8a8e74838cddc306011ba5bcdc295e"
+        },
+        "js/y8950audioengine.js": {
+          "bytes": 7989,
+          "sha256": "d9614f4b07d21813630a59ef788b92ddc0aed10930bd5ba28499470f033324f9"
+        },
+        "js/ym2151.js": {
+          "bytes": 11535,
+          "sha256": "039cf167c0bf23c1ec6ce436b6b7486d52dc92eec4499ccdbfd27d02a6e8720b"
+        },
+        "js/ym2151audioengine.js": {
+          "bytes": 11480,
+          "sha256": "28bb640a25a32c042adb942902926c41b3e9cdc848b8b615a2ff52f8d89a483a"
+        },
+        "js/ym2203.js": {
+          "bytes": 12781,
+          "sha256": "a19eac247b63b605ad796fdc78a9f5b3f18219ce1f1f793c0ffca67ee991ab3f"
+        },
+        "js/ym2203audioengine.js": {
+          "bytes": 8840,
+          "sha256": "5caa9aa5758d0667cb72ea77158ed254539fcf166d4286f1349fe7bc251bd8d2"
+        },
+        "js/ym2413.js": {
+          "bytes": 9529,
+          "sha256": "5ea915d378741edf4784711154fb14e8b48cb2fd0c30083b6492162de9abdba9"
+        },
+        "js/ym2413audioengine.js": {
+          "bytes": 7184,
+          "sha256": "ccfdf4e110715784a518d6992797bb4964057df83039a80364acbd4c71564c50"
+        },
+        "js/ym2608.js": {
+          "bytes": 15663,
+          "sha256": "d90489958661e7f007c595060c84cf2976a8ae9b45887ccf060d3f9ebd38dadd"
+        },
+        "js/ym2608audioengine.js": {
+          "bytes": 9984,
+          "sha256": "0d68c4623218f71932d0acc7d465629c92085a5703919cc2795f5e8d56169bcf"
+        },
+        "js/ym2610b.js": {
+          "bytes": 11206,
+          "sha256": "202e9909606335a68635fdcfe6934d7f5999cc586c270210d9c6d5b3897497d6"
+        },
+        "js/ym2610baudioengine.js": {
+          "bytes": 7805,
+          "sha256": "f665924c39f5f558950a3759d44972e3fa5a1a66624e53c326ebe14225a1405e"
+        },
+        "js/ym2612_dac.js": {
+          "bytes": 7251,
+          "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+        },
+        "js/ym2612.js": {
+          "bytes": 22574,
+          "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+        },
+        "js/ym2612synth.js": {
+          "bytes": 38608,
+          "sha256": "09ca02325419add8cfeb9bf14a30de8b8fa7eccc1d82f0f83078faa25b5b1e85"
+        },
+        "js/ym2612vgm.js": {
+          "bytes": 115343,
+          "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+        },
+        "js/ym3526.js": {
+          "bytes": 9502,
+          "sha256": "101c59f32b02f1a4f6ec9659be8d363c212d9770c8924baa7f54d30c09436acf"
+        },
+        "js/ym3526audioengine.js": {
+          "bytes": 7363,
+          "sha256": "8ce1b713d891be9ad8f7439695406911f597ff0ecd39e70480a5ab8f9c3afb03"
+        },
+        "js/ym3812.js": {
+          "bytes": 9502,
+          "sha256": "61e0751d219a62b9818c97cb9debc0c5c2808ec8210be9c04da26c58713591ea"
+        },
+        "js/ym3812audioengine.js": {
+          "bytes": 7363,
+          "sha256": "72c5e92e295566e95ea96e4da5c0430aea8e07e2e09cc569ddedbe66d4629109"
+        },
+        "js/ymf262.js": {
+          "bytes": 10336,
+          "sha256": "476c524243e0b9e9b3d0bbc0ea1be162868e31cd9b7eddac5a586cff24133fa2"
+        },
+        "js/ymf262audioengine.js": {
+          "bytes": 7676,
+          "sha256": "14093244aee9c05a7d9ba763887105bc154af76b340d0dfc3c9effd67b17e06b"
+        },
+        "js/ymf278b.js": {
+          "bytes": 11591,
+          "sha256": "14f4dc5bb1c88ed1ac00a096fc7b202dfddd79842c0ae85c457780e60780a6b1"
+        },
+        "js/ymf278baudioengine.js": {
+          "bytes": 8639,
+          "sha256": "3164337ddc05c62fb5b9b93c90a6976221c1e7f19a0df883bcc072b124d55ba4"
+        },
+        "mdx_export.js": {
+          "bytes": 5300,
+          "sha256": "6ef643255c3bb7373490cca2811793256b927d4ae2bd8612c51351f80f24e4e7"
+        },
+        "mgsdrv_mml.js": {
+          "bytes": 8661,
+          "sha256": "a85377480ee5bfd063fdc105bf40db9da99cbd8e07d8fd0d53366417984f64a2"
+        },
+        "mixer_calibration_data.js": {
+          "bytes": 631,
+          "sha256": "d940890fbae1a615de0818717cfddf613806daf23a66cf9ca72336c381f8fac7"
+        },
+        "mixer_defaults.js": {
+          "bytes": 1947,
+          "sha256": "e639ca55f5472d104f54da7587761c15f31b38c13e3b95dadaa31fbe974c2086"
+        },
+        "mixer_ui.js": {
+          "bytes": 3726,
+          "sha256": "c4c8d3ff4e3a176fb6c26be5b68d16d63ddf11c61b9e23eebad427bad40171dd"
+        },
+        "msx_mutes.js": {
+          "bytes": 2061,
+          "sha256": "5df0f6d0e77337efd4fd58616ae842830eb2cb45d474edf3d6bad5032bc5a307"
+        },
+        "msx_notes.js": {
+          "bytes": 6222,
+          "sha256": "248ffde1c64b3e50e96ed49d4555e8211618d9d600b57483afd5acf3e936c4cc"
+        },
+        "music_sheet.js": {
+          "bytes": 6602,
+          "sha256": "8174477eb8a66ea3a051b7ff428d5df736998e00453965d201a29e1dffea1066"
+        },
+        "nes_notes.js": {
+          "bytes": 3341,
+          "sha256": "2d35ea725b263792cad4c922da78b0bce5a61cba473194b4f2288c25a57a3d34"
+        },
+        "note_timeline_view.js": {
+          "bytes": 9901,
+          "sha256": "eb1ffd28a448f2fd3ae9b3cae46eb00b116a68f7d29d82ba5bbd36b739d07662"
+        },
+        "note_timeline.js": {
+          "bytes": 1700,
+          "sha256": "91def311626b5f11767c285ad71ce82d1924d563bf4a1737e0f3aa1d9a12799d"
+        },
+        "noteish_dom.js": {
+          "bytes": 1195,
+          "sha256": "732a07d7dece06de4463cbf0a719dfe843a75ee26b5d88d4cb6a3cb54ea980eb"
+        },
+        "oki6258_samples.js": {
+          "bytes": 2871,
+          "sha256": "d0ba906cc3f880a083c4394fa575e1e2aa935fa1e1de314267f69dc42236517d"
+        },
+        "opl_monitor.js": {
+          "bytes": 1926,
+          "sha256": "9e8fdd142ff3ca6c603dca965c2ac7c5e1399a5025fb63eeeddea3a71c09a61a"
+        },
+        "opl_notes.js": {
+          "bytes": 4197,
+          "sha256": "e3cea7b29c98f873bd2b2a9cf679d99f361e01e67b67635c5aaf6b55dae3d95d"
+        },
+        "opm_export.js": {
+          "bytes": 4746,
+          "sha256": "4dba32e57ba03f10d1bc2576f61f975afcfeba0a98ebc0667a6662aeac82ba07"
+        },
+        "opm_info.js": {
+          "bytes": 6646,
+          "sha256": "98909766cad116be6fb7e3f0d179323e34b2bd2d9f13442a08d01494db6ab7f8"
+        },
+        "opm_mml.js": {
+          "bytes": 3580,
+          "sha256": "50264f6986acfbe1c673158214a94e521000295a37c403a029f77623e4599b56"
+        },
+        "opm_monitor.js": {
+          "bytes": 7175,
+          "sha256": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7"
+        },
+        "opm_notes.js": {
+          "bytes": 3911,
+          "sha256": "3db11a11bba27724d58850a04549ca65e7d3128f142d083092e7b665e0b0b90b"
+        },
+        "opm_tfi.js": {
+          "bytes": 3080,
+          "sha256": "2e3be120db66a4064ffa5675934b17760690688cd52342e5c8a13465d4687890"
+        },
+        "playback_core.js": {
+          "bytes": 26366,
+          "sha256": "a7fbaf227f332b7f3d179ac5917dc9f980955312be052503923149ac12eb15ef"
+        },
+        "playback_mixer.js": {
+          "bytes": 4432,
+          "sha256": "85b9a5285b82b56efe11036fc686d94584119b4875e8013ee9e61e5fd2a556ad"
+        },
+        "playground/playground_operator_keyboard.js": {
+          "bytes": 21207,
+          "sha256": "6a86d9b8dd336662b86a5846eb93b02bf23053dda6e4cff5a39285471f14b636"
+        },
+        "playground/playground_operator_tab.js": {
+          "bytes": 31863,
+          "sha256": "fd1cb186f995bf8093a927f3ff6515d42745f4e037a746315bad7737bbd5680e"
+        },
+        "playground/playground_operator_visual.js": {
+          "bytes": 158,
+          "sha256": "aa98e3e1f34d6d8cefe11c053bb26902daedb7130c48bfaf242ea8bf76dfffe8"
+        },
+        "playground/playground_tfi_editor.js": {
+          "bytes": 5640,
+          "sha256": "39b60beffc47e55ff34cf644ba208c3202c583e4230f842d9af14a6c60a565ab"
+        },
+        "playground/playground_vgm_presets.js": {
+          "bytes": 2815,
+          "sha256": "5cde95ca9dd3a367d072411a5ad47ef8e872af028177569fec61ce78ddfb94fa"
+        },
+        "psg_monitor.js": {
+          "bytes": 3454,
+          "sha256": "092bc0fdfea5c48eea8c1a016a772e14389cda02c7345d6eed2ede31d8c75e1f"
+        },
+        "pwm_samples.js": {
+          "bytes": 3733,
+          "sha256": "bc7c184d8e9696f570c406ae0f8debc777fbf2d677fc0170cb603398285f33ae"
+        },
+        "rf5c164_monitor.js": {
+          "bytes": 2542,
+          "sha256": "188d00f67df1ac1ed46600e396c317d8e2a4c1311274723b6c392fc9f858d91f"
+        },
+        "rf5c164_samples.js": {
+          "bytes": 3728,
+          "sha256": "88721185dade0c3ed70f2b7bf5441798eb1149e8c1094d7472505885ad220211"
+        },
+        "sample_core.js": {
+          "bytes": 20382,
+          "sha256": "0143ff4cbfb0843fbfc67310fd11d4f97d2cbe05d540a6d9a7ef5ca11de95d19"
+        },
+        "sample_explorer.js": {
+          "bytes": 14939,
+          "sha256": "b6bea0e363925d1d9b608228ec546b2a2008b75e5db4bf2994777929e331cd97"
+        },
+        "sample_render.js": {
+          "bytes": 8838,
+          "sha256": "b400da940deb71bfc9d1e16b9ead817d491cf58c57c3d5ae37be2790c6ce2123"
+        },
+        "sbi_export.js": {
+          "bytes": 6312,
+          "sha256": "f6a8b269e2109b375840b7592617867e1acab9b6ed584c69b902b20e33434349"
+        },
+        "sbi_info.js": {
+          "bytes": 8733,
+          "sha256": "b3a6fdda38ae8fea9fc7ffd6a7b671344840c13e31763ad0c8f5a0e8b00dd58d"
+        },
+        "sbi_ui.js": {
+          "bytes": 2796,
+          "sha256": "945aa193300573b14711321059b77d735222b417a9f021587a824826a3e353cd"
+        },
+        "scc_notes.js": {
+          "bytes": 1930,
+          "sha256": "150d78f6dd46e03887ab498d75aa1e84ff4310d6d66ffd52b8c7c9b79f535e08"
+        },
+        "score_group_ui.js": {
+          "bytes": 2934,
+          "sha256": "49c137b9647bf340154e3ecb081e935133c53b702e5736decbc56448c7d154ce"
+        },
+        "score_groups.js": {
+          "bytes": 2975,
+          "sha256": "bee506765793d9a6d94a686386932091ae0ce17958826897ad3d5a3abdd9c430"
+        },
+        "seek_playback.js": {
+          "bytes": 1837,
+          "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+        },
+        "segapcm_samples.js": {
+          "bytes": 6264,
+          "sha256": "c2bd8624e44ea28618e04dfd5d327089377bad8032013ec8eed627338cd4505b"
+        },
+        "snes_notes.js": {
+          "bytes": 12923,
+          "sha256": "6630cbefa5ac2d62d03812915814e315fd538174bd8ccb4565ca497ef6eaa425"
+        },
+        "snes_score.js": {
+          "bytes": 1746,
+          "sha256": "81f6f76d5e372db0e373993dfc1a0a6bb3070f6846bea0e7c3fdce1642f8321f"
+        },
+        "source_mutes.js": {
+          "bytes": 2145,
+          "sha256": "68e8471f2b11b28c027b0da0ff4d9d60d623cae6a3bdc68ae14e44058e8f2544"
+        },
+        "spc_analyzer.js": {
+          "bytes": 21973,
+          "sha256": "261288618541e4d90762dedbbb433f0f4efc716d42df537234784d862dde2287"
+        },
+        "spc_brr_candidates.js": {
+          "bytes": 5299,
+          "sha256": "8f8db94bc5bd096dd3276969b47a20ddd99917c838a9704f5486f1a4e471ea20"
+        },
+        "spc_noteish.js": {
+          "bytes": 15836,
+          "sha256": "664bc5d9ca4c214e26ab5f5f8fa85e5182a2906d96dad31c8a7e470b96dd49ef"
+        },
+        "stored_zip.js": {
+          "bytes": 4446,
+          "sha256": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968"
+        },
+        "synth/synth_controls.js": {
+          "bytes": 10018,
+          "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+        },
+        "synth/synth_envelope.js": {
+          "bytes": 13551,
+          "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 9982,
+          "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+        },
+        "synth/synth_operator_envelope.js": {
+          "bytes": 9649,
+          "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+        },
+        "tfi_archive.js": {
+          "bytes": 4063,
+          "sha256": "b8925cf07b9aea2294b9675f26e4cafb79bfd0eef7c9c0d17ecb095893ee525e"
+        },
+        "tfi_extract.js": {
+          "bytes": 6519,
+          "sha256": "4674eb016c7823b170c36ae2a63397e676c1cf6151e704c1f2c17bdc6a043635"
+        },
+        "tfi_info.css": {
+          "bytes": 13888,
+          "sha256": "d2ec7df313ec813184e888887227e2e9dc34df1e2fb0d25c662c8313d176bf9e"
+        },
+        "tfi_info.js": {
+          "bytes": 4412,
+          "sha256": "44b477db26b0d7aa80f48374f98351831d4c04efe60e7c9d9ae5d1b019300efa"
+        },
+        "tone_notes.js": {
+          "bytes": 3716,
+          "sha256": "5572ef16e214ae4b6decaf1632ae16a7fc1d5c23a5fd4a8753c0b259762d28bb"
+        },
+        "vgm_analyzer.js": {
+          "bytes": 212000,
+          "sha256": "6870bc15b55f60bd59d9c91dd86a983d64bda2e6e782d9f52c91502b3ad7ef9e"
+        },
+        "vgm_json.js": {
+          "bytes": 3478,
+          "sha256": "de403a20371d5fefb04392e452aec5d2853b7013a6c96fc39fbd82a963596114"
+        },
+        "vgm_lilypond.js": {
+          "bytes": 10037,
+          "sha256": "b2b5f3e1a0c5c34e0ae0d6f03fdb59dc70f4cf26d9ced3c657eb48f1fbf9fb89"
+        },
+        "vgm_midi.js": {
+          "bytes": 13374,
+          "sha256": "9cf815ef42e5c3667b9fe33b01c63892fcaf0c63f15e8b24d9834f022dfd1da4"
+        },
+        "vgm_mml_music.js": {
+          "bytes": 8057,
+          "sha256": "2a99983d938d38be2f72ef5d5ab77123318d4dd1a23481902a17f0ecd959bed2"
+        },
+        "vgm_mml.js": {
+          "bytes": 9175,
+          "sha256": "7a0dc7d60398139aa1f589ec274c80a6ea69876f870bedde0f3570e03e507c51"
+        },
+        "vgm_musicxml.js": {
+          "bytes": 5447,
+          "sha256": "68e91c6ca3cfaf4b1cc415990a1f98627826837d3838aced6513c76871b867aa"
+        },
+        "vgm_notes.js": {
+          "bytes": 8178,
+          "sha256": "6b18ecc65ab30142ce42547a4f3feeca028dde3ce8871a2b9016772f741c4a80"
+        },
+        "vgm_wav.js": {
+          "bytes": 4414,
+          "sha256": "1afff1cc2540c706a4e69693828c9ed1a3787ede2a0e5c2e7f13492fec3706f9"
+        },
+        "wonderswan_notes.js": {
+          "bytes": 3431,
+          "sha256": "908a76298eff73f03e80384f2d8f681c757e8a3dd951fc48acfd1d718aef6629"
+        },
+        "wonderswan_voice_render.js": {
+          "bytes": 3008,
+          "sha256": "f694bfa6cf252c1170036e8a5f9a7f97053a22bd5772e0f62acb4cc9fbbdceaf"
+        },
+        "wonderswan_voice_samples.js": {
+          "bytes": 10452,
+          "sha256": "b55d5d5a60809db35ac992ca99acf802e951ff50a6000ecd18fe71d16bc3fa28"
+        },
+        "wonderswan_voice_view.js": {
+          "bytes": 3765,
+          "sha256": "848571944a74890bfc48e069937c635be95db0e2b08dbcc11dccec6ba48c4713"
+        },
+        "wonderswan_wave_view.js": {
+          "bytes": 6281,
+          "sha256": "85f2423a48458238705c23234466262e081ff7a7d4a2743efd16999613843a95"
+        },
+        "wonderswan_waves.js": {
+          "bytes": 9503,
+          "sha256": "2f97d7bd2a2fc72fd02ba1bc6c310e9d277c517c8b8b1cd7ed79444b78642677"
+        },
+        "ym2413_monitor.js": {
+          "bytes": 3550,
+          "sha256": "309261dd9a98af20dbbd0f84281651f4aa4db42ec219d1ec6b925f453650fd12"
+        },
+        "ym2413_notes.js": {
+          "bytes": 2325,
+          "sha256": "b2ed0b150b492c19beac4ee6ba9fe7d720a33cf3f07937117339e4a04409d54c"
+        },
+        "ymf262_notes.js": {
+          "bytes": 3987,
+          "sha256": "85f81b249abe4b2fe22af430678f657baadeba3e3d921d95b1df5b8ea63c8842"
+        },
+        "ymf278b_samples.js": {
+          "bytes": 4483,
+          "sha256": "f8afd3d93515c330e9ace1ab212c9dc33778ac6d01bd74fa7cffbe7f296f3eed"
+        }
+      },
+      "testSources": {
+        "scripts/check_wonderswan_samples_browser.cjs": "aa7da087b0e0a5b26bdd33a4aa001e312e904970ab8417ff8a31ace6e7415f97",
+        "test/helpers/wonderswan_sample_vgm_fixture.mjs": "92cd50c9492aaa7f3db99f3c40b5682540257879aa9046432b511da89406d77a"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "uniqueWaves": 2,
+          "waveResults": [
+            {
+              "wave": 1,
+              "code": "ws.setWaveform(0, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);",
+              "json": {
+                "name": "wonderswan-wave-1.json",
+                "bytes": 6701,
+                "sha256": "0e482fe70d5b5f0857e3f3508c9724ea42c5161be5058c912e535379504760bc",
+                "content": {
+                  "schemaVersion": 1,
+                  "chip": "wonderswan",
+                  "kind": "wave",
+                  "representation": "written-wave-ram",
+                  "waveform": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    0,
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15
+                  ],
+                  "packedBytes": [
+                    33,
+                    67,
+                    101,
+                    135,
+                    169,
+                    203,
+                    237,
+                    15,
+                    16,
+                    50,
+                    84,
+                    118,
+                    152,
+                    186,
+                    220,
+                    254
+                  ],
+                  "usedInPlayback": true,
+                  "timebase": 44100,
+                  "observations": [
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 0,
+                      "reason": "wave bank change; CH1 key-on",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 0,
+                      "audibleEndTime": 44100
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 0,
+                      "reason": "wave bank change; CH2 key-on",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 0,
+                      "audibleEndTime": 44100
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 4,
+                      "startTime": 0,
+                      "reason": "wave bank change; wave settings change",
+                      "bank": 72,
+                      "address": 4656,
+                      "clock": 3072000,
+                      "frequency": 1873,
+                      "frequencyKnown": true,
+                      "frequencyHz": 548.5714285714286,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 44100,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 44100,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 88200,
+                      "reason": "CH1 key-on",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 88200,
+                      "audibleEndTime": 132300
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 88200,
+                      "reason": "CH2 key-on",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 88200,
+                      "audibleEndTime": 132300
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 132300,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 132300,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    }
+                  ]
+                }
+              },
+              "preview": {
+                "source": {
+                  "starts": 1,
+                  "stops": 0,
+                  "destinationMuted": true,
+                  "sampleRate": 44100,
+                  "channels": [
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 0.00011246894915134021,
+                      "acRms": 0.04044140847715771
+                    },
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 0.00011246894915134021,
+                      "acRms": 0.04044140847715771
+                    }
+                  ]
+                },
+                "signal": {
+                  "peak": 0.06591796875,
+                  "rms": 0.021869560660601074,
+                  "bad": 0,
+                  "mute": 0
+                }
+              },
+              "wav": {
+                "name": "wonderswan-wave-1.wav",
+                "bytes": 176444,
+                "sha256": "abcc907f825185457527709744b69ae1c3d636543b8f641c2fda48cff4ba23aa"
+              },
+              "occurrenceChange": {
+                "index": 1,
+                "channel": 2,
+                "code": "ws.setWaveform(1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);",
+                "stopped": true
+              }
+            },
+            {
+              "wave": 2,
+              "code": "ws.setWaveform(2, [0, 15, 15, 0, 1, 14, 14, 1, 2, 13, 13, 2, 3, 12, 12, 3, 4, 11, 11, 4, 5, 10, 10, 5, 6, 9, 9, 6, 7, 8, 8, 7]);",
+              "json": {
+                "name": "wonderswan-wave-2.json",
+                "bytes": 3314,
+                "sha256": "97d0dd1f4934aa4b673c4cadacdfdd8eec980b642f52d5c39ebd28bdc9c4497f",
+                "content": {
+                  "schemaVersion": 1,
+                  "chip": "wonderswan",
+                  "kind": "wave",
+                  "representation": "written-wave-ram",
+                  "waveform": [
+                    0,
+                    15,
+                    15,
+                    0,
+                    1,
+                    14,
+                    14,
+                    1,
+                    2,
+                    13,
+                    13,
+                    2,
+                    3,
+                    12,
+                    12,
+                    3,
+                    4,
+                    11,
+                    11,
+                    4,
+                    5,
+                    10,
+                    10,
+                    5,
+                    6,
+                    9,
+                    9,
+                    6,
+                    7,
+                    8,
+                    8,
+                    7
+                  ],
+                  "packedBytes": [
+                    240,
+                    15,
+                    225,
+                    30,
+                    210,
+                    45,
+                    195,
+                    60,
+                    180,
+                    75,
+                    165,
+                    90,
+                    150,
+                    105,
+                    135,
+                    120
+                  ],
+                  "usedInPlayback": true,
+                  "timebase": 44100,
+                  "observations": [
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 0,
+                      "reason": "wave bank change; CH3 key-on",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 0,
+                      "audibleEndTime": 44100
+                    },
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 44100,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 88200,
+                      "reason": "CH3 key-on",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 88200,
+                      "audibleEndTime": 132300
+                    },
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 132300,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    }
+                  ]
+                }
+              },
+              "preview": {
+                "source": {
+                  "starts": 1,
+                  "stops": 0,
+                  "destinationMuted": true,
+                  "sampleRate": 44100,
+                  "channels": [
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 4.289376309794604e-05,
+                      "acRms": 0.040373011474887414
+                    },
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 4.289376309794604e-05,
+                      "acRms": 0.040373011474887414
+                    }
+                  ]
+                },
+                "signal": {
+                  "peak": 0.06591796875,
+                  "rms": 0.02046304725022935,
+                  "bad": 0,
+                  "mute": 0
+                }
+              },
+              "wav": {
+                "name": "wonderswan-wave-2.wav",
+                "bytes": 176444,
+                "sha256": "8bcfd32d1433cb9e0b170db8c8926f1b9b037f0f3efc12bb8a36301f33667aef"
+              },
+              "occurrenceChange": null
+            }
+          ],
+          "voice": {
+            "voiceCaptures": 10,
+            "unusedRamCandidates": 6,
+            "totalPcmBytes": 1151160,
+            "results": [
+              {
+                "id": 1,
+                "waveformDrawn": true,
+                "metadata": {
+                  "sourceStartSample": 0,
+                  "durationSamples": 441000,
+                  "pcmBytes": 119702,
+                  "writeCount": 119703,
+                  "pcmSha256": "b58b66a428bd08f0e03c166bfd433d30bc65f356bf3af7a9efa43e08e7f77e0c",
+                  "timingSha256": "156d8cffd6e0ee3cdf13280466056734f6f09c4edd58d4b1c17c1288daa16fbe",
+                  "controlRegisters": [
+                    16
+                  ],
+                  "phase": {
+                    "sourceStartSample": 0,
+                    "timebase": 44100,
+                    "nativeTickRate": 24000,
+                    "periodSamples": 147
+                  },
+                  "initialOutput": 11,
+                  "initialVoiceGain": 15,
+                  "boundary": "10-second window"
+                },
+                "json": {
+                  "name": "wonderswan-voice-1.json",
+                  "bytes": 4373841,
+                  "sha256": "c098f04deb5aa0082cb264162f655bb28a2d1d52dc4850f0812f3174a06ccfef"
+                },
+                "preview": {
+                  "source": {
+                    "starts": 1,
+                    "stops": 0,
+                    "destinationMuted": true,
+                    "sampleRate": 44100,
+                    "channels": [
+                      {
+                        "frames": 441000,
+                        "peak": 0.12451171875,
+                        "bad": 0,
+                        "mean": -0.00030238117382369616,
+                        "acRms": 0.025799170253292467
+                      },
+                      {
+                        "frames": 441000,
+                        "peak": 0.12451171875,
+                        "bad": 0,
+                        "mean": -0.00030238117382369616,
+                        "acRms": 0.025799170253292467
+                      }
+                    ]
+                  },
+                  "signal": {
+                    "peak": 0.12451171875,
+                    "rms": 0.08799337480840977,
+                    "bad": 0,
+                    "mute": 0
+                  },
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "sampleRate": 44100,
+                    "sourceStartSample": 0,
+                    "maximumDifference": 0,
+                    "mismatchedSamples": 0,
+                    "firstMismatches": [],
+                    "referenceSha256": "fb74fbf194e8bc4e2a7389611867db57c97e6eb1285031a3e2f32aaf55cd3d4d"
+                  }
+                },
+                "wav": {
+                  "name": "wonderswan-voice-1.wav",
+                  "bytes": 1764044,
+                  "sha256": "90cc2977b91962c05efdcab8f379cd7c6d7245f68cffb08bb2b33631e1f2d5af",
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "mismatchedSamples": 0
+                  }
+                }
+              },
+              {
+                "id": 2,
+                "waveformDrawn": true,
+                "metadata": {
+                  "sourceStartSample": 441000,
+                  "durationSamples": 441000,
+                  "pcmBytes": 120000,
+                  "writeCount": 120000,
+                  "pcmSha256": "d79844cdd6c73174bc7a39b340755e4575c7e21315d763d07cfc9f417e060ed6",
+                  "timingSha256": "fc59a62a02d293f9e4e95879629836f42de01536add039e7d341ed224743f962",
+                  "controlRegisters": [],
+                  "phase": {
+                    "sourceStartSample": 441000,
+                    "timebase": 44100,
+                    "nativeTickRate": 24000,
+                    "periodSamples": 147
+                  },
+                  "initialOutput": 11,
+                  "initialVoiceGain": 15,
+                  "boundary": "10-second window"
+                },
+                "json": {
+                  "name": "wonderswan-voice-2.json",
+                  "bytes": 4362682,
+                  "sha256": "828491c34fa541ba922c111b4aca07a6219f6a296954ae6cb166e8cdd67c37a8"
+                },
+                "preview": {
+                  "source": {
+                    "starts": 1,
+                    "stops": 0,
+                    "destinationMuted": true,
+                    "sampleRate": 44100,
+                    "channels": [
+                      {
+                        "frames": 441000,
+                        "peak": 0.12353515625,
+                        "bad": 0,
+                        "mean": 0.00010076309169501134,
+                        "acRms": 0.03716200785885069
+                      },
+                      {
+                        "frames": 441000,
+                        "peak": 0.12353515625,
+                        "bad": 0,
+                        "mean": 0.00010076309169501134,
+                        "acRms": 0.03716200785885069
+                      }
+                    ]
+                  },
+                  "signal": {
+                    "peak": 0.07373046875,
+                    "rms": 0.01367491895931904,
+                    "bad": 0,
+                    "mute": 0
+                  },
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "sampleRate": 44100,
+                    "sourceStartSample": 441000,
+                    "maximumDifference": 0,
+                    "mismatchedSamples": 0,
+                    "firstMismatches": [],
+                    "referenceSha256": "2e194a6d0e3910293d952f12501ff8ca26b9d4d452021a5614d8ae79a7e5219f"
+                  }
+                },
+                "wav": {
+                  "name": "wonderswan-voice-2.wav",
+                  "bytes": 1764044,
+                  "sha256": "9ac93ed856db74fe547560beae33e14b83cbe83238d7bc95a6868058005f7b91",
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "mismatchedSamples": 0
+                  }
+                }
+              }
+            ],
+            "zip": {
+              "name": "wonderswan-samples.zip",
+              "bytes": 41916116,
+              "sha256": "751cd8a68589db38e1bb10c26c7ab62ff3ce2f1bb9a0569b8ccacc6b67f87e07",
+              "members": 17,
+              "captures": [
+                {
+                  "name": "wonderswan-voice-1.json",
+                  "bytes": 4373841,
+                  "sha256": "c098f04deb5aa0082cb264162f655bb28a2d1d52dc4850f0812f3174a06ccfef",
+                  "metadata": {
+                    "sourceStartSample": 0,
+                    "durationSamples": 441000,
+                    "pcmBytes": 119702,
+                    "writeCount": 119703,
+                    "pcmSha256": "b58b66a428bd08f0e03c166bfd433d30bc65f356bf3af7a9efa43e08e7f77e0c",
+                    "timingSha256": "156d8cffd6e0ee3cdf13280466056734f6f09c4edd58d4b1c17c1288daa16fbe",
+                    "controlRegisters": [
+                      16
+                    ],
+                    "phase": {
+                      "sourceStartSample": 0,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-2.json",
+                  "bytes": 4362682,
+                  "sha256": "828491c34fa541ba922c111b4aca07a6219f6a296954ae6cb166e8cdd67c37a8",
+                  "metadata": {
+                    "sourceStartSample": 441000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "d79844cdd6c73174bc7a39b340755e4575c7e21315d763d07cfc9f417e060ed6",
+                    "timingSha256": "fc59a62a02d293f9e4e95879629836f42de01536add039e7d341ed224743f962",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 441000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-3.json",
+                  "bytes": 4355247,
+                  "sha256": "5d05ad0e11c46c1ae91d040f3370e3868f6c78a55d243d4386e5c2f0df7d25d4",
+                  "metadata": {
+                    "sourceStartSample": 882000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "3c2c87a24aeea2b75c221999c0eb750a36940d3ad7844976a2fe8bc92b765dbf",
+                    "timingSha256": "faa0bfca5c0f6b2ba5eff6e5455e657b6ae305a3dd70ef00ae98d8889b4f716c",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 882000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-4.json",
+                  "bytes": 4361938,
+                  "sha256": "5f60753f8efc5d5bd1e57056997fe4e7b1a49e57c1e8d1c120213a2b9235cd08",
+                  "metadata": {
+                    "sourceStartSample": 1323000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "3aaf341724eb7831275b15357d7e9ab77eebf29cd852846f25398adf130e9bea",
+                    "timingSha256": "ea3a4c96f4eac94cfef35cf5d6651210e2a473a342f295cd4be9c84bfa19c0e2",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 1323000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-5.json",
+                  "bytes": 4363484,
+                  "sha256": "d1daca0a16beae1866735458236448a2e259951d7e0eb6aff3f9e96de6b96745",
+                  "metadata": {
+                    "sourceStartSample": 1764000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "916d32ed2c22e56ebb6306bcec4eaa9c036112b3cd99cff069a42f439c4a6e4e",
+                    "timingSha256": "1332c560d4568209b89d155321b53e6b5b3760eb5f8cbbec68d7f6d82b6d08b2",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 1764000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-6.json",
+                  "bytes": 4356302,
+                  "sha256": "66b288b664ca4dffd9f6a937b7e0a1f54fb926a16103e147bbc3c372eb7cb706",
+                  "metadata": {
+                    "sourceStartSample": 2205000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "4409d749a2e388ed91b97711729af70a5a92e490049646ce16a3be4dcde8fae3",
+                    "timingSha256": "499ac5279bd3ab5c2bfb045a4a10f4fcb6fc82d3a76ce6e9efe90a7c01b1e4e2",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 2205000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-7.json",
+                  "bytes": 4375600,
+                  "sha256": "439eb8b98e96ddee01e953213328ee88342881b674baca854bc4a8eee2f49653",
+                  "metadata": {
+                    "sourceStartSample": 2646000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "2595425e1fe446a85657f513392a367f5a721930ee553a338a8823c2288b03e3",
+                    "timingSha256": "a684e36973ab10d60568e70f1f78695e74cdda19ec0d797d8be01b32ebf34157",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 2646000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-8.json",
+                  "bytes": 4359702,
+                  "sha256": "ee140e3b5b69df26dfbdcf226b434fa117c04b9cf5ae7c32df31c7363060a4fc",
+                  "metadata": {
+                    "sourceStartSample": 3087000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "039bd84e8db5658e14cb189a3c7e3c386e693acfbdc353952823041807e2001a",
+                    "timingSha256": "efbaee5d2430de4aa96c243c3f0f536f24db91a90c3dd4ad979f1d048fc32259",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 3087000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-9.json",
+                  "bytes": 4364810,
+                  "sha256": "deeed25a66b56ad6ae069f268ffa13e04eb344ca5ac67600e3c00329094e0143",
+                  "metadata": {
+                    "sourceStartSample": 3528000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "568f453fec61789466cb399f0715408859dba29b351a814e6965b1eefa0a7b19",
+                    "timingSha256": "ec120812cdac3ab19197ad12436504ed2c9815ca2ffe5f1ba6b1d2ca8afe032f",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 3528000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-10.json",
+                  "bytes": 2599305,
+                  "sha256": "98d600205073de0373d8cbb522edcaae1f797ba4223f65cb673c3997be440b58",
+                  "metadata": {
+                    "sourceStartSample": 3969000,
+                    "durationSamples": 262606,
+                    "pcmBytes": 71458,
+                    "writeCount": 71458,
+                    "pcmSha256": "1d9a6593f9367af067be150339e72a23b9b77885577e99493e34235563c358ce",
+                    "timingSha256": "556d0cfdfa8ba384f7e21d20e5ed57e89b6b1dc3c1ece672283e38edfad1f01a",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 3969000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "VGM end"
+                  }
+                }
+              ]
+            },
+            "originalDurationSamples": 4231606
+          },
+          "lifecycle": {
+            "stop": true,
+            "pendingStop": true,
+            "pendingFileReset": true,
+            "activeFileReset": true
+          },
+          "pageErrors": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "uniqueWaves": 2,
+          "waveResults": [
+            {
+              "wave": 1,
+              "code": "ws.setWaveform(0, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);",
+              "json": {
+                "name": "wonderswan-wave-1.json",
+                "bytes": 6701,
+                "sha256": "0e482fe70d5b5f0857e3f3508c9724ea42c5161be5058c912e535379504760bc",
+                "content": {
+                  "schemaVersion": 1,
+                  "chip": "wonderswan",
+                  "kind": "wave",
+                  "representation": "written-wave-ram",
+                  "waveform": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    0,
+                    0,
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15
+                  ],
+                  "packedBytes": [
+                    33,
+                    67,
+                    101,
+                    135,
+                    169,
+                    203,
+                    237,
+                    15,
+                    16,
+                    50,
+                    84,
+                    118,
+                    152,
+                    186,
+                    220,
+                    254
+                  ],
+                  "usedInPlayback": true,
+                  "timebase": 44100,
+                  "observations": [
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 0,
+                      "reason": "wave bank change; CH1 key-on",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 0,
+                      "audibleEndTime": 44100
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 0,
+                      "reason": "wave bank change; CH2 key-on",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 0,
+                      "audibleEndTime": 44100
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 4,
+                      "startTime": 0,
+                      "reason": "wave bank change; wave settings change",
+                      "bank": 72,
+                      "address": 4656,
+                      "clock": 3072000,
+                      "frequency": 1873,
+                      "frequencyKnown": true,
+                      "frequencyHz": 548.5714285714286,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 44100,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 44100,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 88200,
+                      "reason": "CH1 key-on",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 88200,
+                      "audibleEndTime": 132300
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 88200,
+                      "reason": "CH2 key-on",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 88200,
+                      "audibleEndTime": 132300
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 1,
+                      "startTime": 132300,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4608,
+                      "clock": 3072000,
+                      "frequency": 1612,
+                      "frequencyKnown": true,
+                      "frequencyHz": 220.1834862385321,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 1,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 2,
+                      "startTime": 132300,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4624,
+                      "clock": 3072000,
+                      "frequency": 1757,
+                      "frequencyKnown": true,
+                      "frequencyHz": 329.89690721649487,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    }
+                  ]
+                }
+              },
+              "preview": {
+                "source": {
+                  "starts": 1,
+                  "stops": 0,
+                  "destinationMuted": true,
+                  "sampleRate": 44100,
+                  "channels": [
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 0.00011246894915134021,
+                      "acRms": 0.04044140847715771
+                    },
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 0.00011246894915134021,
+                      "acRms": 0.04044140847715771
+                    }
+                  ]
+                },
+                "signal": {
+                  "peak": 0.06591796875,
+                  "rms": 0.01362787517263774,
+                  "bad": 0,
+                  "mute": 0
+                }
+              },
+              "wav": {
+                "name": "wonderswan-wave-1.wav",
+                "bytes": 176444,
+                "sha256": "abcc907f825185457527709744b69ae1c3d636543b8f641c2fda48cff4ba23aa"
+              },
+              "occurrenceChange": {
+                "index": 1,
+                "channel": 2,
+                "code": "ws.setWaveform(1, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);",
+                "stopped": true
+              }
+            },
+            {
+              "wave": 2,
+              "code": "ws.setWaveform(2, [0, 15, 15, 0, 1, 14, 14, 1, 2, 13, 13, 2, 3, 12, 12, 3, 4, 11, 11, 4, 5, 10, 10, 5, 6, 9, 9, 6, 7, 8, 8, 7]);",
+              "json": {
+                "name": "wonderswan-wave-2.json",
+                "bytes": 3314,
+                "sha256": "97d0dd1f4934aa4b673c4cadacdfdd8eec980b642f52d5c39ebd28bdc9c4497f",
+                "content": {
+                  "schemaVersion": 1,
+                  "chip": "wonderswan",
+                  "kind": "wave",
+                  "representation": "written-wave-ram",
+                  "waveform": [
+                    0,
+                    15,
+                    15,
+                    0,
+                    1,
+                    14,
+                    14,
+                    1,
+                    2,
+                    13,
+                    13,
+                    2,
+                    3,
+                    12,
+                    12,
+                    3,
+                    4,
+                    11,
+                    11,
+                    4,
+                    5,
+                    10,
+                    10,
+                    5,
+                    6,
+                    9,
+                    9,
+                    6,
+                    7,
+                    8,
+                    8,
+                    7
+                  ],
+                  "packedBytes": [
+                    240,
+                    15,
+                    225,
+                    30,
+                    210,
+                    45,
+                    195,
+                    60,
+                    180,
+                    75,
+                    165,
+                    90,
+                    150,
+                    105,
+                    135,
+                    120
+                  ],
+                  "usedInPlayback": true,
+                  "timebase": 44100,
+                  "observations": [
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 0,
+                      "reason": "wave bank change; CH3 key-on",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 0,
+                      "audibleEndTime": 44100
+                    },
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 44100,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    },
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 88200,
+                      "reason": "CH3 key-on",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": true,
+                      "audible": true,
+                      "audibleDurationSamples": 44100,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      },
+                      "audibleStartTime": 88200,
+                      "audibleEndTime": 132300
+                    },
+                    {
+                      "sampleId": 2,
+                      "chip": "wonderswan",
+                      "kind": "wave",
+                      "chipIndex": 0,
+                      "channel": 3,
+                      "startTime": 132300,
+                      "reason": "wave settings change",
+                      "bank": 72,
+                      "address": 4640,
+                      "clock": 3072000,
+                      "frequency": 1830,
+                      "frequencyKnown": true,
+                      "frequencyHz": 440.3669724770642,
+                      "pan": {
+                        "left": 9,
+                        "right": 9
+                      },
+                      "mode": "wave",
+                      "enabled": false,
+                      "audible": false,
+                      "audibleDurationSamples": 0,
+                      "output": {
+                        "register": 8,
+                        "headphones": true,
+                        "speaker": false,
+                        "speakerVolume": 0
+                      }
+                    }
+                  ]
+                }
+              },
+              "preview": {
+                "source": {
+                  "starts": 1,
+                  "stops": 0,
+                  "destinationMuted": true,
+                  "sampleRate": 44100,
+                  "channels": [
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 4.289376309794604e-05,
+                      "acRms": 0.040373011474887414
+                    },
+                    {
+                      "frames": 44100,
+                      "peak": 0.06591796875,
+                      "bad": 0,
+                      "mean": 4.289376309794604e-05,
+                      "acRms": 0.040373011474887414
+                    }
+                  ]
+                },
+                "signal": {
+                  "peak": 0.06591796875,
+                  "rms": 0.013182126507935607,
+                  "bad": 0,
+                  "mute": 0
+                }
+              },
+              "wav": {
+                "name": "wonderswan-wave-2.wav",
+                "bytes": 176444,
+                "sha256": "8bcfd32d1433cb9e0b170db8c8926f1b9b037f0f3efc12bb8a36301f33667aef"
+              },
+              "occurrenceChange": null
+            }
+          ],
+          "voice": {
+            "voiceCaptures": 10,
+            "unusedRamCandidates": 6,
+            "totalPcmBytes": 1151160,
+            "results": [
+              {
+                "id": 1,
+                "waveformDrawn": true,
+                "metadata": {
+                  "sourceStartSample": 0,
+                  "durationSamples": 441000,
+                  "pcmBytes": 119702,
+                  "writeCount": 119703,
+                  "pcmSha256": "b58b66a428bd08f0e03c166bfd433d30bc65f356bf3af7a9efa43e08e7f77e0c",
+                  "timingSha256": "156d8cffd6e0ee3cdf13280466056734f6f09c4edd58d4b1c17c1288daa16fbe",
+                  "controlRegisters": [
+                    16
+                  ],
+                  "phase": {
+                    "sourceStartSample": 0,
+                    "timebase": 44100,
+                    "nativeTickRate": 24000,
+                    "periodSamples": 147
+                  },
+                  "initialOutput": 11,
+                  "initialVoiceGain": 15,
+                  "boundary": "10-second window"
+                },
+                "json": {
+                  "name": "wonderswan-voice-1.json",
+                  "bytes": 4373841,
+                  "sha256": "c098f04deb5aa0082cb264162f655bb28a2d1d52dc4850f0812f3174a06ccfef"
+                },
+                "preview": {
+                  "source": {
+                    "starts": 1,
+                    "stops": 0,
+                    "destinationMuted": true,
+                    "sampleRate": 44100,
+                    "channels": [
+                      {
+                        "frames": 441000,
+                        "peak": 0.12451171875,
+                        "bad": 0,
+                        "mean": -0.00030238117382369616,
+                        "acRms": 0.025799170253292467
+                      },
+                      {
+                        "frames": 441000,
+                        "peak": 0.12451171875,
+                        "bad": 0,
+                        "mean": -0.00030238117382369616,
+                        "acRms": 0.025799170253292467
+                      }
+                    ]
+                  },
+                  "signal": {
+                    "peak": 0.12451171875,
+                    "rms": 0.03098706123148299,
+                    "bad": 0,
+                    "mute": 0
+                  },
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "sampleRate": 44100,
+                    "sourceStartSample": 0,
+                    "maximumDifference": 0,
+                    "mismatchedSamples": 0,
+                    "firstMismatches": [],
+                    "referenceSha256": "fb74fbf194e8bc4e2a7389611867db57c97e6eb1285031a3e2f32aaf55cd3d4d"
+                  }
+                },
+                "wav": {
+                  "name": "wonderswan-voice-1.wav",
+                  "bytes": 1764044,
+                  "sha256": "90cc2977b91962c05efdcab8f379cd7c6d7245f68cffb08bb2b33631e1f2d5af",
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "mismatchedSamples": 0
+                  }
+                }
+              },
+              {
+                "id": 2,
+                "waveformDrawn": true,
+                "metadata": {
+                  "sourceStartSample": 441000,
+                  "durationSamples": 441000,
+                  "pcmBytes": 120000,
+                  "writeCount": 120000,
+                  "pcmSha256": "d79844cdd6c73174bc7a39b340755e4575c7e21315d763d07cfc9f417e060ed6",
+                  "timingSha256": "fc59a62a02d293f9e4e95879629836f42de01536add039e7d341ed224743f962",
+                  "controlRegisters": [],
+                  "phase": {
+                    "sourceStartSample": 441000,
+                    "timebase": 44100,
+                    "nativeTickRate": 24000,
+                    "periodSamples": 147
+                  },
+                  "initialOutput": 11,
+                  "initialVoiceGain": 15,
+                  "boundary": "10-second window"
+                },
+                "json": {
+                  "name": "wonderswan-voice-2.json",
+                  "bytes": 4362682,
+                  "sha256": "828491c34fa541ba922c111b4aca07a6219f6a296954ae6cb166e8cdd67c37a8"
+                },
+                "preview": {
+                  "source": {
+                    "starts": 1,
+                    "stops": 0,
+                    "destinationMuted": true,
+                    "sampleRate": 44100,
+                    "channels": [
+                      {
+                        "frames": 441000,
+                        "peak": 0.12353515625,
+                        "bad": 0,
+                        "mean": 0.00010076309169501134,
+                        "acRms": 0.03716200785885069
+                      },
+                      {
+                        "frames": 441000,
+                        "peak": 0.12353515625,
+                        "bad": 0,
+                        "mean": 0.00010076309169501134,
+                        "acRms": 0.03716200785885069
+                      }
+                    ]
+                  },
+                  "signal": {
+                    "peak": 0.07373046875,
+                    "rms": 0.01274334190975795,
+                    "bad": 0,
+                    "mute": 0
+                  },
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "sampleRate": 44100,
+                    "sourceStartSample": 441000,
+                    "maximumDifference": 0,
+                    "mismatchedSamples": 0,
+                    "firstMismatches": [],
+                    "referenceSha256": "2e194a6d0e3910293d952f12501ff8ca26b9d4d452021a5614d8ae79a7e5219f"
+                  }
+                },
+                "wav": {
+                  "name": "wonderswan-voice-2.wav",
+                  "bytes": 1764044,
+                  "sha256": "9ac93ed856db74fe547560beae33e14b83cbe83238d7bc95a6868058005f7b91",
+                  "comparison": {
+                    "framesPerChannel": 22050,
+                    "mismatchedSamples": 0
+                  }
+                }
+              }
+            ],
+            "zip": {
+              "name": "wonderswan-samples.zip",
+              "bytes": 41916116,
+              "sha256": "751cd8a68589db38e1bb10c26c7ab62ff3ce2f1bb9a0569b8ccacc6b67f87e07",
+              "members": 17,
+              "captures": [
+                {
+                  "name": "wonderswan-voice-1.json",
+                  "bytes": 4373841,
+                  "sha256": "c098f04deb5aa0082cb264162f655bb28a2d1d52dc4850f0812f3174a06ccfef",
+                  "metadata": {
+                    "sourceStartSample": 0,
+                    "durationSamples": 441000,
+                    "pcmBytes": 119702,
+                    "writeCount": 119703,
+                    "pcmSha256": "b58b66a428bd08f0e03c166bfd433d30bc65f356bf3af7a9efa43e08e7f77e0c",
+                    "timingSha256": "156d8cffd6e0ee3cdf13280466056734f6f09c4edd58d4b1c17c1288daa16fbe",
+                    "controlRegisters": [
+                      16
+                    ],
+                    "phase": {
+                      "sourceStartSample": 0,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-2.json",
+                  "bytes": 4362682,
+                  "sha256": "828491c34fa541ba922c111b4aca07a6219f6a296954ae6cb166e8cdd67c37a8",
+                  "metadata": {
+                    "sourceStartSample": 441000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "d79844cdd6c73174bc7a39b340755e4575c7e21315d763d07cfc9f417e060ed6",
+                    "timingSha256": "fc59a62a02d293f9e4e95879629836f42de01536add039e7d341ed224743f962",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 441000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-3.json",
+                  "bytes": 4355247,
+                  "sha256": "5d05ad0e11c46c1ae91d040f3370e3868f6c78a55d243d4386e5c2f0df7d25d4",
+                  "metadata": {
+                    "sourceStartSample": 882000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "3c2c87a24aeea2b75c221999c0eb750a36940d3ad7844976a2fe8bc92b765dbf",
+                    "timingSha256": "faa0bfca5c0f6b2ba5eff6e5455e657b6ae305a3dd70ef00ae98d8889b4f716c",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 882000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-4.json",
+                  "bytes": 4361938,
+                  "sha256": "5f60753f8efc5d5bd1e57056997fe4e7b1a49e57c1e8d1c120213a2b9235cd08",
+                  "metadata": {
+                    "sourceStartSample": 1323000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "3aaf341724eb7831275b15357d7e9ab77eebf29cd852846f25398adf130e9bea",
+                    "timingSha256": "ea3a4c96f4eac94cfef35cf5d6651210e2a473a342f295cd4be9c84bfa19c0e2",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 1323000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-5.json",
+                  "bytes": 4363484,
+                  "sha256": "d1daca0a16beae1866735458236448a2e259951d7e0eb6aff3f9e96de6b96745",
+                  "metadata": {
+                    "sourceStartSample": 1764000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "916d32ed2c22e56ebb6306bcec4eaa9c036112b3cd99cff069a42f439c4a6e4e",
+                    "timingSha256": "1332c560d4568209b89d155321b53e6b5b3760eb5f8cbbec68d7f6d82b6d08b2",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 1764000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-6.json",
+                  "bytes": 4356302,
+                  "sha256": "66b288b664ca4dffd9f6a937b7e0a1f54fb926a16103e147bbc3c372eb7cb706",
+                  "metadata": {
+                    "sourceStartSample": 2205000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "4409d749a2e388ed91b97711729af70a5a92e490049646ce16a3be4dcde8fae3",
+                    "timingSha256": "499ac5279bd3ab5c2bfb045a4a10f4fcb6fc82d3a76ce6e9efe90a7c01b1e4e2",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 2205000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-7.json",
+                  "bytes": 4375600,
+                  "sha256": "439eb8b98e96ddee01e953213328ee88342881b674baca854bc4a8eee2f49653",
+                  "metadata": {
+                    "sourceStartSample": 2646000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "2595425e1fe446a85657f513392a367f5a721930ee553a338a8823c2288b03e3",
+                    "timingSha256": "a684e36973ab10d60568e70f1f78695e74cdda19ec0d797d8be01b32ebf34157",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 2646000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-8.json",
+                  "bytes": 4359702,
+                  "sha256": "ee140e3b5b69df26dfbdcf226b434fa117c04b9cf5ae7c32df31c7363060a4fc",
+                  "metadata": {
+                    "sourceStartSample": 3087000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "039bd84e8db5658e14cb189a3c7e3c386e693acfbdc353952823041807e2001a",
+                    "timingSha256": "efbaee5d2430de4aa96c243c3f0f536f24db91a90c3dd4ad979f1d048fc32259",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 3087000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-9.json",
+                  "bytes": 4364810,
+                  "sha256": "deeed25a66b56ad6ae069f268ffa13e04eb344ca5ac67600e3c00329094e0143",
+                  "metadata": {
+                    "sourceStartSample": 3528000,
+                    "durationSamples": 441000,
+                    "pcmBytes": 120000,
+                    "writeCount": 120000,
+                    "pcmSha256": "568f453fec61789466cb399f0715408859dba29b351a814e6965b1eefa0a7b19",
+                    "timingSha256": "ec120812cdac3ab19197ad12436504ed2c9815ca2ffe5f1ba6b1d2ca8afe032f",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 3528000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "10-second window"
+                  }
+                },
+                {
+                  "name": "wonderswan-voice-10.json",
+                  "bytes": 2599305,
+                  "sha256": "98d600205073de0373d8cbb522edcaae1f797ba4223f65cb673c3997be440b58",
+                  "metadata": {
+                    "sourceStartSample": 3969000,
+                    "durationSamples": 262606,
+                    "pcmBytes": 71458,
+                    "writeCount": 71458,
+                    "pcmSha256": "1d9a6593f9367af067be150339e72a23b9b77885577e99493e34235563c358ce",
+                    "timingSha256": "556d0cfdfa8ba384f7e21d20e5ed57e89b6b1dc3c1ece672283e38edfad1f01a",
+                    "controlRegisters": [],
+                    "phase": {
+                      "sourceStartSample": 3969000,
+                      "timebase": 44100,
+                      "nativeTickRate": 24000,
+                      "periodSamples": 147
+                    },
+                    "initialOutput": 11,
+                    "initialVoiceGain": 15,
+                    "boundary": "VGM end"
+                  }
+                }
+              ]
+            },
+            "originalDurationSamples": 4231606
+          },
+          "lifecycle": {
+            "stop": true,
+            "pendingStop": true,
+            "pendingFileReset": true,
+            "activeFileReset": true
+          },
+          "pageErrors": []
+        }
+      ]
+    },
+    "earlierDocsReport": {
+      "path": "/private/tmp/ws-voice-docs-browser.json",
+      "bytes": 103196,
+      "sha256": "52a5c8fcad2e482d08e1c210176708e0b81b26174d5463866cf6b80e0307f57e"
+    },
+    "earlierDocsNote": "Functionality passed both browsers; final HTML/support notice wording was subsequently corrected. The final standalone report is authoritative for current frontend bytes.",
+    "referenceInputs": {
+      "method": "Original VGM isolated CH2, direct WonderSwanAudioEngine at 44100 Hz from song sample zero; compare source AudioBuffer first 22050 frames at sample 0 and 441000, plus exact PCM16 WAV quantization and all original timed PCM JSON bytes.",
+      "inputs": {
+        "scripts/check_wonderswan_samples_browser.cjs": {
+          "bytes": 34550,
+          "sha256": "aa7da087b0e0a5b26bdd33a4aa001e312e904970ab8417ff8a31ace6e7415f97"
+        },
+        "test/helpers/wonderswan_sample_vgm_fixture.mjs": {
+          "bytes": 1690,
+          "sha256": "92cd50c9492aaa7f3db99f3c40b5682540257879aa9046432b511da89406d77a"
+        },
+        "web/wonderswanaudioengine.js": {
+          "bytes": 5800,
+          "sha256": "514a7e5a04f36367438b45c677743a770dce54706ef9d605fe790f17a6646766"
+        },
+        "web/ym2612vgm.js": {
+          "bytes": 115343,
+          "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+        },
+        "web/wonderswan.js": {
+          "bytes": 7520,
+          "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+        },
+        "web/soundchip.js": {
+          "bytes": 12117,
+          "sha256": "e3a54fde96f502bf2d8d2d22663d6006b47c185aef323203182bda7c2304e02c"
+        },
+        "docs/generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "docs/generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        }
+      }
+    }
+  },
+  "nodePackage": {
+    "passed": true,
+    "package": {
+      "name": "tetorica-vgm",
+      "version": "0.2.14",
+      "license": "BSD-3-Clause"
+    },
+    "tarball": {
+      "name": "tetorica-vgm-0.2.14.tgz",
+      "bytes": 844258,
+      "sha256": "f9a893540c7fe8beabeccd92dd33a352d4ecd3ddda396f7f01735f6a1daeae2b"
+    },
+    "sourceFiles": {
+      "cli/index.js": {
+        "bytes": 822,
+        "sha256": "05f6fa89ae153ed7841d8da5dc0a5910c8fb684347d7bdfa47487c252c499456"
+      },
+      "cli/main.js": {
+        "bytes": 17052,
+        "sha256": "25f048883dab4cb3ae6313c88c34a79ad91829c3b9e3a2bf07ba320218af2f0c"
+      },
+      "cli/render.js": {
+        "bytes": 3401,
+        "sha256": "96ec4da30d536540581349b5c209f2ec6bb303a5efd8dd1ea4299e1dc6e1e0aa"
+      },
+      "docs/vgm_analyzer/analyzer_core.js": {
+        "bytes": 9697,
+        "sha256": "5b5d9dbdb72ca2725c8af4a9fdd540530b450368ed0d2dff32ccf9ab55483f3b"
+      },
+      "docs/vgm_analyzer/sample_core.js": {
+        "bytes": 20383,
+        "sha256": "a65fd5cc57a8eb679fc370b4f98eb6d067c574047b067db28f9138c8092e01aa"
+      },
+      "docs/vgm_analyzer/sample_render.js": {
+        "bytes": 8844,
+        "sha256": "242cc68837f52dd5e6f50b088f36858145240be9c5dfb4e932c90ddd176319a3"
+      },
+      "docs/vgm_analyzer/wonderswan_waves.js": {
+        "bytes": 9503,
+        "sha256": "2f97d7bd2a2fc72fd02ba1bc6c310e9d277c517c8b8b1cd7ed79444b78642677"
+      },
+      "docs/vgm_analyzer/mixer_defaults.js": {
+        "bytes": 1948,
+        "sha256": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28"
+      },
+      "docs/vgm_analyzer/mixer_calibration_data.js": {
+        "bytes": 631,
+        "sha256": "d940890fbae1a615de0818717cfddf613806daf23a66cf9ca72336c381f8fac7"
+      },
+      "docs/js/soundchip_mixer_presets.js": {
+        "bytes": 2986,
+        "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+      },
+      "docs/vgm_analyzer/wonderswan_voice_samples.js": {
+        "bytes": 10452,
+        "sha256": "b55d5d5a60809db35ac992ca99acf802e951ff50a6000ecd18fe71d16bc3fa28"
+      },
+      "docs/vgm_analyzer/wonderswan_voice_render.js": {
+        "bytes": 3009,
+        "sha256": "286400012569e19494365453f39cf4c7b020d77e953c4213cb1aec09518c0962"
+      },
+      "docs/js/wonderswanaudioengine.js": {
+        "bytes": 5856,
+        "sha256": "8ca29f96e47e0f300b4ab827a6171dd7481d4ce3f353e52072b35f9f1f8c41e5"
+      },
+      "docs/generated/wonderswan_wasm.js": {
+        "bytes": 11356,
+        "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+      },
+      "docs/generated/wonderswan_wasm.wasm": {
+        "bytes": 10321,
+        "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+      },
+      "README.md": {
+        "bytes": 28673,
+        "sha256": "efc14ade46402771ccce54c50e0b91bbc8523a193b59c36e61a5b3db9ad2db8f",
+        "sourcePath": "packages/vgm/README.md"
+      },
+      "CLI.md": {
+        "bytes": 53148,
+        "sha256": "84d5310840902247f89052f0b1ec02d2e395098ce8f542d4ca607fd2a848aa2d",
+        "sourcePath": "CLI.md"
+      }
+    },
+    "checkerSha256": "ea5c956b7c3ec7d2951a0b7fd904457ba41b4c00d8772f34cff6df0f5599055d",
+    "offlineInstall": true,
+    "cli": true,
+    "exports": [
+      "midi",
+      "musicxml",
+      "lilypond"
+    ],
+    "waveSamples": {
+      "count": 2,
+      "json": true,
+      "previewWav": true,
+      "cli": true
+    },
+    "voiceSamples": {
+      "count": 3,
+      "metadataArrays": true,
+      "nativeJson": true,
+      "allZip": true,
+      "cliListing": true,
+      "cliJson": true,
+      "cliWav": true,
+      "cliZip": true,
+      "wavMatchesOriginalSegment": true,
+      "wavSha256": "6af8d00536ae179533fcacf09c04dd7afdfcc2776a0dceec4b3c97da9460df56"
+    },
+    "largeFile": {
+      "sourceSha256": "45f7e2ee1b9235e15be683192cc9f5f65edaa5a488fdcf458d4ad902a883aebf",
+      "durationSamples": 4231606,
+      "voiceCaptures": 10,
+      "unplayedWaves": 6,
+      "pcmBytes": 1151160,
+      "firstVoice": {
+        "id": 1,
+        "pcmBytes": 119702,
+        "jsonBytes": 4373841,
+        "jsonSha256": "c098f04deb5aa0082cb264162f655bb28a2d1d52dc4850f0812f3174a06ccfef"
+      },
+      "cliListing": true,
+      "cliNativeJson": true
+    },
+    "modes": [
+      {
+        "mode": "wave",
+        "wavBytes": 17684,
+        "muted": true
+      },
+      {
+        "mode": "noise",
+        "wavBytes": 17684,
+        "muted": true
+      },
+      {
+        "mode": "sweep",
+        "wavBytes": 17684,
+        "muted": true
+      },
+      {
+        "mode": "voice",
+        "wavBytes": 17684,
+        "muted": true
+      }
+    ],
+    "physicalAudioTested": false
+  },
+  "tests": {
+    "analyzerAndPublicApi": {
+      "total": 600,
+      "passed": 599,
+      "existingSkipped": 1,
+      "failed": 0,
+      "log": {
+        "path": "/private/tmp/ws-voice-analyzer-tests-final.log",
+        "bytes": 55379,
+        "sha256": "04470fa0932c59bbc376a646616e3f7e4d2034127ca9b3fb101779eb95f06a15"
+      }
+    },
+    "focused": {
+      "passed": 68,
+      "log": {
+        "path": "/private/tmp/ws-voice-focused-tests.log",
+        "bytes": 7239,
+        "sha256": "32fcf9cec1faa3c07652acb6511ede44de77cc9215311ada1e11129c4597effc"
+      },
+      "note": "Earlier focused run; the independent DAC-stream API case is included in the final aggregate."
+    },
+    "realWasmVoiceRenderer": {
+      "passed": 9,
+      "includedInFinalAggregate": true
+    },
+    "pureVoiceExtractor": {
+      "passed": 12,
+      "includedInFinalAggregate": true
+    },
+    "tauriPython": {
+      "passed": 6,
+      "log": {
+        "path": "/private/tmp/ws-voice-analyzer-tauri-python.log",
+        "bytes": 542,
+        "sha256": "d9fb5ef7e67fefcd49c0341a1c666710096bbf936480818856a7847f64dce54d"
+      }
+    },
+    "tauriNode": {
+      "passed": 4,
+      "log": {
+        "path": "/private/tmp/ws-voice-analyzer-tauri-node.log",
+        "bytes": 460,
+        "sha256": "343b9b890a1e3074ce99f53986a1c99161d9c9498fc73a8ac403c71cad608582"
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "path": "release/hello_ymfm_wasm_wonderswan-voice-dev_itch_vgm_analyzer.zip",
+      "bytes": 1829326,
+      "sha256": "e9e43bbb75131ce853006062daca111c1c18a0621bdceb1d52da86ff89e29bd5"
+    },
+    {
+      "path": "/private/tmp/ws-voice-package/tetorica-vgm-0.2.14.tgz",
+      "bytes": 844258,
+      "sha256": "f9a893540c7fe8beabeccd92dd33a352d4ecd3ddda396f7f01735f6a1daeae2b"
+    }
+  ],
+  "tauri": {
+    "frontendFiles": 401,
+    "releaseSha256": "e9e43bbb75131ce853006062daca111c1c18a0621bdceb1d52da86ff89e29bd5",
+    "repository": "w/tetorica-fm2612-vgm-analyzer-tauri"
+  },
+  "calibrationRefresh": {
+    "record": "docs/issues/analyzer_mixer_calibration_refresh_02.json",
+    "sha256": "0681c577c107cab6d730f1e0ca8b1b56eefa6f83d7903344788b531e4c03713b",
+    "actualMeasurementsRepeated": 30,
+    "measurementsAndGainsUnchanged": true
+  },
+  "unchanged": {
+    "soundCores": true,
+    "fixedSdkGeneratedOutputs": 55,
+    "mixerGainValues": true
+  },
+  "notPerformed": [
+    "physical listening",
+    "hardware comparison",
+    "npm publish",
+    "version/tag/commit/push/CI"
+  ]
+}
