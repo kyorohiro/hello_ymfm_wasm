@@ -1,0 +1,1009 @@
+{
+  "date": "2026-10-28",
+  "status": "implemented-and-verified-locally",
+  "scope": "CD-DA and MSM5205 C11 source aggregation into the standalone SDK",
+  "applicationBaseCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+  "sdkBaseCommit": "a99606ee4b06b039e0dc354a95899f2d4a903da4",
+  "candidateVersion": "0.1.5",
+  "published": false,
+  "committed": false,
+  "pushed": false,
+  "remoteCiExecuted": false,
+  "consumerSdkPinsChanged": false,
+  "mixerDefaultsChanged": false,
+  "applicationRuntimeChanged": false,
+  "inventory": {
+    "chipIds": 24,
+    "unchangedChipWasmRecipes": 29,
+    "applicationAudio": [
+      "cdda",
+      "msm5205"
+    ],
+    "totalWasmSelectors": 31,
+    "javascriptReferences": 2,
+    "snapshotFiles": 306
+  },
+  "native": {
+    "staticLibraries": 23,
+    "executables": 49,
+    "fixtureExecutables": 28,
+    "wavExamples": 21,
+    "ctestPassed": 29,
+    "ctestFailed": 0,
+    "javascriptSmokeChecks": 10,
+    "buildType": "Release",
+    "sourceIsolation": "Source ZIP extracted outside all checkouts; no source downloads or sibling checkout",
+    "newTargets": [
+      "tetorica::cdda",
+      "tetorica::msm5205"
+    ],
+    "newTests": [
+      "tetorica.cdda.self_test",
+      "tetorica.msm5205.self_test",
+      "tetorica.pce_cd.self_test"
+    ],
+    "wavMetrics": [
+      {
+        "name": "Genesis",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.103973388671875,
+          0.103973388671875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Master System",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.034637451171875,
+          0.034637451171875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "MSX",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.069732666015625,
+          0.069732666015625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "PC-98 YM2203",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.26116943359375,
+          0.26116943359375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "PC-98 YM2608",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.23565673828125,
+          0.251068115234375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "NeoGeo",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.24139404296875,
+          0.24072265625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "X68000",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.207305908203125,
+          0.202850341796875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Mega-CD",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.14703369140625,
+          0.1412353515625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "DOS PC OPL",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.05706787109375,
+          0.05706787109375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "MSX-AUDIO",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.05645751953125,
+          0.05645751953125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Game Boy",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.449981689453125,
+          0.449981689453125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "PC Engine",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.118988037109375,
+          0.14617919921875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "NES with FDS",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.264556884765625,
+          0.264556884765625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "32X",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.257293701171875,
+          0.264068603515625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "DX7",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.182952880859375,
+          0.182952880859375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "SNES",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.195953369140625,
+          0.21356201171875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "SPC",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.183135986328125,
+          0.183135986328125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Nuked Genesis",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.152984619140625,
+          0.152984619140625
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "WonderSwan",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.121307373046875,
+          0.14984130859375
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "Dual POKEY",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.14178466796875,
+          0.14178466796875
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      },
+      {
+        "name": "PC Engine CD-ROM2",
+        "bitsPerSample": 16,
+        "channelPeaks": [
+          0.308319091796875,
+          0.227783203125
+        ],
+        "channels": 2,
+        "frames": 144000,
+        "sampleRate": 48000
+      }
+    ],
+    "newExample": {
+      "path": "/private/tmp/sdk-pcengine-cd.wav",
+      "bytes": 576044,
+      "sha256": "ee6bdfa3675271fd338b1645b7d422fe64759aa01540ead24fb4abacdf64ff9f",
+      "sampleRate": 48000,
+      "frames": 144000,
+      "channels": 2,
+      "bits": 16,
+      "masterGain": 0.5,
+      "sections": [
+        {
+          "section": "psg",
+          "start": 0.05,
+          "end": 0.45,
+          "peak": 0.083251953125,
+          "rms": 0.056791533500070816
+        },
+        {
+          "section": "adpcm",
+          "start": 0.55,
+          "end": 0.95,
+          "peak": 0.100830078125,
+          "rms": 0.07070135198656768
+        },
+        {
+          "section": "cdda",
+          "start": 1.05,
+          "end": 1.45,
+          "peak": 0.079986572265625,
+          "rms": 0.05655725061093695
+        },
+        {
+          "section": "three",
+          "start": 1.55,
+          "end": 2.65,
+          "peak": 0.308319091796875,
+          "rms": 0.10368350558227547
+        },
+        {
+          "section": "stopped",
+          "start": 2.8,
+          "end": 3.0,
+          "peak": 0.0,
+          "rms": 0.0
+        }
+      ],
+      "psgChannelLevel": 31
+    }
+  },
+  "regressions": {
+    "passed": 88,
+    "failed": 0,
+    "newApplicationAudioTests": 18,
+    "log": {
+      "path": "/private/tmp/sdk-cdrom2-python-final.log",
+      "bytes": 29352,
+      "sha256": "d5be604beb9114525cd10cc07127f248fc80bb21dcdaf0ffcc6082dae25c0182"
+    }
+  },
+  "sourceByteIdentity": [
+    {
+      "sdk": "vendor/tetorica-cdda/cdda_pcm.c",
+      "application": "native/cdda/cdda_pcm.c",
+      "sha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb",
+      "exact": true
+    },
+    {
+      "sdk": "vendor/tetorica-cdda/cdda_pcm.h",
+      "application": "native/cdda/cdda_pcm.h",
+      "sha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6",
+      "exact": true
+    },
+    {
+      "sdk": "wasm/cdda_wasm.c",
+      "application": "native/cdda/cdda_wasm.c",
+      "sha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012",
+      "exact": true
+    },
+    {
+      "sdk": "vendor/tetorica-msm5205/msm5205_pcm.c",
+      "application": "native/msm5205/msm5205_pcm.c",
+      "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be",
+      "exact": true
+    },
+    {
+      "sdk": "vendor/tetorica-msm5205/msm5205_pcm.h",
+      "application": "native/msm5205/msm5205_pcm.h",
+      "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9",
+      "exact": true
+    },
+    {
+      "sdk": "wasm/msm5205_wasm.c",
+      "application": "native/msm5205/msm5205_wasm.c",
+      "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471",
+      "exact": true
+    }
+  ],
+  "wasmOutputIdentity": [
+    {
+      "path": "cdda_wasm.js",
+      "bytes": 304,
+      "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f",
+      "rebuiltEqualsCheckoutEqualsApplication": true
+    },
+    {
+      "path": "cdda_wasm.wasm",
+      "bytes": 2257,
+      "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc",
+      "rebuiltEqualsCheckoutEqualsApplication": true
+    },
+    {
+      "path": "msm5205_wasm.js",
+      "bytes": 317,
+      "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950",
+      "rebuiltEqualsCheckoutEqualsApplication": true
+    },
+    {
+      "path": "msm5205_wasm.wasm",
+      "bytes": 3590,
+      "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9",
+      "rebuiltEqualsCheckoutEqualsApplication": true
+    }
+  ],
+  "checkoutParity": {
+    "status": "PASS",
+    "standaloneSDK": true,
+    "format": "standalone-audio-wasm",
+    "results": [
+      {
+        "artifact": "cdda",
+        "status": "PASS",
+        "sourceFrames": 131072,
+        "wasmBytes": 2257,
+        "wasmMemoryBytes": 131072,
+        "sourceCapBytes": 268435456,
+        "c11": true,
+        "cpp14": true,
+        "blockPartitionExact": true,
+        "results": [
+          {
+            "rate": 8000,
+            "renderedFrames": 24589,
+            "nativeWasmExact": true,
+            "independentReferenceExact": true
+          },
+          {
+            "rate": 44100,
+            "renderedFrames": 131883,
+            "nativeWasmExact": true,
+            "independentReferenceExact": true
+          },
+          {
+            "rate": 48000,
+            "renderedFrames": 143475,
+            "nativeWasmExact": true,
+            "independentReferenceExact": true
+          },
+          {
+            "rate": 384000,
+            "renderedFrames": 1142119,
+            "nativeWasmExact": true,
+            "independentReferenceExact": true
+          }
+        ],
+        "evidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-sdk-cdda-core-SWzW38"
+      },
+      {
+        "artifact": "msm5205",
+        "status": "PASS",
+        "wasmBytes": 3590,
+        "wasmMemoryBytes": 131072,
+        "noHostImports": true,
+        "c11": true,
+        "cpp14": true,
+        "sourceCapBytes": 65536,
+        "blockPartitionExact": true,
+        "all16RateRegisters": true,
+        "rawReference": "unchanged reference/javascript/msm5205audioengine.js",
+        "results": [
+          {
+            "kind": "raw",
+            "sampleRate": 44100,
+            "clock": 1536000,
+            "commands": 1323,
+            "renderedFrames": 31488,
+            "nativeWasmExact": true,
+            "legacyReferenceExact": true
+          },
+          {
+            "kind": "pce-all-rates",
+            "sampleRate": 44100,
+            "clock": 1536000,
+            "commands": 182,
+            "renderedFrames": 8977,
+            "nativeWasmExact": true,
+            "legacyReferenceExact": true
+          },
+          {
+            "kind": "pce-alternate-clock",
+            "sampleRate": 44100,
+            "clock": 1540200,
+            "commands": 5,
+            "renderedFrames": 8208,
+            "nativeWasmExact": true,
+            "legacyReferenceExact": true
+          },
+          {
+            "kind": "raw",
+            "sampleRate": 48000,
+            "clock": 1536000,
+            "commands": 1323,
+            "renderedFrames": 31488,
+            "nativeWasmExact": true,
+            "legacyReferenceExact": true
+          },
+          {
+            "kind": "pce-all-rates",
+            "sampleRate": 48000,
+            "clock": 1536000,
+            "commands": 182,
+            "renderedFrames": 9069,
+            "nativeWasmExact": true,
+            "legacyReferenceExact": true
+          },
+          {
+            "kind": "pce-alternate-clock",
+            "sampleRate": 48000,
+            "clock": 1540200,
+            "commands": 5,
+            "renderedFrames": 8208,
+            "nativeWasmExact": true,
+            "legacyReferenceExact": true
+          }
+        ],
+        "evidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-sdk-msm5205-core-zXNDrT"
+      }
+    ]
+  },
+  "extractedRebuilds": {
+    "cdda": {
+      "smoke": {
+        "status": "PASS",
+        "format": "standalone-audio-wasm",
+        "results": [
+          {
+            "artifact": "cdda",
+            "wasmBytes": 2257,
+            "wasmMemoryBytes": 131072,
+            "noHostImports": true,
+            "fixedMemory": true,
+            "descriptorABI": 1,
+            "checks": [
+              {
+                "sampleRate": 8000,
+                "stereo": true,
+                "pauseResumeSeekEOF": true,
+                "muteAdvances": true
+              },
+              {
+                "sampleRate": 44100,
+                "stereo": true,
+                "pauseResumeSeekEOF": true,
+                "muteAdvances": true
+              },
+              {
+                "sampleRate": 48000,
+                "stereo": true,
+                "pauseResumeSeekEOF": true,
+                "muteAdvances": true
+              },
+              {
+                "sampleRate": 384000,
+                "stereo": true,
+                "pauseResumeSeekEOF": true,
+                "muteAdvances": true
+              }
+            ]
+          }
+        ]
+      },
+      "parity": {
+        "status": "PASS",
+        "standaloneSDK": true,
+        "format": "standalone-audio-wasm",
+        "results": [
+          {
+            "artifact": "cdda",
+            "status": "PASS",
+            "sourceFrames": 131072,
+            "wasmBytes": 2257,
+            "wasmMemoryBytes": 131072,
+            "sourceCapBytes": 268435456,
+            "c11": true,
+            "cpp14": true,
+            "blockPartitionExact": true,
+            "results": [
+              {
+                "rate": 8000,
+                "renderedFrames": 24589,
+                "nativeWasmExact": true,
+                "independentReferenceExact": true
+              },
+              {
+                "rate": 44100,
+                "renderedFrames": 131883,
+                "nativeWasmExact": true,
+                "independentReferenceExact": true
+              },
+              {
+                "rate": 48000,
+                "renderedFrames": 143475,
+                "nativeWasmExact": true,
+                "independentReferenceExact": true
+              },
+              {
+                "rate": 384000,
+                "renderedFrames": 1142119,
+                "nativeWasmExact": true,
+                "independentReferenceExact": true
+              }
+            ],
+            "evidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-sdk-cdda-core-pSJI1q"
+          }
+        ]
+      }
+    },
+    "msm5205": {
+      "smoke": {
+        "status": "PASS",
+        "format": "standalone-audio-wasm",
+        "results": [
+          {
+            "artifact": "msm5205",
+            "wasmBytes": 3590,
+            "wasmMemoryBytes": 131072,
+            "noHostImports": true,
+            "fixedMemory": true,
+            "descriptorABI": 1,
+            "checks": [
+              {
+                "sampleRate": 44100,
+                "all16RateRegisters": true,
+                "oddNibbleRanges": true,
+                "full64KiBRAM": true,
+                "rawRegisterPath": true,
+                "loopMuteStop": true
+              },
+              {
+                "sampleRate": 48000,
+                "all16RateRegisters": true,
+                "oddNibbleRanges": true,
+                "full64KiBRAM": true,
+                "rawRegisterPath": true,
+                "loopMuteStop": true
+              }
+            ]
+          }
+        ]
+      },
+      "parity": {
+        "status": "PASS",
+        "standaloneSDK": true,
+        "format": "standalone-audio-wasm",
+        "results": [
+          {
+            "artifact": "msm5205",
+            "status": "PASS",
+            "wasmBytes": 3590,
+            "wasmMemoryBytes": 131072,
+            "noHostImports": true,
+            "c11": true,
+            "cpp14": true,
+            "sourceCapBytes": 65536,
+            "blockPartitionExact": true,
+            "all16RateRegisters": true,
+            "rawReference": "unchanged reference/javascript/msm5205audioengine.js",
+            "results": [
+              {
+                "kind": "raw",
+                "sampleRate": 44100,
+                "clock": 1536000,
+                "commands": 1323,
+                "renderedFrames": 31488,
+                "nativeWasmExact": true,
+                "legacyReferenceExact": true
+              },
+              {
+                "kind": "pce-all-rates",
+                "sampleRate": 44100,
+                "clock": 1536000,
+                "commands": 182,
+                "renderedFrames": 8977,
+                "nativeWasmExact": true,
+                "legacyReferenceExact": true
+              },
+              {
+                "kind": "pce-alternate-clock",
+                "sampleRate": 44100,
+                "clock": 1540200,
+                "commands": 5,
+                "renderedFrames": 8208,
+                "nativeWasmExact": true,
+                "legacyReferenceExact": true
+              },
+              {
+                "kind": "raw",
+                "sampleRate": 48000,
+                "clock": 1536000,
+                "commands": 1323,
+                "renderedFrames": 31488,
+                "nativeWasmExact": true,
+                "legacyReferenceExact": true
+              },
+              {
+                "kind": "pce-all-rates",
+                "sampleRate": 48000,
+                "clock": 1536000,
+                "commands": 182,
+                "renderedFrames": 9069,
+                "nativeWasmExact": true,
+                "legacyReferenceExact": true
+              },
+              {
+                "kind": "pce-alternate-clock",
+                "sampleRate": 48000,
+                "clock": 1540200,
+                "commands": 5,
+                "renderedFrames": 8208,
+                "nativeWasmExact": true,
+                "legacyReferenceExact": true
+              }
+            ],
+            "evidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-sdk-msm5205-core-FISs6I"
+          }
+        ]
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/sdk-cdrom2-archives-final/SHA256SUMS",
+      "bytes": 217,
+      "sha256": "6de13c8bb7b8790d380241503417451fc0cad604c548729c18b3a98e1ec3e9c0"
+    },
+    {
+      "path": "/private/tmp/sdk-cdrom2-archives-final/tetorica-soundchip-native-0.1.5-sources.zip",
+      "bytes": 1165278,
+      "sha256": "824f4c218d086f439c66f36a46c353c66ab96bc6f333292846351ae86e988985"
+    },
+    {
+      "path": "/private/tmp/sdk-cdrom2-archives-final/tetorica-soundchip-native-0.1.5-wasm.zip",
+      "bytes": 1224615,
+      "sha256": "09a6676c03988001fe97ea9e8edc5f3f9fa1e6f3d026c5a2b57910080634e977"
+    }
+  ],
+  "fullNativeTestedSourceArchive": {
+    "path": "/private/tmp/sdk-cdrom2-archives-tested/tetorica-soundchip-native-0.1.5-sources.zip",
+    "bytes": 1164031,
+    "sha256": "b27f4db3b9c632d8b603dbc836bd5cf3f939846285a24aa444e489b135b0e19f"
+  },
+  "finalPayloadProof": {
+    "status": "PASS",
+    "sameSourceMembers": true,
+    "members": 431,
+    "changed": [
+      "RELEASE-MANIFEST.json",
+      "docs/verification.md",
+      "tests/check_standalone_release.py",
+      "tests/test_application_audio_release.py"
+    ],
+    "unchangedAllNativeAndWasmBuildInputs": true,
+    "onlyCheckerProductionChange": "four-line guard rejects parity without selected PCM WASM",
+    "wavExactAndLastPointTwoSecondsZero": true
+  },
+  "logs": {
+    "fullExtractedNativeAndArchivedWasm": {
+      "path": "/private/tmp/sdk-cdrom2-isolated-full.log",
+      "bytes": 47445,
+      "sha256": "7b958910212ddd38838d1af2c61f9d607b301fa57b925b3cb15aa7709038f5da"
+    },
+    "finalAuditWithBothRealWasmAndParity": {
+      "path": "/private/tmp/sdk-cdrom2-final-audit.log",
+      "bytes": 6930,
+      "sha256": "deb4628324812ff1ffb15b3390ef43c7abe5d4b16ca968ec11060df21e91dc6b"
+    }
+  },
+  "outerCheckerRetry": {
+    "initialExitCode": 1,
+    "cause": "Sandbox denied Emscripten toolchain-cache .lock creation at final CD-DA rebuild",
+    "resolution": "Failed extracted build retried with required cache access; extracted MSM5205 built as well; separate ABI smoke and Native parity stages all exit 0 without synthesis changes",
+    "finalAuditExitCode": 0
+  },
+  "limitations": [
+    "Local macOS verification; configured five-platform Native and five WASM CI jobs were not run remotely",
+    "No human listening or hardware-equivalence claim",
+    "No new generic chip-factory IDs; host parsing, scheduling, lifetime synchronization, encoding and output remain outside the C cores",
+    "No release, tag, npm publication or consumer pin update"
+  ],
+  "sdkChangedFiles": [
+    {
+      "path": ".github/workflows/verify-sdk.yml",
+      "bytes": 6066,
+      "sha256": "f90d0ca34e4035bda3f39a8b2c51a355c1df25ea7dd4af599f2243c6664e8eb1"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 22524,
+      "sha256": "fbc7c8f1188c9654aa8ec52b8b89d68b8b31a319e4b5e6a478aace5cd8644dd5"
+    },
+    {
+      "path": "LICENSES.md",
+      "bytes": 6338,
+      "sha256": "0a85feac3dafc1704abed9e9083a0d22eff12bff2adaa1dbf0e0ee4a453831a2"
+    },
+    {
+      "path": "README.md",
+      "bytes": 29869,
+      "sha256": "df4e5a2fb11fbe0f9da0e39304aaf32a52e55c59dd5599e80a27b1b4dc2d357f"
+    },
+    {
+      "path": "catalog/chips.json",
+      "bytes": 96768,
+      "sha256": "5e13da69296745be797e1dd0d73b16001e981e3df072b3373b9c898eab12adfe"
+    },
+    {
+      "path": "catalog/native_inventory.json",
+      "bytes": 48790,
+      "sha256": "b4b4339a9ae50d8c666d2e0e9c237b19dec8843d11ffd0b35bf9d084a70eed3d"
+    },
+    {
+      "path": "catalog/source_inventory.json",
+      "bytes": 136505,
+      "sha256": "58ae7505f33329d1e1411dc728127faf8f88668d59008cad82b47fcbf27ed4f4"
+    },
+    {
+      "path": "docs/architecture.md",
+      "bytes": 22501,
+      "sha256": "a2c8bd52454f4328b399f542b78ddd534942c9e603721ffa431daf5b3c32deda"
+    },
+    {
+      "path": "docs/chip-differences.md",
+      "bytes": 50724,
+      "sha256": "dccda237b5b85455a41c86b1e41d91c2dcd590d7688459933c0da22b555dc96c"
+    },
+    {
+      "path": "docs/releases.md",
+      "bytes": 22127,
+      "sha256": "38ceeaa7c28216b898970da7282e182ae4e2ba72d0c4ff220e389d2bb0a587b0"
+    },
+    {
+      "path": "docs/verification.md",
+      "bytes": 100640,
+      "sha256": "a6a423eac7410846f2f36035a5401afc6cf8a7a2f162bf8d773f177e99f372e8"
+    },
+    {
+      "path": "native/CMakeLists.txt",
+      "bytes": 37647,
+      "sha256": "9cd2a7b19306aabcb0b6d8034146750031280796a252df7459fd359f44cdb061"
+    },
+    {
+      "path": "native/README.md",
+      "bytes": 119693,
+      "sha256": "c0923f2b578800447ea985a002d0801a714b7ce478cc9204cec1ade3ab55eca7"
+    },
+    {
+      "path": "native/examples/pcengine_cd_wav.cpp",
+      "bytes": 7204,
+      "sha256": "1ad6848d8c5a0a6226b59d8f35e8ac9b74bb1cbe46551ad3d2ae415c94b24a78"
+    },
+    {
+      "path": "native/include/tetorica/cdda.h",
+      "bytes": 244,
+      "sha256": "81b3d515223f9a9b4a562bb35adb07a1a915e080bbb3c60f1f89094c9183a92a"
+    },
+    {
+      "path": "native/include/tetorica/msm5205.h",
+      "bytes": 253,
+      "sha256": "a5fd291c32bdc6d8c0766ba2061908b137f5558ce552529a0b54f8e049f66aab"
+    },
+    {
+      "path": "native/tests/cdda_fixture.c",
+      "bytes": 3643,
+      "sha256": "db385fe4d7722bc90978fcbe0f4db78c943e1561e289fe8aeeef5507195359ff"
+    },
+    {
+      "path": "native/tests/msm5205_fixture.c",
+      "bytes": 4566,
+      "sha256": "d65cf345e67d646d82bd0ccf611fc12b980d6906850a3fae2e88a33601dd5b44"
+    },
+    {
+      "path": "native/tests/pce_cd_fixture.cpp",
+      "bytes": 3812,
+      "sha256": "a79a8ce49a727693bc78bb6afb37e181c2652c2fd7216234979586baeb8a148a"
+    },
+    {
+      "path": "reference/javascript/README.md",
+      "bytes": 8533,
+      "sha256": "3846992f0f93b70ce11fa1432ebffd381bee98537ca446401a6361f42a898fc2"
+    },
+    {
+      "path": "scripts/build-wasm.sh",
+      "bytes": 1683,
+      "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275"
+    },
+    {
+      "path": "scripts/build_cdda_wasm.sh",
+      "bytes": 1555,
+      "sha256": "21ddd64e21865427b32d2d6faa43a0f79c3dd967839a8bc5b4090ee3bf3ad39f"
+    },
+    {
+      "path": "scripts/build_msm5205_wasm.sh",
+      "bytes": 1397,
+      "sha256": "2712749f182d50a1c57f0615b3dc47bf6a8e1c6b2e1de9e37ca879ce623b8ca1"
+    },
+    {
+      "path": "scripts/check_sdk.py",
+      "bytes": 662,
+      "sha256": "8f65e205452986966d0a7638375d768a831217b60f42c208eed702c0fe42335c"
+    },
+    {
+      "path": "scripts/package_release.py",
+      "bytes": 6069,
+      "sha256": "68be466e4d265df4d015475a68e8b27425b8a5fe3748ff310ef63533157358ea"
+    },
+    {
+      "path": "scripts/record_wasm_build.mjs",
+      "bytes": 1975,
+      "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883"
+    },
+    {
+      "path": "scripts/refresh_catalog.py",
+      "bytes": 4057,
+      "sha256": "922e11868aeec3d5ba429dc9d784b4f007c46663714e2acc567ea6b38afda544"
+    },
+    {
+      "path": "scripts/sdk_common.py",
+      "bytes": 12770,
+      "sha256": "07d27edaca27cbacd323d1fbd7dd3cc84df088ec59140c8c938eaf5b415c7c5d"
+    },
+    {
+      "path": "tests/README.md",
+      "bytes": 21250,
+      "sha256": "3e0a2d63bb581844314274dc5a600c060be9c906138d9a8be92973eea9b4c197"
+    },
+    {
+      "path": "tests/application_audio_wasm_smoke.mjs",
+      "bytes": 19319,
+      "sha256": "9063317a58c84ad5dc29a11ce89922810bef6c30b9569834fad1187236a2122c"
+    },
+    {
+      "path": "tests/check_application_audio_core.mjs",
+      "bytes": 24266,
+      "sha256": "04feff8a0c537fe13d7b6046e75ef4a7d589f37eb8c3c41a30f70358f85b49c4"
+    },
+    {
+      "path": "tests/check_standalone_release.py",
+      "bytes": 41988,
+      "sha256": "712456a5592fbb17907e2e9f326f6d9c2eb12f1a80e1211c7c6e2812cbc67c53"
+    },
+    {
+      "path": "tests/test_application_audio_release.py",
+      "bytes": 15957,
+      "sha256": "fa8c17f1d6dc33413960f035c3b71435a95babc11d07070d855d77580220037a"
+    },
+    {
+      "path": "tests/test_standalone_release.py",
+      "bytes": 57830,
+      "sha256": "e3c501d14d46a788e160a50d0cfdb237225e4f98fdd1e2e41a7599d5024503a2"
+    },
+    {
+      "path": "vendor/tetorica-cdda/LICENSE",
+      "bytes": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "vendor/tetorica-cdda/NOTICE.md",
+      "bytes": 791,
+      "sha256": "32dd325f1ede34b3da8c72a7a2fd65d25fe4c645051788057e9c37d669ae634c"
+    },
+    {
+      "path": "vendor/tetorica-cdda/README.md",
+      "bytes": 4288,
+      "sha256": "dbc86540b87a112395a472dc0d84eb4f1c96d65dcc2579de245b1ec689ea6f5d"
+    },
+    {
+      "path": "vendor/tetorica-cdda/cdda_pcm.c",
+      "bytes": 5021,
+      "sha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb"
+    },
+    {
+      "path": "vendor/tetorica-cdda/cdda_pcm.h",
+      "bytes": 2890,
+      "sha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/LICENSE",
+      "bytes": 1617,
+      "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/NOTICE.md",
+      "bytes": 2064,
+      "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/README.md",
+      "bytes": 5722,
+      "sha256": "06c3b63100c2359b5f9c02cc4bb195c713d42ebd7b5348dbbfbcc332348b0630"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/msm5205_pcm.c",
+      "bytes": 6720,
+      "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/msm5205_pcm.h",
+      "bytes": 3618,
+      "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9"
+    },
+    {
+      "path": "wasm/cdda_wasm.c",
+      "bytes": 1954,
+      "sha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012"
+    },
+    {
+      "path": "wasm/msm5205_wasm.c",
+      "bytes": 2191,
+      "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471"
+    }
+  ],
+  "nextSeparateWork": "Review and commit SDK changes, run remote CI, then decide on SDK publication and pinned consumer adoption"
+}

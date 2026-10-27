@@ -1,3 +1,15 @@
+## 2026-10-28 — CD-DA / MSM5205 SDK集約完了
+
+- `w/tetorica-soundchip-native`へ本体の新C11 coreを収録。`vendor/tetorica-cdda/`／`vendor/tetorica-msm5205/`にソース・BSDライセンス・NOTICE・英語README。原本core／header／WASM bridgeは本体とbyte一致、全306snapshot hashを検証。
+- `tetorica::cdda`／`tetorica::msm5205`のNative targetとC public header、単独WASM buildを追加。既存24 chip ID／29 chip WASM recipeは維持し、新2moduleは`applicationAudio`で別枠。SDK 0.1.5候補のmetadataを維持、version変更なし。
+- checkout外へ展開したsource ZIPだけで全23library／49executableをbuild。29/29 CTest、21件の48kHz stereo PCM16 WAV、既存JS reference10checkが成功。Python audit／release回帰88件も成功。
+- CD-DA／MSM5205のWASMをSDKと展開ZIPからそれぞれ生成、JS／WASMとも本体配布物とbyte一致。実C11／C++14とNative/WASM PCM・state差0。CD-DAは8/44.1/48/384kHz、MSMは44.1/48kHz・全16rate・raw互換・alternate clock等を確認。
+- `tetorica_pcengine_cd_wav`はHuC6280＋MSM5205＋CD-DAを個別→合奏。外部asset不要、master0.5を1回。peak約0.30832／clipなし／末尾0.2秒exact zero。preview `/private/tmp/sdk-pcengine-cd.wav`。実聴・実機比較は未実施。
+- full checker終盤でEmscripten cacheのsandbox権限エラーが1回発生。必要権限で該当buildを再実行し、展開sourceからの新2WASM build／smoke／parityが成功。最終ZIP audit／JS／実WASM／Native parityはexit0。
+- 最終候補は`/private/tmp/sdk-cdrom2-archives-final/`。source ZIP SHA256 `824f4c218d086f439c66f36a46c353c66ab96bc6f333292846351ae86e988985`、WASM ZIP `09a6676c03988001fe97ea9e8edc5f3f9fa1e6f3d026c5a2b57910080634e977`。全build inputはfull build済ZIPと同一。
+- CIのWASM対象へ新2moduleを追加し5job、Nativeは既存5platform。今回remote CIは未実行。未commit／未push／未tag／未公開、本体・Tauri固定SDK／runtime／Mixer／npmには変更なし。
+- 詳細：[soundchip_native_cdrom2_01.md](soundchip_native_cdrom2_01.md)／[JSON](soundchip_native_cdrom2_01.json)。次はSDK変更のcommit後にremote CI確認、公開とconsumer pin更新は別作業。
+
 ## 2026-10-28 — PC Engine CD-ROM² external Examples complete
 
 - `w/tetorica-fm2612-examples`を公開npm **0.2.32**へ更新。CD-DAのトラック操作、MSM5205のサンプル変換／ループ、HuC6280＋ADPCM＋CD-DAの合奏をWeb／Nodeで各1例追加。各例は自作音声を生成し、外部disc／BIOS／ROM不要。
