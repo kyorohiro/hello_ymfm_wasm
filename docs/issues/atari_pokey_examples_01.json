@@ -1,0 +1,2622 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "status": "passed",
+  "scope": "tetorica-fm2612-examples POKEY single/noise+joined/dual",
+  "dependency": "tetorica-fm2612@0.2.31",
+  "node": {
+    "command": "node scripts/check-node.mjs",
+    "passed": 33,
+    "eventJson": "passed",
+    "pcmFormat": "44100 Hz stereo PCM16, duplicated mono",
+    "examples": [
+      {
+        "id": "pokey/tone/01-four-channels",
+        "frames": 145530,
+        "peak": 0.079376,
+        "acRms": 0.018999,
+        "dcAcRatio": 0.0811
+      },
+      {
+        "id": "pokey/noise/01-distortion-joined",
+        "frames": 180810,
+        "peak": 0.039734,
+        "acRms": 0.017248,
+        "dcAcRatio": 0.0367
+      },
+      {
+        "id": "pokey/dual/01-eight-channels",
+        "frames": 145530,
+        "peak": 0.122406,
+        "acRms": 0.018506,
+        "dcAcRatio": 0.13
+      }
+    ],
+    "sustainedAcEveryPhrase": true,
+    "notesOffExactZero": true,
+    "tailExactZeroFrames": 4410,
+    "dualSecondCoreOnlyWindows": "passed"
+  },
+  "evidenceFiles": {
+    "browser": {
+      "path": "/private/tmp/pokey-examples-browser-docs.json",
+      "sha256": "890bd27b7c73d4b635a2c435c35791857ddef79dec9e5a6a0afd8420f3edd4f3"
+    },
+    "provenance": {
+      "path": "/private/tmp/pokey-examples-provenance.json",
+      "sha256": "f608de1ad09226883b112e9d36ba88c84812d0e99206761e56f38bb8b1665ce1"
+    },
+    "visual": {
+      "path": "/private/tmp/pokey-examples-visual/report.json",
+      "sha256": "4f80883196953d9a9267fdff6faeb46ee36ab149b37fa0cc2fbeec607e947a28"
+    },
+    "dev": {
+      "path": "/private/tmp/pokey-examples-dev-smoke.json",
+      "sha256": "8c4e97ecfc8adef834208042d6a6769ecfd9a826f9f4875e54438e1f18dc6c7a"
+    }
+  },
+  "browser": {
+    "checker": "scripts/check-pokey-browser.mjs",
+    "checkerSha256": "3dad7765c0b6adfad9343b02974cf08e4771e83ea60d6d5a71cbc73dabc3e8db",
+    "startedAt": "2026-10-27T10:00:56.273Z",
+    "siteRoot": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-fm2612-examples/docs",
+    "subpath": "/examples-site/",
+    "results": [
+      {
+        "browser": "chromium",
+        "browserVersion": "153.0.8010.12",
+        "case": "tone",
+        "passed": true,
+        "path": "pokey/tone/01-four-channels",
+        "cancelledInitialization": {
+          "closedContexts": 1,
+          "chipWorklets": 0,
+          "sourceResumed": false
+        },
+        "original": {
+          "frames": 161792,
+          "maxAbs": 0.0794677734375,
+          "acRms": 0.03020339072200121,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 1,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "physicalChannels": [
+          {
+            "node": 1,
+            "channels": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "writes": 115
+          }
+        ],
+        "steadyA4": {
+          "frames": 25600,
+          "maxAbs": 0.03151232376694679,
+          "acRms": 0.022614528046215773,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 2,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture",
+          "pitch": {
+            "requestedHz": 440,
+            "quantizedHz": 437.8155577299413,
+            "measuredHz": 437.8104241216845,
+            "toleranceHz": 2
+          }
+        },
+        "stoppedPlayback": true,
+        "retainedZeroVolume": {
+          "frames": 16896,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "restoredVolume": {
+          "frames": 21760,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.02264922733358035,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "stoppedTransport": {
+          "frames": 17920,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "syntaxErrorHandled": true,
+        "runtimeErrorHandled": true,
+        "editedSourceRerun": {
+          "frames": 41472,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.022843747311274646,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 9,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "pagehideReleased": true,
+        "no404": true,
+        "noPageErrors": true
+      },
+      {
+        "browser": "chromium",
+        "browserVersion": "153.0.8010.12",
+        "case": "noise",
+        "passed": true,
+        "path": "pokey/noise/01-distortion-joined",
+        "cancelledInitialization": {
+          "closedContexts": 1,
+          "chipWorklets": 0,
+          "sourceResumed": false
+        },
+        "original": {
+          "frames": 199680,
+          "maxAbs": 0.03973388671875,
+          "acRms": 0.020325197432159492,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 1,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "physicalChannels": [
+          {
+            "node": 1,
+            "channels": [
+              0,
+              1
+            ],
+            "writes": 100
+          }
+        ],
+        "noiseSequence": {
+          "joinedHelper": 0,
+          "joinedVoice": 1,
+          "lowTimerWritten": true,
+          "highTimerWritten": true,
+          "poly9": true,
+          "returnedToPoly17": true,
+          "distortions": [
+            0,
+            2,
+            5
+          ],
+          "stages": [
+            {
+              "begin": 0.037333333333333336,
+              "distortion": 5,
+              "poly9": false,
+              "period": 64,
+              "end": 0.49066666666666664,
+              "nonDcFrames": 19328,
+              "acRms": 0.019762163104599256
+            },
+            {
+              "begin": 0.592,
+              "distortion": 2,
+              "poly9": false,
+              "period": 64,
+              "end": 1.04,
+              "nonDcFrames": 15744,
+              "acRms": 0.020062983290341802
+            },
+            {
+              "begin": 1.1413333333333333,
+              "distortion": 0,
+              "poly9": false,
+              "period": 64,
+              "end": 1.5946666666666667,
+              "nonDcFrames": 18688,
+              "acRms": 0.019992664473675335
+            },
+            {
+              "begin": 1.696,
+              "distortion": 0,
+              "poly9": true,
+              "period": 64,
+              "end": 2.144,
+              "nonDcFrames": 18432,
+              "acRms": 0.02010821637604286
+            }
+          ],
+          "joinedNotes": [
+            {
+              "begin": 2.2453333333333334,
+              "low": 107,
+              "high": 53,
+              "period": 13675,
+              "end": 2.5973333333333333,
+              "requestedHz": 65.40639132514966,
+              "quantizedHz": 65.40673878087999,
+              "nonDcFrames": 14464
+            },
+            {
+              "begin": 2.6986666666666665,
+              "low": 165,
+              "high": 35,
+              "period": 9125,
+              "end": 3.050666666666667,
+              "requestedHz": 97.99885899543733,
+              "quantizedHz": 97.9955102934735,
+              "nonDcFrames": 14464
+            },
+            {
+              "begin": 3.152,
+              "low": 178,
+              "high": 26,
+              "period": 6834,
+              "end": 3.504,
+              "requestedHz": 130.8127826502993,
+              "quantizedHz": 130.81347756175998,
+              "nonDcFrames": 14464
+            },
+            {
+              "begin": 3.6026666666666665,
+              "low": 47,
+              "high": 21,
+              "period": 5423,
+              "end": 3.952,
+              "requestedHz": 164.81377845643496,
+              "quantizedHz": 164.80570902394106,
+              "nonDcFrames": 14336
+            }
+          ]
+        },
+        "steadyA4": {
+          "frames": 27392,
+          "maxAbs": 0.027416618540883064,
+          "acRms": 0.022602723650955284,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 2,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture",
+          "pitch": {
+            "requestedHz": 440,
+            "quantizedHz": 437.8155577299413,
+            "measuredHz": 437.81591077296105,
+            "toleranceHz": 2
+          }
+        },
+        "stoppedPlayback": true,
+        "retainedZeroVolume": {
+          "frames": 16640,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "restoredVolume": {
+          "frames": 21760,
+          "maxAbs": 0.04538193345069885,
+          "acRms": 0.02296169350959609,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "stoppedTransport": {
+          "frames": 17920,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "syntaxErrorHandled": true,
+        "runtimeErrorHandled": true,
+        "editedSourceRerun": {
+          "frames": 41216,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.022843747311274646,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 9,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "pagehideReleased": true,
+        "no404": true,
+        "noPageErrors": true
+      },
+      {
+        "browser": "chromium",
+        "browserVersion": "153.0.8010.12",
+        "case": "dual",
+        "passed": true,
+        "path": "pokey/dual/01-eight-channels",
+        "cancelledInitialization": {
+          "closedContexts": 1,
+          "chipWorklets": 0,
+          "sourceResumed": false
+        },
+        "original": {
+          "frames": 162304,
+          "maxAbs": 0.11879627406597137,
+          "acRms": 0.03528233680276472,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 1,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 2,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "physicalChannels": [
+          {
+            "node": 1,
+            "channels": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "writes": 147
+          },
+          {
+            "node": 2,
+            "channels": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "writes": 115
+          }
+        ],
+        "dualTopology": "two independent four-channel worklets; mono host sum duplicated to L/R",
+        "dualIsolation": {
+          "maxSimultaneousVoices": 8,
+          "firstCoreAllOffWhileSecondContinues": [
+            {
+              "begin": 0.192,
+              "end": 0.352,
+              "frames": 5248
+            },
+            {
+              "begin": 0.5973333333333334,
+              "end": 0.7573333333333333,
+              "frames": 5248
+            },
+            {
+              "begin": 0.9973333333333333,
+              "end": 1.16,
+              "frames": 5376
+            },
+            {
+              "begin": 1.4026666666666667,
+              "end": 1.5626666666666666,
+              "frames": 5248
+            },
+            {
+              "begin": 1.8026666666666666,
+              "end": 1.968,
+              "frames": 5504
+            },
+            {
+              "begin": 2.208,
+              "end": 2.368,
+              "frames": 5248
+            },
+            {
+              "begin": 2.608,
+              "end": 2.7706666666666666,
+              "frames": 5376
+            },
+            {
+              "begin": 3.010666666666667,
+              "end": 3.1733333333333333,
+              "frames": 5376
+            }
+          ]
+        },
+        "steadyA4": {
+          "frames": 27648,
+          "maxAbs": 0.027417007833719254,
+          "acRms": 0.02259973611961665,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 3,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            },
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture",
+          "pitch": {
+            "requestedHz": 440,
+            "quantizedHz": 437.81139921722115,
+            "measuredHz": 437.8107640491422,
+            "toleranceHz": 2
+          }
+        },
+        "stoppedPlayback": true,
+        "retainedZeroVolume": {
+          "frames": 16896,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 6,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 7,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "restoredVolume": {
+          "frames": 21504,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.022653733920071358,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 6,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 7,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "stoppedTransport": {
+          "frames": 18944,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 6,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 7,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "syntaxErrorHandled": true,
+        "runtimeErrorHandled": true,
+        "editedSourceRerun": {
+          "frames": 42496,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.02284398125252357,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 13,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 14,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "pagehideReleased": true,
+        "no404": true,
+        "noPageErrors": true
+      },
+      {
+        "browser": "webkit",
+        "browserVersion": "26.6",
+        "case": "tone",
+        "passed": true,
+        "path": "pokey/tone/01-four-channels",
+        "cancelledInitialization": {
+          "closedContexts": 1,
+          "chipWorklets": 0,
+          "sourceResumed": false
+        },
+        "original": {
+          "frames": 163584,
+          "maxAbs": 0.07937847822904587,
+          "acRms": 0.02959530998693828,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 1,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "physicalChannels": [
+          {
+            "node": 1,
+            "channels": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "writes": 115
+          }
+        ],
+        "steadyA4": {
+          "frames": 25344,
+          "maxAbs": 0.02803334780037403,
+          "acRms": 0.022602723650955284,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 2,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture",
+          "pitch": {
+            "requestedHz": 440,
+            "quantizedHz": 437.8155577299413,
+            "measuredHz": 437.8175519478431,
+            "toleranceHz": 2
+          }
+        },
+        "stoppedPlayback": true,
+        "retainedZeroVolume": {
+          "frames": 16768,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "restoredVolume": {
+          "frames": 21760,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.0226884445149098,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "stoppedTransport": {
+          "frames": 17920,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "syntaxErrorHandled": true,
+        "runtimeErrorHandled": true,
+        "editedSourceRerun": {
+          "frames": 42368,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.022843747311274646,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 9,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "pagehideReleased": true,
+        "no404": true,
+        "noPageErrors": true
+      },
+      {
+        "browser": "webkit",
+        "browserVersion": "26.6",
+        "case": "noise",
+        "passed": true,
+        "path": "pokey/noise/01-distortion-joined",
+        "cancelledInitialization": {
+          "closedContexts": 1,
+          "chipWorklets": 0,
+          "sourceResumed": false
+        },
+        "original": {
+          "frames": 201472,
+          "maxAbs": 0.03973388671875,
+          "acRms": 0.02010821637604286,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 1,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "physicalChannels": [
+          {
+            "node": 1,
+            "channels": [
+              0,
+              1
+            ],
+            "writes": 100
+          }
+        ],
+        "noiseSequence": {
+          "joinedHelper": 0,
+          "joinedVoice": 1,
+          "lowTimerWritten": true,
+          "highTimerWritten": true,
+          "poly9": true,
+          "returnedToPoly17": true,
+          "distortions": [
+            0,
+            2,
+            5
+          ],
+          "stages": [
+            {
+              "begin": 0.04,
+              "distortion": 5,
+              "poly9": false,
+              "period": 64,
+              "end": 0.49066666666666664,
+              "nonDcFrames": 19200,
+              "acRms": 0.019762163104599256
+            },
+            {
+              "begin": 0.592,
+              "distortion": 2,
+              "poly9": false,
+              "period": 64,
+              "end": 1.04,
+              "nonDcFrames": 15616,
+              "acRms": 0.02006298335386811
+            },
+            {
+              "begin": 1.144,
+              "distortion": 0,
+              "poly9": false,
+              "period": 64,
+              "end": 1.5946666666666667,
+              "nonDcFrames": 18560,
+              "acRms": 0.019992664447236838
+            },
+            {
+              "begin": 1.696,
+              "distortion": 0,
+              "poly9": true,
+              "period": 64,
+              "end": 2.1466666666666665,
+              "nonDcFrames": 18560,
+              "acRms": 0.02010821637604286
+            }
+          ],
+          "joinedNotes": [
+            {
+              "begin": 2.248,
+              "low": 107,
+              "high": 53,
+              "period": 13675,
+              "end": 2.5973333333333333,
+              "requestedHz": 65.40639132514966,
+              "quantizedHz": 65.40673878087999,
+              "nonDcFrames": 14336
+            },
+            {
+              "begin": 2.6986666666666665,
+              "low": 165,
+              "high": 35,
+              "period": 9125,
+              "end": 3.0533333333333332,
+              "requestedHz": 97.99885899543733,
+              "quantizedHz": 97.9955102934735,
+              "nonDcFrames": 14592
+            },
+            {
+              "begin": 3.1546666666666665,
+              "low": 178,
+              "high": 26,
+              "period": 6834,
+              "end": 3.506666666666667,
+              "requestedHz": 130.8127826502993,
+              "quantizedHz": 130.81347756175998,
+              "nonDcFrames": 14464
+            },
+            {
+              "begin": 3.6133333333333333,
+              "low": 47,
+              "high": 21,
+              "period": 5423,
+              "end": 3.962666666666667,
+              "requestedHz": 164.81377845643496,
+              "quantizedHz": 164.80570902394106,
+              "nonDcFrames": 14336
+            }
+          ]
+        },
+        "steadyA4": {
+          "frames": 26496,
+          "maxAbs": 0.0287062656134367,
+          "acRms": 0.022602723650955284,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 2,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture",
+          "pitch": {
+            "requestedHz": 440,
+            "quantizedHz": 437.8155577299413,
+            "measuredHz": 437.82083854756763,
+            "toleranceHz": 2
+          }
+        },
+        "stoppedPlayback": true,
+        "retainedZeroVolume": {
+          "frames": 16768,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "restoredVolume": {
+          "frames": 21760,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.02264922733358035,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "stoppedTransport": {
+          "frames": 17920,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "syntaxErrorHandled": true,
+        "runtimeErrorHandled": true,
+        "editedSourceRerun": {
+          "frames": 42240,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.022843747311274646,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 9,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789790,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "pagehideReleased": true,
+        "no404": true,
+        "noPageErrors": true
+      },
+      {
+        "browser": "webkit",
+        "browserVersion": "26.6",
+        "case": "dual",
+        "passed": true,
+        "path": "pokey/dual/01-eight-channels",
+        "cancelledInitialization": {
+          "closedContexts": 1,
+          "chipWorklets": 0,
+          "sourceResumed": false
+        },
+        "original": {
+          "frames": 166144,
+          "maxAbs": 0.1079958826303482,
+          "acRms": 0.0359758982502513,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 1,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 2,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "physicalChannels": [
+          {
+            "node": 1,
+            "channels": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "writes": 147
+          },
+          {
+            "node": 2,
+            "channels": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "writes": 115
+          }
+        ],
+        "dualTopology": "two independent four-channel worklets; mono host sum duplicated to L/R",
+        "dualIsolation": {
+          "maxSimultaneousVoices": 8,
+          "firstCoreAllOffWhileSecondContinues": [
+            {
+              "begin": 0.21066666666666667,
+              "end": 0.37066666666666664,
+              "frames": 5248
+            },
+            {
+              "begin": 0.6106666666666667,
+              "end": 0.7706666666666667,
+              "frames": 5248
+            },
+            {
+              "begin": 1.0133333333333334,
+              "end": 1.1733333333333333,
+              "frames": 5248
+            },
+            {
+              "begin": 1.4133333333333333,
+              "end": 1.5786666666666667,
+              "frames": 5504
+            },
+            {
+              "begin": 1.824,
+              "end": 1.9893333333333334,
+              "frames": 5504
+            },
+            {
+              "begin": 2.2373333333333334,
+              "end": 2.4026666666666667,
+              "frames": 5504
+            },
+            {
+              "begin": 2.648,
+              "end": 2.8133333333333335,
+              "frames": 5504
+            },
+            {
+              "begin": 3.0613333333333332,
+              "end": 3.224,
+              "frames": 5376
+            }
+          ]
+        },
+        "steadyA4": {
+          "frames": 25856,
+          "maxAbs": 0.0315125547349453,
+          "acRms": 0.022610588322881115,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 3,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            },
+            {
+              "id": 4,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 0
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture",
+          "pitch": {
+            "requestedHz": 440,
+            "quantizedHz": 437.81139921722115,
+            "measuredHz": 437.8091137589884,
+            "toleranceHz": 2
+          }
+        },
+        "stoppedPlayback": true,
+        "retainedZeroVolume": {
+          "frames": 16896,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 6,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 7,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "restoredVolume": {
+          "frames": 21632,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.022653733920071358,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 6,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 7,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "stoppedTransport": {
+          "frames": 19328,
+          "maxAbs": 0,
+          "acRms": 0,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 6,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 7,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "syntaxErrorHandled": true,
+        "runtimeErrorHandled": true,
+        "editedSourceRerun": {
+          "frames": 43648,
+          "maxAbs": 0.04541015625,
+          "acRms": 0.02284398125252357,
+          "channelDifference": 0,
+          "worklets": [
+            {
+              "id": 13,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            },
+            {
+              "id": 14,
+              "processor": "tetorica-soundchip",
+              "chip": "pokey",
+              "clock": 1789773,
+              "wasmBytes": 18676,
+              "wasmMagic": [
+                0,
+                97,
+                115,
+                109
+              ],
+              "disconnects": 2
+            }
+          ],
+          "finalGains": [
+            0.25,
+            0.25
+          ],
+          "physicalOutput": "zeroed after capture"
+        },
+        "pagehideReleased": true,
+        "no404": true,
+        "noPageErrors": true
+      }
+    ],
+    "assets": [
+      {
+        "path": "examples/manifest.json",
+        "bytes": 15878,
+        "sha256": "18028a72b128acdb3c4e9a56440e359070c97b20ce08b0ff27b2f1ee1a1505fd"
+      },
+      {
+        "path": "examples/pokey/dual/01-eight-channels/node/main.mjs",
+        "bytes": 3882,
+        "sha256": "a7ef20554733f32091aef7afe8ba37b752642f4ba2b82aed54873643a39c5a60"
+      },
+      {
+        "path": "examples/pokey/dual/01-eight-channels/web/index.html",
+        "bytes": 3080,
+        "sha256": "ddb8005ef60bbd16bdf39208e646450bb0189e252aad26f5ac0f95e574d2c450"
+      },
+      {
+        "path": "examples/pokey/dual/01-eight-channels/web/main.js",
+        "bytes": 7198,
+        "sha256": "702ba565784df0a791629ed7541e52e6d93e8a3895326770773a619a0d53c686"
+      },
+      {
+        "path": "examples/pokey/noise/01-distortion-joined/node/main.mjs",
+        "bytes": 3567,
+        "sha256": "656c84d879ee912d10a47acb6f2e8236ea6844add2b3c9e45cba4766d86ab813"
+      },
+      {
+        "path": "examples/pokey/noise/01-distortion-joined/web/index.html",
+        "bytes": 3047,
+        "sha256": "40d798ea7159ad8699a35c66f05e7d4a4c7da8e29d1d90f45aca88ebf5e899e8"
+      },
+      {
+        "path": "examples/pokey/noise/01-distortion-joined/web/main.js",
+        "bytes": 6960,
+        "sha256": "9d0611ac68c5fb082ceaba5deb25e0a688e56099569ec4ef52e4f04cb60f3370"
+      },
+      {
+        "path": "examples/pokey/tone/01-four-channels/node/main.mjs",
+        "bytes": 2933,
+        "sha256": "9c10862809d4f5c3af81c7197746dacd527d46d7cd8d634a01593da0fff2ed8a"
+      },
+      {
+        "path": "examples/pokey/tone/01-four-channels/web/index.html",
+        "bytes": 2863,
+        "sha256": "b5647fe3293fd6e6073c27dfd3beac42c3b47f81e99f1f51fbce1ab62064dbf8"
+      },
+      {
+        "path": "examples/pokey/tone/01-four-channels/web/main.js",
+        "bytes": 6367,
+        "sha256": "f4da3f747d96e67dd1ac0807a4ee7ff8383b642fdb46722646ee2e6417b97d28"
+      },
+      {
+        "path": "index.html",
+        "bytes": 4850,
+        "sha256": "11c068e42be3d85a53cac890b360afce0e1b0a9f6535d25c22ad550210af11d3"
+      },
+      {
+        "path": "page.js",
+        "bytes": 3369,
+        "sha256": "a3d725f65480ec5291a9861f12298dcdb95ce075ee4e532b50051db009e8649e"
+      },
+      {
+        "path": "style.css",
+        "bytes": 2943,
+        "sha256": "ec3cde4b86adbfb8b8d55707245daea5b531249eb4d17e2a053b81091462d7fc"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ay8910.js",
+        "bytes": 6210,
+        "sha256": "9682007689d87b7cdf27b138f269e8c5c4fb478df909cac95a4dc80ce88267e6"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/chip_pcm_renderer.js",
+        "bytes": 2901,
+        "sha256": "2f6a0c12777d11be5d68d6e597aca0bbdfde838596888fc283b08c095465f4d2"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/chip_worklet_transport.js",
+        "bytes": 15460,
+        "sha256": "a7d1e5634cdf9baeb702cf069ef805a00c6a479951a90825f3a557c8dc31893a"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/fds_audio.js",
+        "bytes": 5112,
+        "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/gameboyapu.js",
+        "bytes": 7082,
+        "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ay8910_wasm.js",
+        "bytes": 12113,
+        "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/gameboy_apu_wasm.js",
+        "bytes": 11497,
+        "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/nesapu_wasm.js",
+        "bytes": 16041,
+        "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/pokey_wasm.js",
+        "bytes": 15128,
+        "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/pokey_wasm.wasm",
+        "bytes": 18676,
+        "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/pwm32x_wasm.js",
+        "bytes": 12398,
+        "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/segapsg_wasm.js",
+        "bytes": 33978,
+        "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/wonderswan_wasm.js",
+        "bytes": 11356,
+        "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/y8950_wasm.js",
+        "bytes": 15461,
+        "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ym2151_wasm.js",
+        "bytes": 15584,
+        "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ym2413_wasm.js",
+        "bytes": 32911,
+        "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ym2608_wasm.js",
+        "bytes": 36356,
+        "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ym2612_wasm.js",
+        "bytes": 34902,
+        "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ym3526_wasm.js",
+        "bytes": 14274,
+        "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ym3812_wasm.js",
+        "bytes": 14274,
+        "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/generated/ymf262_wasm.js",
+        "bytes": 14274,
+        "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nes_apu_vendor/channel-dm.js",
+        "bytes": 6890,
+        "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nes_apu_vendor/channel-noise.js",
+        "bytes": 3592,
+        "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nes_apu_vendor/channel-square.js",
+        "bytes": 5728,
+        "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nes_apu_vendor/channel-triangle.js",
+        "bytes": 3615,
+        "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nes_apu_vendor/index.js",
+        "bytes": 31024,
+        "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nes_apu_vendor/utils.js",
+        "bytes": 1154,
+        "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nesapu_wasm.js",
+        "bytes": 9222,
+        "sha256": "8e8e189e9cd44d790e829e079e1174c6021ffb429f97f798cef777c2f2ce857d"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nesapu.js",
+        "bytes": 4072,
+        "sha256": "40310717d0f0a75b4bdb1a3d20e5350eb1274a67c406fad0eeff9e8a188aba55"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/nesapuaudioengine.js",
+        "bytes": 5704,
+        "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/playground_chip_clock.js",
+        "bytes": 5232,
+        "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/playground_performance_processor.js",
+        "bytes": 29133,
+        "sha256": "50490a133469dd2112ffb39d6c861d427754d9866a6226377ad7d7fa39cd35dc"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/playground_performance_queue.js",
+        "bytes": 9950,
+        "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/pokey.js",
+        "bytes": 8390,
+        "sha256": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/pokeyaudioengine.js",
+        "bytes": 3467,
+        "sha256": "1292a7b3e4f3828b205a4add69bf585b1554d7bb706620a6c6ef0e78c3926b9b"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/pokeysynth.js",
+        "bytes": 8278,
+        "sha256": "902c89bbe773ab0aa63f7148eb07a3b8d082b797cda5487f2900435c038acbeb"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/pwm32x_playback.js",
+        "bytes": 8983,
+        "sha256": "1c66e5a14b80653a7a45aef0e4104655999befa72db3803a0db6b5665b7b3e0e"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/pwm32x_wasm.js",
+        "bytes": 12348,
+        "sha256": "4a2153fecd827b463ed417f790ee80aab244e990e502a2b97396b013f65164c9"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/pwm32x.js",
+        "bytes": 6836,
+        "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/segapsg.js",
+        "bytes": 10113,
+        "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/soundchip_factory.js",
+        "bytes": 809,
+        "sha256": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/soundchip_mixer_presets.js",
+        "bytes": 2967,
+        "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/soundchip_mixer.js",
+        "bytes": 26367,
+        "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/soundchip_pitch.js",
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/soundchip_worklet.js",
+        "bytes": 6584,
+        "sha256": "73ce4dd19d8d575aede0994bda73c303d903e9c6eef76aafe4023b5c9312f720"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/soundchip-output-worklet.js",
+        "bytes": 19586,
+        "sha256": "63c8a5b8f67768a14c968c37d91c68ed89fe9615a8d83b8967de3b6eb85501d5"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/soundchip.js",
+        "bytes": 12574,
+        "sha256": "b1cd7e7f4f246d36111d970ef77d6e990ac15d374af1882fe5fd8b4cf7937a48"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/wav.js",
+        "bytes": 2582,
+        "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/wonderswan.js",
+        "bytes": 9684,
+        "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/wonderswanaudioengine.js",
+        "bytes": 6258,
+        "sha256": "1152b8e397f8c9696b07bde036485b86bf36d1df91f99f36dd1376ca341f922f"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/y8950.js",
+        "bytes": 11054,
+        "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym2151.js",
+        "bytes": 11479,
+        "sha256": "1c872f7fbb9c498378ca1e926c296c4783d280a71dc5c3cf19a6a3b4521e3c90"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym2413.js",
+        "bytes": 9473,
+        "sha256": "7515e2659b95e202041185661a6e1d103434c28d4b146166db7e99aaf562b20e"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym2608.js",
+        "bytes": 15607,
+        "sha256": "52cb8790fc26c2a007256ddc9d46d9e635bed97688e9c3cbd8a8b0eeae476762"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym2612_dac.js",
+        "bytes": 7251,
+        "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym2612.js",
+        "bytes": 22574,
+        "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym2612synth.js",
+        "bytes": 38580,
+        "sha256": "7375b502f5fb2b0bf93fca1be51868dab47d866ecd4879a744ba9bb7ad26d1cb"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym3526.js",
+        "bytes": 9446,
+        "sha256": "3ce49fa8e36520db7a7d30edf03761cbacb4addf54f7d27dc00c80a908a3a71f"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ym3812.js",
+        "bytes": 9446,
+        "sha256": "ce35055a3a3c558c7af4a2ba662a53e4a39e3edaa5a0391ea5c6831de2a0d089"
+      },
+      {
+        "path": "vendor/tetorica-fm2612/ymf262.js",
+        "bytes": 10280,
+        "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3"
+      }
+    ],
+    "runtime": {
+      "name": "tetorica-fm2612",
+      "version": "0.2.31",
+      "packageSha256": "c3555a02f180ea9dfe2b3ec43f8c4932bb9ee1bc51af6d1bae3c25b2d956d1e3"
+    },
+    "npmProvenance": {
+      "lockSha256": "058ba6de5babe7f60d9121b7b95bf808cdcf05ab7789bb47ad75b60836f361c7",
+      "version": "0.2.31",
+      "resolved": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.31.tgz",
+      "integrity": "sha512-HfHFj0zKCd2SRi50YgkBa6LlEe9mZr8KaaQJKbneI+6XNVYW/iJCCylbFwoq6tu5dNuFv/DsFDHTTJFvSktBtQ=="
+    },
+    "passed": true,
+    "finishedAt": "2026-10-27T10:01:48.572Z"
+  },
+  "provenance": {
+    "createdAt": "2026-10-27T10:04:37.862638+00:00",
+    "repository": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-fm2612-examples",
+    "gitHEAD": "0bc023de52dbbb1843db5512ca98125318e941a1",
+    "method": "Read-only byte hashing; no network, build, Node rendering, browser run, extraction, or source/generated-file edits. Manifest SHA256 is SHA256 of sorted lines: hex digest + two spaces + relative POSIX path + newline.",
+    "archive": {
+      "path": "/private/tmp/npm-pokey-release-20261027/fm/tetorica-fm2612-0.2.31.tgz",
+      "bytes": 1724251,
+      "sha256": "6941d3474abd619fd0cec1b41b79f51c6011ca49d3bf9ab47ca31422e641851d",
+      "expectedSha256": "6941d3474abd619fd0cec1b41b79f51c6011ca49d3bf9ab47ca31422e641851d",
+      "sha256Matches": true,
+      "integrity": "sha512-HfHFj0zKCd2SRi50YgkBa6LlEe9mZr8KaaQJKbneI+6XNVYW/iJCCylbFwoq6tu5dNuFv/DsFDHTTJFvSktBtQ==",
+      "files": 880,
+      "contentBytes": 6429394,
+      "manifestSha256": "b6e4237daf1a5fbc08bdc4c51c44c04725a261c3d3a17875a97aa122edb2f1a9",
+      "nonRegularEntries": [],
+      "duplicateFiles": []
+    },
+    "runtimeCopies": [
+      {
+        "path": "node_modules/tetorica-fm2612",
+        "version": "0.2.31",
+        "files": 880,
+        "contentBytes": 6429394,
+        "manifestSha256": "b6e4237daf1a5fbc08bdc4c51c44c04725a261c3d3a17875a97aa122edb2f1a9",
+        "symlinks": [],
+        "archiveComparison": {
+          "missing": [],
+          "extra": [],
+          "different": []
+        },
+        "passed": true
+      },
+      {
+        "path": "docs/vendor/tetorica-fm2612",
+        "version": "0.2.31",
+        "files": 880,
+        "contentBytes": 6429394,
+        "manifestSha256": "b6e4237daf1a5fbc08bdc4c51c44c04725a261c3d3a17875a97aa122edb2f1a9",
+        "symlinks": [],
+        "archiveComparison": {
+          "missing": [],
+          "extra": [],
+          "different": []
+        },
+        "passed": true
+      },
+      {
+        "path": "dist/vendor/tetorica-fm2612",
+        "version": "0.2.31",
+        "files": 880,
+        "contentBytes": 6429394,
+        "manifestSha256": "b6e4237daf1a5fbc08bdc4c51c44c04725a261c3d3a17875a97aa122edb2f1a9",
+        "symlinks": [],
+        "archiveComparison": {
+          "missing": [],
+          "extra": [],
+          "different": []
+        },
+        "passed": true
+      }
+    ],
+    "preBrowserSiteSnapshot": {
+      "path": "/private/tmp/pokey-examples-site-hashes.json",
+      "bytes": 135238,
+      "sha256": "5a7dc2dbeccf53b9f10d64b075c96f8783a80179fc83d9140503d396e617e013",
+      "entries": 1120,
+      "manifestSha256": "59246d3158b2326e97b047ac2037ba533788a4be918167dc6b5f33385cc40577"
+    },
+    "siteTrees": [
+      {
+        "path": "docs",
+        "files": 1120,
+        "contentBytes": 7154180,
+        "manifestSha256": "59246d3158b2326e97b047ac2037ba533788a4be918167dc6b5f33385cc40577",
+        "symlinks": [],
+        "preBrowserSnapshotComparison": {
+          "missing": [],
+          "extra": [],
+          "different": []
+        },
+        "passed": true
+      },
+      {
+        "path": "dist",
+        "files": 1120,
+        "contentBytes": 7154180,
+        "manifestSha256": "59246d3158b2326e97b047ac2037ba533788a4be918167dc6b5f33385cc40577",
+        "symlinks": [],
+        "preBrowserSnapshotComparison": {
+          "missing": [],
+          "extra": [],
+          "different": []
+        },
+        "passed": true
+      }
+    ],
+    "docsDistByteIdentical": true,
+    "browserReceiptAudit": {
+      "receipt": {
+        "path": "/private/tmp/pokey-examples-browser-docs.json",
+        "bytes": 52916,
+        "sha256": "890bd27b7c73d4b635a2c435c35791857ddef79dec9e5a6a0afd8420f3edd4f3"
+      },
+      "passed": true,
+      "routes": 6,
+      "allRoutesPassed": true,
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "finishedAt": "2026-10-27T10:01:48.572Z",
+      "assetEntries": 73,
+      "assetComparisons": 146,
+      "assetMismatches": [],
+      "checkerSha256Unchanged": true,
+      "runtimePackageSha256Unchanged": true,
+      "packageLockSha256Unchanged": true,
+      "packageLockMatchesArchiveIntegrity": true,
+      "npmProvenance": {
+        "lockSha256": "058ba6de5babe7f60d9121b7b95bf808cdcf05ab7789bb47ad75b60836f361c7",
+        "version": "0.2.31",
+        "resolved": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.31.tgz",
+        "integrity": "sha512-HfHFj0zKCd2SRi50YgkBa6LlEe9mZr8KaaQJKbneI+6XNVYW/iJCCylbFwoq6tu5dNuFv/DsFDHTTJFvSktBtQ=="
+      }
+    },
+    "oldExamplesPreservation": {
+      "snapshot": {
+        "path": "/private/tmp/pokey-examples-baseline.json",
+        "bytes": 18287,
+        "sha256": "001347191000ff18beffb1b33571ee92e77d7578490e1bd6cca2d7f56e9591bc"
+      },
+      "snapshotKind": "SHA256 map of 147 pre-existing dirty tracked/untracked files; not a full clean repository snapshot",
+      "snapshotEntries": 147,
+      "protectedExistingExampleFiles": 24,
+      "additionalProtectedFiles": [
+        "scripts/check-wonderswan-browser.mjs"
+      ],
+      "protectedManifestSha256": "2622d3d4d2c78bfc7ff4efe94392b83fd71d7ffcd448aae2d8b2f2c7995390c9",
+      "protectedFileMismatches": [],
+      "trackedOldExampleFiles": 422,
+      "trackedOldExampleChangesFromCurrentHEAD": [],
+      "unexpectedTrackedOldExampleChanges": [],
+      "untrackedOldExampleFiles": 24,
+      "untrackedOldExampleSetComparison": {
+        "missing": [],
+        "extra": []
+      },
+      "excludedSnapshotEntries": [
+        "README.md",
+        "docs/examples/manifest.json",
+        "docs/index.html",
+        "docs/page.js",
+        "docs/runtime.html",
+        "docs/vendor/tetorica-fm2612/README.md",
+        "docs/vendor/tetorica-fm2612/RUNTIME.md",
+        "docs/vendor/tetorica-fm2612/THIRD_PARTY_LICENSES.txt",
+        "docs/vendor/tetorica-fm2612/chip_worklet_transport.d.ts",
+        "docs/vendor/tetorica-fm2612/chip_worklet_transport.js",
+        "docs/vendor/tetorica-fm2612/generated/spc_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/wonderswan_wasm.d.ts",
+        "docs/vendor/tetorica-fm2612/generated/wonderswan_wasm.js",
+        "docs/vendor/tetorica-fm2612/generated/wonderswan_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/y8950_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym2151_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym2203_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym2413_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym2608_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym2610b_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym2612_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym3438_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym3526_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ym3812_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ymf262_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ymf276_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ymf278b_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/generated/ymf288_wasm.wasm",
+        "docs/vendor/tetorica-fm2612/licenses/mame-wonderswan/LICENSE",
+        "docs/vendor/tetorica-fm2612/licenses/mame-wonderswan/README.md",
+        "docs/vendor/tetorica-fm2612/licenses/tetorica_sega_psg/LICENSE",
+        "docs/vendor/tetorica-fm2612/licenses/tetorica_sega_psg/README.md",
+        "docs/vendor/tetorica-fm2612/looper.d.ts",
+        "docs/vendor/tetorica-fm2612/megasynth.js",
+        "docs/vendor/tetorica-fm2612/msfa_dx7/README.vendor.md",
+        "docs/vendor/tetorica-fm2612/native_genesis_extra_chip.js",
+        "docs/vendor/tetorica-fm2612/native_genesis_extra_wonderswan.d.ts",
+        "docs/vendor/tetorica-fm2612/native_genesis_extra_wonderswan.js",
+        "docs/vendor/tetorica-fm2612/native_genesis_synth.d.ts",
+        "docs/vendor/tetorica-fm2612/native_genesis_synth.js",
+        "docs/vendor/tetorica-fm2612/native_genesis_wonderswan.d.ts",
+        "docs/vendor/tetorica-fm2612/native_genesis_wonderswan.js",
+        "docs/vendor/tetorica-fm2612/native_genesis_worker.d.ts",
+        "docs/vendor/tetorica-fm2612/native_genesis_worker.js",
+        "docs/vendor/tetorica-fm2612/native_runtime_synth.d.ts",
+        "docs/vendor/tetorica-fm2612/native_runtime_synth.js",
+        "docs/vendor/tetorica-fm2612/package.json",
+        "docs/vendor/tetorica-fm2612/playground_ay8910_audio.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_ay8910_audio.js",
+        "docs/vendor/tetorica-fm2612/playground_ay8910_worklet.js",
+        "docs/vendor/tetorica-fm2612/playground_chip_clock.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_chip_clock.js",
+        "docs/vendor/tetorica-fm2612/playground_keyboard_channels.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_keyboard_channels.js",
+        "docs/vendor/tetorica-fm2612/playground_logic_worker.js",
+        "docs/vendor/tetorica-fm2612/playground_native_primary.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_native_primary.js",
+        "docs/vendor/tetorica-fm2612/playground_performance_processor.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_performance_processor.js",
+        "docs/vendor/tetorica-fm2612/playground_runtime.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_runtime.js",
+        "docs/vendor/tetorica-fm2612/playground_soundchips.js",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan.js",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan_audio.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan_audio.js",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan_inspector.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan_inspector.js",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan_worklet.d.ts",
+        "docs/vendor/tetorica-fm2612/playground_wonderswan_worklet.js",
+        "docs/vendor/tetorica-fm2612/runtime-manifest.json",
+        "docs/vendor/tetorica-fm2612/soundchip-output-worklet.js",
+        "docs/vendor/tetorica-fm2612/soundchip.d.ts",
+        "docs/vendor/tetorica-fm2612/soundchip.js",
+        "docs/vendor/tetorica-fm2612/soundchip_mixer.d.ts",
+        "docs/vendor/tetorica-fm2612/soundchip_mixer.js",
+        "docs/vendor/tetorica-fm2612/soundchip_mixer_presets.d.ts",
+        "docs/vendor/tetorica-fm2612/soundchip_mixer_presets.js",
+        "docs/vendor/tetorica-fm2612/soundchip_worklet.js",
+        "docs/vendor/tetorica-fm2612/sources/LICENSE",
+        "docs/vendor/tetorica-fm2612/sources/LICENSE.tetorica",
+        "docs/vendor/tetorica-fm2612/sources/NES-FDS.md",
+        "docs/vendor/tetorica-fm2612/sources/Nuked-OPN2.md",
+        "docs/vendor/tetorica-fm2612/sources/PWM32X.md",
+        "docs/vendor/tetorica-fm2612/sources/README.md",
+        "docs/vendor/tetorica-fm2612/sources/SNES-SPC.md",
+        "docs/vendor/tetorica-fm2612/sources/SegaPSG.md",
+        "docs/vendor/tetorica-fm2612/sources/scripts/build_nesapu_wasm.sh",
+        "docs/vendor/tetorica-fm2612/sources/scripts/build_nuked_opn2_wasm.sh",
+        "docs/vendor/tetorica-fm2612/sources/scripts/build_pwm32x_wasm.sh",
+        "docs/vendor/tetorica-fm2612/sources/scripts/build_segapsg_wasm.sh",
+        "docs/vendor/tetorica-fm2612/sources/scripts/build_spc_wasm.sh",
+        "docs/vendor/tetorica-fm2612/sources/src/chip_state.h",
+        "docs/vendor/tetorica-fm2612/sources/third_party/tetorica_sega_psg/LICENSE",
+        "docs/vendor/tetorica-fm2612/sources/third_party/tetorica_sega_psg/README.md",
+        "docs/vendor/tetorica-fm2612/sources/third_party/tetorica_sega_psg/segapsg.cpp",
+        "docs/vendor/tetorica-fm2612/sources/third_party/tetorica_sega_psg/segapsg.h",
+        "docs/vendor/tetorica-fm2612/sources/wasm/segapsg_wasm.cpp",
+        "docs/vendor/tetorica-fm2612/spc_audio.js",
+        "docs/vendor/tetorica-fm2612/tetorica_synth.js",
+        "docs/vendor/tetorica-fm2612/vgmplayer.d.ts",
+        "docs/vendor/tetorica-fm2612/vgmplayer.js",
+        "docs/vendor/tetorica-fm2612/wonderswan.d.ts",
+        "docs/vendor/tetorica-fm2612/wonderswan.js",
+        "docs/vendor/tetorica-fm2612/wonderswan_timeline.d.ts",
+        "docs/vendor/tetorica-fm2612/wonderswan_timeline.js",
+        "docs/vendor/tetorica-fm2612/wonderswanaudioengine.d.ts",
+        "docs/vendor/tetorica-fm2612/wonderswanaudioengine.js",
+        "docs/vendor/tetorica-fm2612/wonderswansynth.d.ts",
+        "docs/vendor/tetorica-fm2612/wonderswansynth.js",
+        "docs/vendor/tetorica-fm2612/ym2612-worklet-nuked.js",
+        "docs/vendor/tetorica-fm2612/ym2612-worklet.js",
+        "docs/vendor/tetorica-fm2612/ym2612vgm.d.ts",
+        "docs/vendor/tetorica-fm2612/ym2612vgm.js",
+        "examples/manifest.json",
+        "package-lock.json",
+        "package.json",
+        "public/index.html",
+        "public/page.js",
+        "public/runtime.html",
+        "scripts/check-node.mjs",
+        "scripts/runtime.mjs"
+      ],
+      "exclusionReason": "Planned README, package/lock, public shell, manifest, check/runtime scripts, and vendored runtime upgrades are outside the old-example preservation audit.",
+      "passed": true
+    },
+    "nodeValidation": "Previously passed all 33 installed-package Node examples plus event JSON; intentionally not rerun.",
+    "passed": true,
+    "sourceProvenance": {
+      "metadataPath": "sources/POKEY-SDK.json",
+      "metadataSha256": "e91f4847a37602ab7b9b4e5f141c4891d67e4a80606d4de7867a593c4818765a",
+      "sdk": {
+        "schemaVersion": 1,
+        "name": "tetorica-soundchip-native",
+        "version": "0.1.5",
+        "sourceCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+        "archiveName": "tetorica-soundchip-native-0.1.5-sources.zip",
+        "archiveSha256": "aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07",
+        "manifestSha256": "bb542e394b76b1e3c6a34010ecd909d09230ce8b47e76daabf06ccf98d90f280",
+        "fileCount": 408,
+        "localCandidate": {
+          "baseCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+          "changedPaths": [
+            "CHANGELOG.md",
+            "README.md",
+            "docs/releases.md",
+            "docs/verification.md",
+            "sdk.json"
+          ]
+        }
+      },
+      "qualification": "The npm 0.2.31 archive is verified. Its embedded SDK provenance explicitly records a local candidate based on the listed commit; this audit does not assert that the SDK source candidate was published.",
+      "modifications": [
+        "Only standalone recipe include/source paths relocate vendor/libvgm-pokey to third_party/libvgm-pokey. Core, bridge and upstream bytes are unchanged."
+      ],
+      "inputChecks": [
+        {
+          "sdkPath": "LICENSE",
+          "publishedSourcePath": "sources/LICENSE",
+          "actualBytes": 1517,
+          "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+          "recordedSdkBytes": 1517,
+          "recordedSdkSha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+          "comparison": "exact bytes",
+          "passed": true
+        },
+        {
+          "sdkPath": "wasm/pokey_wasm.cpp",
+          "publishedSourcePath": "sources/wasm/pokey_wasm.cpp",
+          "actualBytes": 1101,
+          "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df",
+          "recordedSdkBytes": 1101,
+          "recordedSdkSha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df",
+          "comparison": "exact bytes",
+          "passed": true
+        },
+        {
+          "sdkPath": "scripts/build_pokey_wasm.sh",
+          "publishedSourcePath": "sources/scripts/build_pokey_wasm.sh",
+          "actualBytes": 771,
+          "sha256": "e04a4ac7fada1b9ed8eada97785739fc56016386315950dc347cecda5fa3f372",
+          "recordedSdkBytes": 761,
+          "recordedSdkSha256": "1f058e1c0be587f4443625f7ac3847850b838257e8c85b2835e38bfb8d228554",
+          "comparison": "Only documented include/source directory relocation reversed before comparing with recorded SDK input",
+          "passed": true
+        },
+        {
+          "sdkPath": "vendor/libvgm-pokey/pokey.cpp",
+          "publishedSourcePath": "sources/third_party/libvgm-pokey/pokey.cpp",
+          "actualBytes": 37305,
+          "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96",
+          "recordedSdkBytes": 37305,
+          "recordedSdkSha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96",
+          "comparison": "exact bytes",
+          "passed": true
+        },
+        {
+          "sdkPath": "vendor/libvgm-pokey/pokey.h",
+          "publishedSourcePath": "sources/third_party/libvgm-pokey/pokey.h",
+          "actualBytes": 1573,
+          "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0",
+          "recordedSdkBytes": 1573,
+          "recordedSdkSha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0",
+          "comparison": "exact bytes",
+          "passed": true
+        },
+        {
+          "sdkPath": "vendor/libvgm-pokey/LICENSE",
+          "publishedSourcePath": "sources/third_party/libvgm-pokey/LICENSE",
+          "actualBytes": 1587,
+          "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583",
+          "recordedSdkBytes": 1587,
+          "recordedSdkSha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583",
+          "comparison": "exact bytes",
+          "passed": true
+        },
+        {
+          "sdkPath": "vendor/libvgm-pokey/README.md",
+          "publishedSourcePath": "sources/third_party/libvgm-pokey/README.md",
+          "actualBytes": 7686,
+          "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff",
+          "recordedSdkBytes": 7686,
+          "recordedSdkSha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff",
+          "comparison": "exact bytes",
+          "passed": true
+        },
+        {
+          "sdkPath": "vendor/libvgm-pokey/upstream/pokey.c",
+          "publishedSourcePath": "sources/third_party/libvgm-pokey/upstream/pokey.c",
+          "actualBytes": 41726,
+          "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+          "recordedSdkBytes": 41726,
+          "recordedSdkSha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+          "comparison": "exact bytes",
+          "passed": true
+        },
+        {
+          "sdkPath": "vendor/libvgm-pokey/upstream/snapshot-manifest.json",
+          "publishedSourcePath": "sources/third_party/libvgm-pokey/upstream/snapshot-manifest.json",
+          "actualBytes": 841,
+          "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27",
+          "recordedSdkBytes": 841,
+          "recordedSdkSha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27",
+          "comparison": "exact bytes",
+          "passed": true
+        }
+      ],
+      "allInputChecksPassed": true,
+      "upstreamRepository": "https://github.com/ValleyBell/libvgm",
+      "upstreamCommit": "61b62d64455e039de2a1d01498afa9e9b5f1cb88",
+      "upstreamFile": {
+        "upstreamPath": "emu/cores/pokey.c",
+        "localPath": "pokey.c",
+        "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+        "license": "BSD-3-Clause",
+        "copyrightHolders": [
+          "Brad Oliver",
+          "Eric Smith",
+          "Juergen Buchmueller"
+        ],
+        "modified": false
+      },
+      "sourcePayloadIdenticalAcrossAllThreeRuntimeCopies": true
+    }
+  },
+  "visual": {
+    "readOnly": true,
+    "audioPlayed": false,
+    "errors": [],
+    "missing": [],
+    "results": [
+      {
+        "name": "tone",
+        "mode": "desktop",
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "screenshot": "/private/tmp/pokey-examples-visual/tone-desktop.png",
+        "title": "POKEY：4CHの矩形波とメロディ — tetorica-fm2612 examples",
+        "status": "Ready.",
+        "playEnabled": true,
+        "stopDisabled": true,
+        "editorChars": 722,
+        "editorWidth": 1082,
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sourcePanels": [
+          6361,
+          2929
+        ],
+        "audioContexts": 0,
+        "bodyWidth": 1280
+      },
+      {
+        "name": "noise",
+        "mode": "desktop",
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "screenshot": "/private/tmp/pokey-examples-visual/noise-desktop.png",
+        "title": "POKEY：ノイズと16-bit連結タイマー — tetorica-fm2612 examples",
+        "status": "Ready.",
+        "playEnabled": true,
+        "stopDisabled": true,
+        "editorChars": 1304,
+        "editorWidth": 1082,
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sourcePanels": [
+          6954,
+          3563
+        ],
+        "audioContexts": 0,
+        "bodyWidth": 1280
+      },
+      {
+        "name": "dual",
+        "mode": "desktop",
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "screenshot": "/private/tmp/pokey-examples-visual/dual-desktop.png",
+        "title": "Dual POKEY：2チップ・8つの実ボイス — tetorica-fm2612 examples",
+        "status": "Ready.",
+        "playEnabled": true,
+        "stopDisabled": true,
+        "editorChars": 1326,
+        "editorWidth": 1082,
+        "viewportWidth": 1280,
+        "documentWidth": 1280,
+        "sourcePanels": [
+          7191,
+          3877
+        ],
+        "audioContexts": 0,
+        "bodyWidth": 1280
+      },
+      {
+        "name": "dual",
+        "mode": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "screenshot": "/private/tmp/pokey-examples-visual/dual-mobile.png",
+        "title": "Dual POKEY：2チップ・8つの実ボイス — tetorica-fm2612 examples",
+        "status": "Ready.",
+        "playEnabled": true,
+        "stopDisabled": true,
+        "editorChars": 1326,
+        "editorWidth": 308,
+        "viewportWidth": 390,
+        "documentWidth": 390,
+        "sourcePanels": [
+          7191,
+          3877
+        ],
+        "audioContexts": 0,
+        "bodyWidth": 390
+      }
+    ]
+  },
+  "dev": {
+    "passed": true,
+    "base": "http://127.0.0.1:65475",
+    "routes": [
+      {
+        "path": "/",
+        "bytes": 4850,
+        "sha256": "11c068e42be3d85a53cac890b360afce0e1b0a9f6535d25c22ad550210af11d3"
+      },
+      {
+        "path": "/examples/manifest.json",
+        "bytes": 15878,
+        "sha256": "18028a72b128acdb3c4e9a56440e359070c97b20ce08b0ff27b2f1ee1a1505fd"
+      },
+      {
+        "path": "/examples/pokey/dual/01-eight-channels/web/index.html",
+        "bytes": 3080,
+        "sha256": "ddb8005ef60bbd16bdf39208e646450bb0189e252aad26f5ac0f95e574d2c450"
+      },
+      {
+        "path": "/vendor/tetorica-fm2612/package.json",
+        "bytes": 2364,
+        "sha256": "c3555a02f180ea9dfe2b3ec43f8c4932bb9ee1bc51af6d1bae3c25b2d956d1e3"
+      },
+      {
+        "path": "/vendor/tetorica-fm2612/generated/pokey_wasm.wasm",
+        "bytes": 18676,
+        "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22"
+      }
+    ]
+  },
+  "coreOrSdkChanged": false,
+  "humanListening": false,
+  "committed": false,
+  "published": false
+}

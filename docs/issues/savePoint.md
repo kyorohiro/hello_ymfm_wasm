@@ -7,6 +7,33 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### POKEY外部Examples追加完了 — 2026-10-27
+
+`w/tetorica-fm2612-examples`を公開済みnpmの`tetorica-fm2612@0.2.31`へ更新。
+POKEYの4CH melody、distortion/noise・joined timers、2台4+4CHの3例をWeb/Node両方へ追加。
+各例は独立した編集・再生可能なコードで、Nodeでは44.1kHz stereo PCM16 WAVを保存する。
+catalog/README/runtime説明へ反映し、`npm run build`と`npm run build:docs`でサイトを生成済み。
+`npm run dev`のPOKEYカテゴリから開ける。今回の変更前からあったWonderSwanの未commit作業は保持。
+
+単体clockは1789790Hz、dualは各1789773Hz。dualは独立した2coreをmonoで合算。
+engine unity・10Hz DC blockerを通し、出力gain0.25は一度だけ適用。Mixer校正値やcoreは変更なし。
+noise比較のA4はpoly9の周期とtimerが重なりDCとなったため、同じtimer条件で比較できるB4へ変更。
+通常tone、joined C2/G2/C3/E3、dual両側8CHと片側停止後の残り4CHを確認。
+
+Node全33例が成功。新3例は145530/180810/145530frames、peak0.079376/0.039734/0.122406。
+最終docsでChromium153/WebKit26.6 × 3例の全6routeが成功。
+実PCMのpitch・noise/volume・2台独立・Stop後exact zero、取消・error・再実行・pagehide cleanupを検証。
+物理sinkはcapture後にmuteしており、今回の実聴・実機比較は未実施。
+desktop3画面/mobile1画面の表示と、dev server5routeのHTTP200・source byte一致も確認。serverは停止済み。
+
+dist/docs全1120fileがbyte一致し、Browserが読んだ73assetも最終両treeとSHA256一致。
+公開npm archiveの880fileはnode_modules/docs/vendor/dist/vendorと全byte一致。
+archive SHA256: `6941d3474abd619fd0cec1b41b79f51c6011ca49d3bf9ab47ca31422e641851d`。
+Browser receipt SHA256: `890bd27b7c73d4b635a2c435c35791857ddef79dec9e5a6a0afd8420f3edd4f3`。
+詳細は[atari_pokey_examples_01.md](atari_pokey_examples_01.md)と同名JSON。
+commit/push/npm/GitHub Pages公開操作なし。SDK/core/WASM原本は変更なし。
+次の候補はSDK0.1.5 localCandidateの公開準備。SDKの公開tag/releaseは未実施。
+
 ### POKEY Operators / voice editor完了 — 2026-10-27
 
 ユーザーの「pokeyでやり残したことを進めて」で、PlaygroundにPOKEYタブを追加。
