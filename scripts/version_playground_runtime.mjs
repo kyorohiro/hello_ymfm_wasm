@@ -272,8 +272,8 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>atariFiles.has(match[1]))){atariFiles.add(name);propagated=true;}
 }}while(propagated);
-const wonderswanVersion='wonderswan-native-1';
-const wonderswanFiles=new Set(['wonderswan.js','wonderswansynth.js','playground_wonderswan.js','playground_wonderswan_audio.js','playground_wonderswan_worklet.js','playground_wonderswan_inspector.js','playground_wonderswan_voice_panel.js','playground_keyboard_channels.js','playground_performance_processor.js','playground_native_primary.js','native_runtime_synth.js','tetorica_synth.js','playground_soundchips.js','playground_runtime.js','playground_logic_worker.js','playground_chip_clock.js','playground.js','playground_ui.js','playground_mode.js','playground_mode_examples.js','playground_examples.js','playground_mode_keyboard.js','playground_mode_project.js','playground_mode_starters.js','playground_declarations.js','playground_monaco.js','playground_monaco_completion.js','playground_chip_tabs.js','playground_operator_keyboard.js','playground_workbench.js','playground_audio_engine.js','playground_mixer_defaults.js']);
+const wonderswanVersion='wonderswan-pcm-timeline-1';
+const wonderswanFiles=new Set(['wonderswan.js','wonderswansynth.js','wonderswan_timeline.js','playground_wonderswan.js','playground_wonderswan_audio.js','playground_wonderswan_worklet.js','playground_wonderswan_inspector.js','playground_wonderswan_voice_panel.js','playground_keyboard_channels.js','playground_performance_processor.js','playground_native_primary.js','native_runtime_synth.js','tetorica_synth.js','playground_soundchips.js','playground_runtime.js','playground_logic_worker.js','playground_chip_clock.js','playground.js','playground_ui.js','playground_mode.js','playground_mode_examples.js','playground_examples.js','playground_mode_keyboard.js','playground_mode_project.js','playground_mode_starters.js','playground_declarations.js','playground_monaco.js','playground_monaco_completion.js','playground_chip_tabs.js','playground_operator_keyboard.js','playground_workbench.js','playground_audio_engine.js','playground_mixer_defaults.js']);
 for(const name of ['native_genesis_wonderswan.js','native_genesis_extra_wonderswan.js','native_genesis_synth.js','native_genesis_worker.js','native_genesis_extra_chip.js'])wonderswanFiles.add(name);
 do {propagated=false;for(const {name,source}of sources){
   if(wonderswanFiles.has(name))continue;
@@ -284,9 +284,12 @@ do {propagated=false;for(const {name,source}of sources){
 // Scope this to their two module URLs; canonical package imports stay untouched.
 const vgmVersion='wonderswan-vgm-1';
 const vgmFiles=new Set(['ym2612vgm.js','vgmplayer.js']);
-const revisionFor=name=>vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+// Import UI and code generation require the matching sample-timeline audio runtime.
+const wonderswanImportFiles=new Set(['playground.js','playground_vgm_import.js','wonderswan_vgm_import.js']);
+const revisionFor=name=>wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...vgmFiles,
+  ...wonderswanImportFiles,
   ...wonderswanFiles,
   ...atariFiles,
   ...nativeDesktopFiles,

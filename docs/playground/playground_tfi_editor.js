@@ -1,5 +1,5 @@
 import { createPlaygroundOperatorTab } from './playground_operator_tab.js?v=y8950-adpcm-ui-1';
-import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=wonderswan-native-1';
+import { createPlaygroundOperatorKeyboard } from './playground_operator_keyboard.js?v=wonderswan-pcm-timeline-1';
 import { createTfiFromPreset, parseTfi } from '../js/tfi.js';
 import { createVgiFromPreset, parseVgi } from '../js/vgi.js?v=audio-stability-2';
 

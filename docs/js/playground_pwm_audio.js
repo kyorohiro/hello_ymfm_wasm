@@ -13,7 +13,7 @@ export async function createPWM32XAudio(context, destination, options = {}) {
     options.implementation==='js'?undefined:options.wasmBinary??(options.fetch??defaultFetch)(wasmUrl,{signal:options.signal}).then(response=>{
       if(!response.ok)throw new Error(`PWM WASM HTTP ${response.status}`);return response.arrayBuffer();
     }),
-    context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=wonderswan-native-1', import.meta.url)),
+    context.audioWorklet.addModule(new URL('./playground_pwm_worklet.js?v=wonderswan-pcm-timeline-1', import.meta.url)),
   ]);
   options.signal?.throwIfAborted();
   const node = new AudioWorkletNode(context, 'tetorica-pwm32x', {

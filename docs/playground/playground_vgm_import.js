@@ -5,6 +5,7 @@ export {exportRf5c164Vgm} from './rf5c164_vgm_export.js?v=vgm-frequency-order-2'
 import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {looksLikeS98, convertS98ToVgm} from '../js/s98_file.js';
+import {validateWonderSwanVgm} from './wonderswan_vgm_import.js?v=wonderswan-import-3';
 
 const OPN = ['ym2203', 'ym2608', 'ym2610', 'ym2612'];
 export function detectVgmImport(header) {
@@ -43,6 +44,14 @@ export function detectVgmImport(header) {
     return {...base, family: 'nes', supported: true, fds, clock, region, message: 'NES APU' + (fds ? ' + FDS' : '') + `: ${clock} Hz (${region}), all channels and DMC RAM uploads. One pass; loops are not repeated. Playback uses asynchronous waits and RAM acknowledgements, not sample-accurate scheduling.`};
   }
 
+  if (chips.length === 1 && chips[0] === 'wonderswan') {
+    const rawClock = header.wonderswanClock >>> 0, clock = rawClock & 0x3fffffff;
+    if (rawClock & 0x80000000) return {...base, message: 'WonderSwan variant-chip conversion is not supported.'};
+    if (clock < 100000 || clock > 100000000) return {...base, message: 'WonderSwan conversion requires a clock from 100000 to 100000000 Hz.'};
+    return {...base, family: 'wonderswan', supported: true, clock,
+      message: `WonderSwan: ${clock} Hz, four channels, wave RAM, Noise, Sweep and Voice PCM. One pass; loops are not repeated. The prepared score runs at audio sample boundaries, including dense Voice PCM. Hyper Voice and DMA are not supported.`};
+  }
+
   return {...base, message: chips.length > 1 ? 'This chip combination cannot be converted. No files will be changed.' : 'Conversion for this chip is not supported.'};
 }
 
@@ -63,6 +72,10 @@ export async function prepareVgmImport(file) {
   if (detection.family === 'rf5c164') {
     try { exportRf5c164Vgm(buffer, {loop:false}); }
     catch (error) { detection = {...detection, supported:false, message:error.message}; }
+  }
+  if (detection.family === 'wonderswan') {
+    try { validateWonderSwanVgm(buffer); }
+    catch (error) { detection = {...detection, supported: false, message: error.message}; }
   }
   return {buffer, vgm, detection};
 }

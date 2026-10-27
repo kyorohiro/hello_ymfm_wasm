@@ -1884,6 +1884,15 @@
                   </div>
                   <p class="subtext">Source-clock NES APU (NTSC / PAL), FDS wave/modulation and DMC RAM uploads. High-level mode replaces only byte-identical operations. One pass; asynchronous waits are not sample-accurate scheduling.</p>
                 </fieldset>
+                <fieldset id="wonderswanImportOptions" class="vgm-import-options" hidden disabled>
+                  <legend>WonderSwan conversion</legend>
+                  <div class="vgm-import-mode">
+                    <label><input type="radio" name="wonderswanImportMode" value="raw" checked>Raw register / RAM writes</label>
+                    <label><input type="radio" name="wonderswanImportMode" value="readable">Writes with explanations</label>
+                    <label><input type="radio" name="wonderswanImportMode" value="high">High-level API + raw fallback</label>
+                  </div>
+                  <p class="subtext">Four channels, wave RAM, Noise, Sweep and Voice PCM at the source clock. High-level mode replaces only byte-identical operations; RAM writes do not add key-off. One pass, prepared before playback and applied at audio sample boundaries, including dense Voice PCM. Hyper Voice and DMA are not supported.</p>
+                </fieldset>
                 <div class="vgm-import-actions">
                   <button id="cancelVgmImportButton" type="button">Cancel</button>
                   <button id="convertVgmButton" type="button">Convert</button>
@@ -2485,7 +2494,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=wonderswan-native-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=wonderswan-import-3').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

@@ -62,7 +62,7 @@ export class YM2203RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 3,
       portCount: 1,
       processorName: "ym2203-processor",
-      workletUrl: "./ym2203-worklet.js?v=wonderswan-native-1",
+      workletUrl: "./ym2203-worklet.js?v=wonderswan-pcm-timeline-1",
       wasmUrl: "../generated/ym2203_wasm.wasm",
       FMSynth: YM2203Synth,
     });

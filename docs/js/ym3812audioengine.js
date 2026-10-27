@@ -16,7 +16,7 @@ import { SegaPSG } from './segapsg.js?v=audio-numeric-bindings-1';
 export class Ym3812AudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{ym3812ModuleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ym3812ModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ym3812Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ym3812ModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ym3812ModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ym3812Clock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ym3812AudioEngine>} Initialized engine owned by the caller.

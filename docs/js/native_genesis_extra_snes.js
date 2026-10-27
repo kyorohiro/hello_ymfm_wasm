@@ -4,8 +4,8 @@ import {prepareSnesBRR} from './snessynth.js?v=spc-song-js-1';
 import {prepareSpcTimeline} from './spc.js?v=spc-events-1';
 import {SnesVoiceInspector} from './playground_snes_inspector.js?v=y8950-adpcm-ui-1';
 import {createNativeSnesShadow,nativeSnesOperations,nativeSnesControls} from './native_genesis_snes.js?v=y8950-adpcm-ui-1';
-import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-native-1';
+import {createNativeVoiceContext,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-pcm-timeline-1';
 
 export const EXTRA_SNES_MEMORY_HELD_ERROR='Release the manually held additional SNES voices before replacing sample memory';
 export const EXTRA_SNES_STATE_HELD_ERROR='Release the manually held additional SNES voices before replacing the DSP state';

@@ -1,4 +1,4 @@
-import {createPlaygroundWonderSwanVoicePanel} from './playground_wonderswan_voice_panel.js?v=wonderswan-native-1';
+import {createPlaygroundWonderSwanVoicePanel} from './playground_wonderswan_voice_panel.js?v=wonderswan-pcm-timeline-1';
 import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=audio-numeric-bindings-1';
 /** Dedicated sound-chip editors. Reads are visible-only; opening an editor never creates a chip. */
 import {createPlaygroundGameboyVoicePanel} from './playground_gameboy_voice_panel.js?v=audio-numeric-bindings-1';

@@ -1,9 +1,9 @@
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 import {Ym2151} from './ym2151.js?v=audio-stability-2';
 import factory from '../generated/ym2151_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-native-1';
-import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js?v=wonderswan-native-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=wonderswan-native-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
+import {Ym2151VoiceInspector} from './playground_ym2151_inspector.js?v=wonderswan-pcm-timeline-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=wonderswan-pcm-timeline-1';
 class Processor extends AudioWorkletProcessor {
   constructor(options) {
     super(); this.chip = null; this.dead = false; this.remainder = 0; this.left = 0; this.right = 0;

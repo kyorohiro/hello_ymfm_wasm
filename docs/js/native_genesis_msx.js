@@ -1,9 +1,9 @@
 /** MSX register authoring stays in JS; YM2413 and AY audio render in Native. */
 import {AY8910Synth} from './ay8910synth.js?v=audio-numeric-bindings-1';
-import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=wonderswan-native-1';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
-import {createNativeVoiceContext,createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
-import {createNativeGenesisOpll} from './native_genesis_opll.js?v=wonderswan-native-1';
+import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=wonderswan-pcm-timeline-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
+import {createNativeVoiceContext,createNativeVoiceEndpoint,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisOpll} from './native_genesis_opll.js?v=wonderswan-pcm-timeline-1';
 const AY_CLOCK=1789773;
 function createNativeAy8910(context){
   const {synth}=context;let clock=AY_CLOCK,appliedClock=AY_CLOCK,initialized=false;

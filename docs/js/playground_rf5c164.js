@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 /** @file Browser / Worker: RF5C164 communication and compatibility facade. */
 import { sampleBytes, encodeRf5c164 } from './rf5c164_pcm.js';
 import { RF5C164Synth, RF5C164DirectTransport } from './rf5c164synth.js?v=audio-stability-2';

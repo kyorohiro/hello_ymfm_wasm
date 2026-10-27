@@ -612,6 +612,18 @@ export function createPlaygroundRuntime(
     return Object.fromEntries((megaDrive.primaryEndpoints ?? []).map(endpoint => {
       const {globalName:name, client:raw} = endpoint;
       if (name === 'ws') ownWonderSwanMain(raw);
+      if (name === 'ws' && capabilities.backend === 'native-genesis') {
+        if (!nativeApiCache.has(raw)) {
+          // A compact score emits its gates on the Native callback. Give the
+          // primary the same Main group leases as independent Native chips;
+          // observing JS gate writes alone cannot release a removed liveLoop.
+          const device={chipName:'wonderswan',get ready(){return megaDrive.isReady()&&!megaDrive.stopping;}};
+          const owned=ownedNativeExtraApi(device,raw),control=ownWonderSwanMain(raw),release=control.releaseOwner;
+          control.releaseOwner=owner=>{device.releaseOwner?.(owner);release(owner);};
+          nativeApiCache.set(raw,borrowNativeApi(owned,endpoint.name));
+        }
+        return [name,nativeApiCache.get(raw)];
+      }
       raw._setAdpcmLifecycle?.({
         captureContext:()=>({token:currentRunToken,loop:currentLoopContext}),
         checkCurrent(scope){if(scope?scope.token!==currentRunToken||scope.loop?.stopped:currentLoopContext?.stopped)throw new DOMException('Run stopped','AbortError');},

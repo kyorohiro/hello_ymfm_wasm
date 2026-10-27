@@ -1,31 +1,31 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=wonderswan-native-1';
-import {createAy8910Client} from './playground_ay8910.js?v=wonderswan-native-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=wonderswan-pcm-timeline-1';
+import {createAy8910Client} from './playground_ay8910.js?v=wonderswan-pcm-timeline-1';
 import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=y8950-adpcm-ui-1';
-import {createNesAudio} from './playground_nes_audio.js?v=wonderswan-native-1';
-import {createNesClient} from './playground_nes.js?v=wonderswan-native-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=wonderswan-native-1';
+import {createNesAudio} from './playground_nes_audio.js?v=wonderswan-pcm-timeline-1';
+import {createNesClient} from './playground_nes.js?v=wonderswan-pcm-timeline-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=wonderswan-pcm-timeline-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=wonderswan-native-1';
-import {createYm2151Client} from './playground_ym2151.js?v=wonderswan-native-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=wonderswan-native-1';
-import {createOki6258Client} from './playground_okim6258.js?v=wonderswan-native-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=wonderswan-native-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=wonderswan-native-1';
-import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=wonderswan-native-1';
-import {createWonderSwanClient} from './playground_wonderswan.js?v=wonderswan-native-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=wonderswan-native-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=wonderswan-native-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=wonderswan-native-1';
-import {createYm2413Client} from './playground_ym2413.js?v=wonderswan-native-1';
-import {createOplAudio} from './playground_opl_audio.js?v=wonderswan-native-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=wonderswan-native-1';
-import {createDx7Audio} from './playground_dx7_audio.js?v=wonderswan-native-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=wonderswan-pcm-timeline-1';
+import {createYm2151Client} from './playground_ym2151.js?v=wonderswan-pcm-timeline-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=wonderswan-pcm-timeline-1';
+import {createOki6258Client} from './playground_okim6258.js?v=wonderswan-pcm-timeline-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=wonderswan-pcm-timeline-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=wonderswan-pcm-timeline-1';
+import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=wonderswan-pcm-timeline-1';
+import {createWonderSwanClient} from './playground_wonderswan.js?v=wonderswan-pcm-timeline-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=wonderswan-pcm-timeline-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=wonderswan-pcm-timeline-1';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=wonderswan-pcm-timeline-1';
+import {createYm2413Client} from './playground_ym2413.js?v=wonderswan-pcm-timeline-1';
+import {createOplAudio} from './playground_opl_audio.js?v=wonderswan-pcm-timeline-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=wonderswan-pcm-timeline-1';
+import {createDx7Audio} from './playground_dx7_audio.js?v=wonderswan-pcm-timeline-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
 
 const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'wonderswan', 'segapsg', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'msx', 'msx-audio']);
 
-/** @typedef {Pick<import('./megasynth.js?v=wonderswan-native-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
+/** @typedef {Pick<import('./megasynth.js?v=wonderswan-pcm-timeline-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
  * chip?:'nes'|'snes'|'x68000'|'huc6280'|'wonderswan'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * type?:0|16, flags?:number,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,

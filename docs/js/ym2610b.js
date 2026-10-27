@@ -31,9 +31,9 @@ export class Ym2610B {
   /**
    * Initialize Ym2610B and its native WASM module.
    * The generated module factory is injected so browser and Node callers can choose asset loading.
-   * @param {import("./soundchip.js?v=wonderswan-native-1").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.
-   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
-   * @param {import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
+   * @param {import("./soundchip.js?v=wonderswan-pcm-timeline-1").SoundChipOptions} [options={}] Chip and Emscripten initialization settings.
+   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory.
+   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.
    * @param {boolean} [options.variant=true] True for YM2610B; false for YM2610.
    * @returns {Promise<Ym2610B>} Ready-to-use chip; the caller must dispose it.
    */

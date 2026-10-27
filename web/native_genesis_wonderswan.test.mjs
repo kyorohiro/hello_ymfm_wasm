@@ -11,9 +11,9 @@ import {WONDERSWAN_CLOCK_HELD_ERROR} from './native_genesis_wonderswan.js';
 // Main/Worker clients and keeps applied snapshots distinct from authored state.
 function fixture(t,{mode='wonderswan',clock=3072000}={}) {
   const calls=[],errors=[],logs=[],rack=new Map();let frame=0;
-  const source=hz=>({clock:hz,inspector:new WonderSwanVoiceInspector({clock:()=>hz}),held:new Map(),initialized:false});
+  const source=hz=>({clock:hz,inspector:new WonderSwanVoiceInspector({clock:()=>hz}),held:new Map(),initialized:false,timeline:null});
   const primary=source(clock),status=()=>({session:1,mode,sampleRate:48000,frame:++frame,ymClock:7670454,psgClock:3579545,wonderswanClock:primary.clock,running:true});
-  const image=s=>({clock:s.clock,initialized:s.initialized,registers:Array.from(s.inspector.registers),authoredRegisters:Array.from(s.inspector.registers),memory:Array.from(s.inspector.memory),held:[...s.held.keys()],pendingCommands:[],pendingClocks:s.pendingClocks??0,sampleRate:48000,frame,revision:calls.length});
+  const image=s=>({clock:s.clock,initialized:s.initialized,registers:Array.from(s.inspector.registers),authoredRegisters:Array.from(s.inspector.registers),memory:Array.from(s.inspector.memory),held:[...s.held.keys()],pendingCommands:[],pendingClocks:s.pendingClocks??0,pendingTimelines:0,timeline:s.timeline??{loaded:false,playing:false,ended:false,cancelled:false,positionSamples:0,durationSamples:0,token:0},sampleRate:48000,frame,revision:calls.length});
   function apply(s,m,bypass=false) {
     const r=s.inspector.registers;
     if(m.method==='batch'){
@@ -28,6 +28,12 @@ function fixture(t,{mode='wonderswan',clock=3072000}={}) {
     }else if(m.method==='memory'){if(bypass||!s.held.has(m.channel))s.inspector.observeMemory(m.address,m.value);}
     else if(m.method==='key-off'){if(bypass||!s.held.has(m.channel))r[16]&=~(1<<m.channel);}
     else if(m.method==='clock'){if(s.held.size)throw Error(WONDERSWAN_CLOCK_HELD_ERROR);s.clock=m.hz;}
+    else if(m.method==='prepare-timeline'){s.trace=m.trace;s.timeline={loaded:true,playing:false,ended:false,cancelled:false,durationSamples:m.trace.durationSamples,positionSamples:0,token:0};}
+    else if(m.method==='play-timeline'){
+      s.clock=s.trace.clock;s.initialized=true;s.timeline={...s.timeline,playing:true,ended:false,cancelled:false,token:m.token,positionSamples:0,group:m.group};
+      const playing=s.timeline;if(playing.durationSamples<=44100)setTimeout(()=>{if(s.timeline===playing&&playing.playing){playing.playing=false;playing.ended=true;playing.positionSamples=playing.durationSamples;}},5);
+    }else if(m.method==='stop-timeline'){s.timeline={...s.timeline,playing:false,cancelled:true};}
+    else if(m.method==='cancel-main-owner'&&s.timeline?.group===m.targetGroup){s.timeline={...s.timeline,playing:false,cancelled:true};}
     else if(m.method==='mix'){s.mix={volume:m.volume,pan:m.pan};}
     else if(m.method==='stop-voices'){for(let ch=0;ch<4;ch++)if(!s.held.has(ch))r[16]&=~(1<<ch);}
   }
@@ -46,6 +52,56 @@ function fixture(t,{mode='wonderswan',clock=3072000}={}) {
   t.after(()=>runtime.finalize());
   return {synth,runtime,calls,errors,logs,primary,rack,commands:()=>calls.flatMap(call=>call.command==='native_genesis_commands'?call.args.commands:[])};
 }
+
+const compactTrace=()=>({version:1,clock:3072000,durationSamples:2205,events:[[0,0,0x91,8],[0,0,0x94,15],[0,0,0x90,34],[0,2,0,6,3,4],[4,0,0x89,99]],pcmData:new Uint8Array([0,10,2,20,2,30])});
+for(const mode of ['wonderswan','genesis'])for(const execution of ['main','worker'])test(`Native WonderSwan ${mode} ${execution} prepares compact PCM once and awaits acknowledged playback`,{timeout:15000},async t=>{
+  installCreationEnvironment(t);const f=fixture(t,{mode});
+  const trace=compactTrace();
+  await f.runtime.playSource(`const a=await useSoundChip('wonderswan');await a.prepareTimeline({version:1,clock:3072000,durationSamples:2205,events:${JSON.stringify(trace.events)},pcmData:new Uint8Array(${JSON.stringify([...trace.pcmData])})});await a.playTimeline();log('timeline-finished');`,{execution});
+  await until(()=>f.logs.includes('timeline-finished'),'Native compact timeline completed');
+  const kind=mode==='genesis'?'extra-wonderswan':'wonderswan',sent=f.commands().filter(c=>c.type===kind);
+  const prepare=sent.filter(c=>c.message.method==='prepare-timeline'),play=sent.filter(c=>c.message.method==='play-timeline');
+  assert.equal(prepare.length,1);assert.equal(play.length,1);assert.deepEqual(prepare[0].message.trace.pcmData,[...trace.pcmData]);
+  assert(!sent.some(c=>c.message.address===0x89&&[10,20,30].includes(c.message.value)),'PCM bytes must stay in the compact payload');
+  if(execution==='worker')assert(play[0].performance>0&&play[0].owner>0);else assert.equal(play[0].message.group,prepare[0].message.group);
+  assert.deepEqual(f.errors,[]);
+});
+
+test('Native WonderSwan stops an acknowledged compact playback and cancels its completion promise',async t=>{
+  installCreationEnvironment(t);const f=fixture(t);await f.runtime.initialize();
+  await f.synth.ws.prepareTimeline({...compactTrace(),durationSamples:441000});
+  const playing=f.synth.ws.playTimeline(),stopped=assert.rejects(playing,{name:'AbortError'});
+  await until(()=>f.commands().some(c=>c.message?.method==='play-timeline'),'Native play admitted');
+  await f.synth.ws.stopTimeline();await stopped;
+  assert.equal(f.synth.state,'ready');assert.deepEqual(f.errors,[]);
+});
+
+test('Native WonderSwan admits the song-sized packed payload as one bounded upload and validates before IPC',async t=>{
+  installCreationEnvironment(t);const f=fixture(t);await f.runtime.initialize();
+  const count=1151160,pcmData=new Uint8Array(count*2);for(let i=0;i<count;i++){pcmData[i*2]=i?3:0;pcmData[i*2+1]=i&255;}
+  const trace={version:1,clock:3072000,durationSamples:count*3,events:[[0,0,0x90,34],[0,2,0,pcmData.length,count,(count-1)*3]],pcmData};
+  await f.synth.ws.prepareTimeline(trace);
+  const sent=f.commands().filter(c=>c.message?.method==='prepare-timeline');assert.equal(sent.length,1);assert.equal(sent[0].message.trace.pcmData.length,2302320);
+  const before=f.commands().length;pcmData[0]=1;await assert.rejects(f.synth.ws.prepareTimeline(trace),/first PCM delta/);assert.equal(f.commands().length,before);
+  assert.equal(f.synth.state,'ready');assert.deepEqual(f.errors,[]);
+});
+
+for(const mode of ['wonderswan','genesis'])test(`Native WonderSwan ${mode} retains liveLoop ownership through prepare and long playback acknowledgement`,async t=>{
+  installCreationEnvironment(t);const f=fixture(t,{mode}),trace=compactTrace();
+  await f.runtime.playSource(`const a=await useSoundChip('wonderswan');liveLoop('compact',async()=>{await a.prepareTimeline({version:1,clock:3072000,durationSamples:2205,events:${JSON.stringify(trace.events)},pcmData:new Uint8Array(${JSON.stringify([...trace.pcmData])})});await a.playTimeline();log('loop-complete');await beat(4);});`);
+  await until(()=>f.logs.includes('loop-complete'),'Native loop compact playback completed');
+  const sent=f.commands().filter(c=>['prepare-timeline','play-timeline'].includes(c.message?.method));assert(sent[0].message.group>0);assert.equal(sent[0].message.group,sent[1].message.group);assert.deepEqual(f.errors,[]);
+});
+
+test('Native primary WonderSwan Main stopLoop cancels callback-owned PCM without waiting for song completion',async t=>{
+  installCreationEnvironment(t);const f=fixture(t),trace=compactTrace();
+  await f.runtime.playSource(`const a=await useSoundChip('wonderswan');await a.prepareTimeline({version:1,clock:3072000,durationSamples:441000,events:${JSON.stringify(trace.events)},pcmData:new Uint8Array(${JSON.stringify([...trace.pcmData])})});liveLoop('voice-pcm',async()=>{await a.playTimeline();context.bad=true;await beat(100);});context.cancel=()=>stopLoop('voice-pcm');`);
+  await until(()=>f.commands().some(c=>c.message?.method==='play-timeline'),'Native primary PCM started');
+  const play=f.commands().find(c=>c.message?.method==='play-timeline');assert(play.message.group>0);
+  f.runtime.context.cancel();await f.synth.flush();
+  assert(f.commands().some(c=>c.message?.method==='cancel-main-owner'&&c.message.targetGroup===play.message.group));
+  assert.equal(f.primary.timeline.playing,false);assert.equal(f.runtime.context.bad,undefined);assert.equal(f.synth.state,'ready');assert.deepEqual(f.errors,[]);
+});
 
 test('Native WonderSwan starts the selected clock with four primary voices and no hidden FM/audio graph',async t=>{
   installCreationEnvironment(t);const f=fixture(t,{clock:3200001});await f.runtime.initialize();

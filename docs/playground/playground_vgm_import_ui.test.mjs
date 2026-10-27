@@ -113,3 +113,26 @@ test('NES/FDS import shows its own conversion modes and forwards the selected mo
  ui.node('convertVgmButton').events.click();assert.equal(ui.imports[0].o.nesMode,'high');
  const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');assert.equal((html.match(/id="nesImportOptions"/g)||[]).length,1);for(const mode of ['raw','readable','high'])assert.ok(html.includes(`name="nesImportMode" value="${mode}"`));
 });
+
+test('WonderSwan import shows its own modes, forwards the choice and hides options after a different input',async()=>{
+ let family='wonderswan';
+ const ui=setup(async()=>({detection:{family,chips:[family==='wonderswan'?'wonderswan':'gameBoyDmg'],supported:true,message:'import options'}}));
+ await ui.choose('waves.vgz');
+ assert.equal(ui.node('wonderswanImportOptions').hidden,false);assert.equal(ui.node('wonderswanImportOptions').disabled,false);
+ for(const id of ['gameboyImportOptions','nesImportOptions','opnImportOptions'])assert.equal(ui.node(id).hidden,true);
+ assert.match(ui.node('vgmImportDetected').textContent,/WonderSwan/);
+ ui.node('convertVgmButton').events.click();assert.equal(ui.imports[0].o.wonderswanMode,'high');assert.equal(ui.imports[0].o.targetPath,'/waves.js');
+ family='gameboy';await ui.choose('gb.vgm');
+ assert.equal(ui.node('wonderswanImportOptions').hidden,true);assert.equal(ui.node('wonderswanImportOptions').disabled,true);
+ assert.equal(ui.node('gameboyImportOptions').hidden,false);
+ const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+ assert.equal((html.match(/id="wonderswanImportOptions"/g)||[]).length,1);
+ for(const mode of ['raw','readable','high'])assert.ok(html.includes(`name="wonderswanImportMode" value="${mode}"`));
+});
+
+test('unsupported WonderSwan import cannot enable conversion or keep another chip options active',async()=>{
+ const ui=setup(async()=>({detection:{family:'wonderswan',chips:['wonderswan'],supported:false,message:'Unsupported Hyper Voice'}}));
+ await ui.choose('unsupported.vgm');
+ assert.equal(ui.node('wonderswanImportOptions').hidden,true);assert.equal(ui.node('wonderswanImportOptions').disabled,true);
+ assert.equal(ui.node('convertVgmButton').disabled,true);ui.node('convertVgmButton').events.click();assert.equal(ui.imports.length,0);
+});

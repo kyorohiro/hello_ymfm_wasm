@@ -1,5 +1,5 @@
 import {AY8910Synth} from './ay8910synth.js?v=audio-numeric-bindings-1';
-import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 /** Register-authoring controls. Adopting a Main/Worker snapshot never writes audio.
  * @param {(method:string,args:unknown[])=>unknown} send
  * @param {{clock?:number,close?:()=>void,request?:(method:string,args:unknown[])=>unknown}} [options] */

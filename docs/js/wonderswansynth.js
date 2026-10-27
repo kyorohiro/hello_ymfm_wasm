@@ -1,5 +1,6 @@
 import {noteToHz} from './soundchip_pitch.js';
-import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-native-1';
+import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
+import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=wonderswan-pcm-timeline-1';
 
 export {WONDERSWAN_CLOCK};
 
@@ -155,6 +156,32 @@ export class WonderSwanSynth {
     if (!(this.#registers[16] & 32)) throw new Error('Enable voice mode before writeVoice()');
     this.#send(0x89, value, 1);
   }
+  /** Build an offline score; authoring calls collect writes without sounding the chip. */
+  createTimeline({clock = this.clock, pcmData = new Uint8Array()} = {}) {
+    this.#alive(); return new WonderSwanTimelineBuilder({clock, pcmData});
+  }
+  /** Validate and prepare a complete 44100 Hz score before starting audio. */
+  prepareTimeline(timeline) {
+    this.#alive();
+    if (!this.#transport.prepareTimeline) throw new Error('WonderSwan timeline playback requires an audio transport');
+    return this.#transport.prepareTimeline(timeline);
+  }
+  /** Resolves when the prepared score finishes; cancellation rejects the request. */
+  playTimeline() {
+    this.#alive();
+    if (!this.#transport.playTimeline) throw new Error('WonderSwan timeline playback requires an audio transport');
+    return Promise.resolve(this.#transport.playTimeline()).then(result => {
+      if (result?.state && !this.#disposed) this._adoptState(result.state);
+      return result;
+    });
+  }
+  stopTimeline() {
+    this.#alive();
+    if (!this.#transport.stopTimeline) throw new Error('WonderSwan timeline playback requires an audio transport');
+    return this.#transport.stopTimeline();
+  }
+  /** Retain a packed score's final PCM byte without copying its entire RAM shadow. */
+  _adoptVoiceByte(value) { this.#alive(); this.#registers[9] = integer(value, 0, 255, 'voice sample'); }
   /** Internal authored state for Main/Worker handoff; never live register readback. */
   _getState() {
     return {clock:this.clock, initialized:this.#initialized, registers:Array.from(this.#registers), memory:Array.from(this.#memory)};
@@ -180,4 +207,55 @@ export class WonderSwanSynth {
     this.#initialized = state.initialized; this.#registers.set(registers); this.#memory.set(memory);
   }
   dispose() { if (this.#disposed) return; this.#disposed = true; this.#transport.dispose?.(); }
+}
+
+/** A score uses the same register/high-level API as a synth, with an explicit
+ * source sample position. PCM remains packed until the audio renderer reads it.
+ */
+export class WonderSwanTimelineBuilder extends WonderSwanSynth {
+  #score;
+  constructor({clock = WONDERSWAN_CLOCK, pcmData = new Uint8Array()} = {}) {
+    if (!(pcmData instanceof Uint8Array)) throw new TypeError('Expected WonderSwan timeline PCM Uint8Array');
+    if (pcmData.byteLength > 8 * 1024 * 1024) throw new RangeError('WonderSwan timeline exceeds 8 MiB');
+    const score = {sample:0, events:[], registers:new Uint8Array(32), pcmData:pcmData.slice(), disposed:false};
+    const record = (kind, address, value) => {
+      if ((score.events.length + 1) * 32 + score.pcmData.byteLength > 8 * 1024 * 1024) throw new RangeError('WonderSwan timeline exceeds 8 MiB');
+      score.events.push([score.sample, kind, address, value]);
+      if (kind === 0) score.registers[address - 0x80] = value;
+    };
+    super({clock, transport:{
+      writeRegister:(address,value) => record(0,address,value),
+      writeMemory:(address,value) => record(1,address,value),
+      reset() { score.sample = 0; score.events.length = 0; score.registers.fill(0); },
+      dispose() { score.disposed = true; },
+    }});
+    this.#score = score;
+  }
+  /** Advance to an absolute sample position in the source's 44100 Hz timebase. */
+  at(sample) {
+    if (this.#score.disposed) throw new Error('WonderSwan disposed');
+    integer(sample, this.#score.sample, 0xffffffff, 'timeline sample');
+    this.#score.sample = sample; return this;
+  }
+  /** Append a packed Voice PCM run at the current position, retaining its deltas. */
+  pcm(offset, length, count, endSample) {
+    const score = this.#score;
+    if (score.disposed) throw new Error('WonderSwan disposed');
+    integer(offset, 0, score.pcmData.length, 'PCM offset');
+    integer(length, 2, score.pcmData.length - offset, 'PCM length');
+    integer(count, 1, Math.floor(length / 2), 'PCM count');
+    integer(endSample, score.sample, 0xffffffff, 'PCM end sample');
+    if (!(score.registers[16] & 32)) throw new Error('Enable voice mode before timeline PCM');
+    if ((score.events.length + 1) * 32 + score.pcmData.byteLength > 8 * 1024 * 1024) throw new RangeError('WonderSwan timeline exceeds 8 MiB');
+    score.events.push([score.sample, 2, offset, length, count, endSample]);
+    score.sample = endSample;
+    this._adoptVoiceByte(score.pcmData[offset + length - 1]);
+    return this;
+  }
+  finish(durationSamples = this.#score.sample) {
+    if (this.#score.disposed) throw new Error('WonderSwan disposed');
+    integer(durationSamples, this.#score.sample, 0xffffffff, 'timeline duration');
+    return prepareWonderSwanTimeline({version:1, clock:this.clock, durationSamples,
+      events:this.#score.events, pcmData:this.#score.pcmData});
+  }
 }

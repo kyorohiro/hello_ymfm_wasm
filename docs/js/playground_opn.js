@@ -1,9 +1,9 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 import {validateYm2612Engine} from './playground_soundchip_options.js?v=y8950-adpcm-ui-1';
 /** Independent OPN client. All writes and memory uploads use one ordered port. */
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
-import {YM2203Synth} from './ym2203synth.js?v=wonderswan-native-1';
-import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=wonderswan-native-1';
+import {YM2203Synth} from './ym2203synth.js?v=wonderswan-pcm-timeline-1';
+import {YM2610BSynth, NeoGeoFMSynth} from './ym2610bsynth.js?v=wonderswan-pcm-timeline-1';
 import {trackSsgRetainedLevels} from './opn_ssg_retained.js?v=y8950-adpcm-ui-1';
 
 /**

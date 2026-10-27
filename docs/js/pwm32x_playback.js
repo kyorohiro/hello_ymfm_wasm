@@ -1,4 +1,4 @@
-import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {attachChipClock, CHIP_CLOCKS, validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 import {PWM32X} from './pwm32x.js?v=pwm-wasm-1';
 import {PWM32XWasm} from './pwm32x_wasm.js?v=pwm-wasm-1';
 

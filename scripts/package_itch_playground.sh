@@ -92,6 +92,7 @@ playground_spc_trace.js
 playground_spc_trace_worker.js
 playground_vgm_presets.js
 playground_vgm_import.js
+wonderswan_vgm_import.js
 ym2203_high.js
 ym2608_vgm_import.js
 ym2608_high.js
@@ -238,6 +239,7 @@ huc6280synth.js
 huc6280audioengine.js
 wonderswan.js
 wonderswansynth.js
+wonderswan_timeline.js
 playground_wonderswan.js
 playground_wonderswan_audio.js
 playground_wonderswan_worklet.js
@@ -671,6 +673,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_spc_trace_worker.js" \
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_vgm_import.js" \
+  "${STAGE_DIR}/wonderswan_vgm_import.js" \
   "${STAGE_DIR}/ym2608_vgm_import.js" \
   "${STAGE_DIR}/rf5c164_vgm_export.js" \
   "${STAGE_DIR}/playground_query.js" \

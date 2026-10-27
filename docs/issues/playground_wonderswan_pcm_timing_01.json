@@ -1,0 +1,2811 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "problem": "Dense Voice PCM arrived as immediate JS commands instead of authored audio sample times.",
+  "source": {
+    "name": "04 Cat Song ~ Theme of UPA.vgz",
+    "bytes": 1510590,
+    "sha256": "4c18a899a8beb7d38c8f91f1bf40aae26968163526186addd50cfd36d372ee70",
+    "copiedIntoRepository": false
+  },
+  "fullTraceAudit": [
+    {
+      "mode": "raw",
+      "sourceBytes": 9244,
+      "durationSamples": 4231606,
+      "events": 204,
+      "pcmBytes": 2302320,
+      "operations": 1151363,
+      "traceSha256": "da5772eadf630cabbe1120d1d79219c22055e8ef64b7e44bdc0baa04e4651ada",
+      "payloadSha256": "21edb1bddf365732e110a9260b294a07ab34336d01b628684d7c83776ad7cd2f",
+      "disposed": 1
+    },
+    {
+      "mode": "readable",
+      "sourceBytes": 21732,
+      "durationSamples": 4231606,
+      "events": 204,
+      "pcmBytes": 2302320,
+      "operations": 1151363,
+      "traceSha256": "da5772eadf630cabbe1120d1d79219c22055e8ef64b7e44bdc0baa04e4651ada",
+      "payloadSha256": "21edb1bddf365732e110a9260b294a07ab34336d01b628684d7c83776ad7cd2f",
+      "disposed": 1
+    },
+    {
+      "mode": "high",
+      "sourceBytes": 21795,
+      "durationSamples": 4231606,
+      "events": 204,
+      "pcmBytes": 2302320,
+      "operations": 1151363,
+      "traceSha256": "da5772eadf630cabbe1120d1d79219c22055e8ef64b7e44bdc0baa04e4651ada",
+      "payloadSha256": "21edb1bddf365732e110a9260b294a07ab34336d01b628684d7c83776ad7cd2f",
+      "disposed": 1
+    }
+  ],
+  "browserReports": [
+    {
+      "file": "/private/tmp/ws-pcm-flat.json",
+      "sha256": "1450fa674a532532c24fc358fd9d171def2ad5207fcab22d710427694db25577",
+      "servedSources": {
+        "generated/segapsg_wasm.js": {
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+        },
+        "generated/segapsg_wasm.wasm": {
+          "bytes": 27286,
+          "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+        },
+        "generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "generated/ym2612_wasm.js": {
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+        },
+        "generated/ym2612_wasm.wasm": {
+          "bytes": 40357,
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+        },
+        "index.html": {
+          "bytes": 128046,
+          "sha256": "3b3e0db6d926427677ac27bdd8aea7a23ee10edb8d2bfa8758761ec41ecd6584"
+        },
+        "js/adpcm_b_sample.js": {
+          "bytes": 7109,
+          "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+        },
+        "js/audio_decode.js": {
+          "bytes": 1955,
+          "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+        },
+        "js/ay8910.js": {
+          "bytes": 6294,
+          "sha256": "c18db167ffc900df5f62c8ff35d07f4f343dcacd11775fcdbc933234b790a4c6"
+        },
+        "js/ay8910synth.js": {
+          "bytes": 12986,
+          "sha256": "cd361b16e2dcbae405c80216be07fe2dea934a309ec94b30da349f2c209ad470"
+        },
+        "js/bitcrusher-worklet.js": {
+          "bytes": 3444,
+          "sha256": "782a8c0f015770792f7226f3d6a874c23e067ecf8665337244baa5872b3d52d9"
+        },
+        "js/chip_worklet_transport.js": {
+          "bytes": 1839,
+          "sha256": "218b3b3d6b16da9c64515ae6406dba5eb73609a8be20abdc87e5db4571cc7308"
+        },
+        "js/custom_fx.js": {
+          "bytes": 5764,
+          "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+        },
+        "js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "js/gameboy_runtime_synth.js": {
+          "bytes": 9753,
+          "sha256": "867b5b978816d0731b04499f649420e0489c930486b1f917963691389c80c520"
+        },
+        "js/gameboyapu.js": {
+          "bytes": 7166,
+          "sha256": "fe0e2eb6d31a2ef9f80bc8fc7a76978fb37fa79281b7c79b300bace7402de548"
+        },
+        "js/gameboysynth.js": {
+          "bytes": 13943,
+          "sha256": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af"
+        },
+        "js/huc6280synth.js": {
+          "bytes": 11437,
+          "sha256": "a42b8f4ce90300b3d4a52f68402df9c7936c884f41ea79e9f4bf64fe4b974661"
+        },
+        "js/looper.js": {
+          "bytes": 24025,
+          "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+        },
+        "js/megasynth_fx.js": {
+          "bytes": 62352,
+          "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+        },
+        "js/megasynth_recording.js": {
+          "bytes": 10125,
+          "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/megasynth.js": {
+          "bytes": 33508,
+          "sha256": "272344444704aee156f35dc8657f11a4d192e8a05d94722732666b06dc73fa62"
+        },
+        "js/midi_file.js": {
+          "bytes": 5341,
+          "sha256": "4751962bf77417ec198bb5f0434e325ce6c7e0dc7c4059ba6056d14f02e5e69f"
+        },
+        "js/midi_song.js": {
+          "bytes": 6966,
+          "sha256": "d86a06c6a37f57869fd11156a5ed5ebee5f093d8a01daf6430ac5c9499e99bb6"
+        },
+        "js/midi_source.js": {
+          "bytes": 12172,
+          "sha256": "d0db1daddfea52568b3c792d04de644814ea56f583f4757e55581c51a7931a75"
+        },
+        "js/msfa_dx7/src/preset.js": {
+          "bytes": 8629,
+          "sha256": "f1373d4699172658b979482e0bb1585301967ebb7d2668ad21d146b6d3824fe2"
+        },
+        "js/msfa_dx7/src/sysex.js": {
+          "bytes": 8610,
+          "sha256": "0bda70c08b34f084e10c4ff46c4319147d089c5a174b9e84bf023b86759c2b7e"
+        },
+        "js/native_audio_effect.wasm": {
+          "bytes": 48297,
+          "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+        },
+        "js/native_fx_engine.js": {
+          "bytes": 7061,
+          "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+        },
+        "js/native_fx_graph.js": {
+          "bytes": 3612,
+          "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_genesis_fx.js": {
+          "bytes": 863,
+          "sha256": "917dd7dd431a553e798de9f36affe772d51fac7c9aa01209caa9341577adba4f"
+        },
+        "js/native_genesis_livefx.js": {
+          "bytes": 5891,
+          "sha256": "bac52d6a63bcafe48086cb69959d006285e578473f6d4900adfca1b3d065716b"
+        },
+        "js/native_genesis_media.js": {
+          "bytes": 17764,
+          "sha256": "c8f6925a08e2671689c1204f780a21f0963bafaed218736f995288198e99316d"
+        },
+        "js/native_genesis_noise.js": {
+          "bytes": 5379,
+          "sha256": "92949c736bb44e4a1a577d562cc95bd8ad3bf62ed72e79c892bf48fe6a76a86c"
+        },
+        "js/native_genesis_worker.js": {
+          "bytes": 15105,
+          "sha256": "0ed872ff68a16bd16a70def417afd1f20e63ddbae282df3d336c7c8f275186a6"
+        },
+        "js/native_livefx_context.js": {
+          "bytes": 8401,
+          "sha256": "2bf0d1eacceceea2932304505b2c68d01b8d1be174a93a09d0af7432361318f1"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_runtime_synth.js": {
+          "bytes": 18037,
+          "sha256": "07cb4350a6c5d20f169e3c70dc8082f09400f7a7c86592e565c446adbe956f82"
+        },
+        "js/native_sample_processor.js": {
+          "bytes": 4443,
+          "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+        },
+        "js/native_sample.js": {
+          "bytes": 3655,
+          "sha256": "1fbfe157702bdb315e340991deb347389b25bed3821faf43601f317228937834"
+        },
+        "js/native-fx-worklet.js": {
+          "bytes": 8783,
+          "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+        },
+        "js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "js/nesapu.js": {
+          "bytes": 4126,
+          "sha256": "a0fe7ed4c7bd089f78ecdbad75bbe6ccd09f0d63a1e26a00d6d670726193171e"
+        },
+        "js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "js/nesapusynth.js": {
+          "bytes": 15177,
+          "sha256": "194339029ade432d0cc4e701619a35654cae6979b5f410e4d205e0a3f5b83313"
+        },
+        "js/okim6258synth.js": {
+          "bytes": 14657,
+          "sha256": "d8c62ffab87dd25678c639e4ead7e298c62517308f19b018a8d6e2f50caceba6"
+        },
+        "js/opl_synth.js": {
+          "bytes": 20452,
+          "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+        },
+        "js/opn_fm_synth.js": {
+          "bytes": 25372,
+          "sha256": "164565cc6c4c6caa0514e666584c274d19d973d7b651cfa43d9275e3efceb63c"
+        },
+        "js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "js/opn_runtime_synth.js": {
+          "bytes": 11981,
+          "sha256": "24826b2a34b43d1d6b59f45df9fab8812a68112291561f18913989fef16a49eb"
+        },
+        "js/opn_ssg_retained.js": {
+          "bytes": 1083,
+          "sha256": "ae6abb99646ab5efdd48c5236f04b7e7dfac09480062f77d432c6619a5903239"
+        },
+        "js/pitch.js": {
+          "bytes": 1888,
+          "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+        },
+        "js/playground_async_tasks.js": {
+          "bytes": 2223,
+          "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+        },
+        "js/playground_audio_endpoint.js": {
+          "bytes": 2002,
+          "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+        },
+        "js/playground_audio_scheduler.js": {
+          "bytes": 2799,
+          "sha256": "7ccc762cccce700ef496a764e8970ae21b0d97fd653c9611d885554f28aeeca8"
+        },
+        "js/playground_audition_guard.js": {
+          "bytes": 6373,
+          "sha256": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310"
+        },
+        "js/playground_ay8910_audio.js": {
+          "bytes": 4655,
+          "sha256": "78b16c34379ddab5d3ddf1376cdbc337aae56e2fac71a9cc0760082333f332c5"
+        },
+        "js/playground_ay8910.js": {
+          "bytes": 3713,
+          "sha256": "7c58c3cf6e95a13b54b896d87348c3f6441fca8053d63ee6e4e47c8faad1f7d2"
+        },
+        "js/playground_chip_clock.js": {
+          "bytes": 5174,
+          "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+        },
+        "js/playground_chip_inspector_state.js": {
+          "bytes": 13180,
+          "sha256": "79710ccb1714afa109a5fe1c548964f704618f1e60c6932efb84a443ca727631"
+        },
+        "js/playground_chip_inspector.js": {
+          "bytes": 8660,
+          "sha256": "b4e27405224f5c44b47de7c99dbdaa67cf44b620e23093c57a4cf4895e972f6a"
+        },
+        "js/playground_chip_port.js": {
+          "bytes": 2698,
+          "sha256": "d0a569b419552f7e6de36dd8b9732ab452d5e7daf141d5f2fe0cedfa66283591"
+        },
+        "js/playground_clock.js": {
+          "bytes": 19367,
+          "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+        },
+        "js/playground_duration.js": {
+          "bytes": 2009,
+          "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+        },
+        "js/playground_dx7_audio.js": {
+          "bytes": 5731,
+          "sha256": "f0ab48a6235f4327b0a244e2f2ef8f9a5f426f7a3aaf9b320b8c6ba8579eef63"
+        },
+        "js/playground_dx7.js": {
+          "bytes": 10267,
+          "sha256": "5937b29957d616a2b2b63f99f3a4a11e4fe01c5ea7999fab1f90e7b3e84bac9d"
+        },
+        "js/playground_execution.js": {
+          "bytes": 8875,
+          "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+        },
+        "js/playground_gameboy_audio.js": {
+          "bytes": 1943,
+          "sha256": "a696e3e3c9af0ad02e8e4a965ab0096e912cdd705dbdef55aacc8ffed19b46b8"
+        },
+        "js/playground_gameboy.js": {
+          "bytes": 3629,
+          "sha256": "71739558b76672772c0c3e858a627af04c01aa548f40a407f39e558161dbd584"
+        },
+        "js/playground_huc6280_audio.js": {
+          "bytes": 4145,
+          "sha256": "9efcca9792df6fa21fb183f509a04d496ee3f48489b6d5d71d62824a5e191446"
+        },
+        "js/playground_huc6280.js": {
+          "bytes": 4391,
+          "sha256": "b7468c255cbf72d41de227270fe039c41f4ee06c7dec7145adb2514706a9f675"
+        },
+        "js/playground_keyboard_channels.js": {
+          "bytes": 5113,
+          "sha256": "6006d4554ef43063539b5b85403cccad30e66000fcbef987d62487bb47c3a4e7"
+        },
+        "js/playground_keyboard.js": {
+          "bytes": 7290,
+          "sha256": "adfac62ea27c791390bba81feab06b82615bfdd1baa356c0bcc8cfb464699478"
+        },
+        "js/playground_live.js": {
+          "bytes": 14734,
+          "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+        },
+        "js/playground_log.js": {
+          "bytes": 842,
+          "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+        },
+        "js/playground_logic_worker.js": {
+          "bytes": 57867,
+          "sha256": "007f460efd0e1599fcee256c9580cd3cec2d1318bbe0968182fc34071a587dd9"
+        },
+        "js/playground_midi.js": {
+          "bytes": 17595,
+          "sha256": "a92d68367fe948cfad70a3bbea8a17041f908a319a6899915a4c56dfe3d692a4"
+        },
+        "js/playground_music.js": {
+          "bytes": 11300,
+          "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+        },
+        "js/playground_native_primary.js": {
+          "bytes": 6913,
+          "sha256": "a53687aaca80a7f6a45795aae4d035a1e942df7ecda5bd68018b5bb44e0be337"
+        },
+        "js/playground_native_sample_editor.js": {
+          "bytes": 2990,
+          "sha256": "f9be69de8907b55394f52f7e7b651e62cf2735275777484a79764c0d8274d935"
+        },
+        "js/playground_nes_audio.js": {
+          "bytes": 2834,
+          "sha256": "a4abc87d186c74b9f5f59384c59cdca53bfb0ff735bb37322e925b659b2c6672"
+        },
+        "js/playground_nes.js": {
+          "bytes": 5425,
+          "sha256": "227194cc7a2857ca5ad931f5abfca9c419065b2f59325a1d13837e7cd446799d"
+        },
+        "js/playground_noise.js": {
+          "bytes": 990,
+          "sha256": "64e4608fd0af00ce8e34eaa231d43da66f584d725c7b7f26fd3c376c5999de2d"
+        },
+        "js/playground_okim6258_audio.js": {
+          "bytes": 4156,
+          "sha256": "507867a4533372511a0819c76637556c6b8720e2fe1d019606d3b4d5af30ad36"
+        },
+        "js/playground_okim6258.js": {
+          "bytes": 4769,
+          "sha256": "9b68b77a853b83e7ad9ad21fafe571fb74ac111eab40655942810e86fcc0ede9"
+        },
+        "js/playground_opl_audio.js": {
+          "bytes": 4415,
+          "sha256": "8c92f2f147be26b11e0f904e939e015ac1867d6e2b9a5353c3004e5297f1ea3a"
+        },
+        "js/playground_opl.js": {
+          "bytes": 8956,
+          "sha256": "4ed9a2e113fd2aad1a0755a2ab0b2c5fee06286222cc9c751d51d4260b092634"
+        },
+        "js/playground_opn_audio.js": {
+          "bytes": 2645,
+          "sha256": "27b897f2dda6352af9f4e3bf30b98a40309ac4ecea3d74f39e745d75be491f14"
+        },
+        "js/playground_opn_inspector.js": {
+          "bytes": 7126,
+          "sha256": "55af969edbca0abe0c37446fef4c6a3f29ee7987c2494180df1cc2867a352c94"
+        },
+        "js/playground_opn.js": {
+          "bytes": 7615,
+          "sha256": "f35071e5902b52e225c1b39716c0b9b5e594725da83da00c2c6dafc11f647dbd"
+        },
+        "js/playground_performance_host.js": {
+          "bytes": 3836,
+          "sha256": "cc87f96cfa642eac3a3996d8c4e37eda26a35ad687d1f6bbf16468cf8c9e9f2f"
+        },
+        "js/playground_performance_processor.js": {
+          "bytes": 28142,
+          "sha256": "505a21b24585b7884b1955959427c1ff485d015cb3d098d63b14826d06ba2677"
+        },
+        "js/playground_performance_queue.js": {
+          "bytes": 9950,
+          "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+        },
+        "js/playground_performance_sender.js": {
+          "bytes": 8928,
+          "sha256": "2d7f1fc81b762656336d61b44ca77300db32d1857625dd45cf798295e476f047"
+        },
+        "js/playground_pwm_audio.js": {
+          "bytes": 2582,
+          "sha256": "c4606a11392ae7025ece4311783eb74ab83d44dda50cf3103b7276901518e921"
+        },
+        "js/playground_rf5c164_audio.js": {
+          "bytes": 2628,
+          "sha256": "89f9386a61693d010384e23129b60bf659d3ab7dc88923b6e5c7e0af606f8452"
+        },
+        "js/playground_rf5c164.js": {
+          "bytes": 5159,
+          "sha256": "df2f5d3aaca4e1ffb7df6e24a7e12563e394f8d2b0d084707e652f177cc0d0f0"
+        },
+        "js/playground_runtime.js": {
+          "bytes": 144800,
+          "sha256": "be42a1207be7f460053c9c8cf9beec27ea5337960b9bd2601ff53765d8fdb3e8"
+        },
+        "js/playground_sample_edit.js": {
+          "bytes": 17672,
+          "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+        },
+        "js/playground_sample_instrument.js": {
+          "bytes": 8176,
+          "sha256": "a65f67f1d7c272f5f469f8b241f38d4257e2e1bd596b5db689a84f56e3747f20"
+        },
+        "js/playground_segapsg_audio.js": {
+          "bytes": 4294,
+          "sha256": "866d6d83e7b999be19d9c3f8e05059a08dc25f5614141e347aa82c64045adae6"
+        },
+        "js/playground_segapsg.js": {
+          "bytes": 1750,
+          "sha256": "0037208968973e3d4ae720995ae698df56964760b53ea1447ab231a5a8c1bc6e"
+        },
+        "js/playground_snes_audio.js": {
+          "bytes": 3570,
+          "sha256": "b87cb51a50b73eac8ad06ca437ec8b0cabc82416c5d3a7b7eb5a7b11e4631c07"
+        },
+        "js/playground_snes.js": {
+          "bytes": 8235,
+          "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+        },
+        "js/playground_soundchip_options.js": {
+          "bytes": 963,
+          "sha256": "b7c08df5920ad5ad65f6d0c90a81143dbd7831cdf834a97de9959edf46d05f90"
+        },
+        "js/playground_soundchips.js": {
+          "bytes": 2692,
+          "sha256": "4b7d5a15fbddf65addda46fd36931220bd22e67a487dfab38ccd0e7376f5e54f"
+        },
+        "js/playground_spc_audio.js": {
+          "bytes": 3489,
+          "sha256": "81800b53ca75675403d4d31d153b167bd0ae0cb78e51a802c81f3ea37d936dfd"
+        },
+        "js/playground_spc.js": {
+          "bytes": 10374,
+          "sha256": "20d6bf767a2ab29c5075d9d83248b1a075df2dc872d0c8e89ed6d98ed7b5b506"
+        },
+        "js/playground_sync.js": {
+          "bytes": 6563,
+          "sha256": "365fbf469d59bf714a19b25ae4ad8f2e6e2867c33eef944abfb43f66235f2b29"
+        },
+        "js/playground_wonderswan_audio.js": {
+          "bytes": 3632,
+          "sha256": "cd150248037d3ff5edfb677e1e039a64589224f561989ee4e14c611be0abddeb"
+        },
+        "js/playground_wonderswan_inspector.js": {
+          "bytes": 8989,
+          "sha256": "4dede1bf8420427dd38f39ae3d6df3c4c2223ad342289758cc34b9a7385b7067"
+        },
+        "js/playground_wonderswan_worklet.js": {
+          "bytes": 20351,
+          "sha256": "a2d363d83591a4b766b40a3ce1ac98edd6232932de2d0052009ec97e1d424e0f"
+        },
+        "js/playground_wonderswan.js": {
+          "bytes": 4367,
+          "sha256": "57c1f6802144991f68f8e091dced6f253cfa424cf35e93bf79d652f111bf1c8f"
+        },
+        "js/playground_worker_chip.js": {
+          "bytes": 10475,
+          "sha256": "2f76548e1a1617dad22fff614dbbf94a4492b868fb1c8d5a43bd9fe5cc58cc0c"
+        },
+        "js/playground_worker_dac.js": {
+          "bytes": 2739,
+          "sha256": "dc73ef5d97dbe853c6cf069f1ad55eeffcd412880e5ce9fe1559218f0d695261"
+        },
+        "js/playground_ym2151_audio.js": {
+          "bytes": 2861,
+          "sha256": "102ef0ea96b72feb73226679806d3c1081a08b8821cbaa81598c37f879d50e63"
+        },
+        "js/playground_ym2151.js": {
+          "bytes": 4956,
+          "sha256": "f0c27e07b19f99d307537ae936b357e4ea4650f4d33728a6fe3698f7e2d1d9b5"
+        },
+        "js/playground_ym2413_audio.js": {
+          "bytes": 4230,
+          "sha256": "79f32918429f71e03a7952f8ad0a022667bdd177610e5bba1fae2a74788b2f83"
+        },
+        "js/playground_ym2413.js": {
+          "bytes": 3533,
+          "sha256": "c0af2ae54435611a4ebc371f0ac09d293c47021f8b5f40d4f97e89eb791404db"
+        },
+        "js/playground_ym2608_audio.js": {
+          "bytes": 1981,
+          "sha256": "890fdc0d2a467a41e9df2cd965d9da183cb6cadb76bfbb629beac35c87356218"
+        },
+        "js/playground_ym2608.js": {
+          "bytes": 5185,
+          "sha256": "872a5ddb6374068719bd131e90f743e31e52e271f2731842a1cc4c60f556c7c8"
+        },
+        "js/pwm32x_playback.js": {
+          "bytes": 9076,
+          "sha256": "5c70d0074e0e2d6d2f01ddbf7d974c192241dabf818ef5f8de99000b6d87bff7"
+        },
+        "js/pwm32x_wasm.js": {
+          "bytes": 12449,
+          "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+        },
+        "js/pwm32x.js": {
+          "bytes": 6905,
+          "sha256": "3214fa25f11fff13b708cb336c3895e3f1a8b1462c392523c54e8be9e149a9f6"
+        },
+        "js/rf5c164_pcm.js": {
+          "bytes": 1537,
+          "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+        },
+        "js/rf5c164synth.js": {
+          "bytes": 4836,
+          "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+        },
+        "js/s98_file.js": {
+          "bytes": 5878,
+          "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+        },
+        "js/segapsg_api.js": {
+          "bytes": 1086,
+          "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+        },
+        "js/segapsg.js": {
+          "bytes": 10169,
+          "sha256": "41a7d377d6becc2a5645c6fdb41e44447fe5c479f8a4ce3ab944995938746022"
+        },
+        "js/segapsgsynth.js": {
+          "bytes": 10444,
+          "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+        },
+        "js/snes_brr.js": {
+          "bytes": 11140,
+          "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+        },
+        "js/snessynth.js": {
+          "bytes": 12872,
+          "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+        },
+        "js/soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/spc_events.js": {
+          "bytes": 11461,
+          "sha256": "7142e0fad5e39e6d04c986c40fc00ef07e657e3d5dda250b52a1161de955e58e"
+        },
+        "js/spc_file.js": {
+          "bytes": 8896,
+          "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+        },
+        "js/spc.js": {
+          "bytes": 16728,
+          "sha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f"
+        },
+        "js/ssgsynth.js": {
+          "bytes": 6592,
+          "sha256": "c396b56e2d8033af183c6bdec9254ff40185e390d84e343188cf395856893e9f"
+        },
+        "js/stereo-width-worklet.js": {
+          "bytes": 1876,
+          "sha256": "36b8f452b84faef614677c97bdfca7fb34e2cb42fa4b5ec56e7cdfb68495fa50"
+        },
+        "js/tetorica_audio_runtime.js": {
+          "bytes": 35718,
+          "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+        },
+        "js/tetorica_synth.js": {
+          "bytes": 3212,
+          "sha256": "265ac7353475e509281b68949bf5656c590ac431ed9b1b340b6557b017c8ab64"
+        },
+        "js/tetorica_virtual_files/agent_commands.js": {
+          "bytes": 11601,
+          "sha256": "4bcedf16ddffa21bf8ea0ee96bf6f979a2f70e7ba9ed602c32ea88eec55fd9bd"
+        },
+        "js/tetorica_virtual_files/filesystem.js": {
+          "bytes": 20206,
+          "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+        },
+        "js/tetorica_virtual_files/git.bundle.js": {
+          "bytes": 298711,
+          "sha256": "48bf6973ab36ecb1824c4b52c9e958d1d626b6796a47c0cf4d9b9e5f34ef89d1"
+        },
+        "js/tetorica_virtual_files/index.js": {
+          "bytes": 403,
+          "sha256": "e9b836b112402d3639d11e848e499b7cbbe28bff8e60e5d41ffc27878c1c5900"
+        },
+        "js/tetorica_virtual_files/patch.js": {
+          "bytes": 9693,
+          "sha256": "3a98170854a87d55c507b29d8df11489bdeffb7bb3c21b5fcc6c4533790364f5"
+        },
+        "js/tetorica_virtual_files/path.js": {
+          "bytes": 1112,
+          "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+        },
+        "js/tetorica_virtual_files/pipeline.js": {
+          "bytes": 2566,
+          "sha256": "8bc5455b2f0668dfd24a0d217bc5b4fa52633164e3bdc54f1f443660b69d43a6"
+        },
+        "js/tetorica_virtual_files/reader.js": {
+          "bytes": 1404,
+          "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+        },
+        "js/tetorica_virtual_files/shell.js": {
+          "bytes": 11716,
+          "sha256": "a542bdeffd9853d43b28a453fcd973963f96c3c078079437383ef6c1565633ed"
+        },
+        "js/tetorica_virtual_files/sync.js": {
+          "bytes": 5701,
+          "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+        },
+        "js/tfi.js": {
+          "bytes": 9704,
+          "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+        },
+        "js/vgi.js": {
+          "bytes": 4366,
+          "sha256": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "js/wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "js/wonderswan_timeline.js": {
+          "bytes": 6994,
+          "sha256": "fbb1d4bde05f473662a11f42411fa439295ce16e8688318ccab0ad90abb5ae0d"
+        },
+        "js/wonderswan.js": {
+          "bytes": 7520,
+          "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+        },
+        "js/wonderswansynth.js": {
+          "bytes": 16472,
+          "sha256": "3e5028e3abe42001b6f4d9a96ea0a156b6485e4574756f2925142d39f3afae6e"
+        },
+        "js/y8950_adpcm_preview.js": {
+          "bytes": 5782,
+          "sha256": "e5b8110148683216a631bd8be37f80297981fa36919bbfa02b138dd746dd50af"
+        },
+        "js/y8950_adpcm.js": {
+          "bytes": 9004,
+          "sha256": "79f7fde2b22c5755e4c9647ce60ebf7ce8642aaa83d526dbe6f5cfd4456f4d3e"
+        },
+        "js/ym2203.js": {
+          "bytes": 12781,
+          "sha256": "a19eac247b63b605ad796fdc78a9f5b3f18219ce1f1f793c0ffca67ee991ab3f"
+        },
+        "js/ym2203synth.js": {
+          "bytes": 2541,
+          "sha256": "0d1153cd55772dc59b27a452316aab10aba84b0b0688f7b949b5e5a5cb225279"
+        },
+        "js/ym2203vgm.js": {
+          "bytes": 416,
+          "sha256": "46fb8610523516bcab5b7865e5ae0ae50499c40753146ebe91ec531318a12979"
+        },
+        "js/ym2413.js": {
+          "bytes": 9529,
+          "sha256": "5ea915d378741edf4784711154fb14e8b48cb2fd0c30083b6492162de9abdba9"
+        },
+        "js/ym2413synth.js": {
+          "bytes": 17701,
+          "sha256": "ad1bf9fc12b9f6fac0ca0c820d0d6184c79b6af48300c5385c8ac34c22317eb0"
+        },
+        "js/ym2608.js": {
+          "bytes": 15663,
+          "sha256": "d90489958661e7f007c595060c84cf2976a8ae9b45887ccf060d3f9ebd38dadd"
+        },
+        "js/ym2608synth.js": {
+          "bytes": 14475,
+          "sha256": "453c522bb5d3422cf6f070c882ebdae2767a5ec50ee89827ddfce4eb3cf8dc57"
+        },
+        "js/ym2608vgm.js": {
+          "bytes": 347,
+          "sha256": "f4c7ed23b7fa32cbbffa77f021db117b7872c76aab72f9257c2df04e1bf04ed3"
+        },
+        "js/ym2610b.js": {
+          "bytes": 11206,
+          "sha256": "202e9909606335a68635fdcfe6934d7f5999cc586c270210d9c6d5b3897497d6"
+        },
+        "js/ym2610bsynth.js": {
+          "bytes": 14744,
+          "sha256": "3c42306c371ef217f30104f512d418b80f347d92724080e7513d56e511bd6bb5"
+        },
+        "js/ym2610bvgm.js": {
+          "bytes": 345,
+          "sha256": "dea1dd197ee8984c9ec1dd0c94a6e56f7b6fc2f16ceffafd7545b8c31c92702c"
+        },
+        "js/ym2612_dac.js": {
+          "bytes": 7251,
+          "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+        },
+        "js/ym2612-worklet.js": {
+          "bytes": 25429,
+          "sha256": "5f86f9e4a57441f1417a753706fc0ea64b6fe71117b82beb5db649ae50061ae3"
+        },
+        "js/ym2612.js": {
+          "bytes": 22574,
+          "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+        },
+        "js/ym2612synth.js": {
+          "bytes": 38608,
+          "sha256": "09ca02325419add8cfeb9bf14a30de8b8fa7eccc1d82f0f83078faa25b5b1e85"
+        },
+        "js/ym2612vgm.js": {
+          "bytes": 115343,
+          "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+        },
+        "playground_audio_engine.js": {
+          "bytes": 6413,
+          "sha256": "84cd11b8591993b89a9e56686074c48a6057b6c6f1fae15c81db95300a8fb893"
+        },
+        "playground_audio_input.js": {
+          "bytes": 32684,
+          "sha256": "a95c0fb7e19f51cc959d7dc06a43dc1b68bacd2afbff43ab091f7526f38fe4dc"
+        },
+        "playground_audio_monitor.js": {
+          "bytes": 17968,
+          "sha256": "7a75febe0c38063a50e0217b9bd42c93cb196fbab88717af8689e192663c020d"
+        },
+        "playground_autosave.js": {
+          "bytes": 3889,
+          "sha256": "46bbdd5614e1597ee9906db35edd53f407fd18a373b0484b3a92176a5c084abd"
+        },
+        "playground_ay8910_voice_panel.js": {
+          "bytes": 15887,
+          "sha256": "643de67b9a872611a3ef781cb2e79842dc184ed4e987f49a6fec1501f2b2ea72"
+        },
+        "playground_cassette.js": {
+          "bytes": 14751,
+          "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+        },
+        "playground_chip_tabs.css": {
+          "bytes": 3619,
+          "sha256": "7fbebbd6df6248a10a2c52d42d05c8b23c6de3b6ee2ca965d2b35698e81f29f1"
+        },
+        "playground_chip_tabs.js": {
+          "bytes": 40294,
+          "sha256": "3027fc306241e7e8bff68dc63bfe8613f501e85a21b00bc1389d3efe54c85c7a"
+        },
+        "playground_declarations.js": {
+          "bytes": 2727,
+          "sha256": "a2f87b265b34630d55dc0cc665018f670b740483de64d31b7250003c70518095"
+        },
+        "playground_dx7_voice_panel.js": {
+          "bytes": 23705,
+          "sha256": "d5f44e21b596ddc6ed4b26f8d9d33c57376d3ee536b8a2aa578525cd1ddfaf67"
+        },
+        "playground_example_order.js": {
+          "bytes": 293,
+          "sha256": "3cc7c250eb119f8b459c821c39431cadc7252eafd4c7c12609aac3e7b86a9f97"
+        },
+        "playground_examples.js": {
+          "bytes": 183450,
+          "sha256": "fb1406a2d442ecebb9b95d58131d31ec17849a511730f94ae4121f6a4b72231f"
+        },
+        "playground_extra_fm_editor.js": {
+          "bytes": 9686,
+          "sha256": "23b8cde1180744eb6a2546f007504db88292f27316f7667ae6908a55d8a8dde5"
+        },
+        "playground_file_menu.js": {
+          "bytes": 8805,
+          "sha256": "dc2f9c1ee49cdf42a4e4cac502437a551938e699e981773493005ba5aa58a76e"
+        },
+        "playground_file_resize.js": {
+          "bytes": 3024,
+          "sha256": "be704ea2e301033fcd31bb14fd365ce224d9c0d46147caa1d616882092db7a8f"
+        },
+        "playground_file_tree.js": {
+          "bytes": 4867,
+          "sha256": "0a8a4c342bbf94023648d17cd952ba1e2e5a1595846fcf860518205aaf1addad"
+        },
+        "playground_fx_monitor.js": {
+          "bytes": 8329,
+          "sha256": "09b9b0a25dbf2261e48f4ac3a3ebb2c57798b7695a0194e974909a0287169ee9"
+        },
+        "playground_gameboy_voice_panel.js": {
+          "bytes": 26508,
+          "sha256": "3cb7b3af8f9ed831abedc5abff6398cc5802e110dea1745b72e1fd5c5af4300d"
+        },
+        "playground_git.js": {
+          "bytes": 5121,
+          "sha256": "dc23360e8b17c7215259d6ecb27f877ee8a661787c9a4ffe45d2a1bf6b1394cf"
+        },
+        "playground_huc6280_voice_panel.js": {
+          "bytes": 22944,
+          "sha256": "03b6f054b22f3ea162874f638d0b5397128e000d78f24603351e460ecbf4a42f"
+        },
+        "playground_midi_import.js": {
+          "bytes": 5429,
+          "sha256": "9117e97141479b5029e89fd9a2251187aebdc3c527c63e397beda7a2ba604064"
+        },
+        "playground_mixer_defaults.js": {
+          "bytes": 9663,
+          "sha256": "181c3de18594fdb695a94b373e4b3d75e559e6b99c0e926f4fedf8db5e83c966"
+        },
+        "playground_mixer_state.js": {
+          "bytes": 9635,
+          "sha256": "38c604fa37e3e8abc4ddcccce9293705b112d0b5776ba6c0c3846533499b24e1"
+        },
+        "playground_mixer.css": {
+          "bytes": 3251,
+          "sha256": "36ece42a32769420fb5eabc7754a10544d827bc0cffd9f2f43d160c499950b4c"
+        },
+        "playground_mixer.js": {
+          "bytes": 17492,
+          "sha256": "0e070cd489c6f11f1771d009dd513287e0400d635ad1a072db96e23146e8dd2d"
+        },
+        "playground_mode_keyboard.js": {
+          "bytes": 10688,
+          "sha256": "a120f9a49a53effe3bdbc45f8c4e0d66984212ef4c05ae80c627bd3147e877ba"
+        },
+        "playground_mode_project.js": {
+          "bytes": 1139,
+          "sha256": "7b8010d2521ed12025d5420d7a4399473b8da33d3d3ba7831ea075e1bb55d2cf"
+        },
+        "playground_mode_starters.js": {
+          "bytes": 5053,
+          "sha256": "2cdce7eee00ba61c17a8e6a88ae10ce470f539d207e18afd48ffecea118127bd"
+        },
+        "playground_mode.js": {
+          "bytes": 10719,
+          "sha256": "a5ec4a9d96331779789df90d1ce37a9247ad773cbbdd42ce455644ee5078e86e"
+        },
+        "playground_monaco_completion.js": {
+          "bytes": 44988,
+          "sha256": "be3de665e8cc03a59c12bd36bd11aaf3529da4a70039e16cfccc5c5720c54101"
+        },
+        "playground_monaco_definitions.js": {
+          "bytes": 16494,
+          "sha256": "a92bddbd2773565653592900bcccbd22979863d20656f02b3dac8e872d95ca9a"
+        },
+        "playground_monaco.js": {
+          "bytes": 22695,
+          "sha256": "8e6583214b55fd49f08bfdb9c35df1a0608e24f9d118db8e3aa65568e96b40fc"
+        },
+        "playground_monitor_scale.js": {
+          "bytes": 1890,
+          "sha256": "2b5b0ea15d39d0f3edc5b95f52f3e07f8e46b5cba1810d06ff9aa482e7f35687"
+        },
+        "playground_nes_voice_panel.js": {
+          "bytes": 22772,
+          "sha256": "df7eb9ef6840968e3422dc852fa438d73115b128e3cf074fb6a7502dc7ecbc2d"
+        },
+        "playground_okim6258_voice_panel.js": {
+          "bytes": 18542,
+          "sha256": "aa02b790766206d1c0c999855f8775cde24915a7821de8166172733b8c99dedc"
+        },
+        "playground_operator_keyboard.js": {
+          "bytes": 21206,
+          "sha256": "4fad5ee728ef1e204558a2e5961d2e943741fcdb0f4cdc1be6a22354f86f0d36"
+        },
+        "playground_operator_tab.js": {
+          "bytes": 31862,
+          "sha256": "251386ce583489d08b8612c45afa1ff6e133ce6b2e000e3004fd58d1652fbafd"
+        },
+        "playground_operator_visual.js": {
+          "bytes": 157,
+          "sha256": "525b30e117e978940dfb25d3ed221cc3f8e32c5680c3cf212afff398394312c9"
+        },
+        "playground_opl_voice_panel.js": {
+          "bytes": 20419,
+          "sha256": "847749b1d5916b5a56899126b809a7f60d3ddf684e3cf8581de46ce5103d470b"
+        },
+        "playground_opn_ssg_editor.js": {
+          "bytes": 3900,
+          "sha256": "bfeb8cd2fe4f8fdb0bede00b56c43fa54c566e7ccf19c01c63fa837e2c729fbc"
+        },
+        "playground_opna_sample_editor.js": {
+          "bytes": 5835,
+          "sha256": "9f12ca50d4b7016ebb6a0bb01efe7d39a7636a9857ddc8275b5aa86254c2d0dc"
+        },
+        "playground_opnb_sample_editor.js": {
+          "bytes": 6277,
+          "sha256": "9110eb3e64e1b3610e7bc943c49f7f2a777acc79758a78283247113bdf6ad955"
+        },
+        "playground_page_lifecycle.js": {
+          "bytes": 930,
+          "sha256": "5abd0c650a6acd1fe63ac16dae4e37846d83fc0745a460794bfa110ebe824d47"
+        },
+        "playground_query.js": {
+          "bytes": 5090,
+          "sha256": "73042da2f2756e84d4325ce1fcf7cf360e1f1329ce1d29dbdaa3bc25120feac9"
+        },
+        "playground_sample_assets.js": {
+          "bytes": 4155,
+          "sha256": "afcc8051609cf097f4162bd0efd3c1dd380aff072ac59b9c82bff727d0faa173"
+        },
+        "playground_sample_editor.css": {
+          "bytes": 1876,
+          "sha256": "677cb0daa35099e8cdf0df036f62803313b8340f08d75b6acdc3e11f5d2482db"
+        },
+        "playground_shell_check.js": {
+          "bytes": 2342,
+          "sha256": "34637b1949ae34e7f17f33ce97733bb8cd7e612243a1654ee5e8eb51c6208129"
+        },
+        "playground_shell_diagnostics.js": {
+          "bytes": 1669,
+          "sha256": "3c1249f4f44daced60ab72ce65331c61d3e7c2dcfdadbc77e2a997316c332ba0"
+        },
+        "playground_shell_modules.js": {
+          "bytes": 2216,
+          "sha256": "81b44f3935567df337c8468eb549ecef2156cae0eb3d8d50c51474fed3d77c5e"
+        },
+        "playground_shell_runner.js": {
+          "bytes": 5365,
+          "sha256": "dac19421900728dc5b52041b295e5afad3f75a6369585859431787c19d576eff"
+        },
+        "playground_shell_session.js": {
+          "bytes": 6725,
+          "sha256": "1031dc868f897969192f5e92c6b5427a8c4b5a2de575f31d7a4943f59d55f66c"
+        },
+        "playground_shell.js": {
+          "bytes": 8469,
+          "sha256": "a099141ad3b822d6f3b04a1dfa1965c2a255f6b1eac7f3fcbda4ab13dbc8f299"
+        },
+        "playground_snes_voice_panel.js": {
+          "bytes": 9983,
+          "sha256": "9a6c8447d726b184c66b230304add24eafa9fdf782a821103b6f36e3a8d600d5"
+        },
+        "playground_spc_import.js": {
+          "bytes": 21224,
+          "sha256": "707725099c7f56b4c52c6167eaad0ea9a8162f05d671882e409a3d9a2b7d2970"
+        },
+        "playground_sync.js": {
+          "bytes": 4625,
+          "sha256": "df62ebdd2058eadd91e34c65a7c4bd4bea5efc4386217b5abfec83bbc4f94752"
+        },
+        "playground_tfi_editor.js": {
+          "bytes": 5638,
+          "sha256": "fda4c63a4ffa325ce7b2bc7b8fe55ef10536ce288a83367e8b8ce864a8cdfc29"
+        },
+        "playground_ui.js": {
+          "bytes": 8294,
+          "sha256": "3fa38c4e5efbcc917972e84f1d3b1b7b1b31f7f17402de8f415191c9623c86de"
+        },
+        "playground_vgm_import.js": {
+          "bytes": 24702,
+          "sha256": "c0f7136835f3e14dc45b312c9aca8e5055c5dad57c177969e85e1e6f2e34125c"
+        },
+        "playground_vgm_presets.js": {
+          "bytes": 2813,
+          "sha256": "ad672197a135dcd314f23157ff7c539380d6909dd9605713b44e935a6043a88d"
+        },
+        "playground_virtual_files.js": {
+          "bytes": 5121,
+          "sha256": "4f2ef0fbc086ba01b7f3ff4220f8447b1ad995c5e1826a221dfe6bef9e095409"
+        },
+        "playground_wonderswan_voice_panel.js": {
+          "bytes": 22640,
+          "sha256": "750bc108961d5e7ff44cc1ba6d3fe107a1480a43e7efcb849fea40ed9968c8fd"
+        },
+        "playground_workbench.js": {
+          "bytes": 7348,
+          "sha256": "c0d4c13bec5167ba2b9a90af6cfcfa27321cabe45998fa60a65ac7767efb8f2a"
+        },
+        "playground_y8950_adpcm_panel.js": {
+          "bytes": 12778,
+          "sha256": "b3c574b5626632e94534af7476a312cb2f264d8ff932c010f5b75e9306be0a15"
+        },
+        "playground_ym2151_voice_panel.js": {
+          "bytes": 24794,
+          "sha256": "aa0866710259a0056af8dacd5e320000cecb31a3a3e6ea4c18ddb18bc166c95a"
+        },
+        "playground_ym2413_voice_panel.js": {
+          "bytes": 20315,
+          "sha256": "fd51a705f39f22f61769892098b3f9612b47bf03fd1c200a411969502df068b3"
+        },
+        "playground.js": {
+          "bytes": 122872,
+          "sha256": "715bc03e1174a9ff34a0fbf5a966efb183aa91d6661c892601f2d0f888354ca0"
+        },
+        "rf5c164_vgm_export.js": {
+          "bytes": 9551,
+          "sha256": "8a298e9d19e0864dab60277f0402f7266f96520b1e6b860afb9e6a130aeca2c7"
+        },
+        "synth/synth_controls.js": {
+          "bytes": 10018,
+          "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+        },
+        "synth/synth_envelope.js": {
+          "bytes": 13551,
+          "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 9982,
+          "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+        },
+        "synth/synth_operator_envelope.js": {
+          "bytes": 9649,
+          "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+        },
+        "tetorica-playground-globals.d.ts": {
+          "bytes": 111032,
+          "sha256": "e05553850c0cc0fd1cd04ff7cf773a3e5372cb294bf213e25a86fd6118901dfa"
+        },
+        "tetorica-playground-wonderswan.d.ts": {
+          "bytes": 109,
+          "sha256": "3f7fb08da8c97d649de803754c8f88ee633046d5562e060776d3fd4095ba5b9c"
+        },
+        "tetorica-playground-ym2612.d.ts": {
+          "bytes": 110,
+          "sha256": "4e7d976da314a668bcdbd37254c5e1fb3f393e21e72d380d06eefb744ec02c74"
+        },
+        "tetorica-shell.d.ts": {
+          "bytes": 2953,
+          "sha256": "a0d17aeb969faf8a2e8489a00e6f1a869622e08db7b1b019cced67774326391d"
+        },
+        "vendor/es-module-lexer.js": {
+          "bytes": 27257,
+          "sha256": "95f6b0530ab27cb146e89bc33acfa45f606c66ee589d16469b414942fc1b4864"
+        },
+        "vendor/fflate.js": {
+          "bytes": 90922,
+          "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+        },
+        "wonderswan_vgm_import.js": {
+          "bytes": 19013,
+          "sha256": "ccdab9c09bdf27e27bbfa6688a9af75482a7d9f41618a13e3caec35ff61b5834"
+        },
+        "ym2203_high.js": {
+          "bytes": 3054,
+          "sha256": "277b2456042c80f66d9f7761bcddf9ba08c30b2183f41ccd6f3a6034d7b9387e"
+        },
+        "ym2608_high.js": {
+          "bytes": 2084,
+          "sha256": "46f04eaeaaaceb63958ce5edaa89dba057235079a596723a1dfa835dd65ca806"
+        },
+        "ym2608_vgm_import.js": {
+          "bytes": 3940,
+          "sha256": "7a810ac898c1e8b4eec32005d535f25f58d27908c46319222e05585c100f06de"
+        }
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "passed": true,
+          "scope": "full",
+          "legacyImports": 9,
+          "legacyRuns": 15,
+          "syntheticComparisons": [
+            {
+              "style": "raw",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 0,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "raw",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24250,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 0,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24130,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 256,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 23925,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            }
+          ],
+          "actualSongComparisons": [
+            {
+              "style": "raw",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 1280,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "raw",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 25827,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 1280,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26078,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 1280,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26122,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "passed": true,
+          "scope": "full",
+          "legacyImports": 9,
+          "legacyRuns": 15,
+          "syntheticComparisons": [
+            {
+              "style": "raw",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 128,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "raw",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24128,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 128,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24288,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 128,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24176,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            }
+          ],
+          "actualSongComparisons": [
+            {
+              "style": "raw",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 1024,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "raw",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26352,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 896,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26848,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 896,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26416,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    },
+    {
+      "file": "/private/tmp/ws-pcm-docs-webkit.json",
+      "sha256": "b9c8b9133e42dd8929732be33b5cbdbc5db6c3bec4bd440e3ce6433c97b45909",
+      "servedSources": {
+        "generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "js/adpcm_b_sample.js": {
+          "bytes": 7109,
+          "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+        },
+        "js/audio_decode.js": {
+          "bytes": 1955,
+          "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+        },
+        "js/ay8910.js": {
+          "bytes": 6294,
+          "sha256": "c18db167ffc900df5f62c8ff35d07f4f343dcacd11775fcdbc933234b790a4c6"
+        },
+        "js/ay8910synth.js": {
+          "bytes": 12986,
+          "sha256": "cd361b16e2dcbae405c80216be07fe2dea934a309ec94b30da349f2c209ad470"
+        },
+        "js/chip_worklet_transport.js": {
+          "bytes": 1839,
+          "sha256": "218b3b3d6b16da9c64515ae6406dba5eb73609a8be20abdc87e5db4571cc7308"
+        },
+        "js/custom_fx.js": {
+          "bytes": 5764,
+          "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+        },
+        "js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "js/gameboy_runtime_synth.js": {
+          "bytes": 9753,
+          "sha256": "867b5b978816d0731b04499f649420e0489c930486b1f917963691389c80c520"
+        },
+        "js/gameboyapu.js": {
+          "bytes": 7166,
+          "sha256": "fe0e2eb6d31a2ef9f80bc8fc7a76978fb37fa79281b7c79b300bace7402de548"
+        },
+        "js/gameboysynth.js": {
+          "bytes": 13943,
+          "sha256": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af"
+        },
+        "js/huc6280synth.js": {
+          "bytes": 11437,
+          "sha256": "a42b8f4ce90300b3d4a52f68402df9c7936c884f41ea79e9f4bf64fe4b974661"
+        },
+        "js/looper.js": {
+          "bytes": 24025,
+          "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+        },
+        "js/megasynth_fx.js": {
+          "bytes": 62352,
+          "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+        },
+        "js/megasynth_recording.js": {
+          "bytes": 10125,
+          "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+        },
+        "js/megasynth-fm-presets.js": {
+          "bytes": 6954,
+          "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+        },
+        "js/megasynth.js": {
+          "bytes": 33508,
+          "sha256": "272344444704aee156f35dc8657f11a4d192e8a05d94722732666b06dc73fa62"
+        },
+        "js/midi_file.js": {
+          "bytes": 5341,
+          "sha256": "4751962bf77417ec198bb5f0434e325ce6c7e0dc7c4059ba6056d14f02e5e69f"
+        },
+        "js/midi_song.js": {
+          "bytes": 6966,
+          "sha256": "d86a06c6a37f57869fd11156a5ed5ebee5f093d8a01daf6430ac5c9499e99bb6"
+        },
+        "js/midi_source.js": {
+          "bytes": 12172,
+          "sha256": "d0db1daddfea52568b3c792d04de644814ea56f583f4757e55581c51a7931a75"
+        },
+        "js/msfa_dx7/src/preset.js": {
+          "bytes": 8629,
+          "sha256": "f1373d4699172658b979482e0bb1585301967ebb7d2668ad21d146b6d3824fe2"
+        },
+        "js/msfa_dx7/src/sysex.js": {
+          "bytes": 8610,
+          "sha256": "0bda70c08b34f084e10c4ff46c4319147d089c5a174b9e84bf023b86759c2b7e"
+        },
+        "js/native_audio_effect.wasm": {
+          "bytes": 48297,
+          "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+        },
+        "js/native_fx_engine.js": {
+          "bytes": 7061,
+          "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+        },
+        "js/native_fx_graph.js": {
+          "bytes": 3612,
+          "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+        },
+        "js/native_fx_rack.js": {
+          "bytes": 2128,
+          "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+        },
+        "js/native_fx.js": {
+          "bytes": 7922,
+          "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+        },
+        "js/native_genesis_fx.js": {
+          "bytes": 863,
+          "sha256": "917dd7dd431a553e798de9f36affe772d51fac7c9aa01209caa9341577adba4f"
+        },
+        "js/native_genesis_livefx.js": {
+          "bytes": 5891,
+          "sha256": "bac52d6a63bcafe48086cb69959d006285e578473f6d4900adfca1b3d065716b"
+        },
+        "js/native_genesis_media.js": {
+          "bytes": 17764,
+          "sha256": "c8f6925a08e2671689c1204f780a21f0963bafaed218736f995288198e99316d"
+        },
+        "js/native_genesis_noise.js": {
+          "bytes": 5379,
+          "sha256": "92949c736bb44e4a1a577d562cc95bd8ad3bf62ed72e79c892bf48fe6a76a86c"
+        },
+        "js/native_genesis_worker.js": {
+          "bytes": 15105,
+          "sha256": "0ed872ff68a16bd16a70def417afd1f20e63ddbae282df3d336c7c8f275186a6"
+        },
+        "js/native_livefx_context.js": {
+          "bytes": 8401,
+          "sha256": "2bf0d1eacceceea2932304505b2c68d01b8d1be174a93a09d0af7432361318f1"
+        },
+        "js/native_noise.js": {
+          "bytes": 4209,
+          "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+        },
+        "js/native_runtime_synth.js": {
+          "bytes": 18037,
+          "sha256": "07cb4350a6c5d20f169e3c70dc8082f09400f7a7c86592e565c446adbe956f82"
+        },
+        "js/native_sample_processor.js": {
+          "bytes": 4443,
+          "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+        },
+        "js/native_sample.js": {
+          "bytes": 3655,
+          "sha256": "1fbfe157702bdb315e340991deb347389b25bed3821faf43601f317228937834"
+        },
+        "js/native-fx-worklet.js": {
+          "bytes": 8783,
+          "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+        },
+        "js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "js/nesapu.js": {
+          "bytes": 4126,
+          "sha256": "a0fe7ed4c7bd089f78ecdbad75bbe6ccd09f0d63a1e26a00d6d670726193171e"
+        },
+        "js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "js/nesapusynth.js": {
+          "bytes": 15177,
+          "sha256": "194339029ade432d0cc4e701619a35654cae6979b5f410e4d205e0a3f5b83313"
+        },
+        "js/okim6258synth.js": {
+          "bytes": 14657,
+          "sha256": "d8c62ffab87dd25678c639e4ead7e298c62517308f19b018a8d6e2f50caceba6"
+        },
+        "js/opl_synth.js": {
+          "bytes": 20452,
+          "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+        },
+        "js/opn_fm_synth.js": {
+          "bytes": 25372,
+          "sha256": "164565cc6c4c6caa0514e666584c274d19d973d7b651cfa43d9275e3efceb63c"
+        },
+        "js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "js/opn_runtime_synth.js": {
+          "bytes": 11981,
+          "sha256": "24826b2a34b43d1d6b59f45df9fab8812a68112291561f18913989fef16a49eb"
+        },
+        "js/opn_ssg_retained.js": {
+          "bytes": 1083,
+          "sha256": "ae6abb99646ab5efdd48c5236f04b7e7dfac09480062f77d432c6619a5903239"
+        },
+        "js/pitch.js": {
+          "bytes": 1888,
+          "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+        },
+        "js/playground_async_tasks.js": {
+          "bytes": 2223,
+          "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+        },
+        "js/playground_audio_endpoint.js": {
+          "bytes": 2002,
+          "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+        },
+        "js/playground_audio_scheduler.js": {
+          "bytes": 2799,
+          "sha256": "7ccc762cccce700ef496a764e8970ae21b0d97fd653c9611d885554f28aeeca8"
+        },
+        "js/playground_ay8910_audio.js": {
+          "bytes": 4655,
+          "sha256": "78b16c34379ddab5d3ddf1376cdbc337aae56e2fac71a9cc0760082333f332c5"
+        },
+        "js/playground_ay8910.js": {
+          "bytes": 3713,
+          "sha256": "7c58c3cf6e95a13b54b896d87348c3f6441fca8053d63ee6e4e47c8faad1f7d2"
+        },
+        "js/playground_chip_clock.js": {
+          "bytes": 5174,
+          "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+        },
+        "js/playground_chip_inspector_state.js": {
+          "bytes": 13180,
+          "sha256": "79710ccb1714afa109a5fe1c548964f704618f1e60c6932efb84a443ca727631"
+        },
+        "js/playground_chip_inspector.js": {
+          "bytes": 8660,
+          "sha256": "b4e27405224f5c44b47de7c99dbdaa67cf44b620e23093c57a4cf4895e972f6a"
+        },
+        "js/playground_clock.js": {
+          "bytes": 19367,
+          "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+        },
+        "js/playground_duration.js": {
+          "bytes": 2009,
+          "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+        },
+        "js/playground_dx7_audio.js": {
+          "bytes": 5731,
+          "sha256": "f0ab48a6235f4327b0a244e2f2ef8f9a5f426f7a3aaf9b320b8c6ba8579eef63"
+        },
+        "js/playground_dx7.js": {
+          "bytes": 10267,
+          "sha256": "5937b29957d616a2b2b63f99f3a4a11e4fe01c5ea7999fab1f90e7b3e84bac9d"
+        },
+        "js/playground_execution.js": {
+          "bytes": 8875,
+          "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+        },
+        "js/playground_gameboy_audio.js": {
+          "bytes": 1943,
+          "sha256": "a696e3e3c9af0ad02e8e4a965ab0096e912cdd705dbdef55aacc8ffed19b46b8"
+        },
+        "js/playground_gameboy.js": {
+          "bytes": 3629,
+          "sha256": "71739558b76672772c0c3e858a627af04c01aa548f40a407f39e558161dbd584"
+        },
+        "js/playground_huc6280_audio.js": {
+          "bytes": 4145,
+          "sha256": "9efcca9792df6fa21fb183f509a04d496ee3f48489b6d5d71d62824a5e191446"
+        },
+        "js/playground_huc6280.js": {
+          "bytes": 4391,
+          "sha256": "b7468c255cbf72d41de227270fe039c41f4ee06c7dec7145adb2514706a9f675"
+        },
+        "js/playground_keyboard_channels.js": {
+          "bytes": 5113,
+          "sha256": "6006d4554ef43063539b5b85403cccad30e66000fcbef987d62487bb47c3a4e7"
+        },
+        "js/playground_keyboard.js": {
+          "bytes": 7290,
+          "sha256": "adfac62ea27c791390bba81feab06b82615bfdd1baa356c0bcc8cfb464699478"
+        },
+        "js/playground_live.js": {
+          "bytes": 14734,
+          "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+        },
+        "js/playground_log.js": {
+          "bytes": 842,
+          "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+        },
+        "js/playground_logic_worker.js": {
+          "bytes": 57867,
+          "sha256": "007f460efd0e1599fcee256c9580cd3cec2d1318bbe0968182fc34071a587dd9"
+        },
+        "js/playground_midi.js": {
+          "bytes": 17595,
+          "sha256": "a92d68367fe948cfad70a3bbea8a17041f908a319a6899915a4c56dfe3d692a4"
+        },
+        "js/playground_music.js": {
+          "bytes": 11300,
+          "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+        },
+        "js/playground_native_primary.js": {
+          "bytes": 6913,
+          "sha256": "a53687aaca80a7f6a45795aae4d035a1e942df7ecda5bd68018b5bb44e0be337"
+        },
+        "js/playground_native_sample_editor.js": {
+          "bytes": 2990,
+          "sha256": "f9be69de8907b55394f52f7e7b651e62cf2735275777484a79764c0d8274d935"
+        },
+        "js/playground_nes_audio.js": {
+          "bytes": 2834,
+          "sha256": "a4abc87d186c74b9f5f59384c59cdca53bfb0ff735bb37322e925b659b2c6672"
+        },
+        "js/playground_nes.js": {
+          "bytes": 5425,
+          "sha256": "227194cc7a2857ca5ad931f5abfca9c419065b2f59325a1d13837e7cd446799d"
+        },
+        "js/playground_noise.js": {
+          "bytes": 990,
+          "sha256": "64e4608fd0af00ce8e34eaa231d43da66f584d725c7b7f26fd3c376c5999de2d"
+        },
+        "js/playground_okim6258_audio.js": {
+          "bytes": 4156,
+          "sha256": "507867a4533372511a0819c76637556c6b8720e2fe1d019606d3b4d5af30ad36"
+        },
+        "js/playground_okim6258.js": {
+          "bytes": 4769,
+          "sha256": "9b68b77a853b83e7ad9ad21fafe571fb74ac111eab40655942810e86fcc0ede9"
+        },
+        "js/playground_opl_audio.js": {
+          "bytes": 4415,
+          "sha256": "8c92f2f147be26b11e0f904e939e015ac1867d6e2b9a5353c3004e5297f1ea3a"
+        },
+        "js/playground_opl.js": {
+          "bytes": 8956,
+          "sha256": "4ed9a2e113fd2aad1a0755a2ab0b2c5fee06286222cc9c751d51d4260b092634"
+        },
+        "js/playground_opn_audio.js": {
+          "bytes": 2645,
+          "sha256": "27b897f2dda6352af9f4e3bf30b98a40309ac4ecea3d74f39e745d75be491f14"
+        },
+        "js/playground_opn.js": {
+          "bytes": 7615,
+          "sha256": "f35071e5902b52e225c1b39716c0b9b5e594725da83da00c2c6dafc11f647dbd"
+        },
+        "js/playground_performance_host.js": {
+          "bytes": 3836,
+          "sha256": "cc87f96cfa642eac3a3996d8c4e37eda26a35ad687d1f6bbf16468cf8c9e9f2f"
+        },
+        "js/playground_performance_processor.js": {
+          "bytes": 28142,
+          "sha256": "505a21b24585b7884b1955959427c1ff485d015cb3d098d63b14826d06ba2677"
+        },
+        "js/playground_performance_queue.js": {
+          "bytes": 9950,
+          "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+        },
+        "js/playground_performance_sender.js": {
+          "bytes": 8928,
+          "sha256": "2d7f1fc81b762656336d61b44ca77300db32d1857625dd45cf798295e476f047"
+        },
+        "js/playground_pwm_audio.js": {
+          "bytes": 2582,
+          "sha256": "c4606a11392ae7025ece4311783eb74ab83d44dda50cf3103b7276901518e921"
+        },
+        "js/playground_rf5c164_audio.js": {
+          "bytes": 2628,
+          "sha256": "89f9386a61693d010384e23129b60bf659d3ab7dc88923b6e5c7e0af606f8452"
+        },
+        "js/playground_rf5c164.js": {
+          "bytes": 5159,
+          "sha256": "df2f5d3aaca4e1ffb7df6e24a7e12563e394f8d2b0d084707e652f177cc0d0f0"
+        },
+        "js/playground_runtime.js": {
+          "bytes": 144800,
+          "sha256": "be42a1207be7f460053c9c8cf9beec27ea5337960b9bd2601ff53765d8fdb3e8"
+        },
+        "js/playground_sample_edit.js": {
+          "bytes": 17672,
+          "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+        },
+        "js/playground_sample_instrument.js": {
+          "bytes": 8176,
+          "sha256": "a65f67f1d7c272f5f469f8b241f38d4257e2e1bd596b5db689a84f56e3747f20"
+        },
+        "js/playground_segapsg_audio.js": {
+          "bytes": 4294,
+          "sha256": "866d6d83e7b999be19d9c3f8e05059a08dc25f5614141e347aa82c64045adae6"
+        },
+        "js/playground_segapsg.js": {
+          "bytes": 1750,
+          "sha256": "0037208968973e3d4ae720995ae698df56964760b53ea1447ab231a5a8c1bc6e"
+        },
+        "js/playground_snes_audio.js": {
+          "bytes": 3570,
+          "sha256": "b87cb51a50b73eac8ad06ca437ec8b0cabc82416c5d3a7b7eb5a7b11e4631c07"
+        },
+        "js/playground_snes.js": {
+          "bytes": 8235,
+          "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+        },
+        "js/playground_soundchip_options.js": {
+          "bytes": 963,
+          "sha256": "b7c08df5920ad5ad65f6d0c90a81143dbd7831cdf834a97de9959edf46d05f90"
+        },
+        "js/playground_soundchips.js": {
+          "bytes": 2692,
+          "sha256": "4b7d5a15fbddf65addda46fd36931220bd22e67a487dfab38ccd0e7376f5e54f"
+        },
+        "js/playground_spc_audio.js": {
+          "bytes": 3489,
+          "sha256": "81800b53ca75675403d4d31d153b167bd0ae0cb78e51a802c81f3ea37d936dfd"
+        },
+        "js/playground_spc.js": {
+          "bytes": 10374,
+          "sha256": "20d6bf767a2ab29c5075d9d83248b1a075df2dc872d0c8e89ed6d98ed7b5b506"
+        },
+        "js/playground_sync.js": {
+          "bytes": 6563,
+          "sha256": "365fbf469d59bf714a19b25ae4ad8f2e6e2867c33eef944abfb43f66235f2b29"
+        },
+        "js/playground_wonderswan_audio.js": {
+          "bytes": 3632,
+          "sha256": "cd150248037d3ff5edfb677e1e039a64589224f561989ee4e14c611be0abddeb"
+        },
+        "js/playground_wonderswan_inspector.js": {
+          "bytes": 8989,
+          "sha256": "4dede1bf8420427dd38f39ae3d6df3c4c2223ad342289758cc34b9a7385b7067"
+        },
+        "js/playground_wonderswan_worklet.js": {
+          "bytes": 20351,
+          "sha256": "a2d363d83591a4b766b40a3ce1ac98edd6232932de2d0052009ec97e1d424e0f"
+        },
+        "js/playground_wonderswan.js": {
+          "bytes": 4367,
+          "sha256": "57c1f6802144991f68f8e091dced6f253cfa424cf35e93bf79d652f111bf1c8f"
+        },
+        "js/playground_worker_chip.js": {
+          "bytes": 10475,
+          "sha256": "2f76548e1a1617dad22fff614dbbf94a4492b868fb1c8d5a43bd9fe5cc58cc0c"
+        },
+        "js/playground_worker_dac.js": {
+          "bytes": 2739,
+          "sha256": "dc73ef5d97dbe853c6cf069f1ad55eeffcd412880e5ce9fe1559218f0d695261"
+        },
+        "js/playground_ym2151_audio.js": {
+          "bytes": 2861,
+          "sha256": "102ef0ea96b72feb73226679806d3c1081a08b8821cbaa81598c37f879d50e63"
+        },
+        "js/playground_ym2151.js": {
+          "bytes": 4956,
+          "sha256": "f0c27e07b19f99d307537ae936b357e4ea4650f4d33728a6fe3698f7e2d1d9b5"
+        },
+        "js/playground_ym2413_audio.js": {
+          "bytes": 4230,
+          "sha256": "79f32918429f71e03a7952f8ad0a022667bdd177610e5bba1fae2a74788b2f83"
+        },
+        "js/playground_ym2413.js": {
+          "bytes": 3533,
+          "sha256": "c0af2ae54435611a4ebc371f0ac09d293c47021f8b5f40d4f97e89eb791404db"
+        },
+        "js/playground_ym2608_audio.js": {
+          "bytes": 1981,
+          "sha256": "890fdc0d2a467a41e9df2cd965d9da183cb6cadb76bfbb629beac35c87356218"
+        },
+        "js/playground_ym2608.js": {
+          "bytes": 5185,
+          "sha256": "872a5ddb6374068719bd131e90f743e31e52e271f2731842a1cc4c60f556c7c8"
+        },
+        "js/pwm32x_playback.js": {
+          "bytes": 9076,
+          "sha256": "5c70d0074e0e2d6d2f01ddbf7d974c192241dabf818ef5f8de99000b6d87bff7"
+        },
+        "js/pwm32x_wasm.js": {
+          "bytes": 12449,
+          "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+        },
+        "js/pwm32x.js": {
+          "bytes": 6905,
+          "sha256": "3214fa25f11fff13b708cb336c3895e3f1a8b1462c392523c54e8be9e149a9f6"
+        },
+        "js/rf5c164_pcm.js": {
+          "bytes": 1537,
+          "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+        },
+        "js/rf5c164synth.js": {
+          "bytes": 4836,
+          "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+        },
+        "js/s98_file.js": {
+          "bytes": 5878,
+          "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+        },
+        "js/segapsg_api.js": {
+          "bytes": 1086,
+          "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+        },
+        "js/segapsg.js": {
+          "bytes": 10169,
+          "sha256": "41a7d377d6becc2a5645c6fdb41e44447fe5c479f8a4ce3ab944995938746022"
+        },
+        "js/segapsgsynth.js": {
+          "bytes": 10444,
+          "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+        },
+        "js/snes_brr.js": {
+          "bytes": 11140,
+          "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+        },
+        "js/snessynth.js": {
+          "bytes": 12872,
+          "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+        },
+        "js/soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "js/spc_events.js": {
+          "bytes": 11461,
+          "sha256": "7142e0fad5e39e6d04c986c40fc00ef07e657e3d5dda250b52a1161de955e58e"
+        },
+        "js/spc_file.js": {
+          "bytes": 8896,
+          "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+        },
+        "js/spc.js": {
+          "bytes": 16728,
+          "sha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f"
+        },
+        "js/ssgsynth.js": {
+          "bytes": 6592,
+          "sha256": "c396b56e2d8033af183c6bdec9254ff40185e390d84e343188cf395856893e9f"
+        },
+        "js/tetorica_audio_runtime.js": {
+          "bytes": 35718,
+          "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+        },
+        "js/tetorica_synth.js": {
+          "bytes": 3212,
+          "sha256": "265ac7353475e509281b68949bf5656c590ac431ed9b1b340b6557b017c8ab64"
+        },
+        "js/tetorica_virtual_files/agent_commands.js": {
+          "bytes": 11601,
+          "sha256": "4bcedf16ddffa21bf8ea0ee96bf6f979a2f70e7ba9ed602c32ea88eec55fd9bd"
+        },
+        "js/tetorica_virtual_files/filesystem.js": {
+          "bytes": 20206,
+          "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+        },
+        "js/tetorica_virtual_files/git.bundle.js": {
+          "bytes": 298711,
+          "sha256": "48bf6973ab36ecb1824c4b52c9e958d1d626b6796a47c0cf4d9b9e5f34ef89d1"
+        },
+        "js/tetorica_virtual_files/index.js": {
+          "bytes": 403,
+          "sha256": "e9b836b112402d3639d11e848e499b7cbbe28bff8e60e5d41ffc27878c1c5900"
+        },
+        "js/tetorica_virtual_files/patch.js": {
+          "bytes": 9693,
+          "sha256": "3a98170854a87d55c507b29d8df11489bdeffb7bb3c21b5fcc6c4533790364f5"
+        },
+        "js/tetorica_virtual_files/path.js": {
+          "bytes": 1112,
+          "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+        },
+        "js/tetorica_virtual_files/pipeline.js": {
+          "bytes": 2566,
+          "sha256": "8bc5455b2f0668dfd24a0d217bc5b4fa52633164e3bdc54f1f443660b69d43a6"
+        },
+        "js/tetorica_virtual_files/reader.js": {
+          "bytes": 1404,
+          "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+        },
+        "js/tetorica_virtual_files/shell.js": {
+          "bytes": 11716,
+          "sha256": "a542bdeffd9853d43b28a453fcd973963f96c3c078079437383ef6c1565633ed"
+        },
+        "js/tetorica_virtual_files/sync.js": {
+          "bytes": 5701,
+          "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+        },
+        "js/tfi.js": {
+          "bytes": 9704,
+          "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+        },
+        "js/vgi.js": {
+          "bytes": 4366,
+          "sha256": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99"
+        },
+        "js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "js/wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "js/wonderswan_timeline.js": {
+          "bytes": 6994,
+          "sha256": "fbb1d4bde05f473662a11f42411fa439295ce16e8688318ccab0ad90abb5ae0d"
+        },
+        "js/wonderswan.js": {
+          "bytes": 7520,
+          "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+        },
+        "js/wonderswansynth.js": {
+          "bytes": 16472,
+          "sha256": "3e5028e3abe42001b6f4d9a96ea0a156b6485e4574756f2925142d39f3afae6e"
+        },
+        "js/y8950_adpcm_preview.js": {
+          "bytes": 5782,
+          "sha256": "e5b8110148683216a631bd8be37f80297981fa36919bbfa02b138dd746dd50af"
+        },
+        "js/y8950_adpcm.js": {
+          "bytes": 9004,
+          "sha256": "79f7fde2b22c5755e4c9647ce60ebf7ce8642aaa83d526dbe6f5cfd4456f4d3e"
+        },
+        "js/ym2203.js": {
+          "bytes": 12781,
+          "sha256": "a19eac247b63b605ad796fdc78a9f5b3f18219ce1f1f793c0ffca67ee991ab3f"
+        },
+        "js/ym2203synth.js": {
+          "bytes": 2541,
+          "sha256": "0d1153cd55772dc59b27a452316aab10aba84b0b0688f7b949b5e5a5cb225279"
+        },
+        "js/ym2203vgm.js": {
+          "bytes": 416,
+          "sha256": "46fb8610523516bcab5b7865e5ae0ae50499c40753146ebe91ec531318a12979"
+        },
+        "js/ym2413.js": {
+          "bytes": 9529,
+          "sha256": "5ea915d378741edf4784711154fb14e8b48cb2fd0c30083b6492162de9abdba9"
+        },
+        "js/ym2413synth.js": {
+          "bytes": 17701,
+          "sha256": "ad1bf9fc12b9f6fac0ca0c820d0d6184c79b6af48300c5385c8ac34c22317eb0"
+        },
+        "js/ym2608.js": {
+          "bytes": 15663,
+          "sha256": "d90489958661e7f007c595060c84cf2976a8ae9b45887ccf060d3f9ebd38dadd"
+        },
+        "js/ym2608synth.js": {
+          "bytes": 14475,
+          "sha256": "453c522bb5d3422cf6f070c882ebdae2767a5ec50ee89827ddfce4eb3cf8dc57"
+        },
+        "js/ym2608vgm.js": {
+          "bytes": 347,
+          "sha256": "f4c7ed23b7fa32cbbffa77f021db117b7872c76aab72f9257c2df04e1bf04ed3"
+        },
+        "js/ym2610b.js": {
+          "bytes": 11206,
+          "sha256": "202e9909606335a68635fdcfe6934d7f5999cc586c270210d9c6d5b3897497d6"
+        },
+        "js/ym2610bsynth.js": {
+          "bytes": 14744,
+          "sha256": "3c42306c371ef217f30104f512d418b80f347d92724080e7513d56e511bd6bb5"
+        },
+        "js/ym2610bvgm.js": {
+          "bytes": 345,
+          "sha256": "dea1dd197ee8984c9ec1dd0c94a6e56f7b6fc2f16ceffafd7545b8c31c92702c"
+        },
+        "js/ym2612_dac.js": {
+          "bytes": 7251,
+          "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+        },
+        "js/ym2612.js": {
+          "bytes": 22574,
+          "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+        },
+        "js/ym2612synth.js": {
+          "bytes": 38608,
+          "sha256": "09ca02325419add8cfeb9bf14a30de8b8fa7eccc1d82f0f83078faa25b5b1e85"
+        },
+        "js/ym2612vgm.js": {
+          "bytes": 115343,
+          "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+        },
+        "playground.webmanifest": {
+          "bytes": 453,
+          "sha256": "669b8de1065c95a4cbe78907fdd2b656d901cb942e24d7e766935073c594d189"
+        },
+        "playground/index.html": {
+          "bytes": 128164,
+          "sha256": "073b4281567f8da7388b40b0e8e6c967bc1fb0b3865b618a6068e0f2f85e13da"
+        },
+        "playground/playground_audio_engine.js": {
+          "bytes": 6413,
+          "sha256": "84cd11b8591993b89a9e56686074c48a6057b6c6f1fae15c81db95300a8fb893"
+        },
+        "playground/playground_audio_input.js": {
+          "bytes": 32685,
+          "sha256": "54e18c051390cd4c796fea6163ade3ad3f3030cb4690f5ba7354657ebc7e8926"
+        },
+        "playground/playground_audio_monitor.js": {
+          "bytes": 17968,
+          "sha256": "7a75febe0c38063a50e0217b9bd42c93cb196fbab88717af8689e192663c020d"
+        },
+        "playground/playground_autosave.js": {
+          "bytes": 3889,
+          "sha256": "46bbdd5614e1597ee9906db35edd53f407fd18a373b0484b3a92176a5c084abd"
+        },
+        "playground/playground_ay8910_voice_panel.js": {
+          "bytes": 15887,
+          "sha256": "643de67b9a872611a3ef781cb2e79842dc184ed4e987f49a6fec1501f2b2ea72"
+        },
+        "playground/playground_cassette.js": {
+          "bytes": 14751,
+          "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+        },
+        "playground/playground_chip_tabs.css": {
+          "bytes": 3619,
+          "sha256": "7fbebbd6df6248a10a2c52d42d05c8b23c6de3b6ee2ca965d2b35698e81f29f1"
+        },
+        "playground/playground_chip_tabs.js": {
+          "bytes": 40294,
+          "sha256": "3027fc306241e7e8bff68dc63bfe8613f501e85a21b00bc1389d3efe54c85c7a"
+        },
+        "playground/playground_declarations.js": {
+          "bytes": 2727,
+          "sha256": "a2f87b265b34630d55dc0cc665018f670b740483de64d31b7250003c70518095"
+        },
+        "playground/playground_dx7_voice_panel.js": {
+          "bytes": 23705,
+          "sha256": "d5f44e21b596ddc6ed4b26f8d9d33c57376d3ee536b8a2aa578525cd1ddfaf67"
+        },
+        "playground/playground_example_order.js": {
+          "bytes": 293,
+          "sha256": "3cc7c250eb119f8b459c821c39431cadc7252eafd4c7c12609aac3e7b86a9f97"
+        },
+        "playground/playground_examples.js": {
+          "bytes": 183450,
+          "sha256": "fb1406a2d442ecebb9b95d58131d31ec17849a511730f94ae4121f6a4b72231f"
+        },
+        "playground/playground_extra_fm_editor.js": {
+          "bytes": 9686,
+          "sha256": "23b8cde1180744eb6a2546f007504db88292f27316f7667ae6908a55d8a8dde5"
+        },
+        "playground/playground_file_menu.js": {
+          "bytes": 8805,
+          "sha256": "dc2f9c1ee49cdf42a4e4cac502437a551938e699e981773493005ba5aa58a76e"
+        },
+        "playground/playground_file_resize.js": {
+          "bytes": 3024,
+          "sha256": "be704ea2e301033fcd31bb14fd365ce224d9c0d46147caa1d616882092db7a8f"
+        },
+        "playground/playground_file_tree.js": {
+          "bytes": 4867,
+          "sha256": "0a8a4c342bbf94023648d17cd952ba1e2e5a1595846fcf860518205aaf1addad"
+        },
+        "playground/playground_fx_monitor.js": {
+          "bytes": 8329,
+          "sha256": "09b9b0a25dbf2261e48f4ac3a3ebb2c57798b7695a0194e974909a0287169ee9"
+        },
+        "playground/playground_gameboy_voice_panel.js": {
+          "bytes": 26508,
+          "sha256": "3cb7b3af8f9ed831abedc5abff6398cc5802e110dea1745b72e1fd5c5af4300d"
+        },
+        "playground/playground_git.js": {
+          "bytes": 5122,
+          "sha256": "cb1552e6dd8f77f39225d37e46382fd65e34b48d372bf9c14718313b8074e061"
+        },
+        "playground/playground_huc6280_voice_panel.js": {
+          "bytes": 22944,
+          "sha256": "03b6f054b22f3ea162874f638d0b5397128e000d78f24603351e460ecbf4a42f"
+        },
+        "playground/playground_midi_import.js": {
+          "bytes": 5431,
+          "sha256": "927b5368f171d82af7592762f8db2a5ec4cc0ba67d1cc14056ba86b72b8ba1d7"
+        },
+        "playground/playground_mixer_defaults.js": {
+          "bytes": 9664,
+          "sha256": "df950083cef47d8a6c774e11f05b1d35321f783b8c5518254973674d6018a65c"
+        },
+        "playground/playground_mixer_state.js": {
+          "bytes": 9636,
+          "sha256": "d4f97c48a8274ab5ce28b593e5f51fdf14f06a651382c1ac6f2346ec9d6cf774"
+        },
+        "playground/playground_mixer.css": {
+          "bytes": 3251,
+          "sha256": "36ece42a32769420fb5eabc7754a10544d827bc0cffd9f2f43d160c499950b4c"
+        },
+        "playground/playground_mixer.js": {
+          "bytes": 17492,
+          "sha256": "0e070cd489c6f11f1771d009dd513287e0400d635ad1a072db96e23146e8dd2d"
+        },
+        "playground/playground_mode_keyboard.js": {
+          "bytes": 10689,
+          "sha256": "33ef47212ea42ac93f4c06d6991b9fedacfdc4e602f6283b8435651a3f5f7bcc"
+        },
+        "playground/playground_mode_project.js": {
+          "bytes": 1139,
+          "sha256": "7b8010d2521ed12025d5420d7a4399473b8da33d3d3ba7831ea075e1bb55d2cf"
+        },
+        "playground/playground_mode_starters.js": {
+          "bytes": 5053,
+          "sha256": "2cdce7eee00ba61c17a8e6a88ae10ce470f539d207e18afd48ffecea118127bd"
+        },
+        "playground/playground_mode.js": {
+          "bytes": 10721,
+          "sha256": "3b336d7ca2e90031a3cd2f19f0ad7ca6239b77f78e3f1cdec17a4fd979a94dbf"
+        },
+        "playground/playground_monaco_completion.js": {
+          "bytes": 44989,
+          "sha256": "c29338d30bdd776342fb19d3dd427f5fb6c6f1b04b604301c2f1c58ad504698c"
+        },
+        "playground/playground_monaco_definitions.js": {
+          "bytes": 16495,
+          "sha256": "e124b335902f388c5ec115a5f6918fac313b9d9c474502aed026acb5e8784900"
+        },
+        "playground/playground_monaco.js": {
+          "bytes": 22695,
+          "sha256": "8e6583214b55fd49f08bfdb9c35df1a0608e24f9d118db8e3aa65568e96b40fc"
+        },
+        "playground/playground_monitor_scale.js": {
+          "bytes": 1890,
+          "sha256": "2b5b0ea15d39d0f3edc5b95f52f3e07f8e46b5cba1810d06ff9aa482e7f35687"
+        },
+        "playground/playground_nes_voice_panel.js": {
+          "bytes": 22772,
+          "sha256": "df7eb9ef6840968e3422dc852fa438d73115b128e3cf074fb6a7502dc7ecbc2d"
+        },
+        "playground/playground_okim6258_voice_panel.js": {
+          "bytes": 18542,
+          "sha256": "aa02b790766206d1c0c999855f8775cde24915a7821de8166172733b8c99dedc"
+        },
+        "playground/playground_operator_keyboard.js": {
+          "bytes": 21207,
+          "sha256": "6a86d9b8dd336662b86a5846eb93b02bf23053dda6e4cff5a39285471f14b636"
+        },
+        "playground/playground_operator_tab.js": {
+          "bytes": 31863,
+          "sha256": "fd1cb186f995bf8093a927f3ff6515d42745f4e037a746315bad7737bbd5680e"
+        },
+        "playground/playground_operator_visual.js": {
+          "bytes": 158,
+          "sha256": "aa98e3e1f34d6d8cefe11c053bb26902daedb7130c48bfaf242ea8bf76dfffe8"
+        },
+        "playground/playground_opl_voice_panel.js": {
+          "bytes": 20420,
+          "sha256": "56bb7c051fb3caf62dd52cce6194bbb26d533a4b5711a85c7fda5aaeaeca9a7f"
+        },
+        "playground/playground_opn_ssg_editor.js": {
+          "bytes": 3900,
+          "sha256": "bfeb8cd2fe4f8fdb0bede00b56c43fa54c566e7ccf19c01c63fa837e2c729fbc"
+        },
+        "playground/playground_opna_sample_editor.js": {
+          "bytes": 5835,
+          "sha256": "9f12ca50d4b7016ebb6a0bb01efe7d39a7636a9857ddc8275b5aa86254c2d0dc"
+        },
+        "playground/playground_opnb_sample_editor.js": {
+          "bytes": 6277,
+          "sha256": "9110eb3e64e1b3610e7bc943c49f7f2a777acc79758a78283247113bdf6ad955"
+        },
+        "playground/playground_page_lifecycle.js": {
+          "bytes": 930,
+          "sha256": "5abd0c650a6acd1fe63ac16dae4e37846d83fc0745a460794bfa110ebe824d47"
+        },
+        "playground/playground_query.js": {
+          "bytes": 5092,
+          "sha256": "6fa0edc39588c490f0ee5fa2f19ce6025c943fd817e8f468e897c442c0abec1f"
+        },
+        "playground/playground_sample_assets.js": {
+          "bytes": 4155,
+          "sha256": "afcc8051609cf097f4162bd0efd3c1dd380aff072ac59b9c82bff727d0faa173"
+        },
+        "playground/playground_sample_editor.css": {
+          "bytes": 1876,
+          "sha256": "677cb0daa35099e8cdf0df036f62803313b8340f08d75b6acdc3e11f5d2482db"
+        },
+        "playground/playground_shell_check.js": {
+          "bytes": 2342,
+          "sha256": "34637b1949ae34e7f17f33ce97733bb8cd7e612243a1654ee5e8eb51c6208129"
+        },
+        "playground/playground_shell_diagnostics.js": {
+          "bytes": 1669,
+          "sha256": "3c1249f4f44daced60ab72ce65331c61d3e7c2dcfdadbc77e2a997316c332ba0"
+        },
+        "playground/playground_shell_modules.js": {
+          "bytes": 2217,
+          "sha256": "c3de7bd0a2385fac30c8506553fe7052ae54e12307ddb918c840786fb0a76111"
+        },
+        "playground/playground_shell_runner.js": {
+          "bytes": 5365,
+          "sha256": "dac19421900728dc5b52041b295e5afad3f75a6369585859431787c19d576eff"
+        },
+        "playground/playground_shell_session.js": {
+          "bytes": 6726,
+          "sha256": "a45166212f6574978b3e81ddd5b61e474adad8296749d9159a58c7288aa60238"
+        },
+        "playground/playground_shell.js": {
+          "bytes": 8470,
+          "sha256": "37a65740105cbc8f80016e61c777f8c7a5f939a875d97098f1cf474282c3945e"
+        },
+        "playground/playground_snes_voice_panel.js": {
+          "bytes": 9983,
+          "sha256": "9a6c8447d726b184c66b230304add24eafa9fdf782a821103b6f36e3a8d600d5"
+        },
+        "playground/playground_spc_import.js": {
+          "bytes": 21225,
+          "sha256": "85bae3c99ad7cd0a4d37a5760015b00b99bb3b2f4548fd8ca981757f0cdb53c9"
+        },
+        "playground/playground_sync.js": {
+          "bytes": 4625,
+          "sha256": "df62ebdd2058eadd91e34c65a7c4bd4bea5efc4386217b5abfec83bbc4f94752"
+        },
+        "playground/playground_tfi_editor.js": {
+          "bytes": 5640,
+          "sha256": "39b60beffc47e55ff34cf644ba208c3202c583e4230f842d9af14a6c60a565ab"
+        },
+        "playground/playground_ui.js": {
+          "bytes": 8294,
+          "sha256": "3fa38c4e5efbcc917972e84f1d3b1b7b1b31f7f17402de8f415191c9623c86de"
+        },
+        "playground/playground_vgm_import.js": {
+          "bytes": 24706,
+          "sha256": "0cf161ac47b7046129083396541d3e83f90dcda6df9b80bee721144b73c4af7a"
+        },
+        "playground/playground_vgm_presets.js": {
+          "bytes": 2815,
+          "sha256": "5cde95ca9dd3a367d072411a5ad47ef8e872af028177569fec61ce78ddfb94fa"
+        },
+        "playground/playground_virtual_files.js": {
+          "bytes": 5124,
+          "sha256": "d0dc2a9c4a419a4bb215214e6e1b0ad034e586e7ae923405eee7f122e4199911"
+        },
+        "playground/playground_wonderswan_voice_panel.js": {
+          "bytes": 22640,
+          "sha256": "750bc108961d5e7ff44cc1ba6d3fe107a1480a43e7efcb849fea40ed9968c8fd"
+        },
+        "playground/playground_workbench.js": {
+          "bytes": 7348,
+          "sha256": "c0d4c13bec5167ba2b9a90af6cfcfa27321cabe45998fa60a65ac7767efb8f2a"
+        },
+        "playground/playground_y8950_adpcm_panel.js": {
+          "bytes": 12778,
+          "sha256": "b3c574b5626632e94534af7476a312cb2f264d8ff932c010f5b75e9306be0a15"
+        },
+        "playground/playground_ym2151_voice_panel.js": {
+          "bytes": 24794,
+          "sha256": "aa0866710259a0056af8dacd5e320000cecb31a3a3e6ea4c18ddb18bc166c95a"
+        },
+        "playground/playground_ym2413_voice_panel.js": {
+          "bytes": 20316,
+          "sha256": "3fa6872716189ac8f0da8f963e7cdf8d74efb909b44031ffbeef60e0a50d3ee1"
+        },
+        "playground/playground.js": {
+          "bytes": 122885,
+          "sha256": "f9eabab009a903d4def8177db244d5881ea2d12ed7502e73ead1f4db919d0736"
+        },
+        "playground/rf5c164_vgm_export.js": {
+          "bytes": 9552,
+          "sha256": "33476fbb13dffb662cfb3ae3cd6df14e2919d5946d90b463c383e44a82dd8cf5"
+        },
+        "playground/tetorica-playground-globals.d.ts": {
+          "bytes": 111032,
+          "sha256": "e05553850c0cc0fd1cd04ff7cf773a3e5372cb294bf213e25a86fd6118901dfa"
+        },
+        "playground/tetorica-playground-wonderswan.d.ts": {
+          "bytes": 109,
+          "sha256": "3f7fb08da8c97d649de803754c8f88ee633046d5562e060776d3fd4095ba5b9c"
+        },
+        "playground/tetorica-shell.d.ts": {
+          "bytes": 2953,
+          "sha256": "a0d17aeb969faf8a2e8489a00e6f1a869622e08db7b1b019cced67774326391d"
+        },
+        "playground/vendor/es-module-lexer.js": {
+          "bytes": 27257,
+          "sha256": "95f6b0530ab27cb146e89bc33acfa45f606c66ee589d16469b414942fc1b4864"
+        },
+        "playground/vendor/fflate.js": {
+          "bytes": 90922,
+          "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+        },
+        "playground/wonderswan_vgm_import.js": {
+          "bytes": 19014,
+          "sha256": "198e7ee2a549341b91f066db231a9e95538493e37d9f319d986e5ade80777d7f"
+        },
+        "playground/ym2203_high.js": {
+          "bytes": 3054,
+          "sha256": "277b2456042c80f66d9f7761bcddf9ba08c30b2183f41ccd6f3a6034d7b9387e"
+        },
+        "playground/ym2608_high.js": {
+          "bytes": 2084,
+          "sha256": "46f04eaeaaaceb63958ce5edaa89dba057235079a596723a1dfa835dd65ca806"
+        },
+        "playground/ym2608_vgm_import.js": {
+          "bytes": 3941,
+          "sha256": "a0398ec510182a256c47538a49616a155df6ea551d621c8b525c811f6b2005b5"
+        },
+        "sw-register.js": {
+          "bytes": 1409,
+          "sha256": "ed68ef1e216da9bbfe4b8a9a8706bc76b6ba4c7306f6e0d30f3d14f1b2b0e22c"
+        },
+        "synth/synth_controls.js": {
+          "bytes": 10018,
+          "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+        },
+        "synth/synth_envelope.js": {
+          "bytes": 13551,
+          "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+        },
+        "synth/synth_keyboard.js": {
+          "bytes": 9982,
+          "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+        },
+        "synth/synth_operator_envelope.js": {
+          "bytes": 9649,
+          "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+        }
+      },
+      "results": [
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "passed": true,
+          "scope": "timing-only",
+          "legacyImports": 0,
+          "legacyRuns": 0,
+          "syntheticComparisons": [
+            {
+              "style": "raw",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 128,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "raw",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24160,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 0,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24096,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "main",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 0,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "worker",
+              "framesComparedPerChannel": 31200,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 24192,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 11894,
+              "referenceSha256": "bed3f9392751d2a3ef6bc2079b79f1dcd3b3540f36b1d20db0a29ce5906fd70d",
+              "stoppedPeak": 0
+            }
+          ],
+          "actualSongComparisons": [
+            {
+              "style": "raw",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 1024,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "raw",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26416,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 768,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "readable",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26208,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "main",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 768,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            },
+            {
+              "style": "high",
+              "execution": "worker",
+              "framesComparedPerChannel": 24000,
+              "sampleRate": 48000,
+              "captureOffsetFrames": 26560,
+              "maximumDifference": 0,
+              "rmsError": 0,
+              "mismatchedSamples": 0,
+              "firstMismatches": [],
+              "referenceTransitions": 10418,
+              "referenceSha256": "55191a6299a49a6ef9672db73d58c508718fef3993b7173b1f892f527dd32eda",
+              "stoppedPeak": 0
+            }
+          ],
+          "physicalOutputMuted": true
+        }
+      ]
+    }
+  ],
+  "referenceInputs": {
+    "schemaVersion": 1,
+    "method": "Direct WonderSwanAudioEngine with raw VGM parser, same current generated WASM, ceil(authored VGM sample * output rate / 44100), speaker centering, onset-aligned monitor PCM. No actual song PCM retained.",
+    "inputs": {
+      "web/wonderswanaudioengine.js": {
+        "bytes": 5800,
+        "sha256": "514a7e5a04f36367438b45c677743a770dce54706ef9d605fe790f17a6646766"
+      },
+      "web/wonderswan.js": {
+        "bytes": 7520,
+        "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+      },
+      "web/soundchip.js": {
+        "bytes": 12117,
+        "sha256": "e3a54fde96f502bf2d8d2d22663d6006b47c185aef323203182bda7c2304e02c"
+      },
+      "web/ym2612vgm.js": {
+        "bytes": 115343,
+        "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+      },
+      "docs/generated/wonderswan_wasm.js": {
+        "bytes": 11356,
+        "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+      },
+      "docs/generated/wonderswan_wasm.wasm": {
+        "bytes": 10321,
+        "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+      },
+      "scripts/check_playground_wonderswan_import_browser.cjs": {
+        "bytes": 36448,
+        "sha256": "a90016fd2279da53c2f3d856f58b5a202cda4a5a81980af925b6a11e6d5546b5"
+      }
+    }
+  },
+  "tests": {
+    "playground": {
+      "passed": 1138,
+      "log": "/private/tmp/ws-pcm-playground-tests-final.log"
+    },
+    "coreImporterBuilder": {
+      "passed": 50,
+      "log": "/private/tmp/ws-pcm-core-import-final.log"
+    },
+    "webWorklet": {
+      "passed": 41,
+      "log": "/private/tmp/wonderswan-exact-timeline-web-tests.log"
+    },
+    "scheduler": {
+      "passed": 78,
+      "log": "/private/tmp/ws-pcm-scheduler-tests.log"
+    },
+    "nativeJs": {
+      "passed": 87,
+      "log": "/private/tmp/ws-native-timeline-js.log"
+    },
+    "nativeCargo": {
+      "passed": 747,
+      "ignored": 4,
+      "log": "/private/tmp/ws-native-timeline-cargo.log",
+      "note": "Two local-port MCP tests were denied by the sandbox; all three mcp::transport_tests passed on retry with local-network permission."
+    },
+    "tauriPython": {
+      "passed": 22
+    },
+    "tauriNode": {
+      "passed": 31
+    },
+    "allModeTypes": {
+      "passed": true
+    }
+  },
+  "artifacts": [
+    {
+      "path": "release/hello_ymfm_wasm_wonderswan-pcm-dev_itch_playground.zip",
+      "bytes": 36599255,
+      "sha256": "7c37e1b8e986989f356073a844496be5170b06f599fc0b30ee0194cb33b90391"
+    },
+    {
+      "path": "release/hello_ymfm_wasm_wonderswan-pcm-dev_itch_synth.zip",
+      "bytes": 770540,
+      "sha256": "7ca7d03e7496eed10eb739dece5727678f6d503f3d3bbaf648c64917e598f60c"
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip",
+      "bytes": 42700264,
+      "sha256": "15adcedf7d0d4284f4cd0e5459614eae08e30aab5955d9b4d20a394d3242dc70"
+    }
+  ],
+  "tauri": {
+    "frontendFiles": 922,
+    "applicationSourceFiles": 1864,
+    "fixedNativeSnapshotsVerified": 22,
+    "sdkVersion": "0.1.4",
+    "sdkFilesVerified": 395
+  },
+  "unchanged": {
+    "fixedSdkGeneratedOutputs": 55,
+    "soundCores": true,
+    "mixerLevels": true
+  },
+  "limits": {
+    "dataBytes": 8388608,
+    "validationWorkBytes": 8388608,
+    "writesPer128OutputFrames": 512
+  },
+  "notPerformed": [
+    "human listening",
+    "complete actual-song Native playback",
+    "hardware comparison",
+    "npm publish",
+    "version/tag/commit/push/CI"
+  ]
+}

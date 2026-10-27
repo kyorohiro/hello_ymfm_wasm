@@ -2239,10 +2239,30 @@ declare function createSoundChip(name:'okim6258', options?:PlaygroundCreateSound
 
 /** WonderSwan physical channels are zero-based: CH2 voice PCM, CH3 sweep, CH4 noise. */
 type PlaygroundWonderSwanChannel = 0|1|2|3;
+/** Ordered source-sample writes; kind 2 references packed delta/byte PCM. */
+type PlaygroundWonderSwanTimelineEvent = [sample:number,kind:0|1,address:number,value:number]
+  | [sample:number,kind:2,offset:number,length:number,count:number,endSample:number];
+interface PlaygroundWonderSwanTimeline {
+  version:1;
+  clock:number;
+  durationSamples:number;
+  events:PlaygroundWonderSwanTimelineEvent[];
+  pcmData:Uint8Array;
+}
+interface PlaygroundWonderSwanTimelineBuilder extends Omit<PlaygroundWonderSwan,
+  'chip'|'dispose'|'createTimeline'|'prepareTimeline'|'playTimeline'|'stopTimeline'> {
+  /** Absolute 44100 Hz source sample position; must not move backwards. */
+  at(sample:number):this;
+  /** Packed unsigned delta varuint + original byte, first delta zero. */
+  pcm(offset:number,length:number,count:number,endSample:number):this;
+  finish(durationSamples?:number):PlaygroundWonderSwanTimeline;
+}
 interface PlaygroundWonderSwan {
   readonly chip:'wonderswan';
   initialize():void;
   reset():void;
+  /** Permit high-level operations after raw setup, without writing or resetting the chip. */
+  adoptRegisterState():void;
   /** Absolute sound register address 0x80..0x9f. */
   writeRegister(register:number,value:number):void;
   writeMemory(address:number,value:number):void;
@@ -2260,11 +2280,18 @@ interface PlaygroundWonderSwan {
   allNotesOff():void;
   setNoise(options:{enabled:boolean;type?:0|1|2|3|4|5|6|7;reset?:boolean}):void;
   setSweep(options:{enabled:boolean;step?:number;time?:number}):void;
-  /** CH2 becomes a direct eight-bit PCM DAC; send timed samples from code. */
+  /** CH2 becomes a direct eight-bit PCM DAC. Immediate writes do not reserve audio time. */
   setVoiceMode(enabled:boolean):void;
   writeVoice(sample:number):void;
+  /** Offline authoring; calls on this builder collect writes without sounding the chip. */
+  createTimeline(options?:{clock?:number;pcmData?:Uint8Array}):PlaygroundWonderSwanTimelineBuilder;
+  /** Prepare a complete bounded score for exact sample-boundary playback. */
+  prepareTimeline(timeline:PlaygroundWonderSwanTimeline):Promise<unknown>;
+  /** Resolves at audio completion; Stop/reset/dispose cancel playback. */
+  playTimeline():Promise<unknown>;
+  stopTimeline():Promise<unknown>;
   dispose():void;
 }
 type PlaygroundPrimaryWonderSwan = Omit<PlaygroundWonderSwan,'dispose'> & PlaygroundChipClock & {readonly id:string};
-/** Web Audio only. Native WonderSwan is not yet connected to the Playground backend. */
+/** Independent WonderSwan instrument in Web Audio and Native. */
 declare function createSoundChip(name:'wonderswan',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundWonderSwan & PlaygroundChipClock & {readonly id:string}>;

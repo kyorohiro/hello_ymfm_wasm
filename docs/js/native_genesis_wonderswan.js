@@ -1,11 +1,14 @@
-import {WonderSwanSynth,WONDERSWAN_CLOCK} from './wonderswansynth.js?v=wonderswan-native-1';
-import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=wonderswan-native-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-native-1';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as bytes} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
+import {WonderSwanSynth,WONDERSWAN_CLOCK} from './wonderswansynth.js?v=wonderswan-pcm-timeline-1';
+import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=wonderswan-pcm-timeline-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as bytes} from './native_genesis_voice_endpoint.js?v=wonderswan-pcm-timeline-1';
+import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=wonderswan-pcm-timeline-1';
 
 export const WONDERSWAN_CLOCK_HELD_ERROR='Release the manually held WonderSwan voices before changing the clock';
 export const WONDERSWAN_CLOCK_PENDING_ERROR='WonderSwan clock change is scheduled; audition after it is applied';
+export const WONDERSWAN_TIMELINE_BUSY_ERROR='Native WonderSwan timeline is playing or pending';
+export const WONDERSWAN_TIMELINE_HELD_ERROR='Release the manually held WonderSwan voices before replacing or playing a timeline';
 
 /** Commands and explicit snapshots only. The Native callback owns the core,
  * wave RAM, speaker centering and every sample of audio. */
@@ -15,6 +18,7 @@ export function createNativeGenesisWonderSwan(synth,{extra=false,clock:initialCl
   const context=createNativeVoiceContext(synth,{backend:extra?'extra-wonderswan':'wonderswan',statusCommand,label:'WonderSwan'});
   const {capture,current}=context;
   let clock=initialClock,appliedClock=clock,initialized=false,mainGroup,collection=null,serial=Promise.resolve(),clockSerial=Promise.resolve();
+  let timelineSerial=Promise.resolve(),activeTimeline=null;
   const leases=new Map(),operations=new Set();
   const identified=message=>({...message,id:context.identity()});
   function send(message,timing={},group=mainGroup) {
@@ -43,7 +47,8 @@ export function createNativeGenesisWonderSwan(synth,{extra=false,clock:initialCl
   const client=new WonderSwanSynth({clock,transport:{
     writeRegister:(address,value,channel,controlMask)=>send(translate({method:'writeRegister',args:[address,value],channel,controlMask})),
     writeMemory:(address,value,channel)=>send(translate({method:'writeMemory',args:[address,value],channel})),
-    reset:()=>send({method:'reset'}),
+    reset:()=>{cancel(operation=>operation.timeline===true);send({method:'reset'});},
+    prepareTimeline:trace=>prepareTimeline(trace),playTimeline:()=>playTimeline(),stopTimeline:()=>stopTimeline(),
   }});
   const disposeClient=client.dispose.bind(client);
   Object.defineProperties(client,{clock:{configurable:true,enumerable:true,get:()=>clock},_adoptClock:{value:hz=>{clock=validateChipClock(hz);}}});
@@ -66,7 +71,63 @@ export function createNativeGenesisWonderSwan(synth,{extra=false,clock:initialCl
     return {...data,sampleRate:result.sampleRate??data.sampleRate,frame:result.frame??data.frame,revision:result.revision??data.revision};
   }
   const read=async(args={})=>adopt(await snapshot(args));
-  const cancel=matches=>{for(const operation of operations)if(matches(operation))operation.cancelled=true;};
+  const cancel=matches=>{for(const operation of operations)if(matches(operation)){operation.cancelled=true;operation.abort?.();}};
+  const abort=()=>new DOMException('Native WonderSwan timeline was cancelled','AbortError');
+  function timelineOperation(timing={}) {
+    const token=capture(),operation={group:mainGroup,performance:timing.performance,owner:timing.owner,cancelled:false,timeline:true};
+    if(operations.size>=256)throw new RangeError('Native WonderSwan preparation request queue is full');
+    operations.add(operation);
+    operation.check=()=>{current(token);timing.checkCurrent?.();if(operation.cancelled)throw abort();};
+    return operation;
+  }
+  function prepareTimeline(input,timing={}) {
+    let op,trace;
+    try{op=timelineOperation(timing);trace=prepareWonderSwanTimeline(input,{sampleRate:synth.clock.sampleRate});}
+    catch(error){if(op)operations.delete(op);return Promise.reject(error);}
+    const result=timelineSerial.then(async()=>{
+      op.check();if(activeTimeline)throw new Error(WONDERSWAN_TIMELINE_BUSY_ERROR);
+      const edit=identified({method:'prepare-timeline',trace:{...trace,pcmData:Array.from(trace.pcmData)}});
+      send(edit,{...timing,time:undefined},op.group);await synth.flush();op.check();
+      const applied=await snapshot({after:edit.id});op.check();
+      if(!applied.timeline?.loaded)throw new Error('Native WonderSwan timeline was not prepared');
+      return {...applied.timeline};
+    }).finally(()=>operations.delete(op));
+    timelineSerial=result.then(()=>{},()=>{});return result;
+  }
+  function playTimeline(timing={}) {
+    let op;
+    try{op=timelineOperation(timing);if(activeTimeline)throw new Error(WONDERSWAN_TIMELINE_BUSY_ERROR);}
+    catch(error){if(op)operations.delete(op);return Promise.reject(error);}
+    const result=new Promise((resolve,reject)=>{
+      const playing={op,timer:null,token:context.identity()};activeTimeline=playing;
+      const fail=error=>{if(activeTimeline===playing)activeTimeline=null;clearTimeout(playing.timer);reject(error);};
+      op.abort=()=>fail(abort());
+      const poll=async()=>{try{
+        op.check();const applied=await snapshot();op.check();const state=applied.timeline;
+        if(state?.token!==playing.token||state.cancelled)throw abort();
+        if(state.ended&&!state.playing){activeTimeline=null;resolve({...state,state:{clock:applied.clock,initialized:true,registers:applied.authoredRegisters??applied.registers,memory:applied.memory}});return;}
+        if(!state.playing)throw abort();
+        playing.timer=setTimeout(poll,50);
+      }catch(error){fail(error);}};
+      const admission=timelineSerial.then(async()=>{
+        op.check();const edit=identified({method:'play-timeline',token:playing.token});
+        send(edit,timing,op.group);await synth.flush();op.check();
+        const applied=await snapshot({after:edit.id});op.check();
+        const state=applied.timeline;if(!state?.loaded||state.token!==playing.token)throw new Error('Native WonderSwan timeline was not started');
+        clock=applied.clock;client._adoptClock(clock);notify({clock});
+        const remaining=Math.max(0,state.durationSamples-state.positionSamples)/44100;
+        playing.timer=setTimeout(poll,Math.max(1,Math.min(2147483647,remaining*1000)));
+      });
+      // Completion waits remain outside the admission FIFO: Stop and another
+      // endpoint must be able to cancel an already scheduled future playback.
+      timelineSerial=admission.then(()=>{},()=>{});admission.catch(fail);
+    }).finally(()=>operations.delete(op));return result;
+  }
+  async function stopTimeline(timing={}) {
+    const op=timelineOperation(timing);cancel(operation=>operation!==op&&operation.timeline===true&&operation.group===op.group);
+    try{op.check();const edit=identified({method:'stop-timeline'});send(edit,{...timing,time:undefined},op.group);await synth.flush();op.check();const applied=await snapshot({after:edit.id});op.check();return {...applied.timeline};}
+    finally{operations.delete(op);}
+  }
   function clockCommand(hz,timing={}) {
     validateChipClock(hz);const token=capture(),operation={group:mainGroup,performance:timing.performance,owner:timing.owner,cancelled:false};operations.add(operation);
     const check=()=>{current(token);timing.checkCurrent?.();if(operation.cancelled)throw new DOMException('Native WonderSwan clock was cancelled','AbortError');};
@@ -81,7 +142,13 @@ export function createNativeGenesisWonderSwan(synth,{extra=false,clock:initialCl
   function dispatch(message,timing={}) {
     const token=capture(),method=message.method??message.type;timing.checkCurrent?.();
     if(method==='clock')return {deferred:clockCommand(message.args?.[0],timing).then(()=>{current(token);timing.checkCurrent?.();return message.id===undefined?undefined:{id:message.id,value:true};})};
+    if(['prepareTimeline','playTimeline','stopTimeline'].includes(method)){
+      const result=(method==='prepareTimeline'?prepareTimeline(message.args?.[0],timing):method==='playTimeline'?playTimeline(timing):stopTimeline(timing));
+      const reply=result.then(value=>message.id===undefined?undefined:{id:message.id,value});
+      return {deferred:reply};
+    }
     if(method==='dispose')return message.id===undefined?undefined:{id:message.id,value:true};
+    if(['reset','stopVoices','allNotesOff'].includes(method))cancel(operation=>operation.timeline===true&&(mainGroup===undefined||operation.group===mainGroup));
     send(translate(message),timing);return synth.flush().then(()=>{current(token);timing.checkCurrent?.();return message.id===undefined?undefined:{id:message.id,value:true};});
   }
   function patchClient(method,args) {
@@ -102,6 +169,7 @@ export function createNativeGenesisWonderSwan(synth,{extra=false,clock:initialCl
     const token=capture(),copy=structuredClone(args),result=serial.then(async()=>{
       current(token);if(method==='setClock')return clockCommand(copy[0]);const applied=await read();current(token);
       if(method==='auditionOn'&&applied.pendingClocks>0)throw new Error(WONDERSWAN_CLOCK_PENDING_ERROR);
+      if(method==='auditionOn'&&(applied.pendingTimelines>0||applied.timeline?.playing))throw new Error(WONDERSWAN_TIMELINE_BUSY_ERROR);
       const previous=new Map(inspector.auditions),previousLeases=new Map(leases);collection=[];let value,collected;
       try{value=inspector.invoke(method,copy);collected=collection;}finally{collection=null;}
       const nextLeases=new Map(),ownerVoices=new Map(),owner=id=>`voice-editor:${id}`;

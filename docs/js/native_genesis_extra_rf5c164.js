@@ -1,11 +1,11 @@
 import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
 import {sampleBytes,encodeRf5c164} from './rf5c164_pcm.js';
-import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=wonderswan-native-1';
-import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=wonderswan-pcm-timeline-1';
+import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
-import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-native-1';
+import {createNativeVoiceContext,nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-pcm-timeline-1';
 
 export const EXTRA_RF5C164_CLOCK_HELD_ERROR='Release the manually held additional RF5C164 voices before changing the clock';
 const CLOCK=CHIP_CLOCKS.rf5c164;

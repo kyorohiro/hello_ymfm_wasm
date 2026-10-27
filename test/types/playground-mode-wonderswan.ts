@@ -21,5 +21,10 @@ async function checkWonderSwanModeTypes() {
   pg.fm;
   // @ts-expect-error no primary Game Boy
   gameboy;
-  const extra=await createSoundChip('wonderswan'); extra.dispose();
+  const extra=await createSoundChip('wonderswan'); extra.reset(); extra.adoptRegisterState(); extra.setVolume(0,9,9); extra.dispose();
+  const score=primary.createTimeline({clock:3072000,pcmData:new Uint8Array([0,128,4,192])});
+  score.writeRegister(0x90,0x22); score.adoptRegisterState(); score.setVolume(0,9);
+  score.at(10).pcm(0,4,2,14);
+  await primary.prepareTimeline(score.finish(44100));
+  await primary.playTimeline(); await primary.stopTimeline();
 }

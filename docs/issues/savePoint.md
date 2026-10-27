@@ -9,6 +9,100 @@ Last updated: 2026-10-27
 
 ### 現在地
 
+WonderSwanの取り込み自体は成功するが曲が崩れるという報告を調査。Voice PCMの値／時刻の解析は正しく、
+JSのwaitUntil→即時writeでは同じ音声量子へ複数値が到着して途中の値が鳴らない問題だった。
+AnalyzerのWave RAM抽出はVoice PCMを対象外にしており、抽出失敗と再生のPCM認識は別問題。
+
+ws.createTimeline({clock,pcmData})で音を鳴らさずにscoreを作り、score.at(sample)・raw/high API・score.pcm()を記録。
+prepareTimeline(score.finish(total))→await playTimeline()として、レジスター／RAM／packed PCMを同じ時刻表で
+音声側へ渡す。44100Hz source sample→ceil(sample*outputRate/44100)の境界で適用する。
+Web WorkletとNative共通primary/extra rendererへcompact cursorを追加。Stop/reset/dispose/session/owner取消、
+予約済み開始・clock変更・手動試奏の競合も扱う。Native primary Mainのgroup所有者も接続した。
+データ8MiB・参照PCMの検証作業量8MiB・連続128出力frameで最大512writesの事前制限。
+元の音源C++・SDK固定ソース・55 WASM出力・Mixer値は不変。
+
+実曲の全1,151,363操作はRaw/Readable/Highとも元のtrace SHA256
+`da5772eadf630cabbe1120d1d79219c22055e8ef64b7e44bdc0baa04e4651ada`と一致。
+204rows・PCM2,302,320bytes。新Web実WASM比較、Native実コア比較とも44.1/48kHzで波形一致。
+全Playground1,138件・core/import/builder50件・Web Worklet41件・scheduler78件・全mode型検証が成功（重複あり）。
+最終flatのChromium153/WebKit26.6でRaw/Readable/High×Main/Workerの全組合せについて、
+合成12kHzの31,200frames/ch（終端無音を含む）と実曲冒頭0.5秒の24,000frames/chが独立基準と差分0。
+既存4CH Wave/Noise/Sweep/Voice/Genesis/Run再実行/Cancel/不正入力/Stop/disposeも成功。
+通常docs WebKitのtiming比較も成功。通常257/flat266served fileのhashを現行ソースと照合、flatはZIPとも一致。
+Native JS87件・Tauri Cargo747active成功/4既存ignored（MCPのport試験2件は権限付き再試験で成功）。
+Tauri Python22/Node31件も成功。55 WASM出力は固定SDK採用時とbyte一致。
+
+最終ZIPは`release/hello_ymfm_wasm_wonderswan-pcm-dev_itch_playground.zip`、SHA256
+`7c37e1b8e986989f356073a844496be5170b06f599fc0b30ee0194cb33b90391`。Synth ZIPも更新。
+Playground Tauriへ922fileを取り込み、対応sourceZIP1,864fileのSHA256は
+`15adcedf7d0d4284f4cd0e5459614eae08e30aab5955d9b4d20a394d3242dc70`。
+22固定Native snapshots・SDK0.1.4/395file・対応sourceZIPを照合済み。
+実聴・実曲全96秒のNative再生・実機比較は未確認。物理出力は測定後にミュート。
+
+cacheは`wonderswan-import-3`＋`wonderswan-pcm-timeline-1`。
+以前保存したJSは個別timer方式が残るため、再読み込み後に原VGM/VGZを取り込み直す必要がある。
+新しいJSとPCM.datは同じCassetteへ保存する。実曲の音声・PCMはrepo／ZIPに収録しない。
+本体／Playground Tauriが未commit。npm・version変更・tag・push・CI操作は行っていない。
+次は更新版を再読み込みして同じVGZを再Importし、ユーザー環境で実聴確認する。
+詳細と証跡は[playground_wonderswan_pcm_timing_01.md](playground_wonderswan_pcm_timing_01.md)とJSON。
+
+### 直前のWonderSwan importサイズ修正（再生タイミングは上記で置換）
+
+WonderSwan VGM importの高密度Voice PCMをコンパクト化した。100万write／64MiBコード上限に当たる実曲を確認し、
+Voice bit有効中の連続0x89だけを「varuint時間差＋元のPCM値」の1つの.datへ保存する。
+制御・RAMの書き込みは編集可能なJSとして保持。別命令でPCM runを分割し、同時刻順序・3/4samples間隔・最終時刻を維持する。
+事前検証は非保持sink。通常命令／run header上限1MとPCM64MiBのメモリ／処理上限を分離し、上限を単純に引き上げていない。
+データ破損は音源生成前に拒否、変換失敗時はVirtual Filesを変更せず、再生停止／例外はfinally disposeする。
+
+実曲「04 Cat Song ~ Theme of UPA.vgz」は約96秒・PCM1,151,160回。元の1,151,363操作すべてについて、
+Raw／Readable／Highの時刻・address・値のhash一致を確認した。保持イベントは204、PCMデータ2,302,320bytes、
+UI生成JSは9,154／21,642／21,693bytesに収まる。実曲データをrepoや配布ZIPへ収録していない。
+全Playground1,139件・新converter44件が成功（重複あり）。独立reviewも問題なし。
+通常docs／最終flatのChromium・WebKitで全3形式・Main／Worker・実曲冒頭約1秒のPCM／Stop／disposeを確認。
+通常267／flat265 served fileのhashを照合し、flatはZIP内容とも一致する。全曲の実聴・PCMのサンプル精度は未確認。
+非同期の個別PCM配送は従来どおりで、今回直したのはImportのメモリ／コード量。音源・Worklet・Native・Mixer・55 WASM出力は不変。
+
+現行ZIPは`release/hello_ymfm_wasm_wonderswan-import-dev_itch_playground.zip`、SHA256
+`2436452222a5a84f655b0b6f5bfbc15be146dba94d3d5c441bd6ab9ab68fe2f1`。この開発ZIPパスは初回接続時から再生成済み。
+Playground Tauriへ921fileを取り込み済み。対応sourceZIP1,862fileのSHA256は
+`d60db8d7cdb46d64470a45a728254eab3163abda5106692a75f00863b441cac4`。
+cacheは`wonderswan-import-2`。再読み込み後に同じVGZを取り込むと、JSとPCM.datが同時に作成される。
+本体とPlayground Tauriの初回接続＋今回修正は未commit。公開・npm・tag・CI操作は行っていない。
+次はユーザーの実聴、本体／Playground Tauriのcommit／pushとCI。詳細と最終証跡は
+[playground_wonderswan_vgm_import_large_01.md](playground_wonderswan_vgm_import_large_01.md)とJSONを参照。
+
+### 直前のWonderSwan VGM import初回接続
+
+PlaygroundのVGM importへWonderSwanを追加した。VGM／VGZからRaw／説明付き／Highの演奏JavaScriptを生成する。
+4CH Wave・RAM・Noise・Sweep・Voice PCM、source clock、BC相対レジスターとC6 big-endian物理RAMを保持。
+DAC streamは既存parserのplayStep／consumeWaitで展開し、sample0・wait終端・同時刻の命令順を維持する。
+生成コードは独立createSoundChipを作成し、setClock→reset→1回再演奏→finally dispose。初期化による追加writeはしない。
+Highはbyte一致する音量・周波数pair・Voice PCMだけAPI化し、RAMにsetWaveform／keyOffを追加しない。
+型宣言に既存adoptRegisterStateがなかったため追記した。全mode型検証成功。runtimeメソッドは元から存在した。
+相対sleepSamplesは密なPCMで待機遅延が積み重なることをBrowserで確認したため、SPC importと同じ
+createTimeline().waitUntil(sample/44100)へ変更し、曲全体の遅れを累積させない。
+非同期wait方式であり、sample-accurate schedulingや元のloop点による繰返しは対応しない。密なPCMの実聴は要確認。
+mixed／dual／variant・Hyper Voice／DMA・圧縮bank等は事前拒否。命令・展開・bank-copy・出力に上限を設ける。
+
+全Playground Node試験1,130件、WonderSwan関連72件が成功（重複あり）。新converter35件で実WASMのPCM／timed write一致と遅延累積の回帰を検証した。
+独立reviewと2,048period×6clockの12,288周波数roundtripも成功。音源・Worklet・Nativeコード・Mixer・SDKは変更しない。
+55 WASM出力は固定SDK0.1.4採用時とbyte一致。Playground／Synthのstandalone packageも成功した。
+現行ZIPは`release/hello_ymfm_wasm_wonderswan-import-dev_itch_playground.zip`、SHA256
+`838ee8d1853f9d74b07a467b9e224f25abeb6cc768e06e299ca72cc77d676490`。
+Playground Tauriへ921ファイルを取り込み、import照合・Python22／Node31件が成功した。
+全22固定Native snapshot・SDK395ファイル・対応sourceZIP1,862ファイルを照合。sourceZIP SHA256は
+`517e039c805a284f4873ef7dca23d33fb11d637a6af33d2df707d659508fa080`。
+最終docs／flatをChromium・WebKitで確認。全3変換・4CH・Noise／Sweep／Voice PCM・Main／Worker・Genesis mode、
+Stop／自然終了dispose／Run再実行／不正入力・Cancel時のファイル保持が成功。Monaco診断0、Stop出力peak0。
+2秒の密なVoice PCMは全8構成で2.02〜2.19秒に収まり、タイマー遅延の累積を解消した。個々のPCM境界は非同期なので原音一致は保証しない。
+通常267／flat265ファイルのhashを現行ソースと照合し、flat265件は最終ZIP内bytesとも一致。
+物理出力は測定後に0にしており、実聴・実機精度・実Tauri WebViewの音声は未確認。
+本体とPlayground Tauriが未commit。Analyzer Tauri／SDK原本はこのターンでは変更していない。公開・tag・CI実行なし。
+次は実際のWonderSwan VGM／VGZをImportしてWeb／Nativeで聴き、本体とPlayground Tauriのcommit／push・CIを確認する。
+詳細は[playground_wonderswan_vgm_import_01.md](playground_wonderswan_vgm_import_01.md)と最終JSONを参照。
+
+### 直前のWonderSwan Wave RAM抽出
+
 WonderSwanのWave RAM抽出をVGM AnalyzerのSample ExplorerとNode／CLIへ追加した。
 16KiB RAMへの既知writeだけを追跡し、1波形16byte／32点・low nibble firstで保存する。
 同一波形は重複排除し、CH・時刻・bank・物理アドレス・基本音程の観測履歴を保持する。
@@ -29,8 +123,9 @@ browserが読んだ通常186／flat184ファイルのhashを現行ソースと�
 Analyzer Tauriへ398ファイルを取り込み、import照合・Python6／Node4件が成功した。
 VGM npm配布物のbuild・隔離offline install・実行・CLI／JSON／WAV exportも成功。版は0.2.14のまま未公開。
 固定SDK0.1.4・55 WASM出力・音源engine・従来再生core・Mixer値を変更していない。再校正guardも成功した。
-本体とAnalyzer Tauriの今回変更は未commit。SDK原本とPlayground Tauriは変更していない。
-次は実際のWonderSwan VGM／VGZでSample Explorerを試聴し、本体／Analyzer Tauriをcommit／pushしてCIを確認する。
+この抽出作業の後、本体`28adb38f09569312aa6e35407cb4d9e7a15c93b3`／
+Analyzer Tauri`591ec071e03d267af49bf27dde6f862b8924eff9`へユーザーがcommit済み。
+SDK原本とPlayground Tauriはこの抽出ターンでは変更していない。記載の試験・ZIPは抽出段階のもの。
 Voice PCM captureは別段階で、波形snapshotを元のPCMサンプルと誤認しない形で検討する。
 詳細・hash・再現手順は[wonderswan_wave_samples_01.md](wonderswan_wave_samples_01.md)とJSONを参照。
 

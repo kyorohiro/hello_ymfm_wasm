@@ -1,48 +1,48 @@
-import {createNativeGenesisExtraSpc,isExtraSpcRejection} from './native_genesis_extra_spc.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraSnes,EXTRA_SNES_ADMISSION_ERRORS} from './native_genesis_extra_snes.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraPwm,EXTRA_PWM_ADMISSION_ERRORS} from './native_genesis_extra_pwm.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraDx7,EXTRA_DX7_VOICE_HELD_ERROR} from './native_genesis_extra_dx7.js?v=wonderswan-native-1';
-import {createNativeGenesisWonderSwan,WONDERSWAN_CLOCK_HELD_ERROR,WONDERSWAN_CLOCK_PENDING_ERROR} from './native_genesis_wonderswan.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraWonderSwan} from './native_genesis_extra_wonderswan.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraHuc6280,EXTRA_HUC6280_CLOCK_HELD_ERROR} from './native_genesis_extra_huc6280.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraNes,EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR,EXTRA_NES_ADMISSION_ERRORS} from './native_genesis_extra_nes.js?v=wonderswan-native-1';
+import {createNativeGenesisExtraSpc,isExtraSpcRejection} from './native_genesis_extra_spc.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraSnes,EXTRA_SNES_ADMISSION_ERRORS} from './native_genesis_extra_snes.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraPwm,EXTRA_PWM_ADMISSION_ERRORS} from './native_genesis_extra_pwm.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraDx7,EXTRA_DX7_VOICE_HELD_ERROR} from './native_genesis_extra_dx7.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisWonderSwan,WONDERSWAN_CLOCK_HELD_ERROR,WONDERSWAN_CLOCK_PENDING_ERROR,WONDERSWAN_TIMELINE_BUSY_ERROR,WONDERSWAN_TIMELINE_HELD_ERROR} from './native_genesis_wonderswan.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraWonderSwan} from './native_genesis_extra_wonderswan.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraHuc6280,EXTRA_HUC6280_CLOCK_HELD_ERROR} from './native_genesis_extra_huc6280.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraNes,EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR,EXTRA_NES_ADMISSION_ERRORS} from './native_genesis_extra_nes.js?v=wonderswan-pcm-timeline-1';
 import {YM2612Synth} from './ym2612synth.js?v=audio-stability-2';
 import {createSegaPsgApi} from './segapsg_api.js?v=audio-numeric-bindings-1';
 import {SoundChipMixer, chipMixGains} from './soundchip_mixer.js?v=y8950-adpcm-ui-1';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 import {midiToOpnPitch} from './soundchip_pitch.js';
 import {createNativeGenesisMedia} from './native_genesis_media.js';
 import {createNativeGenesisFX} from './native_genesis_fx.js';
 import {createNativeGenesisMonitor} from './native_genesis_monitor.js';
 import {createNativeGenesisNoise,nativeGenesisNoiseMessage} from './native_genesis_noise.js';
 import {nativeGenesisLiveFxMessage,createNativeGenesisLiveFxStatus} from './native_genesis_livefx.js';
-import {createNativeGenesisExtraGameboy,EXTRA_GAMEBOY_CLOCK_HELD_ERROR} from './native_genesis_extra_gameboy.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraOkim6258,EXTRA_OKIM6258_CLOCK_HELD_ERROR,EXTRA_OKIM6258_MEMORY_HELD_ERROR} from './native_genesis_extra_okim6258.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraRf5c164,EXTRA_RF5C164_CLOCK_HELD_ERROR} from './native_genesis_extra_rf5c164.js?v=wonderswan-native-1';
-import {createNativeGenesisRf5c164} from './native_genesis_rf5c164.js?v=wonderswan-native-1';
-import {createNativeGenesisDx7} from './native_genesis_dx7.js?v=wonderswan-native-1';
-import {createNativeGenesisNes} from './native_genesis_nes.js?v=wonderswan-native-1';
-import {createNativeGenesisConsole} from './native_genesis_console.js?v=wonderswan-native-1';
+import {createNativeGenesisExtraGameboy,EXTRA_GAMEBOY_CLOCK_HELD_ERROR} from './native_genesis_extra_gameboy.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraOkim6258,EXTRA_OKIM6258_CLOCK_HELD_ERROR,EXTRA_OKIM6258_MEMORY_HELD_ERROR} from './native_genesis_extra_okim6258.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraRf5c164,EXTRA_RF5C164_CLOCK_HELD_ERROR} from './native_genesis_extra_rf5c164.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisRf5c164} from './native_genesis_rf5c164.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisDx7} from './native_genesis_dx7.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisNes} from './native_genesis_nes.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisConsole} from './native_genesis_console.js?v=wonderswan-pcm-timeline-1';
 import {createNativeGenesisSnes} from './native_genesis_snes.js?v=y8950-adpcm-ui-1';
-import {createNativeGenesisPwm} from './native_genesis_pwm.js?v=wonderswan-native-1';
-import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=wonderswan-native-1';
-import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=wonderswan-native-1';
-import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=wonderswan-native-1';
-import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=wonderswan-native-1';
-import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=wonderswan-native-1';
-import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=wonderswan-native-1';
-import {createNativeGenesisMsx} from './native_genesis_msx.js?v=wonderswan-native-1';
-import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=wonderswan-native-1';
-import {createNativeGenesisOpl} from './native_genesis_opl.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraYm2610,createNativeGenesisExtraYm2610B,EXTRA_YM2610_CLOCK_HELD_ERROR,EXTRA_YM2610B_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=wonderswan-native-1';
-import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=wonderswan-native-1';
+import {createNativeGenesisPwm} from './native_genesis_pwm.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisYm2608} from './native_genesis_ym2608.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisYm2203} from './native_genesis_ym2203.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisYm2610B} from './native_genesis_ym2610b.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisX68000} from './native_genesis_x68000.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisMasterSystem} from './native_genesis_master_system.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisGameGear} from './native_genesis_game_gear.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisMsx} from './native_genesis_msx.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisMsxAudio} from './native_genesis_msx_audio.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisOpl} from './native_genesis_opl.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraSegaPsg,EXTRA_PSG_CLOCK_HELD_ERROR} from './native_genesis_extra_segapsg.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraYm2612,EXTRA_YM2612_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2612.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraYm2151,EXTRA_YM2151_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2151.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraYm2413,EXTRA_YM2413_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2413.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraAy8910,EXTRA_AY8910_CLOCK_HELD_ERROR} from './native_genesis_extra_ay8910.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraOpl,EXTRA_OPL_CHIPS,extraOplClockHeldError} from './native_genesis_extra_opl.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraYm2610,createNativeGenesisExtraYm2610B,EXTRA_YM2610_CLOCK_HELD_ERROR,EXTRA_YM2610B_CLOCK_HELD_ERROR} from './native_genesis_extra_ym2610.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraYm2608,EXTRA_YM2608_CLOCK_HELD_ERROR,EXTRA_YM2608_TIMELINE_BUSY_ERROR} from './native_genesis_extra_ym2608.js?v=wonderswan-pcm-timeline-1';
+import {createNativeGenesisExtraYm2203,EXTRA_YM2203_CLOCK_HELD_ERROR,EXTRA_YM2203_SCHEDULE_BUSY_ERROR} from './native_genesis_extra_ym2203.js?v=wonderswan-pcm-timeline-1';
 
 const MAX_BATCH = 4096;
 const MAX_PENDING = 65536;
@@ -54,8 +54,9 @@ const GAME_GEAR_HELD_CLOCK_ERROR = 'Release the manually held Game Gear voices b
 const isReportedFailure = error => error?.name !== 'AbortError' && !['WONDERSWAN_CONTROL_REJECTED','OPL_CLOCK_HELD','GAME_GEAR_CLOCK_HELD','YM2203_CLOCK_HELD','EXTRA_PSG_CLOCK_HELD','EXTRA_YM2612_CLOCK_HELD','EXTRA_YM2203_CLOCK_HELD','EXTRA_YM2203_SCHEDULE_BUSY','EXTRA_YM2608_CONTROL_REJECTED','EXTRA_CHIP_MEMORY_LIMIT','EXTRA_YM2610_CONTROL_REJECTED','EXTRA_YM2151_CONTROL_REJECTED','EXTRA_YM2413_CONTROL_REJECTED','EXTRA_AY8910_CONTROL_REJECTED','EXTRA_OPL_CONTROL_REJECTED','EXTRA_RF5C164_CONTROL_REJECTED','EXTRA_OKIM6258_CONTROL_REJECTED','EXTRA_GAMEBOY_CONTROL_REJECTED','EXTRA_NES_CONTROL_REJECTED','EXTRA_HUC6280_CONTROL_REJECTED','EXTRA_DX7_CONTROL_REJECTED','EXTRA_PWM_CONTROL_REJECTED','EXTRA_SNES_CONTROL_REJECTED','EXTRA_SPC_CONTROL_REJECTED'].includes(error?.code);
 const pwmBytes=command=>['pwm','extra-pwm'].includes(command.type)&&command.message?.method==='schedule-writes'?command.message.entries.length*24:0;
 const snesBytes=command=>command.type==='extra-snes'?command.message?.method==='prepare-timeline'?command.message.ram.length+command.message.dsp.length+command.message.events.length*4:['load-memory-batch','reset-state'].includes(command.message?.method)?command.message.uploads.reduce((sum,upload)=>sum+upload.data.length,0)+(command.message.dsp?.length??0):command.message?.method==='load-memory'?command.message.data.length:0:0;
-const pcmBytes=command=>pwmBytes(command)||snesBytes(command)||(command.type==='extra-spc'&&command.message?.method==='load-spc'?command.message.data.length:0)||(command.type==='extra-ym2608'&&command.message?.method==='prepare-timeline'?command.message.events.length*32+command.message.blocks.reduce((sum,b)=>sum+b.length,0):command.type==='extra-ym2203'&&command.message?.method==='schedule'?command.message.entries.length*24:command.type==='rf5c164-load-memory'?command.data.length:command.type==='extra-nes'&&command.message?.method==='memory'?command.message.data.length:['extra-rf5c164','extra-okim6258'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:['ym2608','ym2610b','extra-ym2608','extra-ym2610','extra-ym2610b'].includes(command.type)&&['memory','rom'].includes(command.message?.method)?command.message.data.length:['nes','snes'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:command.type==='snes'&&command.message?.method==='prepare-timeline'?command.message.ram.length+command.message.dsp.length+command.message.events.length*4:0);
-const maxUpload=command=>command.type==='extra-okim6258'?16*1024*1024:['extra-ym2610','extra-ym2610b'].includes(command.type)?32*1024*1024:command.type==='extra-ym2608'?command.message?.method==='prepare-timeline'?8*1024*1024:2*1024*1024:['pwm','extra-pwm'].includes(command.type)?32*1024*1024:command.type==='extra-ym2203'&&command.message?.method==='schedule'?4*1024*1024:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:['snes','extra-snes'].includes(command.type)&&command.message?.method==='prepare-timeline'?16*1024*1024+65664:command.type==='extra-snes'?65664:command.type==='extra-spc'?16*1024*1024:65536;
+const wonderswanBytes=command=>['wonderswan','extra-wonderswan'].includes(command.type)&&command.message?.method==='prepare-timeline'?command.message.trace.pcmData.length+command.message.trace.events.length*32:0;
+const pcmBytes=command=>wonderswanBytes(command)||pwmBytes(command)||snesBytes(command)||(command.type==='extra-spc'&&command.message?.method==='load-spc'?command.message.data.length:0)||(command.type==='extra-ym2608'&&command.message?.method==='prepare-timeline'?command.message.events.length*32+command.message.blocks.reduce((sum,b)=>sum+b.length,0):command.type==='extra-ym2203'&&command.message?.method==='schedule'?command.message.entries.length*24:command.type==='rf5c164-load-memory'?command.data.length:command.type==='extra-nes'&&command.message?.method==='memory'?command.message.data.length:['extra-rf5c164','extra-okim6258'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:['ym2608','ym2610b','extra-ym2608','extra-ym2610','extra-ym2610b'].includes(command.type)&&['memory','rom'].includes(command.message?.method)?command.message.data.length:['nes','snes'].includes(command.type)&&command.message?.method==='load-memory'?command.message.data.length:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:command.type==='snes'&&command.message?.method==='prepare-timeline'?command.message.ram.length+command.message.dsp.length+command.message.events.length*4:0);
+const maxUpload=command=>wonderswanBytes(command)?8*1024*1024:command.type==='extra-okim6258'?16*1024*1024:['extra-ym2610','extra-ym2610b'].includes(command.type)?32*1024*1024:command.type==='extra-ym2608'?command.message?.method==='prepare-timeline'?8*1024*1024:2*1024*1024:['pwm','extra-pwm'].includes(command.type)?32*1024*1024:command.type==='extra-ym2203'&&command.message?.method==='schedule'?4*1024*1024:command.type==='x68000'&&command.message?.method==='memory-chunk'?command.message.data.length:['snes','extra-snes'].includes(command.type)&&command.message?.method==='prepare-timeline'?16*1024*1024+65664:command.type==='extra-snes'?65664:command.type==='extra-spc'?16*1024*1024:65536;
 const unsupported = feature => {throw new Error(`${feature} is unavailable in the experimental Native Genesis backend. Select Web Audio to use it.`);};
 const byte = (value, label) => {
   if (!Number.isInteger(value) || value < 0 || value > 255) throw new RangeError(`${label} must be an integer from 0 to 255`);
@@ -451,6 +452,7 @@ export class NativeGenesisSynth {
           if(batch.some(command=>command.type==='extra-dx7')&&message===EXTRA_DX7_VOICE_HELD_ERROR){const rejected=new Error(message);rejected.code='EXTRA_DX7_CONTROL_REJECTED';throw rejected;}
           if(batch.some(command=>['wonderswan','extra-wonderswan'].includes(command.type)&&command.message?.method==='clock')&&message===WONDERSWAN_CLOCK_HELD_ERROR){const rejected=new Error(message);rejected.code='WONDERSWAN_CONTROL_REJECTED';throw rejected;}
           if(batch.some(command=>['wonderswan','extra-wonderswan'].includes(command.type)&&command.message?.method==='batch')&&message===WONDERSWAN_CLOCK_PENDING_ERROR){const rejected=new Error(message);rejected.code='WONDERSWAN_CONTROL_REJECTED';throw rejected;}
+          if(batch.some(command=>['wonderswan','extra-wonderswan'].includes(command.type))&&[WONDERSWAN_TIMELINE_BUSY_ERROR,WONDERSWAN_TIMELINE_HELD_ERROR,'Native WonderSwan timeline preparation queue is full (256)','Native WonderSwan pending command limit reached (8 MiB)','Native WonderSwan timeline exceeds 512 writes in 128 output frames'].includes(message)){const rejected=new Error(message);rejected.code='WONDERSWAN_CONTROL_REJECTED';throw rejected;}
           if(batch.some(command=>command.type==='extra-huc6280'&&command.message?.method==='clock')&&message===EXTRA_HUC6280_CLOCK_HELD_ERROR){const rejected=new Error(message);rejected.code='EXTRA_HUC6280_CONTROL_REJECTED';throw rejected;}
           if(batch.some(command=>command.type==='extra-nes')&&(EXTRA_NES_ADMISSION_ERRORS.includes(message)||[EXTRA_NES_CLOCK_HELD_ERROR,EXTRA_NES_MEMORY_HELD_ERROR].includes(message))){const rejected=new Error(message);rejected.code='EXTRA_NES_CONTROL_REJECTED';throw rejected;}
           if(batch.every(command=>command.type==='extra-gameboy'&&command.message?.method==='clock')&&message===EXTRA_GAMEBOY_CLOCK_HELD_ERROR){const rejected=new Error(message);rejected.code='EXTRA_GAMEBOY_CONTROL_REJECTED';throw rejected;}

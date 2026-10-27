@@ -1,16 +1,16 @@
-import {createAy8910Client} from './playground_ay8910.js?v=wonderswan-native-1';
-import {createPWM32XClient} from './pwm32x_playback.js?v=wonderswan-native-1';
-import {createNesClient} from './playground_nes.js?v=wonderswan-native-1';
+import {createAy8910Client} from './playground_ay8910.js?v=wonderswan-pcm-timeline-1';
+import {createPWM32XClient} from './pwm32x_playback.js?v=wonderswan-pcm-timeline-1';
+import {createNesClient} from './playground_nes.js?v=wonderswan-pcm-timeline-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
-import {createYm2151Client} from './playground_ym2151.js?v=wonderswan-native-1';
-import {createHuc6280Client} from './playground_huc6280.js?v=wonderswan-native-1';
-import {createWonderSwanClient} from './playground_wonderswan.js?v=wonderswan-native-1';
-import {createSegaPsgClient} from './playground_segapsg.js?v=wonderswan-native-1';
-import {createOki6258Client} from './playground_okim6258.js?v=wonderswan-native-1';
-import {createYm2413Client} from './playground_ym2413.js?v=wonderswan-native-1';
-import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=wonderswan-native-1';
+import {createYm2151Client} from './playground_ym2151.js?v=wonderswan-pcm-timeline-1';
+import {createHuc6280Client} from './playground_huc6280.js?v=wonderswan-pcm-timeline-1';
+import {createWonderSwanClient} from './playground_wonderswan.js?v=wonderswan-pcm-timeline-1';
+import {createSegaPsgClient} from './playground_segapsg.js?v=wonderswan-pcm-timeline-1';
+import {createOki6258Client} from './playground_okim6258.js?v=wonderswan-pcm-timeline-1';
+import {createYm2413Client} from './playground_ym2413.js?v=wonderswan-pcm-timeline-1';
+import {createOplClient, OPL_CHIPS} from './playground_opl.js?v=wonderswan-pcm-timeline-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
-import {createGameboyClient} from './playground_gameboy.js?v=wonderswan-native-1';
+import {createGameboyClient} from './playground_gameboy.js?v=wonderswan-pcm-timeline-1';
 
 /** Primary controls borrow devices owned by the runtime. */
 export function borrowNativeApi(raw, id, changed = () => {}, before = () => true, settle = result => result) {

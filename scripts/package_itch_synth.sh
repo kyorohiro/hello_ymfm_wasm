@@ -186,6 +186,7 @@ for file in opm_export.js opm_tfi.js opm_monitor.js stored_zip.js; do
 done
 cp "${ROOT_DIR}/docs/playground/playground_vgm_presets.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_import.js" "${STAGE_DIR}/playground/"
+cp "${ROOT_DIR}/docs/playground/wonderswan_vgm_import.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_cassette.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_file_tree.js" "${ROOT_DIR}/docs/playground/playground_example_order.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/vendor/fflate.js" "${ROOT_DIR}/docs/playground/vendor/fflate-LICENSE" "${STAGE_DIR}/playground/vendor/"

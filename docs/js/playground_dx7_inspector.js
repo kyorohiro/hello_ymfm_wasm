@@ -1,5 +1,5 @@
 import {presetToVoice,voiceToPreset,validatePreset,validateOperator,validateOperators} from './msfa_dx7/src/preset.js';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-native-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
 
 const integer=(value,max,label)=>{if(!Number.isInteger(value)||value<0||value>max)throw new RangeError(`${label} must be 0..${max}`);return value;};
 const identity=id=>{if(typeof id!=='string'||!id.length||id.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${id}`;};

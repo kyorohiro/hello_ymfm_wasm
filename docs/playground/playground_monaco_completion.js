@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=wonderswan-native-1";
+} from "../js/megasynth.js?v=wonderswan-pcm-timeline-1";
 
 const SCALE_NAMES = [
   "major",

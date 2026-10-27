@@ -59,6 +59,7 @@ huc6280audioengine.js
 wonderswan.js
 wonderswanaudioengine.js
 wonderswansynth.js
+wonderswan_timeline.js
 playground_wonderswan.js
 playground_wonderswan_audio.js
 playground_wonderswan_worklet.js

@@ -16,7 +16,7 @@ import { SegaPSG } from './segapsg.js?v=audio-numeric-bindings-1';
 export class Ymf278bAudioEngine {
   /**
    * Create the chip instances required by this engine.
-   * @param {{ymf278bModuleFactory: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, ymf278bModuleOptions?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleOptions, ymf278bClock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-native-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{ymf278bModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ymf278bModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ymf278bClock?: number, segaPsgModuleFactory?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, psgClock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<Ymf278bAudioEngine>} Initialized engine owned by the caller.

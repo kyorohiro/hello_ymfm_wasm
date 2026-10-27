@@ -1,7 +1,7 @@
-import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=wonderswan-native-1';
-import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=wonderswan-native-1';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-native-1';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {receiveChipInspector, readPwmInspector} from './playground_chip_inspector_state.js?v=wonderswan-pcm-timeline-1';
+import {PWM32XPlayback, PWM_METHODS} from './pwm32x_playback.js?v=wonderswan-pcm-timeline-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 import pwmFactory from '../generated/pwm32x_wasm.js?v=pwm-wasm-1';
 
 class PWMProcessor extends AudioWorkletProcessor {

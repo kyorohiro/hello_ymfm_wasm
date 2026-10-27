@@ -1,17 +1,17 @@
 import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
-import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-native-1';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-native-1';
+import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
+import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
 
 const nativeFetch=globalThis.fetch?.bind(globalThis),modules=new WeakMap();
 /** Create the audio endpoint; performance commands use its dedicated MessagePort. */
 export async function createWonderSwanAudio(context,destination,options={}){
   options.signal?.throwIfAborted();const clock=validateChipClock(options.clock??WONDERSWAN_CLOCK);
   if(!context?.audioWorklet||context.state==='closed')throw new Error('WonderSwan requires an open AudioContext with AudioWorklet');
-  const workletUrl=String(options.workletUrl??new URL('./playground_wonderswan_worklet.js?v=wonderswan-native-1',import.meta.url));
+  const workletUrl=String(options.workletUrl??new URL('./playground_wonderswan_worklet.js?v=wonderswan-pcm-timeline-1',import.meta.url));
   let cache=modules.get(context);if(!cache)modules.set(context,cache=new Map());let module=cache.get(workletUrl);
   if(!module){module=context.audioWorklet.addModule(workletUrl);cache.set(workletUrl,module);module.catch(()=>cache.delete(workletUrl));}
   const wait=promise=>{const signal=options.signal;if(!signal)return promise;signal.throwIfAborted();return new Promise((resolve,reject)=>{const abort=()=>reject(signal.reason);signal.addEventListener('abort',abort,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));});};
-  const [wasmBinary]=await wait(Promise.all([(options.fetch??nativeFetch)(options.wasmUrl??new URL('../generated/wonderswan_wasm.wasm?v=wonderswan-native-1',import.meta.url),{signal:options.signal}).then(response=>{if(!response.ok)throw new Error(`WonderSwan WASM HTTP ${response.status}`);return response.arrayBuffer();}),module]));
+  const [wasmBinary]=await wait(Promise.all([(options.fetch??nativeFetch)(options.wasmUrl??new URL('../generated/wonderswan_wasm.wasm?v=wonderswan-pcm-timeline-1',import.meta.url),{signal:options.signal}).then(response=>{if(!response.ok)throw new Error(`WonderSwan WASM HTTP ${response.status}`);return response.arrayBuffer();}),module]));
   options.signal?.throwIfAborted();
   const node=new AudioWorkletNode(context,'tetorica-wonderswan',{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{wasmBinary,clock}}),channel=new MessageChannel();let disposed=false,rejectReady,timer;
   const dispose=()=>{if(disposed)return;disposed=true;try{node.port.postMessage({method:'dispose'});}catch{}clearTimeout(timer);context.removeEventListener?.('statechange',closed);node.onprocessorerror=null;node.port.onmessage=null;try{node.disconnect();}catch{}node.port.close();channel.port1.close();channel.port2.close();};

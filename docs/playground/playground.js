@@ -1,20 +1,20 @@
-import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=wonderswan-native-1';
+import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=wonderswan-pcm-timeline-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=wonderswan-native-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=wonderswan-pcm-timeline-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=wonderswan-native-1';
+import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=wonderswan-pcm-timeline-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=wonderswan-native-1';
+import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=wonderswan-pcm-timeline-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=wonderswan-native-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=wonderswan-pcm-timeline-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=wonderswan-native-1';
-import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-native-1';
-import {reconcileModeProject} from './playground_mode_starters.js?v=wonderswan-native-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=wonderswan-pcm-timeline-1';
+import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-pcm-timeline-1';
+import {reconcileModeProject} from './playground_mode_starters.js?v=wonderswan-pcm-timeline-1';
 let desktopAutosave = null;
 let playgroundShell = null;
 let fileExplorerMenu = null;
@@ -32,7 +32,8 @@ let pendingDesktopCassetteAssets = null;
 const cassettePresetNames = new Set();
 const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-2';
-import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=vgm-frequency-order-2';
+import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=wonderswan-import-3';
+import {exportWonderSwanVgm} from './wonderswan_vgm_import.js?v=wonderswan-import-3';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createPlaygroundAudioInput} from './playground_audio_input.js?v=y8950-adpcm-ui-1';
 import {createNativeSampleEditorAudio} from '../js/playground_native_sample_editor.js?v=y8950-adpcm-ui-1';
@@ -44,10 +45,10 @@ import {installSpcImport} from './playground_spc_import.js?v=spc-reference-tunin
 import {
   FM_PRESET_ORDER,
   FM_PRESETS,
-} from "../js/megasynth.js?v=wonderswan-native-1";
+} from "../js/megasynth.js?v=wonderswan-pcm-timeline-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=wonderswan-native-1";
+} from "../js/tetorica_synth.js?v=wonderswan-pcm-timeline-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -59,10 +60,10 @@ import {
   createPlaygroundOperatorTab,
 } from "./playground_operator_tab.js?v=y8950-adpcm-ui-1";
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
-import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=wonderswan-native-1";
-import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=wonderswan-native-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=wonderswan-native-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=wonderswan-native-1";
+import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=wonderswan-pcm-timeline-1";
+import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=wonderswan-pcm-timeline-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=wonderswan-pcm-timeline-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=wonderswan-pcm-timeline-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -93,12 +94,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=wonderswan-native-1";
+} from "../js/playground_runtime.js?v=wonderswan-pcm-timeline-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=y8950-adpcm-ui-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=wonderswan-native-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=wonderswan-pcm-timeline-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";
@@ -286,7 +287,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const soundChipMixer = createPlaygroundSoundChipMixer(selectedMode.id);
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=wonderswan-native-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=wonderswan-pcm-timeline-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     mixer:soundChipMixer,
@@ -1102,6 +1103,13 @@ async function importVgmFile(file, options) {
   } : detection.family === 'nes' ? {
     source: exportNesVgm(buffer, {mode: options.nesMode, useBuiltInNes:useNativeGenesis && selectedMode.id === 'nes'}),
     statusMessage: 'for NES APU' + (detection.fds ? ' + FDS' : '') + ' (including DMC RAM; one pass)',
+  } : detection.family === 'wonderswan' ? {
+    source: exportWonderSwanVgm(buffer, {mode: options.wonderswanMode, writePcmFile(bytes) {
+      let path;
+      do { path = `/wonderswan-pcm-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
+      dacFiles.push({path, bytes}); return path;
+    }}),
+    statusMessage: 'for WonderSwan (four channels, wave RAM and Voice PCM; one pass)',
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
     source: exportRf5c164Vgm(buffer, {...options, useBuiltInPcm:selectedMode.id === 'mega-cd', writeDacFile(bytes) {
       let path;
@@ -2630,6 +2638,7 @@ runButton.addEventListener(
           ym2203Mode: document.querySelector('input[name="ym2203ImportMode"]:checked')?.value ?? 'write',
           nesMode: document.querySelector('input[name="nesImportMode"]:checked')?.value ?? 'raw',
           gameboyMode: document.querySelector('input[name="gameboyImportMode"]:checked')?.value ?? 'raw',
+          wonderswanMode: document.querySelector('input[name="wonderswanImportMode"]:checked')?.value ?? 'raw',
           targetPath,
           noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
           splitChannels: document.getElementById("splitVgmChannelsInput").checked,
@@ -2770,11 +2779,14 @@ runButton.addEventListener(
       pendingVgmImport = prepared;
       const {detection} = prepared;
       vgmImportFilename.textContent = file.name;
-      document.getElementById('vgmImportDetected').textContent = `Detected: ${detection.chips.map(chip => chip === 'gameBoyDmg' ? 'Game Boy DMG' : chip === 'nesApu' ? 'NES APU' + (detection.fds ? ' + FDS' : '') : chip.toUpperCase()).join(' + ') || 'unknown'}`;
+      document.getElementById('vgmImportDetected').textContent = `Detected: ${detection.chips.map(chip => chip === 'gameBoyDmg' ? 'Game Boy DMG' : chip === 'nesApu' ? 'NES APU' + (detection.fds ? ' + FDS' : '') : chip === 'wonderswan' ? 'WonderSwan' : chip.toUpperCase()).join(' + ') || 'unknown'}`;
       document.getElementById('vgmImportNotice').textContent = detection.message;
       const opnOptions = document.getElementById('opnImportOptions');
       const gbOptions = document.getElementById('gameboyImportOptions');
       const nesOptions = document.getElementById('nesImportOptions');
+      const wsOptions = document.getElementById('wonderswanImportOptions');
+      wsOptions.hidden = detection.family !== 'wonderswan' || !detection.supported;
+      wsOptions.disabled = wsOptions.hidden;
       nesOptions.hidden = detection.family !== 'nes' || !detection.supported;
       nesOptions.disabled = nesOptions.hidden;
       opnOptions.hidden = !['opn','rf5c164'].includes(detection.family) || !detection.supported;
