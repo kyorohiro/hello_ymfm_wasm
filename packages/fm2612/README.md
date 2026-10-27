@@ -39,6 +39,10 @@ entry points, rather than every internal Worker or Worklet module.
 | NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
 | PC Engine wavetable, noise and DDA | `tetorica-fm2612/huc6280synth.js` | `Huc6280Synth`, `Huc6280DirectTransport` |
+| PC Engine CD ADPCM preparation / playback | `tetorica-fm2612/msm5205_sample.js`, `tetorica-fm2612/msm5205_player.js` | `prepareMSM5205Sample`, `createMsm5205Player` |
+| MSM5205 synchronous PCM / browser audio | `tetorica-fm2612/msm5205_pcm.js`, `tetorica-fm2612/msm5205_audio.js` | `createMSM5205PCM`, `createMsm5205Audio` |
+| CD-DA tracks / browser audio | `tetorica-fm2612/cdda_player.js`, `tetorica-fm2612/cdda_audio.js` | `createCddaPlayer`, `createCddaAudio` |
+| Offline CD-DA and synchronous source mixing | `tetorica-fm2612/cdda_offline.js` | `createCddaOffline` |
 | WonderSwan wavetable, Voice PCM, noise and sweep | `tetorica-fm2612/wonderswansynth.js` | `WonderSwanSynth`, `WonderSwanDirectTransport`, `WonderSwanWorkletTransport` |
 | Atari POKEY, four voices per chip | `tetorica-fm2612/pokeysynth.js` | `PokeySynth`, `PokeyDirectTransport`, `PokeyWorkletTransport` |
 | OKIM6258 ADPCM samples | `tetorica-fm2612/okim6258synth.js` | `Oki6258Synth`, `encodeOki6258` |
@@ -92,6 +96,87 @@ Declarations are shipped beside each module, for example
 `node_modules/tetorica-fm2612/node/chip_transports.d.mts`. They describe exported
 functions/classes, parameter types, options and return types. Plain JavaScript
 projects can use the same editor assistance with JSDoc-aware tooling.
+
+### PC Engine CD audio
+
+Available in `tetorica-fm2612@0.2.32` and later. CD-DA and MSM5205 use separate
+application-audio APIs; they are not new `createSoundChip()` names.
+
+CD-DA accepts **44,100 Hz stereo PCM16 RIFF WAV** bytes or track manifests.
+This Node example creates an original stereo track and renders it at 48 kHz
+without opening an audio device:
+
+```js
+import {writeFile} from 'node:fs/promises';
+import {createCddaOffline} from 'tetorica-fm2612/cdda_offline.js';
+import {encodeWav} from 'tetorica-fm2612/wav.js';
+
+const sampleRate = 44100;
+const left = Float32Array.from({length: sampleRate}, (_, i) =>
+  Math.sin(2 * Math.PI * 220 * i / sampleRate) * 0.2);
+const right = Float32Array.from({length: sampleRate}, (_, i) =>
+  Math.sin(2 * Math.PI * 330 * i / sampleRate) * 0.2);
+const offline = await createCddaOffline({sampleRate: 48000});
+try {
+  await offline.cdda.load(encodeWav({left, right, sampleRate}));
+  await offline.cdda.play();
+  await writeFile('cdda.wav', new Uint8Array(encodeWav(offline.render(48000))));
+} finally {
+  offline.dispose();
+}
+```
+
+The player also provides `pause()`, `resume()`, `stop()`, `seek(seconds)` and
+`getState()`. For browser playback, create an endpoint with
+`createCddaAudio(audioContext)`, pass it to `createCddaPlayer(endpoint)`, connect
+`endpoint.node` to your output and resume the context from a user gesture.
+`createMsm5205Audio` / `createMsm5205Player` use the same endpoint pattern.
+Their Worklet and WASM defaults resolve relative to the installed modules;
+serve the complete package over HTTP rather than copying only its entry file.
+
+MSM5205 preparation downmixes PCM/WAV, resamples and encodes four-bit ADPCM for
+the PC Engine's **64 KiB RAM**. This Node example uses the real WASM renderer:
+
+```js
+import {readFile, writeFile} from 'node:fs/promises';
+import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
+import {createMSM5205PCM} from 'tetorica-fm2612/msm5205_pcm.js';
+import {prepareMSM5205Sample} from 'tetorica-fm2612/msm5205_sample.js';
+import {encodeWav} from 'tetorica-fm2612/wav.js';
+
+const prepared = await prepareMSM5205Sample({sampleRate: 8000, channels: [
+  Float32Array.from({length: 8000}, (_, i) => Math.sin(2 * Math.PI * 220 * i / 8000) * 0.2),
+]}, {rate: 12});
+const wasmBinary = await readFile(runtimeAssetUrl('generated/msm5205_wasm.wasm'));
+const pcm = await createMSM5205PCM({sampleRate: 48000, wasmBinary});
+try {
+  pcm.prepare(prepared.data);
+  pcm.play({length: prepared.frames, rate: prepared.rate});
+  const left = new Float32Array(48000), right = new Float32Array(48000);
+  pcm.render(left, right);
+  await writeFile('adpcm.wav', new Uint8Array(encodeWav({left, right, sampleRate: 48000})));
+} finally {
+  pcm.dispose();
+}
+```
+
+`rate` is a hardware value from 0 to 15, not Hz. With the default 1,536,000 Hz
+clock, rate12 is 8 kHz and rate15 is 32 kHz. Playback `offset` / `length` count
+**nibbles**, high nibble first. Loops retain the decoder predictor, so arbitrary
+samples may need editing for a smooth loop. Low-level raw initialization retains
+the legacy decoder state; call `stop()` for silence before preparing a sample.
+
+`createCddaOffline({sources})` can borrow synchronous engines exposing
+`processFrames(count)` at the same output rate. `schedule(outputFrame, callback)`
+can apply synchronous register writes on that shared frame clock. There is no
+implicit normalization or Mixer calibration in this offline renderer.
+
+The bundled Playground runtime connects these sources through Main/Worker
+execution and independent Mixer inputs; experimental Native playback requires
+a compatible Tauri host. This package implements audio playback, not a console,
+BIOS or disc-image reader. External sample/disc ROMs are not included. Complete
+BSD sources and build recipes are in `sources/native/cdda/` and
+`sources/native/msm5205/`, with the MSM5205 upstream attribution preserved.
 
 ### OPL family instruments
 
@@ -1098,10 +1183,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.31.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.32.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.31.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.32.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -1118,6 +1203,16 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.32` adds **CD-DA and PC Engine MSM5205 ADPCM** application-audio APIs,
+shared C/WASM renderers, sample encoding, browser AudioWorklet endpoints and
+offline WAV mixing on a common output-frame clock. The bundled Playground
+runtime connects both sources to Main/Worker execution, Mixer controls and
+compatible Tauri hosts, and exposes read-only system-audio state without starting
+audio. Typed modules, complete BSD source bundles, rebuild scripts and upstream
+notices are included. These are separate APIs, not additional generic
+`createSoundChip()` types. Existing VGM rendering, chip gains and the fixed SDK
+version are unchanged.
 
 `0.2.31` adds the POKEY Direct/AudioWorklet factory,
 four-channel Synth, Mixer/Worker transport, independently owned dual-POKEY

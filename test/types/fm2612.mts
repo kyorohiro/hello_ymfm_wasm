@@ -369,3 +369,24 @@ pokeyA.node.connect(new AudioContext().destination);
 pokeyA.setChannelMuted(0,1);
 // @ts-expect-error Render lengths are numeric.
 pokeyA.generateStereo('128');
+
+// CD-DA transport controls work both immediately and at an audio-clock time.
+import {createCddaOffline} from 'tetorica-fm2612/cdda_offline.js';
+import {createCddaPlayer} from 'tetorica-fm2612/cdda_player.js';
+const cddaOffline = await createCddaOffline({sampleRate:48000});
+await cddaOffline.cdda.pause();
+await cddaOffline.cdda.resume();
+await cddaOffline.cdda.stop();
+await cddaOffline.cdda.pause({at:1});
+await cddaOffline.cdda.resume({at:2});
+await cddaOffline.cdda.stop({at:3});
+declare const cddaAdapter: Parameters<typeof createCddaPlayer>[0];
+const cddaPlayer = createCddaPlayer(cddaAdapter);
+await cddaPlayer.pause(); await cddaPlayer.resume(); await cddaPlayer.stop();
+// @ts-expect-error Transport timestamps use seconds, not formatted strings.
+await cddaOffline.cdda.pause({at:'1'});
+// @ts-expect-error Resume uses an options object, not a bare timestamp.
+await cddaPlayer.resume(2);
+// @ts-expect-error Stop timing uses the same numeric audio clock.
+await cddaPlayer.stop({at:'3'});
+cddaOffline.dispose(); cddaPlayer.dispose();

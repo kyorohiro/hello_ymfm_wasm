@@ -1,0 +1,4778 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "published; latest tag and exact registry tarball parity verified",
+  "scope": "tetorica-fm2612 only; CD-DA and MSM5205 application-audio APIs",
+  "publication": {
+    "package": "tetorica-fm2612",
+    "version": "0.2.32",
+    "published": true,
+    "vgmRelease": false,
+    "sdkRelease": false,
+    "itchIo": false,
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "publishAccepted": true,
+    "publishExitCode": 0,
+    "registryVerified": true,
+    "latest": "0.2.32"
+  },
+  "candidate": {
+    "name": "tetorica-fm2612",
+    "version": "0.2.32",
+    "tarball": "/private/tmp/npm-cdrom2-release-20261028/tetorica-fm2612-0.2.32.tgz",
+    "bytes": 1760144,
+    "files": 929,
+    "unpackedBytes": 6592490,
+    "sha256": "57a8a6acc607b304b3fdadd2c525a3cee78f2ece85023d3cafd802c1461583c1",
+    "sha1": "9d3f5a07f8aa07a1eb419b4fbbc8179b187126e3",
+    "integrity": "sha512-qb5HnG88ukUuJeLFjVodzndzb9bxtG0Lc/8lGGyBZoTY5DsIBgO6ThEW686KyRqBsrPad5IoqSE4HgkYZLWxMA==",
+    "allMembersEqualStage": true,
+    "members": {
+      "msfa_dx7/vendor/msfa/COPYING": {
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "assets/opna-rhythm/LICENSE": {
+        "bytes": 1764,
+        "sha256": "fc3f6037e016ec318ec521034aa3c643a01c557c216859bf4dc49b0031ce94f7"
+      },
+      "LICENSE": {
+        "bytes": 1519,
+        "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+      },
+      "licenses/fixnes-fds/LICENSE": {
+        "bytes": 1062,
+        "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce"
+      },
+      "licenses/jsnes/LICENSE": {
+        "bytes": 10758,
+        "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+      },
+      "licenses/libvgm-msm5205/LICENSE": {
+        "bytes": 1543,
+        "sha256": "3315f9a2466767cf2e59ccc74f593bd702af01d44519e3d2d48cdf4d9891512e"
+      },
+      "licenses/libvgm-pokey/LICENSE": {
+        "bytes": 1587,
+        "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583"
+      },
+      "licenses/mame-32x-pwm/LICENSE": {
+        "bytes": 1513,
+        "sha256": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6"
+      },
+      "licenses/mame-ay8910/LICENSE": {
+        "bytes": 1510,
+        "sha256": "9ce97eec16b71e54663cfff119162feb89ae254464bf2bad3c8b8d73870e9a0e"
+      },
+      "licenses/mame-gameboy/LICENSE": {
+        "bytes": 1529,
+        "sha256": "acb20353889f489aba276d31cbd8ffce15c6bd353f873dc2255e67053446f3dc"
+      },
+      "licenses/mame-huc6280/LICENSE": {
+        "bytes": 1517,
+        "sha256": "d9aef90a96f93be90d39250e2a85c4ce78b381b6abbf16856fc337e71263dc1d"
+      },
+      "licenses/mame-k051649/LICENSE": {
+        "bytes": 1515,
+        "sha256": "8c50ff4995e94ba978d1ae2e90e3fd6fd4864c7d9dd3be0bc0ce37d754cf7b07"
+      },
+      "licenses/mame-okim6258/LICENSE": {
+        "bytes": 1514,
+        "sha256": "ee01db1519dfa17005dd1ef3a1baf7ff77395a08a7299406be4bbfdba1103973"
+      },
+      "licenses/mame-okim6295/LICENSE": {
+        "bytes": 1542,
+        "sha256": "951803c525415c349f53adab1fde00c49b242e981f1242931140791c18b72176"
+      },
+      "licenses/mame-rf5c164/LICENSE": {
+        "bytes": 1529,
+        "sha256": "0a2b34be38b92350c6503001de126a201bcd297203b839ac1dfc6ebd005dd853"
+      },
+      "licenses/mame-segapcm/LICENSE": {
+        "bytes": 1536,
+        "sha256": "90f2e4f538108c6004c13fb752c70eba8f5dcb6075289d9cab39edefd870f820"
+      },
+      "licenses/mame-wonderswan/LICENSE": {
+        "bytes": 1574,
+        "sha256": "28c9517f09fd60cf3b5152646b49bd12bcb5491624e5e4c93d8839b981ff01e9"
+      },
+      "licenses/nuked-opn2/LICENSE": {
+        "bytes": 26526,
+        "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+      },
+      "licenses/snes-spc/LICENSE": {
+        "bytes": 26526,
+        "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+      },
+      "licenses/tetorica_sega_psg/LICENSE": {
+        "bytes": 1517,
+        "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+      },
+      "licenses/tetorica-msm5205/LICENSE": {
+        "bytes": 1617,
+        "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
+      },
+      "msfa_dx7/LICENSE": {
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "sources/LICENSE": {
+        "bytes": 1517,
+        "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+      },
+      "sources/native/cdda/LICENSE": {
+        "bytes": 1517,
+        "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+      },
+      "sources/native/msm5205/LICENSE": {
+        "bytes": 1617,
+        "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
+      },
+      "sources/third_party/libvgm-pokey/LICENSE": {
+        "bytes": 1587,
+        "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583"
+      },
+      "sources/third_party/mame-32x-pwm/LICENSE": {
+        "bytes": 1513,
+        "sha256": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6"
+      },
+      "sources/third_party/nuked-opn2/LICENSE": {
+        "bytes": 26526,
+        "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+      },
+      "sources/third_party/snes-spc/LICENSE": {
+        "bytes": 26526,
+        "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+      },
+      "sources/third_party/tetorica_sega_psg/LICENSE": {
+        "bytes": 1517,
+        "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+      },
+      "licenses/tetorica-nes/LICENSE-FDS": {
+        "bytes": 1062,
+        "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce"
+      },
+      "sources/third_party/tetorica-nes/LICENSE-FDS": {
+        "bytes": 1062,
+        "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce"
+      },
+      "licenses/tetorica-nes/LICENSE-JSNES": {
+        "bytes": 10758,
+        "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+      },
+      "sources/third_party/tetorica-nes/LICENSE-JSNES": {
+        "bytes": 10758,
+        "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+      },
+      "tetorica_ym2608_adpcm_rom.bin": {
+        "bytes": 8192,
+        "sha256": "c33441f88d712f2864a33a962a88ae5800d2c5a5df418a8a345f2532cecb7704"
+      },
+      "licenses/fixnes-fds/upstream/audio_fds.c": {
+        "bytes": 7799,
+        "sha256": "c264925ba2c2f9a9d1389750a5023b217ec13b3ecd9212bf6443de9faa299590"
+      },
+      "sources/native/cdda/cdda_pcm.c": {
+        "bytes": 5021,
+        "sha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb"
+      },
+      "sources/native/cdda/cdda_wasm.c": {
+        "bytes": 1954,
+        "sha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012"
+      },
+      "sources/native/msm5205/msm5205_pcm.c": {
+        "bytes": 6720,
+        "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be"
+      },
+      "sources/native/msm5205/msm5205_wasm.c": {
+        "bytes": 2191,
+        "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471"
+      },
+      "sources/wasm/nuked_opn2_wasm.c": {
+        "bytes": 4618,
+        "sha256": "85cb336960d5bfbff1265268f732a48a426ecb943810e0165a1bbb1750839115"
+      },
+      "sources/third_party/libvgm-pokey/upstream/pokey.c": {
+        "bytes": 41726,
+        "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9"
+      },
+      "sources/third_party/nuked-opn2/ym3438.c": {
+        "bytes": 39696,
+        "sha256": "8fa385546f0f2d1c975d097002af00cd729ae2ae097c068e9c883ce08ddf3a76"
+      },
+      "sources/third_party/snes-spc/snes_spc/dsp.cpp": {
+        "bytes": 2600,
+        "sha256": "80b7ff9f2f7ab4af0485c5faaa3dc333359a8892c63b996a3448c047bad62bb6"
+      },
+      "sources/third_party/mame-32x-pwm/upstream/mega32x.cpp": {
+        "bytes": 55449,
+        "sha256": "17490105d503cb3229090639debd80a31acc400221085ddddb32145b16ead91a"
+      },
+      "sources/third_party/tetorica-nes/nes_core.cpp": {
+        "bytes": 32166,
+        "sha256": "6658f4012eeac783ea72693b2284dd150dcb2e22a1f29859b83e1ae3d333f959"
+      },
+      "sources/wasm/nesapu_wasm.cpp": {
+        "bytes": 2389,
+        "sha256": "49f5f980b5685fc4b3878369e367700e37fbf143db4930765ab347a702d7e105"
+      },
+      "sources/wasm/pokey_wasm.cpp": {
+        "bytes": 1101,
+        "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df"
+      },
+      "sources/third_party/libvgm-pokey/pokey.cpp": {
+        "bytes": 37305,
+        "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96"
+      },
+      "sources/wasm/pwm32x_wasm.cpp": {
+        "bytes": 4159,
+        "sha256": "9ed05d4cab51ad0565d0a9f1da96e97e204007660482e567938f1c0f003d24bb"
+      },
+      "sources/wasm/segapsg_wasm.cpp": {
+        "bytes": 1392,
+        "sha256": "4ce18ea3f2167d6c0b81abc809948bd21f7a540fbe6aa50ef6f5db1961c97e8e"
+      },
+      "sources/third_party/tetorica_sega_psg/segapsg.cpp": {
+        "bytes": 7819,
+        "sha256": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e"
+      },
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC_misc.cpp": {
+        "bytes": 9468,
+        "sha256": "d89d85fd584299360eb304219658f2b92121b5dd4e8a4089e1e7d4806c1a8d3e"
+      },
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC_state.cpp": {
+        "bytes": 3676,
+        "sha256": "6af18978d82617f12b9830b87e06dd6c27f772b78de9d18a8ebbdf38d93309d2"
+      },
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC.cpp": {
+        "bytes": 17737,
+        "sha256": "3d235748b0c520a000263b8098305061673b405754c900a94b9545991628533f"
+      },
+      "sources/third_party/snes-spc/snes_spc/SPC_DSP.cpp": {
+        "bytes": 26250,
+        "sha256": "ec2ad75d60192fd1d03c63b5fea25874f96ec1beade45d6cecbd08277f35c9fc"
+      },
+      "sources/third_party/snes-spc/snes_spc/SPC_Filter.cpp": {
+        "bytes": 1768,
+        "sha256": "34c6ab92475d5fd700c3e01bff7d2fe8e59f8d188a0719c1ad12141d905f62e8"
+      },
+      "sources/wasm/spc_wasm.cpp": {
+        "bytes": 15355,
+        "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77"
+      },
+      "sources/third_party/snes-spc/snes_spc/spc.cpp": {
+        "bytes": 4212,
+        "sha256": "0f6bf884f2d6ef5728d8bb3fc277ff1e1bf74813251d8308f4e6d3aa1e33ec1f"
+      },
+      "sources/third_party/snes-spc/snes_spc/blargg_common.h": {
+        "bytes": 5205,
+        "sha256": "4bc17a19fe46de2860868d3f88c037aee718b4dedc61450a28de3d1336053dba"
+      },
+      "sources/third_party/snes-spc/snes_spc/blargg_config.h": {
+        "bytes": 620,
+        "sha256": "b318cfcd2828719d8e3435e4972bc75ba82697c2cc6b8d291130d66d7b6904b8"
+      },
+      "sources/third_party/snes-spc/snes_spc/blargg_endian.h": {
+        "bytes": 6364,
+        "sha256": "97062e15b46e1347a4fc2e95fd131bcb89c1b8947b28d20a27c1f342a387d637"
+      },
+      "sources/third_party/snes-spc/snes_spc/blargg_source.h": {
+        "bytes": 3037,
+        "sha256": "bd6b376d6d9b1bccce3b89e915b1ad9a6fede7d43b273258bfa13c3855fb1a6a"
+      },
+      "sources/native/cdda/cdda_pcm.h": {
+        "bytes": 2890,
+        "sha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6"
+      },
+      "sources/src/chip_state.h": {
+        "bytes": 521,
+        "sha256": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1"
+      },
+      "sources/third_party/snes-spc/snes_spc/dsp.h": {
+        "bytes": 2512,
+        "sha256": "ac61fc96a688ce7429942a76562b0ce8cfb014f84c2c2398ef875b0f33521c2b"
+      },
+      "sources/third_party/mame-32x-pwm/upstream/mega32x.h": {
+        "bytes": 8280,
+        "sha256": "fcb83da0eda963035d444eca408e1bc870a0eb723277db7c38219d6aa2348c0a"
+      },
+      "sources/native/msm5205/msm5205_pcm.h": {
+        "bytes": 3618,
+        "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9"
+      },
+      "sources/third_party/tetorica-nes/nes_core.h": {
+        "bytes": 2163,
+        "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31"
+      },
+      "sources/third_party/libvgm-pokey/pokey.h": {
+        "bytes": 1573,
+        "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0"
+      },
+      "sources/wasm/pwm32x_core.h": {
+        "bytes": 5581,
+        "sha256": "5ad3e58e1d0133d676ffcc2e332840fb57f19d97cc52b6302b1914b084b8927c"
+      },
+      "sources/third_party/tetorica_sega_psg/segapsg.h": {
+        "bytes": 2156,
+        "sha256": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e"
+      },
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC.h": {
+        "bytes": 9033,
+        "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae"
+      },
+      "sources/third_party/snes-spc/snes_spc/SPC_CPU.h": {
+        "bytes": 24078,
+        "sha256": "8f28ed5a3461cbf85c64c6a8ecdb6f51b486396e37940e112b94748b44c3a7a8"
+      },
+      "sources/third_party/snes-spc/snes_spc/SPC_DSP.h": {
+        "bytes": 8413,
+        "sha256": "736ac067d04e38bd1bc888c8e06799579a35fa14c9879f7c7ab7b69c6b085f8a"
+      },
+      "sources/third_party/snes-spc/snes_spc/SPC_Filter.h": {
+        "bytes": 1065,
+        "sha256": "a86f33de7fbaa1d448de8e3879c4619e1d9a30a494c5a9606d682cee8dd89bb9"
+      },
+      "sources/third_party/snes-spc/snes_spc/spc.h": {
+        "bytes": 4758,
+        "sha256": "e45c8e2862f44a23804bb6fe14c747e16f49efc2e991a92138d285c36b45e0c7"
+      },
+      "sources/third_party/nuked-opn2/ym3438.h": {
+        "bytes": 5196,
+        "sha256": "8e60e35f77049d0e600ad1a47bfc3dfc8b832483e614104473a83c1f33cd7189"
+      },
+      "adpcm_b_sample.js": {
+        "bytes": 7109,
+        "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+      },
+      "audio_decode.js": {
+        "bytes": 1955,
+        "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+      },
+      "audio-diagnostic-worklet.js": {
+        "bytes": 4819,
+        "sha256": "55214aaa2bd7b3f971a8c25b6a44561df822f73c498c8209f9bd8e227d2abfc9"
+      },
+      "generated/ay8910_wasm.js": {
+        "bytes": 12113,
+        "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+      },
+      "ay8910.js": {
+        "bytes": 6210,
+        "sha256": "9682007689d87b7cdf27b138f269e8c5c4fb478df909cac95a4dc80ce88267e6"
+      },
+      "ay8910audioengine.js": {
+        "bytes": 5399,
+        "sha256": "2670a42959292567012f95d9693ca798d44fc6eb68e65a7aafa28b96089b1302"
+      },
+      "ay8910synth.js": {
+        "bytes": 12899,
+        "sha256": "30fd1bdd4406162e6539136597237db3f79a4093a56e4b86b94ac9c05e13a031"
+      },
+      "bitcrusher-worklet.js": {
+        "bytes": 3444,
+        "sha256": "782a8c0f015770792f7226f3d6a874c23e067ecf8665337244baa5872b3d52d9"
+      },
+      "msfa_dx7/src/browser.js": {
+        "bytes": 7556,
+        "sha256": "b614e4a7d6483d2393359ff6f06017d27cfd1878f241af82c84481cd62366af9"
+      },
+      "cdda_audio.js": {
+        "bytes": 3808,
+        "sha256": "1c994e3b9ddf6d6e45772555546c2693a052f45e9a3df2c419907fc1dfa3cae1"
+      },
+      "cdda_native.js": {
+        "bytes": 2687,
+        "sha256": "7617bbd841b3881189472d90ca192fb6c0f59946a389cc191bffc1388dfff037"
+      },
+      "cdda_offline.js": {
+        "bytes": 10519,
+        "sha256": "c12d87784416f6676aee79ef2e1f9cf34dbb15dccb1788f133a1da233953e5f0"
+      },
+      "cdda_pcm.js": {
+        "bytes": 5662,
+        "sha256": "b2a68f40f6000a3dad1bda4eb55ceb5ad8534d16f725d183d65990ab4dcd4500"
+      },
+      "cdda_player.js": {
+        "bytes": 4941,
+        "sha256": "e5422a26c8171d686484eb45572b49b440d6ac10bf9bbc57977e1339239e4cb4"
+      },
+      "cdda_source.js": {
+        "bytes": 11833,
+        "sha256": "4c1bb3f1d1deedd01a9e0856fe0513422741a7b6f81ad9047720ace5d5d05d30"
+      },
+      "generated/cdda_wasm.js": {
+        "bytes": 304,
+        "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f"
+      },
+      "cdda_worklet.js": {
+        "bytes": 4807,
+        "sha256": "42a1768718df86ca336670125b0369f26149f6ea98fdb96f71f4c9745312eb24"
+      },
+      "nes_apu_vendor/channel-dm.js": {
+        "bytes": 6890,
+        "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+      },
+      "nes_apu_vendor/channel-noise.js": {
+        "bytes": 3592,
+        "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+      },
+      "nes_apu_vendor/channel-square.js": {
+        "bytes": 5728,
+        "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+      },
+      "nes_apu_vendor/channel-triangle.js": {
+        "bytes": 3615,
+        "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+      },
+      "chip_pcm_renderer.js": {
+        "bytes": 2901,
+        "sha256": "2f6a0c12777d11be5d68d6e597aca0bbdfde838596888fc283b08c095465f4d2"
+      },
+      "chip_worklet_transport.js": {
+        "bytes": 15460,
+        "sha256": "a7d1e5634cdf9baeb702cf069ef805a00c6a479951a90825f3a557c8dc31893a"
+      },
+      "custom_fx.js": {
+        "bytes": 5764,
+        "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+      },
+      "msfa_dx7/src/dx7-worklet.js": {
+        "bytes": 4461,
+        "sha256": "093d347abae7cc9d91ff946555ca8b2753f0a7afc5e729e13e2d408823b09425"
+      },
+      "fds_audio.js": {
+        "bytes": 5112,
+        "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+      },
+      "generated/gameboy_apu_wasm.js": {
+        "bytes": 11497,
+        "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+      },
+      "gameboy_runtime_synth.js": {
+        "bytes": 9610,
+        "sha256": "1ebaddef0aa5bd1986c5e2e20d4de2eccd8647ef7bd309457bacdf27eaf9f970"
+      },
+      "gameboyapu.js": {
+        "bytes": 7082,
+        "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+      },
+      "gameboyapuaudioengine.js": {
+        "bytes": 5590,
+        "sha256": "a442b51b4a5f2b85bde2a1d7b012861d789c14c7255853517d4e72f60b982da2"
+      },
+      "gameboysynth.js": {
+        "bytes": 13903,
+        "sha256": "762e227143aa264208d239479ed6376ab39d3b5fb6cdb05d7ad1f8ac6f9dfcf4"
+      },
+      "genesisaudioengine.js": {
+        "bytes": 14608,
+        "sha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9"
+      },
+      "generated/huc6280_wasm.js": {
+        "bytes": 13612,
+        "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f"
+      },
+      "huc6280audioengine.js": {
+        "bytes": 6235,
+        "sha256": "f15ec898f788104937bb68c61a915390af5aa9ffd22a8afdbc022640493e390d"
+      },
+      "huc6280synth.js": {
+        "bytes": 11417,
+        "sha256": "f46a04311244f011c30a45c381f91af433c1e15c6016106586eb468a6c605a8b"
+      },
+      "msfa_dx7/src/index.js": {
+        "bytes": 9199,
+        "sha256": "5fcf0cadc460510afc16e64d7ee93b91d4affaf545ee14b3ae35fa17e0173be5"
+      },
+      "nes_apu_vendor/index.js": {
+        "bytes": 31024,
+        "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+      },
+      "generated/k051649_wasm.js": {
+        "bytes": 11133,
+        "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7"
+      },
+      "k051649.js": {
+        "bytes": 5704,
+        "sha256": "8424ef387d15bb3a7385151b968227376f7def4f969e55857ed001fd62186711"
+      },
+      "k051649audioengine.js": {
+        "bytes": 4627,
+        "sha256": "d0bca6e687ae764128281fe8b6f4a6bf337585b5467af0c01b884638967cdfa3"
+      },
+      "looper.js": {
+        "bytes": 24025,
+        "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+      },
+      "megasynth_fx.js": {
+        "bytes": 62352,
+        "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+      },
+      "megasynth_looper.js": {
+        "bytes": 276,
+        "sha256": "be050452dee7be77eeb69c2b411aa657193d51e6c38fcc5e182cb8317ea68af9"
+      },
+      "megasynth_offline.js": {
+        "bytes": 9190,
+        "sha256": "cbd1078e72cc65f5b51aeaf5010eec980679ffc1f9bf606f60a58e0be0802d14"
+      },
+      "megasynth_pcm_looper.js": {
+        "bytes": 3610,
+        "sha256": "b602ca2e7732eb2df40cd23930c39d091c1f4896a1dd694ed90e037a5496655e"
+      },
+      "megasynth_recording.js": {
+        "bytes": 10125,
+        "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+      },
+      "megasynth_session.js": {
+        "bytes": 10752,
+        "sha256": "5385f3f982e48228a662d37367bc5ee787f4747be452e27ac10e866fb59e9cdd"
+      },
+      "megasynth-fm-presets.js": {
+        "bytes": 6954,
+        "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+      },
+      "megasynth.js": {
+        "bytes": 33137,
+        "sha256": "e6caa4570009beb2bed66377ac7254fe1ae872aed5a0880620fe653dd459adb2"
+      },
+      "midi_file.js": {
+        "bytes": 5332,
+        "sha256": "09d44d1efc1cc805b15607574743cce0110c3e5472ce44f839ca94a4341e9f1c"
+      },
+      "midi_song.js": {
+        "bytes": 6966,
+        "sha256": "d86a06c6a37f57869fd11156a5ed5ebee5f093d8a01daf6430ac5c9499e99bb6"
+      },
+      "midi_source.js": {
+        "bytes": 12150,
+        "sha256": "68eecff59c0d88f11165873cebfc041955a45db311d858d045552092cfbfaca7"
+      },
+      "msm5205_audio.js": {
+        "bytes": 3837,
+        "sha256": "f052987f65a28e3b0627f3fe440151b807a6564b26b6e69b679d52fa3f4e0c1d"
+      },
+      "msm5205_native.js": {
+        "bytes": 2905,
+        "sha256": "388b7b39cfac9434a5c6ed3ce8a4008265d4a81d7dd75587fa8e003e5903e381"
+      },
+      "msm5205_pcm.js": {
+        "bytes": 5417,
+        "sha256": "cf9da06e6f6501425766abc18bc9b91c6f73dccc9f31a474fce59a30c6abcc73"
+      },
+      "msm5205_player.js": {
+        "bytes": 4617,
+        "sha256": "6a6cb90cd902e456893969560033faedc8de5ae7e95d8f7f7e995b241af2c683"
+      },
+      "msm5205_sample.js": {
+        "bytes": 7476,
+        "sha256": "35a8372f052ce36fb82f662f976a2ef9dee28c3c0a7c9d54e685cd3046fe3a92"
+      },
+      "generated/msm5205_wasm.js": {
+        "bytes": 317,
+        "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950"
+      },
+      "msm5205_worklet.js": {
+        "bytes": 4978,
+        "sha256": "1e4796147e5303c68e58502f78f0970980f21f96743f5f1d5885dd984412c5b0"
+      },
+      "msm5205audioengine.js": {
+        "bytes": 3560,
+        "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5"
+      },
+      "msxaudioengine.js": {
+        "bytes": 7667,
+        "sha256": "2f7663f1eacd8f206d18e3b49878d1825d6da764bd102ff8656400ede00780b4"
+      },
+      "multichipaudioengine.js": {
+        "bytes": 4698,
+        "sha256": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b"
+      },
+      "native_fx_engine.js": {
+        "bytes": 7041,
+        "sha256": "2e291a2213e6cb0f59c17804b1c937f2538608817cb367fda84bf230f4e0fca5"
+      },
+      "native_fx_graph.js": {
+        "bytes": 3612,
+        "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+      },
+      "native_fx_rack.js": {
+        "bytes": 2088,
+        "sha256": "31aa4d947975238e59147f30a76c49f9e0956b28f00222e222b49f9f5c801e6d"
+      },
+      "native_fx.js": {
+        "bytes": 7922,
+        "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+      },
+      "native_genesis_console.js": {
+        "bytes": 13006,
+        "sha256": "8f5a2d3ef443383ccaeab7ed4979b7826a3a3ffe11273373311d9ffc08a1f268"
+      },
+      "native_genesis_dx7.js": {
+        "bytes": 13762,
+        "sha256": "7c2a0b3355da5f916488aeaed11c26cf2f381519800db00173a8f908a6a80f60"
+      },
+      "native_genesis_extra_ay8910.js": {
+        "bytes": 2482,
+        "sha256": "a94bc6f81617206ff3dc1d27f3dab996ad1a15c94f50ca30d51933996e93eb80"
+      },
+      "native_genesis_extra_chip.js": {
+        "bytes": 6628,
+        "sha256": "ecba9637c2145f0485accbfe74aecefd27d6100f65193d627e76f079680247c8"
+      },
+      "native_genesis_extra_dx7.js": {
+        "bytes": 15392,
+        "sha256": "f512a1357a8352c9927684117b8691d6dbe6158e5bf23e2394ce5485e023c3d8"
+      },
+      "native_genesis_extra_gameboy.js": {
+        "bytes": 13407,
+        "sha256": "1704df6845a39fd3e745ecc48689723064d0bf7948b7c8866f31312f9f9baba9"
+      },
+      "native_genesis_extra_huc6280.js": {
+        "bytes": 13299,
+        "sha256": "fc5292b205e1103b5926341936301029aedd2a82204965a2a0d887363ef0233e"
+      },
+      "native_genesis_extra_nes.js": {
+        "bytes": 16734,
+        "sha256": "86e3b360e447a48011dec5f25881043e1879ee720fed6945854ceaf5a50ae8bc"
+      },
+      "native_genesis_extra_okim6258.js": {
+        "bytes": 15072,
+        "sha256": "c1e27dffcb19adcb80ac3d9750f6a0045b893f0a5016a0b02e3b6ee1794eb43c"
+      },
+      "native_genesis_extra_opl.js": {
+        "bytes": 10120,
+        "sha256": "dc3000eb321bbccce2ab123f7603ba62976da2ea674f32d8c8152ad7fe5f536d"
+      },
+      "native_genesis_extra_pokey.js": {
+        "bytes": 16038,
+        "sha256": "d95f8f1654a0888b4b8c8801e5eebc9e08e866e9b8308dcc74bf4a470cafb343"
+      },
+      "native_genesis_extra_pwm.js": {
+        "bytes": 9821,
+        "sha256": "67f2d128097c6eedeff507fc24d31891b19962fe3fff09b3cf3fd7c25fce9fd3"
+      },
+      "native_genesis_extra_register_voice.js": {
+        "bytes": 19454,
+        "sha256": "b03763c38b8ad52aa0e23ea61fe1add7862a214e8833d32ab309c270843c2375"
+      },
+      "native_genesis_extra_rf5c164.js": {
+        "bytes": 16119,
+        "sha256": "8b86e1f0f8c74b2502e4531a96039e2465b95d51b391ec3934e4e230fe62f262"
+      },
+      "native_genesis_extra_segapsg.js": {
+        "bytes": 766,
+        "sha256": "2cb4f0feebeb15ed83aac283bf9b72b460689782e728accd0f01c094fd3e46de"
+      },
+      "native_genesis_extra_snes.js": {
+        "bytes": 22135,
+        "sha256": "f850840bc2a1f5399dba76d0ea32c8335c022ba8ad7abbbcc7dc1337d0bf5d63"
+      },
+      "native_genesis_extra_spc.js": {
+        "bytes": 17228,
+        "sha256": "3276db5df50b2b528fed3653c643e9f50a12d1d53ff5999a802683f86d6915e9"
+      },
+      "native_genesis_extra_wonderswan.js": {
+        "bytes": 537,
+        "sha256": "2ab615129e6aba57703ccb3e7fa8b9ab4da062f3045c155592120d6b6c65d561"
+      },
+      "native_genesis_extra_ym2151.js": {
+        "bytes": 9080,
+        "sha256": "ea79c79c07188dc37cb64af059057d8a70384507fcb903d0b082bc4fbb215216"
+      },
+      "native_genesis_extra_ym2203.js": {
+        "bytes": 20159,
+        "sha256": "455d4539dfe5386aa0a37490807efcb4412288d7b22f8a82bf743240b4829733"
+      },
+      "native_genesis_extra_ym2413.js": {
+        "bytes": 2478,
+        "sha256": "0487ad9f63502a7a08aa9def2bb6d796b0f66d0b381b9bddc66879dc6c68db75"
+      },
+      "native_genesis_extra_ym2608.js": {
+        "bytes": 28349,
+        "sha256": "007b7b0c6898cf974431cdf233f2a83c741a5dc5d0e3883c0ae3685514e9c2ef"
+      },
+      "native_genesis_extra_ym2610.js": {
+        "bytes": 20069,
+        "sha256": "a1690bfb2a119308331fe0066bc103e5823e139b0c37815b88ccabce6e0f2251"
+      },
+      "native_genesis_extra_ym2612.js": {
+        "bytes": 13319,
+        "sha256": "c81c006d71ba7871832f0e63fd5c1da350422fd4f95726386157d6dd268b6240"
+      },
+      "native_genesis_fx.js": {
+        "bytes": 863,
+        "sha256": "917dd7dd431a553e798de9f36affe772d51fac7c9aa01209caa9341577adba4f"
+      },
+      "native_genesis_game_gear.js": {
+        "bytes": 553,
+        "sha256": "d345448abe91bf8bccf08447b6d93ed5340da02f2ad90e9ccfdd16e24fd849ca"
+      },
+      "native_genesis_livefx.js": {
+        "bytes": 5891,
+        "sha256": "bac52d6a63bcafe48086cb69959d006285e578473f6d4900adfca1b3d065716b"
+      },
+      "native_genesis_master_system.js": {
+        "bytes": 615,
+        "sha256": "e640aa40dfe55529606f2dc34bd0653194adf52e57718331c4bbefe5f69ce7e9"
+      },
+      "native_genesis_media.js": {
+        "bytes": 17764,
+        "sha256": "c8f6925a08e2671689c1204f780a21f0963bafaed218736f995288198e99316d"
+      },
+      "native_genesis_monitor.js": {
+        "bytes": 3923,
+        "sha256": "611f58692af8da6f71f2195acab74bba1d21c1bf37a5592004ac2fd623f9490e"
+      },
+      "native_genesis_msx_audio.js": {
+        "bytes": 397,
+        "sha256": "1ad6b0e6e871cf5b441e4041a34122cf8859eba19a07d33e0f8608f03c26ad39"
+      },
+      "native_genesis_msx.js": {
+        "bytes": 5704,
+        "sha256": "ef6ea26f5de0efa6eea3ca4c82df65adf973198c323632e28a540387db743737"
+      },
+      "native_genesis_nes.js": {
+        "bytes": 12332,
+        "sha256": "c4aaa556c7d3d749eab069e2dea1f837dd3940315bc42ece2d14cb232798b349"
+      },
+      "native_genesis_noise.js": {
+        "bytes": 5379,
+        "sha256": "92949c736bb44e4a1a577d562cc95bd8ad3bf62ed72e79c892bf48fe6a76a86c"
+      },
+      "native_genesis_opl.js": {
+        "bytes": 11655,
+        "sha256": "936d6f4e706ad6b5b10f8cdbcdd92799eb8bfd37700fed16bb6f258040a847bc"
+      },
+      "native_genesis_opll.js": {
+        "bytes": 5105,
+        "sha256": "7419357cc7451b53bd1a18f782a6e78cef3470a3656d521ddf86e9e3310fbf49"
+      },
+      "native_genesis_pokey.js": {
+        "bytes": 2618,
+        "sha256": "1b1c4f3eeb50751eb979f237a9d948f03e567db257c53702d3b2c9993b3842ed"
+      },
+      "native_genesis_pwm.js": {
+        "bytes": 7445,
+        "sha256": "cbb0830c5d2b49c598aa5f85ae1ca4089ef3ca53b8d854e1a9cb9c1f081b65ff"
+      },
+      "native_genesis_rf5c164.js": {
+        "bytes": 10856,
+        "sha256": "a7fe23e7c5f1b439acfb0fda2a7783963c0fac73b20dc413b524afc9f54b22cc"
+      },
+      "native_genesis_segapsg.js": {
+        "bytes": 6491,
+        "sha256": "0109b7dace6065345d6437faea36903fc40c3b80b00e1a79210ee9783f7be56b"
+      },
+      "native_genesis_snes.js": {
+        "bytes": 13408,
+        "sha256": "0079699012115273dca95e975a245db0ca6eaaf4439700e9b7a5e20f990218df"
+      },
+      "native_genesis_synth.js": {
+        "bytes": 78116,
+        "sha256": "bd6c4b4be74552ce4c4061b4893090b234edecc379f0a541635641e410165f75"
+      },
+      "native_genesis_voice_endpoint.js": {
+        "bytes": 7557,
+        "sha256": "d8b472cb6c797cf3bc81b3ab7fb37f19a903732e53f97ef8bfc4e15369c961be"
+      },
+      "native_genesis_wonderswan.js": {
+        "bytes": 17601,
+        "sha256": "caf1f879669d2b519714698831d7e9e25e9dd8a602d59406b9a1fce405e54dfa"
+      },
+      "native_genesis_worker.js": {
+        "bytes": 16113,
+        "sha256": "f2c062a77768c61105412517216884f44684dbc8392ee715ca708555b19866a7"
+      },
+      "native_genesis_x68000.js": {
+        "bytes": 22299,
+        "sha256": "fa7d3eb90d54659b79a0d7a67a6a342143dd47e1519ddb89ca454c76a447ccd6"
+      },
+      "native_genesis_y8950_inspector.js": {
+        "bytes": 2377,
+        "sha256": "5c521874dc2ecb3909f3940968b22e06f3eb1c25aa3adef226dac719adeb76bb"
+      },
+      "native_genesis_ym2203.js": {
+        "bytes": 13450,
+        "sha256": "ec04140de8705c2bd8443cf25c69c68ce40a8d4b6fb1cf605038dbffe50af382"
+      },
+      "native_genesis_ym2608.js": {
+        "bytes": 18291,
+        "sha256": "4124c5a46e6c5e8b559e62e3820559051eb2165e5b2d04686af74ee6a2b79bf0"
+      },
+      "native_genesis_ym2610b.js": {
+        "bytes": 20689,
+        "sha256": "f9e2882c093c97feb1dd465d7988963e3c1116929dd60e74bf332b2f0424d217"
+      },
+      "native_livefx_context.js": {
+        "bytes": 8401,
+        "sha256": "2bf0d1eacceceea2932304505b2c68d01b8d1be174a93a09d0af7432361318f1"
+      },
+      "native_noise.js": {
+        "bytes": 4209,
+        "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+      },
+      "native_runtime_synth.js": {
+        "bytes": 18618,
+        "sha256": "1b73de1d0731907765f23e5ee3635d76ef88d66fc10fca889b1cf5768defeba6"
+      },
+      "native_sample_processor.js": {
+        "bytes": 4443,
+        "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+      },
+      "native_sample.js": {
+        "bytes": 3627,
+        "sha256": "9676779755cdc947241821f971aeef3b033e59c781d8e523ef5ef46b051df43c"
+      },
+      "native-fx-worklet.js": {
+        "bytes": 8763,
+        "sha256": "3ecde22e631af4c6dccb06018efc59773944531b78f98988f9dba6e93efd35b6"
+      },
+      "generated/nesapu_wasm.js": {
+        "bytes": 16041,
+        "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+      },
+      "nesapu_wasm.js": {
+        "bytes": 9222,
+        "sha256": "8e8e189e9cd44d790e829e079e1174c6021ffb429f97f798cef777c2f2ce857d"
+      },
+      "nesapu.js": {
+        "bytes": 4072,
+        "sha256": "40310717d0f0a75b4bdb1a3d20e5350eb1274a67c406fad0eeff9e8a188aba55"
+      },
+      "nesapuaudioengine.js": {
+        "bytes": 5704,
+        "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+      },
+      "nesapusynth.js": {
+        "bytes": 15083,
+        "sha256": "29e45e817b0d419ef875a537333802516bcf508103161d08a6f07d1ece01bde6"
+      },
+      "generated/nuked_opn2_wasm.js": {
+        "bytes": 32804,
+        "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+      },
+      "generated/okim6258_wasm.js": {
+        "bytes": 14797,
+        "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+      },
+      "okim6258audioengine.js": {
+        "bytes": 8160,
+        "sha256": "8127100494801bdf63a5f3b454f7d2a07029eaeead69da8bd1c369ddad9b1d2b"
+      },
+      "okim6258synth.js": {
+        "bytes": 14629,
+        "sha256": "1f788ddec663ad5a8be72823f6d50a69e8e024146f14990dcc01ba7fdcdf8bda"
+      },
+      "okim6295audioengine.js": {
+        "bytes": 6878,
+        "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2"
+      },
+      "opl_synth.js": {
+        "bytes": 20452,
+        "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+      },
+      "opn_fm_synth.js": {
+        "bytes": 25209,
+        "sha256": "bbcfcdb66e495f0733752d4c673b6dd98e321ba4a2fb9f743ff451eb7238a558"
+      },
+      "opn_fm_vgm.js": {
+        "bytes": 4213,
+        "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+      },
+      "opn_runtime_synth.js": {
+        "bytes": 11895,
+        "sha256": "12484bfc9da7030da1876214293dfa005ebf807dbb801b0d4628a80cad8b835e"
+      },
+      "opn_ssg_retained.js": {
+        "bytes": 1083,
+        "sha256": "ae6abb99646ab5efdd48c5236f04b7e7dfac09480062f77d432c6619a5903239"
+      },
+      "opn_variant_synth.js": {
+        "bytes": 1526,
+        "sha256": "be8bdd25066471b998937729a946cb5f05cbb8f1976fa2645598d3fd3c449b70"
+      },
+      "opn_variant.js": {
+        "bytes": 4826,
+        "sha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16"
+      },
+      "package_assets.js": {
+        "bytes": 696,
+        "sha256": "5b4e82a6c62918c76f1417a59aa1cf3f65e9c7bfdf6bc02eb92f302e5041d2f6"
+      },
+      "pitch.js": {
+        "bytes": 1888,
+        "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+      },
+      "playground_async_tasks.js": {
+        "bytes": 2223,
+        "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+      },
+      "playground_audio_endpoint.js": {
+        "bytes": 2002,
+        "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+      },
+      "playground_audio_scheduler.js": {
+        "bytes": 2799,
+        "sha256": "7ccc762cccce700ef496a764e8970ae21b0d97fd653c9611d885554f28aeeca8"
+      },
+      "playground_audition_guard.js": {
+        "bytes": 6373,
+        "sha256": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310"
+      },
+      "playground_ay8910_audio.js": {
+        "bytes": 4531,
+        "sha256": "6a340736ccf5cb0add10834d71328cc070fbb89bcb700f24e972e580fcbb9695"
+      },
+      "playground_ay8910_inspector.js": {
+        "bytes": 4539,
+        "sha256": "417e1f52c5405458ad5b67febdd3624142c55976cf58e5e74236525624d30297"
+      },
+      "playground_ay8910_worklet.js": {
+        "bytes": 7095,
+        "sha256": "aa4c3209e67d118f4dced9e4c11d02a0c6be61f4ca15d4419a82402b118884e5"
+      },
+      "playground_ay8910.js": {
+        "bytes": 3658,
+        "sha256": "d915d2c438b0d981073972eabb65b5fd9ffe4f26822a4bf3ebb7f215e8a38db3"
+      },
+      "playground_chip_clock.js": {
+        "bytes": 5232,
+        "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc"
+      },
+      "playground_chip_inspector_state.js": {
+        "bytes": 13049,
+        "sha256": "89a5f4c62defa490d5fd1603af0baeb763dcb00c319ea377714ada92cd350d9e"
+      },
+      "playground_chip_inspector.js": {
+        "bytes": 8668,
+        "sha256": "b9aac468b656c0ca04aae2b8f4fd968a0c3f55e452158b247d66d866b6913dc6"
+      },
+      "playground_chip_port.js": {
+        "bytes": 2698,
+        "sha256": "d0a569b419552f7e6de36dd8b9732ab452d5e7daf141d5f2fe0cedfa66283591"
+      },
+      "playground_clock.js": {
+        "bytes": 19367,
+        "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+      },
+      "playground_duration.js": {
+        "bytes": 2009,
+        "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+      },
+      "playground_dx7_audio.js": {
+        "bytes": 5703,
+        "sha256": "56eef7f0d0375c26aabfa93cdca528821df697745bd471e125f9b6e95f076555"
+      },
+      "playground_dx7_inspector.js": {
+        "bytes": 6222,
+        "sha256": "f8aae65fdf240816a4f3bc138fa43aaa4e218a6a53364eb13bf4dee5fe5ad657"
+      },
+      "playground_dx7_worklet.js": {
+        "bytes": 14346,
+        "sha256": "59c49a4ac93b7c0140b2e78c66a7df0bba087a84a1dd36ec8def2d7405f4b847"
+      },
+      "playground_dx7.js": {
+        "bytes": 10267,
+        "sha256": "5937b29957d616a2b2b63f99f3a4a11e4fe01c5ea7999fab1f90e7b3e84bac9d"
+      },
+      "playground_execution.js": {
+        "bytes": 8875,
+        "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+      },
+      "playground_gameboy_audio.js": {
+        "bytes": 1895,
+        "sha256": "c82bffe7e0b5b9cbcc083c40d40b95cf547a751fcff8624b3a46b5ac895362a7"
+      },
+      "playground_gameboy_worklet.js": {
+        "bytes": 4916,
+        "sha256": "744e3cda7a0c4e1c06c5e0cedba14382aac7e46cda1016886fa29d8a20109003"
+      },
+      "playground_gameboy.js": {
+        "bytes": 3581,
+        "sha256": "2a14b2fa6c3993a32e6903ba68a94beb63d9f768290d7c7285af3865c58afad3"
+      },
+      "playground_huc6280_audio.js": {
+        "bytes": 4049,
+        "sha256": "cf8dc2a598d8fcb43d8a3b6837f23c64f66cc6616219899b78c52e9eb0e950ac"
+      },
+      "playground_huc6280_inspector.js": {
+        "bytes": 9576,
+        "sha256": "2dd98324e3f6eebd2c3b144f57e04fc3cb71e22579905a95c5627d915c188bfb"
+      },
+      "playground_huc6280_worklet.js": {
+        "bytes": 8983,
+        "sha256": "67a416011b860ea312afa0a14d03b722aedbe7e126524a417fde1c31ce95cde8"
+      },
+      "playground_huc6280.js": {
+        "bytes": 4343,
+        "sha256": "ff21964929aa1ed0536648b09fd501f21327eecdd9cea8a5f4db449bc2cfb88b"
+      },
+      "playground_keyboard_channels.js": {
+        "bytes": 5381,
+        "sha256": "30671a69eb64b15c1440b64284ee5b749a78cabb50e6d6ece2cc478561bb4521"
+      },
+      "playground_keyboard.js": {
+        "bytes": 7290,
+        "sha256": "adfac62ea27c791390bba81feab06b82615bfdd1baa356c0bcc8cfb464699478"
+      },
+      "playground_live.js": {
+        "bytes": 14734,
+        "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+      },
+      "playground_log.js": {
+        "bytes": 842,
+        "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+      },
+      "playground_logic_worker.js": {
+        "bytes": 57670,
+        "sha256": "ee3e7e51a73374437e245001cd411687a5cbbbbac927a117eecababab0990810"
+      },
+      "playground_midi.js": {
+        "bytes": 17528,
+        "sha256": "719d4a242f696926c8986b8276ebeeba09faf96e8dd4e5c7b855490af1716f59"
+      },
+      "playground_music.js": {
+        "bytes": 11260,
+        "sha256": "42b51c82342af6632e263b32dcbf2aa5d87f16f1c717d4cb5a065cb9731e96d3"
+      },
+      "playground_native_primary.js": {
+        "bytes": 6722,
+        "sha256": "6345df4221f1291f3b8070a6c0feb44b63537ed7da86b36e31b2d61244d46b85"
+      },
+      "playground_native_sample_editor.js": {
+        "bytes": 2990,
+        "sha256": "f9be69de8907b55394f52f7e7b651e62cf2735275777484a79764c0d8274d935"
+      },
+      "playground_native_voice_inspector.js": {
+        "bytes": 19808,
+        "sha256": "173deb4fd1e7e35b8d9ec286298779a35424a87e35b69ea38e60acf54c25f045"
+      },
+      "playground_nes_audio.js": {
+        "bytes": 2760,
+        "sha256": "2ff151820890d799ceb437054206bc8f5cc8880e0dbccadde6ff9fc8d1d0c8ed"
+      },
+      "playground_nes_worklet.js": {
+        "bytes": 5139,
+        "sha256": "f38c7e2ad5bb765c53a1946d0e4c7eafc8d76b31d02f52a7b334c5021fc2d0a9"
+      },
+      "playground_nes.js": {
+        "bytes": 5371,
+        "sha256": "9379cf844dadaeb772b74524aa16ecf19c7269e8b97fb87edf7be49285a3b269"
+      },
+      "playground_noise.js": {
+        "bytes": 990,
+        "sha256": "64e4608fd0af00ce8e34eaa231d43da66f584d725c7b7f26fd3c376c5999de2d"
+      },
+      "playground_okim6258_audio.js": {
+        "bytes": 4052,
+        "sha256": "369ebb07f72a0c76467bbc2cf1f2aebdfe37ff3dc319ff9e88d9bc8a18992b64"
+      },
+      "playground_okim6258_inspector.js": {
+        "bytes": 6223,
+        "sha256": "3a8629f474c992064e8f206e670d0331404f63047d46f1aad8a4546c582d2d89"
+      },
+      "playground_okim6258_worklet.js": {
+        "bytes": 5716,
+        "sha256": "202eeffbb68e6bf2c6d1aa7f8e0e44c78d45c730f13eb3c2b4ecf9a703d61b31"
+      },
+      "playground_okim6258.js": {
+        "bytes": 4713,
+        "sha256": "347625c2bb1a0ae3be8b680196e65fa953c1b2e8fd90c79df2627889c8972fd9"
+      },
+      "playground_opl_audio.js": {
+        "bytes": 4283,
+        "sha256": "e6032df6c644f8b23240825a95e96d5935a8a973f3b125a56476c0c1cbce19e6"
+      },
+      "playground_opl_inspector.js": {
+        "bytes": 8653,
+        "sha256": "a32dd2e1f31f8984e4955636350deaa3053bf7de2fa7bc2479e7afa0e4249859"
+      },
+      "playground_opl_worklet.js": {
+        "bytes": 13015,
+        "sha256": "17c04e9828592f3ce3c51c04c27deb67ad8efc375eca00e6718253a54f3a92c3"
+      },
+      "playground_opl.js": {
+        "bytes": 8836,
+        "sha256": "f32553450f8906996b4b5231e9345fefaab17414ebca58fa950c931ae0159a64"
+      },
+      "playground_opn_audio.js": {
+        "bytes": 2575,
+        "sha256": "e55526932b1b31498cd2c3d3e334a3912299f82c6c31b9d238af9d95cea119b0"
+      },
+      "playground_opn_inspector.js": {
+        "bytes": 7071,
+        "sha256": "faa5c0c8b35196ab3be94fdebeaf95a00ec49bcc75d7f5ba35c587b1bd1c527b"
+      },
+      "playground_opn_worklet.js": {
+        "bytes": 7807,
+        "sha256": "d26f70ee021c8f132169c0c172b4d5fdba38076b887f9e40166d4df997eb9f4f"
+      },
+      "playground_opn.js": {
+        "bytes": 7473,
+        "sha256": "cc4573f220030002912cb8160299078061e48009b884104c446eefd3d36d857d"
+      },
+      "playground_performance_host.js": {
+        "bytes": 3817,
+        "sha256": "10426e607006b7c136a4c327fa4ce3f76557587b3090bda9d0384de7f8cf8028"
+      },
+      "playground_performance_processor.js": {
+        "bytes": 29133,
+        "sha256": "50490a133469dd2112ffb39d6c861d427754d9866a6226377ad7d7fa39cd35dc"
+      },
+      "playground_performance_queue.js": {
+        "bytes": 9950,
+        "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+      },
+      "playground_performance_sender.js": {
+        "bytes": 9262,
+        "sha256": "f6a9c5ea0d345aa163a42dfa02d9fcb56959f0f5cbc42a34e5d828d34a273000"
+      },
+      "playground_pokey_audio.js": {
+        "bytes": 4417,
+        "sha256": "01e904988f3771e5adacb9795b3badcea69d1ad6baff4b46a6c0acd38d5b6ef4"
+      },
+      "playground_pokey_inspector.js": {
+        "bytes": 5663,
+        "sha256": "783bf8865d9ba678b9bcdf9b9d64e1927ae90e716a000dcba18bebe001e27cca"
+      },
+      "playground_pokey_worklet.js": {
+        "bytes": 17704,
+        "sha256": "6347e5f6f47d995017010c91a1dd53d0e47a6e0fa56fe1834335e1db610327e0"
+      },
+      "playground_pokey.js": {
+        "bytes": 10789,
+        "sha256": "0e2cbcad872d707e750241c981ce4e00f99cdc612c470812d64b4710fda2574b"
+      },
+      "playground_pwm_audio.js": {
+        "bytes": 2521,
+        "sha256": "79ce91247781975c8599704ce909edc01c311b58b6e25ed5582248e7291a1cff"
+      },
+      "playground_pwm_worklet.js": {
+        "bytes": 3879,
+        "sha256": "b490baced2aac257ae19e72fe92293f793018c5b8164e0ffaf18a05d23445176"
+      },
+      "playground_rf5c164_audio.js": {
+        "bytes": 2580,
+        "sha256": "39e0f023bb7fa8ce930a356039d2369f6e8e7f4eecb2a7b9fc1ae9c5ee224959"
+      },
+      "playground_rf5c164.js": {
+        "bytes": 5091,
+        "sha256": "e1850b8c36f132e8e810523cbdbce7f3fb658ddbd4653563c6e886901072f8ee"
+      },
+      "playground_runtime.js": {
+        "bytes": 153542,
+        "sha256": "f0971e184259a13ffd1e5919c8ad1d88bc2db3f123e3b26544fc8ab2e3589a9e"
+      },
+      "playground_sample_edit.js": {
+        "bytes": 17672,
+        "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+      },
+      "playground_sample_instrument.js": {
+        "bytes": 8122,
+        "sha256": "605d8f5865078fefb6067e180fcf39c464e700e2a5199aa3c310714bb3b54a55"
+      },
+      "playground_segapsg_audio.js": {
+        "bytes": 4164,
+        "sha256": "68585301e8b1a11292d340c8602ccb19b0b57580cf0c28eba1b233f72c571c31"
+      },
+      "playground_segapsg_worklet.js": {
+        "bytes": 5608,
+        "sha256": "50b5156c38f9499034686562576121d3b68070df63baf052b77481aebbea0a2a"
+      },
+      "playground_segapsg.js": {
+        "bytes": 1695,
+        "sha256": "2641d1b209648593ded734a20e74fd0e86b7ed74c3fd7e7a3066bf34bd4b11b6"
+      },
+      "playground_snes_audio.js": {
+        "bytes": 3526,
+        "sha256": "a8a9aa642d80a7e758b185e58d4def15f402b3bbc7922a15423068d0e3dd205e"
+      },
+      "playground_snes_inspector.js": {
+        "bytes": 4721,
+        "sha256": "afc1c32c0520989ad1b3795e00ab4d10e391a81088c65d117813844c29ad6f3f"
+      },
+      "playground_snes_worklet.js": {
+        "bytes": 7984,
+        "sha256": "5721eab7eae894fbf92fdc81f46c4bfeae14ace6ce97df86263210b6c5ead1e5"
+      },
+      "playground_snes.js": {
+        "bytes": 8109,
+        "sha256": "118d01cfa335a942fdc64f0c0a877a70b14087df9a52cdc849d78132af5d54c4"
+      },
+      "playground_soundchip_options.js": {
+        "bytes": 1218,
+        "sha256": "b27539a9d38951f474e425b0d27f002fee103d40906f44b02e5c9055df1c8f7c"
+      },
+      "playground_soundchips.js": {
+        "bytes": 2701,
+        "sha256": "403bef9c7816f7394fdfb25203239db79127434cb50b626bd7fb579e8127d43f"
+      },
+      "playground_spc_audio.js": {
+        "bytes": 3458,
+        "sha256": "de434b8d063433907a80872823e67cd39efb8793d42895cc58ab4fca897c66be"
+      },
+      "playground_spc.js": {
+        "bytes": 10359,
+        "sha256": "b53d7b2157cf87fc50fd3c38fe0d54108ddb0a05fecdfcc7ad02b261ac621dc0"
+      },
+      "playground_sync.js": {
+        "bytes": 6543,
+        "sha256": "431e119053a9fcee38c7aad5b1383672abcfb8709f05af1bdd0b8e58fea06d6b"
+      },
+      "playground_wonderswan_audio.js": {
+        "bytes": 3500,
+        "sha256": "c2e12dbad40017a69e1a6ac337900ee74ff577af049bc827f6efb6bbbb40bce4"
+      },
+      "playground_wonderswan_inspector.js": {
+        "bytes": 8961,
+        "sha256": "72b28320834fe15c40703bd28e12eb14be808ef87b6a7b76621405d10a231ec4"
+      },
+      "playground_wonderswan_worklet.js": {
+        "bytes": 20154,
+        "sha256": "a235d63fe3b2f5f6eb290815e8a8883846ca5b8d52f2af92d06bb5db3a6dcc63"
+      },
+      "playground_wonderswan.js": {
+        "bytes": 4283,
+        "sha256": "ca0ec003444379428b562c19d040c950a55f3ed5b15ed976e9f45fcf61b9ef9c"
+      },
+      "playground_worker_chip.js": {
+        "bytes": 10248,
+        "sha256": "1b9ac8d57d43ece5f78622aedd70fffc550a6c2014561a05f9ecc37b0d732988"
+      },
+      "playground_worker_dac.js": {
+        "bytes": 2739,
+        "sha256": "dc73ef5d97dbe853c6cf069f1ad55eeffcd412880e5ce9fe1559218f0d695261"
+      },
+      "playground_ym2151_audio.js": {
+        "bytes": 2813,
+        "sha256": "092ef95ebc1cde222ce241f16adac5488c15bbc0667cb23e11d25b52c81253b6"
+      },
+      "playground_ym2151_inspector.js": {
+        "bytes": 8611,
+        "sha256": "5032ebd1e79d4113ec9d766288a6d823fc8df0cb61ef928282862ccfbca7904e"
+      },
+      "playground_ym2151_worklet.js": {
+        "bytes": 8354,
+        "sha256": "51a5fdffa923f20b339114d65e4992deb7abbe28db0a278f33a4d5aec54f3fc8"
+      },
+      "playground_ym2151.js": {
+        "bytes": 4928,
+        "sha256": "2cd39d0c42283aed4fb0fd8ec646d081fc7f70572f7b1f26160c52a58ac3aa6d"
+      },
+      "playground_ym2413_audio.js": {
+        "bytes": 4126,
+        "sha256": "f63196165a0cf737a34b27581fd8f39255686f0068b26b31115f494245d2b13f"
+      },
+      "playground_ym2413_inspector.js": {
+        "bytes": 6180,
+        "sha256": "1f77838a0d66dfc68452b1dec47558a380c27c6a4d3aa960d079735bcc867ab7"
+      },
+      "playground_ym2413_worklet.js": {
+        "bytes": 10416,
+        "sha256": "b57d4c8ceeed3ec5066dc7d1485cb11e0dc46add7fa97e40e47af4a360be3e49"
+      },
+      "playground_ym2413.js": {
+        "bytes": 3478,
+        "sha256": "fae58e94a8ff7612e392eefac97dc73fbf6b1f9420e71c3970c705039a987eb2"
+      },
+      "playground_ym2608_audio.js": {
+        "bytes": 1950,
+        "sha256": "69aaebbbc857bdaf2a013288c3576038a64c0a6ff8c0a77f826f4f4a941ae34d"
+      },
+      "playground_ym2608_timeline.js": {
+        "bytes": 2849,
+        "sha256": "79e28c021a9c8001013feb7caa4910510faa5cf20981d2fd07339ba5242d918c"
+      },
+      "playground_ym2608_worklet.js": {
+        "bytes": 4538,
+        "sha256": "19f6e02b0e2b8663a76ec43e374c2bf2e390395874c75ed302583ac243c6f2fe"
+      },
+      "playground_ym2608.js": {
+        "bytes": 5110,
+        "sha256": "3b6f8c2468334e790d2ae9c3615191bf516e29abe44abbeed4215ed2272a8ae5"
+      },
+      "pokey_timeline_builder.js": {
+        "bytes": 4675,
+        "sha256": "1b302151adffb2f58fc83b1e75c1813ca03d763336fbe8f46ac2d972306e2380"
+      },
+      "pokey_timeline_upload.js": {
+        "bytes": 6150,
+        "sha256": "38eb30ee6b2097c74f992f68671e32f1fe442fe57e09e9f83935919b6700978b"
+      },
+      "pokey_timeline.js": {
+        "bytes": 3815,
+        "sha256": "c06c5519a2773f353d43bed1c1f96033b22d3bf0e56b2861ee28c69837db95aa"
+      },
+      "generated/pokey_wasm.js": {
+        "bytes": 15128,
+        "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d"
+      },
+      "pokey.js": {
+        "bytes": 8390,
+        "sha256": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1"
+      },
+      "pokeyaudioengine.js": {
+        "bytes": 3467,
+        "sha256": "1292a7b3e4f3828b205a4add69bf585b1554d7bb706620a6c6ef0e78c3926b9b"
+      },
+      "pokeysynth.js": {
+        "bytes": 8278,
+        "sha256": "902c89bbe773ab0aa63f7148eb07a3b8d082b797cda5487f2900435c038acbeb"
+      },
+      "msfa_dx7/src/preset.js": {
+        "bytes": 8629,
+        "sha256": "f1373d4699172658b979482e0bb1585301967ebb7d2668ad21d146b6d3824fe2"
+      },
+      "pwm32x_playback.js": {
+        "bytes": 8983,
+        "sha256": "1c66e5a14b80653a7a45aef0e4104655999befa72db3803a0db6b5665b7b3e0e"
+      },
+      "pwm32x_transport.js": {
+        "bytes": 3118,
+        "sha256": "690aab70f4f8b3f259e1f88385ecb47b5c4395903945a6c0c69853c09a294c6f"
+      },
+      "generated/pwm32x_wasm.js": {
+        "bytes": 12398,
+        "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+      },
+      "pwm32x_wasm.js": {
+        "bytes": 12348,
+        "sha256": "4a2153fecd827b463ed417f790ee80aab244e990e502a2b97396b013f65164c9"
+      },
+      "pwm32x.js": {
+        "bytes": 6836,
+        "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+      },
+      "rf5c164_pcm.js": {
+        "bytes": 1537,
+        "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+      },
+      "generated/rf5c164_wasm.js": {
+        "bytes": 35162,
+        "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+      },
+      "rf5c164-worklet.js": {
+        "bytes": 5925,
+        "sha256": "9183080f24dd7f38540d78106f8eeb08ea1ea63d8659783fb87ecf72696a5006"
+      },
+      "rf5c164.js": {
+        "bytes": 10188,
+        "sha256": "feeda7db22bf3b3be39aafabd51547d37661c69cacb6a72607bb8ad599a76e67"
+      },
+      "rf5c164synth.js": {
+        "bytes": 4816,
+        "sha256": "824cd3a389fd70bc362b745a52ee7301ac2745f2ec8a02a12c3e79f8417fcfea"
+      },
+      "s98_file.js": {
+        "bytes": 5878,
+        "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+      },
+      "sample_clock.js": {
+        "bytes": 1574,
+        "sha256": "3427a3952686494d83dd76e69fdf976a95245e3ec74b54cc3a3e6f2ce2b5ec59"
+      },
+      "generated/segapcm_wasm.js": {
+        "bytes": 12513,
+        "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5"
+      },
+      "segapcm.js": {
+        "bytes": 8538,
+        "sha256": "a6b7244de3fdb4b65d66463b4868eede2cb151cbd676ce26fa18184f7ed77808"
+      },
+      "segapcmaudioengine.js": {
+        "bytes": 6058,
+        "sha256": "8dc0dea1d8c0a29dd785b30617045404f8a98f9d9456f5ff43f72cc283e23ed8"
+      },
+      "segapsg_api.js": {
+        "bytes": 1032,
+        "sha256": "1a55c1d148536425eef54fe5ec4c3151b6ef5a734f9695a379b3a6344a7bd75d"
+      },
+      "generated/segapsg_wasm.js": {
+        "bytes": 33978,
+        "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+      },
+      "segapsg.js": {
+        "bytes": 10113,
+        "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+      },
+      "segapsgsynth.js": {
+        "bytes": 10390,
+        "sha256": "e19b274b8b2e11241e3bf3354d7a23a4d1fdf44b0a912dca3f291b4ab217ef8d"
+      },
+      "snes_brr.js": {
+        "bytes": 11126,
+        "sha256": "99891c0b95189bf9e86ec310e59c79ca34a3c7a8459576c3066ff0e50fb03c2f"
+      },
+      "snessynth.js": {
+        "bytes": 12819,
+        "sha256": "9e199cb581987d5b5bb2249cf50dc809feab233a19812f65eea5613646d363ac"
+      },
+      "soundchip_factory.js": {
+        "bytes": 809,
+        "sha256": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca"
+      },
+      "soundchip_mixer_presets.js": {
+        "bytes": 2967,
+        "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6"
+      },
+      "soundchip_mixer.js": {
+        "bytes": 26367,
+        "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+      },
+      "soundchip_pitch.js": {
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      "soundchip_worklet.js": {
+        "bytes": 6584,
+        "sha256": "73ce4dd19d8d575aede0994bda73c303d903e9c6eef76aafe4023b5c9312f720"
+      },
+      "soundchip-output-worklet.js": {
+        "bytes": 19586,
+        "sha256": "63c8a5b8f67768a14c968c37d91c68ed89fe9615a8d83b8967de3b6eb85501d5"
+      },
+      "soundchip.js": {
+        "bytes": 12574,
+        "sha256": "b1cd7e7f4f246d36111d970ef77d6e990ac15d374af1882fe5fd8b4cf7937a48"
+      },
+      "spc_audio.js": {
+        "bytes": 15183,
+        "sha256": "e83ba0abf31059f14f91732cd76ea087e91fa37d89ac6fd057126056e376815e"
+      },
+      "spc_events.js": {
+        "bytes": 11461,
+        "sha256": "7142e0fad5e39e6d04c986c40fc00ef07e657e3d5dda250b52a1161de955e58e"
+      },
+      "spc_file.js": {
+        "bytes": 8896,
+        "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+      },
+      "spc_performance.js": {
+        "bytes": 8354,
+        "sha256": "bae8b28d684f701576283ed17b6c0cce61b6b96262a3f5ce07f9ca8a628b2edc"
+      },
+      "spc_pitch.js": {
+        "bytes": 9686,
+        "sha256": "e7ce9a7c059f6e1eb960a36e80dd9b373e89ce1cfb7b5bcf14a360a13225f7f0"
+      },
+      "spc_resampler.js": {
+        "bytes": 2479,
+        "sha256": "ad389d1ed6b695d4ab59ad8875adbb2de4dbe4abf5ee478f65d5711535a73b84"
+      },
+      "spc_trace.js": {
+        "bytes": 3717,
+        "sha256": "22b9339e935b26c1dadf83e950f8b7c25f9d09434b5d9167b0272fd593b8706e"
+      },
+      "generated/spc_wasm.js": {
+        "bytes": 41458,
+        "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699"
+      },
+      "spc-worklet.js": {
+        "bytes": 13935,
+        "sha256": "531430a2be88cb6d811ca75e24bdafc29aef8459a9f390a7df9023d870cf8868"
+      },
+      "spc.js": {
+        "bytes": 16728,
+        "sha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f"
+      },
+      "ssgsynth.js": {
+        "bytes": 6592,
+        "sha256": "c396b56e2d8033af183c6bdec9254ff40185e390d84e343188cf395856893e9f"
+      },
+      "stereo-width-worklet.js": {
+        "bytes": 1876,
+        "sha256": "36b8f452b84faef614677c97bdfca7fb34e2cb42fa4b5ec56e7cdfb68495fa50"
+      },
+      "msfa_dx7/src/sysex.js": {
+        "bytes": 8610,
+        "sha256": "0bda70c08b34f084e10c4ff46c4319147d089c5a174b9e84bf023b86759c2b7e"
+      },
+      "tetorica_audio_runtime.js": {
+        "bytes": 35681,
+        "sha256": "5870f179da0efa3004f341f390f32da72147c19cc6696870c954d8385ba9dc39"
+      },
+      "tetorica_synth.js": {
+        "bytes": 2987,
+        "sha256": "284920a88e03d5cae8e90aea7747d269bbc08da0b1bebf3ec1a14e8143ad2ad7"
+      },
+      "tfi.js": {
+        "bytes": 9704,
+        "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+      },
+      "nes_apu_vendor/utils.js": {
+        "bytes": 1154,
+        "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+      },
+      "vgi.js": {
+        "bytes": 4326,
+        "sha256": "3d4212ba18485d250607060b1eef3e7e4e78491e12a952e85738d2c0a5c1226f"
+      },
+      "vgm_file.js": {
+        "bytes": 3428,
+        "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+      },
+      "vgm_runtime.js": {
+        "bytes": 17775,
+        "sha256": "2b2f6e5ac900b3a9061eef2e789616e13cef370e04a90142e316b3bb9ae48b94"
+      },
+      "vgm-output-worklet.js": {
+        "bytes": 8316,
+        "sha256": "3c4f6b55ee88b4da9e85ccc536fba2f0e159c8e6d02422faf8fa5a63e229462f"
+      },
+      "vgmplayer.js": {
+        "bytes": 24205,
+        "sha256": "dcc1335aa24068856c944e6ad277c87542c1ca0a230cc2f56372135d5ade8534"
+      },
+      "wav.js": {
+        "bytes": 2582,
+        "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+      },
+      "wonderswan_timeline.js": {
+        "bytes": 6966,
+        "sha256": "f3a2f04c22dd975138d1d1c19c36f5f043411a989842f88cfe4d208452c93c4d"
+      },
+      "generated/wonderswan_wasm.js": {
+        "bytes": 11356,
+        "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+      },
+      "wonderswan.js": {
+        "bytes": 9684,
+        "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+      },
+      "wonderswanaudioengine.js": {
+        "bytes": 6258,
+        "sha256": "1152b8e397f8c9696b07bde036485b86bf36d1df91f99f36dd1376ca341f922f"
+      },
+      "wonderswansynth.js": {
+        "bytes": 16488,
+        "sha256": "d544ac6450cb2951e374b51f5b1310381a082be85d59248a96b98e2f1f063de2"
+      },
+      "y8950_adpcm_preview.js": {
+        "bytes": 5782,
+        "sha256": "e5b8110148683216a631bd8be37f80297981fa36919bbfa02b138dd746dd50af"
+      },
+      "y8950_adpcm.js": {
+        "bytes": 8958,
+        "sha256": "72d93e31932282f8f77fd1eff81779c269db207f608d89befceb19a8ec380ba5"
+      },
+      "generated/y8950_wasm.js": {
+        "bytes": 15461,
+        "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+      },
+      "y8950.js": {
+        "bytes": 11054,
+        "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59"
+      },
+      "y8950audioengine.js": {
+        "bytes": 7868,
+        "sha256": "36e82e69c3f7f5ea703df80dc34c400197ec80bbd3f9def422ae321b3e4f6e60"
+      },
+      "y8950synth.js": {
+        "bytes": 792,
+        "sha256": "73475e65235ba7996a860835fb825387719c368ce566c05779943cf82c87bab2"
+      },
+      "generated/ym2151_wasm.js": {
+        "bytes": 15584,
+        "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+      },
+      "ym2151.js": {
+        "bytes": 11479,
+        "sha256": "1c872f7fbb9c498378ca1e926c296c4783d280a71dc5c3cf19a6a3b4521e3c90"
+      },
+      "ym2151audioengine.js": {
+        "bytes": 11273,
+        "sha256": "5e02d00d67aec8781634fe6cd227e817a64ae24c9debc51da2e2f7b4989afb6b"
+      },
+      "ym2151synth.js": {
+        "bytes": 10691,
+        "sha256": "3d2a499ec6741ce468def0d414e0f59a53b3ee6b55d7dea69f6a0846905f0e00"
+      },
+      "generated/ym2203_wasm.js": {
+        "bytes": 35153,
+        "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e"
+      },
+      "ym2203-worklet.js": {
+        "bytes": 6693,
+        "sha256": "dc63cf0c8cc0fef70505f55a73a1ded99ae06658595c85c7c6ca0a9c02e8bc60"
+      },
+      "ym2203.js": {
+        "bytes": 12725,
+        "sha256": "d66a1f566a58d80e9db8b83c420ed14b05a3be14e9a32d7d282ec1fc3390b065"
+      },
+      "ym2203audioengine.js": {
+        "bytes": 8764,
+        "sha256": "341c1921602fec7da90e49c20c93d79cfca0d1c417f90761d295950945df3dc5"
+      },
+      "ym2203synth.js": {
+        "bytes": 2438,
+        "sha256": "fab8cd345e13fbbec28fdec220e3d59140ff3f201b2e61465e5d3c199c6388ed"
+      },
+      "ym2203vgm.js": {
+        "bytes": 397,
+        "sha256": "f7ee0ebf94d43c6b3649d099c3aa77ada55e7cd29c36f512372d0a32abff326a"
+      },
+      "generated/ym2413_wasm.js": {
+        "bytes": 32911,
+        "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+      },
+      "ym2413.js": {
+        "bytes": 9473,
+        "sha256": "7515e2659b95e202041185661a6e1d103434c28d4b146166db7e99aaf562b20e"
+      },
+      "ym2413audioengine.js": {
+        "bytes": 7053,
+        "sha256": "d09d64d4fbb5a40319732867dcebbfd10b09f99bac942825b2ea162e8e7f2ef4"
+      },
+      "ym2413synth.js": {
+        "bytes": 17614,
+        "sha256": "b63870c11ece05fe0ca2571fd758a4d8fa276b45ecf486bac5acf1ad65990407"
+      },
+      "generated/ym2608_wasm.js": {
+        "bytes": 36356,
+        "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+      },
+      "ym2608-worklet.js": {
+        "bytes": 8418,
+        "sha256": "935d011c24cba97da774bce65c3d839185164491a7fd6eec6cb431d0b9cefa20"
+      },
+      "ym2608.js": {
+        "bytes": 15607,
+        "sha256": "52cb8790fc26c2a007256ddc9d46d9e635bed97688e9c3cbd8a8b0eeae476762"
+      },
+      "ym2608audioengine.js": {
+        "bytes": 9908,
+        "sha256": "67e5b4e72d02bf1c70318f073bc740cb5e28cfba1b466cce77274cc7c7ff8630"
+      },
+      "ym2608synth.js": {
+        "bytes": 14359,
+        "sha256": "486f40706d94e7a6e93efb4a22e492cb4299c336603599884e3e2c0656b9c7a4"
+      },
+      "ym2608vgm.js": {
+        "bytes": 328,
+        "sha256": "c494a0fcbd6e4fc738376fd3e98a49bf23a05cba66fe76d3880df0a7fdfbf1ac"
+      },
+      "generated/ym2610b_wasm.js": {
+        "bytes": 36296,
+        "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879"
+      },
+      "ym2610b-worklet.js": {
+        "bytes": 8135,
+        "sha256": "6ca70d2242e89863230105e537918d2133fa0304c8cc171b7965f7c5519a9963"
+      },
+      "ym2610b.js": {
+        "bytes": 11122,
+        "sha256": "74c94f231bf16d2bd756aaa734829c3a9cfed24336ce32d0d78b73f24990bdd6"
+      },
+      "ym2610baudioengine.js": {
+        "bytes": 7744,
+        "sha256": "c4c9dd6fd79e3f4ba4a832750370ec7edbe33332c1803e3f7c732f28efe73e12"
+      },
+      "ym2610bsynth.js": {
+        "bytes": 14641,
+        "sha256": "114407383cda4b9074d3ca1384c2ae5a32b0d34ad1121964318932c0a50d3473"
+      },
+      "ym2610bvgm.js": {
+        "bytes": 326,
+        "sha256": "b7b45e37cf644abeff444a7edc1e8e74a1bea2aeb9e32c36e3c9f9ae1a068b38"
+      },
+      "ym2612_dac.js": {
+        "bytes": 7251,
+        "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+      },
+      "generated/ym2612_wasm.js": {
+        "bytes": 34902,
+        "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+      },
+      "ym2612-worklet-nuked.js": {
+        "bytes": 24428,
+        "sha256": "886492ac8aa3d40163a72fca7a99c98d90123547fdcc0af79ea7dd0ed18d527e"
+      },
+      "ym2612-worklet.js": {
+        "bytes": 25227,
+        "sha256": "50d904caf4c40ddaa72990d75c2f2a500c3a74eec051b36d17e968a1ba7e2a85"
+      },
+      "ym2612.js": {
+        "bytes": 22574,
+        "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+      },
+      "ym2612synth.js": {
+        "bytes": 38580,
+        "sha256": "7375b502f5fb2b0bf93fca1be51868dab47d866ecd4879a744ba9bb7ad26d1cb"
+      },
+      "ym2612vgm.js": {
+        "bytes": 117637,
+        "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+      },
+      "generated/ym3438_wasm.js": {
+        "bytes": 11466,
+        "sha256": "023cf6770e2cd0b9983f7a6793d55cc21c2de47750a19458567b6ccb11c3f81e"
+      },
+      "ym3438.js": {
+        "bytes": 1134,
+        "sha256": "2047551436fddce9d32f6c0cd78bbcd556572c33e080583de465f306008720fb"
+      },
+      "generated/ym3526_wasm.js": {
+        "bytes": 14274,
+        "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+      },
+      "ym3526.js": {
+        "bytes": 9446,
+        "sha256": "3ce49fa8e36520db7a7d30edf03761cbacb4addf54f7d27dc00c80a908a3a71f"
+      },
+      "ym3526audioengine.js": {
+        "bytes": 7232,
+        "sha256": "aff3c8cb5262941ea97eb828a0a89f1b0d725f18f76587d81056b1821ff378d4"
+      },
+      "ym3526synth.js": {
+        "bytes": 793,
+        "sha256": "8fc8e24b3cc0aace8b6b0c3c2c603805b819245901f5655f1e1db03587726c18"
+      },
+      "generated/ym3812_wasm.js": {
+        "bytes": 14274,
+        "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+      },
+      "ym3812.js": {
+        "bytes": 9446,
+        "sha256": "ce35055a3a3c558c7af4a2ba662a53e4a39e3edaa5a0391ea5c6831de2a0d089"
+      },
+      "ym3812audioengine.js": {
+        "bytes": 7232,
+        "sha256": "6141295ab09a32198988346fedef04c3d07455e82fd5fab16070b250dac7442e"
+      },
+      "ym3812synth.js": {
+        "bytes": 804,
+        "sha256": "f35b656eb4553841ea626b9fc9fa9ea0ff0f4211ed1b85a83bfd3becbf38c910"
+      },
+      "generated/ymf262_wasm.js": {
+        "bytes": 14274,
+        "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+      },
+      "ymf262.js": {
+        "bytes": 10280,
+        "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3"
+      },
+      "ymf262audioengine.js": {
+        "bytes": 7545,
+        "sha256": "e89a1e1630985db2b2a565a2572a323b8b1ec682cade69645a7ad00c0473dac9"
+      },
+      "ymf262synth.js": {
+        "bytes": 805,
+        "sha256": "00a97297ef6f95297bc049c75fd0c22bb151d87ee9108ff17aa4b7b04c94e3b3"
+      },
+      "generated/ymf276_wasm.js": {
+        "bytes": 11466,
+        "sha256": "76bef5969998cf45fe3d1452592b5bc74f9f1c363740a9b011f8d5462ddd096c"
+      },
+      "ymf276.js": {
+        "bytes": 1134,
+        "sha256": "e5dd22e5b552fb9562958ccbc85bc44c2ea772c262c55c651d249764abb9da1d"
+      },
+      "generated/ymf278b_wasm.js": {
+        "bytes": 15707,
+        "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48"
+      },
+      "ymf278b.js": {
+        "bytes": 11535,
+        "sha256": "2406a80a277a0523c839b00b544466faaec2cfed2e11cba76f537c603e5e7195"
+      },
+      "ymf278baudioengine.js": {
+        "bytes": 8521,
+        "sha256": "573f6761ab455efa0a8d7e7f24a4127deea6ef98f778c83ea3a109462340fb97"
+      },
+      "generated/ymf288_wasm.js": {
+        "bytes": 11466,
+        "sha256": "9e98de8c8649cce49f8a8dcb12bbd0679f0f591a0d1c0c16a1c4c82ce263dd86"
+      },
+      "ymf288.js": {
+        "bytes": 1145,
+        "sha256": "a2e14c7906153c5d6423ed16012dc7c908d983d0c5fb9cfbbb04e7749f0c4e03"
+      },
+      "sources/MSM5205.json": {
+        "bytes": 1250,
+        "sha256": "79ec01d19566f4ddd5c74fa7606c812fc52edaa6a7b1d5d0863dc037ccfb343b"
+      },
+      "msfa_dx7/package.json": {
+        "bytes": 2449,
+        "sha256": "a6800ea5337515b0bfe220a083c91ab3e7579f82122db2efb416cba22c7434e5"
+      },
+      "package.json": {
+        "bytes": 2436,
+        "sha256": "8cd0901f3cc47c15b000dc35c70e89fd2bf918b35b1064f7d3973576317f6d51"
+      },
+      "sources/POKEY-SDK.json": {
+        "bytes": 2368,
+        "sha256": "e91f4847a37602ab7b9b4e5f141c4891d67e4a80606d4de7867a593c4818765a"
+      },
+      "runtime-manifest.json": {
+        "bytes": 9943,
+        "sha256": "bfaf1cd45199312a281d5b248530c47a957d4a701b8be9bd3dce6cd90654c70f"
+      },
+      "sources/third_party/libvgm-pokey/upstream/snapshot-manifest.json": {
+        "bytes": 841,
+        "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27"
+      },
+      "licenses/tetorica-nes/AUTHORS-JSNES.md": {
+        "bytes": 390,
+        "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a"
+      },
+      "sources/third_party/tetorica-nes/AUTHORS-JSNES.md": {
+        "bytes": 390,
+        "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a"
+      },
+      "licenses/jsnes/AUTHORS.md": {
+        "bytes": 390,
+        "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a"
+      },
+      "msfa_dx7/docs/issues/msfa-live-parameters/investigation.md": {
+        "bytes": 2303,
+        "sha256": "84983e9d437b011868f8e278d41bbe9e6b1c420971560ad288c1ce4027742cb5"
+      },
+      "msfa_dx7/docs/issues/msfa-live-parameters/license-review.md": {
+        "bytes": 1195,
+        "sha256": "48619a714ddf3fa0ab534cf55328b0f7316e9b74ca2934734a464d20818c6485"
+      },
+      "sources/MSM5205.md": {
+        "bytes": 1098,
+        "sha256": "dacae03a0d6138bacfb4c02deba97282d3e0255a5a9f9aa1ab7e57f895923b5e"
+      },
+      "sources/NES-FDS.md": {
+        "bytes": 1057,
+        "sha256": "c98ec969c6504fb04e8ed7e2ea54332100c7c27c430c4b8c235ae73ff04ed863"
+      },
+      "sources/native/msm5205/NOTICE.md": {
+        "bytes": 2064,
+        "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
+      },
+      "sources/Nuked-OPN2.md": {
+        "bytes": 1178,
+        "sha256": "ce20e3a98310f89a71ac308d43669d280593cffa0060b6e30723760b2eb76bb3"
+      },
+      "msfa_dx7/docs/issues/msfa-live-parameters/plan.md": {
+        "bytes": 836,
+        "sha256": "022845bda032e7fff53b0f315a049dded4895e684c1548a6fe4fe1f464fc4113"
+      },
+      "sources/POKEY.md": {
+        "bytes": 1017,
+        "sha256": "66b6cb15f6dc44e404f8f604cba2105881ee8944a85a706c88736fdd94ab69e4"
+      },
+      "msfa_dx7/docs/issues/msfa-live-parameters/progress.md": {
+        "bytes": 1023,
+        "sha256": "03ec09e73d796dfa4ed5d77035bfcaacc9c8e2941742d2a2aac848fcdf992a0b"
+      },
+      "sources/PWM32X.md": {
+        "bytes": 971,
+        "sha256": "0be3d6755663d2221a3e1836e026d6a6f73c18d1a30186129ecac1ba8859a411"
+      },
+      "msfa_dx7/README.ja.md": {
+        "bytes": 17918,
+        "sha256": "d9ed7cad6d68442e2765d969b445a7b947faa117c9a49e8c17a5e75f64affdcf"
+      },
+      "assets/opna-rhythm/README.md": {
+        "bytes": 5023,
+        "sha256": "df4b2594c82d11d4e80147321dd95a5d49e29df99f38d1c05edeec2f56b9e1be"
+      },
+      "licenses/fixnes-fds/README.md": {
+        "bytes": 1149,
+        "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316"
+      },
+      "licenses/jsnes/README.md": {
+        "bytes": 924,
+        "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792"
+      },
+      "licenses/libvgm-msm5205/README.md": {
+        "bytes": 555,
+        "sha256": "4ae997cefdc782d583cea0587839475e0c813a189151b5e3c1bbde8e457387bd"
+      },
+      "licenses/libvgm-pokey/README.md": {
+        "bytes": 7686,
+        "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff"
+      },
+      "licenses/mame-32x-pwm/README.md": {
+        "bytes": 2268,
+        "sha256": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec"
+      },
+      "licenses/mame-ay8910/README.md": {
+        "bytes": 4194,
+        "sha256": "d41552a7edc4156988dfee0395d501431507f5c8429217786d6a4be5078ae99f"
+      },
+      "licenses/mame-gameboy/README.md": {
+        "bytes": 5351,
+        "sha256": "831990cae084021f75b9432aa6a9c50f2b686e79541482e86997a9cf67e50f61"
+      },
+      "licenses/mame-huc6280/README.md": {
+        "bytes": 956,
+        "sha256": "1b792f719db680de5b5121ed2293256ac00fe6e51725e2aadc38dfaaa768b8dd"
+      },
+      "licenses/mame-k051649/README.md": {
+        "bytes": 3937,
+        "sha256": "ade6b36bed8d703e3fcc8924a1469c05d26f7685ab7ab430243da1edc074137a"
+      },
+      "licenses/mame-okim6258/README.md": {
+        "bytes": 1533,
+        "sha256": "290ac7774e297daacc17c25c0f15b70eea7b9b8db594468023410e7795f73df0"
+      },
+      "licenses/mame-okim6295/README.md": {
+        "bytes": 700,
+        "sha256": "c4f3c0182f7cce78f053932f700695d6a1f0cf3be2c094a2df9c4f33cb601d83"
+      },
+      "licenses/mame-rf5c164/README.md": {
+        "bytes": 797,
+        "sha256": "3be506399ecf8d36c6724c82673436c7e122d82c84c1263114f1628ac1282af6"
+      },
+      "licenses/mame-segapcm/README.md": {
+        "bytes": 5228,
+        "sha256": "03b2a82409cc298fd9a4984f6fe639cd482f36a8dd793f7816df40d5cbff2bb1"
+      },
+      "licenses/mame-wonderswan/README.md": {
+        "bytes": 8341,
+        "sha256": "32dc963b4fe76d4b0d926ef4e225765d872434b2951264aeafee9e734afabadd"
+      },
+      "licenses/nuked-opn2/README.md": {
+        "bytes": 806,
+        "sha256": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa"
+      },
+      "licenses/snes-spc/README.md": {
+        "bytes": 3444,
+        "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775"
+      },
+      "licenses/tetorica_sega_psg/README.md": {
+        "bytes": 2667,
+        "sha256": "9b3510bca94e2f97b356b6f28770bd5aca5c46361b33aaa5829dac55a2c97b2d"
+      },
+      "licenses/tetorica-msm5205/README.md": {
+        "bytes": 2064,
+        "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
+      },
+      "licenses/tetorica-nes/README.md": {
+        "bytes": 3903,
+        "sha256": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396"
+      },
+      "msfa_dx7/docs/issues/msfa-live-parameters/README.md": {
+        "bytes": 2543,
+        "sha256": "82edd1c68d960030671436b5e3614c7b87e40ef8179c7dcea1d6f8a072d21b40"
+      },
+      "msfa_dx7/README.md": {
+        "bytes": 20161,
+        "sha256": "8e1c9e528fdbe94a2213b5447a9c0c63e4e0da9f40b9673db779e2e63670fae2"
+      },
+      "node/README.md": {
+        "bytes": 17386,
+        "sha256": "b80f987bf600d32838b35c1910663c28101419b93ba98377aacb4411f379f011"
+      },
+      "README.md": {
+        "bytes": 82358,
+        "sha256": "6d1aa22bc7af300e3764f0b9d95784cce203328bdfcf42113fec9d093daf6eb1"
+      },
+      "sources/native/cdda/README.md": {
+        "bytes": 3144,
+        "sha256": "9120f2f3e9c7f003092586732b6b299f8f8d2a739ad75e7a7fa276a2a4a37aab"
+      },
+      "sources/native/msm5205/README.md": {
+        "bytes": 3295,
+        "sha256": "1ecc63a9dc1c12afffdba8ad413f55e2242bca5f407ba24f631b81b0bf1572f5"
+      },
+      "sources/README.md": {
+        "bytes": 1006,
+        "sha256": "eb702e220b176482fc25a188419781142c170d3fad7f7187bb8e0be8bc819e88"
+      },
+      "sources/third_party/libvgm-pokey/README.md": {
+        "bytes": 7686,
+        "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff"
+      },
+      "sources/third_party/mame-32x-pwm/README.md": {
+        "bytes": 2268,
+        "sha256": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec"
+      },
+      "sources/third_party/nuked-opn2/README.md": {
+        "bytes": 806,
+        "sha256": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa"
+      },
+      "sources/third_party/snes-spc/README.md": {
+        "bytes": 3444,
+        "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775"
+      },
+      "sources/third_party/tetorica_sega_psg/README.md": {
+        "bytes": 2651,
+        "sha256": "96528208bdaf25b01f08bed5075274bbc538a91bf2a552784b939257fc1cd75e"
+      },
+      "sources/third_party/tetorica-nes/README.md": {
+        "bytes": 3903,
+        "sha256": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396"
+      },
+      "sources/third_party/snes-spc/README.upstream.md": {
+        "bytes": 3249,
+        "sha256": "da0bfe0b5183787d61314fe7964e2c231675a9e61ce734ff7887b55fbf7d1362"
+      },
+      "msfa_dx7/README.vendor.md": {
+        "bytes": 2489,
+        "sha256": "2b6426a8c8c5129d17ace8182d4d2a7fd0b18b492286213c484aa34d3067d662"
+      },
+      "msfa_dx7/docs/research.md": {
+        "bytes": 14488,
+        "sha256": "6cb2e4265389ae3985e9fc27adea650622d170d19796b5235b955beca6d0672e"
+      },
+      "msfa_dx7/docs/issues/msfa-live-parameters/result.md": {
+        "bytes": 8140,
+        "sha256": "cc3afbc4013f28f5c385bc2090bc4a37a1d6c115f1e21fb70f569fa0dc0a673b"
+      },
+      "RUNTIME.md": {
+        "bytes": 1784,
+        "sha256": "6e4a04de221430b722db917b4d6a80c4fe18510e328465eadb4d5bdc0ad53d97"
+      },
+      "sources/SegaPSG.md": {
+        "bytes": 1180,
+        "sha256": "3fcfe94da9c5b8614068f9904c38f5850c116f801849882d92670b57c2f72666"
+      },
+      "sources/SNES-SPC.md": {
+        "bytes": 947,
+        "sha256": "267d7078a59c99d6d56b81b200f97f9db84ea3b481f80a563797df8abd91f328"
+      },
+      "soundchip.md": {
+        "bytes": 15512,
+        "sha256": "70dea66468e2dfb8276267bb837686de17fb4e8ace04e0497adf2c100638bf1e"
+      },
+      "msfa_dx7/THIRD_PARTY_NOTICES.md": {
+        "bytes": 889,
+        "sha256": "d78ec8c2979abef6e229dac2b7229135ebd94514d03cdbd18a007b14a9a68b5c"
+      },
+      "licenses/tetorica-nes/UPSTREAM-FDS.md": {
+        "bytes": 1149,
+        "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316"
+      },
+      "sources/third_party/tetorica-nes/UPSTREAM-FDS.md": {
+        "bytes": 1149,
+        "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316"
+      },
+      "licenses/tetorica-nes/UPSTREAM-JSNES.md": {
+        "bytes": 924,
+        "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792"
+      },
+      "sources/third_party/tetorica-nes/UPSTREAM-JSNES.md": {
+        "bytes": 924,
+        "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792"
+      },
+      "msfa_dx7/vendor/msfa/UPSTREAM.md": {
+        "bytes": 1438,
+        "sha256": "15b1157f0b45f12f9e6a61290a85b5e776e50106f37bd979c7d3993c63603964"
+      },
+      "msfa_dx7/docs/verification.md": {
+        "bytes": 8488,
+        "sha256": "ded82c074bb7851f3839e8ef2682fc3530ade9888b6321f6769b76cb91436096"
+      },
+      "node/chip_transports.mjs": {
+        "bytes": 7290,
+        "sha256": "57b2560d761f3af72c3720b137b80ccd8adcb8bfec4516995c5bfe7eb28d8951"
+      },
+      "assets/opna-rhythm/generate.mjs": {
+        "bytes": 930,
+        "sha256": "e8defa8e0a9e2b9aa162061e9b2a58fc720e105797d89db416f3237ae719d413"
+      },
+      "node/megasynth_worker.mjs": {
+        "bytes": 8231,
+        "sha256": "0e2b0c784381764d1ea3c06be2df1661da614f15f19ef0036ddca30557e9b70c"
+      },
+      "node/megasynth.mjs": {
+        "bytes": 9216,
+        "sha256": "7896c7a12b98c0e0296aca84bea94809946f443745e71d1900e5be3990ce3320"
+      },
+      "node/output_audify.mjs": {
+        "bytes": 2594,
+        "sha256": "13760c6d6d9ccf2d5049dc67093dd66302dda603830bffad4a83c563c400b5b1"
+      },
+      "node/output_thread.mjs": {
+        "bytes": 2816,
+        "sha256": "b0ff985cfd6f86464cf353698e7a1161ab969b39ca3ffce6f20a2c56e156592d"
+      },
+      "node/pcm_output_worker.mjs": {
+        "bytes": 1442,
+        "sha256": "186ba3a0700ed48fad9d25a80b3a6f5859a4c0831390cb606d88a7c019f48978"
+      },
+      "assets/opna-rhythm/synthesis.mjs": {
+        "bytes": 10090,
+        "sha256": "6b26b31f91396a3cd6e66f45753edd8825237e5f25549f7f4f84b7cbc6817c18"
+      },
+      "node/chip_transports.d.mts": {
+        "bytes": 7211,
+        "sha256": "77c7c92869e6b32755845caa43886c6b402bb346ae4396d9861da600a9a77452"
+      },
+      "node/megasynth_worker.d.mts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "node/megasynth.d.mts": {
+        "bytes": 4199,
+        "sha256": "6269906511e4c75d0208f6526a6b1bf4bc4b2e25325c2ee746606a9876e85dc6"
+      },
+      "node/output_audify.d.mts": {
+        "bytes": 706,
+        "sha256": "c1c0ec4369e720e3ecb1b5437aa4b916883f2eecd718e5e26cb6873c13d746a0"
+      },
+      "node/output_thread.d.mts": {
+        "bytes": 258,
+        "sha256": "3cd55be80c258856e3a0f5d0d85d4560b10eb0f1bae6e024902153dca650e00c"
+      },
+      "node/pcm_output_worker.d.mts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "sources/scripts/build_cdda_wasm.sh": {
+        "bytes": 1377,
+        "sha256": "baf1b3bbece8846319242d8dc7e6c3b11528b49f5021395dd29c47f8b0ad826e"
+      },
+      "sources/scripts/build_msm5205_wasm.sh": {
+        "bytes": 1219,
+        "sha256": "395c4c8dc612ba4bb3ebace1d17452c35b0727367f14014a59bf55cb76eb9621"
+      },
+      "sources/scripts/build_nesapu_wasm.sh": {
+        "bytes": 1082,
+        "sha256": "884ff7505447afc232e860bac6e633652ed26c6097c5e0a10e5c14dffee09c4d"
+      },
+      "sources/scripts/build_nuked_opn2_wasm.sh": {
+        "bytes": 872,
+        "sha256": "ea620223822175fb4d6470778dd40a07621b9674bebdf9a6a2571917c72c1fbe"
+      },
+      "sources/scripts/build_pokey_wasm.sh": {
+        "bytes": 771,
+        "sha256": "e04a4ac7fada1b9ed8eada97785739fc56016386315950dc347cecda5fa3f372"
+      },
+      "sources/scripts/build_pwm32x_wasm.sh": {
+        "bytes": 1064,
+        "sha256": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e"
+      },
+      "sources/scripts/build_segapsg_wasm.sh": {
+        "bytes": 893,
+        "sha256": "dde29ed6f87201507fafefd1a5921a6fccb5686e81f621d5618a5f9a712c991f"
+      },
+      "sources/scripts/build_spc_wasm.sh": {
+        "bytes": 1505,
+        "sha256": "3ecc18550f6af95ce8c57c96879da6785727e903e40428f1b6e8ce9fea4e720b"
+      },
+      "sources/LICENSE.tetorica": {
+        "bytes": 1517,
+        "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+      },
+      "adpcm_b_sample.d.ts": {
+        "bytes": 1380,
+        "sha256": "06bc8ab864ab6d0dfd4883981192d6d2063b19dcd7bb2e5a93cdd09031a6f33a"
+      },
+      "audio_decode.d.ts": {
+        "bytes": 598,
+        "sha256": "7998860be3d624961c559701bc2901ee65eb43f6c674d6c96a5e6002d1bd7962"
+      },
+      "audio-diagnostic-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "generated/ay8910_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ay8910.d.ts": {
+        "bytes": 4195,
+        "sha256": "c2691f7bb3d6f0f08e8dd43d3a7ef5d691ebded3943a0ab7c61b91eddd471681"
+      },
+      "ay8910audioengine.d.ts": {
+        "bytes": 4506,
+        "sha256": "815830e9a49df910a49708f0ab27bc9b94112ba6b44e0f42a8dbd65889a20f6a"
+      },
+      "ay8910synth.d.ts": {
+        "bytes": 6652,
+        "sha256": "2f377a6c9d0eac586320dbd9808fcf06a2d8c5a1d57783a0dd553d53740eca5d"
+      },
+      "bitcrusher-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "msfa_dx7/src/browser.d.ts": {
+        "bytes": 2654,
+        "sha256": "69d39854463f9d5bbe4b53a112c4d9aad659cf4a0154f3d3138729005d7d8d01"
+      },
+      "cdda_audio.d.ts": {
+        "bytes": 935,
+        "sha256": "de4c9c17fbc5798e761998ad42fc287daa4f2e845c021326f3509fd82da7131f"
+      },
+      "cdda_native.d.ts": {
+        "bytes": 643,
+        "sha256": "ef47943c3ea1475be48b1a0c5667c9c63fe458c2367fbdc2160e964bf268b3c4"
+      },
+      "cdda_offline.d.ts": {
+        "bytes": 8846,
+        "sha256": "8e1d14a3d14d527e100ac8d48897b56e81373d83f1379f51fac35cfc081b8cfe"
+      },
+      "cdda_pcm.d.ts": {
+        "bytes": 1581,
+        "sha256": "1d527031c2c8596ca3d0deed24bb4a58e217984865bf81b0c429e29aead5b90e"
+      },
+      "cdda_player.d.ts": {
+        "bytes": 2062,
+        "sha256": "a972bb1690a4e5beff783142c5a9b29de51aa30ea064d75fee462ec4c89d2de3"
+      },
+      "cdda_source.d.ts": {
+        "bytes": 3315,
+        "sha256": "2a6e936679b40193635382674336591ad9c502c36d855d2610287632cc0fb66f"
+      },
+      "generated/cdda_wasm.d.ts": {
+        "bytes": 83,
+        "sha256": "a4602500cf0ca91fe195e0dbb80b817b949ba2f0c8dcd2e04456a4d1093f6abd"
+      },
+      "cdda_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "nes_apu_vendor/channel-dm.d.ts": {
+        "bytes": 918,
+        "sha256": "c91c17a9603b6ad05ac49b6084847ac5467c44da240b197322a9b0bb8db9dffe"
+      },
+      "nes_apu_vendor/channel-noise.d.ts": {
+        "bytes": 894,
+        "sha256": "48de411fc4310c3e16f516950727b307619a807fc8f215df1d621ca99a0bacdc"
+      },
+      "nes_apu_vendor/channel-square.d.ts": {
+        "bytes": 1129,
+        "sha256": "2fa45039f228c9ef50422d470b44960674fa321ce77aeaa1c15345c44543f074"
+      },
+      "nes_apu_vendor/channel-triangle.d.ts": {
+        "bytes": 858,
+        "sha256": "ff052ada033ca3314f2274414d8a5cf8d914a8e383d3b14892e1e9f859e812de"
+      },
+      "chip_pcm_renderer.d.ts": {
+        "bytes": 1693,
+        "sha256": "2fc65f005097b7e9cd07df315d7246a7f855fe0964acac7cbc616c27db7011ec"
+      },
+      "chip_worklet_transport.d.ts": {
+        "bytes": 6209,
+        "sha256": "27794e1bbc7e36d6c4d16cd864615518c625cb8728454599ebb76097de4f8856"
+      },
+      "custom_fx.d.ts": {
+        "bytes": 529,
+        "sha256": "0356581ec648a0fbe9cd29f5b1334fa1c74bb77a69d59c511e75ecd911805923"
+      },
+      "fds_audio.d.ts": {
+        "bytes": 1656,
+        "sha256": "64ef0365d39466e42b202c63575138d39c574a34302e49c1da386ccf63f63290"
+      },
+      "generated/gameboy_apu_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "gameboy_runtime_synth.d.ts": {
+        "bytes": 2516,
+        "sha256": "067ba3c1c69433c1985ab1de3c1fa884e16ddeaf9f6822272c53af823b748d5c"
+      },
+      "gameboyapu.d.ts": {
+        "bytes": 4121,
+        "sha256": "9a66effb9f3915bfd4fc26d3cbce5a86d3b71d40d849c7fa07735a02bc2b628b"
+      },
+      "gameboyapuaudioengine.d.ts": {
+        "bytes": 4336,
+        "sha256": "201b8490501eb32838ad2aa82c23c98af76e51b946693921516b3eb9cc6eac4e"
+      },
+      "gameboysynth.d.ts": {
+        "bytes": 4175,
+        "sha256": "b63154b3c5971c0b6575cb3cab805e047c6871cffe660a8702365525ade20fe6"
+      },
+      "genesisaudioengine.d.ts": {
+        "bytes": 8178,
+        "sha256": "aaa304132cac4c908f5b990ff4113bf33db457f46d9ecf9a415b140790a61c88"
+      },
+      "generated/huc6280_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "huc6280audioengine.d.ts": {
+        "bytes": 3929,
+        "sha256": "8ed426f7bc971441d727bf16922fe9042a8a1516f364255f1f29505ebc42e8b6"
+      },
+      "huc6280synth.d.ts": {
+        "bytes": 5054,
+        "sha256": "b906b2c4cd642eef29996d82f5bf0b9726f14127c1463182b0417c4c2cec8fa4"
+      },
+      "msfa_dx7/src/index.d.ts": {
+        "bytes": 2677,
+        "sha256": "907b4b8e4e42722cc70dcbaf6eb0cfb0d78683a727be296d459c3904d410c6c0"
+      },
+      "nes_apu_vendor/index.d.ts": {
+        "bytes": 2772,
+        "sha256": "74e8049062eb2ad567a8115358c74328dbb79ee46e5a94aeb310194b77448d53"
+      },
+      "generated/k051649_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "k051649.d.ts": {
+        "bytes": 3896,
+        "sha256": "85816000e13c366fbdd6cf5b69b5ff14448fc34db18490c70164fada1979a2cf"
+      },
+      "k051649audioengine.d.ts": {
+        "bytes": 4159,
+        "sha256": "b388a8554e96b71468411b8c0dec1599d51d659517a7094609938f844fa21113"
+      },
+      "looper.d.ts": {
+        "bytes": 8808,
+        "sha256": "398742f4c5dd3c678476532b2738a8401efa0073576cfbee863562c84b86e3db"
+      },
+      "megasynth_fx.d.ts": {
+        "bytes": 11719,
+        "sha256": "7b8b32788723029646fcc7b511dacba72721b49071c728f1ac62ebce0b430864"
+      },
+      "megasynth_looper.d.ts": {
+        "bytes": 276,
+        "sha256": "be050452dee7be77eeb69c2b411aa657193d51e6c38fcc5e182cb8317ea68af9"
+      },
+      "megasynth_offline.d.ts": {
+        "bytes": 3869,
+        "sha256": "36bc853f7285bfda3ad6860821fb65f33e06ce55c47a64b0b256e5c3d9e12231"
+      },
+      "megasynth_pcm_looper.d.ts": {
+        "bytes": 703,
+        "sha256": "89005231d69c7afbdf85a4e0be61c1d3bd9be344a9b9898c7be1548626db1306"
+      },
+      "megasynth_recording.d.ts": {
+        "bytes": 1255,
+        "sha256": "bb6a0b985f29302e54bd00779b2f2312bf568026547ad055c0e557efc1406992"
+      },
+      "megasynth_session.d.ts": {
+        "bytes": 1985,
+        "sha256": "f2f7ef78037be133eee155a957c956a68bacdec0e274d645d5006fd6acde2669"
+      },
+      "megasynth-fm-presets.d.ts": {
+        "bytes": 5561,
+        "sha256": "10d4a454eab8a5aef3e439b5a22b3c06ca2652bb961a4904e3640aebea04f448"
+      },
+      "megasynth.d.ts": {
+        "bytes": 13132,
+        "sha256": "3a8484c4e1d0761da9b5c3f871bc01f97539c78fb56b989f4b1de2900b732f96"
+      },
+      "midi_file.d.ts": {
+        "bytes": 940,
+        "sha256": "49f4ff12b40ac7a35dcfdcf428ffee141a6187eb4c4efd2773ccd8b196b37b5d"
+      },
+      "midi_song.d.ts": {
+        "bytes": 2428,
+        "sha256": "4a73523d1df3a6124b6223cc7a9c561fbe416fd9f85b63a6dfcd35ff1d29d05e"
+      },
+      "midi_source.d.ts": {
+        "bytes": 1772,
+        "sha256": "d2c6af8a8397ee4aea8467de94257b18682a14c9c4d5394c54aaa474a36389bf"
+      },
+      "msm5205_audio.d.ts": {
+        "bytes": 955,
+        "sha256": "8239d32c534701e9cac67e18eaa56ff994db48aa5aca76eeb491eb39ebe23816"
+      },
+      "msm5205_native.d.ts": {
+        "bytes": 653,
+        "sha256": "e29672b2645ca2032069984072515802218173a249e3fdbd131348fe1eb3cc48"
+      },
+      "msm5205_pcm.d.ts": {
+        "bytes": 2862,
+        "sha256": "220d5a51dd548dfeccf71cb495dcad71026ce5588ce4e03171ac6972438d63a0"
+      },
+      "msm5205_player.d.ts": {
+        "bytes": 2052,
+        "sha256": "ee024112e0f21bdfc3116ef152e8d3c2a78daac8f4b8ae7176f7d15275fb847a"
+      },
+      "msm5205_sample.d.ts": {
+        "bytes": 980,
+        "sha256": "e5c36fdec4e307e06fc6838b15c3a2a03f0d9186634f05e1fdd6acc78a6620bd"
+      },
+      "generated/msm5205_wasm.d.ts": {
+        "bytes": 89,
+        "sha256": "9b76fc286bf29ca29d01a57b62e2b93804c3a29a8bdf7a800b999bbdd27c2996"
+      },
+      "msm5205_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "msm5205audioengine.d.ts": {
+        "bytes": 1173,
+        "sha256": "5d7ff4f922a13e4e3edbc73b023a0c36991a370e3904437da305be189c9ee833"
+      },
+      "msxaudioengine.d.ts": {
+        "bytes": 6612,
+        "sha256": "e45d61a8f35928269657e3fa10a9daffbdcba4a2bfc29ad9836a8aaa147650dd"
+      },
+      "multichipaudioengine.d.ts": {
+        "bytes": 2652,
+        "sha256": "1ca27e0e56fedb94fdcdd2643333e612ed33854b34bb1a5cc9df5a0d66be8870"
+      },
+      "native_fx_engine.d.ts": {
+        "bytes": 1264,
+        "sha256": "4f608834e546ee6511fa8e33f5449f09275549ecbc97be4bd3402a9924ce0160"
+      },
+      "native_fx_graph.d.ts": {
+        "bytes": 2570,
+        "sha256": "6cfc8c7d9235341f7bfb0d0b731e89dd974d4895889ac718de06f6003155bcf9"
+      },
+      "native_fx_rack.d.ts": {
+        "bytes": 1617,
+        "sha256": "9725aba416731063d1cee2067c9c7ee4df3f507b5f18014be4b739ba2e08c712"
+      },
+      "native_fx.d.ts": {
+        "bytes": 3940,
+        "sha256": "8f92570c34f78fc8ff7146a6a2c8713252f5eefe82b5ca3ac64ab0aa626b2b02"
+      },
+      "native_genesis_console.d.ts": {
+        "bytes": 2874,
+        "sha256": "9eed98dc18bc8bdcd5bd0aca6131bc81e6128d614bd2346bbbcc916b297d4880"
+      },
+      "native_genesis_dx7.d.ts": {
+        "bytes": 3074,
+        "sha256": "245cfaf637c471b5e4463ffb81360559c22f87c4ee7941f0805f0cc464282670"
+      },
+      "native_genesis_extra_ay8910.d.ts": {
+        "bytes": 1507,
+        "sha256": "af78e18140a5918c18150528435cb9492943649d46d1e10094e30d65f4285dd8"
+      },
+      "native_genesis_extra_chip.d.ts": {
+        "bytes": 832,
+        "sha256": "7cfdee7c0833a92aece36d597e603c042661633d53f57dfa2cc85682bb5a8d26"
+      },
+      "native_genesis_extra_dx7.d.ts": {
+        "bytes": 3725,
+        "sha256": "6e4664dabc12f9ba2d4acb2d918c282c490bda6dd5d4809387bd23638c4ba369"
+      },
+      "native_genesis_extra_gameboy.d.ts": {
+        "bytes": 1181,
+        "sha256": "44bcf0902104e6bffa414a554047e4ac148774fe4b9bd68f525e27aa04a55626"
+      },
+      "native_genesis_extra_huc6280.d.ts": {
+        "bytes": 1230,
+        "sha256": "f01bad147446e25f36eb2cb58aed18a49d15bc74c2b616c0422dab381e28d236"
+      },
+      "native_genesis_extra_nes.d.ts": {
+        "bytes": 1445,
+        "sha256": "8289724735aa72e3ad45a04203e1a2e721e075c8d7886bdd8a617983fcd20073"
+      },
+      "native_genesis_extra_okim6258.d.ts": {
+        "bytes": 1675,
+        "sha256": "93b72979e0f333e5e9a34c50bb1a47a300187185a84bd680ef263c3ff45f83bf"
+      },
+      "native_genesis_extra_opl.d.ts": {
+        "bytes": 1590,
+        "sha256": "eae22eff969978cc8b0bbe9bed5e2ad15e03b36526d18dd69082e833633ea044"
+      },
+      "native_genesis_extra_pokey.d.ts": {
+        "bytes": 1783,
+        "sha256": "cab04d9a2fa895835f44c27d13c0f5a25f079870ee76430cac5b2c62b6d4ef70"
+      },
+      "native_genesis_extra_pwm.d.ts": {
+        "bytes": 1953,
+        "sha256": "b617d97773acce9cd40cac2e5f5cfc345e1b6f8cbf0b5bd2c0c263cc541605aa"
+      },
+      "native_genesis_extra_register_voice.d.ts": {
+        "bytes": 4649,
+        "sha256": "fdd1f334a7b657b4c2808b5d6a73176890852ddf25d0667ee106beedcdf46421"
+      },
+      "native_genesis_extra_rf5c164.d.ts": {
+        "bytes": 1934,
+        "sha256": "12727ec663b90b5fa0d9e5cc35d7cb42dde32b18182e177a14be01afdecaa1d7"
+      },
+      "native_genesis_extra_segapsg.d.ts": {
+        "bytes": 485,
+        "sha256": "6d730f1f72567218ec9f58af3ef37faa6ae59735cbce7f888f7960e4a59ae545"
+      },
+      "native_genesis_extra_snes.d.ts": {
+        "bytes": 3231,
+        "sha256": "f232d9618425f5999833ae03c402735535616aac212b1aea2c0efb0c9b9f798e"
+      },
+      "native_genesis_extra_spc.d.ts": {
+        "bytes": 1199,
+        "sha256": "c9404ee89d215ce202491ee5c2cbffa1ff2e560852c2f3e823045191defb397d"
+      },
+      "native_genesis_extra_wonderswan.d.ts": {
+        "bytes": 361,
+        "sha256": "9f342ac918249419eebd3baa9e990cecf1971e81effe54f546dde5390b894df9"
+      },
+      "native_genesis_extra_ym2151.d.ts": {
+        "bytes": 1869,
+        "sha256": "eac724a16cb0cdd51824a888f1bf644ee02299912a6c3c940fec761149751f1e"
+      },
+      "native_genesis_extra_ym2203.d.ts": {
+        "bytes": 1192,
+        "sha256": "383f16625790a0756fc95686617aca2b0c5083c536171b3004e4a16c253df879"
+      },
+      "native_genesis_extra_ym2413.d.ts": {
+        "bytes": 1507,
+        "sha256": "6528675fcbde5c8fd70d698a863c4aed5034d7b8383e4c485917de4059057325"
+      },
+      "native_genesis_extra_ym2608.d.ts": {
+        "bytes": 1365,
+        "sha256": "0eaca28b4a6f7156b8892d8ebe2e13cf9511e3b5d03ff7e0ac123b25ae9048a3"
+      },
+      "native_genesis_extra_ym2610.d.ts": {
+        "bytes": 1658,
+        "sha256": "02b9c1f7e03b925e7f09c792a770020627c11e88c1948054848948578f39ba6c"
+      },
+      "native_genesis_extra_ym2612.d.ts": {
+        "bytes": 1011,
+        "sha256": "19b2ee196d2da4f362c91bb35f408af4a6873b33a12bb2342854340ee72e10f2"
+      },
+      "native_genesis_fx.d.ts": {
+        "bytes": 1305,
+        "sha256": "158392b7de5b3560b059147e687f2649d7a6aed7f05b3709609d029b1fd66b5f"
+      },
+      "native_genesis_game_gear.d.ts": {
+        "bytes": 563,
+        "sha256": "9734a76d0d2975d52ccb66f3b8f9c7e0ca61eba145ed9aaa276d4c31b4532282"
+      },
+      "native_genesis_livefx.d.ts": {
+        "bytes": 1553,
+        "sha256": "0d6ec2f64fb9212f873343d4a754097cf4f4ffd69170b4d861a528ab44c73f21"
+      },
+      "native_genesis_master_system.d.ts": {
+        "bytes": 1059,
+        "sha256": "b58f166e8e1920e2df45a9c440f5f6cae16678c897160570d0da255e8e138295"
+      },
+      "native_genesis_media.d.ts": {
+        "bytes": 1864,
+        "sha256": "feed5806716b3d782c5b45ab2b925ecf0fd13e3a5f06ffe8d2ff900f1d65e509"
+      },
+      "native_genesis_monitor.d.ts": {
+        "bytes": 497,
+        "sha256": "a2fa547356833ecfd03c0eef2b0c9a73ae57592647043b0e0683076d6bb4d864"
+      },
+      "native_genesis_msx_audio.d.ts": {
+        "bytes": 1545,
+        "sha256": "73f5ab91ea30043c2f9205f797037f026b129a18eda3ffdb8f67f9773ad4ee11"
+      },
+      "native_genesis_msx.d.ts": {
+        "bytes": 1049,
+        "sha256": "f0382eef608cb35369ffbc39a2c6a745fd96e3fd7d7533ab588daf3b7e5b19b1"
+      },
+      "native_genesis_nes.d.ts": {
+        "bytes": 4552,
+        "sha256": "3f8fb0987692f9b1517f00bcfb66448060f035694251a3c0d77fe53d5cf3abfb"
+      },
+      "native_genesis_noise.d.ts": {
+        "bytes": 3174,
+        "sha256": "9bfabcddaff38c770ba33325dd81d7f5ec3f9cd8bb1824a3177e0fcbaa1f0f06"
+      },
+      "native_genesis_opl.d.ts": {
+        "bytes": 581,
+        "sha256": "bb11ab69debbccc08f763d0142db2de114a12ff796594c9120a58aa81794842d"
+      },
+      "native_genesis_opll.d.ts": {
+        "bytes": 491,
+        "sha256": "ee07614b5fcd9032a174bac1413c48df9c92455d1ccd29f869d993c93cc79113"
+      },
+      "native_genesis_pokey.d.ts": {
+        "bytes": 1107,
+        "sha256": "0abf38a29c0a57129e83d5568e1888007342b711c41079649953af1e4569e77d"
+      },
+      "native_genesis_pwm.d.ts": {
+        "bytes": 825,
+        "sha256": "812e9d29f2854078bac4af16e9b70892e6621347d5ca1b08f6d71f525e3d935f"
+      },
+      "native_genesis_rf5c164.d.ts": {
+        "bytes": 2278,
+        "sha256": "07219ff5d4f79e88cecd5d71207c48b2f1745c688a55ffe27f081a1d3a0ac140"
+      },
+      "native_genesis_segapsg.d.ts": {
+        "bytes": 622,
+        "sha256": "99ce143c769e9bc1e4bb58ff261dbf4615f76a74dcac51574c65a98a24dc54ec"
+      },
+      "native_genesis_snes.d.ts": {
+        "bytes": 3259,
+        "sha256": "9bd0ea0046acda33a76eb72860a3fedfdbb579c118c526b963823cb4054c4486"
+      },
+      "native_genesis_synth.d.ts": {
+        "bytes": 63248,
+        "sha256": "2544771081aa19ab4eb3b9e2d16d44e6cede4b840c96889775d01ae26a074f82"
+      },
+      "native_genesis_voice_endpoint.d.ts": {
+        "bytes": 2014,
+        "sha256": "dfc724fe9c0f35c0bb5f4917d601826bc470a27b9665aaade6de105931640593"
+      },
+      "native_genesis_wonderswan.d.ts": {
+        "bytes": 1309,
+        "sha256": "9b2b4da460429bee56c3cab650fa41021b1cf12b376c795ffde039b5ad6554d9"
+      },
+      "native_genesis_worker.d.ts": {
+        "bytes": 1371,
+        "sha256": "0f6da5d911c14056c96d2b1ffdd0754aa8033e6360b86cb9548d62cfecea42c8"
+      },
+      "native_genesis_x68000.d.ts": {
+        "bytes": 2589,
+        "sha256": "5f7a4746611f3ddcfb6dc90c77c1f35d200db350d4978ce94d7db80358ef0294"
+      },
+      "native_genesis_y8950_inspector.d.ts": {
+        "bytes": 1117,
+        "sha256": "75e5c97b3b084dcac084f0a9403188437849ca87bba2ddc12443a1a7235502f1"
+      },
+      "native_genesis_ym2203.d.ts": {
+        "bytes": 698,
+        "sha256": "cecdce4342a41704fe2c13a139974d2c49c45f3100c00929383d12dcd6952965"
+      },
+      "native_genesis_ym2608.d.ts": {
+        "bytes": 1331,
+        "sha256": "68bc972eeb856a9f92011c292a7d5177ee139abb4add1006a1f6c4937247e86d"
+      },
+      "native_genesis_ym2610b.d.ts": {
+        "bytes": 1164,
+        "sha256": "f0b405ae641825b33d5ab62f26d89a50d6abac3c3eb70da5d5a3d0e3fafea112"
+      },
+      "native_livefx_context.d.ts": {
+        "bytes": 703,
+        "sha256": "60ad37aeb30318ded6ecfb12097aa84ad7c5fcf4fe2b4b79a77017b983ba2c3f"
+      },
+      "native_noise.d.ts": {
+        "bytes": 1281,
+        "sha256": "3c1a835601005ea911d302aed6c1ed109b93dd9ad60c8deb358a19c2c582fac4"
+      },
+      "native_runtime_synth.d.ts": {
+        "bytes": 6911,
+        "sha256": "1d7b23a74d254f6dc1349b1fb3431b7eb094da1b02aacc100f464cec476d36c4"
+      },
+      "native_sample_processor.d.ts": {
+        "bytes": 1692,
+        "sha256": "ae677268f6ac821fac1f6fc1a76a06dc28a4bf15b7dc6b55659ce99c97102bce"
+      },
+      "native_sample.d.ts": {
+        "bytes": 1780,
+        "sha256": "b7429d8446e3e28677fe80601ea363d5d875d0f083125b0ccaf7fb05ae4b4f3d"
+      },
+      "native-fx-worklet.d.ts": {
+        "bytes": 2424,
+        "sha256": "b57c23a124930a709729d0f49eb86df49cbe594982070e8a9a7ab208cb8cf073"
+      },
+      "generated/nesapu_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "nesapu_wasm.d.ts": {
+        "bytes": 2533,
+        "sha256": "469202d281140835a2581ea59320d7be1e69dfd155ede57e388bdec7e5d6caf2"
+      },
+      "nesapu.d.ts": {
+        "bytes": 2044,
+        "sha256": "87841811d4cd4a0ac2d3e0a1a532230c4a786e1c4dcaf84333acefd7247a20fe"
+      },
+      "nesapuaudioengine.d.ts": {
+        "bytes": 1432,
+        "sha256": "9051d8a3f0efe57942dbe6ec845a279e0dadc33b818920856da1bf5390a623a7"
+      },
+      "nesapusynth.d.ts": {
+        "bytes": 7627,
+        "sha256": "674a0e847d01556f6208d152671e86c2c4cb35a12f2a5f7f5165b834a81ccdc3"
+      },
+      "generated/nuked_opn2_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "generated/okim6258_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "okim6258audioengine.d.ts": {
+        "bytes": 5368,
+        "sha256": "66b2e7c4d11e6a48d330e561542b54c84163ba59b30d6a55129bf1886906db0a"
+      },
+      "okim6258synth.d.ts": {
+        "bytes": 5477,
+        "sha256": "7f007bf7989cf4fc05256c96c95b689b91c14762f1337c402c01392a0cd51412"
+      },
+      "okim6295audioengine.d.ts": {
+        "bytes": 2545,
+        "sha256": "497685d5cf1e2858407b4efe6fb32d961016140867c3d7e874ae2c7946172330"
+      },
+      "opl_synth.d.ts": {
+        "bytes": 8693,
+        "sha256": "579a701f9e142e1b3b9596a987914ea37daafff4ef5390b01137d37c1ad2ec42"
+      },
+      "opn_fm_synth.d.ts": {
+        "bytes": 10723,
+        "sha256": "db2cffd169e60ca9a5d08ec15fcb8f6063542e3518fdad747d044b40f5a0d0e8"
+      },
+      "opn_fm_vgm.d.ts": {
+        "bytes": 1842,
+        "sha256": "ddea8dc02921e54437f731cbedd5da9823d805172b871aa6ba55b499188170e3"
+      },
+      "opn_runtime_synth.d.ts": {
+        "bytes": 2617,
+        "sha256": "fb059a552d1f5ba15c664ba1ed00bbca9444be7cd1b151021b3bde2c38e97bef"
+      },
+      "opn_ssg_retained.d.ts": {
+        "bytes": 238,
+        "sha256": "5626e676f7810e40cfb6caba8bad2639bc8ec758e8b093b3d70bbfe77868aa50"
+      },
+      "opn_variant_synth.d.ts": {
+        "bytes": 1263,
+        "sha256": "f2c03898068f8372e3fd1e4c559566fdca6162cfa04080f7f208851adf88fb9b"
+      },
+      "opn_variant.d.ts": {
+        "bytes": 3172,
+        "sha256": "9c9377f2d9da52b35a819785ba099830be52319f70f439470281e4cde7bd4f78"
+      },
+      "package_assets.d.ts": {
+        "bytes": 487,
+        "sha256": "170da38ba40d7180b7b662a7b42a0ca10835d3368019536dd3adbf0d5ba91a00"
+      },
+      "pitch.d.ts": {
+        "bytes": 1105,
+        "sha256": "db2af258af3876e98cc7193a57e2cb4e54f54bdf32ce8a6e2615094e07613114"
+      },
+      "playground_async_tasks.d.ts": {
+        "bytes": 1112,
+        "sha256": "cbbd050593cf6cccc87ee0459672db669edb7e0eb2ca59e48edde95aab1e23ee"
+      },
+      "playground_audio_endpoint.d.ts": {
+        "bytes": 642,
+        "sha256": "e801db94625d0399295f801a01c030dde7818bb727d65e3d66bac028811565a9"
+      },
+      "playground_audio_scheduler.d.ts": {
+        "bytes": 1615,
+        "sha256": "91e183dc3c81ee4de228b7dd2372ccdc6c22da855c595e8dcf751c3d76a2f937"
+      },
+      "playground_audition_guard.d.ts": {
+        "bytes": 1543,
+        "sha256": "e9ac73e6aba9f5302e5325ace8921533aa57f14506152e1ff6602fee50e638aa"
+      },
+      "playground_ay8910_audio.d.ts": {
+        "bytes": 785,
+        "sha256": "76a0d82721d2a8596c6db29370e3842c981365a9e2550f305f2033376f368082"
+      },
+      "playground_ay8910_inspector.d.ts": {
+        "bytes": 2096,
+        "sha256": "521db7e34f38c9c1979f96ad942ebbe226dba2d56e8a2403da1a882e045c85e3"
+      },
+      "playground_ay8910_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_ay8910.d.ts": {
+        "bytes": 815,
+        "sha256": "1ee57f7d607d2134c3da178fb601f17357334508fca9e19d3a09c7b328c23d32"
+      },
+      "playground_chip_clock.d.ts": {
+        "bytes": 2069,
+        "sha256": "8922a2be09067cdbb4269ade7acee38c5a5dc6ecd90ef6a5329fd52e573f39fa"
+      },
+      "playground_chip_inspector_state.d.ts": {
+        "bytes": 4948,
+        "sha256": "2558c1277c947d92ac3fa4b7b55b575f8ce6346983b90e41f3323d8a27f35193"
+      },
+      "playground_chip_inspector.d.ts": {
+        "bytes": 526,
+        "sha256": "231a5938c39de4370ff93ffd0f450e38b805b7cbf287431f8984067cb37e0619"
+      },
+      "playground_chip_port.d.ts": {
+        "bytes": 1061,
+        "sha256": "6062c07f31eb9238b945929b25665d67baaa0d03bd42f47f717f9cc3769e9b62"
+      },
+      "playground_clock.d.ts": {
+        "bytes": 8614,
+        "sha256": "c4d0dd97994d7b7823d45379e73b6b46ad59774b84bfd3e7ec54034022f8ca85"
+      },
+      "playground_duration.d.ts": {
+        "bytes": 1325,
+        "sha256": "8367ab5ffb301e3923a7afdfc39c39a4f5db82c985944f8995397ee9f6c7c3b3"
+      },
+      "playground_dx7_audio.d.ts": {
+        "bytes": 705,
+        "sha256": "fb4b12f9db74c2980f17a71a720e4d014a4bd9e4a5deef3eece5e6420a27c81a"
+      },
+      "playground_dx7_inspector.d.ts": {
+        "bytes": 3458,
+        "sha256": "00d17619e6a0fba3e73f67631ae91c46971b19d190bfb136e758503f97eedd96"
+      },
+      "playground_dx7_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_dx7.d.ts": {
+        "bytes": 2981,
+        "sha256": "a1d77268f00d9eee089aa19b1d5624d66ab970b86770784f06fb884b4fbd10fe"
+      },
+      "playground_execution.d.ts": {
+        "bytes": 1761,
+        "sha256": "8a0f1fa06b1ba607cdd5fa001f8fa15d409197c42fa34925acab55d3dbdeb4c3"
+      },
+      "playground_gameboy_audio.d.ts": {
+        "bytes": 248,
+        "sha256": "579059d7b89d70036d7de94157da4d166ddcb6e4d1180346a88f400ac3e5fa6f"
+      },
+      "playground_gameboy_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_gameboy.d.ts": {
+        "bytes": 641,
+        "sha256": "4144eb310290a0408776348a8fd11cf67ef97038febe28916cee858ff1d37a0f"
+      },
+      "playground_huc6280_audio.d.ts": {
+        "bytes": 623,
+        "sha256": "b2928fd7462631630fb25fed0bacb5829b0e367961a9f92273a4e6a0992bcedd"
+      },
+      "playground_huc6280_inspector.d.ts": {
+        "bytes": 2675,
+        "sha256": "6920063c2de623c23c3157a98cba403df2d1c8f99fcd583066abfcdc4eda713c"
+      },
+      "playground_huc6280_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_huc6280.d.ts": {
+        "bytes": 678,
+        "sha256": "1af8946286fe845e8293e6b9a03ce26629f61e23d53b6da34d7ba9031703e6ad"
+      },
+      "playground_keyboard_channels.d.ts": {
+        "bytes": 2576,
+        "sha256": "472dec56909a78498055a97c874f76e2a71bdcc1cf3139f13661cb9e6989ffc9"
+      },
+      "playground_keyboard.d.ts": {
+        "bytes": 1279,
+        "sha256": "dc6faa98458716c6eaf6c73a3b3b826084039e1ddb96241e707343bf396da605"
+      },
+      "playground_live.d.ts": {
+        "bytes": 3337,
+        "sha256": "afe46a2ef55d08f42a3e54615193a73228182eddd68558c5f2cf3b10985401d3"
+      },
+      "playground_log.d.ts": {
+        "bytes": 115,
+        "sha256": "30a4304ca2410202f16f8e86c13a23e51a910a68428306bf9ea00c6f5470e3f4"
+      },
+      "playground_logic_worker.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_midi.d.ts": {
+        "bytes": 2822,
+        "sha256": "08ece14796aabbea8e4925297ebbbd6be0e7b6800e5395ade77c26712f11b2e0"
+      },
+      "playground_music.d.ts": {
+        "bytes": 4051,
+        "sha256": "5c7583959b4252f2c57b99ddb9d86547037f2332e56eddf343e523cf952314fe"
+      },
+      "playground_native_primary.d.ts": {
+        "bytes": 4774,
+        "sha256": "b2f3af5b3a042891cc18dadcd6cfb5811c81efb0f95bfd6eeff7f110378c9b67"
+      },
+      "playground_native_sample_editor.d.ts": {
+        "bytes": 807,
+        "sha256": "cacc62a7d87bd849462ccc6c5310cac8b29057154c4170478a0792d257ffdf8f"
+      },
+      "playground_native_voice_inspector.d.ts": {
+        "bytes": 8868,
+        "sha256": "a441b0649b93e483a2e16ac8caccbeb5c029340a04296e64d1af1d2718a87722"
+      },
+      "playground_nes_audio.d.ts": {
+        "bytes": 536,
+        "sha256": "4e4949d71c4dc1f5e39f41a61d0853d01afd9aca0f618fdbd60ab3e7739f7a4a"
+      },
+      "playground_nes_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_nes.d.ts": {
+        "bytes": 798,
+        "sha256": "f4097af2236a2125310727b469e041a41fc495c1ecfab526fb0081728d9fd60e"
+      },
+      "playground_noise.d.ts": {
+        "bytes": 868,
+        "sha256": "17c57a921e0f93af0924a3c4bd939c40d3157db1316906a97b64d839afc371fb"
+      },
+      "playground_okim6258_audio.d.ts": {
+        "bytes": 601,
+        "sha256": "302e3427abcaf011e51240f243055be9328b3472fa63f55ca502107a4f81af09"
+      },
+      "playground_okim6258_inspector.d.ts": {
+        "bytes": 2334,
+        "sha256": "c5fb6656b95b8655267726154fb7faee09aea9d5ff60ac98700847d7ac3d76a3"
+      },
+      "playground_okim6258_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_okim6258.d.ts": {
+        "bytes": 396,
+        "sha256": "f0365e2c55c786e14873f98c68e918c57e9d2b848e35f6387b2c63cf7d860cc1"
+      },
+      "playground_opl_audio.d.ts": {
+        "bytes": 809,
+        "sha256": "8a42f29b46108a2efb50e60bb941e6f23d02979a6b9bd23e56a5ed904086be6a"
+      },
+      "playground_opl_inspector.d.ts": {
+        "bytes": 3665,
+        "sha256": "1973ce9ca24835f1a126bdf39f9169697d532a611ae13d9fa8e55f4b33d0287e"
+      },
+      "playground_opl_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_opl.d.ts": {
+        "bytes": 1585,
+        "sha256": "3ad2014401a1aac270f53086672a0c77b4f886f8f5759025692b9b8d0d7c8379"
+      },
+      "playground_opn_audio.d.ts": {
+        "bytes": 362,
+        "sha256": "cfb058884d6a2d6570b5ef291af366fcb2779ed3377d3fd2870fbb4ce22e7ebc"
+      },
+      "playground_opn_inspector.d.ts": {
+        "bytes": 2038,
+        "sha256": "edb899c2d7c2f4a364035508876811954149141c61b6bfe3d5a7b47e430e4bfe"
+      },
+      "playground_opn_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_opn.d.ts": {
+        "bytes": 1054,
+        "sha256": "b3e621b1aac8e7cd4d79dc996bf73c5ae5c0c4df37dabe9094a4c99d48394438"
+      },
+      "playground_performance_host.d.ts": {
+        "bytes": 426,
+        "sha256": "c323dfd460efe059dea89729627ca7e85995d0b6b453dd1baf8f295cba4a2ac4"
+      },
+      "playground_performance_processor.d.ts": {
+        "bytes": 3395,
+        "sha256": "9ab25474b31b9f6c5e0a9fc91a7011e28d473a8196e7964191f555759f4317bb"
+      },
+      "playground_performance_queue.d.ts": {
+        "bytes": 1641,
+        "sha256": "95e1e178690fd50d93ead1da4e00619e161764f0d3613fa8b0ef4fadfe6e4cfa"
+      },
+      "playground_performance_sender.d.ts": {
+        "bytes": 1039,
+        "sha256": "94ff27110fc1e8a412c2137fd1b7bbda780779bb6b606b62186a0c088b29f666"
+      },
+      "playground_pokey_audio.d.ts": {
+        "bytes": 683,
+        "sha256": "ce16aba1bd113a3e381943fadad4f3aced89b70276fee4239431eeac6d171caf"
+      },
+      "playground_pokey_inspector.d.ts": {
+        "bytes": 2326,
+        "sha256": "805879c68c546a6bcb9fa0ca7f77db5bcf18086828e6410be2f33f974c3d632a"
+      },
+      "playground_pokey_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_pokey.d.ts": {
+        "bytes": 983,
+        "sha256": "bb893522435eabb0d099dbf8ddb3be53f6521d12a31e84326dc6c0327566e94a"
+      },
+      "playground_pwm_audio.d.ts": {
+        "bytes": 727,
+        "sha256": "447dd8dc32a9dbe47f0449b56f8acee1fca719c95988e84ba9b170b749313db8"
+      },
+      "playground_pwm_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_rf5c164_audio.d.ts": {
+        "bytes": 507,
+        "sha256": "ef777307cf26c87267179c55bc57f4d14b9dfd4ecbd73413e2e7d189540f54f5"
+      },
+      "playground_rf5c164.d.ts": {
+        "bytes": 1845,
+        "sha256": "3193dc13f4ccc2b3de2f9af2d0616568c57ef37fb624a700d30b7ca8dab0f71a"
+      },
+      "playground_runtime.d.ts": {
+        "bytes": 14880,
+        "sha256": "6d5899a974b76b2130816c0d4b763dd16c85963f2e8bd5c46241742984bfd670"
+      },
+      "playground_sample_edit.d.ts": {
+        "bytes": 2981,
+        "sha256": "006d121a7955f4bee8a9b845cd344f85aaf826e0699df052c98fe724d01d1b6e"
+      },
+      "playground_sample_instrument.d.ts": {
+        "bytes": 594,
+        "sha256": "af3747702b574da44d2f6609f17dd9324741299a59ba65fcd9aa82f090bf5991"
+      },
+      "playground_segapsg_audio.d.ts": {
+        "bytes": 703,
+        "sha256": "338ace28622254007c7853e1bdc01a739868ec42fcd03cb62bf202e9e1e974d7"
+      },
+      "playground_segapsg_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_segapsg.d.ts": {
+        "bytes": 506,
+        "sha256": "2bbb367f1aec5023a870c7ec4a6faf337a99b79fa8e43954f8178e7f9f6da9c2"
+      },
+      "playground_snes_audio.d.ts": {
+        "bytes": 542,
+        "sha256": "cd678d1591693398dfa6825f1d0e62533c2c83873bef4161defa9925c87c5fe5"
+      },
+      "playground_snes_inspector.d.ts": {
+        "bytes": 2124,
+        "sha256": "6c4c10239e15cad2ec07196e86c57364dda6885dda674532d84ba6bfc785e40a"
+      },
+      "playground_snes_worklet.d.ts": {
+        "bytes": 1834,
+        "sha256": "82aa0079dec4b7a0efdc3ae032bf65f4f1a405678fbc41f2f9d0d132ce8bb495"
+      },
+      "playground_snes.d.ts": {
+        "bytes": 3167,
+        "sha256": "df7530c774ed02df996353ca041d9859e6480f13663406e1f9378931aace3345"
+      },
+      "playground_soundchip_options.d.ts": {
+        "bytes": 323,
+        "sha256": "349b940a334043be9be1c7d3e469d3a4fd44f5769ad9f2f393417d44de492d8c"
+      },
+      "playground_soundchips.d.ts": {
+        "bytes": 1157,
+        "sha256": "ee8ab26cc8ca41801fcd083826ec13918c6994299a62d8cdc865dddcd5552c33"
+      },
+      "playground_spc_audio.d.ts": {
+        "bytes": 529,
+        "sha256": "df6ebd5222dd08263f79934146e97286053467f899eb639ec4f5ff106647a48b"
+      },
+      "playground_spc.d.ts": {
+        "bytes": 1306,
+        "sha256": "9cd66bb63d4e0070ac986d2b9a9a47333e9344f780aa56540a5bbfe1da615293"
+      },
+      "playground_sync.d.ts": {
+        "bytes": 4313,
+        "sha256": "11b763c1c7dc820fae451e2af36ef1d42e1486387af4442a83a75d68d86cf4cf"
+      },
+      "playground_wonderswan_audio.d.ts": {
+        "bytes": 288,
+        "sha256": "7305cb8914a2ad7b775382ee93bcee563be93bcfd068030184712048c96ace35"
+      },
+      "playground_wonderswan_inspector.d.ts": {
+        "bytes": 2505,
+        "sha256": "b83cc7580d71a83951e0c7ec87e5d7aaced0efbcfe7a28a3ffdf15c900317658"
+      },
+      "playground_wonderswan_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_wonderswan.d.ts": {
+        "bytes": 775,
+        "sha256": "287a06586ff8dd8dfd8574ca12f102e4139ce6444f649dc4513a0c4e3ed7cc6d"
+      },
+      "playground_worker_chip.d.ts": {
+        "bytes": 2163,
+        "sha256": "cf391670b1803ceab7fd9cc0f2c76a84bdff9c1cbf7747526716fa7deb8f635b"
+      },
+      "playground_worker_dac.d.ts": {
+        "bytes": 1069,
+        "sha256": "2cc3494f25a3973be6b7d0e0c939f490585fdafaf14d40da863540799d114f0c"
+      },
+      "playground_ym2151_audio.d.ts": {
+        "bytes": 496,
+        "sha256": "ce1e145112d1213bab35ae9681d9ef77dca95520258d2f4ec724ec038415743e"
+      },
+      "playground_ym2151_inspector.d.ts": {
+        "bytes": 2594,
+        "sha256": "297c2af8d0523dd731b9e06220ddf8985715e32868e7dfd479dec0bba3aa430c"
+      },
+      "playground_ym2151_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_ym2151.d.ts": {
+        "bytes": 2585,
+        "sha256": "763771222001d2e3661f208611ccca30dad7e1eaf70e5f59cf98a7145085cc8e"
+      },
+      "playground_ym2413_audio.d.ts": {
+        "bytes": 684,
+        "sha256": "9e59134427544a9e26362250854b30040a7c06ec2a0afcb1d441ae37bf4e6dc5"
+      },
+      "playground_ym2413_inspector.d.ts": {
+        "bytes": 2712,
+        "sha256": "a913a5c3c1fa98bb9492b2e9af7f5c5cc988bf040280e1cc127c9c3aa6fe0c63"
+      },
+      "playground_ym2413_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_ym2413.d.ts": {
+        "bytes": 888,
+        "sha256": "369e951726a78c22e876d92f13468ab0d3c64acd842bb44bef0a5267cb93d93e"
+      },
+      "playground_ym2608_audio.d.ts": {
+        "bytes": 247,
+        "sha256": "dc8e33f13e4d6d3b00a0973edbcf75c86f0d593fa9a01f047767990baf16d389"
+      },
+      "playground_ym2608_timeline.d.ts": {
+        "bytes": 647,
+        "sha256": "54fcad6753dc11852180b26ada13e21c2f82ffc98b54450b63c790f449bdf77c"
+      },
+      "playground_ym2608_worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "playground_ym2608.d.ts": {
+        "bytes": 458,
+        "sha256": "35b402f3717e21ec420e913aa14f30259107e60e22aab9c9096b06097474e145"
+      },
+      "pokey_timeline_builder.d.ts": {
+        "bytes": 1165,
+        "sha256": "083e1d24d0234e4d7c688234b7b28b0bda57fd496f80e9a96206f5f592e79015"
+      },
+      "pokey_timeline_upload.d.ts": {
+        "bytes": 1456,
+        "sha256": "521f49045903d0493e6a77ada413d2b63ee3aab30ae6793370a63f8c8bb67eb5"
+      },
+      "pokey_timeline.d.ts": {
+        "bytes": 1212,
+        "sha256": "cb6b89e71df7a9ea89a18558ad1779d92e7875df65a3a08e1b36bbf2fbac9e66"
+      },
+      "generated/pokey_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "pokey.d.ts": {
+        "bytes": 3741,
+        "sha256": "4d0ff7cbd66b56e1120dcafc4413309365eb44e623bd5b367e8dd0b771e2c41a"
+      },
+      "pokeyaudioengine.d.ts": {
+        "bytes": 2204,
+        "sha256": "e05b77a37cb96134334e45b2cd095acff13dfc44c78044acd1f46e27078e0165"
+      },
+      "pokeysynth.d.ts": {
+        "bytes": 3666,
+        "sha256": "53305c6e4fc25b27dd69ea8005f9d43963ec6aaf9b24ee395f7d79b31c9ff541"
+      },
+      "msfa_dx7/src/preset.d.ts": {
+        "bytes": 3605,
+        "sha256": "eee7fbd3673801ce74d79987f7b0b8ccba29c7169dc1c531be86767eda5bb052"
+      },
+      "pwm32x_playback.d.ts": {
+        "bytes": 3636,
+        "sha256": "12bbb1f6024fc68f4b5e45ec4fec636f0ae38971685568a4031eaa0c6345d2d9"
+      },
+      "pwm32x_transport.d.ts": {
+        "bytes": 2636,
+        "sha256": "a1dfd021f6968788561f797b723a09bc24ae4db259ab6fe763ce14a7aa160090"
+      },
+      "generated/pwm32x_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "pwm32x_wasm.d.ts": {
+        "bytes": 3961,
+        "sha256": "defc630b736436be30ba3646dc6718bff8e6bcfccf443d8eebc93dc3070e78e2"
+      },
+      "pwm32x.d.ts": {
+        "bytes": 2453,
+        "sha256": "692c1282cee07b45bcf2f6d70d97a6e4be6efd5b06dceefde7dfa617bcb58831"
+      },
+      "rf5c164_pcm.d.ts": {
+        "bytes": 511,
+        "sha256": "76efb0e05eb51d1c486a284fe63b0fa6fdfde9957000bbb962bde94927c04eb1"
+      },
+      "generated/rf5c164_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "rf5c164-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "rf5c164.d.ts": {
+        "bytes": 5161,
+        "sha256": "d01cc791314b5a4af60a94b2a3b6e83d4d861f36b94b127a73b52f0043cf509f"
+      },
+      "rf5c164synth.d.ts": {
+        "bytes": 2990,
+        "sha256": "5c227013bbcdc8a11beb38772862cb3c315c0fbd7b2423d27cfb0494b327e826"
+      },
+      "s98_file.d.ts": {
+        "bytes": 1367,
+        "sha256": "d1727ceffbceaa0862c12281206f9b594ce6cfd3e29bd3a375804b78067ab262"
+      },
+      "sample_clock.d.ts": {
+        "bytes": 434,
+        "sha256": "2d745736934205059bb8ecea63b5b80188fcb26377e595a010dabdce129e9963"
+      },
+      "generated/segapcm_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "segapcm.d.ts": {
+        "bytes": 4846,
+        "sha256": "a5351165ba1747b32e77a64855f510bd238aeccd7ff82465fdc983b05251d8c6"
+      },
+      "segapcmaudioengine.d.ts": {
+        "bytes": 5067,
+        "sha256": "63ceac0a551af404625e625c3a02975d188dbb31651512157d77228baccd7f8c"
+      },
+      "segapsg_api.d.ts": {
+        "bytes": 643,
+        "sha256": "7829bc5e39d986cd32428de44ef5ea7e1ef09abc5f6c860300b87ec9e4aefb16"
+      },
+      "generated/segapsg_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "segapsg.d.ts": {
+        "bytes": 5009,
+        "sha256": "d6642748c8307b439ac8be9e08344f8e6bb50e499fd5200c584c9708ca3139f3"
+      },
+      "segapsgsynth.d.ts": {
+        "bytes": 4218,
+        "sha256": "908e8feb6a038fbf8bcb598a36e19b4cc4f19f1b5ff5d2cac4a9af4da4be4506"
+      },
+      "snes_brr.d.ts": {
+        "bytes": 6477,
+        "sha256": "dd18ee25d20d9caf51c37a5141fbbc0109ac78d70f32ac00b41741d7d19877b9"
+      },
+      "snessynth.d.ts": {
+        "bytes": 7388,
+        "sha256": "63fb2bec1d8b0b8d24762aa02ea3dfa60d2e971d4f1da369e7b27474f3d5498d"
+      },
+      "soundchip_factory.d.ts": {
+        "bytes": 707,
+        "sha256": "1de0b0db8ec7088050cda837e11c34c3c6827b0cd8c752e77ad1659ca2ff97ff"
+      },
+      "soundchip_mixer_presets.d.ts": {
+        "bytes": 603,
+        "sha256": "e3b1567bdc624786d761b9383f66586fcde177ac1d09a0b9716308b5a6363321"
+      },
+      "soundchip_mixer.d.ts": {
+        "bytes": 8299,
+        "sha256": "f120d3b8261a6e9ebe172a227683ecebe4354c6affac9772d801a498ba248a3a"
+      },
+      "soundchip_pitch.d.ts": {
+        "bytes": 1208,
+        "sha256": "6015ce85e6937fbd491d77c89cc2be1e2bb7d96ab2b90c097b3397f38f03d707"
+      },
+      "soundchip_worklet.d.ts": {
+        "bytes": 1043,
+        "sha256": "371339badd482a6b3e5a835598d88c48816ab4dec3771b8dd2156d3db6fdab78"
+      },
+      "soundchip-output-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "soundchip.d.ts": {
+        "bytes": 5031,
+        "sha256": "0c677b870f78c1616f8c86e34c0cbb4767a5eaf0701b896d443f8c2838d911e4"
+      },
+      "spc_audio.d.ts": {
+        "bytes": 5326,
+        "sha256": "8af861ffdc8459fa44517326ee1ab561851446825cd9832fca3d03cc9c1ca8f4"
+      },
+      "spc_events.d.ts": {
+        "bytes": 2848,
+        "sha256": "35081e2ee64167a28e89b60d3793381d1851bde7fdc3128db2c4018cc5cbcce0"
+      },
+      "spc_file.d.ts": {
+        "bytes": 3134,
+        "sha256": "f2ecd163ad4159a32c7cf2067007ad1066ee15bb5a39dbb5ce4c502992377d57"
+      },
+      "spc_performance.d.ts": {
+        "bytes": 1900,
+        "sha256": "9850c6c4de94cc8cfec37110244fa4407c4f9fc7142b32012b4a6778dc3057de"
+      },
+      "spc_pitch.d.ts": {
+        "bytes": 1001,
+        "sha256": "8e2bcf288bfd896532d580bae4a096d825aa23c0d0fac327b59fc5c666bd3d58"
+      },
+      "spc_resampler.d.ts": {
+        "bytes": 1150,
+        "sha256": "94cd2b88c104382454806a24ed75fd761d617bf94062dfd10a55b4871891f347"
+      },
+      "spc_trace.d.ts": {
+        "bytes": 1658,
+        "sha256": "1971aa436eefd0a61f34e259d778d8148a57e02d2413cf8ccfd1be72cc95c924"
+      },
+      "generated/spc_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "spc-worklet.d.ts": {
+        "bytes": 2069,
+        "sha256": "d51e873aa54019d4c6f05fd121904338b4994fead68b407a0104995edbdbe764"
+      },
+      "spc.d.ts": {
+        "bytes": 7386,
+        "sha256": "3a3601f80b57b79b7168e2e1c7614bcae717e47e22d0e3ce800a17aafa404bbc"
+      },
+      "ssgsynth.d.ts": {
+        "bytes": 3872,
+        "sha256": "14ea4eee091563ded0bb63cb575f14f60f618ac455e613736ef5a2cec51e6023"
+      },
+      "stereo-width-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "msfa_dx7/src/sysex.d.ts": {
+        "bytes": 1880,
+        "sha256": "eba91054834b14cf7eea6e009ca86bf0076c1f54404d8bf9b32e2ab07328dbea"
+      },
+      "tetorica_audio_runtime.d.ts": {
+        "bytes": 5939,
+        "sha256": "5d1f23da333f5e57615d557987e526535bab1f35903310e4dcedfed223f67b26"
+      },
+      "tetorica_synth.d.ts": {
+        "bytes": 2020,
+        "sha256": "f136cdeac67c44469e7653e2109a691651ba8babc248e6965f840c8cfbdaa3c7"
+      },
+      "tfi.d.ts": {
+        "bytes": 4131,
+        "sha256": "7a67064e044e948e24d1134ea5d4855cb17f05301f902a91c30c13bb8ef3d176"
+      },
+      "nes_apu_vendor/utils.d.ts": {
+        "bytes": 268,
+        "sha256": "5f27c60109522d73f62df0d989e5a8fe582a83cc017f74855014863bcad6b212"
+      },
+      "vgi.d.ts": {
+        "bytes": 845,
+        "sha256": "2151463b20e4558dd18d1f8c702e3eac3f501ac4e25d9ed6dff0cc3ba4d8049f"
+      },
+      "vgm_file.d.ts": {
+        "bytes": 996,
+        "sha256": "ef04d8a1be4a0b393d88f2a01b9c116b910fc104244ed8a275145beafcde3c89"
+      },
+      "vgm_runtime.d.ts": {
+        "bytes": 3395,
+        "sha256": "2e8a6d05b27fa4aeea4db6d7381b84d3ec921597274fb18ce9871349abc359e8"
+      },
+      "vgm-output-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "vgmplayer.d.ts": {
+        "bytes": 12698,
+        "sha256": "6b74cd6123dfeb9f9fae150b3e118b0cf238ccef0eddf6078d493cf38be71579"
+      },
+      "wav.d.ts": {
+        "bytes": 726,
+        "sha256": "9335b02839de0a0e7250a796260933243beee4a049d684fa464df7f80f61d931"
+      },
+      "wonderswan_timeline.d.ts": {
+        "bytes": 1075,
+        "sha256": "3d150100fd195119246f468abfec90e5342b6324c40a67f988d864113e9920a3"
+      },
+      "generated/wonderswan_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "wonderswan.d.ts": {
+        "bytes": 4277,
+        "sha256": "0c75f0b8c5579b09f8de4d3cb8ab786a532d3cc6cadf02bd4da0185da5e0f64d"
+      },
+      "wonderswanaudioengine.d.ts": {
+        "bytes": 2641,
+        "sha256": "442ebd6e31c5b5285424f5cce1fb383d2aff374cdc6aca58b864601eac6be5fb"
+      },
+      "wonderswansynth.d.ts": {
+        "bytes": 5582,
+        "sha256": "676bf389a5b63154df966b5ff53aeab78609e1b258fb9d252270cf98b14f3097"
+      },
+      "y8950_adpcm_preview.d.ts": {
+        "bytes": 2028,
+        "sha256": "96784cec56f92f2da0c828fd00adc5fbea46c765a251387d28263cdf480800c5"
+      },
+      "y8950_adpcm.d.ts": {
+        "bytes": 3497,
+        "sha256": "314ebc84bed0f481c36931767a7dc6e1d9b8d7db63b1b6044d478faa595dafb8"
+      },
+      "generated/y8950_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "y8950.d.ts": {
+        "bytes": 5692,
+        "sha256": "a5eb4939890ddd6cbb90137c730020dfd68b8a3bd1e8946f7c0a752dc2ee6e49"
+      },
+      "y8950audioengine.d.ts": {
+        "bytes": 5465,
+        "sha256": "4ed588b588f6ce788fe0358c53a4193a98f6c513cfa05faaf4cf3a2f8fd06f2a"
+      },
+      "y8950synth.d.ts": {
+        "bytes": 898,
+        "sha256": "dbf9620ea91a2507a325e00a4ad3be048be8dd6bb50f832671828075b6adfeea"
+      },
+      "generated/ym2151_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym2151.d.ts": {
+        "bytes": 5739,
+        "sha256": "a58c947ad3c65594034799ecfd9613cc317a835bcae54f06bc73cde0075cd2c4"
+      },
+      "ym2151audioengine.d.ts": {
+        "bytes": 7169,
+        "sha256": "0ff67ed7042972b5b4e038fe2bfd5e80746343d537e351322393e5e4abe4eaa5"
+      },
+      "ym2151synth.d.ts": {
+        "bytes": 4648,
+        "sha256": "a7ddb8b9cec8a72ea979fa4fd30b1f74336cd77d168eedc31f61049876fbf60d"
+      },
+      "generated/ym2203_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym2203-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "ym2203.d.ts": {
+        "bytes": 6620,
+        "sha256": "a854060a814aa1e4ebb0f7e9b2b134783d51acb0b7376775de944bbcf4159955"
+      },
+      "ym2203audioengine.d.ts": {
+        "bytes": 5335,
+        "sha256": "2884f9a7a4dda33ea2561ca3c8c21b2e82e1b533678c53f33626ecfd6d1a42e9"
+      },
+      "ym2203synth.d.ts": {
+        "bytes": 1654,
+        "sha256": "4abb2c12596a4f724cf6ecce170514eb01599d80e1ad0f56c565e259bfc57152"
+      },
+      "ym2203vgm.d.ts": {
+        "bytes": 393,
+        "sha256": "f3fb45f9e58590b0613aef081ce3dd68e6c102f9dfedfe1f58b7c7f6609f9768"
+      },
+      "generated/ym2413_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym2413.d.ts": {
+        "bytes": 5091,
+        "sha256": "b10252e3c03739879221562e3a0a28a848e4a5d1e051d63e5312edf948b7aaf3"
+      },
+      "ym2413audioengine.d.ts": {
+        "bytes": 5013,
+        "sha256": "c85bedefcc9804ecd57266dd978cccf3ccca29a985b3849367ee72ac68db9ac1"
+      },
+      "ym2413synth.d.ts": {
+        "bytes": 8775,
+        "sha256": "8a50e8afaca4616ec1de6eb4717c67cf1cc168b75f90ef93af51917d8deb1fa9"
+      },
+      "generated/ym2608_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym2608-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "ym2608.d.ts": {
+        "bytes": 6953,
+        "sha256": "72fcd07b4635470cf3b5a47eb93d127dfcf06ff06a7eaf73d11756a4444d9ba3"
+      },
+      "ym2608audioengine.d.ts": {
+        "bytes": 5692,
+        "sha256": "e16f4fd46b6174e1168ea601a10237bb18bb94193731b8cfccf83d8662b85e17"
+      },
+      "ym2608synth.d.ts": {
+        "bytes": 8544,
+        "sha256": "562423e659ba394afd11207369fa2eef4c535532cc1d127c6adef5763a164c9f"
+      },
+      "ym2608vgm.d.ts": {
+        "bytes": 324,
+        "sha256": "53bdf684a2e7ec077a092d5eab0d64b471cb1d1410cc07e2b0f1dfba5a3f4f52"
+      },
+      "generated/ym2610b_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym2610b-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "ym2610b.d.ts": {
+        "bytes": 6213,
+        "sha256": "0ec67f4626c76c7a0d56be07bd2618f5a87c34fc642c1480c6a21e089fd7366b"
+      },
+      "ym2610baudioengine.d.ts": {
+        "bytes": 5100,
+        "sha256": "285c8fa23a519af265bce730d13125da23ae75739ce336f0d8bfa409f731ae5e"
+      },
+      "ym2610bsynth.d.ts": {
+        "bytes": 9097,
+        "sha256": "7d3c23e7ec574d02adda4c578b63e3309602ee4513dfec26e3fe2d3c6d140a1a"
+      },
+      "ym2610bvgm.d.ts": {
+        "bytes": 322,
+        "sha256": "2969eb47e68237aec0251057324ab8ee7ee887c9058196b75cead5e56e387b1a"
+      },
+      "ym2612_dac.d.ts": {
+        "bytes": 3447,
+        "sha256": "31f34dbeb6b47175ba5173e522b8608697b92067af3a98f9a753ed0ab8c16d25"
+      },
+      "generated/ym2612_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym2612-worklet-nuked.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "ym2612-worklet.d.ts": {
+        "bytes": 11,
+        "sha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+      },
+      "ym2612.d.ts": {
+        "bytes": 16407,
+        "sha256": "c936cdb4cbc8cd2370968b1e91aa54db5f14c5d64ad755a529963c41bb91c2a5"
+      },
+      "ym2612synth.d.ts": {
+        "bytes": 16559,
+        "sha256": "69751397b8c8bfd18eb8d601722caf6c0a95f59b411d2df14676651b6b086ec7"
+      },
+      "ym2612vgm.d.ts": {
+        "bytes": 17890,
+        "sha256": "601842d7317f5501990f1ca04e352c20d2beb6c233a7ee20627a98cc374a9cf2"
+      },
+      "generated/ym3438_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym3438.d.ts": {
+        "bytes": 1049,
+        "sha256": "1fd19029b0be164df1cbfa1d91e40005ed61105be33158ae40a432245760ea9f"
+      },
+      "generated/ym3526_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym3526.d.ts": {
+        "bytes": 5091,
+        "sha256": "ce97b68001060130c2aeea76657e5e2aaf9530827808c24bc34ec0517fbbd76b"
+      },
+      "ym3526audioengine.d.ts": {
+        "bytes": 5034,
+        "sha256": "f76b9ceb4d31c31b08153da02c311b83b06d515c2cbd5e2bf7c945ed2bd85419"
+      },
+      "ym3526synth.d.ts": {
+        "bytes": 899,
+        "sha256": "c91b3388e2062b8dbb762ab971d7b1500b1f799e3e84bfb9ae0043b865236026"
+      },
+      "generated/ym3812_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ym3812.d.ts": {
+        "bytes": 5091,
+        "sha256": "434ad23085f60dfc7b48fdbb9b02785f5c7ca77af8a2e680bf08a366ea4ca308"
+      },
+      "ym3812audioengine.d.ts": {
+        "bytes": 5034,
+        "sha256": "3f92957c025452e1ce2d9959217c4cbbec95d64039509c494b8f74bd6a47617e"
+      },
+      "ym3812synth.d.ts": {
+        "bytes": 910,
+        "sha256": "98a669671f0d268387434cdf64438ce600a75a1873cb8f5050c70c7d2b212573"
+      },
+      "generated/ymf262_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ymf262.d.ts": {
+        "bytes": 5514,
+        "sha256": "aa446bae8f3ddf86abc8a5a0d0eb027c623fa47b864f57e4d66a461c1397f22d"
+      },
+      "ymf262audioengine.d.ts": {
+        "bytes": 5211,
+        "sha256": "deff19c0b4f0b622d17af248a93634ce0f0eeb1ed6ad3d556a070c4b509b7ee9"
+      },
+      "ymf262synth.d.ts": {
+        "bytes": 911,
+        "sha256": "0f179991052dff08971836eff5cc0bc08fca108cef54333a587309f1fb03a812"
+      },
+      "generated/ymf276_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ymf276.d.ts": {
+        "bytes": 1049,
+        "sha256": "740cb96665d2831a01e06c00b766a5ebcf064954655588e0bc3629c14df63058"
+      },
+      "generated/ymf278b_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ymf278b.d.ts": {
+        "bytes": 5922,
+        "sha256": "fd877a5793a7108f41c8c534bec96c56ddd73a36c9c7f739a0995ef1c65e026e"
+      },
+      "ymf278baudioengine.d.ts": {
+        "bytes": 5610,
+        "sha256": "a0f460044a7aaf6255324a10931469a1ae7a4212769936cb1d320b2b4b574253"
+      },
+      "generated/ymf288_wasm.d.ts": {
+        "bytes": 77,
+        "sha256": "7134871bce13d4de1e7bf69ea92440f88efaf542c8e0c6e7b2eb9edc02263624"
+      },
+      "ymf288.d.ts": {
+        "bytes": 1060,
+        "sha256": "dc57be70f447842cf7297c1d41123d96474ce9242cec03f62d706f0cd475bf7f"
+      },
+      "sources/third_party/snes-spc/changes.txt": {
+        "bytes": 3569,
+        "sha256": "2f753e4f016d9cd8a37dc338f7a4d1bae70cd3a3623027f514542bee8daea148"
+      },
+      "sources/third_party/snes-spc/license.txt": {
+        "bytes": 26436,
+        "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+      },
+      "sources/third_party/snes-spc/readme.txt": {
+        "bytes": 3134,
+        "sha256": "3832c72b8bf6c5b4e4b6d424d674c2a658b92aa595be10b14bdb715b0d6eb22b"
+      },
+      "sources/third_party/snes-spc/snes_spc.txt": {
+        "bytes": 10661,
+        "sha256": "bf36fda81ac9ad8fecee4efe59bd360772ea0eaa49a0ea801dc06761a07ff295"
+      },
+      "THIRD_PARTY_LICENSES.txt": {
+        "bytes": 2003,
+        "sha256": "54d934917c435d6c5a3e51a99364f71a9c8cb573202a9caaadc4c78f29c0faae"
+      },
+      "generated/ay8910_wasm.wasm": {
+        "bytes": 13549,
+        "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+      },
+      "generated/cdda_wasm.wasm": {
+        "bytes": 2257,
+        "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc"
+      },
+      "generated/gameboy_apu_wasm.wasm": {
+        "bytes": 13782,
+        "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+      },
+      "generated/huc6280_wasm.wasm": {
+        "bytes": 8935,
+        "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+      },
+      "generated/k051649_wasm.wasm": {
+        "bytes": 9399,
+        "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c"
+      },
+      "msfa_dx7/wasm/msfa.wasm": {
+        "bytes": 32084,
+        "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f"
+      },
+      "generated/msm5205_wasm.wasm": {
+        "bytes": 3590,
+        "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+      },
+      "native_audio_effect.wasm": {
+        "bytes": 48297,
+        "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+      },
+      "generated/nesapu_wasm.wasm": {
+        "bytes": 30410,
+        "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+      },
+      "generated/nuked_opn2_wasm.wasm": {
+        "bytes": 21071,
+        "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1"
+      },
+      "generated/okim6258_wasm.wasm": {
+        "bytes": 20173,
+        "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+      },
+      "generated/pokey_wasm.wasm": {
+        "bytes": 18676,
+        "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22"
+      },
+      "generated/pwm32x_wasm.wasm": {
+        "bytes": 10636,
+        "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c"
+      },
+      "generated/rf5c164_wasm.wasm": {
+        "bytes": 27583,
+        "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+      },
+      "generated/segapcm_wasm.wasm": {
+        "bytes": 13966,
+        "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f"
+      },
+      "generated/segapsg_wasm.wasm": {
+        "bytes": 27286,
+        "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+      },
+      "generated/spc_wasm.wasm": {
+        "bytes": 63074,
+        "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408"
+      },
+      "generated/wonderswan_wasm.wasm": {
+        "bytes": 10321,
+        "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+      },
+      "generated/y8950_wasm.wasm": {
+        "bytes": 22425,
+        "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+      },
+      "generated/ym2151_wasm.wasm": {
+        "bytes": 31322,
+        "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26"
+      },
+      "generated/ym2203_wasm.wasm": {
+        "bytes": 45306,
+        "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13"
+      },
+      "generated/ym2413_wasm.wasm": {
+        "bytes": 33469,
+        "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04"
+      },
+      "generated/ym2608_wasm.wasm": {
+        "bytes": 53893,
+        "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f"
+      },
+      "generated/ym2610b_wasm.wasm": {
+        "bytes": 51172,
+        "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316"
+      },
+      "generated/ym2612_wasm.wasm": {
+        "bytes": 40357,
+        "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+      },
+      "generated/ym3438_wasm.wasm": {
+        "bytes": 18778,
+        "sha256": "a6c49e22d9b5ff703a7f4da6df877e067dd494dc3e4354987e23151297b1d984"
+      },
+      "generated/ym3526_wasm.wasm": {
+        "bytes": 18894,
+        "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11"
+      },
+      "generated/ym3812_wasm.wasm": {
+        "bytes": 19058,
+        "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6"
+      },
+      "generated/ymf262_wasm.wasm": {
+        "bytes": 21377,
+        "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+      },
+      "generated/ymf276_wasm.wasm": {
+        "bytes": 18813,
+        "sha256": "c5c06bc94d0dec355c9acea7c408bb85c82b169666fdc47cc9bc7f0f6033bc01"
+      },
+      "generated/ymf278b_wasm.wasm": {
+        "bytes": 26827,
+        "sha256": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30"
+      },
+      "generated/ymf288_wasm.wasm": {
+        "bytes": 23819,
+        "sha256": "34b4211983b0af5bc7479809d949693164b34e2a94e01db1a77abe545d6f4f23"
+      }
+    }
+  },
+  "tests": {
+    "audioUnits": 55,
+    "audioFailures": 0,
+    "runtimeModules": 318,
+    "chipEnginePairs": 28,
+    "declarations": 367,
+    "typeConfigurations": [
+      "NodeNext",
+      "Bundler",
+      "Browser without Node ambient types"
+    ],
+    "all28WasmEnginesLoaded": true,
+    "isolatedPackageCheck": true,
+    "exactCandidateInstall": {
+      "passed": true,
+      "files": 929,
+      "everyInstalledMemberEqualsCandidateAndStage": true,
+      "readmeNodeExamplesPassed": 2,
+      "wavBytesEach": 192044
+    },
+    "browser": {
+      "schemaVersion": 1,
+      "passed": true,
+      "physicalOutputMuted": true,
+      "isolatedPackageOnly": true,
+      "packageRoot": "/private/tmp/npm-cdrom2-release-20261028/consumer/node_modules/tetorica-fm2612",
+      "package": {
+        "name": "tetorica-fm2612",
+        "version": "0.2.32",
+        "manifestSha256": "8cd0901f3cc47c15b000dc35c70e89fd2bf918b35b1064f7d3973576317f6d51"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "kind": "cdda",
+          "sampleRate": 44100,
+          "sourceRate": 44100,
+          "sourceFrames": 44100,
+          "physicalOutputMuted": true,
+          "results": {
+            "scheduled": {
+              "firstFrame": 256,
+              "frames": 7938,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 11351
+            },
+            "paused": {
+              "firstFrame": 8832,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "resumed": {
+              "firstFrame": 10624,
+              "frames": 1544,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 3057
+            },
+            "seekPaused": {
+              "firstFrame": 12800,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "seekResume": {
+              "firstFrame": 14720,
+              "frames": 1544,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 3057
+            },
+            "muted": {
+              "firstFrame": 16640,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "panLeft": {
+              "firstFrame": 18688,
+              "frames": 1544,
+              "peak": 0.152587890625,
+              "stereoDifference": 0.152587890625,
+              "maxError": 0,
+              "activeSamples": 1513
+            },
+            "panRight": {
+              "firstFrame": 20608,
+              "frames": 1544,
+              "peak": 0.091552734375,
+              "stereoDifference": 0.091552734375,
+              "maxError": 0,
+              "activeSamples": 1544
+            },
+            "futureCancelled": {
+              "scheduledFrame": 26056,
+              "stopClearsFuture": true
+            },
+            "stopped": {
+              "firstFrame": 22656,
+              "frames": 5292,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "scheduledStop": {
+              "firstFrame": 28160,
+              "frames": 7497,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 7858
+            },
+            "ended": {
+              "firstFrame": 35968,
+              "frames": 2867,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 594
+            },
+            "replayed": {
+              "firstFrame": 39296,
+              "frames": 1544,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 3058
+            },
+            "disposed": {
+              "firstFrame": 41088,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "kind": "cdda",
+          "sampleRate": 48000,
+          "sourceRate": 44100,
+          "sourceFrames": 44100,
+          "physicalOutputMuted": true,
+          "results": {
+            "scheduled": {
+              "firstFrame": 1536,
+              "frames": 8640,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48825569450855255,
+              "maxError": 1.1920929687825321e-08,
+              "activeSamples": 12477
+            },
+            "paused": {
+              "firstFrame": 10496,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "resumed": {
+              "firstFrame": 12544,
+              "frames": 1680,
+              "peak": 0.3051719665527344,
+              "stereoDifference": 0.48820456862449646,
+              "maxError": 1.1920936793252679e-08,
+              "activeSamples": 3359
+            },
+            "seekPaused": {
+              "firstFrame": 14848,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "seekResume": {
+              "firstFrame": 16896,
+              "frames": 1680,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48825569450855255,
+              "maxError": 1.1920929687825321e-08,
+              "activeSamples": 3360
+            },
+            "muted": {
+              "firstFrame": 18944,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "panLeft": {
+              "firstFrame": 20992,
+              "frames": 1680,
+              "peak": 0.1525859832763672,
+              "stereoDifference": 0.1525859832763672,
+              "maxError": 5.960464843912661e-09,
+              "activeSamples": 1679
+            },
+            "panRight": {
+              "firstFrame": 23040,
+              "frames": 1680,
+              "peak": 0.09154824912548065,
+              "stereoDifference": 0.09154824912548065,
+              "maxError": 2.9802383338939364e-09,
+              "activeSamples": 1678
+            },
+            "futureCancelled": {
+              "scheduledFrame": 28928,
+              "stopClearsFuture": true
+            },
+            "stopped": {
+              "firstFrame": 25344,
+              "frames": 5760,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "scheduledStop": {
+              "firstFrame": 31232,
+              "frames": 8160,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48825569450855255,
+              "maxError": 1.1920929687825321e-08,
+              "activeSamples": 8639
+            },
+            "ended": {
+              "firstFrame": 39680,
+              "frames": 3120,
+              "peak": 0.305145263671875,
+              "stereoDifference": 0.488179013133049,
+              "maxError": 1.1920941123122475e-08,
+              "activeSamples": 653
+            },
+            "replayed": {
+              "firstFrame": 43264,
+              "frames": 1680,
+              "peak": 0.3051719665527344,
+              "stereoDifference": 0.48824290931224823,
+              "maxError": 1.1920929465780716e-08,
+              "activeSamples": 3360
+            },
+            "disposed": {
+              "firstFrame": 45056,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "kind": "msm5205",
+          "sampleRate": 44100,
+          "sourceSampleRate": 8000,
+          "encodedBytes": 4000,
+          "physicalOutputMuted": true,
+          "results": {
+            "initial": {
+              "firstFrame": 1920,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "resetEmpty": {
+              "firstFrame": 4096,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "scheduled": {
+              "firstFrame": 6016,
+              "frames": 7938,
+              "peak": 0.361328125,
+              "maxError": 0,
+              "rms": 0.20471509980805314,
+              "active": 12348
+            },
+            "muted": {
+              "firstFrame": 14464,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "left": {
+              "firstFrame": 16640,
+              "frames": 1764,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.08745424299840118,
+              "active": 1764
+            },
+            "right": {
+              "firstFrame": 18688,
+              "frames": 1764,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.0876310814936802,
+              "active": 1764
+            },
+            "stopped": {
+              "firstFrame": 21120,
+              "frames": 6174,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "ended": {
+              "firstFrame": 29568,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "disposed": {
+              "firstFrame": 33536,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            }
+          }
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "kind": "msm5205",
+          "sampleRate": 48000,
+          "sourceSampleRate": 8000,
+          "encodedBytes": 4000,
+          "physicalOutputMuted": true,
+          "results": {
+            "initial": {
+              "firstFrame": 1280,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "resetEmpty": {
+              "firstFrame": 3584,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "scheduled": {
+              "firstFrame": 5632,
+              "frames": 8640,
+              "peak": 0.361328125,
+              "maxError": 0,
+              "rms": 0.2047331751756462,
+              "active": 13440
+            },
+            "muted": {
+              "firstFrame": 14848,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "left": {
+              "firstFrame": 17152,
+              "frames": 1920,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.08733706940520497,
+              "active": 1920
+            },
+            "right": {
+              "firstFrame": 19456,
+              "frames": 1920,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.08760800592867551,
+              "active": 1920
+            },
+            "stopped": {
+              "firstFrame": 22016,
+              "frames": 6720,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "ended": {
+              "firstFrame": 31232,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "disposed": {
+              "firstFrame": 35584,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "kind": "cdda",
+          "sampleRate": 44100,
+          "sourceRate": 44100,
+          "sourceFrames": 44100,
+          "physicalOutputMuted": true,
+          "results": {
+            "scheduled": {
+              "firstFrame": 896,
+              "frames": 7938,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 11351
+            },
+            "paused": {
+              "firstFrame": 9088,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "resumed": {
+              "firstFrame": 10880,
+              "frames": 1544,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 3057
+            },
+            "seekPaused": {
+              "firstFrame": 12800,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "seekResume": {
+              "firstFrame": 14592,
+              "frames": 1544,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 3057
+            },
+            "muted": {
+              "firstFrame": 16384,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "panLeft": {
+              "firstFrame": 18176,
+              "frames": 1544,
+              "peak": 0.152587890625,
+              "stereoDifference": 0.152587890625,
+              "maxError": 0,
+              "activeSamples": 1513
+            },
+            "panRight": {
+              "firstFrame": 19968,
+              "frames": 1544,
+              "peak": 0.091552734375,
+              "stereoDifference": 0.091552734375,
+              "maxError": 0,
+              "activeSamples": 1544
+            },
+            "futureCancelled": {
+              "scheduledFrame": 25288,
+              "stopClearsFuture": true
+            },
+            "stopped": {
+              "firstFrame": 21888,
+              "frames": 5292,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "scheduledStop": {
+              "firstFrame": 27520,
+              "frames": 7497,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 7858
+            },
+            "ended": {
+              "firstFrame": 35200,
+              "frames": 2867,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 594
+            },
+            "replayed": {
+              "firstFrame": 38272,
+              "frames": 1544,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48828125,
+              "maxError": 0,
+              "activeSamples": 3057
+            },
+            "disposed": {
+              "firstFrame": 39936,
+              "frames": 1544,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "kind": "cdda",
+          "sampleRate": 48000,
+          "sourceRate": 44100,
+          "sourceFrames": 44100,
+          "physicalOutputMuted": true,
+          "results": {
+            "scheduled": {
+              "firstFrame": 1024,
+              "frames": 8640,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48825569450855255,
+              "maxError": 1.1920929687825321e-08,
+              "activeSamples": 12477
+            },
+            "paused": {
+              "firstFrame": 9984,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "resumed": {
+              "firstFrame": 11904,
+              "frames": 1680,
+              "peak": 0.3051719665527344,
+              "stereoDifference": 0.48820456862449646,
+              "maxError": 1.1920936793252679e-08,
+              "activeSamples": 3359
+            },
+            "seekPaused": {
+              "firstFrame": 13952,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "seekResume": {
+              "firstFrame": 15872,
+              "frames": 1680,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48825569450855255,
+              "maxError": 1.1920929687825321e-08,
+              "activeSamples": 3360
+            },
+            "muted": {
+              "firstFrame": 17792,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "panLeft": {
+              "firstFrame": 19712,
+              "frames": 1680,
+              "peak": 0.1525859832763672,
+              "stereoDifference": 0.1525859832763672,
+              "maxError": 5.960464843912661e-09,
+              "activeSamples": 1679
+            },
+            "panRight": {
+              "firstFrame": 21632,
+              "frames": 1680,
+              "peak": 0.0915437713265419,
+              "stereoDifference": 0.0915437713265419,
+              "maxError": 2.9802331297235085e-09,
+              "activeSamples": 1677
+            },
+            "futureCancelled": {
+              "scheduledFrame": 27392,
+              "stopClearsFuture": true
+            },
+            "stopped": {
+              "firstFrame": 23680,
+              "frames": 5760,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            },
+            "scheduledStop": {
+              "firstFrame": 33152,
+              "frames": 8160,
+              "peak": 0.30517578125,
+              "stereoDifference": 0.48825569450855255,
+              "maxError": 1.1920929687825321e-08,
+              "activeSamples": 8639
+            },
+            "ended": {
+              "firstFrame": 41600,
+              "frames": 3120,
+              "peak": 0.305145263671875,
+              "stereoDifference": 0.488179013133049,
+              "maxError": 1.1920941123122475e-08,
+              "activeSamples": 653
+            },
+            "replayed": {
+              "firstFrame": 44928,
+              "frames": 1680,
+              "peak": 0.3051719665527344,
+              "stereoDifference": 0.48824290931224823,
+              "maxError": 1.1920929465780716e-08,
+              "activeSamples": 3360
+            },
+            "disposed": {
+              "firstFrame": 46720,
+              "frames": 1680,
+              "peak": 0,
+              "stereoDifference": 0,
+              "maxError": 0,
+              "activeSamples": 0
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "kind": "msm5205",
+          "sampleRate": 44100,
+          "sourceSampleRate": 8000,
+          "encodedBytes": 4000,
+          "physicalOutputMuted": true,
+          "results": {
+            "initial": {
+              "firstFrame": 1280,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "resetEmpty": {
+              "firstFrame": 3200,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "scheduled": {
+              "firstFrame": 5248,
+              "frames": 7938,
+              "peak": 0.361328125,
+              "maxError": 0,
+              "rms": 0.20471509980805314,
+              "active": 12348
+            },
+            "muted": {
+              "firstFrame": 13568,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "left": {
+              "firstFrame": 15616,
+              "frames": 1764,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.0875937565444431,
+              "active": 1764
+            },
+            "right": {
+              "firstFrame": 17664,
+              "frames": 1764,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.08769667060254745,
+              "active": 1764
+            },
+            "stopped": {
+              "firstFrame": 19968,
+              "frames": 6174,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "ended": {
+              "firstFrame": 28160,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "disposed": {
+              "firstFrame": 32000,
+              "frames": 1764,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            }
+          }
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "kind": "msm5205",
+          "sampleRate": 48000,
+          "sourceSampleRate": 8000,
+          "encodedBytes": 4000,
+          "physicalOutputMuted": true,
+          "results": {
+            "initial": {
+              "firstFrame": 896,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "resetEmpty": {
+              "firstFrame": 2944,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "scheduled": {
+              "firstFrame": 4992,
+              "frames": 8640,
+              "peak": 0.361328125,
+              "maxError": 0,
+              "rms": 0.2047331751756462,
+              "active": 13440
+            },
+            "muted": {
+              "firstFrame": 14080,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "left": {
+              "firstFrame": 16256,
+              "frames": 1920,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.08767447330215626,
+              "active": 1920
+            },
+            "right": {
+              "firstFrame": 18560,
+              "frames": 1920,
+              "peak": 0.1806640625,
+              "maxError": 0,
+              "rms": 0.08773411431872534,
+              "active": 1920
+            },
+            "stopped": {
+              "firstFrame": 20736,
+              "frames": 6720,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "ended": {
+              "firstFrame": 29568,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            },
+            "disposed": {
+              "firstFrame": 33664,
+              "frames": 1920,
+              "peak": 0,
+              "maxError": 0,
+              "rms": 0,
+              "active": 0
+            }
+          }
+        }
+      ],
+      "templates": [
+        {
+          "file": "check_cdda_browser.cjs",
+          "sha256": "5f0f3d5e433bbc2a4a1a3a51914d1aec4f07202120ff05054961728e8cc079f0"
+        },
+        {
+          "file": "check_pcengine_cd_browser.cjs",
+          "sha256": "fdd081c3f2bb3e7edf1d7dc1db2dab24b9836aa29134b909ab7f2b2c48108b80"
+        }
+      ],
+      "sources": {
+        "adpcm_b_sample.js": {
+          "bytes": 7109,
+          "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+        },
+        "cdda_audio.js": {
+          "bytes": 3808,
+          "sha256": "1c994e3b9ddf6d6e45772555546c2693a052f45e9a3df2c419907fc1dfa3cae1"
+        },
+        "cdda_pcm.js": {
+          "bytes": 5662,
+          "sha256": "b2a68f40f6000a3dad1bda4eb55ceb5ad8534d16f725d183d65990ab4dcd4500"
+        },
+        "cdda_player.js": {
+          "bytes": 4941,
+          "sha256": "e5422a26c8171d686484eb45572b49b440d6ac10bf9bbc57977e1339239e4cb4"
+        },
+        "cdda_source.js": {
+          "bytes": 11833,
+          "sha256": "4c1bb3f1d1deedd01a9e0856fe0513422741a7b6f81ad9047720ace5d5d05d30"
+        },
+        "cdda_worklet.js": {
+          "bytes": 4807,
+          "sha256": "42a1768718df86ca336670125b0369f26149f6ea98fdb96f71f4c9745312eb24"
+        },
+        "generated/cdda_wasm.js": {
+          "bytes": 304,
+          "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f"
+        },
+        "generated/cdda_wasm.wasm": {
+          "bytes": 2257,
+          "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc"
+        },
+        "generated/msm5205_wasm.js": {
+          "bytes": 317,
+          "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950"
+        },
+        "generated/msm5205_wasm.wasm": {
+          "bytes": 3590,
+          "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+        },
+        "msm5205_audio.js": {
+          "bytes": 3837,
+          "sha256": "f052987f65a28e3b0627f3fe440151b807a6564b26b6e69b679d52fa3f4e0c1d"
+        },
+        "msm5205_pcm.js": {
+          "bytes": 5417,
+          "sha256": "cf9da06e6f6501425766abc18bc9b91c6f73dccc9f31a474fce59a30c6abcc73"
+        },
+        "msm5205_player.js": {
+          "bytes": 4617,
+          "sha256": "6a6cb90cd902e456893969560033faedc8de5ae7e95d8f7f7e995b241af2c683"
+        },
+        "msm5205_sample.js": {
+          "bytes": 7476,
+          "sha256": "35a8372f052ce36fb82f662f976a2ef9dee28c3c0a7c9d54e685cd3046fe3a92"
+        },
+        "msm5205_worklet.js": {
+          "bytes": 4978,
+          "sha256": "1e4796147e5303c68e58502f78f0970980f21f96743f5f1d5885dd984412c5b0"
+        }
+      },
+      "checkerSha256": "a7b0a2e41b15baf4a9a36c978700d82bdfea77274c1709fdfca155ef9ea10187"
+    },
+    "independentAudit": {
+      "status": "PASS",
+      "version": "0.2.32",
+      "moduleExports": 13,
+      "sourceSHARecords": 7,
+      "binaries": [
+        {
+          "name": "cdda_wasm.wasm",
+          "bytes": 2257,
+          "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc"
+        },
+        {
+          "name": "msm5205_wasm.wasm",
+          "bytes": 3590,
+          "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+        }
+      ],
+      "onlyBundledRom": [
+        "tetorica_ym2608_adpcm_rom.bin"
+      ],
+      "files": 929,
+      "treeSha256": "0e91d90e3c4184fe116337afb7ee9f96d792852adf018b3884ebaae538dedcd0",
+      "sdkUnchanged": true,
+      "vgmPackageUnchanged": true,
+      "optionalCDDAControlsTypeCheck": true,
+      "readmeExecuted": true,
+      "readmeEvidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/fm2632-readme-audit-dKTfMe"
+    }
+  },
+  "receipts": [
+    {
+      "path": "/private/tmp/npm-cdrom2-release-20261028/candidate.json",
+      "bytes": 135372,
+      "sha256": "73925c7f6ab0e704acd098c230ca2ab08bc0a32e7ad373a6e446e21ba30dfe67"
+    },
+    {
+      "path": "/private/tmp/npm-cdrom2-release-20261028/browser.json",
+      "bytes": 23534,
+      "sha256": "afdf6ca05bdc0b0ec0d59f2036bf7f4759e2d573b5fda3335aa8669c9a33bf5f"
+    },
+    {
+      "path": "/private/tmp/npm-cdrom2-release-20261028/installed.json",
+      "bytes": 151,
+      "sha256": "faba25719c8956efefbcd85a0d642e07baad170da172921834a571be0859f5b7"
+    },
+    {
+      "path": "/private/tmp/fm-0.2.32-independent-audit.json",
+      "bytes": 808,
+      "sha256": "b88316ede4ef1bc0abb313799616e1c80affdc75dcdd8f9c2fb49f2563a14fb0"
+    },
+    {
+      "path": "/private/tmp/npm-cdrom2-tests-20261028.log",
+      "bytes": 8593,
+      "sha256": "15b09fd237f24b04349ce6c4df195523f304bdbea119083550707830c6c1b618"
+    },
+    {
+      "path": "/private/tmp/npm-cdrom2-package-20261028.log",
+      "bytes": 1697,
+      "sha256": "89c5f56eb6169dacc2766087a32f78048ceb6fb391875fdec0bbab80a977f943"
+    },
+    {
+      "path": "/private/tmp/npm-cdrom2-release-20261028/registry/verified.json",
+      "bytes": 1678,
+      "sha256": "065bb089ab085f46a36ff83eb262ea20e165ee5c12ae3c6917b311a274c6c0c6"
+    },
+    {
+      "path": "/private/tmp/npm-cdrom2-release-20261028/verify_registry.py",
+      "bytes": 2840,
+      "sha256": "6795d3d200b5a1f9551bc5441f8d5a091314349e79898e0f601725b1144c0fb7"
+    }
+  ],
+  "registry": {
+    "schemaVersion": 1,
+    "passed": true,
+    "verifiedAtUtc": "2026-10-27T19:42:50.197146+00:00",
+    "name": "tetorica-fm2612",
+    "version": "0.2.32",
+    "latest": "0.2.32",
+    "metadata": {
+      "version": "0.2.32",
+      "dist": {
+        "shasum": "9d3f5a07f8aa07a1eb419b4fbbc8179b187126e3",
+        "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.32.tgz",
+        "fileCount": 929,
+        "integrity": "sha512-qb5HnG88ukUuJeLFjVodzndzb9bxtG0Lc/8lGGyBZoTY5DsIBgO6ThEW686KyRqBsrPad5IoqSE4HgkYZLWxMA==",
+        "signatures": [
+          {
+            "sig": "MEUCIQCSvvmHxp8cEyCG6P0iI/5Vsy7oyme4gzyIt/DGFgvrwQIgZ7nxaAyzjjyidMncDl44+bcvCpnPGP7MJ0Rugjsj4sQ=",
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+          },
+          {
+            "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+            "sig": "MEUCIAkuAQu+7svkjoKqBOAyiUhyShdNJ3YIlmqGz3nTEGg9AiEA1qzJ+7tRa/4dh6niIyIubG7OAeYJR9aI64xp95Z8nTI="
+          }
+        ],
+        "unpackedSize": 6592490
+      },
+      "dist-tags": {
+        "latest": "0.2.32"
+      }
+    },
+    "registryTarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.32.tgz",
+    "downloadedTarball": "/private/tmp/npm-cdrom2-release-20261028/registry/tetorica-fm2612-0.2.32.tgz",
+    "sha256": "57a8a6acc607b304b3fdadd2c525a3cee78f2ece85023d3cafd802c1461583c1",
+    "sha1": "9d3f5a07f8aa07a1eb419b4fbbc8179b187126e3",
+    "integrity": "sha512-qb5HnG88ukUuJeLFjVodzndzb9bxtG0Lc/8lGGyBZoTY5DsIBgO6ThEW686KyRqBsrPad5IoqSE4HgkYZLWxMA==",
+    "bytes": 1760144,
+    "files": 929,
+    "downloadEqualsVerifiedTarball": true,
+    "everyRegistryMemberEqualsCandidateStageAndInstall": true,
+    "npmMetadataMatches": true
+  }
+}

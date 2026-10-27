@@ -1,3 +1,11 @@
+## 2026-10-28 — CD-ROM² npm release published
+
+- Target: `tetorica-fm2612 0.2.32` only. CD-DA / MSM5205 APIs, real WASM, complete source/notice bundles and README examples are staged. Fixed SDK and VGM package unchanged.
+- Exact candidate: `/private/tmp/npm-cdrom2-release-20261028/tetorica-fm2612-0.2.32.tgz`; SHA-256 `57a8a6acc607b304b3fdadd2c525a3cee78f2ece85023d3cafd802c1461583c1`; 929 members match stage and isolated install.
+- Passed: 55 audio tests, all 28 packaged chip/engine WASMs, 367 declarations / three consumer TS configurations, both Node README examples, eight isolated Chromium/WebKit CD-DA/MSM5205 44.1/48 kHz cases.
+- Status: **published and registry verified**. npm `latest` is `0.2.32`; the downloaded registry archive is byte-identical to the tested candidate. SHA-1, SHA-512 integrity and all 929 member hashes match. No republish is needed.
+- Detailed receipts: [npm_cdrom2_release_01.md](npm_cdrom2_release_01.md) / [JSON](npm_cdrom2_release_01.json). No commit, push, tag or SDK publication.
+
 # Save Point
 
 Last updated: 2026-10-28
