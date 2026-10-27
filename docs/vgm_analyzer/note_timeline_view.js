@@ -135,7 +135,7 @@ export function createNoteTimeline(root,{onSelect, onPlay,onPause,onCancel}) {
       if(!active){pendingBuffer=buffer;return;}
       analysisBuffer=buffer;
       status.textContent='Analyzing notes in background…';
-      worker=new Worker(new URL('./note_timeline_worker.js?v=wonderswan-vgm-1',import.meta.url),{type:'module'});
+      worker=new Worker(new URL('./note_timeline_worker.js?v=pokey-vgm-1',import.meta.url),{type:'module'});
       worker.onerror=()=>{status.textContent='Note analysis failed. Reload the file to retry.';};
       worker.onmessage=({data})=>{
         if(data.type==='error'){status.textContent=data.message;return;}

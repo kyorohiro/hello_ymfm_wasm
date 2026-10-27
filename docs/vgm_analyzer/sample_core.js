@@ -10,7 +10,7 @@ import {createDacSamples} from './dac_samples.js';
 import {pwmCaptureJson,createPwmSamples} from './pwm_samples.js';
 import {createSegaPcmSamples} from './segapcm_samples.js';
 import {createRf5c164Samples} from './rf5c164_samples.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 
 // One pass; never expands the VGM loop. Memory is resolved at each key-on.
 export async function extractSamples(source, { signal, roms = {} } = {}) {

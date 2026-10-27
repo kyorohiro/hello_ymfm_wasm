@@ -1,4 +1,4 @@
-import {prepareMxdrvScore} from './opm_mml.js?v=mdx-1';
+import {prepareMxdrvScore} from './opm_mml.js?v=pokey-vgm-1';
 
 // Binary layout and opcodes: vampirefrog/mdxtools/docs/MDX.md.
 // Matches mml2mdr's FM-only output: 9 tracks, 48 clocks/quarter, 27-byte voices.

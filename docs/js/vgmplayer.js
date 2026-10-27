@@ -3,7 +3,7 @@
  * 実行環境: Browser / Node.js
  * 依存: VGM パーサーと注入された音声エンジン。PCM 生成にはエンジンが必要。AudioContext は不要。
  */
-import { Ym2612VGM } from "./ym2612vgm.js?v=wonderswan-vgm-1";
+import { Ym2612VGM } from "./ym2612vgm.js?v=pokey-vgm-1";
 
 /**
  * One rendered stereo chunk waiting to be copied into the audio callback
@@ -31,6 +31,7 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=wonderswan-vgm-1";
  *   writeSegaPcm?(offset: number, value: number): void,
  *   writeGameboyApu?(register: number, value: number): void,
  *   writeWonderSwan?(register: number, value: number): void,
+ *   writePokey?(register: number, value: number): void,
  *   writeWonderSwanMemory?(offset: number, value: number): void,
  *   writeY8950?(register: number, value: number): void,
  *   writeYmf278b?(port: number, register: number, value: number): void,
@@ -620,6 +621,9 @@ export function createVgmTargets(engine) {
   } : undefined;
   return {
     resolveChip: engine.getVgmTarget?.bind(engine),
+    pokey: typeof engine.writePokey === 'function' ? {
+      writeRegister:(register,value)=>engine.writePokey(register,value),
+    } : undefined,
     wonderswan: typeof engine.writeWonderSwan === 'function' ? {
       writeRegister:(register,value)=>engine.writeWonderSwan(register,value),
       writeMemory:(offset,value)=>engine.writeWonderSwanMemory(offset,value),

@@ -1,5 +1,5 @@
 import { quantizeNotes, quantizeSixteenthNotes, writeMml } from "./vgm_mml_music.js?v=sixteenth-1";
-import { extractOpnNotes } from "./vgm_notes.js?v=wonderswan-vgm-1";
+import { extractOpnNotes } from "./vgm_notes.js?v=pokey-vgm-1";
 
 /** Readable FM transcription on a strict sixteenth-note grid.
  * quantization:"raw" retains the previous detailed analysis dialect. */

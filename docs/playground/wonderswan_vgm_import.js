@@ -1,4 +1,4 @@
-import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM, rawCommandLength} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 
 // Bound both a hostile source and expansion of looping/high-rate DAC streams.
 // These are conversion limits, not new playback/scheduling capabilities.

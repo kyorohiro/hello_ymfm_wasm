@@ -1,9 +1,9 @@
-import {snapshotOpmState,exportOpm} from './opm_export.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {snapshotOpmState,exportOpm} from './opm_export.js?v=pokey-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 import {createVgiFromPreset} from '../js/vgi.js';
 import {createTfiFromPreset} from '../js/tfi.js';
-import {snapshotTfiPresets,extractTfiPatchesFromVgm} from './tfi_extract.js';
-import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js';
+import {snapshotTfiPresets,extractTfiPatchesFromVgm} from './tfi_extract.js?v=pokey-vgm-1';
+import {createOpmTfiFiles,OPM_TFI_NOTICE} from './opm_tfi.js?v=pokey-vgm-1';
 import {createStoredZipBytes} from './stored_zip.js';
 
 export const exportTfiZip = (bytes, options) => exportVoiceZip(bytes, 'tfi', options);

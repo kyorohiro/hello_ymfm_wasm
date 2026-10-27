@@ -31,6 +31,7 @@ import { Ym2612VGM } from "./ym2612vgm.js?v=msm5205-1";
  *   writeSegaPcm?(offset: number, value: number): void,
  *   writeGameboyApu?(register: number, value: number): void,
  *   writeWonderSwan?(register: number, value: number): void,
+ *   writePokey?(register: number, value: number): void,
  *   writeWonderSwanMemory?(offset: number, value: number): void,
  *   writeY8950?(register: number, value: number): void,
  *   writeYmf278b?(port: number, register: number, value: number): void,
@@ -620,6 +621,9 @@ export function createVgmTargets(engine) {
   } : undefined;
   return {
     resolveChip: engine.getVgmTarget?.bind(engine),
+    pokey: typeof engine.writePokey === 'function' ? {
+      writeRegister:(register,value)=>engine.writePokey(register,value),
+    } : undefined,
     wonderswan: typeof engine.writeWonderSwan === 'function' ? {
       writeRegister:(register,value)=>engine.writeWonderSwan(register,value),
       writeMemory:(offset,value)=>engine.writeWonderSwanMemory(offset,value),

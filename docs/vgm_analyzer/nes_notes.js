@@ -1,5 +1,5 @@
 import {FdsAudio} from '../js/fds_audio.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 export function createNesMonitor(fds=false){return {fds:fds?new FdsAudio():null,fdsTrigger:0,fdsGate:false,enabled:0,registers:new Uint8Array(32),channels:Array.from({length:3},()=>({freq:0,trigger:0,keyOn:false}))};}
 export function applyNesWrite(state,register,value){
   if(register>31){

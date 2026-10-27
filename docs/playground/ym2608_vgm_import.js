@@ -1,5 +1,5 @@
 import {ym2608HighOperation} from './ym2608_high.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 import {detectVgmImport} from './playground_vgm_import.js?v=wonderswan-import-3';
 
 /** Full OPNA Write export. All register/data events keep their original order. */

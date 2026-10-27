@@ -48,6 +48,10 @@ export function installPlaybackMixer(engine, configuration) {
   const mixer = new PlaybackMixer(configuration);
   const visit = (part, ids) => {
     if (part.mixerEngine) return visit(part.mixerEngine, ids);
+    if (Array.isArray(part.playbackMixerSources)) {
+      for(const {id,source,method,rate} of part.playbackMixerSources)mixer.addSource(id,source,method,rate,1);
+      return;
+    }
     if (part.entries instanceof Map) {
       for (const [key, entry] of part.entries) {
         const type = key.split(':')[0];

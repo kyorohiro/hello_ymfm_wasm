@@ -1,4 +1,4 @@
-import {snapshotOpl} from './opl_notes.js';
+import {snapshotOpl} from './opl_notes.js?v=pokey-vgm-1';
 
 export function mountOplMonitor(root, getState) {
   const heading=document.createElement('h3'), summary=document.createElement('p');

@@ -1,6 +1,6 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
-import {isOpl, describeOplNotes} from './opl_notes.js';
-import {applyOpl3Write, describeOpl3Notes} from './ymf262_notes.js';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
+import {isOpl, describeOplNotes} from './opl_notes.js?v=pokey-vgm-1';
+import {applyOpl3Write, describeOpl3Notes} from './ymf262_notes.js?v=pokey-vgm-1';
 import {createStoredZipBytes} from './stored_zip.js';
 
 export const SBI_CHIPS = ['ym3526', 'ym3812', 'y8950', 'ymf262', 'ymf278b'];

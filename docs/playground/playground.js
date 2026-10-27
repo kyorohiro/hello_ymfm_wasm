@@ -88,7 +88,7 @@ import {
   exportYm2203FmVgmToPlaygroundJavaScript,
   exportYm2608FmVgmToPlaygroundJavaScript,
   exportYm2610FmVgmToPlaygroundJavaScript,
-} from "../js/ym2612vgm.js?v=wonderswan-vgm-1";
+} from "../js/ym2612vgm.js?v=pokey-vgm-1";
 import { exportYm2203VgmToPlaygroundJavaScript } from "../js/ym2203vgm.js?v=vgm-frequency-order-2";
 import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-frequency-order-2";
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";

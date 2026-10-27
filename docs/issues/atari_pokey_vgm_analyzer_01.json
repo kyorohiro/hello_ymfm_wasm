@@ -1,0 +1,4467 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "scope": "POKEY single/dual VGM Analyzer playback and register-state UI, plus shared Node/CLI rendering; local artifacts only.",
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "npm": false,
+    "itch": false,
+    "remoteCi": false
+  },
+  "references": [
+    "https://raw.githubusercontent.com/vgmrips/vgmplay-legacy/master/VGMPlay/vgmspec171.txt",
+    "https://raw.githubusercontent.com/ValleyBell/libvgm/master/player/vgmplayer_cmdhandler.cpp",
+    "https://raw.githubusercontent.com/ValleyBell/libvgm/master/emu/dac_control.c"
+  ],
+  "format": {
+    "headerClockOffset": "0xb0",
+    "minimumVersion": "1.61",
+    "dualClockBit": 30,
+    "writeOpcode": "0xbb",
+    "secondChipAddressBit": 7,
+    "streamTypes": [
+      "0x1e",
+      "0x9e"
+    ],
+    "channelCount": [
+      4,
+      8
+    ],
+    "mixerIds": [
+      "pokey",
+      "pokey:2"
+    ],
+    "mixerDefaults": {
+      "gain": 1,
+      "pan": 0,
+      "muted": false
+    },
+    "calibrated": false
+  },
+  "checks": {
+    "regressions": {
+      "tests": 1151,
+      "passed": 1150,
+      "skipped": 1,
+      "failed": 0,
+      "command": "node --test --test-concurrency=4 test/*.test.mjs docs/vgm_analyzer/*.test.mjs web/vgm*.test.mjs",
+      "log": {
+        "path": "/private/tmp/pokey-vgm-regressions.log",
+        "bytes": 120481,
+        "sha256": "69a3f2059cb66f68f36ecded85060da7abe3e5f43a0be0d1cc54455d2012acbb"
+      }
+    },
+    "pokeyPlaybackAndExistingCompositions": {
+      "passed": 18,
+      "failed": 0,
+      "log": {
+        "path": "/private/tmp/pokey-analyzer-playback-tests.log",
+        "bytes": 1850,
+        "sha256": "c5c807974057808b3b8f54f878da0c1adb3d96ccb8aab7b6aff4916412fb3377"
+      }
+    },
+    "fmPackage": {
+      "version": "0.2.30",
+      "published": false,
+      "modules": 302,
+      "wasmPairs": 28,
+      "declarations": 349,
+      "types": [
+        "NodeNext",
+        "Bundler",
+        "DOM-only Browser"
+      ],
+      "logs": [
+        {
+          "path": "/private/tmp/pokey-analyzer-fm-package-build.log",
+          "bytes": 165,
+          "sha256": "693e059103cd1fa5a6cd31e8aff08e187ff6a11e09737d80958372768e60abcf"
+        },
+        {
+          "path": "/private/tmp/pokey-analyzer-fm-package-types.log",
+          "bytes": 112,
+          "sha256": "0b9a5c38ad6d981429e66217030eeebe42f40ba000d7b115cdf7b159aa24e234"
+        }
+      ]
+    },
+    "calibrationRefresh": "docs/issues/analyzer_mixer_calibration_refresh_03.json",
+    "existingMeasuredPcmAndGainUnchanged": true
+  },
+  "browser": {
+    "format": "tetorica-pokey-analyzer-browser-1",
+    "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_vgm_analyzer_pokey-vgm-dev",
+    "physicalOutput": "zeroed by downstream measurement AudioWorklet",
+    "sourceFiles": {
+      "analyzer_core.js": {
+        "bytes": 9770,
+        "sha256": "74527c8556e907367e71ea59079e6f41b217ae61e88bbe1e2570f4557b185b9b"
+      },
+      "analyzer_theme.css": {
+        "bytes": 15774,
+        "sha256": "42d4ac870aa932afd34186126cdd562bafb0849cc14cf37b7e0c5430b70c6e39"
+      },
+      "audio_preferences.js": {
+        "bytes": 3002,
+        "sha256": "4f1b7d062536da02d22bbe3af1778efea3d7d54b544f64c98b3f73cefd9aed51"
+      },
+      "ay8910_monitor.js": {
+        "bytes": 2811,
+        "sha256": "758944b97710d653e9eeeb4abfd0fdbea32307cc5d8064f1e6faac88eb85e721"
+      },
+      "command_editor.js": {
+        "bytes": 8289,
+        "sha256": "60e0c55b2ec648c659e2fa214bf51aa0f91c7b1647616b50b60e4d7f1a6f9c98"
+      },
+      "dac_samples.js": {
+        "bytes": 1924,
+        "sha256": "282043a4342058fae916b1f0f6a13ddc794e32239af9c7f51e026056e33b8697"
+      },
+      "desktop_interface.js": {
+        "bytes": 505,
+        "sha256": "ea9ef9390ccef87e26a6dc7bdc986a582dfc77b0f1ccac2eb7f0b003a540cc75"
+      },
+      "export_tempo.js": {
+        "bytes": 1002,
+        "sha256": "d8935af29483f40ea64eb60af85b8d52a903fc1c09ccabecfd284d31c265436d"
+      },
+      "fm_snapshot.js": {
+        "bytes": 2880,
+        "sha256": "0c8e3773fbe51624462ab76e16171ffd6054b6ba36d0f7b073301f3e08dc2e95"
+      },
+      "fretboard_all.js": {
+        "bytes": 4125,
+        "sha256": "2038728738aacfc082efff2c86e70cfa32d0391af5aaf9886440b74127f7454f"
+      },
+      "fretboard.js": {
+        "bytes": 13046,
+        "sha256": "cf9628fc08d8ba34b1e7cf85fd5f61c50031a7e3eea312f008572acc4a5d13fa"
+      },
+      "gameboy_notes.js": {
+        "bytes": 4358,
+        "sha256": "ace36f173e02d3d26c53e64ed5283025ca8eae65d6800c03f6da4821a1fe879d"
+      },
+      "gameboy_voice_view.js": {
+        "bytes": 4410,
+        "sha256": "9f2b2ae8efc568901225b77351b9f09283f843c4f7077c6c90c34e278dd555e9"
+      },
+      "gameboy_voices.js": {
+        "bytes": 4702,
+        "sha256": "0769eaaa8150529c9a2e76d50e7857e519737da9c0a552e9f2a63eb0f165cb8a"
+      },
+      "gameboy_wave_view.js": {
+        "bytes": 2739,
+        "sha256": "3ee3e36c5e7e0cb62770e1bdb993d05d819e404ca9561773ae8e534919e477f1"
+      },
+      "gameboy_waves.js": {
+        "bytes": 2475,
+        "sha256": "0ed850aab97071d70a9285640d5886ba28f181d45ef9ba6cf93c1937ca456dc2"
+      },
+      "generated/nuked_opn2_wasm.js": {
+        "bytes": 32804,
+        "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a"
+      },
+      "generated/pokey_wasm.js": {
+        "bytes": 15128,
+        "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d"
+      },
+      "generated/pokey_wasm.wasm": {
+        "bytes": 18676,
+        "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22"
+      },
+      "generated/segapsg_wasm.js": {
+        "bytes": 33978,
+        "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+      },
+      "generated/ym2612_wasm.js": {
+        "bytes": 34902,
+        "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+      },
+      "huc6280_notes.js": {
+        "bytes": 4018,
+        "sha256": "03cba513e8da8b349eeefdf433f0ef86e6b4b79cc9b8308257982c7bb4b80899"
+      },
+      "index.html": {
+        "bytes": 61132,
+        "sha256": "0ff79b3c9dc2cbd89c4484a8741ddedbda03a214a31dbfbffce139c26c0175db"
+      },
+      "js/audio_decode.js": {
+        "bytes": 1955,
+        "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+      },
+      "js/ay8910.js": {
+        "bytes": 6255,
+        "sha256": "38f50470d60a850773859ce210e5281d1ee0429f00021b7decd8b8be9554197b"
+      },
+      "js/ay8910audioengine.js": {
+        "bytes": 5463,
+        "sha256": "39737c692891d5183f520ad74e8e00b001bf803df6eb96b9c16096a68287ec8f"
+      },
+      "js/fds_audio.js": {
+        "bytes": 5112,
+        "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+      },
+      "js/gameboyapu.js": {
+        "bytes": 7127,
+        "sha256": "c2f2d12430a0a4365e3255f4378fd108d43c4a9567f99ffaa3a18a398bcbcc11"
+      },
+      "js/gameboyapuaudioengine.js": {
+        "bytes": 5625,
+        "sha256": "19bc21f6761edb96318dcde41b6e860d3ff26a535a81e29d13a88903cf1ca473"
+      },
+      "js/genesisaudioengine.js": {
+        "bytes": 14785,
+        "sha256": "2732f2076a7096c136d409cf211fd05e031b3c35e358de13a61901c57d53f688"
+      },
+      "js/huc6280audioengine.js": {
+        "bytes": 6265,
+        "sha256": "d66d644d0d097adb11111ac422cd2f56443350d5784810c85be162827da6f65a"
+      },
+      "js/k051649.js": {
+        "bytes": 5749,
+        "sha256": "af37b215ed0acccf682894cdf8e322ca00d9cc4397fbf057f7e324572a3e8514"
+      },
+      "js/k051649audioengine.js": {
+        "bytes": 4677,
+        "sha256": "b986d7e333bc1e7df3e9278afc906d99ccace8f7fd55bc0094b106fc03e720bc"
+      },
+      "js/looper.js": {
+        "bytes": 24025,
+        "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+      },
+      "js/megasynth_fx.js": {
+        "bytes": 62352,
+        "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+      },
+      "js/megasynth_recording.js": {
+        "bytes": 10125,
+        "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+      },
+      "js/megasynth-fm-presets.js": {
+        "bytes": 6954,
+        "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+      },
+      "js/megasynth.js": {
+        "bytes": 33417,
+        "sha256": "ace4e56a5b46280d0a79ad3fb1a4a3c183f9ca2da84c97c017c4a2760295f941"
+      },
+      "js/msm5205audioengine.js": {
+        "bytes": 3560,
+        "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5"
+      },
+      "js/msxaudioengine.js": {
+        "bytes": 7942,
+        "sha256": "89b1a66fe6963e3cd6f079af58a8ca87767c8e339bc82be7745416b018708ad8"
+      },
+      "js/multichipaudioengine.js": {
+        "bytes": 4698,
+        "sha256": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b"
+      },
+      "js/native_fx_rack.js": {
+        "bytes": 2128,
+        "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+      },
+      "js/native_fx.js": {
+        "bytes": 7922,
+        "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+      },
+      "js/native_noise.js": {
+        "bytes": 4209,
+        "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+      },
+      "js/native_sample.js": {
+        "bytes": 3642,
+        "sha256": "721d3cddcb65b6743997d3c50abb2788782f7ce107d57e8c8d1187764235b48b"
+      },
+      "js/nes_apu_vendor/channel-dm.js": {
+        "bytes": 6890,
+        "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+      },
+      "js/nes_apu_vendor/channel-noise.js": {
+        "bytes": 3592,
+        "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+      },
+      "js/nes_apu_vendor/channel-square.js": {
+        "bytes": 5728,
+        "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+      },
+      "js/nes_apu_vendor/channel-triangle.js": {
+        "bytes": 3615,
+        "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+      },
+      "js/nes_apu_vendor/index.js": {
+        "bytes": 31024,
+        "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+      },
+      "js/nes_apu_vendor/utils.js": {
+        "bytes": 1154,
+        "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+      },
+      "js/nesapuaudioengine.js": {
+        "bytes": 5704,
+        "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+      },
+      "js/okim6258audioengine.js": {
+        "bytes": 8190,
+        "sha256": "2073a94669fc3394fabc9119d5f78cd2d43778f665f5bcd1a64b9917ec64c91c"
+      },
+      "js/okim6295audioengine.js": {
+        "bytes": 6878,
+        "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2"
+      },
+      "js/opn_fm_vgm.js": {
+        "bytes": 4213,
+        "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+      },
+      "js/playground_audio_endpoint.js": {
+        "bytes": 2002,
+        "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+      },
+      "js/playground_chip_clock.js": {
+        "bytes": 5189,
+        "sha256": "9912d49fe7f5976de9c03d73e9d84dad4bf54f596a95591edeae07504b17561f"
+      },
+      "js/playground_pwm_audio.js": {
+        "bytes": 2569,
+        "sha256": "3b2dc717751bfb345bd3935994cca8fdbb9fe26fa107525d8ef5a2a21f001d2a"
+      },
+      "js/playground_rf5c164_audio.js": {
+        "bytes": 2615,
+        "sha256": "6632cefde4c0f635ac9d61c08a104cb14aa579c978e3d6019e2ff47bb33c7f78"
+      },
+      "js/playground_rf5c164.js": {
+        "bytes": 5146,
+        "sha256": "1f61ae037e8ff38d3e156a72cd993736c1a9efb6b8229313b1f04ce45c4fc63b"
+      },
+      "js/pokey.js": {
+        "bytes": 8390,
+        "sha256": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1"
+      },
+      "js/pokeyaudioengine.js": {
+        "bytes": 3482,
+        "sha256": "18ad1710e13e7df9cb9e23f67a1db158e2c3d871e439a461b7e17dd00fe87208"
+      },
+      "js/pwm32x_playback.js": {
+        "bytes": 9063,
+        "sha256": "b2ff92e7f14c114cdc30facfbed40a8b010dfe72f31baa8f33e89ae7e52523ae"
+      },
+      "js/pwm32x_wasm.js": {
+        "bytes": 12449,
+        "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+      },
+      "js/pwm32x.js": {
+        "bytes": 6879,
+        "sha256": "50af72c1ca62fa84791b51ce04313b0a2375a9c7967831610ea6a4263a643d72"
+      },
+      "js/rf5c164_pcm.js": {
+        "bytes": 1537,
+        "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+      },
+      "js/rf5c164.js": {
+        "bytes": 10218,
+        "sha256": "3302a69c2da09e13976bcb546c1cec3f63e63b0d7b2caf141166bc0fa03737d7"
+      },
+      "js/rf5c164synth.js": {
+        "bytes": 4836,
+        "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+      },
+      "js/s98_file.js": {
+        "bytes": 5878,
+        "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+      },
+      "js/segapcm.js": {
+        "bytes": 8583,
+        "sha256": "fd072f9273bc60a4cf90c56be853d30ea9a162807a65a7c7bcb2ffabe4826881"
+      },
+      "js/segapcmaudioengine.js": {
+        "bytes": 6150,
+        "sha256": "5531dfcbebea0bada41d7cb34ee3133853a94b9a1ce501da2140c330f1c3b72a"
+      },
+      "js/segapsg_api.js": {
+        "bytes": 1086,
+        "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+      },
+      "js/segapsg.js": {
+        "bytes": 10143,
+        "sha256": "efbc9805f2c7686b51c163c730f3b615fa34bbd57ad35521be1b034f19882630"
+      },
+      "js/segapsgsynth.js": {
+        "bytes": 10444,
+        "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+      },
+      "js/snes_brr.js": {
+        "bytes": 11140,
+        "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+      },
+      "js/soundchip_mixer_presets.js": {
+        "bytes": 2986,
+        "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+      },
+      "js/soundchip_mixer.js": {
+        "bytes": 26367,
+        "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+      },
+      "js/soundchip_pitch.js": {
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      "js/spc_file.js": {
+        "bytes": 8896,
+        "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+      },
+      "js/tetorica_audio_runtime.js": {
+        "bytes": 35718,
+        "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+      },
+      "js/tfi.js": {
+        "bytes": 9704,
+        "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+      },
+      "js/vgi.js": {
+        "bytes": 4326,
+        "sha256": "3d4212ba18485d250607060b1eef3e7e4e78491e12a952e85738d2c0a5c1226f"
+      },
+      "js/vgm_file.js": {
+        "bytes": 3428,
+        "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+      },
+      "js/vgm-output-worklet.js": {
+        "bytes": 8316,
+        "sha256": "3c4f6b55ee88b4da9e85ccc536fba2f0e159c8e6d02422faf8fa5a63e229462f"
+      },
+      "js/vgmplayer.js": {
+        "bytes": 24207,
+        "sha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3"
+      },
+      "js/wav.js": {
+        "bytes": 2582,
+        "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+      },
+      "js/wonderswan.js": {
+        "bytes": 9684,
+        "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+      },
+      "js/wonderswanaudioengine.js": {
+        "bytes": 6301,
+        "sha256": "8b4cf3d24a08c360e0374979b0bafcc5fb8bc79c5213e31c67f1e5faf1b86d2f"
+      },
+      "js/y8950.js": {
+        "bytes": 11084,
+        "sha256": "37e32c0a920ed073885fa9d751ba4f5e2e741f2d2d5b81971f95d7ef7dfa30e1"
+      },
+      "js/y8950audioengine.js": {
+        "bytes": 7950,
+        "sha256": "35d201e3a1c42b5b2762c8ad8aaeab941766340d011bf2e8430df5e0a5a8246d"
+      },
+      "js/ym2151.js": {
+        "bytes": 11509,
+        "sha256": "4d5f66f1513873f5ab36c802e9a9543222bac1c74ffcffd40c70627012d06dc9"
+      },
+      "js/ym2151audioengine.js": {
+        "bytes": 11415,
+        "sha256": "6d4cae3df89054cbad8466f58f61214bb4179202b67e847dd568b9142b216535"
+      },
+      "js/ym2203.js": {
+        "bytes": 12755,
+        "sha256": "a3aad7a8646f66e74bc60df34cd38239125885dc54005a378adf6ee89c616fa3"
+      },
+      "js/ym2203audioengine.js": {
+        "bytes": 8814,
+        "sha256": "7f8b234b95e36d04059cc896bb707323586e94cef7b88286a0e2c657741c23f1"
+      },
+      "js/ym2413.js": {
+        "bytes": 9503,
+        "sha256": "1050d68595dd6ba90b84075e7959426b354d1d6baf3f70c97a775a78244f0855"
+      },
+      "js/ym2413audioengine.js": {
+        "bytes": 7145,
+        "sha256": "33d46a86aba34eaa2e329ff0695c045881fb640d34f2a8fa28287196e4757151"
+      },
+      "js/ym2608.js": {
+        "bytes": 15637,
+        "sha256": "516cdc2850187020054b0b1f51b358dcb47564537939a7318a0a124b787f7cb4"
+      },
+      "js/ym2608audioengine.js": {
+        "bytes": 9958,
+        "sha256": "129ba38aeb9967ee53d7ce58b49b2733611379d8a8d72c86fdb9c2db72e143fa"
+      },
+      "js/ym2610b.js": {
+        "bytes": 11167,
+        "sha256": "c570d160829945d34c0a2f74f645f0af0e471a751793f0a1aecdbf20714c1624"
+      },
+      "js/ym2610baudioengine.js": {
+        "bytes": 7779,
+        "sha256": "102cb3a61d7a49ce17d1cab8adfefe2bba1bbf32936c52754f010896001480ba"
+      },
+      "js/ym2612_dac.js": {
+        "bytes": 7251,
+        "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+      },
+      "js/ym2612.js": {
+        "bytes": 22574,
+        "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+      },
+      "js/ym2612synth.js": {
+        "bytes": 38595,
+        "sha256": "bed634eef169f2fe3ca0c20aef84d1d61ffd5937abf791a122858ef50ae08cb9"
+      },
+      "js/ym2612vgm.js": {
+        "bytes": 117637,
+        "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+      },
+      "js/ym3526.js": {
+        "bytes": 9476,
+        "sha256": "50e68ff020e30fd51a8d92bceedadc064f72609b716413b2aae981e09620998c"
+      },
+      "js/ym3526audioengine.js": {
+        "bytes": 7324,
+        "sha256": "c635b70e6899fc15835bc73bf63591791f0e1e34333619f13084c29277359461"
+      },
+      "js/ym3812.js": {
+        "bytes": 9476,
+        "sha256": "a8eb53129009c34d23e9782e2283d32c853bfceb2743a68fb82fdb627038ef46"
+      },
+      "js/ym3812audioengine.js": {
+        "bytes": 7324,
+        "sha256": "b56c38b252af685fc84dafde125bb036624905279e2e4693292fc4dd69fa1e3e"
+      },
+      "js/ymf262.js": {
+        "bytes": 10310,
+        "sha256": "84ecf683dc0ec56242c259593ae8099a2d185469151d3fae7330ae6bd5192efe"
+      },
+      "js/ymf262audioengine.js": {
+        "bytes": 7637,
+        "sha256": "613a93d164c5fa69d4b1a19fe7f2b9fea33262799408f5b5f40338edfabff92a"
+      },
+      "js/ymf278b.js": {
+        "bytes": 11565,
+        "sha256": "73c9ed73815829f90eca8f6b95e457d5faf01f090e3d5f908551965f96b5afbd"
+      },
+      "js/ymf278baudioengine.js": {
+        "bytes": 8600,
+        "sha256": "06694b0014730bf581e2f6abd68016744ac00344303694d8ea63a4a70309258a"
+      },
+      "mdx_export.js": {
+        "bytes": 5306,
+        "sha256": "7c264faa9e76dc03db296396265c2d96f79d6d8c1a0f0e4e301656f443a827dc"
+      },
+      "mgsdrv_mml.js": {
+        "bytes": 8655,
+        "sha256": "b21497355668ce119f6f6d40905d446c686f9ae6a6cfb5e6a53dd9e0c9d02cb0"
+      },
+      "mixer_calibration_data.js": {
+        "bytes": 631,
+        "sha256": "c861aa403c2a6a4e7df6aef024f63571334b9fbf37c37335122bc3dd11f0bd86"
+      },
+      "mixer_defaults.js": {
+        "bytes": 1947,
+        "sha256": "e639ca55f5472d104f54da7587761c15f31b38c13e3b95dadaa31fbe974c2086"
+      },
+      "mixer_ui.js": {
+        "bytes": 3776,
+        "sha256": "194e58aea98712b94acb0a37b31cda7c2bdd972f374918774d50f440009bc1e0"
+      },
+      "msx_mutes.js": {
+        "bytes": 2061,
+        "sha256": "5df0f6d0e77337efd4fd58616ae842830eb2cb45d474edf3d6bad5032bc5a307"
+      },
+      "msx_notes.js": {
+        "bytes": 6259,
+        "sha256": "afa39458f49b14e273f3a254a6f4fa8c5861d3713026985c192f730bfdcda93e"
+      },
+      "music_sheet.js": {
+        "bytes": 6602,
+        "sha256": "8174477eb8a66ea3a051b7ff428d5df736998e00453965d201a29e1dffea1066"
+      },
+      "nes_notes.js": {
+        "bytes": 3336,
+        "sha256": "a4d24ad3622213f02f85113e77b3de811c0f991a1e162d0899d2e76b2d9667bd"
+      },
+      "note_timeline_view.js": {
+        "bytes": 9896,
+        "sha256": "250cf984dca3a283c4308578b321d4e08c93822ffc01f41238108246792c5469"
+      },
+      "note_timeline.js": {
+        "bytes": 1700,
+        "sha256": "91def311626b5f11767c285ad71ce82d1924d563bf4a1737e0f3aa1d9a12799d"
+      },
+      "noteish_dom.js": {
+        "bytes": 1195,
+        "sha256": "732a07d7dece06de4463cbf0a719dfe843a75ee26b5d88d4cb6a3cb54ea980eb"
+      },
+      "oki6258_samples.js": {
+        "bytes": 2871,
+        "sha256": "d0ba906cc3f880a083c4394fa575e1e2aa935fa1e1de314267f69dc42236517d"
+      },
+      "opl_monitor.js": {
+        "bytes": 1940,
+        "sha256": "feccdcea305be517946c100f56d8aa8a248f726b74e15524554a91e5bab2ecc1"
+      },
+      "opl_notes.js": {
+        "bytes": 4192,
+        "sha256": "ccaf399e08b690ffeb794be9c5f7bb659d4b09508819fafcb4988c60d1c1bc82"
+      },
+      "opm_export.js": {
+        "bytes": 4741,
+        "sha256": "dd215f65495749251a6b0671e953a468b2b8eff5e79322ca29562576a1ac11cd"
+      },
+      "opm_info.js": {
+        "bytes": 6650,
+        "sha256": "734e2137ac600ca141d14248a05bf9ed67a9585cbf9f32e6355d5447ca7a2733"
+      },
+      "opm_mml.js": {
+        "bytes": 3586,
+        "sha256": "66ecb96cf1634c5161d65de61c80212908ff788cb3c8f6b8ea1fb3e728104b74"
+      },
+      "opm_monitor.js": {
+        "bytes": 7175,
+        "sha256": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7"
+      },
+      "opm_notes.js": {
+        "bytes": 3906,
+        "sha256": "f3567f9781f471c241c0389a108f6573b747a6155067fe0382f6880a49a755f9"
+      },
+      "opm_tfi.js": {
+        "bytes": 3094,
+        "sha256": "811c70a19f0871df98352b24a246755e7e545cd1cccc4c62bd62b57bfdb8da66"
+      },
+      "playback_core.js": {
+        "bytes": 27517,
+        "sha256": "c46cd9a365fdac0cdabfa1c9ac04ef39a8bd24d593dae140e872f8172cfc9fdf"
+      },
+      "playback_mixer.js": {
+        "bytes": 4615,
+        "sha256": "07ae21305172a9076f2776f4dc72b637ad3cae8ad41971cdba0d70dd44570635"
+      },
+      "playground/playground_operator_keyboard.js": {
+        "bytes": 21207,
+        "sha256": "6a86d9b8dd336662b86a5846eb93b02bf23053dda6e4cff5a39285471f14b636"
+      },
+      "playground/playground_operator_tab.js": {
+        "bytes": 31863,
+        "sha256": "fd1cb186f995bf8093a927f3ff6515d42745f4e037a746315bad7737bbd5680e"
+      },
+      "playground/playground_operator_visual.js": {
+        "bytes": 158,
+        "sha256": "aa98e3e1f34d6d8cefe11c053bb26902daedb7130c48bfaf242ea8bf76dfffe8"
+      },
+      "playground/playground_tfi_editor.js": {
+        "bytes": 5640,
+        "sha256": "39b60beffc47e55ff34cf644ba208c3202c583e4230f842d9af14a6c60a565ab"
+      },
+      "playground/playground_vgm_presets.js": {
+        "bytes": 2810,
+        "sha256": "2080a22787ee418a3e3bc76818bdf9111f9d1f2ff09c1cdbc46f84cf8103952e"
+      },
+      "pokey_monitor.js": {
+        "bytes": 3374,
+        "sha256": "9fa819b78f38e5074b50d3dcc71a39aa28c89656df753282a01a566e85284af1"
+      },
+      "pokey_notes.js": {
+        "bytes": 4045,
+        "sha256": "fbed9463cd66b6a514d582e01271394413f80746a04c961b17d88f6525b20919"
+      },
+      "pokey_playback.js": {
+        "bytes": 2678,
+        "sha256": "5b2acc7d47e799c36c607e3026b0a68f10399d30021c4e5cc8aaa18da7623ec2"
+      },
+      "psg_monitor.js": {
+        "bytes": 3454,
+        "sha256": "092bc0fdfea5c48eea8c1a016a772e14389cda02c7345d6eed2ede31d8c75e1f"
+      },
+      "pwm_samples.js": {
+        "bytes": 3733,
+        "sha256": "bc7c184d8e9696f570c406ae0f8debc777fbf2d677fc0170cb603398285f33ae"
+      },
+      "rf5c164_monitor.js": {
+        "bytes": 2542,
+        "sha256": "188d00f67df1ac1ed46600e396c317d8e2a4c1311274723b6c392fc9f858d91f"
+      },
+      "rf5c164_samples.js": {
+        "bytes": 3728,
+        "sha256": "88721185dade0c3ed70f2b7bf5441798eb1149e8c1094d7472505885ad220211"
+      },
+      "sample_core.js": {
+        "bytes": 20377,
+        "sha256": "6974c719ac03c0793553be34c9cf27403837de4dadc950af7c8bd2b60ad27da8"
+      },
+      "sample_explorer.js": {
+        "bytes": 14909,
+        "sha256": "8a7a9f4473f144b1c81de987a37b38aac0a38d0716c4b437f31234f956d04877"
+      },
+      "sample_render.js": {
+        "bytes": 8838,
+        "sha256": "b400da940deb71bfc9d1e16b9ead817d491cf58c57c3d5ae37be2790c6ce2123"
+      },
+      "sbi_export.js": {
+        "bytes": 6335,
+        "sha256": "6158bbf6f5d13212eeebb72d5296c2655837ba2e66e1ed1b0e4f30387c1d31a0"
+      },
+      "sbi_info.js": {
+        "bytes": 8747,
+        "sha256": "1b249091f79331bfe6e18d7d0e8288e1b44d89722f9ca72cbcc97d56f18e430f"
+      },
+      "sbi_ui.js": {
+        "bytes": 2810,
+        "sha256": "ca7b72a25ae0b0dc25c57a07ec709dce84688f6713dd68cad99d7b562791650a"
+      },
+      "scc_notes.js": {
+        "bytes": 1930,
+        "sha256": "150d78f6dd46e03887ab498d75aa1e84ff4310d6d66ffd52b8c7c9b79f535e08"
+      },
+      "score_group_ui.js": {
+        "bytes": 2934,
+        "sha256": "49c137b9647bf340154e3ecb081e935133c53b702e5736decbc56448c7d154ce"
+      },
+      "score_groups.js": {
+        "bytes": 2975,
+        "sha256": "bee506765793d9a6d94a686386932091ae0ce17958826897ad3d5a3abdd9c430"
+      },
+      "seek_playback.js": {
+        "bytes": 1837,
+        "sha256": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb"
+      },
+      "segapcm_samples.js": {
+        "bytes": 6264,
+        "sha256": "c2bd8624e44ea28618e04dfd5d327089377bad8032013ec8eed627338cd4505b"
+      },
+      "snes_notes.js": {
+        "bytes": 12923,
+        "sha256": "6630cbefa5ac2d62d03812915814e315fd538174bd8ccb4565ca497ef6eaa425"
+      },
+      "snes_score.js": {
+        "bytes": 1741,
+        "sha256": "6900129bf9b17060b3a6da224c0d2e6311e58e3797f46ce60331512be9204e4a"
+      },
+      "source_mutes.js": {
+        "bytes": 2165,
+        "sha256": "2801bb91cf13a5d41fe6494aad07ab9f49eac7972e247a2ee83c54ff4e461b86"
+      },
+      "spc_analyzer.js": {
+        "bytes": 21973,
+        "sha256": "261288618541e4d90762dedbbb433f0f4efc716d42df537234784d862dde2287"
+      },
+      "spc_brr_candidates.js": {
+        "bytes": 5299,
+        "sha256": "8f8db94bc5bd096dd3276969b47a20ddd99917c838a9704f5486f1a4e471ea20"
+      },
+      "spc_noteish.js": {
+        "bytes": 15836,
+        "sha256": "664bc5d9ca4c214e26ab5f5f8fa85e5182a2906d96dad31c8a7e470b96dd49ef"
+      },
+      "stored_zip.js": {
+        "bytes": 4446,
+        "sha256": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968"
+      },
+      "synth/synth_controls.js": {
+        "bytes": 10018,
+        "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+      },
+      "synth/synth_envelope.js": {
+        "bytes": 13551,
+        "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+      },
+      "synth/synth_keyboard.js": {
+        "bytes": 9982,
+        "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+      },
+      "synth/synth_operator_envelope.js": {
+        "bytes": 9649,
+        "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+      },
+      "tfi_archive.js": {
+        "bytes": 4100,
+        "sha256": "bd691085a5475c671f957eadd59d75ec2313a2475a20faafa52e4852ac6700c4"
+      },
+      "tfi_extract.js": {
+        "bytes": 6514,
+        "sha256": "afc3a339318d30891da2b726a4732d2982c2222ce2f2053a0d016c520dd21f1f"
+      },
+      "tfi_info.css": {
+        "bytes": 13888,
+        "sha256": "d2ec7df313ec813184e888887227e2e9dc34df1e2fb0d25c662c8313d176bf9e"
+      },
+      "tfi_info.js": {
+        "bytes": 4412,
+        "sha256": "44b477db26b0d7aa80f48374f98351831d4c04efe60e7c9d9ae5d1b019300efa"
+      },
+      "tone_notes.js": {
+        "bytes": 3711,
+        "sha256": "01ab840074b9394f07230fb24f782ac84c55f9ab763654eb717dcf47926d799b"
+      },
+      "vgm_analyzer.js": {
+        "bytes": 216285,
+        "sha256": "ec809000f28590770b9feae3fc6532500a175f0ca942242b3e2c7c347c94a8e7"
+      },
+      "vgm_json.js": {
+        "bytes": 3473,
+        "sha256": "62172ee3778adf98d15f4f0b08a446bff52b50309d04a46cea3ecd09d7ff1dbd"
+      },
+      "vgm_lilypond.js": {
+        "bytes": 10133,
+        "sha256": "c8a6d9c0b3505a4c49d7a563c43a51f60e56677eb6e1cd9fb6f3d8a82c0ffc9d"
+      },
+      "vgm_midi.js": {
+        "bytes": 13470,
+        "sha256": "43711eb2a9f6b06fff6c6d4f0eadf6061f1e6825067d0484d554a69fb1d63864"
+      },
+      "vgm_mml_music.js": {
+        "bytes": 8057,
+        "sha256": "2a99983d938d38be2f72ef5d5ab77123318d4dd1a23481902a17f0ecd959bed2"
+      },
+      "vgm_mml.js": {
+        "bytes": 9170,
+        "sha256": "07ebe27efd6feaa3db9e1cc5e25e5fd0073d058fa111481673d7dc8b159536f9"
+      },
+      "vgm_musicxml.js": {
+        "bytes": 5447,
+        "sha256": "68e91c6ca3cfaf4b1cc415990a1f98627826837d3838aced6513c76871b867aa"
+      },
+      "vgm_notes.js": {
+        "bytes": 8173,
+        "sha256": "b2c090caffd915433ea46f6cca7e07b3f1f77fa50e575d0bcfcfd9561db6b9c5"
+      },
+      "vgm_wav.js": {
+        "bytes": 4409,
+        "sha256": "97847a72388b2476e4045caf89940714fe4f2d1e0dea1b8084c6565e4f2b04e2"
+      },
+      "wonderswan_notes.js": {
+        "bytes": 3426,
+        "sha256": "d7fe4fa786889b11649d02971c33ce21cab009b470d357c2a2c65f3081a84461"
+      },
+      "wonderswan_voice_render.js": {
+        "bytes": 3008,
+        "sha256": "f694bfa6cf252c1170036e8a5f9a7f97053a22bd5772e0f62acb4cc9fbbdceaf"
+      },
+      "wonderswan_voice_samples.js": {
+        "bytes": 10452,
+        "sha256": "b55d5d5a60809db35ac992ca99acf802e951ff50a6000ecd18fe71d16bc3fa28"
+      },
+      "wonderswan_voice_view.js": {
+        "bytes": 3765,
+        "sha256": "848571944a74890bfc48e069937c635be95db0e2b08dbcc11dccec6ba48c4713"
+      },
+      "wonderswan_wave_view.js": {
+        "bytes": 6281,
+        "sha256": "85f2423a48458238705c23234466262e081ff7a7d4a2743efd16999613843a95"
+      },
+      "wonderswan_waves.js": {
+        "bytes": 9503,
+        "sha256": "2f97d7bd2a2fc72fd02ba1bc6c310e9d277c517c8b8b1cd7ed79444b78642677"
+      },
+      "ym2413_monitor.js": {
+        "bytes": 3550,
+        "sha256": "309261dd9a98af20dbbd0f84281651f4aa4db42ec219d1ec6b925f453650fd12"
+      },
+      "ym2413_notes.js": {
+        "bytes": 2320,
+        "sha256": "fd4009a16b0c24d17d23d197c482da55319613eaac9a257240f9ee6ce5b5fab5"
+      },
+      "ymf262_notes.js": {
+        "bytes": 3982,
+        "sha256": "5f38a812714ca84df1fa8cf556373da9fc10ec14a2cb5b17559ccdf807dec87f"
+      },
+      "ymf278b_samples.js": {
+        "bytes": 4483,
+        "sha256": "f8afd3d93515c330e9ace1ab212c9dc33778ac6d01bd74fa7cffbe7f296f3eed"
+      }
+    },
+    "testSources": {
+      "scripts/check_pokey_analyzer_browser.cjs": "5c15fb111832a8061d63276bed2e64154a56421902a3fafa232e266b214a9253",
+      "test/helpers/pokey_vgm_fixture.mjs": "09fc47d592eb4273dab70375c7431e7bb3c1e45753dcd5e25420829487176205"
+    },
+    "results": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "scenes": [
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 1,
+            "audible": {
+              "count": 16128,
+              "peak": 0.14592072367668152,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 1.9177947198040783,
+                  "square": 148.6090078568437,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.00023782176584872004,
+                  "acRms": 0.1357521265086724
+                },
+                {
+                  "count": 8064,
+                  "sum": 1.9177947198040783,
+                  "square": 148.6090078568437,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.00023782176584872004,
+                  "acRms": 0.1357521265086724
+                }
+              ],
+              "acRms": 0.1357521265086724
+            },
+            "muted": {
+              "count": 16896,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16128,
+              "peak": 0.14592097699642181,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": -8.273422937782016,
+                  "square": 148.61895911658948,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": -0.0010259701063717777,
+                  "acRms": 0.13575300302883347
+                },
+                {
+                  "count": 8064,
+                  "sum": -8.273422937782016,
+                  "square": 148.61895911658948,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": -0.0010259701063717777,
+                  "acRms": 0.13575300302883347
+                }
+              ],
+              "acRms": 0.13575300302883347
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 0.800000011920929,
+              "maxRenderMs": 5
+            }
+          },
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 2,
+            "audible": {
+              "count": 16128,
+              "peak": 0.14272010326385498,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": -4.646534821251407,
+                  "square": 148.30862903353508,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": -0.0005762071950956607,
+                  "acRms": 0.13561384530363427
+                },
+                {
+                  "count": 8064,
+                  "sum": -4.646534821251407,
+                  "square": 148.30862903353508,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": -0.0005762071950956607,
+                  "acRms": 0.13561384530363427
+                }
+              ],
+              "acRms": 0.13561384530363427
+            },
+            "muted": {
+              "count": 17408,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16128,
+              "peak": 0.1427210420370102,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 0.7449895642930642,
+                  "square": 148.26760167843548,
+                  "peak": 0.1427210420370102,
+                  "bad": 0,
+                  "mean": 9.238461858792958e-05,
+                  "acRms": 0.1355962787107585
+                },
+                {
+                  "count": 8064,
+                  "sum": 0.7449895642930642,
+                  "square": 148.26760167843548,
+                  "peak": 0.1427210420370102,
+                  "bad": 0,
+                  "mean": 9.238461858792958e-05,
+                  "acRms": 0.1355962787107585
+                }
+              ],
+              "acRms": 0.1355962787107585
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 0.800000011920929,
+              "maxRenderMs": 2.099999964237213
+            }
+          },
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 3,
+            "audible": {
+              "count": 16128,
+              "peak": 0.14111335575580597,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": -0.7650848343037069,
+                  "square": 147.81485571230004,
+                  "peak": 0.14111335575580597,
+                  "bad": 0,
+                  "mean": -9.48765915555192e-05,
+                  "acRms": 0.1353890920293547
+                },
+                {
+                  "count": 8064,
+                  "sum": -0.7650848343037069,
+                  "square": 147.81485571230004,
+                  "peak": 0.14111335575580597,
+                  "bad": 0,
+                  "mean": -9.48765915555192e-05,
+                  "acRms": 0.1353890920293547
+                }
+              ],
+              "acRms": 0.1353890920293547
+            },
+            "muted": {
+              "count": 16384,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8192,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8192,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16640,
+              "peak": 0.1411048322916031,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": -3.5365337738767266,
+                  "square": 152.52234472483062,
+                  "peak": 0.1411048322916031,
+                  "bad": 0,
+                  "mean": -0.00042506415551402967,
+                  "acRms": 0.13539509558171878
+                },
+                {
+                  "count": 8320,
+                  "sum": -3.5365337738767266,
+                  "square": 152.52234472483062,
+                  "peak": 0.1411048322916031,
+                  "bad": 0,
+                  "mean": -0.00042506415551402967,
+                  "acRms": 0.13539509558171878
+                }
+              ],
+              "acRms": 0.13539509558171878
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 0.8999999761581421,
+              "maxRenderMs": 2.299999952316284
+            }
+          },
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 4,
+            "audible": {
+              "count": 16128,
+              "peak": 0.1401112824678421,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 1.0887828483246267,
+                  "square": 147.33396725865435,
+                  "peak": 0.1401112824678421,
+                  "bad": 0,
+                  "mean": 0.00013501771432597058,
+                  "acRms": 0.13516864661411102
+                },
+                {
+                  "count": 8064,
+                  "sum": 1.0887828483246267,
+                  "square": 147.33396725865435,
+                  "peak": 0.1401112824678421,
+                  "bad": 0,
+                  "mean": 0.00013501771432597058,
+                  "acRms": 0.13516864661411102
+                }
+              ],
+              "acRms": 0.13516864661411102
+            },
+            "muted": {
+              "count": 17408,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 17920,
+              "peak": 0.14011210203170776,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8960,
+                  "sum": -0.44600468418502714,
+                  "square": 163.6913509866131,
+                  "peak": 0.14011210203170776,
+                  "bad": 0,
+                  "mean": -4.9777308502793205e-05,
+                  "acRms": 0.13516331423970485
+                },
+                {
+                  "count": 8960,
+                  "sum": -0.44600468418502714,
+                  "square": 163.6913509866131,
+                  "peak": 0.14011210203170776,
+                  "bad": 0,
+                  "mean": -4.9777308502793205e-05,
+                  "acRms": 0.13516331423970485
+                }
+              ],
+              "acRms": 0.13516331423970485
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 0.9000000357627869,
+              "maxRenderMs": 2.199999988079071
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 1,
+            "audible": {
+              "count": 16128,
+              "peak": 0.14592072367668152,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 1.3093904634006321,
+                  "square": 148.62389472267958,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.00016237480944948315,
+                  "acRms": 0.13575903702793987
+                },
+                {
+                  "count": 8064,
+                  "sum": 1.3093904634006321,
+                  "square": 148.62389472267958,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.00016237480944948315,
+                  "acRms": 0.13575903702793987
+                }
+              ],
+              "acRms": 0.13575903702793987
+            },
+            "muted": {
+              "count": 16128,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8064,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 17408,
+              "peak": 0.14592097699642181,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": 12.037376804335508,
+                  "square": 160.39254154501833,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": 0.0013829706806451642,
+                  "acRms": 0.13574070618619422
+                },
+                {
+                  "count": 8704,
+                  "sum": 12.037376804335508,
+                  "square": 160.39254154501833,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": 0.0013829706806451642,
+                  "acRms": 0.13574070618619422
+                }
+              ],
+              "acRms": 0.13574070618619422
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 1.600000023841858,
+              "maxRenderMs": 3.600000023841858
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 2,
+            "audible": {
+              "count": 16896,
+              "peak": 0.14272010326385498,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 0.5049976704176515,
+                  "square": 155.30901430225217,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 5.97771863657258e-05,
+                  "acRms": 0.13558802566228423
+                },
+                {
+                  "count": 8448,
+                  "sum": 0.5049976704176515,
+                  "square": 155.30901430225217,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 5.97771863657258e-05,
+                  "acRms": 0.13558802566228423
+                }
+              ],
+              "acRms": 0.13558802566228423
+            },
+            "muted": {
+              "count": 17408,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 17920,
+              "peak": 0.1427210420370102,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8960,
+                  "sum": -1.012463120627217,
+                  "square": 164.72037735776433,
+                  "peak": 0.1427210420370102,
+                  "bad": 0,
+                  "mean": -0.00011299811614143046,
+                  "acRms": 0.13558745487203538
+                },
+                {
+                  "count": 8960,
+                  "sum": -1.012463120627217,
+                  "square": 164.72037735776433,
+                  "peak": 0.1427210420370102,
+                  "bad": 0,
+                  "mean": -0.00011299811614143046,
+                  "acRms": 0.13558745487203538
+                }
+              ],
+              "acRms": 0.13558745487203538
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 4096,
+              "underruns": 0,
+              "renderMs": 1.5,
+              "maxRenderMs": 3.700000047683716
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 3,
+            "audible": {
+              "count": 17408,
+              "peak": 0.14111433923244476,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": -3.6296023631002754,
+                  "square": 159.54814045760375,
+                  "peak": 0.14111433923244476,
+                  "bad": 0,
+                  "mean": -0.00041700394796648384,
+                  "acRms": 0.13538930917527356
+                },
+                {
+                  "count": 8704,
+                  "sum": -3.6296023631002754,
+                  "square": 159.54814045760375,
+                  "peak": 0.14111433923244476,
+                  "bad": 0,
+                  "mean": -0.00041700394796648384,
+                  "acRms": 0.13538930917527356
+                }
+              ],
+              "acRms": 0.13538930917527356
+            },
+            "muted": {
+              "count": 17664,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8832,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8832,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16128,
+              "peak": 0.1411043405532837,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 0.818812383338809,
+                  "square": 147.83131825476286,
+                  "peak": 0.1411043405532837,
+                  "bad": 0,
+                  "mean": 0.0001015392340449912,
+                  "acRms": 0.13539662631618685
+                },
+                {
+                  "count": 8064,
+                  "sum": 0.818812383338809,
+                  "square": 147.83131825476286,
+                  "peak": 0.1411043405532837,
+                  "bad": 0,
+                  "mean": 0.0001015392340449912,
+                  "acRms": 0.13539662631618685
+                }
+              ],
+              "acRms": 0.13539662631618685
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 4,
+              "maxRenderMs": 6.699999988079071
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 4,
+            "audible": {
+              "count": 16896,
+              "peak": 0.1401112824678421,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 3.220196621026844,
+                  "square": 154.39667538218413,
+                  "peak": 0.1401112824678421,
+                  "bad": 0,
+                  "mean": 0.00038117857729957905,
+                  "acRms": 0.1351886693305569
+                },
+                {
+                  "count": 8448,
+                  "sum": 3.220196621026844,
+                  "square": 154.39667538218413,
+                  "peak": 0.1401112824678421,
+                  "bad": 0,
+                  "mean": 0.00038117857729957905,
+                  "acRms": 0.1351886693305569
+                }
+              ],
+              "acRms": 0.1351886693305569
+            },
+            "muted": {
+              "count": 17152,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16128,
+              "peak": 0.14011210203170776,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 2.6117700579488883,
+                  "square": 147.3136087198145,
+                  "peak": 0.14011210203170776,
+                  "bad": 0,
+                  "mean": 0.0003238802155194554,
+                  "acRms": 0.1351589868950184
+                },
+                {
+                  "count": 8064,
+                  "sum": 2.6117700579488883,
+                  "square": 147.3136087198145,
+                  "peak": 0.14011210203170776,
+                  "bad": 0,
+                  "mean": 0.0003238802155194554,
+                  "acRms": 0.1351589868950184
+                }
+              ],
+              "acRms": 0.1351589868950184
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 3.600000023841858,
+              "maxRenderMs": 6.899999976158142
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 1,
+            "audible": {
+              "count": 16896,
+              "peak": 0.14272010326385498,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 0.5049976704176515,
+                  "square": 155.30901430225217,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 5.97771863657258e-05,
+                  "acRms": 0.13558802566228423
+                },
+                {
+                  "count": 8448,
+                  "sum": 0.5049976704176515,
+                  "square": 155.30901430225217,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 5.97771863657258e-05,
+                  "acRms": 0.13558802566228423
+                }
+              ],
+              "acRms": 0.13558802566228423
+            },
+            "muted": {
+              "count": 16896,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 17408,
+              "peak": 0.14271651208400726,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": -0.5717229718575254,
+                  "square": 160.02484924508127,
+                  "peak": 0.14271651208400726,
+                  "bad": 0,
+                  "mean": -6.568508408289584e-05,
+                  "acRms": 0.1355920482517503
+                },
+                {
+                  "count": 8704,
+                  "sum": -0.5717229718575254,
+                  "square": 160.02484924508127,
+                  "peak": 0.14271651208400726,
+                  "bad": 0,
+                  "mean": -6.568508408289584e-05,
+                  "acRms": 0.1355920482517503
+                }
+              ],
+              "acRms": 0.1355920482517503
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 3.899999976158142,
+              "maxRenderMs": 6.099999964237213
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 2,
+            "audible": {
+              "count": 17152,
+              "peak": 0.14111433923244476,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 1.3006700174883008,
+                  "square": 157.20994354667087,
+                  "peak": 0.14111433923244476,
+                  "bad": 0,
+                  "mean": 0.00015166394793473658,
+                  "acRms": 0.13539335412312187
+                },
+                {
+                  "count": 8576,
+                  "sum": 1.3006700174883008,
+                  "square": 157.20994354667087,
+                  "peak": 0.14111433923244476,
+                  "bad": 0,
+                  "mean": 0.00015166394793473658,
+                  "acRms": 0.13539335412312187
+                }
+              ],
+              "acRms": 0.13539335412312187
+            },
+            "muted": {
+              "count": 17408,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8704,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16640,
+              "peak": 0.1411033719778061,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": -4.699871622957289,
+                  "square": 152.52515742455518,
+                  "peak": 0.1411033719778061,
+                  "bad": 0,
+                  "mean": -0.000564888416220828,
+                  "acRms": 0.13539583284971152
+                },
+                {
+                  "count": 8320,
+                  "sum": -4.699871622957289,
+                  "square": 152.52515742455518,
+                  "peak": 0.1411033719778061,
+                  "bad": 0,
+                  "mean": -0.000564888416220828,
+                  "acRms": 0.13539583284971152
+                }
+              ],
+              "acRms": 0.13539583284971152
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 3.5,
+              "maxRenderMs": 5.899999976158142
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 3,
+            "audible": {
+              "count": 17152,
+              "peak": 0.1401117444038391,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": -1.1614419058896601,
+                  "square": 156.76658019507437,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": -0.00013542932671288015,
+                  "acRms": 0.13520231821072617
+                },
+                {
+                  "count": 8576,
+                  "sum": -1.1614419058896601,
+                  "square": 156.76658019507437,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": -0.00013542932671288015,
+                  "acRms": 0.13520231821072617
+                }
+              ],
+              "acRms": 0.13520231821072617
+            },
+            "muted": {
+              "count": 17152,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16640,
+              "peak": 0.14011210203170776,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0.4377434794587316,
+                  "square": 151.96090693007682,
+                  "peak": 0.14011210203170776,
+                  "bad": 0,
+                  "mean": 5.261339897340524e-05,
+                  "acRms": 0.13514632556888911
+                },
+                {
+                  "count": 8320,
+                  "sum": 0.4377434794587316,
+                  "square": 151.96090693007682,
+                  "peak": 0.14011210203170776,
+                  "bad": 0,
+                  "mean": 5.261339897340524e-05,
+                  "acRms": 0.13514632556888911
+                }
+              ],
+              "acRms": 0.13514632556888911
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 3.400000035762787,
+              "maxRenderMs": 5.899999976158142
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 4,
+            "audible": {
+              "count": 17152,
+              "peak": 0.13944359123706818,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": -4.201767108635977,
+                  "square": 156.14717876210784,
+                  "peak": 0.13944359123706818,
+                  "bad": 0,
+                  "mean": -0.0004899448587495309,
+                  "acRms": 0.1349341326876533
+                },
+                {
+                  "count": 8576,
+                  "sum": -4.201767108635977,
+                  "square": 156.14717876210784,
+                  "peak": 0.13944359123706818,
+                  "bad": 0,
+                  "mean": -0.0004899448587495309,
+                  "acRms": 0.1349341326876533
+                }
+              ],
+              "acRms": 0.1349341326876533
+            },
+            "muted": {
+              "count": 17152,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16128,
+              "peak": 0.1394430249929428,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 1.0986001614364795,
+                  "square": 146.834915970446,
+                  "peak": 0.1394430249929428,
+                  "bad": 0,
+                  "mean": 0.00013623513906702375,
+                  "acRms": 0.13493952859261862
+                },
+                {
+                  "count": 8064,
+                  "sum": 1.0986001614364795,
+                  "square": 146.834915970446,
+                  "peak": 0.1394430249929428,
+                  "bad": 0,
+                  "mean": 0.00013623513906702375,
+                  "acRms": 0.13493952859261862
+                }
+              ],
+              "acRms": 0.13493952859261862
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 3.900000035762787,
+              "maxRenderMs": 6.300000011920929
+            }
+          }
+        ],
+        "mixer": {
+          "both": {
+            "count": 17408,
+            "peak": 0.28048041462898254,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8704,
+                "sum": 8.79264173656702,
+                "square": 318.25205228221773,
+                "peak": 0.28048041462898254,
+                "bad": 0,
+                "mean": 0.001010184023043086,
+                "acRms": 0.19121418412711647
+              },
+              {
+                "count": 8704,
+                "sum": 8.79264173656702,
+                "square": 318.25205228221773,
+                "peak": 0.28048041462898254,
+                "bad": 0,
+                "mean": 0.001010184023043086,
+                "acRms": 0.19121418412711647
+              }
+            ],
+            "acRms": 0.19121418412711647
+          },
+          "secondOnly": {
+            "count": 17408,
+            "peak": 0.1394428312778473,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8704,
+                "sum": -3.7745619837078266,
+                "square": 158.4765510125351,
+                "peak": 0.1394428312778473,
+                "bad": 0,
+                "mean": -0.0004336583161429029,
+                "acRms": 0.13493382183702016
+              },
+              {
+                "count": 8704,
+                "sum": -3.7745619837078266,
+                "square": 158.4765510125351,
+                "peak": 0.1394428312778473,
+                "bad": 0,
+                "mean": -0.0004336583161429029,
+                "acRms": 0.13493382183702016
+              }
+            ],
+            "acRms": 0.13493382183702016
+          },
+          "halfSecond": {
+            "count": 16640,
+            "peak": 0.0697215124964714,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8320,
+                "sum": -1.7185499882034492,
+                "square": 37.86806141760437,
+                "peak": 0.0697215124964714,
+                "bad": 0,
+                "mean": -0.0002065564889667607,
+                "acRms": 0.06746411656601438
+              },
+              {
+                "count": 8320,
+                "sum": -1.7185499882034492,
+                "square": 37.86806141760437,
+                "peak": 0.0697215124964714,
+                "bad": 0,
+                "mean": -0.0002065564889667607,
+                "acRms": 0.06746411656601438
+              }
+            ],
+            "acRms": 0.06746411656601438
+          },
+          "bothMuted": {
+            "count": 16128,
+            "peak": 0,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8064,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              {
+                "count": 8064,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              }
+            ],
+            "acRms": 0
+          },
+          "firstOnly": {
+            "count": 17408,
+            "peak": 0.14111383259296417,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8704,
+                "sum": -0.07514325808733702,
+                "square": 159.55660245600342,
+                "peak": 0.14111383259296417,
+                "bad": 0,
+                "mean": -8.633186820695888e-06,
+                "acRms": 0.1353935414014488
+              },
+              {
+                "count": 8704,
+                "sum": -0.07514325808733702,
+                "square": 159.55660245600342,
+                "peak": 0.14111383259296417,
+                "bad": 0,
+                "mean": -8.633186820695888e-06,
+                "acRms": 0.1353935414014488
+              }
+            ],
+            "acRms": 0.1353935414014488
+          },
+          "panLeft": {
+            "count": 19712,
+            "peak": 0.14110034704208374,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 9856,
+                "sum": -2.0893951831385493,
+                "square": 180.68311106446606,
+                "peak": 0.14110034704208374,
+                "bad": 0,
+                "mean": -0.0002119922060814275,
+                "acRms": 0.13539664408920216
+              },
+              {
+                "count": 9856,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              }
+            ],
+            "acRms": 0.09573988518537632
+          },
+          "restored": {
+            "count": 16640,
+            "peak": 0.28036561608314514,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8320,
+                "sum": 5.483182791620493,
+                "square": 304.12596041100045,
+                "peak": 0.28036561608314514,
+                "bad": 0,
+                "mean": 0.000659036393223617,
+                "acRms": 0.19118882467856213
+              },
+              {
+                "count": 8320,
+                "sum": 5.483182791620493,
+                "square": 304.12596041100045,
+                "peak": 0.28036561608314514,
+                "bad": 0,
+                "mean": 0.000659036393223617,
+                "acRms": 0.19118882467856213
+              }
+            ],
+            "acRms": 0.19118882467856213
+          }
+        },
+        "transport": {
+          "pause": true,
+          "resume": true,
+          "seekSamples": 88200,
+          "sought": {
+            "count": 16128,
+            "peak": 0.28040364384651184,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8064,
+                "sum": -0.1075228585395962,
+                "square": 292.4432084402857,
+                "peak": 0.28040364384651184,
+                "bad": 0,
+                "mean": -1.3333687814930084e-05,
+                "acRms": 0.19043444711147445
+              },
+              {
+                "count": 8064,
+                "sum": -0.1075228585395962,
+                "square": 292.4432084402857,
+                "peak": 0.28040364384651184,
+                "bad": 0,
+                "mean": -1.3333687814930084e-05,
+                "acRms": 0.19043444711147445
+              }
+            ],
+            "acRms": 0.19043444711147445
+          },
+          "stopReplay": {
+            "count": 16128,
+            "peak": 0.4015008211135864,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8064,
+                "sum": 136.94368773442693,
+                "square": 272.4162418684906,
+                "peak": 0.4015008211135864,
+                "bad": 0,
+                "mean": 0.016982104133733498,
+                "acRms": 0.18301197819965087
+              },
+              {
+                "count": 8064,
+                "sum": 136.94368773442693,
+                "square": 272.4162418684906,
+                "peak": 0.4015008211135864,
+                "bad": 0,
+                "mean": 0.016982104133733498,
+                "acRms": 0.18301197819965087
+              }
+            ],
+            "acRms": 0.18301197819965087
+          }
+        },
+        "dacStream": {
+          "target": 1,
+          "channel": 2,
+          "rate": 11025,
+          "audible": {
+            "count": 17152,
+            "peak": 0.2724609375,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8576,
+                "sum": 1117.4248920083046,
+                "square": 291.39534073342844,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.13029674580320716,
+                "acRms": 0.1303869606895919
+              },
+              {
+                "count": 8576,
+                "sum": 1117.4248920083046,
+                "square": 291.39534073342844,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.13029674580320716,
+                "acRms": 0.1303869606895919
+              }
+            ],
+            "acRms": 0.1303869606895919
+          },
+          "muted": {
+            "count": 17408,
+            "peak": 0,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8704,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              {
+                "count": 8704,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              }
+            ],
+            "acRms": 0
+          },
+          "sought": {
+            "count": 17152,
+            "peak": 0.2724609375,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8576,
+                "sum": 1085.4300395473256,
+                "square": 280.56577349203644,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.1265660027457236,
+                "acRms": 0.12921405652172044
+              },
+              {
+                "count": 8576,
+                "sum": 1085.4300395473256,
+                "square": 280.56577349203644,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.1265660027457236,
+                "acRms": 0.12921405652172044
+              }
+            ],
+            "acRms": 0.12921405652172044
+          },
+          "replay": {
+            "count": 16128,
+            "peak": 0.2724609375,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8064,
+                "sum": 917.6574852402555,
+                "square": 236.7928097224507,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.11379681116570628,
+                "acRms": 0.12811898174007683
+              },
+              {
+                "count": 8064,
+                "sum": 917.6574852402555,
+                "square": 236.7928097224507,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.11379681116570628,
+                "acRms": 0.12811898174007683
+              }
+            ],
+            "acRms": 0.12811898174007683
+          }
+        },
+        "pageErrors": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "scenes": [
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 1,
+            "audible": {
+              "count": 17408,
+              "peak": 0.14592072367668152,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": 7.397479080129415,
+                  "square": 160.45377357512157,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.0008498941957869273,
+                  "acRms": 0.1357710003410719
+                },
+                {
+                  "count": 8704,
+                  "sum": 7.397479080129415,
+                  "square": 160.45377357512157,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.0008498941957869273,
+                  "acRms": 0.1357710003410719
+                }
+              ],
+              "acRms": 0.1357710003410719
+            },
+            "muted": {
+              "count": 16640,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16896,
+              "peak": 0.14592097699642181,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": -3.4422914608730935,
+                  "square": 155.76968496642107,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": -0.0004074682126980461,
+                  "acRms": 0.13578836618381657
+                },
+                {
+                  "count": 8448,
+                  "sum": -3.4422914608730935,
+                  "square": 155.76968496642107,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": -0.0004074682126980461,
+                  "acRms": 0.13578836618381657
+                }
+              ],
+              "acRms": 0.13578836618381657
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 1,
+              "maxRenderMs": 7
+            }
+          },
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 2,
+            "audible": {
+              "count": 16896,
+              "peak": 0.14272010326385498,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 2.139052876038477,
+                  "square": 155.33053859401153,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 0.0002532022817280394,
+                  "acRms": 0.1355971976901381
+                },
+                {
+                  "count": 8448,
+                  "sum": 2.139052876038477,
+                  "square": 155.33053859401153,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 0.0002532022817280394,
+                  "acRms": 0.1355971976901381
+                }
+              ],
+              "acRms": 0.1355971976901381
+            },
+            "muted": {
+              "count": 16896,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16896,
+              "peak": 0.1427210420370102,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 2.2058564132312313,
+                  "square": 155.3377335095125,
+                  "peak": 0.1427210420370102,
+                  "bad": 0,
+                  "mean": 0.0002611098973995302,
+                  "acRms": 0.1356003231017696
+                },
+                {
+                  "count": 8448,
+                  "sum": 2.2058564132312313,
+                  "square": 155.3377335095125,
+                  "peak": 0.1427210420370102,
+                  "bad": 0,
+                  "mean": 0.0002611098973995302,
+                  "acRms": 0.1356003231017696
+                }
+              ],
+              "acRms": 0.1356003231017696
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 1,
+              "maxRenderMs": 2
+            }
+          },
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 3,
+            "audible": {
+              "count": 16896,
+              "peak": 0.14111359417438507,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 1.781732796691358,
+                  "square": 154.86729953578973,
+                  "peak": 0.14111359417438507,
+                  "bad": 0,
+                  "mean": 0.00021090587082047327,
+                  "acRms": 0.1353949241393632
+                },
+                {
+                  "count": 8448,
+                  "sum": 1.781732796691358,
+                  "square": 154.86729953578973,
+                  "peak": 0.14111359417438507,
+                  "bad": 0,
+                  "mean": 0.00021090587082047327,
+                  "acRms": 0.1353949241393632
+                }
+              ],
+              "acRms": 0.1353949241393632
+            },
+            "muted": {
+              "count": 16640,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16640,
+              "peak": 0.14110317826271057,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0.08762632589787245,
+                  "square": 152.5154718038757,
+                  "peak": 0.14110317826271057,
+                  "bad": 0,
+                  "mean": 1.0532010324263515e-05,
+                  "acRms": 0.1353927117830412
+                },
+                {
+                  "count": 8320,
+                  "sum": 0.08762632589787245,
+                  "square": 152.5154718038757,
+                  "peak": 0.14110317826271057,
+                  "bad": 0,
+                  "mean": 1.0532010324263515e-05,
+                  "acRms": 0.1353927117830412
+                }
+              ],
+              "acRms": 0.1353927117830412
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 6016,
+              "underruns": 0,
+              "renderMs": 1,
+              "maxRenderMs": 3
+            }
+          },
+          {
+            "dual": false,
+            "chip": 1,
+            "channel": 4,
+            "audible": {
+              "count": 17152,
+              "peak": 0.1401117444038391,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 1.7264005704782903,
+                  "square": 156.77237390306703,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": 0.00020130603666957677,
+                  "acRms": 0.1352047345281611
+                },
+                {
+                  "count": 8576,
+                  "sum": 1.7264005704782903,
+                  "square": 156.77237390306703,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": 0.00020130603666957677,
+                  "acRms": 0.1352047345281611
+                }
+              ],
+              "acRms": 0.1352047345281611
+            },
+            "muted": {
+              "count": 17152,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16640,
+              "peak": 0.1401127576828003,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0.4330043801019201,
+                  "square": 152.08525227334988,
+                  "peak": 0.1401127576828003,
+                  "bad": 0,
+                  "mean": 5.2043795685326935e-05,
+                  "acRms": 0.1352016077128672
+                },
+                {
+                  "count": 8320,
+                  "sum": 0.4330043801019201,
+                  "square": 152.08525227334988,
+                  "peak": 0.1401127576828003,
+                  "bad": 0,
+                  "mean": 5.2043795685326935e-05,
+                  "acRms": 0.1352016077128672
+                }
+              ],
+              "acRms": 0.1352016077128672
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 6016,
+              "underruns": 0,
+              "renderMs": 2,
+              "maxRenderMs": 3
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 1,
+            "audible": {
+              "count": 16128,
+              "peak": 0.14592072367668152,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8064,
+                  "sum": 5.632992417085916,
+                  "square": 148.66340536625307,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.0006985357660076781,
+                  "acRms": 0.13577538135278996
+                },
+                {
+                  "count": 8064,
+                  "sum": 5.632992417085916,
+                  "square": 148.66340536625307,
+                  "peak": 0.14592072367668152,
+                  "bad": 0,
+                  "mean": 0.0006985357660076781,
+                  "acRms": 0.13577538135278996
+                }
+              ],
+              "acRms": 0.13577538135278996
+            },
+            "muted": {
+              "count": 16896,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 17152,
+              "peak": 0.14592097699642181,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 3.7157981172786094,
+                  "square": 158.0997071660162,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": 0.0004332786983767035,
+                  "acRms": 0.13577535135017543
+                },
+                {
+                  "count": 8576,
+                  "sum": 3.7157981172786094,
+                  "square": 158.0997071660162,
+                  "peak": 0.14592097699642181,
+                  "bad": 0,
+                  "mean": 0.0004332786983767035,
+                  "acRms": 0.13577535135017543
+                }
+              ],
+              "acRms": 0.13577535135017543
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 6016,
+              "underruns": 0,
+              "renderMs": 2,
+              "maxRenderMs": 6
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 2,
+            "audible": {
+              "count": 16640,
+              "peak": 0.14272010326385498,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 2.9137456982862204,
+                  "square": 152.97692534878234,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 0.00035020981950555536,
+                  "acRms": 0.1355969285582323
+                },
+                {
+                  "count": 8320,
+                  "sum": 2.9137456982862204,
+                  "square": 152.97692534878234,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 0.00035020981950555536,
+                  "acRms": 0.1355969285582323
+                }
+              ],
+              "acRms": 0.1355969285582323
+            },
+            "muted": {
+              "count": 16384,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8192,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8192,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16896,
+              "peak": 0.142717182636261,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": -2.161004540277645,
+                  "square": 155.3351334196308,
+                  "peak": 0.142717182636261,
+                  "bad": 0,
+                  "mean": -0.0002558007268321076,
+                  "acRms": 0.13559919835264533
+                },
+                {
+                  "count": 8448,
+                  "sum": -2.161004540277645,
+                  "square": 155.3351334196308,
+                  "peak": 0.142717182636261,
+                  "bad": 0,
+                  "mean": -0.0002558007268321076,
+                  "acRms": 0.13559919835264533
+                }
+              ],
+              "acRms": 0.13559919835264533
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 2,
+              "maxRenderMs": 4
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 3,
+            "audible": {
+              "count": 16896,
+              "peak": 0.1411135047674179,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": -0.1374205513857305,
+                  "square": 154.87415649413055,
+                  "peak": 0.1411135047674179,
+                  "bad": 0,
+                  "mean": -1.6266637237894237e-05,
+                  "acRms": 0.13539808479390333
+                },
+                {
+                  "count": 8448,
+                  "sum": -0.1374205513857305,
+                  "square": 154.87415649413055,
+                  "peak": 0.1411135047674179,
+                  "bad": 0,
+                  "mean": -1.6266637237894237e-05,
+                  "acRms": 0.13539808479390333
+                }
+              ],
+              "acRms": 0.13539808479390333
+            },
+            "muted": {
+              "count": 16640,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16896,
+              "peak": 0.14110317826271057,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 1.7583060404285789,
+                  "square": 154.86036698154086,
+                  "peak": 0.14110317826271057,
+                  "bad": 0,
+                  "mean": 0.00020813281728557988,
+                  "acRms": 0.1353918979476656
+                },
+                {
+                  "count": 8448,
+                  "sum": 1.7583060404285789,
+                  "square": 154.86036698154086,
+                  "peak": 0.14110317826271057,
+                  "bad": 0,
+                  "mean": 0.00020813281728557988,
+                  "acRms": 0.1353918979476656
+                }
+              ],
+              "acRms": 0.1353918979476656
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 6016,
+              "underruns": 0,
+              "renderMs": 2,
+              "maxRenderMs": 3
+            }
+          },
+          {
+            "dual": true,
+            "chip": 1,
+            "channel": 4,
+            "audible": {
+              "count": 16896,
+              "peak": 0.1401117444038391,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 3.154712693300098,
+                  "square": 154.39954870507455,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": 0.00037342716540010633,
+                  "acRms": 0.13518994889909508
+                },
+                {
+                  "count": 8448,
+                  "sum": 3.154712693300098,
+                  "square": 154.39954870507455,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": 0.00037342716540010633,
+                  "acRms": 0.13518994889909508
+                }
+              ],
+              "acRms": 0.13518994889909508
+            },
+            "muted": {
+              "count": 16640,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16640,
+              "peak": 0.1401127576828003,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0.43368142534745857,
+                  "square": 151.9834301292037,
+                  "peak": 0.1401127576828003,
+                  "bad": 0,
+                  "mean": 5.212517131580031e-05,
+                  "acRms": 0.13515634088413356
+                },
+                {
+                  "count": 8320,
+                  "sum": 0.43368142534745857,
+                  "square": 151.9834301292037,
+                  "peak": 0.1401127576828003,
+                  "bad": 0,
+                  "mean": 5.212517131580031e-05,
+                  "acRms": 0.13515634088413356
+                }
+              ],
+              "acRms": 0.13515634088413356
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 4096,
+              "underruns": 0,
+              "renderMs": 2,
+              "maxRenderMs": 5
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 1,
+            "audible": {
+              "count": 16640,
+              "peak": 0.14272010326385498,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 2.9137456982862204,
+                  "square": 152.97692534878234,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 0.00035020981950555536,
+                  "acRms": 0.1355969285582323
+                },
+                {
+                  "count": 8320,
+                  "sum": 2.9137456982862204,
+                  "square": 152.97692534878234,
+                  "peak": 0.14272010326385498,
+                  "bad": 0,
+                  "mean": 0.00035020981950555536,
+                  "acRms": 0.1355969285582323
+                }
+              ],
+              "acRms": 0.1355969285582323
+            },
+            "muted": {
+              "count": 17152,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8576,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16640,
+              "peak": 0.142717182636261,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": -2.944354899926111,
+                  "square": 152.99131199162574,
+                  "peak": 0.142717182636261,
+                  "bad": 0,
+                  "mean": -0.000353888810087273,
+                  "acRms": 0.13560329497419085
+                },
+                {
+                  "count": 8320,
+                  "sum": -2.944354899926111,
+                  "square": 152.99131199162574,
+                  "peak": 0.142717182636261,
+                  "bad": 0,
+                  "mean": -0.000353888810087273,
+                  "acRms": 0.13560329497419085
+                }
+              ],
+              "acRms": 0.13560329497419085
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 4096,
+              "underruns": 0,
+              "renderMs": 2,
+              "maxRenderMs": 4
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 2,
+            "audible": {
+              "count": 16896,
+              "peak": 0.14111359417438507,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": -1.7801000664476305,
+                  "square": 154.8672943219114,
+                  "peak": 0.14111359417438507,
+                  "bad": 0,
+                  "mean": -0.00021071260256245625,
+                  "acRms": 0.135394922161122
+                },
+                {
+                  "count": 8448,
+                  "sum": -1.7801000664476305,
+                  "square": 154.8672943219114,
+                  "peak": 0.14111359417438507,
+                  "bad": 0,
+                  "mean": -0.00021071260256245625,
+                  "acRms": 0.135394922161122
+                }
+              ],
+              "acRms": 0.135394922161122
+            },
+            "muted": {
+              "count": 16640,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8320,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16896,
+              "peak": 0.14110352098941803,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 1.8011312996968627,
+                  "square": 154.8481174615915,
+                  "peak": 0.14110352098941803,
+                  "bad": 0,
+                  "mean": 0.0002132020951345718,
+                  "acRms": 0.13538653516315072
+                },
+                {
+                  "count": 8448,
+                  "sum": 1.8011312996968627,
+                  "square": 154.8481174615915,
+                  "peak": 0.14110352098941803,
+                  "bad": 0,
+                  "mean": 0.0002132020951345718,
+                  "acRms": 0.13538653516315072
+                }
+              ],
+              "acRms": 0.13538653516315072
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 4096,
+              "underruns": 0,
+              "renderMs": 3,
+              "maxRenderMs": 4
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 3,
+            "audible": {
+              "count": 16640,
+              "peak": 0.1401117444038391,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8320,
+                  "sum": 0.4208223163150251,
+                  "square": 152.05753916970892,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": 5.057960532632513e-05,
+                  "acRms": 0.1351892894297633
+                },
+                {
+                  "count": 8320,
+                  "sum": 0.4208223163150251,
+                  "square": 152.05753916970892,
+                  "peak": 0.1401117444038391,
+                  "bad": 0,
+                  "mean": 5.057960532632513e-05,
+                  "acRms": 0.1351892894297633
+                }
+              ],
+              "acRms": 0.1351892894297633
+            },
+            "muted": {
+              "count": 16384,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8192,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8192,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 17408,
+              "peak": 0.14011171460151672,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8704,
+                  "sum": 2.5950650747399777,
+                  "square": 159.12522979440323,
+                  "peak": 0.14011171460151672,
+                  "bad": 0,
+                  "mean": 0.0002981462631824423,
+                  "acRms": 0.13521006603928037
+                },
+                {
+                  "count": 8704,
+                  "sum": 2.5950650747399777,
+                  "square": 159.12522979440323,
+                  "peak": 0.14011171460151672,
+                  "bad": 0,
+                  "mean": 0.0002981462631824423,
+                  "acRms": 0.13521006603928037
+                }
+              ],
+              "acRms": 0.13521006603928037
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 1,
+              "maxRenderMs": 3
+            }
+          },
+          {
+            "dual": true,
+            "chip": 2,
+            "channel": 4,
+            "audible": {
+              "count": 16896,
+              "peak": 0.13944359123706818,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": -0.6090060839196667,
+                  "square": 153.79806467308254,
+                  "peak": 0.13944359123706818,
+                  "bad": 0,
+                  "mean": -7.208878834276358e-05,
+                  "acRms": 0.13492686219006186
+                },
+                {
+                  "count": 8448,
+                  "sum": -0.6090060839196667,
+                  "square": 153.79806467308254,
+                  "peak": 0.13944359123706818,
+                  "bad": 0,
+                  "mean": -7.208878834276358e-05,
+                  "acRms": 0.13492686219006186
+                }
+              ],
+              "acRms": 0.13492686219006186
+            },
+            "muted": {
+              "count": 16896,
+              "peak": 0,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                },
+                {
+                  "count": 8448,
+                  "sum": 0,
+                  "square": 0,
+                  "peak": 0,
+                  "bad": 0,
+                  "mean": 0,
+                  "acRms": 0
+                }
+              ],
+              "acRms": 0
+            },
+            "resumed": {
+              "count": 16896,
+              "peak": 0.13944336771965027,
+              "bad": 0,
+              "sides": [
+                {
+                  "count": 8448,
+                  "sum": 1.2300282885553315,
+                  "square": 153.82934610193163,
+                  "peak": 0.13944336771965027,
+                  "bad": 0,
+                  "mean": 0.00014559993945967466,
+                  "acRms": 0.134940523781986
+                },
+                {
+                  "count": 8448,
+                  "sum": 1.2300282885553315,
+                  "square": 153.82934610193163,
+                  "peak": 0.13944336771965027,
+                  "bad": 0,
+                  "mean": 0.00014559993945967466,
+                  "acRms": 0.134940523781986
+                }
+              ],
+              "acRms": 0.134940523781986
+            },
+            "outputRate": 44100,
+            "stream": {
+              "queuedFrames": 5888,
+              "underruns": 0,
+              "renderMs": 1,
+              "maxRenderMs": 3
+            }
+          }
+        ],
+        "mixer": {
+          "both": {
+            "count": 16896,
+            "peak": 0.28048041462898254,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8448,
+                "sum": -2.38624906539917,
+                "square": 308.29618192360743,
+                "peak": 0.28048041462898254,
+                "bad": 0,
+                "mean": -0.00028246319429440933,
+                "acRms": 0.1910322301633497
+              },
+              {
+                "count": 8448,
+                "sum": -2.38624906539917,
+                "square": 308.29618192360743,
+                "peak": 0.28048041462898254,
+                "bad": 0,
+                "mean": -0.00028246319429440933,
+                "acRms": 0.1910322301633497
+              }
+            ],
+            "acRms": 0.1910322301633497
+          },
+          "secondOnly": {
+            "count": 17152,
+            "peak": 0.1394428312778473,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8576,
+                "sum": 1.2128924884018488,
+                "square": 156.1478788005521,
+                "peak": 0.1394428312778473,
+                "bad": 0,
+                "mean": 0.00014142869500954395,
+                "acRms": 0.13493525053030128
+              },
+              {
+                "count": 8576,
+                "sum": 1.2128924884018488,
+                "square": 156.1478788005521,
+                "peak": 0.1394428312778473,
+                "bad": 0,
+                "mean": 0.00014142869500954395,
+                "acRms": 0.13493525053030128
+              }
+            ],
+            "acRms": 0.13493525053030128
+          },
+          "halfSecond": {
+            "count": 16896,
+            "peak": 0.0697215124964714,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8448,
+                "sum": -0.15298538448405452,
+                "square": 38.44979215714331,
+                "peak": 0.0697215124964714,
+                "bad": 0,
+                "mean": -1.810906539820721e-05,
+                "acRms": 0.06746368041777352
+              },
+              {
+                "count": 8448,
+                "sum": -0.15298538448405452,
+                "square": 38.44979215714331,
+                "peak": 0.0697215124964714,
+                "bad": 0,
+                "mean": -1.810906539820721e-05,
+                "acRms": 0.06746368041777352
+              }
+            ],
+            "acRms": 0.06746368041777352
+          },
+          "bothMuted": {
+            "count": 17152,
+            "peak": 0,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8576,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              {
+                "count": 8576,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              }
+            ],
+            "acRms": 0
+          },
+          "firstOnly": {
+            "count": 16896,
+            "peak": 0.1411132514476776,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8448,
+                "sum": 1.2326035189907998,
+                "square": 154.88109205362483,
+                "peak": 0.1411132514476776,
+                "bad": 0,
+                "mean": 0.00014590477260781248,
+                "acRms": 0.13540103881744014
+              },
+              {
+                "count": 8448,
+                "sum": 1.2326035189907998,
+                "square": 154.88109205362483,
+                "peak": 0.1411132514476776,
+                "bad": 0,
+                "mean": 0.00014590477260781248,
+                "acRms": 0.13540103881744014
+              }
+            ],
+            "acRms": 0.13540103881744014
+          },
+          "panLeft": {
+            "count": 17152,
+            "peak": 0.1410990208387375,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8576,
+                "sum": 1.8912246800027788,
+                "square": 157.21978840461898,
+                "peak": 0.1410990208387375,
+                "bad": 0,
+                "mean": 0.00022052526585853298,
+                "acRms": 0.13539749874272974
+              },
+              {
+                "count": 8576,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              }
+            ],
+            "acRms": 0.09574048951668124
+          },
+          "restored": {
+            "count": 16896,
+            "peak": 0.2803882360458374,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8448,
+                "sum": 1.489565359428525,
+                "square": 308.71107759997454,
+                "peak": 0.2803882360458374,
+                "bad": 0,
+                "mean": 0.0001763216571293235,
+                "acRms": 0.19116085729413276
+              },
+              {
+                "count": 8448,
+                "sum": 1.489565359428525,
+                "square": 308.71107759997454,
+                "peak": 0.2803882360458374,
+                "bad": 0,
+                "mean": 0.0001763216571293235,
+                "acRms": 0.19116085729413276
+              }
+            ],
+            "acRms": 0.19116085729413276
+          }
+        },
+        "transport": {
+          "pause": true,
+          "resume": true,
+          "seekSamples": 88200,
+          "sought": {
+            "count": 16896,
+            "peak": 0.28040364384651184,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8448,
+                "sum": -0.6542627351300325,
+                "square": 304.07843758873116,
+                "peak": 0.28040364384651184,
+                "bad": 0,
+                "mean": -7.74458730030815e-05,
+                "acRms": 0.18972118289595186
+              },
+              {
+                "count": 8448,
+                "sum": -0.6542627351300325,
+                "square": 304.07843758873116,
+                "peak": 0.28040364384651184,
+                "bad": 0,
+                "mean": -7.74458730030815e-05,
+                "acRms": 0.18972118289595186
+              }
+            ],
+            "acRms": 0.18972118289595186
+          },
+          "stopReplay": {
+            "count": 16896,
+            "peak": 0.4015008211135864,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8448,
+                "sum": 134.46187013480812,
+                "square": 314.57091531689923,
+                "peak": 0.4015008211135864,
+                "bad": 0,
+                "mean": 0.01591641455194225,
+                "acRms": 0.19230914770741211
+              },
+              {
+                "count": 8448,
+                "sum": 134.46187013480812,
+                "square": 314.57091531689923,
+                "peak": 0.4015008211135864,
+                "bad": 0,
+                "mean": 0.01591641455194225,
+                "acRms": 0.19230914770741211
+              }
+            ],
+            "acRms": 0.19230914770741211
+          }
+        },
+        "dacStream": {
+          "target": 1,
+          "channel": 2,
+          "rate": 11025,
+          "audible": {
+            "count": 16384,
+            "peak": 0.2724609375,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8192,
+                "sum": 1067.390941619873,
+                "square": 278.3477881632749,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.13029674580320716,
+                "acRms": 0.1303869606895919
+              },
+              {
+                "count": 8192,
+                "sum": 1067.390941619873,
+                "square": 278.3477881632749,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.13029674580320716,
+                "acRms": 0.1303869606895919
+              }
+            ],
+            "acRms": 0.1303869606895919
+          },
+          "muted": {
+            "count": 16384,
+            "peak": 0,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8192,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              },
+              {
+                "count": 8192,
+                "sum": 0,
+                "square": 0,
+                "peak": 0,
+                "bad": 0,
+                "mean": 0,
+                "acRms": 0
+              }
+            ],
+            "acRms": 0
+          },
+          "sought": {
+            "count": 17664,
+            "peak": 0.2724609375,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8832,
+                "sum": 1102.108023010136,
+                "square": 284.9149576820876,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.12478578159082157,
+                "acRms": 0.12918166110661766
+              },
+              {
+                "count": 8832,
+                "sum": 1102.108023010136,
+                "square": 284.9149576820876,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.12478578159082157,
+                "acRms": 0.12918166110661766
+              }
+            ],
+            "acRms": 0.12918166110661766
+          },
+          "replay": {
+            "count": 16640,
+            "peak": 0.2724609375,
+            "bad": 0,
+            "sides": [
+              {
+                "count": 8320,
+                "sum": 1066.5864366665483,
+                "square": 275.9070071126809,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.12819548517626783,
+                "acRms": 0.12933606408798887
+              },
+              {
+                "count": 8320,
+                "sum": 1066.5864366665483,
+                "square": 275.9070071126809,
+                "peak": 0.2724609375,
+                "bad": 0,
+                "mean": 0.12819548517626783,
+                "acRms": 0.12933606408798887
+              }
+            ],
+            "acRms": 0.12933606408798887
+          }
+        },
+        "pageErrors": []
+      }
+    ]
+  },
+  "browserArchiveProof": {
+    "format": "tetorica-pokey-analyzer-flat-zip-proof-1",
+    "archive": "release/hello_ymfm_wasm_pokey-vgm-dev_itch_vgm_analyzer.zip",
+    "archiveSha256": "415eca667067e9df6678d6c650f4f87e3739c53977df67d22caf508df7d7e2d7",
+    "servedAssetCount": 193,
+    "allServedAssetsMatchArchive": true,
+    "browserReport": "/private/tmp/pokey-analyzer-flat-browser.json",
+    "browserReportSha256": "8fe1db869b89a357fc22f7db2aa0e3badb3740500f71cb0f7e8c5591ed3e1126",
+    "browsers": [
+      {
+        "name": "chromium",
+        "version": "153.0.8010.12",
+        "physicalChannels": 12,
+        "streamUnderruns": 0,
+        "visibleOperatorMonitor": true,
+        "mixer": true,
+        "dacStream": true,
+        "seek": true,
+        "stopReplay": true
+      },
+      {
+        "name": "webkit",
+        "version": "26.6",
+        "physicalChannels": 12,
+        "streamUnderruns": 0,
+        "visibleOperatorMonitor": true,
+        "mixer": true,
+        "dacStream": true,
+        "seek": true,
+        "stopReplay": true
+      }
+    ]
+  },
+  "archive": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_pokey-vgm-dev_itch_vgm_analyzer.zip",
+    "bytes": 1899792,
+    "sha256": "415eca667067e9df6678d6c650f4f87e3739c53977df67d22caf508df7d7e2d7",
+    "fileCount": 421,
+    "payloadFiles": 421,
+    "ignoredDesktopMetadata": [],
+    "everyArchiveMemberByteEqualsStage": true,
+    "everyServedBrowserHashEqualsArchive": true
+  },
+  "tauri": {
+    "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_pokey-vgm-dev_itch_vgm_analyzer.zip",
+    "archiveSha256": "415eca667067e9df6678d6c650f4f87e3739c53977df67d22caf508df7d7e2d7",
+    "committed": false,
+    "createdAt": "2026-10-27T05:08:28.830326+00:00",
+    "files": {
+      "LICENSE": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c",
+      "THIRD_PARTY_LICENSES.txt": "28d4dd25b7bb2db0175359cf38fc06f1507d3b7cac60d2c1d60e844f41deceab",
+      "analyzer_core.js": "74527c8556e907367e71ea59079e6f41b217ae61e88bbe1e2570f4557b185b9b",
+      "analyzer_theme.css": "42d4ac870aa932afd34186126cdd562bafb0849cc14cf37b7e0c5430b70c6e39",
+      "assets/opna-rhythm/LICENSE": "fc3f6037e016ec318ec521034aa3c643a01c557c216859bf4dc49b0031ce94f7",
+      "assets/opna-rhythm/README.md": "df4b2594c82d11d4e80147321dd95a5d49e29df99f38d1c05edeec2f56b9e1be",
+      "assets/opna-rhythm/generate.mjs": "e8defa8e0a9e2b9aa162061e9b2a58fc720e105797d89db416f3237ae719d413",
+      "assets/opna-rhythm/synthesis.mjs": "6b26b31f91396a3cd6e66f45753edd8825237e5f25549f7f4f84b7cbc6817c18",
+      "audio_preferences.js": "4f1b7d062536da02d22bbe3af1778efea3d7d54b544f64c98b3f73cefd9aed51",
+      "ay8910_monitor.js": "758944b97710d653e9eeeb4abfd0fdbea32307cc5d8064f1e6faac88eb85e721",
+      "command_editor.js": "60e0c55b2ec648c659e2fa214bf51aa0f91c7b1647616b50b60e4d7f1a6f9c98",
+      "dac_samples.js": "282043a4342058fae916b1f0f6a13ddc794e32239af9c7f51e026056e33b8697",
+      "desktop_interface.js": "ea9ef9390ccef87e26a6dc7bdc986a582dfc77b0f1ccac2eb7f0b003a540cc75",
+      "export_tempo.js": "d8935af29483f40ea64eb60af85b8d52a903fc1c09ccabecfd284d31c265436d",
+      "fm_snapshot.js": "0c8e3773fbe51624462ab76e16171ffd6054b6ba36d0f7b073301f3e08dc2e95",
+      "fretboard.js": "cf9628fc08d8ba34b1e7cf85fd5f61c50031a7e3eea312f008572acc4a5d13fa",
+      "fretboard_all.js": "2038728738aacfc082efff2c86e70cfa32d0391af5aaf9886440b74127f7454f",
+      "gameboy_notes.js": "ace36f173e02d3d26c53e64ed5283025ca8eae65d6800c03f6da4821a1fe879d",
+      "gameboy_voice_view.js": "9f2b2ae8efc568901225b77351b9f09283f843c4f7077c6c90c34e278dd555e9",
+      "gameboy_voices.js": "0769eaaa8150529c9a2e76d50e7857e519737da9c0a552e9f2a63eb0f165cb8a",
+      "gameboy_wave_view.js": "3ee3e36c5e7e0cb62770e1bdb993d05d819e404ca9561773ae8e534919e477f1",
+      "gameboy_waves.js": "0ed850aab97071d70a9285640d5886ba28f181d45ef9ba6cf93c1937ca456dc2",
+      "generated/ay8910_wasm.js": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b",
+      "generated/ay8910_wasm.wasm": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
+      "generated/gameboy_apu_wasm.js": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+      "generated/gameboy_apu_wasm.wasm": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+      "generated/huc6280_wasm.js": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f",
+      "generated/huc6280_wasm.wasm": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073",
+      "generated/k051649_wasm.js": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7",
+      "generated/k051649_wasm.wasm": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c",
+      "generated/nesapu_wasm.js": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b",
+      "generated/nesapu_wasm.wasm": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+      "generated/nuked_opn2_wasm.js": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a",
+      "generated/nuked_opn2_wasm.wasm": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1",
+      "generated/okim6258_wasm.js": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+      "generated/okim6258_wasm.wasm": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+      "generated/pokey_wasm.js": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d",
+      "generated/pokey_wasm.wasm": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22",
+      "generated/pwm32x_wasm.js": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643",
+      "generated/pwm32x_wasm.wasm": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c",
+      "generated/rf5c164_wasm.js": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+      "generated/rf5c164_wasm.wasm": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+      "generated/segapcm_wasm.js": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5",
+      "generated/segapcm_wasm.wasm": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f",
+      "generated/segapsg_wasm.js": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7",
+      "generated/segapsg_wasm.wasm": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+      "generated/spc_wasm.js": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699",
+      "generated/spc_wasm.wasm": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408",
+      "generated/wonderswan_wasm.js": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899",
+      "generated/wonderswan_wasm.wasm": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+      "generated/y8950_wasm.js": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+      "generated/y8950_wasm.wasm": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+      "generated/ym2151_wasm.js": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304",
+      "generated/ym2151_wasm.wasm": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26",
+      "generated/ym2203_wasm.js": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+      "generated/ym2203_wasm.wasm": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+      "generated/ym2413_wasm.js": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+      "generated/ym2413_wasm.wasm": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04",
+      "generated/ym2608_wasm.js": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+      "generated/ym2608_wasm.wasm": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+      "generated/ym2610b_wasm.js": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879",
+      "generated/ym2610b_wasm.wasm": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316",
+      "generated/ym2612_wasm.js": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+      "generated/ym2612_wasm.wasm": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+      "generated/ym3526_wasm.js": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d",
+      "generated/ym3526_wasm.wasm": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11",
+      "generated/ym3812_wasm.js": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d",
+      "generated/ym3812_wasm.wasm": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6",
+      "generated/ymf262_wasm.js": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+      "generated/ymf262_wasm.wasm": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+      "generated/ymf278b_wasm.js": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48",
+      "generated/ymf278b_wasm.wasm": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30",
+      "huc6280_notes.js": "03cba513e8da8b349eeefdf433f0ef86e6b4b79cc9b8308257982c7bb4b80899",
+      "index.html": "0ff79b3c9dc2cbd89c4484a8741ddedbda03a214a31dbfbffce139c26c0175db",
+      "js/adpcm_b_sample.js": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93",
+      "js/audio_decode.js": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4",
+      "js/ay8910.js": "38f50470d60a850773859ce210e5281d1ee0429f00021b7decd8b8be9554197b",
+      "js/ay8910audioengine.js": "39737c692891d5183f520ad74e8e00b001bf803df6eb96b9c16096a68287ec8f",
+      "js/chip_pcm_renderer.js": "2f6a0c12777d11be5d68d6e597aca0bbdfde838596888fc283b08c095465f4d2",
+      "js/chip_worklet_transport.js": "e4b1e5c08588475d1feee98b39058b0bd3cd813c0ac17e9038be09aa5d4e1c05",
+      "js/custom_fx.js": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e",
+      "js/fds_audio.js": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9",
+      "js/gameboyapu.js": "c2f2d12430a0a4365e3255f4378fd108d43c4a9567f99ffaa3a18a398bcbcc11",
+      "js/gameboyapuaudioengine.js": "19bc21f6761edb96318dcde41b6e860d3ff26a535a81e29d13a88903cf1ca473",
+      "js/gameboysynth.js": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af",
+      "js/genesisaudioengine.js": "2732f2076a7096c136d409cf211fd05e031b3c35e358de13a61901c57d53f688",
+      "js/huc6280audioengine.js": "d66d644d0d097adb11111ac422cd2f56443350d5784810c85be162827da6f65a",
+      "js/k051649.js": "af37b215ed0acccf682894cdf8e322ca00d9cc4397fbf057f7e324572a3e8514",
+      "js/k051649audioengine.js": "b986d7e333bc1e7df3e9278afc906d99ccace8f7fd55bc0094b106fc03e720bc",
+      "js/looper.js": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366",
+      "js/megasynth-fm-presets.js": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c",
+      "js/megasynth.js": "ace4e56a5b46280d0a79ad3fb1a4a3c183f9ca2da84c97c017c4a2760295f941",
+      "js/megasynth_fx.js": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6",
+      "js/megasynth_recording.js": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd",
+      "js/msm5205audioengine.js": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5",
+      "js/msxaudioengine.js": "89b1a66fe6963e3cd6f079af58a8ca87767c8e339bc82be7745416b018708ad8",
+      "js/multichipaudioengine.js": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b",
+      "js/native-fx-worklet.js": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac",
+      "js/native_audio_effect.wasm": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290",
+      "js/native_fx.js": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f",
+      "js/native_fx_engine.js": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f",
+      "js/native_fx_graph.js": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf",
+      "js/native_fx_rack.js": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5",
+      "js/native_noise.js": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f",
+      "js/native_sample.js": "721d3cddcb65b6743997d3c50abb2788782f7ce107d57e8c8d1187764235b48b",
+      "js/native_sample_processor.js": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27",
+      "js/nes_apu_vendor/channel-dm.js": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7",
+      "js/nes_apu_vendor/channel-noise.js": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812",
+      "js/nes_apu_vendor/channel-square.js": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317",
+      "js/nes_apu_vendor/channel-triangle.js": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506",
+      "js/nes_apu_vendor/index.js": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122",
+      "js/nes_apu_vendor/utils.js": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c",
+      "js/nesapu.js": "02b60105963a2fa72683ed41b559249bfedd63ab8651d2c3c3f6757064d8aa25",
+      "js/nesapu_wasm.js": "cdec4c1b9ef505d2dbb78db285a2160f24c6d59cca2de1116738e33381958ecb",
+      "js/nesapuaudioengine.js": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947",
+      "js/nesapusynth.js": "7e99925c5781c57fd03f69c6a15ccc88d1419d7fc3818a9a2ae4c8acda286d16",
+      "js/okim6258audioengine.js": "2073a94669fc3394fabc9119d5f78cd2d43778f665f5bcd1a64b9917ec64c91c",
+      "js/okim6295audioengine.js": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2",
+      "js/opn_fm_synth.js": "6c250cad5f4a92b7e2a3372fe7b84f30138ccf8e961c8aa06f192d8655a9f1f5",
+      "js/opn_fm_vgm.js": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c",
+      "js/opn_runtime_synth.js": "e0a2e5c1f15956f048906a0c0151d3628519769fd59a9474f5d43a3a83d07225",
+      "js/opn_variant.js": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16",
+      "js/pitch.js": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42",
+      "js/playground_audio_endpoint.js": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd",
+      "js/playground_audition_guard.js": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310",
+      "js/playground_chip_clock.js": "9912d49fe7f5976de9c03d73e9d84dad4bf54f596a95591edeae07504b17561f",
+      "js/playground_chip_inspector_state.js": "f539d982758b1d4a218677230327e9970334551213b4d0eb43fbb7526870f07a",
+      "js/playground_chip_port.js": "d0a569b419552f7e6de36dd8b9732ab452d5e7daf141d5f2fe0cedfa66283591",
+      "js/playground_gameboy.js": "6d3c63f3294cb58127205d5d7287cfb2117f2450e881eb0869145031d621d665",
+      "js/playground_keyboard_channels.js": "30671a69eb64b15c1440b64284ee5b749a78cabb50e6d6ece2cc478561bb4521",
+      "js/playground_native_voice_inspector.js": "ab8a8680fe5e54e3473c1df0cddddf4f04f4599bedcf40d37d39c4a7aef06a67",
+      "js/playground_opn_inspector.js": "602075e2433029fcb30c9b912d3cc300efda9c9e6b45fce9f6e7d17441f6ced7",
+      "js/playground_performance_processor.js": "50490a133469dd2112ffb39d6c861d427754d9866a6226377ad7d7fa39cd35dc",
+      "js/playground_performance_queue.js": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5",
+      "js/playground_pwm_audio.js": "3b2dc717751bfb345bd3935994cca8fdbb9fe26fa107525d8ef5a2a21f001d2a",
+      "js/playground_pwm_worklet.js": "676d2c10664cf7ccc4fdd53f163fb1ced491a0e2f52c893c515e5a02ca06e652",
+      "js/playground_rf5c164.js": "1f61ae037e8ff38d3e156a72cd993736c1a9efb6b8229313b1f04ce45c4fc63b",
+      "js/playground_rf5c164_audio.js": "6632cefde4c0f635ac9d61c08a104cb14aa579c978e3d6019e2ff47bb33c7f78",
+      "js/playground_worker_chip.js": "4a8064bcadbea3fb32b32b9119172a6d2d52958ec3de921043f7a8efbb914dd9",
+      "js/playground_worker_dac.js": "dc73ef5d97dbe853c6cf069f1ad55eeffcd412880e5ce9fe1559218f0d695261",
+      "js/pokey.js": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1",
+      "js/pokeyaudioengine.js": "18ad1710e13e7df9cb9e23f67a1db158e2c3d871e439a461b7e17dd00fe87208",
+      "js/pokeysynth.js": "d92b79feb1e4696f06fa865094c251ae3eb47f4d6cdf97256e5c557ec66e1259",
+      "js/pwm32x.js": "50af72c1ca62fa84791b51ce04313b0a2375a9c7967831610ea6a4263a643d72",
+      "js/pwm32x_playback.js": "b2ff92e7f14c114cdc30facfbed40a8b010dfe72f31baa8f33e89ae7e52523ae",
+      "js/pwm32x_wasm.js": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9",
+      "js/rf5c164-worklet.js": "ede123e7a38c935217405770abae0bd51a54e1ced844c8d408fcfb7bdf4cb118",
+      "js/rf5c164.js": "3302a69c2da09e13976bcb546c1cec3f63e63b0d7b2caf141166bc0fa03737d7",
+      "js/rf5c164_pcm.js": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a",
+      "js/rf5c164synth.js": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a",
+      "js/s98_file.js": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1",
+      "js/segapcm.js": "fd072f9273bc60a4cf90c56be853d30ea9a162807a65a7c7bcb2ffabe4826881",
+      "js/segapcmaudioengine.js": "5531dfcbebea0bada41d7cb34ee3133853a94b9a1ce501da2140c330f1c3b72a",
+      "js/segapsg.js": "efbc9805f2c7686b51c163c730f3b615fa34bbd57ad35521be1b034f19882630",
+      "js/segapsg_api.js": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa",
+      "js/segapsgsynth.js": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9",
+      "js/snes_brr.js": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d",
+      "js/soundchip-output-worklet.js": "2e9c4cbef4ffa2ff2884ef42113ce17eb3517396ee2d25761a9b89b72ee24a5a",
+      "js/soundchip.js": "6ffff2d4a4da6b01b7358ea0553d1f0258be2f861cad19f6907acc5eda952c21",
+      "js/soundchip_factory.js": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca",
+      "js/soundchip_mixer.js": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb",
+      "js/soundchip_mixer_presets.js": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+      "js/soundchip_pitch.js": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+      "js/soundchip_worklet.js": "0bbeef56ba2e4410fdadbec71a5853befc53adea59308d7e03f043e906c48a02",
+      "js/spc-worklet.js": "d6506437528e24bf3ff26ddbe7db4366a1de34ad5a8df91d5c7cb645d261d6d9",
+      "js/spc.js": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f",
+      "js/spc_audio.js": "cbd7382fb55a1eaec657fe4972402965794cb26a87614975f75e9912a06631d2",
+      "js/spc_events.js": "7142e0fad5e39e6d04c986c40fc00ef07e657e3d5dda250b52a1161de955e58e",
+      "js/spc_file.js": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578",
+      "js/spc_performance.js": "665272a96b74ca19f8ba2b611e25ccb573431386aaa3b8a8abce4ec988060b28",
+      "js/spc_pitch.js": "ad0e753f90c6559b76316b1b484d06ed00fe7f0300e58714d6c482c09897f5fd",
+      "js/spc_resampler.js": "ad389d1ed6b695d4ab59ad8875adbb2de4dbe4abf5ee478f65d5711535a73b84",
+      "js/ssgsynth.js": "c396b56e2d8033af183c6bdec9254ff40185e390d84e343188cf395856893e9f",
+      "js/tetorica_audio_runtime.js": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3",
+      "js/tetorica_ym2608_adpcm_rom.bin": "c33441f88d712f2864a33a962a88ae5800d2c5a5df418a8a345f2532cecb7704",
+      "js/tfi.js": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720",
+      "js/vgi.js": "3d4212ba18485d250607060b1eef3e7e4e78491e12a952e85738d2c0a5c1226f",
+      "js/vgm-output-worklet.js": "3c4f6b55ee88b4da9e85ccc536fba2f0e159c8e6d02422faf8fa5a63e229462f",
+      "js/vgm_file.js": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48",
+      "js/vgmplayer.js": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3",
+      "js/wav.js": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6",
+      "js/wonderswan.js": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957",
+      "js/wonderswanaudioengine.js": "8b4cf3d24a08c360e0374979b0bafcc5fb8bc79c5213e31c67f1e5faf1b86d2f",
+      "js/y8950.js": "37e32c0a920ed073885fa9d751ba4f5e2e741f2d2d5b81971f95d7ef7dfa30e1",
+      "js/y8950audioengine.js": "35d201e3a1c42b5b2762c8ad8aaeab941766340d011bf2e8430df5e0a5a8246d",
+      "js/ym2151.js": "4d5f66f1513873f5ab36c802e9a9543222bac1c74ffcffd40c70627012d06dc9",
+      "js/ym2151audioengine.js": "6d4cae3df89054cbad8466f58f61214bb4179202b67e847dd568b9142b216535",
+      "js/ym2151synth.js": "e31b12e082b692b4fc01b0ad981269794098dd46c898c50395374bf41a47d0d1",
+      "js/ym2203.js": "a3aad7a8646f66e74bc60df34cd38239125885dc54005a378adf6ee89c616fa3",
+      "js/ym2203audioengine.js": "7f8b234b95e36d04059cc896bb707323586e94cef7b88286a0e2c657741c23f1",
+      "js/ym2203synth.js": "7e509e17df2b7e720a955d927eb01c0f1f957f8d8edf4859bcf4108dd21e9fa3",
+      "js/ym2413.js": "1050d68595dd6ba90b84075e7959426b354d1d6baf3f70c97a775a78244f0855",
+      "js/ym2413audioengine.js": "33d46a86aba34eaa2e329ff0695c045881fb640d34f2a8fa28287196e4757151",
+      "js/ym2608.js": "516cdc2850187020054b0b1f51b358dcb47564537939a7318a0a124b787f7cb4",
+      "js/ym2608audioengine.js": "129ba38aeb9967ee53d7ce58b49b2733611379d8a8d72c86fdb9c2db72e143fa",
+      "js/ym2608synth.js": "b10ce2b7ba371f7f3b03054ef1e462cf1330ed5e23099b4b36eff00b56874581",
+      "js/ym2610b.js": "c570d160829945d34c0a2f74f645f0af0e471a751793f0a1aecdbf20714c1624",
+      "js/ym2610baudioengine.js": "102cb3a61d7a49ce17d1cab8adfefe2bba1bbf32936c52754f010896001480ba",
+      "js/ym2610bsynth.js": "a6090ed64b558edfaeca0a33da06501f89f9be9631068bd0cdf84ee3247675d6",
+      "js/ym2612-worklet.js": "ef4b6f61f2799b6f6a4cc786e976182be5d98df248c71db50d89b1b359910b90",
+      "js/ym2612.js": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+      "js/ym2612_dac.js": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf",
+      "js/ym2612synth.js": "bed634eef169f2fe3ca0c20aef84d1d61ffd5937abf791a122858ef50ae08cb9",
+      "js/ym2612vgm.js": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b",
+      "js/ym3438.js": "2047551436fddce9d32f6c0cd78bbcd556572c33e080583de465f306008720fb",
+      "js/ym3526.js": "50e68ff020e30fd51a8d92bceedadc064f72609b716413b2aae981e09620998c",
+      "js/ym3526audioengine.js": "c635b70e6899fc15835bc73bf63591791f0e1e34333619f13084c29277359461",
+      "js/ym3812.js": "a8eb53129009c34d23e9782e2283d32c853bfceb2743a68fb82fdb627038ef46",
+      "js/ym3812audioengine.js": "b56c38b252af685fc84dafde125bb036624905279e2e4693292fc4dd69fa1e3e",
+      "js/ymf262.js": "84ecf683dc0ec56242c259593ae8099a2d185469151d3fae7330ae6bd5192efe",
+      "js/ymf262audioengine.js": "613a93d164c5fa69d4b1a19fe7f2b9fea33262799408f5b5f40338edfabff92a",
+      "js/ymf276.js": "e5dd22e5b552fb9562958ccbc85bc44c2ea772c262c55c651d249764abb9da1d",
+      "js/ymf278b.js": "73c9ed73815829f90eca8f6b95e457d5faf01f090e3d5f908551965f96b5afbd",
+      "js/ymf278baudioengine.js": "06694b0014730bf581e2f6abd68016744ac00344303694d8ea63a4a70309258a",
+      "js/ymf288.js": "a2e14c7906153c5d6423ed16012dc7c908d983d0c5fb9cfbbb04e7749f0c4e03",
+      "licenses/fixnes-fds/LICENSE": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce",
+      "licenses/fixnes-fds/README.md": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316",
+      "licenses/jsnes/AUTHORS.md": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a",
+      "licenses/jsnes/LICENSE": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a",
+      "licenses/jsnes/README.md": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792",
+      "licenses/libvgm-msm5205/LICENSE": "3315f9a2466767cf2e59ccc74f593bd702af01d44519e3d2d48cdf4d9891512e",
+      "licenses/libvgm-msm5205/README.md": "4ae997cefdc782d583cea0587839475e0c813a189151b5e3c1bbde8e457387bd",
+      "licenses/libvgm-pokey/LICENSE": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583",
+      "licenses/libvgm-pokey/README.md": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff",
+      "licenses/mame-32x-pwm/LICENSE": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6",
+      "licenses/mame-32x-pwm/README.md": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec",
+      "licenses/mame-ay8910/LICENSE": "9ce97eec16b71e54663cfff119162feb89ae254464bf2bad3c8b8d73870e9a0e",
+      "licenses/mame-ay8910/README.md": "d41552a7edc4156988dfee0395d501431507f5c8429217786d6a4be5078ae99f",
+      "licenses/mame-gameboy/LICENSE": "acb20353889f489aba276d31cbd8ffce15c6bd353f873dc2255e67053446f3dc",
+      "licenses/mame-gameboy/README.md": "831990cae084021f75b9432aa6a9c50f2b686e79541482e86997a9cf67e50f61",
+      "licenses/mame-huc6280/LICENSE": "d9aef90a96f93be90d39250e2a85c4ce78b381b6abbf16856fc337e71263dc1d",
+      "licenses/mame-huc6280/README.md": "1b792f719db680de5b5121ed2293256ac00fe6e51725e2aadc38dfaaa768b8dd",
+      "licenses/mame-k051649/LICENSE": "8c50ff4995e94ba978d1ae2e90e3fd6fd4864c7d9dd3be0bc0ce37d754cf7b07",
+      "licenses/mame-k051649/README.md": "ade6b36bed8d703e3fcc8924a1469c05d26f7685ab7ab430243da1edc074137a",
+      "licenses/mame-okim6258/LICENSE": "ee01db1519dfa17005dd1ef3a1baf7ff77395a08a7299406be4bbfdba1103973",
+      "licenses/mame-okim6258/README.md": "290ac7774e297daacc17c25c0f15b70eea7b9b8db594468023410e7795f73df0",
+      "licenses/mame-okim6295/LICENSE": "951803c525415c349f53adab1fde00c49b242e981f1242931140791c18b72176",
+      "licenses/mame-okim6295/README.md": "c4f3c0182f7cce78f053932f700695d6a1f0cf3be2c094a2df9c4f33cb601d83",
+      "licenses/mame-rf5c164/LICENSE": "0a2b34be38b92350c6503001de126a201bcd297203b839ac1dfc6ebd005dd853",
+      "licenses/mame-rf5c164/README.md": "3be506399ecf8d36c6724c82673436c7e122d82c84c1263114f1628ac1282af6",
+      "licenses/mame-segapcm/LICENSE": "90f2e4f538108c6004c13fb752c70eba8f5dcb6075289d9cab39edefd870f820",
+      "licenses/mame-segapcm/README.md": "03b2a82409cc298fd9a4984f6fe639cd482f36a8dd793f7816df40d5cbff2bb1",
+      "licenses/mame-wonderswan/LICENSE": "28c9517f09fd60cf3b5152646b49bd12bcb5491624e5e4c93d8839b981ff01e9",
+      "licenses/mame-wonderswan/README.md": "32dc963b4fe76d4b0d926ef4e225765d872434b2951264aeafee9e734afabadd",
+      "licenses/nuked-opn2/LICENSE": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "licenses/nuked-opn2/README.md": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa",
+      "licenses/snes-spc/LICENSE": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "licenses/snes-spc/README.md": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775",
+      "licenses/tetorica-nes/AUTHORS-JSNES.md": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a",
+      "licenses/tetorica-nes/LICENSE-FDS": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce",
+      "licenses/tetorica-nes/LICENSE-JSNES": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a",
+      "licenses/tetorica-nes/README.md": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396",
+      "licenses/tetorica-nes/UPSTREAM-FDS.md": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316",
+      "licenses/tetorica-nes/UPSTREAM-JSNES.md": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792",
+      "licenses/tetorica_sega_psg/LICENSE": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "licenses/tetorica_sega_psg/README.md": "9b3510bca94e2f97b356b6f28770bd5aca5c46361b33aaa5829dac55a2c97b2d",
+      "mdx_export.js": "7c264faa9e76dc03db296396265c2d96f79d6d8c1a0f0e4e301656f443a827dc",
+      "mgsdrv_mml.js": "b21497355668ce119f6f6d40905d446c686f9ae6a6cfb5e6a53dd9e0c9d02cb0",
+      "mixer_calibration_data.js": "c861aa403c2a6a4e7df6aef024f63571334b9fbf37c37335122bc3dd11f0bd86",
+      "mixer_defaults.js": "e639ca55f5472d104f54da7587761c15f31b38c13e3b95dadaa31fbe974c2086",
+      "mixer_ui.js": "194e58aea98712b94acb0a37b31cda7c2bdd972f374918774d50f440009bc1e0",
+      "msx_mutes.js": "5df0f6d0e77337efd4fd58616ae842830eb2cb45d474edf3d6bad5032bc5a307",
+      "msx_notes.js": "afa39458f49b14e273f3a254a6f4fa8c5861d3713026985c192f730bfdcda93e",
+      "music_sheet.js": "8174477eb8a66ea3a051b7ff428d5df736998e00453965d201a29e1dffea1066",
+      "nes_notes.js": "a4d24ad3622213f02f85113e77b3de811c0f991a1e162d0899d2e76b2d9667bd",
+      "note_timeline.js": "91def311626b5f11767c285ad71ce82d1924d563bf4a1737e0f3aa1d9a12799d",
+      "note_timeline_view.js": "250cf984dca3a283c4308578b321d4e08c93822ffc01f41238108246792c5469",
+      "note_timeline_worker.js": "a2b5a2492044caac114cd5de54b84810c4b50cc11a304ae1ce41e6d49f21742e",
+      "noteish_dom.js": "732a07d7dece06de4463cbf0a719dfe843a75ee26b5d88d4cb6a3cb54ea980eb",
+      "oki6258_samples.js": "d0ba906cc3f880a083c4394fa575e1e2aa935fa1e1de314267f69dc42236517d",
+      "opl_monitor.js": "feccdcea305be517946c100f56d8aa8a248f726b74e15524554a91e5bab2ecc1",
+      "opl_notes.js": "ccaf399e08b690ffeb794be9c5f7bb659d4b09508819fafcb4988c60d1c1bc82",
+      "opm_export.js": "dd215f65495749251a6b0671e953a468b2b8eff5e79322ca29562576a1ac11cd",
+      "opm_info.js": "734e2137ac600ca141d14248a05bf9ed67a9585cbf9f32e6355d5447ca7a2733",
+      "opm_mml.js": "66ecb96cf1634c5161d65de61c80212908ff788cb3c8f6b8ea1fb3e728104b74",
+      "opm_monitor.js": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7",
+      "opm_notes.js": "f3567f9781f471c241c0389a108f6573b747a6155067fe0382f6880a49a755f9",
+      "opm_tfi.js": "811c70a19f0871df98352b24a246755e7e545cd1cccc4c62bd62b57bfdb8da66",
+      "osmd.html": "bd9234d56fb2aeb00c99c686b8b795b725017d89086b073d8ae3938e796fe22b",
+      "osmd_trial.js": "99560e93a238bf582c2f6ba6fc8ed3e7e5ffde2ae7dc6abfa3d020cbe006e6c3",
+      "playback_core.js": "c46cd9a365fdac0cdabfa1c9ac04ef39a8bd24d593dae140e872f8172cfc9fdf",
+      "playback_mixer.js": "07ae21305172a9076f2776f4dc72b637ad3cae8ad41971cdba0d70dd44570635",
+      "playground/playground_operator_keyboard.js": "6a86d9b8dd336662b86a5846eb93b02bf23053dda6e4cff5a39285471f14b636",
+      "playground/playground_operator_tab.js": "fd1cb186f995bf8093a927f3ff6515d42745f4e037a746315bad7737bbd5680e",
+      "playground/playground_operator_visual.js": "aa98e3e1f34d6d8cefe11c053bb26902daedb7130c48bfaf242ea8bf76dfffe8",
+      "playground/playground_tfi_editor.js": "39b60beffc47e55ff34cf644ba208c3202c583e4230f842d9af14a6c60a565ab",
+      "playground/playground_vgm_presets.js": "2080a22787ee418a3e3bc76818bdf9111f9d1f2ff09c1cdbc46f84cf8103952e",
+      "pokey_monitor.js": "9fa819b78f38e5074b50d3dcc71a39aa28c89656df753282a01a566e85284af1",
+      "pokey_notes.js": "fbed9463cd66b6a514d582e01271394413f80746a04c961b17d88f6525b20919",
+      "pokey_playback.js": "5b2acc7d47e799c36c607e3026b0a68f10399d30021c4e5cc8aaa18da7623ec2",
+      "psg_monitor.js": "092bc0fdfea5c48eea8c1a016a772e14389cda02c7345d6eed2ede31d8c75e1f",
+      "pwm_samples.js": "bc7c184d8e9696f570c406ae0f8debc777fbf2d677fc0170cb603398285f33ae",
+      "rf5c164_monitor.js": "188d00f67df1ac1ed46600e396c317d8e2a4c1311274723b6c392fc9f858d91f",
+      "rf5c164_samples.js": "88721185dade0c3ed70f2b7bf5441798eb1149e8c1094d7472505885ad220211",
+      "sample_core.js": "6974c719ac03c0793553be34c9cf27403837de4dadc950af7c8bd2b60ad27da8",
+      "sample_explorer.js": "8a7a9f4473f144b1c81de987a37b38aac0a38d0716c4b437f31234f956d04877",
+      "sample_render.js": "b400da940deb71bfc9d1e16b9ead817d491cf58c57c3d5ae37be2790c6ce2123",
+      "sbi_export.js": "6158bbf6f5d13212eeebb72d5296c2655837ba2e66e1ed1b0e4f30387c1d31a0",
+      "sbi_info.js": "1b249091f79331bfe6e18d7d0e8288e1b44d89722f9ca72cbcc97d56f18e430f",
+      "sbi_ui.js": "ca7b72a25ae0b0dc25c57a07ec709dce84688f6713dd68cad99d7b562791650a",
+      "scc_notes.js": "150d78f6dd46e03887ab498d75aa1e84ff4310d6d66ffd52b8c7c9b79f535e08",
+      "score_group_ui.js": "49c137b9647bf340154e3ecb081e935133c53b702e5736decbc56448c7d154ce",
+      "score_groups.js": "bee506765793d9a6d94a686386932091ae0ce17958826897ad3d5a3abdd9c430",
+      "seek_playback.js": "a1a784537804e2bc5d9a2aa86e4bd5b0675ad64501fd5b6b75ac10d7c930edbb",
+      "segapcm_samples.js": "c2bd8624e44ea28618e04dfd5d327089377bad8032013ec8eed627338cd4505b",
+      "snes_notes.js": "6630cbefa5ac2d62d03812915814e315fd538174bd8ccb4565ca497ef6eaa425",
+      "snes_score.js": "6900129bf9b17060b3a6da224c0d2e6311e58e3797f46ce60331512be9204e4a",
+      "source_mutes.js": "2801bb91cf13a5d41fe6494aad07ab9f49eac7972e247a2ee83c54ff4e461b86",
+      "sources/LICENSE": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "sources/LICENSE.tetorica": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "sources/NES-FDS.md": "c98ec969c6504fb04e8ed7e2ea54332100c7c27c430c4b8c235ae73ff04ed863",
+      "sources/Nuked-OPN2.md": "ce20e3a98310f89a71ac308d43669d280593cffa0060b6e30723760b2eb76bb3",
+      "sources/POKEY-SDK.json": "e91f4847a37602ab7b9b4e5f141c4891d67e4a80606d4de7867a593c4818765a",
+      "sources/POKEY.md": "66b6cb15f6dc44e404f8f604cba2105881ee8944a85a706c88736fdd94ab69e4",
+      "sources/PWM32X.md": "0be3d6755663d2221a3e1836e026d6a6f73c18d1a30186129ecac1ba8859a411",
+      "sources/SNES-SPC.md": "267d7078a59c99d6d56b81b200f97f9db84ea3b481f80a563797df8abd91f328",
+      "sources/SegaPSG.md": "3fcfe94da9c5b8614068f9904c38f5850c116f801849882d92670b57c2f72666",
+      "sources/scripts/build_nesapu_wasm.sh": "884ff7505447afc232e860bac6e633652ed26c6097c5e0a10e5c14dffee09c4d",
+      "sources/scripts/build_nuked_opn2_wasm.sh": "ea620223822175fb4d6470778dd40a07621b9674bebdf9a6a2571917c72c1fbe",
+      "sources/scripts/build_pokey_wasm.sh": "e04a4ac7fada1b9ed8eada97785739fc56016386315950dc347cecda5fa3f372",
+      "sources/scripts/build_pwm32x_wasm.sh": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e",
+      "sources/scripts/build_segapsg_wasm.sh": "dde29ed6f87201507fafefd1a5921a6fccb5686e81f621d5618a5f9a712c991f",
+      "sources/scripts/build_spc_wasm.sh": "3ecc18550f6af95ce8c57c96879da6785727e903e40428f1b6e8ce9fea4e720b",
+      "sources/src/chip_state.h": "ecf7cd301fc1c790af663cedfbbccd3f7403392b459baaf82e2581ee652816b1",
+      "sources/third_party/libvgm-pokey/LICENSE": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583",
+      "sources/third_party/libvgm-pokey/README.md": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff",
+      "sources/third_party/libvgm-pokey/pokey.cpp": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96",
+      "sources/third_party/libvgm-pokey/pokey.h": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0",
+      "sources/third_party/libvgm-pokey/upstream/pokey.c": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+      "sources/third_party/libvgm-pokey/upstream/snapshot-manifest.json": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27",
+      "sources/third_party/mame-32x-pwm/LICENSE": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6",
+      "sources/third_party/mame-32x-pwm/README.md": "f25748dec64d5b5475e0117a48620748c39807d18fae49501237f89fdacb2cec",
+      "sources/third_party/mame-32x-pwm/upstream/mega32x.cpp": "17490105d503cb3229090639debd80a31acc400221085ddddb32145b16ead91a",
+      "sources/third_party/mame-32x-pwm/upstream/mega32x.h": "fcb83da0eda963035d444eca408e1bc870a0eb723277db7c38219d6aa2348c0a",
+      "sources/third_party/nuked-opn2/LICENSE": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "sources/third_party/nuked-opn2/README.md": "8296e38872f66aa2598ca9d17360bc65e45254ee2028320f512f131712b940aa",
+      "sources/third_party/nuked-opn2/ym3438.c": "8fa385546f0f2d1c975d097002af00cd729ae2ae097c068e9c883ce08ddf3a76",
+      "sources/third_party/nuked-opn2/ym3438.h": "8e60e35f77049d0e600ad1a47bfc3dfc8b832483e614104473a83c1f33cd7189",
+      "sources/third_party/snes-spc/LICENSE": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331",
+      "sources/third_party/snes-spc/README.md": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775",
+      "sources/third_party/snes-spc/README.upstream.md": "da0bfe0b5183787d61314fe7964e2c231675a9e61ce734ff7887b55fbf7d1362",
+      "sources/third_party/snes-spc/changes.txt": "2f753e4f016d9cd8a37dc338f7a4d1bae70cd3a3623027f514542bee8daea148",
+      "sources/third_party/snes-spc/license.txt": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a",
+      "sources/third_party/snes-spc/readme.txt": "3832c72b8bf6c5b4e4b6d424d674c2a658b92aa595be10b14bdb715b0d6eb22b",
+      "sources/third_party/snes-spc/snes_spc.txt": "bf36fda81ac9ad8fecee4efe59bd360772ea0eaa49a0ea801dc06761a07ff295",
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC.cpp": "3d235748b0c520a000263b8098305061673b405754c900a94b9545991628533f",
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC.h": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae",
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC_misc.cpp": "d89d85fd584299360eb304219658f2b92121b5dd4e8a4089e1e7d4806c1a8d3e",
+      "sources/third_party/snes-spc/snes_spc/SNES_SPC_state.cpp": "6af18978d82617f12b9830b87e06dd6c27f772b78de9d18a8ebbdf38d93309d2",
+      "sources/third_party/snes-spc/snes_spc/SPC_CPU.h": "8f28ed5a3461cbf85c64c6a8ecdb6f51b486396e37940e112b94748b44c3a7a8",
+      "sources/third_party/snes-spc/snes_spc/SPC_DSP.cpp": "ec2ad75d60192fd1d03c63b5fea25874f96ec1beade45d6cecbd08277f35c9fc",
+      "sources/third_party/snes-spc/snes_spc/SPC_DSP.h": "736ac067d04e38bd1bc888c8e06799579a35fa14c9879f7c7ab7b69c6b085f8a",
+      "sources/third_party/snes-spc/snes_spc/SPC_Filter.cpp": "34c6ab92475d5fd700c3e01bff7d2fe8e59f8d188a0719c1ad12141d905f62e8",
+      "sources/third_party/snes-spc/snes_spc/SPC_Filter.h": "a86f33de7fbaa1d448de8e3879c4619e1d9a30a494c5a9606d682cee8dd89bb9",
+      "sources/third_party/snes-spc/snes_spc/blargg_common.h": "4bc17a19fe46de2860868d3f88c037aee718b4dedc61450a28de3d1336053dba",
+      "sources/third_party/snes-spc/snes_spc/blargg_config.h": "b318cfcd2828719d8e3435e4972bc75ba82697c2cc6b8d291130d66d7b6904b8",
+      "sources/third_party/snes-spc/snes_spc/blargg_endian.h": "97062e15b46e1347a4fc2e95fd131bcb89c1b8947b28d20a27c1f342a387d637",
+      "sources/third_party/snes-spc/snes_spc/blargg_source.h": "bd6b376d6d9b1bccce3b89e915b1ad9a6fede7d43b273258bfa13c3855fb1a6a",
+      "sources/third_party/snes-spc/snes_spc/dsp.cpp": "80b7ff9f2f7ab4af0485c5faaa3dc333359a8892c63b996a3448c047bad62bb6",
+      "sources/third_party/snes-spc/snes_spc/dsp.h": "ac61fc96a688ce7429942a76562b0ce8cfb014f84c2c2398ef875b0f33521c2b",
+      "sources/third_party/snes-spc/snes_spc/spc.cpp": "0f6bf884f2d6ef5728d8bb3fc277ff1e1bf74813251d8308f4e6d3aa1e33ec1f",
+      "sources/third_party/snes-spc/snes_spc/spc.h": "e45c8e2862f44a23804bb6fe14c747e16f49efc2e991a92138d285c36b45e0c7",
+      "sources/third_party/tetorica-nes/AUTHORS-JSNES.md": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a",
+      "sources/third_party/tetorica-nes/LICENSE-FDS": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce",
+      "sources/third_party/tetorica-nes/LICENSE-JSNES": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a",
+      "sources/third_party/tetorica-nes/README.md": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396",
+      "sources/third_party/tetorica-nes/UPSTREAM-FDS.md": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316",
+      "sources/third_party/tetorica-nes/UPSTREAM-JSNES.md": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792",
+      "sources/third_party/tetorica-nes/nes_core.cpp": "6658f4012eeac783ea72693b2284dd150dcb2e22a1f29859b83e1ae3d333f959",
+      "sources/third_party/tetorica-nes/nes_core.h": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31",
+      "sources/third_party/tetorica_sega_psg/LICENSE": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+      "sources/third_party/tetorica_sega_psg/README.md": "96528208bdaf25b01f08bed5075274bbc538a91bf2a552784b939257fc1cd75e",
+      "sources/third_party/tetorica_sega_psg/segapsg.cpp": "05efbf3f6ad854ec64482afab29e016674d28505afc69e01058b1a634a27af3e",
+      "sources/third_party/tetorica_sega_psg/segapsg.h": "123143939d5d260b9670119d098b48a836a99f74e3b9458c888242c15278242e",
+      "sources/wasm/nesapu_wasm.cpp": "49f5f980b5685fc4b3878369e367700e37fbf143db4930765ab347a702d7e105",
+      "sources/wasm/nuked_opn2_wasm.c": "85cb336960d5bfbff1265268f732a48a426ecb943810e0165a1bbb1750839115",
+      "sources/wasm/pokey_wasm.cpp": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df",
+      "sources/wasm/pwm32x_core.h": "5ad3e58e1d0133d676ffcc2e332840fb57f19d97cc52b6302b1914b084b8927c",
+      "sources/wasm/pwm32x_wasm.cpp": "9ed05d4cab51ad0565d0a9f1da96e97e204007660482e567938f1c0f003d24bb",
+      "sources/wasm/segapsg_wasm.cpp": "4ce18ea3f2167d6c0b81abc809948bd21f7a540fbe6aa50ef6f5db1961c97e8e",
+      "sources/wasm/spc_wasm.cpp": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77",
+      "spc_analyzer.js": "261288618541e4d90762dedbbb433f0f4efc716d42df537234784d862dde2287",
+      "spc_brr_candidates.js": "8f8db94bc5bd096dd3276969b47a20ddd99917c838a9704f5486f1a4e471ea20",
+      "spc_brr_preview.js": "46013c99310c58f271f6fe8c6faca526e86e17d706bccbc107b3b3d3855d738e",
+      "spc_noteish.js": "664bc5d9ca4c214e26ab5f5f8fa85e5182a2906d96dad31c8a7e470b96dd49ef",
+      "spc_noteish_worker.js": "5b5aa649b32f2a475528250cde14d8133e6f73c25ff1163daa51aab559654ed0",
+      "stored_zip.js": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968",
+      "support.html": "36c93161b0624c0803439f30857c00ba6ea9ad7b61f45b4f90ccfb138d9ac0e1",
+      "synth/synth_controls.js": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f",
+      "synth/synth_envelope.js": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d",
+      "synth/synth_keyboard.js": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc",
+      "synth/synth_operator_envelope.js": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a",
+      "tfi_archive.js": "bd691085a5475c671f957eadd59d75ec2313a2475a20faafa52e4852ac6700c4",
+      "tfi_extract.js": "afc3a339318d30891da2b726a4732d2982c2222ce2f2053a0d016c520dd21f1f",
+      "tfi_info.css": "d2ec7df313ec813184e888887227e2e9dc34df1e2fb0d25c662c8313d176bf9e",
+      "tfi_info.js": "44b477db26b0d7aa80f48374f98351831d4c04efe60e7c9d9ae5d1b019300efa",
+      "tone_notes.js": "01ab840074b9394f07230fb24f782ac84c55f9ab763654eb717dcf47926d799b",
+      "vendor/osmd/AUTHORS": "795435bcc19378d812ad878185f5f8e57642a16e6731d08c4d47c2ef1a377801",
+      "vendor/osmd/LICENSE": "261655f10cf6b90bd062fbe3c7fa4dd03e0324fdfc4b53a3c7d626e3aec694a8",
+      "vendor/osmd/README.md": "7764397dc0ebe284b664d9bba6392edd92effd273b97540d261193af7674b6f5",
+      "vendor/osmd/opensheetmusicdisplay.min.js": "888b744196665ab10dba7ee311784deea9e1c545cf60b6089d455afec6b50a3f",
+      "vendor/osmd/opensheetmusicdisplay.min.js.LICENSE.txt": "a9e0942115f76ed548dc3f56c3e0d9b64ef21c2e8b2e762f0804e1d1a6a887fb",
+      "vgm_analyzer.js": "ec809000f28590770b9feae3fc6532500a175f0ca942242b3e2c7c347c94a8e7",
+      "vgm_json.js": "62172ee3778adf98d15f4f0b08a446bff52b50309d04a46cea3ecd09d7ff1dbd",
+      "vgm_lilypond.js": "c8a6d9c0b3505a4c49d7a563c43a51f60e56677eb6e1cd9fb6f3d8a82c0ffc9d",
+      "vgm_midi.js": "43711eb2a9f6b06fff6c6d4f0eadf6061f1e6825067d0484d554a69fb1d63864",
+      "vgm_mml.js": "07ebe27efd6feaa3db9e1cc5e25e5fd0073d058fa111481673d7dc8b159536f9",
+      "vgm_mml_music.js": "2a99983d938d38be2f72ef5d5ab77123318d4dd1a23481902a17f0ecd959bed2",
+      "vgm_musicxml.js": "68e91c6ca3cfaf4b1cc415990a1f98627826837d3838aced6513c76871b867aa",
+      "vgm_notes.js": "b2c090caffd915433ea46f6cca7e07b3f1f77fa50e575d0bcfcfd9561db6b9c5",
+      "vgm_wav.js": "97847a72388b2476e4045caf89940714fe4f2d1e0dea1b8084c6565e4f2b04e2",
+      "wonderswan_notes.js": "d7fe4fa786889b11649d02971c33ce21cab009b470d357c2a2c65f3081a84461",
+      "wonderswan_voice_render.js": "f694bfa6cf252c1170036e8a5f9a7f97053a22bd5772e0f62acb4cc9fbbdceaf",
+      "wonderswan_voice_samples.js": "b55d5d5a60809db35ac992ca99acf802e951ff50a6000ecd18fe71d16bc3fa28",
+      "wonderswan_voice_view.js": "848571944a74890bfc48e069937c635be95db0e2b08dbcc11dccec6ba48c4713",
+      "wonderswan_wave_view.js": "85f2423a48458238705c23234466262e081ff7a7d4a2743efd16999613843a95",
+      "wonderswan_waves.js": "2f97d7bd2a2fc72fd02ba1bc6c310e9d277c517c8b8b1cd7ed79444b78642677",
+      "ym2413_monitor.js": "309261dd9a98af20dbbd0f84281651f4aa4db42ec219d1ec6b925f453650fd12",
+      "ym2413_notes.js": "fd4009a16b0c24d17d23d197c482da55319613eaac9a257240f9ee6ce5b5fab5",
+      "ymf262_notes.js": "5f38a812714ca84df1fa8cf556373da9fc10ec14a2cb5b17559ccdf807dec87f",
+      "ymf278b_samples.js": "f8afd3d93515c330e9ace1ab212c9dc33778ac6d01bd74fa7cffbe7f296f3eed"
+    },
+    "gitStatus": [
+      " M dist/THIRD_PARTY_LICENSES.txt",
+      " M dist/analyzer_core.js",
+      " M dist/audio_preferences.js",
+      " M dist/command_editor.js",
+      " M dist/fm_snapshot.js",
+      " M dist/gameboy_notes.js",
+      " M dist/huc6280_notes.js",
+      " M dist/index.html",
+      " M dist/js/ay8910.js",
+      " M dist/js/ay8910audioengine.js",
+      " M dist/js/chip_worklet_transport.js",
+      " M dist/js/gameboyapu.js",
+      " M dist/js/gameboyapuaudioengine.js",
+      " M dist/js/genesisaudioengine.js",
+      " M dist/js/huc6280audioengine.js",
+      " M dist/js/k051649.js",
+      " M dist/js/k051649audioengine.js",
+      " M dist/js/megasynth.js",
+      " M dist/js/msxaudioengine.js",
+      " M dist/js/native_sample.js",
+      " M dist/js/nesapu.js",
+      " M dist/js/nesapu_wasm.js",
+      " M dist/js/nesapusynth.js",
+      " M dist/js/okim6258audioengine.js",
+      " M dist/js/opn_fm_synth.js",
+      " M dist/js/opn_runtime_synth.js",
+      " M dist/js/playground_chip_clock.js",
+      " M dist/js/playground_chip_inspector_state.js",
+      " M dist/js/playground_gameboy.js",
+      " M dist/js/playground_keyboard_channels.js",
+      " M dist/js/playground_native_voice_inspector.js",
+      " M dist/js/playground_opn_inspector.js",
+      " M dist/js/playground_performance_processor.js",
+      " M dist/js/playground_pwm_audio.js",
+      " M dist/js/playground_pwm_worklet.js",
+      " M dist/js/playground_rf5c164.js",
+      " M dist/js/playground_rf5c164_audio.js",
+      " M dist/js/playground_worker_chip.js",
+      " M dist/js/pwm32x.js",
+      " M dist/js/pwm32x_playback.js",
+      " M dist/js/rf5c164-worklet.js",
+      " M dist/js/rf5c164.js",
+      " M dist/js/segapcm.js",
+      " M dist/js/segapcmaudioengine.js",
+      " M dist/js/segapsg.js",
+      " M dist/js/soundchip-output-worklet.js",
+      " M dist/js/soundchip.js",
+      " M dist/js/soundchip_worklet.js",
+      " M dist/js/vgmplayer.js",
+      " M dist/js/wonderswan.js",
+      " M dist/js/wonderswanaudioengine.js",
+      " M dist/js/y8950.js",
+      " M dist/js/y8950audioengine.js",
+      " M dist/js/ym2151.js",
+      " M dist/js/ym2151audioengine.js",
+      " M dist/js/ym2151synth.js",
+      " M dist/js/ym2203.js",
+      " M dist/js/ym2203audioengine.js",
+      " M dist/js/ym2203synth.js",
+      " M dist/js/ym2413.js",
+      " M dist/js/ym2413audioengine.js",
+      " M dist/js/ym2608.js",
+      " M dist/js/ym2608audioengine.js",
+      " M dist/js/ym2608synth.js",
+      " M dist/js/ym2610b.js",
+      " M dist/js/ym2610baudioengine.js",
+      " M dist/js/ym2610bsynth.js",
+      " M dist/js/ym2612-worklet.js",
+      " M dist/js/ym2612synth.js",
+      " M dist/js/ym2612vgm.js",
+      " M dist/js/ym3526.js",
+      " M dist/js/ym3526audioengine.js",
+      " M dist/js/ym3812.js",
+      " M dist/js/ym3812audioengine.js",
+      " M dist/js/ymf262.js",
+      " M dist/js/ymf262audioengine.js",
+      " M dist/js/ymf278b.js",
+      " M dist/js/ymf278baudioengine.js",
+      " M dist/mdx_export.js",
+      " M dist/mgsdrv_mml.js",
+      " M dist/mixer_calibration_data.js",
+      " M dist/mixer_ui.js",
+      " M dist/msx_notes.js",
+      " M dist/nes_notes.js",
+      " M dist/note_timeline_view.js",
+      " M dist/note_timeline_worker.js",
+      " M dist/opl_monitor.js",
+      " M dist/opl_notes.js",
+      " M dist/opm_export.js",
+      " M dist/opm_info.js",
+      " M dist/opm_mml.js",
+      " M dist/opm_notes.js",
+      " M dist/opm_tfi.js",
+      " M dist/osmd.html",
+      " M dist/osmd_trial.js",
+      " M dist/playback_core.js",
+      " M dist/playback_mixer.js",
+      " M dist/playground/playground_vgm_presets.js",
+      " M dist/sample_core.js",
+      " M dist/sample_explorer.js",
+      " M dist/sbi_export.js",
+      " M dist/sbi_info.js",
+      " M dist/sbi_ui.js",
+      " M dist/snes_score.js",
+      " M dist/source_mutes.js",
+      " M dist/sources/SegaPSG.md",
+      " M dist/support.html",
+      " M dist/tfi_archive.js",
+      " M dist/tfi_extract.js",
+      " M dist/tone_notes.js",
+      " M dist/vgm_analyzer.js",
+      " M dist/vgm_json.js",
+      " M dist/vgm_lilypond.js",
+      " M dist/vgm_midi.js",
+      " M dist/vgm_mml.js",
+      " M dist/vgm_notes.js",
+      " M dist/vgm_wav.js",
+      " M dist/wonderswan_notes.js",
+      " M dist/ym2413_notes.js",
+      " M dist/ymf262_notes.js",
+      " M release.lock.json",
+      "?? dist/generated/pokey_wasm.js",
+      "?? dist/generated/pokey_wasm.wasm",
+      "?? dist/js/pokey.js",
+      "?? dist/js/pokeyaudioengine.js",
+      "?? dist/js/pokeysynth.js",
+      "?? dist/licenses/libvgm-pokey/",
+      "?? dist/pokey_monitor.js",
+      "?? dist/pokey_notes.js",
+      "?? dist/pokey_playback.js",
+      "?? dist/sources/POKEY-SDK.json",
+      "?? dist/sources/POKEY.md",
+      "?? dist/sources/scripts/build_pokey_wasm.sh",
+      "?? dist/sources/third_party/libvgm-pokey/",
+      "?? dist/sources/wasm/pokey_wasm.cpp"
+    ],
+    "lockVersion": "sha256-415eca667067",
+    "payloadFiles": 421,
+    "published": false,
+    "repository": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-fm2612-vgm-analyzer-tauri",
+    "requiredPokeyAssets": {
+      "generated/pokey_wasm.js": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d",
+      "generated/pokey_wasm.wasm": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22",
+      "js/pokey.js": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1",
+      "js/pokeyaudioengine.js": "18ad1710e13e7df9cb9e23f67a1db158e2c3d871e439a461b7e17dd00fe87208",
+      "pokey_monitor.js": "9fa819b78f38e5074b50d3dcc71a39aa28c89656df753282a01a566e85284af1",
+      "pokey_notes.js": "fbed9463cd66b6a514d582e01271394413f80746a04c961b17d88f6525b20919",
+      "pokey_playback.js": "5b2acc7d47e799c36c607e3026b0a68f10399d30021c4e5cc8aaa18da7623ec2"
+    },
+    "scope": "Unmodified Browser-verified Analyzer frontend payload only; Native DSP and Rust application build unchanged.",
+    "tests": {
+      "desktopOrigin": {
+        "failed": 0,
+        "passed": 4
+      },
+      "pythonImportRelease": {
+        "failed": 0,
+        "passed": 6
+      }
+    },
+    "type": "tetorica-pokey-analyzer-tauri-import-verification",
+    "verification": [
+      {
+        "command": "python3 scripts/import_release.py ../../release/hello_ymfm_wasm_pokey-vgm-dev_itch_vgm_analyzer.zip",
+        "exitCode": 0
+      },
+      {
+        "command": "python3 scripts/import_release.py --check",
+        "exitCode": 0
+      },
+      {
+        "command": "npm test",
+        "exitCode": 0,
+        "log": "/private/tmp/pokey-analyzer-tauri-tests.log"
+      }
+    ],
+    "zipDistLockEqual": true
+  },
+  "npmCandidate": "docs/issues/atari_pokey_vgm_package_01.json",
+  "productionInputs": {
+    "web/ym2612vgm.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/ym2612vgm.js",
+      "bytes": 117637,
+      "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+    },
+    "web/vgmplayer.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/web/vgmplayer.js",
+      "bytes": 24205,
+      "sha256": "dcc1335aa24068856c944e6ad277c87542c1ca0a230cc2f56372135d5ade8534"
+    },
+    "docs/js/ym2612vgm.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/ym2612vgm.js",
+      "bytes": 117637,
+      "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+    },
+    "docs/js/vgmplayer.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/js/vgmplayer.js",
+      "bytes": 24207,
+      "sha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3"
+    },
+    "docs/vgm_analyzer/pokey_playback.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/pokey_playback.js",
+      "bytes": 2680,
+      "sha256": "b05a932af04dc8f9125db8262ed046f08c096951d60f2381d45b1df13d6b4b52"
+    },
+    "docs/vgm_analyzer/pokey_notes.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/pokey_notes.js",
+      "bytes": 4045,
+      "sha256": "fbed9463cd66b6a514d582e01271394413f80746a04c961b17d88f6525b20919"
+    },
+    "docs/vgm_analyzer/pokey_monitor.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/pokey_monitor.js",
+      "bytes": 3374,
+      "sha256": "9fa819b78f38e5074b50d3dcc71a39aa28c89656df753282a01a566e85284af1"
+    },
+    "docs/vgm_analyzer/playback_core.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/playback_core.js",
+      "bytes": 27540,
+      "sha256": "72ec6bc31aae851a5c60e6583f0df61543749eaf3243c9569d0498578a2b75db"
+    },
+    "docs/vgm_analyzer/playback_mixer.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/playback_mixer.js",
+      "bytes": 4616,
+      "sha256": "d73de8178e9aa3f9ce70a5ace6cf21c7cf527c65945b83bda2cfeb7d26d99cc1"
+    },
+    "docs/vgm_analyzer/vgm_analyzer.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/docs/vgm_analyzer/vgm_analyzer.js",
+      "bytes": 216316,
+      "sha256": "e1c0a74b2684ba23bd22fd93a562456c0f01fd0c7d72bf7e101d6c5a151ad9ca"
+    },
+    "cli/render.js": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/cli/render.js",
+      "bytes": 3460,
+      "sha256": "d725ad4a686a67cdbe7a295c3a808e27996e9f9279b09626e155bdf7c6d1706d"
+    }
+  },
+  "limits": [
+    "Human listening and Atari board comparisons were not performed; physical Browser output was zeroed downstream of PCM capture.",
+    "POKEY score/Song/MIDI/FM voice/sample export and analog-board/external-I/O emulation are unavailable.",
+    "Seek uses cold replay with no checkpoint cache; monitoring mute and Mixer state are preserved.",
+    "SDK/core/generated WASM files are unchanged. POKEY remains uncalibrated unity; no other chip gains changed.",
+    "Published tetorica-vgm 0.2.15 does not contain these unreleased additions."
+  ]
+}

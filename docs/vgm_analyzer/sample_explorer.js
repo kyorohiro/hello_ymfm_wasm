@@ -7,8 +7,8 @@ import {samplePreviewWav} from './sample_render.js?v=wonderswan-voice-samples-1'
 import {renderSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 export {configureSamplePreview} from './sample_render.js?v=wonderswan-voice-samples-1';
 import { pwmCaptureWav } from './pwm_samples.js';
-import {sampleFile,extractSamples} from './sample_core.js?v=wonderswan-voice-samples-1';
-export {extractSamples} from './sample_core.js?v=wonderswan-voice-samples-1';
+import {sampleFile,extractSamples} from './sample_core.js?v=pokey-vgm-1';
+export {extractSamples} from './sample_core.js?v=pokey-vgm-1';
 
 export function mountSampleExplorer(panel, getSource, getOptions = () => ({})) {
   let controller, audio, playing, voicePreviewController, previewSerial = 0, gameboyMode = false;

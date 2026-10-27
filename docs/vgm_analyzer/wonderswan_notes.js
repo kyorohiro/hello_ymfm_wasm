@@ -1,4 +1,4 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 
 // Write-driven base pitches, matching the pinned wswansound-derived core's
 // 11-bit frequency, 32-nibble wavetable, mode priority and headphone gate.

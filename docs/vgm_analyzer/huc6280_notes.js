@@ -1,4 +1,4 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 
 // Register-derived base pitch only. Mode priority and attenuation follow the
 // pinned MAME c6280 core in third_party/mame-huc6280/upstream/c6280.cpp.

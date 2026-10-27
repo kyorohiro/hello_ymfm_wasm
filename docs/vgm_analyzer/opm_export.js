@@ -1,5 +1,5 @@
 import {createStoredZipBytes} from './stored_zip.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 import {createOpmState} from './opm_monitor.js';
 // VOPM text bank. Fields checked against Furnace DivEngine::loadOPM:
 // https://github.com/tildearrow/furnace/blob/master/src/engine/fileOpsIns.cpp

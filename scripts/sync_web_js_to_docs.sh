@@ -434,6 +434,7 @@ node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${ROOT_DIR}/docs"
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/pokey.js" "${DOCS_JS_DIR}/playground_pokey_audio.js" "${DOCS_JS_DIR}/playground_pokey_worklet.js"
 node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"
+node "${ROOT_DIR}/scripts/version_vgm_analyzer_runtime.mjs"
 
 # Standalone WonderSwan assets use the same deployed generated directory.
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/playground_wonderswan_audio.js" "${DOCS_JS_DIR}/playground_wonderswan_worklet.js"

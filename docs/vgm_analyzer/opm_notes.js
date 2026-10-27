@@ -1,5 +1,5 @@
 import {createOpmState} from './opm_monitor.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 // Nominal equal-tempered base pitch, not the modulated operator output.
 // KC gaps follow src/ymfm_fm.ipp opm_key_code_to_phase_step (code - code/4).
 export function opmPitch(kc, kf, clock) {

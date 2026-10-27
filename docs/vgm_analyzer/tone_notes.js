@@ -1,4 +1,4 @@
-import { Ym2612VGM } from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=pokey-vgm-1';
 import { createPsgMonitor, applySsgWrite, applyPsgWrite, describePsgMonitor } from './psg_monitor.js?v=ym2610-vgm-2';
 
 // YMFM ssg_effective_clock(): OPN /2, OPNA /4 at the default prescaler.

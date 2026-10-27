@@ -1,4 +1,4 @@
-import {mixerDefaults} from './playback_mixer.js';
+import {mixerDefaults} from './playback_mixer.js?v=pokey-vgm-1';
 import {legacyEngineTrim} from './mixer_defaults.js';
 
 export const AUDIO_PREFERENCES_KEY = 'tetorica-vgm-analyzer.audio.v1';

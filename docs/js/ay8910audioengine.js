@@ -88,7 +88,7 @@ export const createAy8910AudioEngine=options=>Ay8910AudioEngine.create(options);
 // Only AY plus optional OPLL is currently routed by the Analyzer's MSX engine.
 /**
  * Reject chip combinations/variant flags not supported by AY playback.
- * @param {import('./ym2612vgm.js?v=wonderswan-vgm-1').Ym2612VgmHeader} header Parsed VGM clock/variant fields.
+ * @param {import('./ym2612vgm.js?v=pokey-vgm-1').Ym2612VgmHeader} header Parsed VGM clock/variant fields.
  * @returns {void}
  * @throws {Error} For unsupported variants or companion chips.
  */

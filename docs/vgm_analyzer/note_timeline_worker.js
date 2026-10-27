@@ -1,8 +1,8 @@
-import {extractWonderSwanNotes} from './wonderswan_notes.js?v=wonderswan-vgm-1';
-import {extractHuc6280Notes} from './huc6280_notes.js';
-import {analyzeLilyPondSource} from './vgm_lilypond.js?v=wonderswan-vgm-1';
+import {extractWonderSwanNotes} from './wonderswan_notes.js?v=pokey-vgm-1';
+import {extractHuc6280Notes} from './huc6280_notes.js?v=pokey-vgm-1';
+import {analyzeLilyPondSource} from './vgm_lilypond.js?v=pokey-vgm-1';
 import {groupScoreChannels} from './score_groups.js';
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 import {packTimeline,timelineWindow} from './note_timeline.js';
 let channels=[];
 self.onmessage=({data})=>{

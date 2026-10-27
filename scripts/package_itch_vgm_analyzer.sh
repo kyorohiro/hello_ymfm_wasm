@@ -93,6 +93,9 @@ tone_notes.js
 gameboy_notes.js
 huc6280_notes.js
 wonderswan_notes.js
+pokey_playback.js
+pokey_notes.js
+pokey_monitor.js
 nes_notes.js
 fretboard.js
 fretboard_all.js
@@ -162,6 +165,9 @@ pwm32x_playback.js
 huc6280audioengine.js
 wonderswan.js
 wonderswanaudioengine.js
+pokey.js
+pokeysynth.js
+pokeyaudioengine.js
 okim6258audioengine.js
 okim6295audioengine.js
 ym2610b.js
@@ -256,6 +262,8 @@ huc6280_wasm.js
 huc6280_wasm.wasm
 wonderswan_wasm.js
 wonderswan_wasm.wasm
+pokey_wasm.js
+pokey_wasm.wasm
 okim6258_wasm.js
 okim6258_wasm.wasm
 ym2610b_wasm.js
@@ -428,6 +436,7 @@ node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nes_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pwm_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${STAGE_DIR}"
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
@@ -451,6 +460,7 @@ Sega PCM (315-5218): MAME adaptation by Hiromitsu Shioya, Olivier Galibert, BSD-
 Game Boy APU (LR35902 DMG): MAME adaptation by Wilbert Pol, Anthony Kruize, BSD-3-Clause. See licenses/mame-gameboy/LICENSE and README.md.
 
 WonderSwan: MAME adaptation, BSD-3-Clause. See licenses/mame-wonderswan/LICENSE and README.md.
+Atari POKEY: libvgm/MAME BSD adaptation, BSD-3-Clause. See licenses/libvgm-pokey/ and sources/POKEY.md.
 
 MAME 32X PWM adaptation: BSD-3-Clause. See licenses/mame-32x-pwm/.
 
@@ -483,7 +493,8 @@ perl -0pi -e "s#(['\"])\\.\\./js/#\$1./js/#g; s#(['\"])\\.\\./generated/#\$1./ge
   "${STAGE_DIR}/opm_tfi.js" "${STAGE_DIR}/opm_info.js" "${STAGE_DIR}/opm_export.js" "${STAGE_DIR}/opm_notes.js" "${STAGE_DIR}/vgm_notes.js" "${STAGE_DIR}/tone_notes.js" "${STAGE_DIR}/gameboy_notes.js" "${STAGE_DIR}/huc6280_notes.js" "${STAGE_DIR}/wonderswan_notes.js" "${STAGE_DIR}/nes_notes.js" "${STAGE_DIR}/vgm_midi.js" "${STAGE_DIR}/vgm_wav.js" "${STAGE_DIR}/vgm_lilypond.js" \
   "${STAGE_DIR}/spc_noteish.js" "${STAGE_DIR}/spc_noteish_worker.js" "${STAGE_DIR}/snes_notes.js" "${STAGE_DIR}/snes_score.js" \
   "${STAGE_DIR}/osmd_trial.js" "${STAGE_DIR}/note_timeline_worker.js" "${STAGE_DIR}/sample_render.js" "${STAGE_DIR}/sample_core.js" "${STAGE_DIR}/sample_explorer.js" "${STAGE_DIR}/wonderswan_voice_render.js" "${STAGE_DIR}/pwm_samples.js" "${STAGE_DIR}/ym2413_monitor.js" "${STAGE_DIR}/ym2413_notes.js" "${STAGE_DIR}/mgsdrv_mml.js" \
-  "${STAGE_DIR}/fm_snapshot.js" "${STAGE_DIR}/vgm_json.js" "${STAGE_DIR}/command_editor.js" "${STAGE_DIR}/ymf262_notes.js" "${STAGE_DIR}/opl_notes.js" "${STAGE_DIR}/msx_notes.js" "${STAGE_DIR}/sbi_export.js"
+  "${STAGE_DIR}/fm_snapshot.js" "${STAGE_DIR}/vgm_json.js" "${STAGE_DIR}/command_editor.js" "${STAGE_DIR}/ymf262_notes.js" "${STAGE_DIR}/opl_notes.js" "${STAGE_DIR}/msx_notes.js" "${STAGE_DIR}/sbi_export.js" \
+  "${STAGE_DIR}/pokey_playback.js" "${STAGE_DIR}/pokey_notes.js" "${STAGE_DIR}/pokey_monitor.js"
 perl -0pi -e 's#\.\./js/vgm-output-worklet\.js#./js/vgm-output-worklet.js#g' \
   "${STAGE_DIR}/index.html"
 

@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "scope": "Analyzer calibration receipt refresh after POKEY VGM integration; no DSP, Mixer gain or listening-policy changes",
+  "cause": "POKEY detection/playback/Mixer integration and preceding POKEY cache-version rollout changed measured source files. Strict whole-file renderer hash validation requires actual measurement refresh.",
+  "measurements": {
+    "commands": [
+      "node scripts/calibrate_analyzer_extra_levels.mjs --out=/private/tmp/analyzer-extra-levels-pokey-refresh.json",
+      "node scripts/measure_analyzer_psg_levels.mjs --out /private/tmp/analyzer-psg-levels-pokey-refresh.json"
+    ],
+    "extraCaptures": 18,
+    "psgCaptures": 12,
+    "actualAnalyzerRenderPaths": true,
+    "deviceOpened": false,
+    "formulasChanged": false,
+    "pokeyMeasured": false,
+    "pokeyGainPolicy": "Unity1.0, explicitly uncalibrated"
+  },
+  "sourceAudit": [
+    {
+      "path": "cli/render.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "96ec4da30d536540581349b5c209f2ec6bb303a5efd8dd1ea4299e1dc6e1e0aa",
+      "currentSha256": "d725ad4a686a67cdbe7a295c3a808e27996e9f9279b09626e155bdf7c6d1706d",
+      "currentSize": 3460
+    },
+    {
+      "path": "docs/vgm_analyzer/playback_core.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "d57e5a644434e8825c4b345e7bd3cb5499df70647182fad64b8fd5744ed8bbf1",
+      "currentSha256": "72ec6bc31aae851a5c60e6583f0df61543749eaf3243c9569d0498578a2b75db",
+      "currentSize": 27540
+    },
+    {
+      "path": "docs/vgm_analyzer/playback_mixer.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+      "currentSha256": "d73de8178e9aa3f9ce70a5ace6cf21c7cf527c65945b83bda2cfeb7d26d99cc1",
+      "currentSize": 4616
+    },
+    {
+      "path": "docs/js/vgmplayer.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33",
+      "currentSha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3",
+      "currentSize": 24207
+    },
+    {
+      "path": "docs/js/segapcmaudioengine.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "d30f58a3ab98ad3d1717ddf9a7cfd80ee1ec2eee9aa2eed2b63df4d1927bca51",
+      "currentSha256": "5531dfcbebea0bada41d7cb34ee3133853a94b9a1ce501da2140c330f1c3b72a",
+      "currentSize": 6150
+    },
+    {
+      "path": "docs/js/segapcm.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "5bfd23c7c7fab99065e1d85a3a951120af957e626d379d2df10850d5363083c2",
+      "currentSha256": "fd072f9273bc60a4cf90c56be853d30ea9a162807a65a7c7bcb2ffabe4826881",
+      "currentSize": 8583
+    },
+    {
+      "path": "docs/js/msxaudioengine.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "65625d4fe5bdd6a6f4279d94c6e863bfc67d8f248845067aa5cb80aa19ed8db4",
+      "currentSha256": "89b1a66fe6963e3cd6f079af58a8ca87767c8e339bc82be7745416b018708ad8",
+      "currentSize": 7942
+    },
+    {
+      "path": "docs/js/k051649audioengine.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "c0bec23f6072a041b54fc8e14d3beaafeffe90ef0c1c2b1ccb5bc8b825c23798",
+      "currentSha256": "b986d7e333bc1e7df3e9278afc906d99ccace8f7fd55bc0094b106fc03e720bc",
+      "currentSize": 4677
+    },
+    {
+      "path": "docs/js/k051649.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "6f63ab59a241db7a88b19d231c741ca3f1f35767c73732ad3e9947f107798f1b",
+      "currentSha256": "af37b215ed0acccf682894cdf8e322ca00d9cc4397fbf057f7e324572a3e8514",
+      "currentSize": 5749
+    },
+    {
+      "path": "docs/js/ymf278baudioengine.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "3164337ddc05c62fb5b9b93c90a6976221c1e7f19a0df883bcc072b124d55ba4",
+      "currentSha256": "06694b0014730bf581e2f6abd68016744ac00344303694d8ea63a4a70309258a",
+      "currentSize": 8600
+    },
+    {
+      "path": "docs/js/ymf278b.js",
+      "baselineReceipt": "docs/issues/analyzer_extra_levels_04.json",
+      "beforeSha256": "14f4dc5bb1c88ed1ac00a096fc7b202dfddd79842c0ae85c457780e60780a6b1",
+      "currentSha256": "73c9ed73815829f90eca8f6b95e457d5faf01f090e3d5f908551965f96b5afbd",
+      "currentSize": 11565
+    },
+    {
+      "path": "cli/render.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "96ec4da30d536540581349b5c209f2ec6bb303a5efd8dd1ea4299e1dc6e1e0aa",
+      "currentSha256": "d725ad4a686a67cdbe7a295c3a808e27996e9f9279b09626e155bdf7c6d1706d",
+      "currentSize": 3460
+    },
+    {
+      "path": "docs/vgm_analyzer/playback_core.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "d57e5a644434e8825c4b345e7bd3cb5499df70647182fad64b8fd5744ed8bbf1",
+      "currentSha256": "72ec6bc31aae851a5c60e6583f0df61543749eaf3243c9569d0498578a2b75db",
+      "currentSize": 27540
+    },
+    {
+      "path": "docs/vgm_analyzer/playback_mixer.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "cee3147372800c9b984fba254c531cb9d9568108e36937ef881cb07684c066dd",
+      "currentSha256": "d73de8178e9aa3f9ce70a5ace6cf21c7cf527c65945b83bda2cfeb7d26d99cc1",
+      "currentSize": 4616
+    },
+    {
+      "path": "docs/js/ym2608audioengine.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "0d68c4623218f71932d0acc7d465629c92085a5703919cc2795f5e8d56169bcf",
+      "currentSha256": "129ba38aeb9967ee53d7ce58b49b2733611379d8a8d72c86fdb9c2db72e143fa",
+      "currentSize": 9958
+    },
+    {
+      "path": "docs/js/genesisaudioengine.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "b93985a0501cd2c3aca66d427640d1e868d78dad63e1e41c0a413d0e2a394495",
+      "currentSha256": "2732f2076a7096c136d409cf211fd05e031b3c35e358de13a61901c57d53f688",
+      "currentSize": 14785
+    },
+    {
+      "path": "docs/js/ay8910audioengine.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "a96172582b64ea31699faaff34c9177ae635bc316227a7b91a63caa793f5cda2",
+      "currentSha256": "39737c692891d5183f520ad74e8e00b001bf803df6eb96b9c16096a68287ec8f",
+      "currentSize": 5463
+    },
+    {
+      "path": "docs/js/nesapusynth.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "194339029ade432d0cc4e701619a35654cae6979b5f410e4d205e0a3f5b83313",
+      "currentSha256": "7e99925c5781c57fd03f69c6a15ccc88d1419d7fc3818a9a2ae4c8acda286d16",
+      "currentSize": 15152
+    },
+    {
+      "path": "docs/js/ym2608.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "d90489958661e7f007c595060c84cf2976a8ae9b45887ccf060d3f9ebd38dadd",
+      "currentSha256": "516cdc2850187020054b0b1f51b358dcb47564537939a7318a0a124b787f7cb4",
+      "currentSize": 15637
+    },
+    {
+      "path": "docs/js/ay8910.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "c18db167ffc900df5f62c8ff35d07f4f343dcacd11775fcdbc933234b790a4c6",
+      "currentSha256": "38f50470d60a850773859ce210e5281d1ee0429f00021b7decd8b8be9554197b",
+      "currentSize": 6255
+    },
+    {
+      "path": "docs/js/segapsg.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "41a7d377d6becc2a5645c6fdb41e44447fe5c479f8a4ce3ab944995938746022",
+      "currentSha256": "efbc9805f2c7686b51c163c730f3b615fa34bbd57ad35521be1b034f19882630",
+      "currentSize": 10143
+    },
+    {
+      "path": "docs/js/vgmplayer.js",
+      "baselineReceipt": "docs/issues/analyzer_psg_levels_05.json",
+      "beforeSha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33",
+      "currentSha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3",
+      "currentSize": 24207
+    }
+  ],
+  "comparisons": [
+    {
+      "baseline": {
+        "path": "docs/issues/analyzer_extra_levels_04.json",
+        "sha256": "92b9421999fb4f290f9b9a5467431656cc8a5bd3e8e0f0ea35bee599308be595"
+      },
+      "current": {
+        "path": "docs/issues/analyzer_extra_levels_05.json",
+        "sha256": "88d6a39aea7222f1d652925384f13e45730adfc0a2ebeef1d72f8ca269deb696"
+      },
+      "rows": 18,
+      "allFieldsExceptSourcesExactlyEqual": true,
+      "defaults": {
+        "segaPcm": 0.261709,
+        "k051649": 1.103844,
+        "ymf278b": 1.465915,
+        "msm5205": 0.128849,
+        "okim6295": 0.128849
+      }
+    },
+    {
+      "baseline": {
+        "path": "docs/issues/analyzer_psg_levels_05.json",
+        "sha256": "79bbde6029778bd7d3788622026943b49a5b34280f60b72e80bb42490e05e0de"
+      },
+      "current": {
+        "path": "docs/issues/analyzer_psg_levels_06.json",
+        "sha256": "327938afaf6e772987d51a2fa0b7607cfb7b3a6645c85a1fa5a8027d00875d6d"
+      },
+      "rows": 12,
+      "allFieldsExceptSourcesExactlyEqual": true,
+      "defaults": {
+        "psg": 0.45542,
+        "ay8910": 1.100331,
+        "nesApu": 1.512236
+      }
+    }
+  ],
+  "retainedNesReceipt": {
+    "path": "docs/issues/analyzer_nes_levels_01.json",
+    "sha256": "1cca711e8b58417d7759a48f6b18b2c298224f0497a6078e013469c71378d3af",
+    "allSourceHashesMatch": true,
+    "sources": 11
+  },
+  "generatedDefaults": {
+    "path": "docs/vgm_analyzer/mixer_calibration_data.js",
+    "beforeSha256": "d940890fbae1a615de0818717cfddf613806daf23a66cf9ca72336c381f8fac7",
+    "currentSha256": "c861aa403c2a6a4e7df6aef024f63571334b9fbf37c37335122bc3dd11f0bd86",
+    "executableTableExactlyEqual": true,
+    "changes": "Provenance comments only"
+  },
+  "validation": [
+    {
+      "command": "node --test scripts/generate_analyzer_mixer_defaults.test.mjs scripts/measure_analyzer_psg_levels.test.mjs docs/vgm_analyzer/mixer_defaults.test.mjs",
+      "passed": true,
+      "tests": 12
+    },
+    {
+      "command": "node scripts/check_analyzer_mixer_levels.mjs",
+      "passed": true,
+      "routes": 8,
+      "checks": [
+        "unity/default PCM ratios",
+        "retained fixed targets",
+        "reset gain",
+        "exact PCM16 WAV"
+      ],
+      "maximumGainError": 2.8610229518832853e-8
+    }
+  ],
+  "unchanged": [
+    "All old measurement fields other than source provenance",
+    "All existing default Mixer gains",
+    "Internal composite-chip balance",
+    "Whole-file source hash guard",
+    "Calibration formulas",
+    "Application listening policy",
+    "POKEY unity fallback"
+  ],
+  "publication": "None; local verification only"
+}

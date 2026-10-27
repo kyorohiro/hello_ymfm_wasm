@@ -32,7 +32,7 @@ test('Monitor is read-only; Export group downloads all CH snapshots at click tim
  document:{body:{append(){}},createElement(){return {click(){downloads.push(this.download);},remove(){}};}}});
  const source=readFileSync(new URL('./vgm_analyzer.js',import.meta.url),'utf8');
  vm.runInContext(source.slice(source.indexOf("function createStoredZip("),source.indexOf("function downloadAllTfiZip(")),ctx);
- vm.runInContext(source.slice(source.indexOf("exportOpmButton.addEventListener('click'"),source.indexOf('const ayMonitorRoot =')),ctx);
+ vm.runInContext(source.slice(source.indexOf("exportOpmButton.addEventListener('click'"),source.indexOf('const pokeyMonitorRoot =')),ctx);
  handler();assert.deepEqual(downloads,['song_snapshot_opm.zip']);assert.equal(blob.type,'application/zip');
  const bytes=new Uint8Array(await blob.arrayBuffer()),view=new DataView(bytes.buffer);let offset=0;const entries=[];
  while(view.getUint32(offset,true)===0x04034b50){const len=view.getUint32(offset+18,true),nameLen=view.getUint16(offset+26,true);entries.push([new TextDecoder().decode(bytes.slice(offset+30,offset+30+nameLen)),new TextDecoder().decode(bytes.slice(offset+30+nameLen,offset+30+nameLen+len))]);offset+=30+nameLen+len;}

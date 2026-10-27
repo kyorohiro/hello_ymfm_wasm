@@ -7,6 +7,31 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### POKEY VGM Analyzer接続完了 — 2026-10-27
+
+ユーザーの「すすめて」で、POKEYのVGM Analyzer対応を実装。
+VGM1.61+ header0xb0/dual bit30、BBのchip選択bit7、標準DAC stream0x1e/0x9eを共通parser/playerへ接続。
+Analyzerは単体4CH/2台8CH、独立Mixer `pokey`/`pokey:2`、Operator Infoのregister/mode表示。
+通常tone・poly noise・volume-only・joined/helper・shared clock/filterを区別。新polling/audioへのUI書戻しなし。
+Muteはタイマーを維持し再生/seek後も保持。seekは両コア/DC状態を先頭から再実行し、checkpoint非対応。
+Note-ish/Song/楽譜/MIDI/FM音色/sample exportはPOKEYで無効。既存header-composed mixにも独立接続。
+SDK/core/生成WASMは変更なし。POKEYのMixerは未校正unity1、隠れたdual減衰なし。
+Analyzer既存18Extra/12PSG capturesを実測しPCMhash/音量が完全一致。Extra05/PSG06へreceipt更新、strictguard維持。
+共通parser/playerとAnalyzerの1151testは1150成功/1既存optionaltool skip/0失敗。実WASM/seek/mixed等18件も成功（重複あり）。
+最終flatのChromium153/WebKit26.6で全4/8CH、可視Operator Info更新、独立Mixer、DACstream、pause/seek/Stop/replayが成功。
+193served assetをZIPとhash照合、全421fileをstageとbyte照合。測定出力は物理sink直前で無音化、実聴/実機比較は未実施。
+ZIP: release/hello_ymfm_wasm_pokey-vgm-dev_itch_vgm_analyzer.zip、SHA256
+`415eca667067e9df6678d6c650f4f87e3739c53977df67d22caf508df7d7e2d7`。
+Analyzer Tauriへ同421payload取込済み。ZIP/dist/lock全hash一致、Python6/Node4件成功。NativeDSP変更なし。
+npm VGMローカル候補277file/168module/API/CLI/12CH/WAV/JSON/stream/noise seek/独立lifecycleが成功。
+tgz SHA256 `f04a33327c4df3d1c119f211c328666abcd5887f8d6c2c895b7108c3769f9141`。
+version0.2.15据置の未公開候補で、公開npm0.2.15にPOKEYは未収録。
+FM packageも302module/28pair/349宣言のbuild・型3構成成功。version0.2.30据置、再公開なし。
+cacheは`pokey-vgm-1`。version_playground_runtime＋version_vgm_analyzer_runtimeでwebsiteのみ同期更新。
+詳細・配布証跡は[atari_pokey_vgm_analyzer_01.md](atari_pokey_vgm_analyzer_01.md)と同名JSON、npm証跡はatari_pokey_vgm_package_01。
+本体/Analyzer Tauriは未commit。公開npm/tag/push/remoteCI/itch.io操作なし。前節のSDK0.1.5候補公開も未実施のまま。
+次は実際のPOKEY VGMをユーザー環境で聴き、続けるならPlaygroundのPOKEY VGM import対応。
+
 ### SDK0.1.5候補・POKEY JS/Playground接続完了 — 2026-10-27
 
 ユーザーの「すすめて」で、前節のSDK更新/importとJS API・Playground接続を完了。

@@ -282,7 +282,7 @@ do {propagated=false;for(const {name,source}of sources){
 }}while(propagated);
 // VGM Analyzer's WonderSwan commands require the new player and parser together.
 // Scope this to their two module URLs; canonical package imports stay untouched.
-const vgmVersion='wonderswan-vgm-1';
+const vgmVersion='pokey-vgm-1';
 const vgmFiles=new Set(['ym2612vgm.js','vgmplayer.js']);
 // Import UI and code generation require the matching sample-timeline audio runtime.
 const wonderswanImportFiles=new Set(['playground.js','playground_vgm_import.js','wonderswan_vgm_import.js']);

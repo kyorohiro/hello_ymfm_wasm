@@ -1,5 +1,5 @@
 import {createPlaygroundOperatorKeyboard} from '../playground/playground_operator_keyboard.js?v=midi-1';
-import {extractSbiPatches, SBI_NOTICE} from './sbi_export.js';
+import {extractSbiPatches, SBI_NOTICE} from './sbi_export.js?v=pokey-vgm-1';
 import {Ymf262, YMF262_CLOCK} from '../js/ymf262.js';
 
 export function midiToSbiPitch(midi) {

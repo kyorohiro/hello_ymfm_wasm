@@ -1,15 +1,15 @@
-import {extractWonderSwanNotes} from './wonderswan_notes.js?v=wonderswan-vgm-1';
-import {extractMsxNotes} from './msx_notes.js';
-import {extractYmf278bFmNotes, extractOpl3Notes} from './ymf262_notes.js';
-import {extractHuc6280Notes} from './huc6280_notes.js';
-import {isOpl, extractOplNotes} from './opl_notes.js';
-import {extractNesNotes} from './nes_notes.js';
-import { extractOpmNotes } from './opm_notes.js';
-import { extractToneNotes } from './tone_notes.js?v=ym2610-vgm-2';
-import { extractOpllNotes } from './ym2413_notes.js';
-import { extractGameboyNotes } from './gameboy_notes.js';
-import { Ym2612VGM } from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
-import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=wonderswan-vgm-1';
+import {extractWonderSwanNotes} from './wonderswan_notes.js?v=pokey-vgm-1';
+import {extractMsxNotes} from './msx_notes.js?v=pokey-vgm-1';
+import {extractYmf278bFmNotes, extractOpl3Notes} from './ymf262_notes.js?v=pokey-vgm-1';
+import {extractHuc6280Notes} from './huc6280_notes.js?v=pokey-vgm-1';
+import {isOpl, extractOplNotes} from './opl_notes.js?v=pokey-vgm-1';
+import {extractNesNotes} from './nes_notes.js?v=pokey-vgm-1';
+import { extractOpmNotes } from './opm_notes.js?v=pokey-vgm-1';
+import { extractToneNotes } from './tone_notes.js?v=pokey-vgm-1';
+import { extractOpllNotes } from './ym2413_notes.js?v=pokey-vgm-1';
+import { extractGameboyNotes } from './gameboy_notes.js?v=pokey-vgm-1';
+import { Ym2612VGM } from '../js/ym2612vgm.js?v=pokey-vgm-1';
+import { extractOpnNotes, midiChipKind } from './vgm_notes.js?v=pokey-vgm-1';
 
 const PPQN = 960;
 const utf8 = text => new TextEncoder().encode(text);

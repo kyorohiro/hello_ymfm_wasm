@@ -919,6 +919,26 @@ Exported files were opened and rendered with the independent
 MDX export is available starting with tetorica-vgm 0.2.9.
 
 
+## Atari POKEY (unreleased)
+
+The development build plays VGM 1.61+ POKEY register writes and standard DAC
+streams, including two independent chips selected by the header's dual flag.
+Each chip has four physical channels. `support --json` lists the available
+mute IDs: `pokey-ch-1`–`pokey-ch-4`, or `pokey-ch-1`–`pokey-ch-8` for two chips.
+Channels 5–8 belong to the second POKEY. WAV rendering preserves tone, noise,
+volume-only output and joined/shared-clock settings. Seeking replays from the
+beginning; it has no checkpoint cache. The Browser Operator Info panel shows
+register state and mode labels; score, MIDI, sample and FM voice export are
+unavailable. The host removes DC without changing Mixer gain; analog Atari
+board filtering and external POKEY I/O are not emulated.
+
+```sh
+node cli/main.js support song.vgz --json
+node cli/main.js render song.vgz --mute pokey-ch-5 --output pokey.wav
+```
+
+This addition is not present in the published `tetorica-vgm@0.2.15`.
+
 ## WonderSwan
 
 Single-chip WonderSwan VGM 1.71 playback supports four wavetable channels,

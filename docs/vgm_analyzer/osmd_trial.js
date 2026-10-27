@@ -1,4 +1,4 @@
-import {analyzeLilyPondSource} from './vgm_lilypond.js?v=wonderswan-vgm-1';
+import {analyzeLilyPondSource} from './vgm_lilypond.js?v=pokey-vgm-1';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {createMusicXmlScore} from './vgm_musicxml.js';
 const $ = id => document.getElementById(id);

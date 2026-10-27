@@ -40,14 +40,15 @@ test('header display and Song file loading identify WonderSwan',()=>{
 
 test('deployed Analyzer entry, Worker, player and score graph invalidate older parsers together',()=>{
   const read=name=>readFileSync(new URL(name,import.meta.url),'utf8');
-  const token='wonderswan-vgm-1';
-  assert.match(read('./index.html'),new RegExp('vgm_analyzer\\.js\\?v=wonderswan-voice-samples-1'));
+  const token='pokey-vgm-1';
+  assert.match(read('./index.html'),new RegExp('vgm_analyzer\\.js\\?v='+token));
   assert.match(read('./note_timeline_view.js'),new RegExp('note_timeline_worker\\.js\\?v='+token));
   for(const file of ['./vgm_analyzer.js','./playback_core.js','./analyzer_core.js','./note_timeline_worker.js',
-    './vgm_lilypond.js','./vgm_midi.js','./vgm_notes.js','./wonderswan_notes.js','./command_editor.js','../js/vgmplayer.js']){
+    './vgm_lilypond.js','./vgm_midi.js','./vgm_notes.js','./wonderswan_notes.js','./command_editor.js',
+    './pokey_notes.js','./pokey_monitor.js','./pokey_playback.js','../js/vgmplayer.js']){
     const text=read(file);
-    for(const ref of text.matchAll(/['"]([^'"\n]*(?:ym2612vgm|vgmplayer|playback_core|analyzer_core|vgm_lilypond|vgm_midi|vgm_notes|wonderswan_notes|source_mutes|command_editor|note_timeline_view)\.js)(?:\?([^'"\n]*))?['"]/g)){
-      assert.equal(ref[2],'v='+(ref[1].endsWith('/analyzer_core.js')?'wonderswan-voice-samples-1':token),`${file}: ${ref[1]}`);
+    for(const ref of text.matchAll(/['"]([^'"\n]*(?:ym2612vgm|vgmplayer|playback_core|analyzer_core|vgm_lilypond|vgm_midi|vgm_notes|wonderswan_notes|source_mutes|command_editor|note_timeline_view|pokey_notes|pokey_monitor|pokey_playback)\.js)(?:\?([^'"\n]*))?['"]/g)){
+      assert.equal(ref[2],'v='+token,`${file}: ${ref[1]}`);
     }
   }
   // The website revision must not create a second package class identity.

@@ -1,4 +1,4 @@
-import {extractSbiPatches, snapshotSbiPatches, exportSbiZip, SBI_NOTICE} from './sbi_export.js';
+import {extractSbiPatches, snapshotSbiPatches, exportSbiZip, SBI_NOTICE} from './sbi_export.js?v=pokey-vgm-1';
 
 export function mountSbiExports({getTrack, setStatus}) {
   const dialog = document.createElement('dialog');

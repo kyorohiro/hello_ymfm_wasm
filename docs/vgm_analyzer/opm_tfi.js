@@ -1,5 +1,5 @@
 import {createTfiFromPreset} from '../js/tfi.js';
-import {extractOpmPatches,exportOpm} from './opm_export.js';
+import {extractOpmPatches,exportOpm} from './opm_export.js?v=pokey-vgm-1';
 
 export const OPM_TFI_CONVERSION = 'opm-to-ym2612-basic-v1';
 export const OPM_TFI_NOTICE = 'Approximate YM2612 conversion: DT2, LFO/AM, noise, pan and operator key masks are not retained. Envelope/DT clock compensation is not applied. Source OPM and conversion.json are included.';

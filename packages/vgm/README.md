@@ -7,6 +7,12 @@ the same BRR pitch estimates and score algorithms as the browser Analyzer.
 Requires **Node.js 22 or later**. WASM engines are included, with no npm runtime
 dependencies; Emscripten is not required to use the package.
 
+## Unreleased: Atari POKEY
+
+The development build adds single and dual POKEY playback, independent Mixer
+sources, 4/8 channel mutes and WAV rendering. POKEY score and FM voice exports
+are unavailable. These additions are not included in the published 0.2.15.
+
 ## Quick start
 
 Run directly with npm:
@@ -118,6 +124,7 @@ Some tracks need sample ROMs; dual chips, variants and combinations have limits.
 | YMF278B | OPL4 FM + PCM |
 | AY-3-8910 / YM2149 | Tone + noise + envelope |
 | K051649 / K052539 (SCC / SCC+) | 5-channel wavetable; mixed with MSX AY/YM2413/Y8950 |
+| Atari POKEY (single / dual) | 4 voices per chip; tone, polynomial noise and volume-only output |
 | WonderSwan | 4-channel wavetable, Voice PCM, sweep, noise (MAME) |
 | HuC6280 / PC Engine CD | 6-channel wavetable, DDA, noise, LFO (MAME); optional MSM5205 ADPCM |
 | MSM5205 | 3/4-bit ADPCM; VGM 1.72 command 0x32 |

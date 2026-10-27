@@ -1,6 +1,6 @@
-import {Ym2612VGM} from '../js/ym2612vgm.js?v=wonderswan-vgm-1';
+import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 import {createOpmState} from './opm_monitor.js';
-import {applyOpl3Write,describeOpl3Notes} from './ymf262_notes.js';
+import {applyOpl3Write,describeOpl3Notes} from './ymf262_notes.js?v=pokey-vgm-1';
 
 // Source-based replay also works before playback, after seeks, and without ROMs.
 export function exportFmRegisterSnapshot(source,{chip,atSample=0}={}) {

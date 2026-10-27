@@ -1,8 +1,9 @@
-import {installPlaybackMixer} from './playback_mixer.js';
+import {installPlaybackMixer} from './playback_mixer.js?v=pokey-vgm-1';
 import {Msm5205AudioEngine,attachMsm5205} from '../js/msm5205audioengine.js';
 import {Oki6295AudioEngine, attachOki6295} from '../js/okim6295audioengine.js';
 import {Huc6280AudioEngine} from '../js/huc6280audioengine.js';
 import {createWonderSwanAudioEngine} from '../js/wonderswanaudioengine.js';
+import {PokeyPlaybackEngine,pokeyPlaybackConfiguration} from './pokey_playback.js?v=pokey-vgm-1';
 import {createNesApuAudioEngine,validateNesApuClock} from '../js/nesapuaudioengine.js?v=seek-state-1';
 import {Oki6258AudioEngine,attachOki6258,validateOki6258Header} from '../js/okim6258audioengine.js';
 import {createYm3526AudioEngine} from '../js/ym3526audioengine.js';
@@ -21,7 +22,7 @@ import { createGenesisAudioEngine } from "../js/genesisaudioengine.js";
 import { createYm2203AudioEngine } from "../js/ym2203audioengine.js";
 import { createYm2608AudioEngine } from "../js/ym2608audioengine.js";
 import {MultiChipAudioEngine} from "../js/multichipaudioengine.js";
-import { VgmPlayer, createVgmTargets } from "../js/vgmplayer.js?v=wonderswan-vgm-1";
+import { VgmPlayer, createVgmTargets } from "../js/vgmplayer.js?v=pokey-vgm-1";
 export function detectPlaybackChipKind(header) {
   if ((header.ym2151Clock & 0x3fffffff) && ['ay8910','ym2413','y8950','k051649'].some(kind => header[`${kind}Clock`] & 0x3fffffff)) return 'msx';
   if (header.k051649Clock & 0x3fffffff) return "msx";
@@ -62,6 +63,7 @@ export function detectPlaybackChipKind(header) {
   if (header.nesApuClock & 0x3fffffff) return "nes";
   if (header.gameBoyDmgClock & 0x3fffffff) return "gameboy";
   if (header.wonderswanClock & 0x3fffffff) return "wonderswan";
+  if (header.pokeyClock & 0x3fffffff) return "pokey";
   return "ym2612";
 }
 
@@ -115,7 +117,7 @@ const composition = {
   ym2413: ['ym2413','psg'], y8950: ['y8950','psg'],
   ymf278b: ['ymf278b','psg'], ym3526: ['ym3526','psg'],
   ym3812: ['ym3812','psg','okim6295'], ymf262: ['ymf262','psg'],
-  huc6280: ['huc6280','msm5205'], msm5205:['msm5205'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], wonderswan: ['wonderswan'], okim6258: ['okim6258'], okim6295: ['okim6295'],
+  huc6280: ['huc6280','msm5205'], msm5205:['msm5205'], segapcm: ['segaPcm','psg'], nes: ['nesApu'], gameboy: ['gameBoyDmg'], wonderswan: ['wonderswan'], pokey:['pokey'], okim6258: ['okim6258'], okim6295: ['okim6295'],
 };
 export function selectPlaybackConfiguration(vgm) {
   const header = {...vgm.header};
@@ -131,7 +133,8 @@ export function selectPlaybackConfiguration(vgm) {
     const supported = new Set(Object.values(composition).flat());
     const unsupported=chips.filter(c=>!supported.has(c.id));
     if (unsupported.length) throw new Error(`Unsupported sound chip: ${unsupported.map(c=>c.id).join(', ')}`);
-    if (chips.some(c=>(c.rawClock & (['ym2610','ym2151','k051649','nesApu','okim6295'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    if (chips.some(c=>(c.rawClock & (c.id==='pokey'?0x80000000:['ym2610','ym2151','k051649','nesApu','okim6295'].includes(c.id) ? 0x40000000 : 0xc0000000)))) throw new Error('Dual/variant configuration is not supported');
+    if (header.pokeyClock) pokeyPlaybackConfiguration(header.pokeyClock);
     if (header.nesApuClock) validateNesApuClock(header.nesApuClock & 0x3fffffff);
     if (header.okim6258Clock) validateOki6258Header(header);
     if (header.ay8910Clock) validateAyPlaybackHeader({ay8910Clock:header.ay8910Clock,ay8910Type:header.ay8910Type,ay8910Flags:header.ay8910Flags});
@@ -139,7 +142,8 @@ export function selectPlaybackConfiguration(vgm) {
     // Any other combination of supported chips is assembled by the mixer.
     if (kind==='msm5205' || !chips.every(c=>composition[kind].includes(c.id) || c.id==='okim6258')) kind='mixed';
   } catch (error) { throw new PlaybackError('UNSUPPORTED_CONFIGURATION', error.message, {kind,header}); }
-  return {kind, header, chips, ignoredClocks, ...(kind==='mixed' ? {parts:planPlaybackParts(header)} : {}), requiredRoms: [
+  const sources=chips.flatMap(c=>c.id==='pokey'?Array.from({length:pokeyPlaybackConfiguration(c.rawClock).count},(_,chipIndex)=>({...c,id:chipIndex?'pokey:2':'pokey',kind:'pokey',chipIndex})):c);
+  return {kind, header, chips:sources, ignoredClocks, ...(kind==='mixed' ? {parts:planPlaybackParts(header)} : {}), requiredRoms: [
     ...(header.ym2608Clock && vgm.requiresYm2608RhythmRom?.() ? ['ym2608AdpcmA'] : []),
     ...(header.ymf278bClock && vgm.requiresYmf278bWaveRom?.() ? ['ymf278bWave'] : []),
   ]};
@@ -194,6 +198,7 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
   constructor(parts,volume){
     super(parts.map(p=>({type:p.id,engine:atOutputRate(p.engine,44100),target:{}})),44100,volume);
     this.vgmTargets={};
+    this.targetResolvers=new Map();
     const names={segaPcm:'segapcm',gameBoyDmg:'gameboyDmg'};
     for(const part of parts){
       const targets=createVgmTargets(part.engine);
@@ -201,9 +206,12 @@ class HeaderMixedAudioEngine extends MultiChipAudioEngine {
         const name=names[id]??id;
         if(!targets[name])throw new Error(`Missing VGM adapter: ${id}`);
         this.vgmTargets[name]=targets[name];
+        this.targetResolvers.set(name,index=>targets.resolveChip?targets.resolveChip(name,index):index===0?targets[name]:undefined);
       }
     }
+    this.vgmTargets.resolveChip=this.getVgmTarget.bind(this);
   }
+  getVgmTarget(type,index=0){const target=this.targetResolvers.get(type)?.(index);if(!target)throw new Error(`No playback instance for ${type}:${index}`);return target;}
   supportsState(){return false;}
   clearAdpcmBMemory(){for(const {engine} of this.entries.values())engine.clearAdpcmBMemory?.();}
   clearAdpcmRoms(){for(const {engine} of this.entries.values())engine.clearAdpcmRoms?.();}
@@ -230,6 +238,7 @@ const recipes = {
   okim6295: async (vgm, resource, masterVolume) => new Oki6295AudioEngine({clock:vgm.header.okim6295Clock,masterVolume}),
   huc6280: async (vgm, resource, masterVolume) => Huc6280AudioEngine.create({moduleFactory:await resource("huc6280"),clock:vgm.header.huc6280Clock,masterVolume}),
   wonderswan: async (vgm, resource, masterVolume) => createWonderSwanAudioEngine({moduleFactory:await resource('wonderswan'),clock:vgm.header.wonderswanClock & 0x3fffffff,masterVolume}),
+  pokey: async (vgm,resource,masterVolume) => PokeyPlaybackEngine.create({moduleFactory:await resource('pokey'),rawClock:vgm.header.pokeyClock,masterVolume}),
   nes: async (vgm, resource, masterVolume) => createNesApuAudioEngine({clock:vgm.header.nesApuClock & 0x3fffffff,fds:!!(vgm.header.nesApuClock & 0x80000000),masterVolume}),
   okim6258: async (vgm, resource, masterVolume) => Oki6258AudioEngine.create({moduleFactory:await resource('okim6258'),clock:vgm.header.okim6258Clock,flags:vgm.header.okim6258Flags,masterVolume}),
   msx: async (vgm, resource, masterVolume) => createMsxAudioEngine({
@@ -384,6 +393,7 @@ export function playbackMuteControls(configuration) {
   const {kind,header:h}=configuration, controls=[];
   const add=(id,method,...args)=>controls.push({id,method,args});
   const channels=(prefix,count,method)=>{for(let i=0;i<count;i++)add(prefix+'-'+(i+1),method,i);};
+  if(kind==='pokey')channels('pokey-ch',pokeyPlaybackConfiguration(h.pokeyClock).count*4,'setChannelMuted');
   const counts={huc6280:6,wonderswan:4,ym2203:3,ym2151:8,ym2413:9,ym3526:9,ym3812:9,ymf262:18,ymf278b:18,y8950:9,gameboy:4,nes:(h.nesApuClock & 0x80000000)?6:5};
   if(counts[kind])channels(kind+'-ch',counts[kind],'setChannelMuted');
   if(kind==='ymf278b')channels('ymf278b-pcm',24,'setPcmChannelMuted');

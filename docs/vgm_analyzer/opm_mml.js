@@ -1,4 +1,4 @@
-import {extractOpmNotes} from './opm_notes.js?v=mdx-1';
+import {extractOpmNotes} from './opm_notes.js?v=pokey-vgm-1';
 import {quantizeSixteenthNotes} from './vgm_mml_music.js';
 // MXDRV/MAC voice: four register-order rows of 11 values, then CON, FL, OP.
 export function prepareMxdrvScore(source, {bpm=120} = {}) {

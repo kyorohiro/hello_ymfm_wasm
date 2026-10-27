@@ -29,6 +29,7 @@ import {
  * @property {number} ym2608Clock
  * @property {number} rf5c164Clock
  * @property {number} wonderswanClock
+ * @property {number} pokeyClock Raw POKEY clock; bit 30 selects two instances.
  * @property {number} psgClock
  * @property {number} ym2610Clock
  * @property {number} totalSamples
@@ -68,6 +69,7 @@ import {
 /** @typedef {{ type: "ym2610-write", port: 0|1, register: number, value: number }} Ym2610WriteEvent */
 /** @typedef {{ type: "rf5c164-write", register: number, value: number, chipIndex: number } | { type: "rf5c164-memory-write", offset: number, value: number, chipIndex: number } | { type: "rf5c164-data", offset: number, data: Uint8Array, chipIndex: number }} Rf5c164Event */
 /** @typedef {{ type: "ym2608-adpcm-b-data", data: Uint8Array, offset: number, memorySize: number, chipIndex: number }} Ym2608AdpcmBDataEvent */
+/** @typedef {{ type: "pokey-write", register: number, value: number, chipIndex: number }} PokeyWriteEvent */
 
 /**
  * @typedef {Object} SegaPsgWriteEvent
@@ -87,7 +89,7 @@ import {
  */
 
 /**
- * @typedef {{type:"ay8910-write",register:number,value:number,chipIndex:number} | {type:"ym3526-write",register:number,value:number,chipIndex:number} | {type:"ym3812-write",register:number,value:number} | {type:"ymf262-write",register:number,value:number,port:number} | Ym2151WriteEvent | Ym2413WriteEvent | Rf5c164Event | Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
+ * @typedef {{type:"ay8910-write",register:number,value:number,chipIndex:number} | {type:"ym3526-write",register:number,value:number,chipIndex:number} | {type:"ym3812-write",register:number,value:number} | {type:"ymf262-write",register:number,value:number,port:number} | Ym2151WriteEvent | Ym2413WriteEvent | Rf5c164Event | PokeyWriteEvent | Ym2612WriteEvent | Ym2203WriteEvent | Ym2608WriteEvent | Ym2608AdpcmBDataEvent | Ym2610WriteEvent | SegaPsgWriteEvent | Ym2612WaitEvent | Ym2612EndEvent} Ym2612VgmEvent
  */
 
 /**
@@ -278,6 +280,7 @@ export class Ym2612VGM {
     const ay8910Flags = version >= 0x151 ? headerByte(0x79) : 0;
     const y8950Clock = version >= 0x151 ? extendedClock(0x58) : 0;
     const huc6280Clock = version >= 0x161 ? extendedClock(0xa4) : 0;
+    const pokeyClock = version >= 0x161 ? extendedClock(0xb0) : 0;
     const wonderswanClock = version >= 0x171 ? extendedClock(0xc0) : 0;
     const msm5205Clock = version >= 0x172 ? extendedClock(0xf0) : 0;
     const msm5205Flags = version >= 0x172 ? headerByte(0xd7) : 0;
@@ -296,7 +299,7 @@ export class Ym2612VGM {
       ym2612Clock,
       ym2413Clock, ym2151Clock, ym3526Clock, ym3812Clock, ymf262Clock, ymf278bClock, segaPcmClock,
       segaPcmBankShift, segaPcmBankMask,
-      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, wonderswanClock, msm5205Clock, msm5205Flags, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
+      ay8910Clock, ay8910Type, ay8910Flags, y8950Clock, k051649Clock, huc6280Clock, pokeyClock, wonderswanClock, msm5205Clock, msm5205Flags, nesApuClock, gameBoyDmgClock, okim6295Clock, okim6258Clock, okim6258Flags,
       ym2203Clock,
       ym2608Clock,
       ym2610Clock,
@@ -653,6 +656,13 @@ export class Ym2612VGM {
         this.position+=3;
         return {type:"okim6258-write",register:r&0x7f,value,chipIndex:r>>>7};
       }
+      case 0xbb: {
+        // VGM 1.61: bit 7 of the register byte selects the second POKEY.
+        this.#ensureAvailable(3);
+        const address = this.bytes[this.position + 1], value = this.bytes[this.position + 2];
+        this.position += 3;
+        return {type:'pokey-write', register:address & 0x7f, value, chipIndex:address >>> 7};
+      }
       case 0xbc: {
         // VGM 1.71: relative I/O register; bit 7 selects the second chip.
         this.#ensureAvailable(3);
@@ -856,6 +866,7 @@ export class Ym2612VGM {
  *   ym2413?: { writeRegister(register: number, value: number): void },
  *   ym2203?: { writeRegister(register: number, value: number): void },
    *   ym2608?: { writeRegister(register: number, value: number, port?: number): void, loadAdpcmBMemory?(data: Uint8Array, offset: number, memorySize: number): void },
+   *   pokey?: { writeRegister(register: number, value: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
    * }} targets
@@ -863,6 +874,14 @@ export class Ym2612VGM {
    */
   playStep(targets) {
     const event = this.step();
+    if (event.type === 'pokey-write') {
+      const target = typeof targets.resolveChip === 'function'
+        ? targets.resolveChip('pokey', event.chipIndex) : targets.pokey;
+      if (!targets.resolveChip && event.chipIndex) throw new Error('Second POKEY chip requires an independent playback target');
+      if (!target?.writeRegister) throw new Error('POKEY event requires a playback target');
+      target.writeRegister(event.register, event.value);
+      return event;
+    }
     if (event.type === 'wonderswan-write' || event.type === 'wonderswan-memory-write') {
       const target = typeof targets.resolveChip === 'function'
         ? targets.resolveChip('wonderswan', event.chipIndex) : targets.wonderswan;
@@ -1053,6 +1072,7 @@ export class Ym2612VGM {
    * @param {{
    *   resolveChip?: (type: string, index: number) => { writeRegister(register: number, value: number, port?: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
+   *   pokey?: { writeRegister(register: number, value: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
    * }} targets
@@ -1220,6 +1240,9 @@ export class Ym2612VGM {
     if (command === 0xb9) {
       return `cmd=0xb9 huc6280 chip=${this.bytes[position+1]>>>7} register=${formatHexNumber(this.bytes[position+1]&0x7f)} value=${formatHexNumber(this.bytes[position+2])}`;
     }
+    if (command === 0xbb) {
+      return `cmd=0xbb pokey chip=${this.bytes[position+1]>>>7} register=${formatHexNumber(this.bytes[position+1]&0x7f)} value=${formatHexNumber(this.bytes[position+2])}`;
+    }
     if (command === 0xbc) {
       return `cmd=0xbc wonderswan chip=${this.bytes[position+1]>>>7} register=${formatHexNumber(this.bytes[position+1]&0x7f)} value=${formatHexNumber(this.bytes[position+2])}`;
     }
@@ -1349,11 +1372,11 @@ export class Ym2612VGM {
       this.#ensureAvailable(5);
       const stream = this.#streamState(this.bytes[this.position + 1]);
       stream.chipType = this.bytes[this.position + 2];
-      // WonderSwan additionally resolves its second instance independently.
-      stream.disabled = ![0x00, 0x02, 0x11, 0x17, 0x1b, 0x21, 0xa1].includes(stream.chipType);
+      // POKEY and WonderSwan resolve their second instances independently.
+      stream.disabled = ![0x00, 0x02, 0x11, 0x17, 0x1b, 0x1e, 0x9e, 0x21, 0xa1].includes(stream.chipType);
       stream.active = false;
       if (stream.disabled) {
-        const names = {0x00:'PSG',0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY',0x17:'OKIM6258',0x18:'OKIM6295',0x1b:'HuC6280'};
+        const names = {0x00:'PSG',0x01:'YM2413',0x02:'YM2612',0x03:'YM2151',0x09:'YM3812',0x0a:'YM3526',0x0b:'Y8950',0x0c:'YMF262',0x0d:'YMF278B',0x10:'RF5C164',0x11:'PWM',0x12:'AY',0x17:'OKIM6258',0x18:'OKIM6295',0x1b:'HuC6280',0x1e:'POKEY'};
         const type = stream.chipType & 0x7f;
         this.#warn(`Unsupported DAC stream skipped: ${names[type] ?? 'chip'} (${formatHexNumber(type)}), instance=${stream.chipType >>> 7}, stream=${this.bytes[this.position + 1]}. Playback continues without this stream.`);
       }
@@ -1442,7 +1465,7 @@ export class Ym2612VGM {
    * @returns {void}
    */
   #startStream(stream, data, start, mode, length) {
-    if (stream.disabled || ![0x00, 0x02, 0x11, 0x17, 0x1b, 0x21, 0xa1].includes(stream.chipType)) { stream.active = false; return; }
+    if (stream.disabled || ![0x00, 0x02, 0x11, 0x17, 0x1b, 0x1e, 0x9e, 0x21, 0xa1].includes(stream.chipType)) { stream.active = false; return; }
     if ((stream.chipType & 0x7f) === 0x11) {
       if (start === 0xffffffff) start = stream.pwmStart || 0;
       stream.pwmStart = start;
@@ -1529,6 +1552,7 @@ export class Ym2612VGM {
    * @param {{
    *   resolveChip?: (type: string, index: number) => { writeRegister(register: number, value: number, port?: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
+   *   pokey?: { writeRegister(register: number, value: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
    * }} targets
@@ -1570,6 +1594,7 @@ export class Ym2612VGM {
    * @param {{
    *   resolveChip?: (type: string, index: number) => { writeRegister(register: number, value: number, port?: number): void, loadSampleMemory?(data: Uint8Array, offset: number, memorySize: number): void },
    *   ym2612?: { writeRegister(register: number, value: number, port?: number): void },
+   *   pokey?: { writeRegister(register: number, value: number): void },
    *   psg?: { write(data: number): void },
    *   writeRegister?: (register: number, value: number, port?: number) => void
    * }} targets
@@ -1604,7 +1629,15 @@ export class Ym2612VGM {
     const width = stream.chipType === 0 && !(stream.register & 0x10) ? 2 : 1;
     const dataIndex = stream.dataOffset + index * stream.stepSize * width;
     const value = stream.data[dataIndex];
-    if ((stream.chipType & 0x7f) === 0x21) {
+    if ((stream.chipType & 0x7f) === 0x1e) {
+      // POKEY DAC streams use one 8-bit byte per register write. The port
+      // byte is unused, matching libvgm's DEVID_POKEY DAC stream driver.
+      const chipIndex = stream.chipType >>> 7;
+      const target = typeof targets.resolveChip === 'function' ? targets.resolveChip('pokey', chipIndex) : targets.pokey;
+      if (!targets.resolveChip && chipIndex) throw new Error('Second POKEY stream requires an independent playback target');
+      if (!target?.writeRegister) throw new Error('POKEY stream requires a playback target');
+      target.writeRegister(stream.register, value);
+    } else if ((stream.chipType & 0x7f) === 0x21) {
       const chipIndex = stream.chipType >>> 7;
       const target = typeof targets.resolveChip === 'function' ? targets.resolveChip('wonderswan', chipIndex) : targets.wonderswan;
       if (!targets.resolveChip && chipIndex) throw new Error('Second WonderSwan chip: Support coming soon.');

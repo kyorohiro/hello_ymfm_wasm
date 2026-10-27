@@ -1,4 +1,4 @@
-import { Ym2612VGM } from "../js/ym2612vgm.js?v=wonderswan-vgm-1";
+import { Ym2612VGM } from "../js/ym2612vgm.js?v=pokey-vgm-1";
 
 /** Extract unquantized FM note intervals in 44100 Hz sample time. */
 export function midiChipKind(header) {
