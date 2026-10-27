@@ -1884,6 +1884,15 @@
                   </div>
                   <p class="subtext">Source-clock NES APU (NTSC / PAL), FDS wave/modulation and DMC RAM uploads. High-level mode replaces only byte-identical operations. One pass; asynchronous waits are not sample-accurate scheduling.</p>
                 </fieldset>
+                <fieldset id="pokeyImportOptions" class="vgm-import-options" hidden disabled>
+                  <legend>POKEY conversion</legend>
+                  <div class="vgm-import-mode">
+                    <label><input type="radio" name="pokeyImportMode" value="raw" checked>Raw register writes</label>
+                    <label><input type="radio" name="pokeyImportMode" value="readable">Writes with explanations</label>
+                    <label><input type="radio" name="pokeyImportMode" value="high">High-level API + raw fallback</label>
+                  </div>
+                  <p class="subtext">Prepares one or two independent four-channel chips, then starts them on the same audio frame. Dense DAC stream bytes are saved in a data file. One pass; loops are not repeated.</p>
+                </fieldset>
                 <fieldset id="wonderswanImportOptions" class="vgm-import-options" hidden disabled>
                   <legend>WonderSwan conversion</legend>
                   <div class="vgm-import-mode">
@@ -2495,7 +2504,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=wonderswan-import-3').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=pokey-import-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

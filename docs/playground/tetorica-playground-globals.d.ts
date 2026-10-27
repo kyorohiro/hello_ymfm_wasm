@@ -2307,6 +2307,34 @@ declare function createSoundChip(name:'wonderswan',options?:PlaygroundCreateSoun
 
 /** One POKEY owns four zero-based physical voices. Joined pairs consume their lower timer. */
 type PlaygroundPokeyChannel = 0|1|2|3;
+interface PlaygroundPokeyTimeline {
+  readonly version:1;
+  readonly clock:number;
+  /** Duration and packed deltas use the original 44100 Hz VGM sample units. */
+  readonly durationSamples:number;
+  readonly data:Uint8Array;
+}
+interface PlaygroundPokeyTimelineState {
+  readonly currentFrame:number;
+  readonly sampleRate:number;
+  readonly loaded:boolean;
+  readonly playing:boolean;
+  readonly ended:boolean;
+  readonly cancelled:boolean;
+  readonly positionSamples:number;
+  readonly durationSamples:number;
+  readonly token:number;
+  readonly startFrame:number;
+}
+/** Offline score authoring; these operations never send writes to the audio device. */
+interface PlaygroundPokeyTimelineBuilder extends Pick<PlaygroundPokey,'writeRegister'|'reset'|'initialize'|'getRegisterSnapshot'|'setFrequency'|'setNote'|'setVolume'|'setDistortion'|'setVolumeOnly'|'setHighClock'|'setJoined'|'setBaseClock'|'setPoly9'|'keyOn'|'keyOff'|'noteOn'|'allNotesOff'> {
+  at(sample:number):this;
+  /** Adopt authored registers without adding hardware setup writes. */
+  adoptRegisterState():void;
+  /** Copy an exact packed run at the current sample; validates before changing the score. */
+  packed(offset:number,length:number,count:number,endSample:number):this;
+  finish(durationSamples:number):PlaygroundPokeyTimeline;
+}
 interface PlaygroundPokey {
   readonly chip:'pokey';
   readonly channels:4;
@@ -2339,8 +2367,14 @@ interface PlaygroundPokey {
   setChannelMuted(channel:PlaygroundPokeyChannel,muted:boolean):Promise<void>;
   /** Ordered clock edit preserves registers, authored gates and core phase. */
   setClock(hz:number):Promise<void>;
+  createTimeline(options?:{clock?:number;packedData?:Uint8Array}):PlaygroundPokeyTimelineBuilder;
+  prepareTimeline(trace:PlaygroundPokeyTimeline):Promise<unknown>;
+  getTimelineState():Promise<PlaygroundPokeyTimelineState>;
+  /** Resolves at completion; Stop/reset/dispose cancel playback. Dual chips can share an absolute startFrame. */
+  playTimeline(options?:{startFrame?:number}):Promise<unknown>;
+  stopTimeline():Promise<unknown>;
   dispose():void;
 }
 type PlaygroundPrimaryPokey = Omit<PlaygroundPokey,'dispose'>;
 /** Create an independent four-channel POKEY; dual POKEY uses two ordinary instances. */
-declare function createSoundChip(name:'pokey',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundPokey>;
+declare function createSoundChip(name:'pokey',options?:PlaygroundCreateSoundChipOptions & {clock?:number}):Promise<PlaygroundPokey>;

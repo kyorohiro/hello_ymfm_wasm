@@ -344,3 +344,23 @@ test('Native default and explicit legacy mixers preserve the existing exact mix 
     assert(f.commands().every(c=>!Object.hasOwn(c,'gainUnits')));await f.synth.close();
   }
 });
+
+test('Native POKEY compact trace uploads count their payload and keep bounded rejections recoverable',async()=>{
+ const rejection='Native POKEY timeline is playing or pending';let reject=false;
+ const f=fixture({invoke:command=>command==='native_genesis_commands'&&reject?Promise.reject(new Error(rejection)):undefined});await f.synth.start();await f.synth.flush();reject=true;
+ const trace={version:1,clock:1789790,durationSamples:441,data:Array(70000).fill(0)};const command={type:'extra-pokey',instance:1,frame:0,message:{method:'prepare-timeline',trace}};
+ f.synth.enqueue(command);assert.equal(f.synth.acceptedPcmBytes,trace.data.length);await assert.rejects(f.synth.flush(),error=>error.code==='POKEY_CONTROL_REJECTED');await ticks();assert.equal(f.synth.state,'ready');assert.equal(f.synth.acceptedPcmBytes,0);assert.equal(f.errors.length,0);
+ reject=false;f.synth.enqueue(command);await f.synth.flush();assert.equal(f.synth.acceptedPcmBytes,0);const tooLarge={...command,message:{...command.message,trace:{...trace,data:Array(8*1024*1024+1).fill(0)}}};f.synth.enqueue(tooLarge);await assert.rejects(f.synth.flush(),/command limit/);await f.synth.close();
+});
+
+test('Native POKEY out-of-range timeline starts remain recoverable controls',async()=>{
+ let rejected=false;
+ const f=fixture({invoke:command=>command==='native_genesis_commands'&&rejected?Promise.reject(new Error('Native POKEY timeline start frame is invalid or late')):undefined});
+ try{
+  await f.synth.start();await f.synth.flush();rejected=true;
+  f.synth.enqueue({type:'extra-pokey',instance:1,frame:0,message:{method:'play-timeline',token:1,startFrame:Number.MAX_SAFE_INTEGER}});
+  await assert.rejects(f.synth.flush(),error=>error.code==='POKEY_CONTROL_REJECTED');
+  await ticks();assert.equal(f.synth.state,'ready');assert.deepEqual(f.errors,[]);
+  rejected=false;f.synth.enqueue({type:'extra-pokey',instance:1,frame:0,message:{method:'stop-timeline'}});await f.synth.flush();
+ }finally{await f.synth.close();}
+});

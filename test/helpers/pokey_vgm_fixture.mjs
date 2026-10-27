@@ -65,3 +65,57 @@ export function createPokeyStreamVgm({dual=false,chip=0,channel=0,clock=1789790,
   if(loop){view.setUint32(0x1c,loopOffset-0x1c,true);view.setUint32(0x20,samples,true);}
   bytes.set(data,0x100);return bytes;
 }
+
+/** Original one-pass import fixture with an authored silent onset. Its
+ * nonperiodic 12 kHz volume-only streams expose dropped/reordered bytes,
+ * fractional-rate timing and a one-quantum offset between two POKEYs. The
+ * ordinary-register path deliberately changes shared/joined control and
+ * repeats STIMER writes at the same sample boundary.
+ */
+export function createPokeyImportVgm({dual=false,clock=1789773,dense=false,seconds=.65}={}) {
+  const initial=createPokeyVgm({dual,clock,seconds,loop:false,voices:[{volume:0}]});
+  const data=[],write=(chip,register,value)=>data.push(0xbb,(chip<<7)|register,value);
+  const wait=count=>{while(count){const n=Math.min(count,65535);data.push(0x61,n&255,n>>>8);count-=n;}};
+  const chips=dual?2:1,samples=Math.round(seconds*44100),onset=2205;
+  if(samples<22050)throw new RangeError('Import fixture duration must be at least half a second');
+  for(let chip=0;chip<chips;chip++){
+    for(let ch=0;ch<4;ch++)write(chip,ch*2+1,0xa0);
+    write(chip,8,0);write(chip,15,3);write(chip,9,0);
+  }
+  if(dense){
+    const count=Math.floor((samples-onset-2205)*12000/44100);
+    for(let chip=0;chip<chips;chip++){
+      const bytes=new Uint8Array(count);let state=(0x65a39d27^(chip*0x3db7a149))>>>0;
+      for(let i=0;i<count;i++){state^=state<<13;state^=state>>>17;state^=state<<5;bytes[i]=0x10+(1+((state>>>0)%7));}
+      data.push(0x67,0x66,0,count&255,(count>>>8)&255,(count>>>16)&255,count>>>24,...bytes);
+    }
+    for(let chip=0;chip<chips;chip++)data.push(0x90,chip,0x1e|(chip<<7),0,chip?7:3,
+      0x91,chip,0,1,0,0x92,chip,0xe0,0x2e,0,0);
+    wait(onset);
+    for(let chip=0;chip<chips;chip++)data.push(0x95,chip,chip,0,0);
+    wait(samples-onset-2205);
+    for(let chip=0;chip<chips;chip++){data.push(0x94,chip);write(chip,chip?7:3,0x10);}
+    wait(2205);
+  }else{
+    wait(onset);
+    for(let chip=0;chip<chips;chip++){
+      write(chip,0,chip?70:91);write(chip,1,0xa5);write(chip,9,0);write(chip,9,0);
+    }
+    wait(4410);
+    for(let chip=0;chip<chips;chip++){
+      write(chip,4,chip?61:45);write(chip,5,0xc2);write(chip,8,0x40);write(chip,0,chip?90:112);
+    }
+    wait(6615);
+    for(let chip=0;chip<chips;chip++){
+      write(chip,1,0xa0);write(chip,8,0x50);write(chip,0,chip?0x9b:0xd1);write(chip,2,3);
+      write(chip,3,0xa4);write(chip,9,0);
+    }
+    wait(samples-onset-4410-6615-2205);
+    for(let chip=0;chip<chips;chip++)for(let ch=0;ch<4;ch++)write(chip,ch*2+1,0xa0);
+    wait(2205);
+  }
+  data.push(0x66);
+  const bytes=new Uint8Array(0x100+data.length),view=new DataView(bytes.buffer);
+  bytes.set(initial.subarray(0,0x100));view.setUint32(4,bytes.length-4,true);bytes.set(data,0x100);
+  return bytes;
+}

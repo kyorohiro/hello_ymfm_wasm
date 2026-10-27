@@ -3,22 +3,25 @@ import assert from 'node:assert/strict';
 import {NativeGenesisSynth} from './native_genesis_synth.js';
 import {SoundChipMixer} from './soundchip_mixer.js';
 
-function fixture(t,mode='pokey-dual'){
+function fixture(t,mode='pokey-dual',{timelineCapture=false}={}){
   const calls=[],rack=new Map(),errors=[];let revision=0,frame=0;
   const status=()=>({session:1,mode,sampleRate:48000,frame:frame+=128,running:true});
-  const image=item=>({...status(),revision:++revision,pokey:structuredClone(item)});
+  const image=item=>{const s=status(),tl=item.timeline;if(tl?.playing&&s.frame>=tl.startFrame+Math.ceil(tl.durationSamples*48000/44100)){tl.playing=false;tl.ended=true;tl.positionSamples=tl.durationSamples;for(let ch=0;ch<4;ch++)item.registers[ch*2+1]&=240;}return {...s,revision:++revision,pokey:structuredClone(item)};};
   const invoke=async(command,args={})=>{
     calls.push({command,args});
-    if(command==='native_genesis_extra_pokey_create'){assert(!rack.has(args.instance));const p={clock:args.clock??1789790,registers:Array(16).fill(0),readRegisters:Array(16).fill(255),levels:[8,8,8,8],sourceMuteMask:0,held:[],pendingCommands:[]};rack.set(args.instance,p);return image(p);}
+    if(command==='native_genesis_extra_pokey_create'){assert(!rack.has(args.instance));const p={clock:args.clock??1789790,registers:Array(16).fill(0),readRegisters:Array(16).fill(255),levels:[8,8,8,8],sourceMuteMask:0,held:[],pendingCommands:[],pendingTimelines:0,timeline:{loaded:false,playing:false,ended:false,cancelled:false,durationSamples:0,positionSamples:0,token:0,startFrame:0}};rack.set(args.instance,p);return image(p);}
     if(command==='native_genesis_extra_pokey_dispose'){rack.delete(args.instance);return true;}
-    if(command==='native_genesis_extra_pokey_status'){assert(rack.has(args.instance));return image(rack.get(args.instance));}
+    if(command==='native_genesis_extra_pokey_status'){assert(rack.has(args.instance));const p=rack.get(args.instance);if(timelineCapture&&args.after===undefined&&p.timeline.playing)frame=Math.max(frame,p.timeline.startFrame+Math.ceil(p.timeline.durationSamples*48000/44100));return image(p);}
     if(command==='native_genesis_commands')for(const c of args.commands){if(c.type!=='extra-pokey')continue;const p=rack.get(c.instance);assert(p,`expired instance ${c.instance}`);const apply=m=>{
-      if(m.method==='reset'){p.registers.fill(0);p.levels.fill(8);p.held=[];p.sourceMuteMask=0;}
+      if(m.method==='prepare-timeline'){p.trace=m.trace;p.timeline={loaded:true,playing:false,ended:false,cancelled:false,durationSamples:m.trace.durationSamples,positionSamples:0,token:0,startFrame:0};}
+      if(m.method==='play-timeline'){Object.assign(p.timeline,{playing:true,ended:false,cancelled:false,token:m.token,startFrame:m.startFrame??frame});}
+      if(m.method==='stop-timeline'){Object.assign(p.timeline,{playing:false,cancelled:true});}
+      if(m.method==='reset'){Object.assign(p.timeline,{loaded:false,playing:false,cancelled:true});p.registers.fill(0);p.levels.fill(8);p.held=[];p.sourceMuteMask=0;}
       if(m.method==='write'){p.registers[m.register]=m.value;if(m.register<8&&(m.register&1)&&(m.value&15))p.levels[m.register>>1]=m.value&15;}
       if(m.method==='set-retained-level')p.levels[m.channel]=m.level;
       if(m.method==='channel-mute')p.sourceMuteMask=m.muted?p.sourceMuteMask|(1<<m.channel):p.sourceMuteMask&~(1<<m.channel);
       if(m.method==='key-off')p.registers[m.channel*2+1]&=240;
-      if(m.method==='stop-voices')for(let ch=0;ch<4;ch++)p.registers[ch*2+1]&=240;
+      if(m.method==='stop-voices'){Object.assign(p.timeline,{playing:false,cancelled:true});for(let ch=0;ch<4;ch++)p.registers[ch*2+1]&=240;}
       if(m.method==='batch'){if(m.action==='off'&&p.leases?.[m.channel]!==m.voice)return;for(const op of m.commands)apply(op);p.leases??={};if(m.action==='on'){p.leases[m.channel]=m.voice;if(!p.held.includes(m.channel))p.held.push(m.channel);}if(m.action==='off'){delete p.leases[m.channel];p.held=p.held.filter(ch=>ch!==m.channel);}}
     };apply(c.message);}
     if(command==='native_genesis_stop'||command==='native_genesis_shutdown')rack.clear();
@@ -62,4 +65,40 @@ test('Native dual POKEY Worker bridge routes same-kind primaries over distinct r
 
 test('Native primary POKEY restores visible Mixer gain and pan after global Stop',async t=>{
  const f=fixture(t,'pokey');await f.synth.start();await f.synth.primaryPokey[0].mix(.4,-.5);await f.synth.stopNativeAudio();const mixes=f.commands().filter(c=>c.type==='extra-pokey'&&c.instance===2&&c.message.method==='mix');assert.equal(mixes.length,1);assert.equal(mixes[0].message.volume,.4);assert.equal(mixes[0].message.pan,-.5);
+});
+
+
+const trace=clock=>({version:1,clock,durationSamples:44,data:new Uint8Array([0,15,3,0,0,72,0,1,168])});
+test('Native Main dual POKEY prepares owned traces and shares absolute start through separate instances',async t=>{
+ const f=fixture(t);await f.synth.start();const a=f.synth.pokey,b=f.synth.pokey2;const input=trace(1789773);await Promise.all([a.prepareTimeline(input),b.prepareTimeline(input)]);input.data.fill(0);const state=await a.getTimelineState();assert.equal(state.sampleRate,48000);assert(state.loaded);const startFrame=state.currentFrame+1024;
+ const result=await Promise.all([a.playTimeline({startFrame}),b.playTimeline({startFrame})]);assert(result.every(s=>s.ended&&!s.playing));const commands=f.commands().filter(c=>c.message.method==='play-timeline');assert.deepEqual(commands.map(c=>[c.instance,c.message.startFrame]),[[1,startFrame],[2,startFrame]]);assert.equal(f.rack.get(1).trace.data[1],15);assert.equal(f.rack.get(2).trace.data[1],15);
+});
+test('Native POKEY rejects malformed trace before enqueue and Stop cancels pending playback',async t=>{
+ const f=fixture(t,'pokey');await f.synth.start();const a=f.synth.pokey;const n=f.commands().length;await assert.rejects(a.prepareTimeline({...trace(1789790),data:new Uint8Array([128,0,1,1])}),/canonical|Invalid/);assert.equal(f.commands().length,n);
+ await a.prepareTimeline(trace(1789790));const state=await a.getTimelineState();const playing=a.playTimeline({startFrame:state.currentFrame+48000});const rejected=assert.rejects(playing,{name:'AbortError'});await a.stopTimeline();await rejected;assert.equal((await a.getTimelineState()).playing,false);
+ const before=f.commands().length;await assert.rejects(a.prepareTimeline(trace(2000000)),/clock/);assert.equal(f.commands().length,before);
+});
+test('Native POKEY Main owner cancellation and Worker timeline controls preserve deferred completion',async t=>{
+ const {MessageChannel}=await import('node:worker_threads');const {createNativeGenesisWorkerBridge}=await import('./native_genesis_worker.js');const {createPokeyClient}=await import('./playground_pokey.js');const {createPerformanceHost}=await import('./playground_performance_host.js');
+ const f=fixture(t);await f.synth.start();const a=f.synth.pokey;const group=a._allocateMainOwner();await a._withMainOwner(group,()=>a.prepareTimeline(trace(1789773)));assert.equal(f.commands().find(c=>c.message.method==='prepare-timeline').message.group,group);const st=await a.getTimelineState();const play=a._withMainOwner(group,()=>a.playTimeline({startFrame:st.currentFrame+48000}));const reject=assert.rejects(play,{name:'AbortError'});a._cancelMainOwner(group);await reject;
+ const bridge=createNativeGenesisWorkerBridge({synth:f.synth,MessageChannelClass:MessageChannel,onError:e=>f.errors.push(e)});t.after(()=>bridge.dispose());const host=createPerformanceHost({getContext:()=>({currentTime:0,state:'running'})});await host.start([bridge.port],.1);t.after(()=>host.stop());const b=createPokeyClient(bridge.primaryPorts.pokey2,{clock:1789773,state:f.synth.pokey2._getState()});await b.prepareTimeline(trace(1789773));const bs=await b.getTimelineState();const done=await b.playTimeline({startFrame:bs.currentFrame+1024});assert(done.ended);b.dispose();await host.stop();await bridge.dispose();
+});
+
+
+for(const execution of ['main','worker'])for(const dual of [false,true])for(const dense of [false,true])test(`POKEY VGM generated high source runs Native ${execution} ${dual?'dual':'single'} ${dense?'dense':'normal'} and disposes owned cores`,async t=>{
+ const {createPlaygroundRuntime}=await import('./playground_runtime.js');const {exportPokeyVgm}=await import('../docs/playground/pokey_vgm_import.js');const {createPokeyImportVgm}=await import('../test/helpers/pokey_vgm_fixture.mjs');const {installCreationEnvironment,until}=await import('./native_genesis_extra_creation_fixture.mjs');
+ const env=installCreationEnvironment(t),f=fixture(t,'pokey-dual',{timelineCapture:true}),logs=[];const runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false,onLog:line=>logs.push(line)});t.after(()=>runtime.finalize());
+ const source=exportPokeyVgm(createPokeyImportVgm({dual,dense}),{mode:'high'})+"\nlog('native-import-finished');";await runtime.playSource(source,{execution});await until(()=>logs.some(line=>line.includes('native-import-finished')),'Native generated VGM completed',5000);await f.synth.flush();
+ const count=dual?2:1,prepared=f.commands().filter(c=>c.message.method==='prepare-timeline'),played=f.commands().filter(c=>c.message.method==='play-timeline');assert.equal(prepared.length,count);assert.equal(played.length,count);assert.equal(new Set(played.map(c=>c.message.startFrame)).size,1);assert(played.every(c=>Number.isSafeInteger(c.message.startFrame)));assert(prepared.every(c=>c.message.trace.durationSamples===28665&&c.message.trace.data.length>0));assert.equal(new Set(prepared.map(c=>c.instance)).size,count);if(execution==='worker')assert(played.every(c=>c.performance>0&&c.owner>0));
+ await until(()=>f.calls.filter(c=>c.command==='native_genesis_extra_pokey_dispose').length===count,'all generated cores disposed');assert.equal(f.synth.extraDevices.size,0);assert.equal(f.synth.extraPokeyDevices.size,0);assert.equal(f.rack.size,2);if(execution==='worker')assert.equal(env.workers.length,1);assert.deepEqual(f.errors,[]);await runtime.stopWithFade();await runtime.finalize();
+});
+
+for(const execution of ['main','worker'])test(`Native POKEY primary timeline loop cancellation fences deferred ${execution} continuation`,async t=>{
+ const {createPlaygroundRuntime}=await import('./playground_runtime.js');const {installCreationEnvironment,until}=await import('./native_genesis_extra_creation_fixture.mjs');
+ installCreationEnvironment(t);const f=fixture(t),logs=[];const runtime=createPlaygroundRuntime({synth:f.synth,guardExecution:false,onLog:line=>logs.push(line)});t.after(()=>runtime.finalize());
+ await runtime.playSource(`await pokey.prepareTimeline({version:1,clock:1789773,durationSamples:44100*3600,data:new Uint8Array([0,15,3,0,0,72,0,1,168])});
+ liveLoop('timeline-loop',async()=>{const state=await pokey.getTimelineState();log('loop-started');await pokey.playTimeline({startFrame:state.currentFrame+48000});log('stale-timeline-continuation');await beat(100);});
+ keyboard.bind('cancel',{noteOn(){stopLoop('timeline-loop');log('loop-cancelled');},noteOff(){},allNotesOff(){}});`,{execution});
+ await until(()=>f.commands().some(c=>c.message.method==='play-timeline')&&runtime.getKeyboardTarget(),'primary timeline pending');const play=f.commands().find(c=>c.message.method==='play-timeline');assert(execution==='worker'?play.performance>0&&play.owner>0:play.message.group>0);
+ runtime.getKeyboardTarget().noteOn({id:'cancel',midi:60});await until(()=>logs.some(line=>line.includes('loop-cancelled')),'primary timeline cancelled');await until(()=>execution==='worker'?f.calls.some(c=>c.command==='native_genesis_performance'&&c.args.op==='cancel-owner'):f.commands().some(c=>c.message.method==='cancel-main-owner'&&c.message.targetGroup===play.message.group),'primary timeline owner fence');await new Promise(resolve=>setTimeout(resolve,20));assert(!logs.some(line=>line.includes('stale-timeline-continuation')));assert.deepEqual(f.errors,[]);await runtime.stopWithFade();await runtime.finalize();
 });

@@ -67,6 +67,8 @@ playground_wonderswan_inspector.js
 pokey.js
 pokeysynth.js
 pokeyaudioengine.js
+pokey_timeline.js
+pokey_timeline_builder.js
 playground_pokey.js
 playground_pokey_audio.js
 playground_pokey_worklet.js
@@ -433,6 +435,9 @@ node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${ROOT_DIR}/docs"
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/pokey.js" "${DOCS_JS_DIR}/playground_pokey_audio.js" "${DOCS_JS_DIR}/playground_pokey_worklet.js"
+# Runtime defaults resolve from the Playground page in the website layout.
+# Preserve existing parent paths when synchronizing an unrelated chip change.
+perl -0pi -e 's#(?<!\.)\./generated/#../generated/#g' "${DOCS_JS_DIR}/playground_runtime.js"
 node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"
 node "${ROOT_DIR}/scripts/version_vgm_analyzer_runtime.mjs"
 

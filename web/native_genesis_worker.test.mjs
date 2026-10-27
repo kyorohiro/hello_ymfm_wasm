@@ -284,3 +284,21 @@ test('Native backlog bounds count the backing storage of small PCM views before 
     assert.equal(h.calls.filter(call=>call[0]==='chip').length,0);assert.equal(h.errors.length,0);
   } finally {await h.close();}
 });
+
+test('primary POKEY timeline cancellation is immediate across owner, Stop, replacement and bridge disposal',async()=>{
+ const pending=deferred(),events=[];let blockCancel=false;
+ const endpoint={globalName:'pokey',dispatch:()=>({id:1}),cancelOwner:(performance,owner)=>events.push(['owner',performance,owner]),cancelPerformance:performance=>events.push(['performance',performance])};
+ const h=harness({synth:{primaryPokey:[endpoint],async setNativePerformance(request){h.calls.push(['control',request]);if(blockCancel&&request.op==='cancel-owner')await pending.promise;}}});
+ try {
+  const clock=await h.start();const port=h.bridge.primaryPorts.pokey;let reply=message(port);port.postMessage({nativePerformance:{session:clock.session,owner:'loop'},commands:[{method:'getTimelineState',id:1}]});await reply;
+  blockCancel=true;h.bridge.port.postMessage({type:'performance-cancel-owner',session:clock.session,owner:'loop'});await until(()=>events.some(e=>e[0]==='owner'));assert.deepEqual(events[0],['owner',clock.session,1]);
+  h.host.stop();await until(()=>events.some(e=>e[0]==='performance'));assert(events.some(e=>e[1]===clock.session));pending.resolve();await h.start();await h.bridge.dispose();assert(events.filter(e=>e[0]==='performance').length>=2);
+ }finally {pending.resolve();await h.close();}
+});
+test('Native Worker accounts the entire compact POKEY timeline backing buffer before queued admission',async()=>{
+ const held=deferred(),h=harness({synth:{primaryPokey:[{globalName:'pokey',dispatch:async m=>{await held.promise;return {id:m.id};}}]}});
+ try {
+  await h.start();const port=h.bridge.primaryPorts.pokey,first=message(port);port.postMessage({method:'getTimelineState',id:1});await delay();
+  const reply=message(port);port.postMessage({method:'prepareTimeline',id:2,args:[{version:1,clock:1789790,durationSamples:1,data:new Uint8Array(new ArrayBuffer(64*1024*1024+1),0,1)}]});const response=await reply;assert.match(response.error,/queue is full/);held.resolve();await first;
+ }finally {held.resolve();await h.close();}
+});

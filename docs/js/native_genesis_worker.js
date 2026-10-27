@@ -63,6 +63,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         }, 1, error => port.postMessage({type:'performance-result',id:message.id,error:String(error.message ?? error)}));
         return;
       }
+      if(active!==null)for(const {endpoint}of primaryPokey.values())endpoint.cancelPerformance?.(active);
       const version = ++epoch; active = performance; owners.clear(); cancelled.clear();
       enqueue(async () => {
         if (disposed || version !== epoch) throw abort();
@@ -74,10 +75,12 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
       if (joinedEndpoint) return;
       if (active !== performance) return;
       active = null; ++epoch;
+      for(const {endpoint}of primaryPokey.values())endpoint.cancelPerformance?.(performance);
       enqueue(async () => {await synth.setNativePerformance({op:'stop',performance});for(const endpoint of extraEndpoints)endpoint.stop(performance);}, 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
     } else if (message.type === 'performance-cancel-owner') {
       if (active !== performance || cancelled.has(message.owner)) return;
       const owner = ownerId(message.owner); cancelled.add(message.owner);
+      for(const {endpoint}of primaryPokey.values())endpoint.cancelOwner?.(performance,owner);
       enqueue(async () => {await synth.setNativePerformance({op:'cancel-owner',performance,owner});for(const endpoint of extraEndpoints)endpoint.cancelOwner(performance,owner);}, 0, error => { if (!disposed && error.name !== 'AbortError') onError(error); });
     }
   }
@@ -131,7 +134,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
         (m.method==='memory'?bytesOf(m.args?.[typeof m.args?.[0]==='number'?1:0]):0) +
         (m.method==='rom'?bytesOf(m.args?.[0]):0) +
         (m.method==='loadBRR'?bytesOf(m.args?.[0]):0) +
-        (m.method==='prepareTimeline'?Array.isArray(m.args?.[0])?m.args[0].length*32+(m.args?.[1]?.reduce((total,b)=>total+bytesOf(b),0)??0):bytesOf(m.args?.[0]?.events)+bytesOf(m.args?.[0]?.initialState?.ram)+bytesOf(m.args?.[0]?.initialState?.dsp):0) +
+        (m.method==='prepareTimeline'?Array.isArray(m.args?.[0])?m.args[0].length*32+(m.args?.[1]?.reduce((total,b)=>total+bytesOf(b),0)??0):bytesOf(m.args?.[0]?.events)+bytesOf(m.args?.[0]?.data)+bytesOf(m.args?.[0]?.initialState?.ram)+bytesOf(m.args?.[0]?.initialState?.dsp):0) +
         (m.method==='loadSysex'?bytesOf(m.args?.[0]):0) +
         (m.pcm?.channels?.reduce((total,channel) => total + bytesOf(channel),0) ?? 0),0);
       enqueue(async () => {
@@ -193,6 +196,7 @@ export function createNativeGenesisWorkerBridge({synth, MessageChannelClass = Me
     dispose() {
       if (disposed) return serial;
       disposed = true; const performance = active; active = null; ++epoch;
+      if(performance!==null)for(const {endpoint}of primaryPokey.values())endpoint.cancelPerformance?.(performance);
       for (const endpoint of [...extraEndpoints]) endpoint.dispose();
       for (const port of [...ports,admin.port2,chip.port2,fx.port2,...(pwm?[pwm.port2]:[]),...(pcm?[pcm.port2]:[]),...(dx7?[dx7.port2]:[]),...(nes?[nes.port2]:[]),...Array.from(consoles.values(),channel=>channel.port2),...[...primaryPokey.values()].map(item=>item.channel.port2)]) port.close();
       const result = serial.then(() => performance === null ? undefined : synth.setNativePerformance({op:'stop',performance}));

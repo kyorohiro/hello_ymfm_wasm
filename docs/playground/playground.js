@@ -32,8 +32,9 @@ let pendingDesktopCassetteAssets = null;
 const cassettePresetNames = new Set();
 const cassetteSampleNames = new Set();
 import {exportYm2608FullVgm} from './ym2608_vgm_import.js?v=vgm-frequency-order-2';
-import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=wonderswan-import-3';
+import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addVgmSoundChipSetup, exportYm2203FullVgm} from './playground_vgm_import.js?v=pokey-import-1';
 import {exportWonderSwanVgm} from './wonderswan_vgm_import.js?v=wonderswan-import-3';
+import {exportPokeyVgm} from './pokey_vgm_import.js?v=pokey-import-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
 import {createPlaygroundAudioInput} from './playground_audio_input.js?v=y8950-adpcm-ui-1';
 import {createNativeSampleEditorAudio} from '../js/playground_native_sample_editor.js?v=y8950-adpcm-ui-1';
@@ -48,7 +49,7 @@ import {
 } from "../js/megasynth.js?v=pokey-mode-1";
 import {
   createTetoricaSynth,
-} from "../js/tetorica_synth.js?v=pokey-mode-1";
+} from "../js/tetorica_synth.js?v=pokey-import-1";
 import {
   createTfiOperatorObjectText,
   createTfiPresetObjectText,
@@ -94,7 +95,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=pokey-mode-1";
+} from "../js/playground_runtime.js?v=pokey-import-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=y8950-adpcm-ui-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
@@ -287,7 +288,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const soundChipMixer = createPlaygroundSoundChipMixer(selectedMode.id);
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=pokey-mode-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=pokey-import-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     mixer:soundChipMixer,
@@ -1110,6 +1111,13 @@ async function importVgmFile(file, options) {
       dacFiles.push({path, bytes}); return path;
     }}),
     statusMessage: 'for WonderSwan (four channels, wave RAM and Voice PCM; one pass)',
+  } : detection.family === 'pokey' ? {
+    source: exportPokeyVgm(buffer, {mode: options.pokeyMode, writeDataFile(bytes) {
+      let path;
+      do { path = `/pokey-data-${crypto.randomUUID()}.dat`; } while (virtualFiles.has(path));
+      dacFiles.push({path, bytes}); return path;
+    }}),
+    statusMessage: `for POKEY${detection.chipCount === 2 ? ' × 2' : ''} (prepared audio-frame playback; one pass)`,
   } : (detection.rf5c164 && options.includeRf5c164) || detection.family === 'rf5c164' ? {
     source: exportRf5c164Vgm(buffer, {...options, useBuiltInPcm:selectedMode.id === 'mega-cd', writeDacFile(bytes) {
       let path;
@@ -2639,6 +2647,7 @@ runButton.addEventListener(
           nesMode: document.querySelector('input[name="nesImportMode"]:checked')?.value ?? 'raw',
           gameboyMode: document.querySelector('input[name="gameboyImportMode"]:checked')?.value ?? 'raw',
           wonderswanMode: document.querySelector('input[name="wonderswanImportMode"]:checked')?.value ?? 'raw',
+          pokeyMode: document.querySelector('input[name="pokeyImportMode"]:checked')?.value ?? 'raw',
           targetPath,
           noteish: selectedMode?.value === "high" && document.getElementById("noteishVgmInput").checked,
           splitChannels: document.getElementById("splitVgmChannelsInput").checked,
@@ -2779,12 +2788,15 @@ runButton.addEventListener(
       pendingVgmImport = prepared;
       const {detection} = prepared;
       vgmImportFilename.textContent = file.name;
-      document.getElementById('vgmImportDetected').textContent = `Detected: ${detection.chips.map(chip => chip === 'gameBoyDmg' ? 'Game Boy DMG' : chip === 'nesApu' ? 'NES APU' + (detection.fds ? ' + FDS' : '') : chip === 'wonderswan' ? 'WonderSwan' : chip.toUpperCase()).join(' + ') || 'unknown'}`;
+      document.getElementById('vgmImportDetected').textContent = `Detected: ${detection.chips.map(chip => chip === 'gameBoyDmg' ? 'Game Boy DMG' : chip === 'nesApu' ? 'NES APU' + (detection.fds ? ' + FDS' : '') : chip === 'wonderswan' ? 'WonderSwan' : chip === 'pokey' && detection.chipCount === 2 ? 'POKEY × 2' : chip.toUpperCase()).join(' + ') || 'unknown'}`;
       document.getElementById('vgmImportNotice').textContent = detection.message;
       const opnOptions = document.getElementById('opnImportOptions');
       const gbOptions = document.getElementById('gameboyImportOptions');
       const nesOptions = document.getElementById('nesImportOptions');
       const wsOptions = document.getElementById('wonderswanImportOptions');
+      const pokeyOptions = document.getElementById('pokeyImportOptions');
+      pokeyOptions.hidden = detection.family !== 'pokey' || !detection.supported;
+      pokeyOptions.disabled = pokeyOptions.hidden;
       wsOptions.hidden = detection.family !== 'wonderswan' || !detection.supported;
       wsOptions.disabled = wsOptions.hidden;
       nesOptions.hidden = detection.family !== 'nes' || !detection.supported;

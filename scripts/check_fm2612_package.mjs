@@ -49,7 +49,7 @@ try {
     'playground_keyboard', 'playground_sample_edit', 'playground_sample_instrument',
     'playground_chip_inspector', 'playground_chip_inspector_state', 'playground_native_voice_inspector',
     ...['pokey','wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
-    'pokey','pokeysynth','pokeyaudioengine','wonderswan','wonderswansynth','huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
+    'pokey','pokeysynth','pokeyaudioengine','pokey_timeline','pokey_timeline_builder','wonderswan','wonderswansynth','huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
     'playground_opl','playground_opl_audio','playground_opl_worklet','playground_opl_inspector'];
   for (const name of nativeModules) for (const extension of ['js','d.ts']) {
     assert.ok(packedPaths.has(name + '.' + extension), `Native voice/sample package payload missing ${name}.${extension}`);

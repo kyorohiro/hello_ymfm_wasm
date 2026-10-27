@@ -97,7 +97,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.chip === 'pokey') return {
     chip:'pokey', clock:mode.clock, dualPokey:mode.dualPokey === true,
-    workletUrl:new URL('./playground_pokey_worklet.js?v=pokey-mode-1',base).href,
+    workletUrl:new URL('./playground_pokey_worklet.js?v=pokey-import-1',base).href,
     wasmUrl:new URL('pokey_wasm.wasm',generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };

@@ -2,6 +2,17 @@
 /// <reference path="./playground-mode-common.ts" />
 /// <reference path="./playground-mode-without-opna.ts" />
 
+async function checkImportedPokeyInGenesis() {
+  const imported = await createSoundChip('pokey', {clock:1789773});
+  try {
+    const score = imported.createTimeline();
+    score.adoptRegisterState(); score.writeRegister(15,3);
+    await imported.prepareTimeline(score.finish(441));
+    const state = await imported.getTimelineState();
+    await imported.playTimeline({startFrame:state.currentFrame+state.sampleRate});
+  } finally {imported.dispose();}
+}
+
 async function checkGenesisModeTypes() {
   fm.setPan(CH6, true, false);
   fm.setLfo(true, 2);

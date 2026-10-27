@@ -4,7 +4,7 @@ import {createSnesAudio} from './playground_snes_audio.js?v=pokey-mode-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=pokey-mode-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=y8950-adpcm-ui-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pokey-mode-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pokey-import-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=y8950-adpcm-ui-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-mode-1';
@@ -34,9 +34,9 @@ import {createSampleInstrument as createSampleInstrumentFactory} from './playgro
 import {createGameboyAudio} from './playground_gameboy_audio.js?v=pokey-mode-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-mode-1';
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-mode-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=pokey-mode-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=pokey-import-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=pokey-mode-1';
-import {createPokeyAudio} from './playground_pokey_audio.js?v=pokey-mode-1';
+import {createPokeyAudio} from './playground_pokey_audio.js?v=pokey-import-1';
 import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=pokey-mode-1';
 import {createOki6258Audio} from './playground_okim6258_audio.js?v=pokey-mode-1';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=pokey-mode-1';
@@ -58,7 +58,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=pokey-mode-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=pokey-mode-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=pokey-import-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -257,7 +257,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=pokey-mode-1",
+      "./playground_logic_worker.js?v=pokey-import-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -451,7 +451,7 @@ export function createPlaygroundRuntime(
   }
   function ownPokeyMain(raw) {
     if(wonderSwanMainOwners.has(raw))return wonderSwanMainOwners.get(raw);
-    const owners=new Map(),previousObserve=raw._observe;
+    const owners=new Map(),previousObserve=raw._observe;let timelineOwner;
     raw._beforeWrite=(address,value)=>{
       const loop=currentLoopContext;if(!releasingWonderSwan&&loop?.stopped)return false;
       if(address>=8||!(address&1))return true;
@@ -459,9 +459,27 @@ export function createPlaygroundRuntime(
       if(!releasingWonderSwan&&!on&&loop&&owners.has(ch)&&owners.get(ch)!==voiceOwner(loop))return false;
       if(on)owners.set(ch,voiceOwner(loop));else owners.delete(ch);return true;
     };
-    raw._observe=event=>{if(event.method==='reset')owners.clear();previousObserve?.(event);};
-    const control={clear:()=>owners.clear(),releaseOwner(owner){const before=releasingWonderSwan;releasingWonderSwan=true;try{for(const[ch,held]of owners)if(held===owner){owners.delete(ch);raw.keyOff(ch);}}finally{releasingWonderSwan=before;}}};
+    raw._observe=event=>{
+      if(event.method==='reset'){owners.clear();timelineOwner=undefined;}
+      if(event.method==='playTimeline'){
+        if(currentLoopContext?.stopped)throw new DOMException('POKEY Run stopped','AbortError');
+        timelineOwner=voiceOwner(currentLoopContext);
+      }
+      previousObserve?.(event);
+    };
+    const control={clear(){owners.clear();timelineOwner=undefined;},releaseOwner(owner){
+      if(timelineOwner===owner){timelineOwner=undefined;Promise.resolve(raw._cancelTimeline?.()).catch(()=>{});}
+      const before=releasingWonderSwan;releasingWonderSwan=true;
+      try{for(const[ch,held]of owners)if(held===owner){owners.delete(ch);raw.keyOff(ch);}}finally{releasingWonderSwan=before;}
+    }};
     wonderSwanMainOwners.set(raw,control);return control;
+  }
+  function setPokeyTimelineLifecycle(raw){
+    raw._setTimelineLifecycle?.({
+      captureContext:()=>({token:currentRunToken,loop:currentLoopContext}),
+      restoreContext:scope=>{currentLoopContext=scope?.loop??null;},
+      isStopped:scope=>scope?.token!==currentRunToken||scope.loop?.stopped,
+    });
   }
   function wonderSwanExtraApi(raw) {
     return new Proxy(Object.create(null), {get(_target,key) {
@@ -629,14 +647,14 @@ export function createPlaygroundRuntime(
     return Object.fromEntries((megaDrive.primaryEndpoints ?? []).map(endpoint => {
       const {globalName:name, client:raw} = endpoint;
       if (name === 'ws') ownWonderSwanMain(raw);
-      if(name==='pokey'||name==='pokey2')ownPokeyMain(raw);
-      if (name === 'ws' && capabilities.backend === 'native-genesis') {
+      if(name==='pokey'||name==='pokey2'){ownPokeyMain(raw);setPokeyTimelineLifecycle(raw);}
+      if ((name === 'ws'||name==='pokey'||name==='pokey2') && capabilities.backend === 'native-genesis') {
         if (!nativeApiCache.has(raw)) {
           // A compact score emits its gates on the Native callback. Give the
           // primary the same Main group leases as independent Native chips;
           // observing JS gate writes alone cannot release a removed liveLoop.
-          const device={chipName:'wonderswan',get ready(){return megaDrive.isReady()&&!megaDrive.stopping;}};
-          const owned=ownedNativeExtraApi(device,raw),control=ownWonderSwanMain(raw),release=control.releaseOwner;
+          const device={chipName:name==='ws'?'wonderswan':'pokey',get ready(){return megaDrive.isReady()&&!megaDrive.stopping;}};
+          const owned=ownedNativeExtraApi(device,raw),control=name==='ws'?ownWonderSwanMain(raw):ownPokeyMain(raw),release=control.releaseOwner;
           control.releaseOwner=owner=>{device.releaseOwner?.(owner);release(owner);};
           nativeApiCache.set(raw,borrowNativeApi(owned,endpoint.id??endpoint.name));
         }
@@ -2383,6 +2401,7 @@ export function createPlaygroundRuntime(
           decodeAudio:decodePcm,
         });
         device.client=client;
+        if(name==='pokey'&&!device.native)setPokeyTimelineLifecycle(client);
         if (name === 'wonderswan' && !device.native) device.releaseOwner=ownWonderSwanMain(client).releaseOwner;
         if(name==='pokey'&&!device.native)device.releaseOwner=ownPokeyMain(client).releaseOwner;
         if(name==='spc'&&device.native)device.releaseOwner=owner=>client._cancelContext(owner);

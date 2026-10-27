@@ -136,3 +136,18 @@ test('unsupported WonderSwan import cannot enable conversion or keep another chi
  assert.equal(ui.node('wonderswanImportOptions').hidden,true);assert.equal(ui.node('wonderswanImportOptions').disabled,true);
  assert.equal(ui.node('convertVgmButton').disabled,true);ui.node('convertVgmButton').events.click();assert.equal(ui.imports.length,0);
 });
+
+test('POKEY import exposes single/dual-specific options and cannot convert unsupported streams',async()=>{
+ let supported=true;
+ const ui=setup(async()=>({detection:{family:'pokey',chips:['pokey'],chipCount:2,supported,message:'POKEY × 2'}}));
+ await ui.choose('dual.vgz');
+ assert.equal(ui.node('pokeyImportOptions').hidden,false);assert.equal(ui.node('pokeyImportOptions').disabled,false);
+ assert.match(ui.node('vgmImportDetected').textContent,/POKEY × 2/);
+ for(const id of ['opnImportOptions','gameboyImportOptions','nesImportOptions','wonderswanImportOptions'])assert.equal(ui.node(id).hidden,true);
+ ui.node('convertVgmButton').events.click();assert.equal(ui.imports[0].o.pokeyMode,'high');
+ supported=false;await ui.choose('bad.vgm');
+ assert.equal(ui.node('pokeyImportOptions').hidden,true);assert.equal(ui.node('pokeyImportOptions').disabled,true);
+ assert.equal(ui.node('convertVgmButton').disabled,true);ui.node('convertVgmButton').events.click();assert.equal(ui.imports.length,1);
+ const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
+ for(const mode of ['raw','readable','high'])assert.ok(html.includes(`name="pokeyImportMode" value="${mode}"`));
+});

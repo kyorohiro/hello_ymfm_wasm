@@ -93,6 +93,7 @@ playground_spc_trace_worker.js
 playground_vgm_presets.js
 playground_vgm_import.js
 wonderswan_vgm_import.js
+pokey_vgm_import.js
 ym2203_high.js
 ym2608_vgm_import.js
 ym2608_high.js
@@ -242,6 +243,8 @@ huc6280audioengine.js
 pokey.js
 pokeysynth.js
 pokeyaudioengine.js
+pokey_timeline.js
+pokey_timeline_builder.js
 playground_pokey.js
 playground_pokey_audio.js
 playground_pokey_worklet.js
@@ -689,6 +692,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_vgm_presets.js" \
   "${STAGE_DIR}/playground_vgm_import.js" \
   "${STAGE_DIR}/wonderswan_vgm_import.js" \
+  "${STAGE_DIR}/pokey_vgm_import.js" \
   "${STAGE_DIR}/ym2608_vgm_import.js" \
   "${STAGE_DIR}/rf5c164_vgm_export.js" \
   "${STAGE_DIR}/playground_query.js" \

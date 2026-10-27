@@ -293,8 +293,15 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>pokeyFiles.has(match[1]))){pokeyFiles.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const pokeyImportFiles=new Set(['pokey_timeline.js','pokey_timeline_builder.js','playground_pokey.js','playground_pokey_worklet.js','native_genesis_extra_pokey.js','native_genesis_worker.js','playground_runtime.js','playground.js','playground_vgm_import.js','pokey_vgm_import.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(pokeyImportFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>pokeyImportFiles.has(match[1]))){pokeyImportFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...pokeyImportFiles,
   ...pokeyFiles,
   ...vgmFiles,
   ...wonderswanImportFiles,

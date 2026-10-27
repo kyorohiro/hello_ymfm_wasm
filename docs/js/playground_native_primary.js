@@ -1,4 +1,4 @@
-import {createPokeyClient} from './playground_pokey.js?v=pokey-mode-1';
+import {createPokeyClient} from './playground_pokey.js?v=pokey-import-1';
 import {createAy8910Client} from './playground_ay8910.js?v=pokey-mode-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-mode-1';
 import {createNesClient} from './playground_nes.js?v=pokey-mode-1';

@@ -1,6 +1,6 @@
 /** Primary non-OPN machines share media, mixer and FX without a hidden FM synth. */
-import {createPokeyAudio} from './playground_pokey_audio.js?v=pokey-mode-1';
-import {createPokeyClient} from './playground_pokey.js?v=pokey-mode-1';
+import {createPokeyAudio} from './playground_pokey_audio.js?v=pokey-import-1';
+import {createPokeyClient} from './playground_pokey.js?v=pokey-import-1';
 import {createAy8910Audio} from './playground_ay8910_audio.js?v=pokey-mode-1';
 import {createAy8910Client} from './playground_ay8910.js?v=pokey-mode-1';
 import {TetoricaAudioRuntime} from './tetorica_audio_runtime.js?v=y8950-adpcm-ui-1';

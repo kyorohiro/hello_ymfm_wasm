@@ -6,6 +6,7 @@ import {Ym2612VGM} from '../js/ym2612vgm.js?v=pokey-vgm-1';
 import {maybeDecodeVgmFile} from '../js/vgm_file.js';
 import {looksLikeS98, convertS98ToVgm} from '../js/s98_file.js';
 import {validateWonderSwanVgm} from './wonderswan_vgm_import.js?v=wonderswan-import-3';
+import {validatePokeyVgm} from './pokey_vgm_import.js?v=pokey-import-1';
 
 const OPN = ['ym2203', 'ym2608', 'ym2610', 'ym2612'];
 export function detectVgmImport(header) {
@@ -29,6 +30,13 @@ export function detectVgmImport(header) {
   }
   if (rf5c164 && chips.every(chip => ['rf5c164','psg'].includes(chip))) {
     return {...base, family:'rf5c164', supported:true, chip:'ym2612', message:'RF5C164 register and RAM conversion: Write / High, liveLoop, asynchronous timing. Schedule uses Write for RF5C164; accompanying FM/DAC/PSG are scheduled. Optional PSG requires the YM2612 Playground chip.'};
+  }
+  if (chips.length === 1 && chips[0] === 'pokey') {
+    const raw = header.pokeyClock >>> 0, clock = raw & 0x3fffffff, chipCount = raw & 0x40000000 ? 2 : 1;
+    if (raw & 0x80000000) return {...base, message: 'POKEY variant-chip conversion is not supported.'};
+    if (clock < 100000 || clock > 100000000) return {...base, message: 'POKEY conversion requires a clock from 100000 to 100000000 Hz.'};
+    return {...base, family:'pokey', supported:true, clock, chipCount,
+      message:`POKEY${chipCount === 2 ? ' × 2' : ''}: ${clock} Hz, ${chipCount * 4} physical channels. Original register order, shared timers and dense DAC streams are preserved for one pass. Both chips start on the same audio frame; loops are not repeated.`};
   }
   if (chips.some(chip => header[chip + 'Clock'] & 0x40000000)) return {...base, message: 'Dual-chip conversion is not supported.'};
   if (chips.length === 1 && chips[0] === 'gameBoyDmg') {
@@ -76,6 +84,10 @@ export async function prepareVgmImport(file) {
   if (detection.family === 'wonderswan') {
     try { validateWonderSwanVgm(buffer); }
     catch (error) { detection = {...detection, supported: false, message: error.message}; }
+  }
+  if (detection.family === 'pokey') {
+    try { validatePokeyVgm(buffer); }
+    catch (error) { detection = {...detection, supported:false, message:error.message}; }
   }
   return {buffer, vgm, detection};
 }

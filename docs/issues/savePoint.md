@@ -7,6 +7,39 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### Playground POKEY VGM import完了 — 2026-10-27
+
+ユーザーの「進めて」で単体/dual POKEY-only VGM/VGZの取り込みを実装。
+専用dialogはRaw/解説付き/High＋byte-identical raw fallback。生成owned chipは元clockを保持し、
+offline builderで全scoreをprepareしてから同じabsolute startFrameで一度だけ再生する。
+DAC stream0x1e/0x9eは共通parserの時刻をpacked delta/register/valueへ展開。dualも1sidecar、ordinaryはsidecarなし。
+Browser Worklet/Native callbackが直接cursorを消費。clock/8MiB/rolling512writes/128frames等の検証付き。
+開始frameでcore+speakerをcold resetしmonitor muteを保持。Stop/reset/owner/session/dispose/Run置換を処理。
+await後のBrowser/Worker owner復帰とNative primary POKEY group管理を修正。
+Nativeのupload byte-accounting/expected control rejection/Stop→finalize後audition掃除も修正。
+Mixer値・SDK・音源core・生成WASMに変更なし。cacheは`pokey-import-1`、npm metadataはFM0.2.30/VGM0.2.15据置。
+
+docsのChromium153.0.8010.12/WebKit26.6×44.1/48kHz×単/双×ordinary/DAC×3style×Main/Worker全96PCM成功。
+2,873,520frames/channelで最大差0。44.1kHzは元VgmPlayerとも差0。48kHzはabsolute source sampleのceil配置を基準に直接render。
+Monaco diagnostics/Cancel/invalid4種/自然終了/dispose/Run置換/即Stop/404/pageerrorも成功。
+receiptは `/private/tmp/pokey-import-browser-docs.json`。最終全Web/Playground4503件・NativeJS65件・mode型成功（重複あり）。
+Native futurestart待機時の旧gate消音とendframe MAX_SAFE検証もBrowserと揃えた。POKEY Rust17件、全Cargo764成功/4既存ignore。
+最新Native/WASM timeline PCMは44.1/48kHz計1945framesで差0。
+package304modules/28pairs/351declarations build・isolatedconsumer・3種型構成成功。
+最終candidate878fileは全tarball memberとstageのbyte一致。0.2.30据置の未公開開発版で、公開npmにPOKEYは未収録。
+tgz SHA256 `7bb63c433763600aea071fde06f26f0b13b4424008d1d04f28e686f6bf1e191a`。
+docs96後のBrowser変更はJSDoc注釈のみ、Native側はexpectedrejectのrange messageを1件追加。両方flatへ反映済み。
+ZIPは`release/hello_ymfm_wasm_pokey-import-dev_itch_playground.zip`、stageは`release/itch_playground_pokey-import-dev`。
+最終flat Chromium44.1k＋WebKit48k計48PCMも差0。ZIP957file全byte一致。
+ZIP SHA256 `dfa777c90ab8877ed84fd1a68336b2573d02ab26c3e5c8adb10e33abc780d059`。
+Tauriへ956payload全byte取込（既存規則で.DS_Store1件除外）、source ZIP1917fileと22pins照合、Python24/Node31成功。
+source ZIP SHA256 `211483a292816751745362e17f9a101c60a542a5427a4366bdcdda4f45a1a3c5`。
+詳細・証跡は[atari_pokey_vgm_import_01.md](atari_pokey_vgm_import_01.md)と同名JSON。
+
+Browserの大trace prepareは現状Workletで全scan/copy。warm Node8MiB約32–35msなので演奏中prepareでは割込み得る。
+生成importは全準備後に発音する。次はユーザー環境で実際のPOKEY VGMを聴き、必要なら演奏中prepareの分割upload/validationを進める。
+実聴/実機比較は未実施。commit/push/tag/remoteCI/npm/itch.io公開操作なし。
+
 ### POKEY VGM Analyzer接続完了 — 2026-10-27
 
 ユーザーの「すすめて」で、POKEYのVGM Analyzer対応を実装。
