@@ -474,6 +474,8 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
     },
   });
   const stream = new Proxy({}, { get: (_target, property) => requestProxy(`stream.${String(property)}`) });
+  const msm5205 = new Proxy({}, {get:(_target,property)=>property==='then'?undefined:requestProxy(`msm5205.${String(property)}`)});
+  if(capabilities.pcEngineCd)sections.adpcm=msm5205;
   const cdda = new Proxy({}, { get: (_target, property) => property==='then'?undefined:requestProxy(`cdda.${String(property)}`) });
   const unavailable = (name) => () => { throw new Error(`${name} is not available for ${capabilities.chip ?? "this chip"}`); };
   if (chip?.psg && capabilities.backend === 'native-genesis') Object.defineProperty(chip.psg, 'id', {value:'segapsg',enumerable:true});
@@ -588,7 +590,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const prepareResource = async (name, fn) => {
     if (run.prepared.has(name)) return run.prepared.get(name);
     const generation = run.generation;
-    const prepareApi = { ...native.apis, ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, sample, cdda, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) };
+    const prepareApi = { ...native.apis, ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, sample, cdda, msm5205, stream, dac, noise, control: (voice, options) => nativeNoise ? controlNativeNoise(voice,options) : postCommand("noise.control", [handleId(voice), options]), context: run.context, log: (...args) => postCommand("log", args) };
     if (!hasOpn) for (const name of ['fm','dac', ...(capabilities.chip === 'segapsg' ? [] : ['psg'])]) delete prepareApi[name];
     const value = await fn(prepareApi);
     if (run.stopped || generation !== run.generation) throw new Error("Run stopped");
@@ -805,7 +807,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
       error: (...args) => postCommand("error", args),
     },
     log: (...args) => postCommand("log", args),
-    ...native.apis, ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, dac, sample, cdda, stream, noise,
+    ...native.apis, ...(gameboy ? {gameboy} : {}), fm, ...sections, fx, psg, dac, sample, cdda, msm5205, stream, noise,
     context: run.context,
     FM_PRESETS: presets,
     OPL_PRESETS,

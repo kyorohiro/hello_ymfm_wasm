@@ -146,7 +146,7 @@ Playgroundから、HuC6280・MSM5205・CD-DAを組み合わせた演奏Example�
 
 ## 10. 初回実装の範囲と順序（2026-10-27）
 
-現状、HuC6280はBrowser／Nativeへ接続済みですが、MSM5205はAnalyzer向けのJS rendererです。
+初回調査時点では、HuC6280はBrowser／Nativeへ接続済みでしたが、MSM5205はAnalyzer向けのJS rendererでした。
 MSM5205のPlayground接続とNative／WASM移植は、CD-DA単独対応とは別の作業として進めます。
 
 1. 共通PCM16 renderer、WAV＋track manifest、Play／Pause／Resume／Stop／Seek、再生位置、Mixerを実装する。
@@ -166,3 +166,19 @@ UIの応答でPCMを補給する方式やUI timerを演奏時計に使う方式�
 Pause／Seekなどは音声側で適用し、UIは明示的な状態取得結果を表示します。
 即時Stop、Run置換、session終了は準備中の読込・uploadと将来の発音を取り消します。
 この第1段階の完了を、上記9章の3系統対応全体の完了として扱いません。
+
+## 11. 音声範囲の実装完了（2026-10-28）
+
+上記1〜3段階を完了。Playgroundへ **PC Engine CD-ROM²** modeを追加し、
+HuC6280 PSG・MSM5205 ADPCM・CD-DAをBrowser／Native、Main／Workerで混合できる。
+64KiB ADPCM RAM、16段階rate、音声変換、独立Mixer、停止・取消、3系統の初期Example、
+offline WAV出力を実装。既存AnalyzerのMSM5205 JS／VGM API／chip gainは維持した。
+
+実coreのNative／WASM一致、Browser全8構成、Web関連4636件、全Cargo780件、
+Tauri28＋31件、隔離npm配布物、standalone source ZIPを検証。物理出力は捕捉後mute。
+人による実聴と実機比較、Tauri GUI操作は未実施。npm／GitHub／itch.io公開も行っていない。
+
+使用法：[../msm5205.md](../msm5205.md)、[../cdda.md](../cdda.md)。
+範囲・制限・検証と再開情報：[msm5205_pcm_01.md](msm5205_pcm_01.md)と同名JSON。
+CUE／BIN・物理CD・圧縮disc音声・BIOS／CPU／SCSI／DMA／IRQは初回対象外のまま。
+既存SDK pinを維持し、追加coreはapp-owned sourceとして全ソースとライセンスを同梱した。

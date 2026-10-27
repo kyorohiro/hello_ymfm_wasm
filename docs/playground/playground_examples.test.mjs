@@ -64,7 +64,7 @@ test('bundled examples match editable categorized source files', async () => {
 
 test('all mode starters match their physical index.js sources', async () => {
   const modeIds = Object.keys(MODE_STARTERS);
-  assert.equal(modeIds.length, 26);
+  assert.equal(modeIds.length, 27);
   assert.deepEqual(Object.keys(MODE_DEFAULT_CODES), modeIds);
   for (const [id, definition] of Object.entries(MODE_STARTERS)) {
     assert.equal(definition.index, `${id}/index.js`);
@@ -85,7 +85,8 @@ test('mode catalogs stay compact while Genesis retains its library and shares th
     assert.equal(new Set(files.map(file => file.path)).size, files.length, `${id} has no duplicates`);
     for (const file of files) assert.ok(EXAMPLE_FILES.includes(file), `${id} uses a bundled source`);
     if (definition.examples) {
-      if (id === 'master-system') assert.equal(files.length,5,'Master System retains two PSG examples alongside three OPLL examples');
+      if (id === 'pc-engine') assert.equal(files.length,4,'PC Engine retains its three PSG examples and the shared CD-DA example');
+      else if (id === 'master-system') assert.equal(files.length,5,'Master System retains two PSG examples alongside three OPLL examples');
       else if (['mega-cd','genesis-full','genesis-full-nuked'].includes(id)) assert.equal(files.length,6,'Genesis expansion modes include the shared mixed-chip, level and YM2612 engine comparison scenes');
       else assert.ok(files.length >= 2 && files.length <= 3, `${id} has two or three examples`);
       assert.deepEqual(files.map(file => file.path), definition.examples);

@@ -43,6 +43,7 @@
     "test:fm2612:types": "node scripts/check_fm2612_types.mjs",
     "build:vgm": "node scripts/build_cli.mjs",
     "pack:vgm": "node scripts/pack_cli.mjs",
-    "pack:vgm:check": "npm run pack:vgm -- --dry-run"
+    "pack:vgm:check": "npm run pack:vgm -- --dry-run",
+    "test:cdrom2": "node scripts/check_cdda_core.mjs && node scripts/check_msm5205_core.mjs && node --test web/cdda_*.test.mjs web/msm5205_*.test.mjs"
   }
 }

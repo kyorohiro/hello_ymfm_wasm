@@ -25,6 +25,12 @@ try {
   for (const file of ['msm5205audioengine.js', 'licenses/libvgm-msm5205/README.md', 'licenses/libvgm-msm5205/LICENSE']) {
     assert.ok(packedPaths.has(file), `MSM5205 reference renderer notice missing ${file}`);
   }
+  for(const file of ['msm5205_pcm.js','msm5205_pcm.d.ts','msm5205_player.js','msm5205_audio.js','msm5205_native.js','msm5205_sample.js','msm5205_sample.d.ts','msm5205_worklet.js',
+    'generated/msm5205_wasm.js','generated/msm5205_wasm.wasm',
+    'sources/native/msm5205/msm5205_pcm.c','sources/native/msm5205/msm5205_pcm.h','sources/native/msm5205/msm5205_wasm.c',
+    'sources/native/msm5205/LICENSE','sources/native/msm5205/NOTICE.md','sources/native/msm5205/README.md','sources/scripts/build_msm5205_wasm.sh']) {
+    assert(packedPaths.has(file),'PC Engine CD ADPCM module/source payload missing '+file);
+  }
   for(const file of ['cdda_source.js','cdda_player.js','cdda_audio.js','cdda_native.js','cdda_worklet.js','cdda_pcm.js','cdda_offline.js',
     'cdda_offline.d.ts','cdda_pcm.d.ts','generated/cdda_wasm.js','generated/cdda_wasm.wasm',
     'sources/native/cdda/cdda_pcm.c','sources/native/cdda/cdda_pcm.h','sources/native/cdda/cdda_wasm.c',
@@ -94,6 +100,26 @@ try {
 } finally {renderer.dispose();}
 console.log('Installed CD-DA verified: module-relative WASM, stereo PCM16, 44.1 to 48 kHz, EOF, scheduled Pause and WAV output.');
 `);
+  await writeFile(join(consumer,'msm5205-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createMSM5205PCM} from 'tetorica-fm2612/msm5205_pcm.js';
+import {prepareMSM5205Sample} from 'tetorica-fm2612/msm5205_sample.js';
+import {createMsm5205Player} from 'tetorica-fm2612/msm5205_player.js';
+const wasmBinary=await readFile(new URL('./node_modules/tetorica-fm2612/generated/msm5205_wasm.wasm',import.meta.url));
+const prepared=await prepareMSM5205Sample({sampleRate:8000,channels:[Float32Array.from({length:800},(_,i)=>Math.sin(2*Math.PI*220*i/8000)*.2)]},{rate:12});
+const core=await createMSM5205PCM({sampleRate:48000,wasmBinary});
+try {
+ core.prepare(prepared.data);core.play({length:prepared.frames,rate:prepared.rate});
+ const left=new Float32Array(4800),right=new Float32Array(4800);core.render(left,right);
+ assert.deepEqual(left,right);assert(left.every(Number.isFinite));assert(left.some(value=>Math.abs(value)>.15));
+ assert.equal(core.readState().state,'ended');assert.equal(core.readState().positionNibbles,800);
+ core.render(left,right);assert(left.every(value=>value===0));
+ core.play({offset:1,length:99,rate:15,loop:true});core.setMuted(true);core.render(left,right);assert(left.every(value=>value===0));assert.equal(core.readState().state,'playing');
+}finally{core.dispose();}
+console.log('Installed PC Engine CD ADPCM verified: packed4bit encoder, actualWASM, rate, odd nibble range, EOF and mute.');
+`);
+  execFileSync(process.execPath,[join(consumer,'msm5205-check.mjs')],{cwd:consumer,stdio:'inherit'});
   execFileSync(process.execPath,[join(consumer,'cdda-check.mjs')],{cwd:consumer,stdio:'inherit'});
   execFileSync(process.execPath, ['--experimental-vm-modules', join(root, 'scripts/check_synth_package.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
   execFileSync(process.execPath, [join(root, 'scripts/check_web_runtime.mjs'), installed], {cwd: consumer, stdio: 'inherit'});

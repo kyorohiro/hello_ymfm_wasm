@@ -1,0 +1,391 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "complete-audio-scope",
+  "mode": "pc-engine-cd",
+  "completeCdrom2Audio": true,
+  "scope": {
+    "sources": [
+      "huc6280",
+      "msm5205",
+      "cdda"
+    ],
+    "browser": true,
+    "native": true,
+    "offlineWav": true,
+    "playgroundMainAndWorker": true,
+    "sampleRamBytes": 65536,
+    "nativeEncodedBudgetBytes": 131072,
+    "referenceClock": 1536000,
+    "rateRegisters": 16,
+    "sdkPinChanged": false,
+    "existingVgmDecoderChanged": false,
+    "existingChipGainsChanged": false,
+    "mixerPsgPolicy": "inherits pc-engine 0.44; new system sources use unity",
+    "humanListening": false,
+    "tauriGuiOperation": false,
+    "physicalAudioOutputUsed": false,
+    "published": false,
+    "committed": false
+  },
+  "tests": {
+    "web": {
+      "passed": 4636,
+      "failed": 0
+    },
+    "audioCoreUnits": {
+      "passed": 55,
+      "failed": 0
+    },
+    "native": {
+      "passed": 780,
+      "failed": 0,
+      "existingIgnored": 4,
+      "newMsm5205Tests": 9
+    },
+    "tauriPython": 28,
+    "tauriNode": 31,
+    "offlinePins": 24,
+    "sourceZipFiles": 1975,
+    "sdkCiGuards": 105,
+    "playgroundModeTypes": "passed",
+    "browserRoutes": 8,
+    "browserOracleMaxError": 0,
+    "browserSourceHashes": 292,
+    "browserPhysicalOutputMuted": true
+  },
+  "core": {
+    "wasmBytes": 3590,
+    "wasmSha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9",
+    "fixedMemoryBytes": 131072,
+    "noHostImports": true,
+    "c11": true,
+    "cpp14": true,
+    "rawLegacyPcmAndStateExact": true,
+    "nativeWasmExact": true,
+    "all16Rates": true,
+    "outputRates": [
+      44100,
+      48000
+    ],
+    "report": "msm5205_core_01.json",
+    "commands": [
+      "node scripts/check_msm5205_core.mjs",
+      "npm run test:cdrom2"
+    ]
+  },
+  "browser": {
+    "report": "msm5205_browser_01.json",
+    "receiptSha256": "f18bca187cb38d8945599b533171b5f9b2802766f26844969a4b5b2ecdc46e80",
+    "checker": "scripts/check_pcengine_cd_browser.cjs",
+    "checkerSha256": "fdd081c3f2bb3e7edf1d7dc1db2dab24b9836aa29134b909ab7f2b2c48108b80",
+    "browsers": [
+      "Chromium 153.0.8010.12",
+      "WebKit 26.6"
+    ],
+    "endpointRates": [
+      44100,
+      48000
+    ],
+    "hostRoutes": [
+      "Chromium Main",
+      "Chromium Worker",
+      "WebKit Main",
+      "WebKit Worker"
+    ]
+  },
+  "artifacts": {
+    "zip": "release/hello_ymfm_wasm_pcengine-cd-dev_itch_playground.zip",
+    "zipFiles": 997,
+    "effectiveTauriFiles": 996,
+    "archiveSha256": "3dbcb98e458bc71c92b8feacf90e7b58ee0686f8644d06952d7db58ccfc456f1",
+    "browserSourceHashes": 292,
+    "identicalFlatRuntimeAssets": 198,
+    "tauriDist": "w/tetorica-fm2612-playground-tauri/dist",
+    "nativeSourceBundleSha256": "9a3459d61325162fcfa2134b6ef69cb597637f0309c54e6246d51d193227b7a7"
+  },
+  "npmDevelopmentPackage": {
+    "path": "dist/fm2612",
+    "modules": 318,
+    "chipEnginePairs": 28,
+    "applicationAudioPairs": [
+      "cdda",
+      "msm5205"
+    ],
+    "jsdocDeclarations": 367,
+    "files": 929,
+    "installedRealWasmAndTypes": "passed",
+    "published": false
+  },
+  "nativeSourceVerification": {
+    "schemaVersion": 1,
+    "deviceOpened": false,
+    "networkUsed": false,
+    "platform": "darwin",
+    "snapshots": [
+      {
+        "script": "sync_native_cdda.py",
+        "status": "passed",
+        "summary": "Native CD-DA source snapshot: verified (3 verbatim C/header/license files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_dx7.py",
+        "status": "passed",
+        "summary": "Native DX7 snapshot verified (32 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_game_gear.py",
+        "status": "passed",
+        "summary": "Native Game Gear snapshot verified (7 files, 3 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_gameboy.py",
+        "status": "passed",
+        "summary": "Native Game Boy source verified (5 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis.py",
+        "status": "passed",
+        "summary": "Native Genesis snapshot verified (16 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_fx.py",
+        "status": "passed",
+        "summary": "Native FX snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_livefx.py",
+        "status": "passed",
+        "summary": "Native LiveFX snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_noise.py",
+        "status": "passed",
+        "summary": "Native noise snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_huc6280.py",
+        "status": "passed",
+        "summary": "Native HuC6280 verified (6 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_master_system.py",
+        "status": "passed",
+        "summary": "Native Master System snapshot verified (12 files, 9 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_megacd.py",
+        "status": "passed",
+        "summary": "Native RF5C164 snapshot verified (6 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msm5205.py",
+        "status": "passed",
+        "summary": "Native MSM5205 source snapshot: verified (4 verbatim C/header/license/provenance files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msx.py",
+        "status": "passed",
+        "summary": "Native MSX snapshot verified (10 files, 5 shared OPLL sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msx_audio.py",
+        "status": "passed",
+        "summary": "Native MSX Audio snapshot verified (7 files, 6 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_nes.py",
+        "status": "passed",
+        "summary": "Native NES verified (15 pinned reference files, 2 C++ mirrors)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_nuked.py",
+        "status": "passed",
+        "summary": "Native Nuked snapshot verified (9 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_opl.py",
+        "status": "passed",
+        "summary": "Native DOS OPL snapshot verified (11 files, 4 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_pwm.py",
+        "status": "passed",
+        "summary": "Native PWM source verified (3 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_snes.py",
+        "status": "passed",
+        "summary": "Native SNES verified (34 exact source files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_x68000.py",
+        "status": "passed",
+        "summary": "Native X68000 snapshot verified (11 files, 5 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2203.py",
+        "status": "passed",
+        "summary": "Native YM2203 snapshot verified (9 files, 9 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2608.py",
+        "status": "passed",
+        "summary": "Native YM2608 snapshot verified (4 files, 11 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2610b.py",
+        "status": "passed",
+        "summary": "Native YM2610B snapshot verified (3 files, 11 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "import_soundchip_sdk.py",
+        "status": "passed",
+        "summary": "SDK 0.1.5 (unpublished local candidate; sourceCommit is its base): 408 pinned files verified offline (archive SHA256 aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07)",
+        "error": ""
+      }
+    ],
+    "sourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "9a3459d61325162fcfa2134b6ef69cb597637f0309c54e6246d51d193227b7a7",
+      "files": 1975,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "3dbcb98e458bc71c92b8feacf90e7b58ee0686f8644d06952d7db58ccfc456f1"
+    },
+    "status": "passed",
+    "elapsedSeconds": 2.029
+  },
+  "remainingOutsideScope": [
+    "human listening and physical-console comparison",
+    "CUE/BIN, physical CD, BIOS, CPU, DMA, SCSI and IRQ emulation",
+    "disc-compressed audio and multi-disc images",
+    "generic MSM5205 createSoundChip/SDK release integration",
+    "npm publication and remote CI dispatch"
+  ],
+  "sourceHashes": {
+    "native/msm5205/msm5205_pcm.c": {
+      "bytes": 6720,
+      "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be"
+    },
+    "native/msm5205/msm5205_pcm.h": {
+      "bytes": 3618,
+      "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9"
+    },
+    "native/msm5205/LICENSE": {
+      "bytes": 1617,
+      "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
+    },
+    "native/msm5205/NOTICE.md": {
+      "bytes": 2064,
+      "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
+    },
+    "web/generated/msm5205_wasm.js": {
+      "bytes": 317,
+      "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950"
+    },
+    "web/generated/msm5205_wasm.wasm": {
+      "bytes": 3590,
+      "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9"
+    },
+    "web/msm5205_pcm.js": {
+      "bytes": 5417,
+      "sha256": "cf9da06e6f6501425766abc18bc9b91c6f73dccc9f31a474fce59a30c6abcc73"
+    },
+    "web/msm5205_sample.js": {
+      "bytes": 7476,
+      "sha256": "35a8372f052ce36fb82f662f976a2ef9dee28c3c0a7c9d54e685cd3046fe3a92"
+    },
+    "web/msm5205_player.js": {
+      "bytes": 4617,
+      "sha256": "6a6cb90cd902e456893969560033faedc8de5ae7e95d8f7f7e995b241af2c683"
+    },
+    "web/msm5205_audio.js": {
+      "bytes": 3837,
+      "sha256": "f052987f65a28e3b0627f3fe440151b807a6564b26b6e69b679d52fa3f4e0c1d"
+    },
+    "web/msm5205_worklet.js": {
+      "bytes": 4978,
+      "sha256": "1e4796147e5303c68e58502f78f0970980f21f96743f5f1d5885dd984412c5b0"
+    },
+    "web/msm5205_native.js": {
+      "bytes": 2905,
+      "sha256": "388b7b39cfac9434a5c6ed3ce8a4008265d4a81d7dd75587fa8e003e5903e381"
+    },
+    "web/playground_runtime.js": {
+      "bytes": 152607,
+      "sha256": "1ffd4ab2002fe9139426c44a31b755119b9e43d72fb6a203f7a84f8b7e727fd5"
+    },
+    "web/playground_logic_worker.js": {
+      "bytes": 57670,
+      "sha256": "ee3e7e51a73374437e245001cd411687a5cbbbbac927a117eecababab0990810"
+    },
+    "web/native_genesis_synth.js": {
+      "bytes": 78116,
+      "sha256": "bd6c4b4be74552ce4c4061b4893090b234edecc379f0a541635641e410165f75"
+    },
+    "scripts/check_pcengine_cd_browser.cjs": {
+      "bytes": 23821,
+      "sha256": "fdd081c3f2bb3e7edf1d7dc1db2dab24b9836aa29134b909ab7f2b2c48108b80"
+    },
+    ".github/workflows/wasm-sdk.yml": {
+      "bytes": 2986,
+      "sha256": "9db40479be375799e93cf694c3cd84ded623247f071ad5cda91de56da3106386"
+    },
+    "scripts/wasm_sdk_inventory.mjs": {
+      "bytes": 16710,
+      "sha256": "6190fb655bf5384ee9c926c7e718d3684d6b210a0a32e9567821110cc031e56c"
+    },
+    "scripts/check_wasm_sdk.mjs": {
+      "bytes": 14765,
+      "sha256": "9a1a056a985cdf392cb88142f369d72bd9b63849e4e24386fff001493cfd220b"
+    },
+    "test/wasm_sdk_inventory.test.mjs": {
+      "bytes": 25174,
+      "sha256": "6d5408a9f6253263bc342f2248da01eefd0ad958c6b14210612a7b74d417d71d"
+    },
+    "scripts/sync_msm5205_native.mjs": {
+      "bytes": 1565,
+      "sha256": "ad6e43ef12531336e431ffc5e8c68a1638a1dec3a290fcac94d5aae8ca0832ef"
+    },
+    "scripts/version_playground_runtime.mjs": {
+      "bytes": 31536,
+      "sha256": "2495021b95bdcc317defbbc5738a471ddcc4cd7ced97bafaeefbca56ed327f60"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 123997,
+      "sha256": "47e0da8c6887fa40ef4de4ca0b48c20f8e52dea080abd8057e18b19d2a3a5827"
+    },
+    "docs/playground/playground_monaco.js": {
+      "bytes": 22671,
+      "sha256": "5d5d31107a2e5d0873e8fcd3c97434e264ca5362d9914afe848508233172e82c"
+    },
+    "docs/playground/playground_workbench.js": {
+      "bytes": 7358,
+      "sha256": "cb0f0188fc9c3511a1887fd8e5674c4c5af07a01f0576abc621341fc0dc60564"
+    }
+  }
+}

@@ -2,6 +2,8 @@
 
 Date: 2026-10-27
 
+2026-10-28: MSM5205を含む3系統の実装は[msm5205_pcm_01.md](msm5205_pcm_01.md)で完了。以下は第1段階の記録。
+
 ## Scope and result
 
 `todo_cdromrom_01.md`の第1段階として、CD-DAを独立したPCM音声デバイスへ実装。

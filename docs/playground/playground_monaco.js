@@ -1,6 +1,6 @@
 import {createDefinitionViewer} from './playground_monaco_definitions.js?v=opn-modes-1';
-import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=wonderswan-pcm-timeline-1";
-import {selectPlaygroundDeclarations} from './playground_declarations.js?v=wonderswan-pcm-timeline-1';
+import { registerMonacoCompletions } from "./playground_monaco_completion.js?v=pcengine-cd-1";
+import {selectPlaygroundDeclarations} from './playground_declarations.js?v=pcengine-cd-1';
 
 function registerMonacoHover(
   monaco

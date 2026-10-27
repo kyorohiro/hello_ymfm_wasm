@@ -4,7 +4,7 @@ import {PLAYGROUND_MODES} from './playground_mode.js';
 import {supportsPlaygroundAudioEngineMode,resolvePlaygroundAudioEngine} from './playground_audio_engine.js';
 
 test('Native supports the existing standard modes and keeps Atari ST on Web Audio',()=>{
-  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,24);
+  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,25);
   for(const mode of PLAYGROUND_MODES){
     const native=mode.id!=='atari-st';
     assert.equal(supportsPlaygroundAudioEngineMode('webaudio',mode.id),true,mode.id);

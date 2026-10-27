@@ -1,0 +1,69 @@
+{
+  "status": "PASS",
+  "wasmBytes": 3590,
+  "wasmMemoryBytes": 131072,
+  "noHostImports": true,
+  "c11": true,
+  "cpp14": true,
+  "sourceCapBytes": 65536,
+  "blockPartitionExact": true,
+  "all16RateRegisters": true,
+  "rawReference": "unchanged web/msm5205audioengine.js",
+  "results": [
+    {
+      "kind": "raw",
+      "sampleRate": 44100,
+      "clock": 1536000,
+      "commands": 1323,
+      "renderedFrames": 31488,
+      "nativeWasmExact": true,
+      "legacyReferenceExact": true
+    },
+    {
+      "kind": "pce-all-rates",
+      "sampleRate": 44100,
+      "clock": 1536000,
+      "commands": 182,
+      "renderedFrames": 8977,
+      "nativeWasmExact": true,
+      "legacyReferenceExact": true
+    },
+    {
+      "kind": "pce-alternate-clock",
+      "sampleRate": 44100,
+      "clock": 1540200,
+      "commands": 5,
+      "renderedFrames": 8208,
+      "nativeWasmExact": true,
+      "legacyReferenceExact": true
+    },
+    {
+      "kind": "raw",
+      "sampleRate": 48000,
+      "clock": 1536000,
+      "commands": 1323,
+      "renderedFrames": 31488,
+      "nativeWasmExact": true,
+      "legacyReferenceExact": true
+    },
+    {
+      "kind": "pce-all-rates",
+      "sampleRate": 48000,
+      "clock": 1536000,
+      "commands": 182,
+      "renderedFrames": 9069,
+      "nativeWasmExact": true,
+      "legacyReferenceExact": true
+    },
+    {
+      "kind": "pce-alternate-clock",
+      "sampleRate": 48000,
+      "clock": 1540200,
+      "commands": 5,
+      "renderedFrames": 8208,
+      "nativeWasmExact": true,
+      "legacyReferenceExact": true
+    }
+  ],
+  "evidenceDirectory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-msm5205-core-iBhT2q"
+}

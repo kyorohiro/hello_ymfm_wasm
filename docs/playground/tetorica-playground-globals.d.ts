@@ -655,7 +655,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'pc-engine-cd' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -691,6 +691,7 @@ type PlaygroundSelectedFm = {
   snes: never;
   x68000: never;
   huc6280: never;
+  'pc-engine-cd': never;
   'game-gear': never;
   'master-system': never;
   'atari-st': never;
@@ -792,7 +793,7 @@ declare function psgNoise(mode: number, attenuation?: number): void;
 declare const ssg: PlaygroundSelectedSSG;
 /** PC-98 OPNA mode: built-in rhythm voices on the primary YM2608. */
 declare const rhythm: PlaygroundYm2608['rhythm'];
-/** Primary ADPCM-B; Neo Geo modes also expose this as adpcmB. Await memory uploads. */
+/** Selected primary ADPCM: OPN ADPCM-B, X68000 OKI6258 or PC Engine CD MSM5205. Await memory uploads. */
 declare const adpcm: PlaygroundSelectedADPCM;
 /** Neo Geo YM2610/YM2610B modes: six ADPCM-A voices on the primary chip. */
 declare const adpcmA: PlaygroundCreatedYm2610['adpcmA'];
@@ -819,6 +820,39 @@ type PlaygroundCddaAPI = {
   list():Promise<ReadonlyArray<PlaygroundCddaTrack>>;
 };
 declare const cdda: PlaygroundCddaAPI;
+type PlaygroundMsm5205Rate = 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15;
+type PlaygroundMsm5205PCM = {channels:ArrayLike<number>[];sampleRate:number};
+type PlaygroundMsm5205Sample = {
+  bytes:number;frames:number;rate:PlaygroundMsm5205Rate;
+  sampleRate?:number;paddedFrames?:number;duration?:number;
+};
+type PlaygroundMsm5205State = {
+  state:'ready'|'playing'|'ended';mode:'raw'|'pce'|'driver';sourceBytes:number;
+  /** All addresses, ranges and cursor positions count four-bit nibbles. */
+  offset:number;length:number;positionNibbles:number;
+  rate:PlaygroundMsm5205Rate;outputFrame:number;sampleRate:number;clock:number;
+  volume:number;pan:number;mute:boolean;
+  /** Optional Browser renderer diagnostics; Native reports the common fields above. */
+  cursor?:number;loop?:boolean;phase?:number;outputFrames?:number;
+  effectiveSampleRate?:number;gain?:number;muted?:boolean;
+  sample:Readonly<PlaygroundMsm5205Sample>|null;
+};
+/** Mono four-bit OKI ADPCM player, with 64 KiB packed sample RAM.
+ * PSG, ADPCM and CD-DA have independent Mixer strips. No BIOS or disc emulation.
+ */
+type PlaygroundMsm5205API = {
+  /** Encoded OKI ADPCM, high nibble first. Paths refer to Virtual Files. */
+  loadMemory(source:ArrayBuffer|Uint8Array|string):Promise<Readonly<PlaygroundMsm5205Sample>>;
+  /** PCM/WAV is downmixed and resampled; default rate 12 means 8 kHz at 1.536 MHz. */
+  loadSample(source:PlaygroundMsm5205PCM|AudioBuffer|ArrayBuffer|Uint8Array|Blob|string,
+    options?:{rate?:PlaygroundMsm5205Rate;signal?:AbortSignal;decodeAudio?:(bytes:ArrayBuffer)=>Promise<AudioBuffer|PlaygroundMsm5205PCM>}):Promise<Readonly<PlaygroundMsm5205Sample>>;
+  /** offset and length count nibbles; rate is the hardware field, not Hz. */
+  play(options?:PlaygroundCddaTiming & {offset?:number;length?:number;loop?:boolean;rate?:PlaygroundMsm5205Rate}):Promise<unknown>;
+  stop(options?:PlaygroundCddaTiming):Promise<unknown>;
+  reset(options?:PlaygroundCddaTiming):Promise<unknown>;
+  writeRegister(register:0|1|2|3|4|5|6|7,value:number,options?:PlaygroundCddaTiming):Promise<unknown>;
+  getState():Promise<PlaygroundMsm5205State>;
+};
 declare const sample: PlaygroundSampleAPI;
 declare const stream: PlaygroundStreamAPI;
 declare const noise: PlaygroundNoiseAPI;
@@ -907,6 +941,7 @@ type PlaygroundLivePrepareAPI = {
   fx: FXApi;
   sample: PlaygroundSampleAPI;
   cdda: PlaygroundCddaAPI;
+  msm5205: PlaygroundMsm5205API;
   stream: PlaygroundStreamAPI;
   noise: PlaygroundNoiseAPI;
   log: (...args: unknown[]) => void;
@@ -1107,6 +1142,7 @@ type PlaygroundSelectedSSG = TetoricaSelectedChip extends 'ym2203' | 'ym2608' | 
 type PlaygroundSelectedADPCM = TetoricaSelectedChip extends 'ym2608'
   ? PlaygroundYm2608['adpcm']
   : TetoricaSelectedChip extends 'ym2610' | 'ym2610b' ? PlaygroundCreatedYm2610['adpcmB']
+  : TetoricaSelectedChip extends 'pc-engine-cd' ? PlaygroundMsm5205API
   : TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOki6258 : never;
 /** Built-in OPN sections share the primary fm chip and clock. */
 type PlaygroundSelectedOpnSectionsAPI = TetoricaSelectedChip extends 'ym2203'
@@ -1135,6 +1171,8 @@ type PlaygroundAPIBase = {
   /** Preloaded sample playback API. */
   sample: PlaygroundSampleAPI;
   cdda: PlaygroundCddaAPI;
+  /** Independent system ADPCM source, also exposed as adpcm in PC Engine CD mode. */
+  msm5205: PlaygroundMsm5205API;
   /** Streamed BGM-style playback API. */
   stream: PlaygroundStreamAPI;
   /** Looping noise-source helper for ambient beds. */
@@ -1211,6 +1249,7 @@ type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'pokey' ? {pokey
   : TetoricaSelectedChip extends 'snes' ? {snes: PlaygroundPrimarySnes}
   : TetoricaSelectedChip extends 'x68000' ? {opm: PlaygroundPrimaryOpm; adpcm: PlaygroundPrimaryOki6258}
   : TetoricaSelectedChip extends 'huc6280' ? {pce: PlaygroundPrimaryHuc6280}
+  : TetoricaSelectedChip extends 'pc-engine-cd' ? {pce:PlaygroundPrimaryHuc6280;adpcm:PlaygroundMsm5205API}
   : TetoricaSelectedChip extends 'dx7' ? {dx7: PlaygroundPrimaryDx7}
   : TetoricaSelectedChip extends PlaygroundOplChip ? {opl: PlaygroundPrimaryOpl<TetoricaSelectedChip>; OPL_PRESETS:PlaygroundOplPresets<TetoricaSelectedChip>}
   : TetoricaSelectedChip extends 'master-system' ? {psg: PlaygroundSelectedPsg;opll:PlaygroundPrimaryYm2413;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
@@ -1855,7 +1894,7 @@ type PlaygroundSoundChipMap = {
   snes: TetoricaSelectedChip extends 'snes' ? PlaygroundPrimarySnes : PlaygroundSnes;
   spc: PlaygroundSpc;
   wonderswan: TetoricaSelectedChip extends 'wonderswan' ? PlaygroundPrimaryWonderSwan : PlaygroundWonderSwan;
-  huc6280: TetoricaSelectedChip extends 'huc6280' ? PlaygroundPrimaryHuc6280 : PlaygroundHuc6280;
+  huc6280: TetoricaSelectedChip extends 'huc6280'|'pc-engine-cd' ? PlaygroundPrimaryHuc6280 : PlaygroundHuc6280;
   okim6258: TetoricaSelectedChip extends 'x68000' ? PlaygroundPrimaryOki6258 : PlaygroundOki6258;
   ym3526: TetoricaSelectedChip extends 'ym3526' ? PlaygroundPrimaryOpl<'ym3526'> : PlaygroundOpl<'ym3526'>;
   ym3812: TetoricaSelectedChip extends 'ym3812' ? PlaygroundPrimaryOpl<'ym3812'> : PlaygroundOpl<'ym3812'>;

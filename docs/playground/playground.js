@@ -1,18 +1,18 @@
 import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=pokey-mode-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=pokey-voice-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=pcengine-cd-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=pokey-mode-1';
+import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=pcengine-cd-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=pokey-voice-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
-  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=pokey-mode-1';
+  installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=pcengine-cd-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=pokey-voice-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=pcengine-cd-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-pcm-timeline-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=wonderswan-pcm-timeline-1';
 let desktopAutosave = null;
@@ -64,7 +64,7 @@ import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=pokey-voice-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=pokey-prepare-1";
 import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=wonderswan-pcm-timeline-1";
-import { initializePlaygroundMonaco } from "./playground_monaco.js?v=wonderswan-pcm-timeline-1";
+import { initializePlaygroundMonaco } from "./playground_monaco.js?v=pcengine-cd-1";
 import {
   decodeBase64Bytes,
   loadTfiPresetsFromQuery,
@@ -95,7 +95,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=cdda-pcm-1";
+} from "../js/playground_runtime.js?v=pcengine-cd-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=pokey-prepare-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
@@ -288,7 +288,7 @@ if (audioEngineSelection.requested === 'native' && !audioEngineSelection.availab
 const useNativeGenesis = audioEngineSelection.engine === 'native';
 const soundChipMixer = createPlaygroundSoundChipMixer(selectedMode.id);
 const megaDrive = useNativeGenesis
-  ? new (await import('../js/native_genesis_synth.js?v=pokey-voice-1')).NativeGenesisSynth({
+  ? new (await import('../js/native_genesis_synth.js?v=pcengine-cd-1')).NativeGenesisSynth({
     invoke:window.__TAURI_INTERNALS__.invoke.bind(window.__TAURI_INTERNALS__),
     mode:selectedMode.id,
     mixer:soundChipMixer,
@@ -1908,8 +1908,9 @@ async function openSampleEditor(asset = DEFAULT_SAMPLE_ASSET) {
 function createRuntime() {
   return createPlaygroundRuntime({
     inputAudio,
+    pcEngineCd:selectedMode.pcEngineCd===true,
     async readCddaFile(path){
-      const record=virtualFiles.get(path);if(!record)throw new Error(`CD-DA file not found: ${path}`);
+      const record=virtualFiles.get(path);if(!record)throw new Error(`Audio file not found: ${path}`);
       return record.type==='text'?new TextEncoder().encode(record.data):record.data;
     },
     midiFileSupported: !useNukedEngine,

@@ -18,6 +18,7 @@ const definitions = [
   {id:'snes', label:'SNES', chip:'snes', engine:'dsp', fmChannels:0, chipTabs:['snes'], details:'S-DSP · 32,000 Hz · 8 voices'},
   {id:'x68000', label:'X68000', chip:'x68000', engine:'opm-adpcm', fmChannels:0, chipTabs:['ym2151','okim6258'], details:'YM2151 · 4 MHz + OKIM6258 · 8 MHz'},
   {id:'pc-engine', label:'PC Engine', chip:'huc6280', engine:'psg', fmChannels:0, chipTabs:['huc6280'], details:'HuC6280 PSG · 6 channels · 32 × 5-bit waveforms'},
+  {id:'pc-engine-cd', label:'PC Engine CD-ROM²', chip:'huc6280', declarationChip:'pc-engine-cd', pcEngineCd:true, engine:'psg', fmChannels:0, chipTabs:['huc6280'], legacyDraftKey:'pc-engine-cd', details:'HuC6280 PSG + MSM5205 ADPCM · 64 KiB sample RAM + CD-DA'},
   {id:'game-gear', label:'Game Gear', chip:'segapsg', declarationChip:'game-gear', engine:'psg', fmChannels:0,
     stereoEnabled:true, chipTabs:['segapsg'], details:'Sega PSG · 3,579,545 Hz · 3 tones + noise · Stereo'},
   {id:'master-system', label:'Master System', chip:'segapsg', declarationChip:'master-system', engine:'psg', fmChannels:0,

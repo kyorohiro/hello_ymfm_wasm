@@ -111,6 +111,7 @@ tetorica-playground-nes.d.ts
 tetorica-playground-snes.d.ts
 tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
+tetorica-playground-pc-engine-cd.d.ts
 tetorica-playground-wonderswan.d.ts
 tetorica-playground-pokey.d.ts
 tetorica-playground-pokey-dual.d.ts
@@ -135,6 +136,12 @@ cdda_audio.js
 cdda_worklet.js
 cdda_native.js
 cdda_offline.js
+msm5205_pcm.js
+msm5205_sample.js
+msm5205_player.js
+msm5205_audio.js
+msm5205_worklet.js
+msm5205_native.js
 spc.js
 spc_trace.js
 spc_events.js
@@ -513,6 +520,7 @@ rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
 mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/vendor" "${STAGE_DIR}/licenses/nuked-opn2" "${STAGE_DIR}/vgm_analyzer"
 node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_msm5205_sources.mjs" "${STAGE_DIR}"
 cp "${ROOT_DIR}/docs/vgm_analyzer/spc_brr_candidates.js" "${STAGE_DIR}/vgm_analyzer/spc_brr_candidates.js"
 
 for file in ${PLAYGROUND_FILES}; do
@@ -640,6 +648,7 @@ See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.
 Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 
 Atari POKEY sound: BSD-labeled libvgm/MAME POKEY adaptation, BSD-3-Clause. See licenses/libvgm-pokey/ and sources/POKEY.md.
+MSM5205 PCM and PC Engine ADPCM RAM helper: BSD-3-Clause, adapted from the existing libvgm-based JavaScript renderer. See licenses/tetorica-msm5205/ and sources/MSM5205.md for copyright, complete source and rebuilding.
 WonderSwan sound: MAME adaptation by Wilbert Pol and kyorohiro, BSD-3-Clause. See licenses/mame-wonderswan/.
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.

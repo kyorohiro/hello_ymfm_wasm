@@ -1,14 +1,14 @@
-# CD-DA playback — first stage
+# CD-DA playback
 
 CD-DA is an independent stereo PCM source. It can play alongside the selected
 sound chips in Playground, including PC Engine's HuC6280. It is available with
 Web Audio and the experimental Native backend; it does not open a second audio
 device or use a JavaScript timer to advance playback.
 
-This first stage supports **44,100 Hz, stereo, uncompressed PCM16 RIFF WAV**.
+Current CD-DA input supports **44,100 Hz, stereo, uncompressed PCM16 RIFF WAV**.
 It does not load a game disc, BIOS, CUE/BIN image or compressed audio. PC Engine
-CD-ROM² ADPCM integration is a separate next step; the current example mixes
-PSG and CD-DA, not the complete three-source CD-ROM² system.
+CD-ROM² mode combines HuC6280 PSG, MSM5205 ADPCM and CD-DA. See
+[PC Engine CD ADPCM](msm5205.md) for sample preparation and playback.
 
 ## Playground
 
@@ -20,7 +20,9 @@ await cdda.play();
 ```
 
 The `pce-cdda.js` example in PC Engine mode creates its own original stereo WAV
-and mixes it with PSG. It requires no external audio file.
+and mixes it with PSG. PC Engine CD-ROM² mode adds
+`pce-cd-three-sources.js`, which also encodes an original ADPCM sample. Both
+examples require no external audio file.
 
 The transport API is asynchronous:
 

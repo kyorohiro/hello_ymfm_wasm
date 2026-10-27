@@ -17,6 +17,12 @@ cdda_audio.js
 cdda_worklet.js
 cdda_native.js
 cdda_offline.js
+msm5205_pcm.js
+msm5205_sample.js
+msm5205_player.js
+msm5205_audio.js
+msm5205_worklet.js
+msm5205_native.js
 spc.js
 spc_trace.js
 spc_events.js
@@ -442,6 +448,8 @@ node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${ROOT_DIR}/docs"
+node "${ROOT_DIR}/scripts/copy_msm5205_sources.mjs" "${ROOT_DIR}/docs"
+perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/msm5205_pcm.js" "${DOCS_JS_DIR}/msm5205_audio.js"
 perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/cdda_pcm.js" "${DOCS_JS_DIR}/cdda_audio.js" "${DOCS_JS_DIR}/cdda_offline.js"
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/pokey.js" "${DOCS_JS_DIR}/playground_pokey_audio.js" "${DOCS_JS_DIR}/playground_pokey_worklet.js"

@@ -75,11 +75,13 @@ test('loads the fixed 29-artifact inventory and freezes the validated recipe set
 });
 
 test('validates all actual receipts, pinned sources and WASM ABI descriptors without Emscripten', async () => {
-  const summary = await verifyWasmBuildDirectory({root, directory: deployed, inventory});
+  const summary = await verifyWasmBuildDirectory({root, directory: deployed, inventory, allowApplicationAudio: true});
   assert.equal(summary.artifactCount, 29);
   assert.equal(summary.outputCount, 57);
   assert.equal(summary.verifiedSourceCount, new Set(inventory.artifacts.flatMap(artifact => artifact.sourcePaths)).size);
   assert.equal(summary.sourcesVerified, true);
+  assert.equal(summary.applicationAudioCount, 2);
+  assert.equal(summary.applicationAudioOutputCount, 4);
   const dx7 = summary.artifacts.find(artifact => artifact.id === 'dx7');
   assert.deepEqual(dx7.wasm.imports, []);
   assert.ok(dx7.wasm.exports.some(entry => entry.name === 'dx7_render' && entry.kind === 'function'));
@@ -94,6 +96,88 @@ test('accepts an isolated copied build directory and explicitly skipped source I
   assert.equal(summary.outputCount, 57);
   assert.equal(summary.verifiedSourceCount, 0);
   assert.equal(summary.sourcesVerified, false);
+  assert.equal(summary.applicationAudioCount, 0);
+  assert.equal(summary.applicationAudioOutputCount, 0);
+  assert.deepEqual(summary.applicationAudio, []);
+});
+
+async function applicationFixture(t, ids = ['cdda', 'msm5205']) {
+  const fixture = await outputFixture(t);
+  for (const id of ids) for (const ext of ['js', 'wasm']) {
+    const name = `${id}_wasm.${ext}`;
+    await copyFile(path.join(deployed, name), path.join(fixture.directory, name));
+  }
+  return fixture;
+}
+
+test('default SDK validation still rejects the deployed application-owned pairs', async () => {
+  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory, verifySources: false}), /missing or extra/);
+});
+
+test('explicit application opt-in reports the two known devices separately with actual byte hashes and ABI', async t => {
+  const fixture = await applicationFixture(t);
+  const summary = await verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true});
+  assert.equal(summary.artifactCount, 29); assert.equal(summary.outputCount, 57);
+  assert.equal(summary.applicationAudioCount, 2); assert.equal(summary.applicationAudioOutputCount, 4);
+  assert.deepEqual(summary.applicationAudio.map(a => a.id), ['cdda', 'msm5205']);
+  for (const artifact of summary.applicationAudio) {
+    assert.deepEqual(artifact.wasm.imports, []);
+    assert(artifact.wasm.exports.some(entry => entry.name === `${artifact.id}_wasm_render`));
+    for (const output of artifact.outputs) {
+      const bytes = await readFile(path.join(fixture.directory, output.path));
+      assert.deepEqual(output, {path: output.path, size: bytes.length, sha256: sha256(bytes)});
+    }
+  }
+  assert(!summary.artifacts.some(a => a.id === 'cdda' || a.id === 'msm5205'));
+});
+
+test('application opt-in permits a complete known pair but never imports its JavaScript', async t => {
+  const fixture = await applicationFixture(t, ['cdda']);
+  await writeFile(path.join(fixture.directory, 'cdda_wasm.js'), 'throw new Error("metadata validation must not execute generated JS");');
+  const summary = await verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true});
+  assert.equal(summary.applicationAudioCount, 1); assert.equal(summary.applicationAudioOutputCount, 2);
+  assert.deepEqual(summary.applicationAudio.map(a => a.id), ['cdda']);
+});
+
+test('application opt-in rejects each partial known pair', async t => {
+  for (const id of ['cdda', 'msm5205']) for (const ext of ['js', 'wasm']) {
+    const fixture = await applicationFixture(t, [id]);
+    await rm(path.join(fixture.directory, `${id}_wasm.${ext}`));
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}),
+      /Application audio output pair is incomplete/);
+  }
+});
+
+test('application opt-in still rejects unknown extra JS/WASM outputs', async t => {
+  const fixture = await applicationFixture(t);
+  await writeFile(path.join(fixture.directory, 'another_audio_wasm.js'), 'throw new Error("never execute");');
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}), /missing or extra/);
+});
+
+test('application opt-in rejects internal and external symbolic links for either output', async t => {
+  for (const outside of [false, true]) for (const ext of ['js', 'wasm']) {
+    const fixture = await applicationFixture(t, ['cdda']);
+    const name = `cdda_wasm.${ext}`, target = path.join(outside ? fixture.base : fixture.directory, 'source.txt');
+    await copyFile(path.join(fixture.directory, name), target);
+    await rm(path.join(fixture.directory, name));
+    await symlink(target, path.join(fixture.directory, name));
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}),
+      /Application audio output must be a regular file, not a symlink/);
+  }
+});
+
+test('application opt-in rejects malformed and substituted application WASM despite recording fresh hashes', async t => {
+  for (const bytes of [Buffer.from('not WASM'), await readFile(path.join(deployed, 'msm5205_wasm.wasm'))]) {
+    const fixture = await applicationFixture(t, ['cdda']);
+    await writeFile(path.join(fixture.directory, 'cdda_wasm.wasm'), bytes);
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}),
+      /Invalid application audio WASM|no standalone cdda ABI/);
+  }
+});
+
+test('rejects non-boolean application audio opt-ins', async () => {
+  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory, allowApplicationAudio: 'true'}),
+    /allowApplicationAudio must be boolean/);
 });
 
 test('accepts EMXX/EMCC wrapper paths while preserving compiler metadata', async t => {
@@ -282,8 +366,8 @@ test('verifies source bytes against the pinned snapshot and can explicitly skip 
   const local = await loadWasmSdkInventory(fixture);
   const target = path.join(fixture.sdkRoot, 'scripts/build-wasm.sh');
   await writeFile(target, '# tampered SDK source\n');
-  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local}), /SDK source hash\/size mismatch/);
-  const skipped = await verifyWasmBuildDirectory({directory: deployed, inventory: local, verifySources: false});
+  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local, allowApplicationAudio: true}), /SDK source hash\/size mismatch/);
+  const skipped = await verifyWasmBuildDirectory({directory: deployed, inventory: local, verifySources: false, allowApplicationAudio: true});
   assert.equal(skipped.sourcesVerified, false);
 });
 
@@ -295,7 +379,7 @@ test('rejects source symlinks escaping the SDK even if external bytes have the p
   await copyFile(path.join(sdk, name), outside);
   await rm(path.join(fixture.sdkRoot, name));
   await symlink(outside, path.join(fixture.sdkRoot, name));
-  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local}), /escapes its directory/);
+  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory: local, allowApplicationAudio: true}), /escapes its directory/);
 });
 
 test('rejects a source catalog that differs from the manifest', async t => {

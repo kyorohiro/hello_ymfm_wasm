@@ -116,6 +116,8 @@ export function buildPlaygroundMixerDefaults(report) {
   // Atari ST uses the AY-family Mixer policy. This is an inherited default,
   // not a new measurement of its YM2149 clock/type or analogue output stage.
   inherit('atari-st','msx',['ay8910']);
+  // CD system sources start at unity; PSG inherits the existing PC Engine policy.
+  inherit('pc-engine-cd','pc-engine');
   return {
     calibration:{version:1,referenceFrequencyHz:REFERENCE_FREQUENCY,frequencies:[...FREQUENCIES],
       targetAmplitude:calibration.targetAmplitude,referenceAmplitude:calibration.referenceAmplitude,

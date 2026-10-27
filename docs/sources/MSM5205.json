@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "origin": "Tetorica application module (not a published fixed SDK release)",
+  "files": [
+    {
+      "path": "native/msm5205/msm5205_pcm.c",
+      "bytes": 6720,
+      "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be"
+    },
+    {
+      "path": "native/msm5205/msm5205_pcm.h",
+      "bytes": 3618,
+      "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9"
+    },
+    {
+      "path": "native/msm5205/msm5205_wasm.c",
+      "bytes": 2191,
+      "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471"
+    },
+    {
+      "path": "native/msm5205/LICENSE",
+      "bytes": 1617,
+      "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
+    },
+    {
+      "path": "native/msm5205/NOTICE.md",
+      "bytes": 2064,
+      "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
+    },
+    {
+      "path": "native/msm5205/README.md",
+      "bytes": 3295,
+      "sha256": "1ecc63a9dc1c12afffdba8ad413f55e2242bca5f407ba24f631b81b0bf1572f5"
+    },
+    {
+      "path": "scripts/build_msm5205_wasm.sh",
+      "bytes": 1219,
+      "sha256": "395c4c8dc612ba4bb3ebace1d17452c35b0727367f14014a59bf55cb76eb9621"
+    }
+  ]
+}

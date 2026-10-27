@@ -30,6 +30,7 @@ const definitions = {
   snes: ['/examples/snes/snes-mode-brr.js','/examples/snes/snes-mode-stereo.js'],
   x68000: ['/examples/x68000/x68000-mode-opm.js','/examples/x68000/x68000-mode-adpcm.js'],
   'pc-engine': ['/examples/pc-engine/pce-mode-wave.js','/examples/pc-engine/pce-mode-stereo.js','/examples/pc-engine/pce-mode-noise.js','/examples/pc-engine/pce-cdda.js'],
+  'pc-engine-cd': ['/examples/pc-engine/pce-cd-three-sources.js','/examples/pc-engine/pce-cdda.js','/examples/pc-engine/pce-mode-stereo.js'],
   'game-gear': ['/examples/game-gear/gg-mode-melody.js', '/examples/game-gear/gg-mode-noise.js', '/examples/game-gear/gg-mode-stereo.js'],
   'master-system': ['/examples/master-system/sms-mode-melody.js', '/examples/master-system/sms-mode-noise.js',
     '/examples/master-system/sms-opll-instruments.js', '/examples/master-system/sms-opll-user-patch.js', '/examples/master-system/sms-opll-rhythm.js'],

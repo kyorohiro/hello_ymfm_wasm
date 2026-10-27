@@ -436,6 +436,18 @@ const factoryModes = freeze({
       }
     ]
   },
+  "pc-engine-cd": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "huc6280",
+        "name": "huc6280",
+        "settings": {
+          "volume": 0.44
+        }
+      }
+    ]
+  },
   "pc98": {
     "version": 1,
     "entries": [

@@ -1,11 +1,51 @@
 # Save Point
 
-Last updated: 2026-10-27
+Last updated: 2026-10-28
 
-## 最新の再開ポイント — 2026-10-27
+## 最新の再開ポイント — 2026-10-28
 
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
+
+### PC Engine CD-ROM² 3系統の音声対応完了 — 2026-10-28
+
+ユーザーの続きの「進めて」で、MSM5205を共通C11／WASM／Nativeへ接続。
+新mode `pc-engine-cd`（PC Engine CD-ROM²）で`pce`／`adpcm`／`cdda`を使用できる。
+`pg.msm5205`は他modeでも共通system sourceとして利用可能。OPN等の`adpcm`は従来通り。
+64KiB符号化RAM、16段階rate、WAV／PCMの変換、nibble単位の範囲、Loop／Stop／Reset、raw write、状態取得。
+3入力のMixer、Main／Worker、offline WAV出力、元音声を生成するstarter／Exampleまで実装済み。
+既存VGMのMSM5205 JS／公開command／既存gain／SDK pinは変更なし。新汎用createSoundChip typeは未追加。
+
+原本`native/msm5205/`と`web/msm5205_*.js`。WASM3590bytes／固定128KiB／host importなし。
+準備時に最大64KiBへ符号化、renderは確保・file読込・UI block要求なし。Nativeは同じcallbackで混合。
+Stop／置換／旧generation／raw write取消を保護。Mix予約は保持。無準備hostはstrict zero。
+loopはpredictorを継続するため、Exampleには25ms fadeを入れてstep0に戻し、音量増大を避けた。
+新modeのPSGは既存PC Engineの0.44を継承。ADPCM／CD-DAはunity、index.jsでMixer指定なし。
+
+実C11／C++14／WASM・従来JS raw PCM／全状態が44.1／48kHzで一致。全16rate等も検証。
+Web関連4636、音声用unit55、全mode型、実3core offline合算／WAV3件が成功。
+Chromium153／WebKit26.6の全8route成功：単体44.1／48kHz、実Playground Main／Worker。
+WASM差0／Stop後0／Mixer各入力・volume維持・再実行・実starterを確認。
+全292served sourceが最終treeと一致、198runtime assetもflat ZIPと同hash。
+全Cargo780成功／4既存ignore／失敗なし（共通callback変更のため全回帰）。
+Tauri Python28／Node31、全24offline pin、Native source ZIP1975filesも成功。
+実聴・実機比較・Tauri GUIは未実施、Browser試験の物理出力は捕捉後mute。
+
+ZIP `release/hello_ymfm_wasm_pcengine-cd-dev_itch_playground.zip`（997files）作成、全byte照合済み。
+SHA256 `3dbcb98e458bc71c92b8feacf90e7b58ee0686f8644d06952d7db58ccfc456f1`。
+Tauriへ996effective files取込、dist／lock／ZIP一致。appで`npm run dev`して新modeと初期コードを選べる。
+Native source ZIP SHA256 `9a3459d61325162fcfa2134b6ef69cb597637f0309c54e6246d51d193227b7a7`。
+同期は`node scripts/sync_msm5205_native.mjs --write|--check`、app側`sync_native_msm5205.py --check`。
+
+npm開発候補は318modules／28chip pairs＋CD-DA／MSM5205／367宣言／929files。
+隔離installで実ADPCM／CD-DA WASMと型が成功。今回は公開していない。
+CIへapp音声core build／parity／unit jobを追加。SDK referenceは既知app pairを別枠で検証。
+SDK候補／prebuiltは従来の厳密検証を維持。CI guard105件成功、remote CIは未実行。
+commit／push／tag／npm／itch.io公開なし。
+
+詳細：[msm5205_pcm_01.md](msm5205_pcm_01.md)と同名JSON、Browser／coreの専用JSON。
+使用法：[../msm5205.md](../msm5205.md)、[../cdda.md](../cdda.md)。
+次は実聴確認と公開範囲の選択。CUE／BIN、圧縮disc音声、物理CD、BIOS／CPU／DMA／SCSI／IRQは対象外。
 
 ### CD-ROM²音声・CD-DA第1段階完了 — 2026-10-27
 

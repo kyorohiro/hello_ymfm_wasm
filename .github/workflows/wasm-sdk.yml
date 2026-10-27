@@ -42,3 +42,38 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
           path: ${{ runner.temp }}/wasm-sdk/
+
+  application-audio:
+    name: CD-DA and PC Engine CD ADPCM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - uses: emscripten-core/setup-emsdk@667eb33f24e84e7f362c16d8d7fff0629a73e15e # v15
+        with:
+          version: '6.0.6'
+      - name: Build application-owned PCM cores
+        run: |
+          sh scripts/build_cdda_wasm.sh
+          sh scripts/build_msm5205_wasm.sh
+      - name: Compare Native and WASM with independent/reference playback
+        run: |
+          node scripts/check_cdda_core.mjs > "$RUNNER_TEMP/cdda-core.json"
+          node scripts/check_msm5205_core.mjs > "$RUNNER_TEMP/msm5205-core.json"
+      - name: Check sample preparation, lifecycle and three-source offline output
+        run: node --test web/cdda_*.test.mjs web/msm5205_*.test.mjs
+      - name: Retain audio core comparison reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: application-audio-validation
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/cdda-core.json
+            ${{ runner.temp }}/msm5205-core.json

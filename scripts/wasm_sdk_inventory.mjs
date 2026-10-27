@@ -15,6 +15,9 @@ export const WASM_SDK_ARTIFACT_IDS = Object.freeze([
 const DEFAULT_ROOT = fileURLToPath(new URL('../', import.meta.url));
 const NAME = 'tetorica-soundchip-native';
 const MANIFEST = 'RELEASE-MANIFEST.json';
+// Application-owned PCM devices live beside the deployed SDK builds, but are
+// not SDK artifacts and must never be accepted in SDK candidates/prebuilts.
+const APPLICATION_AUDIO = Object.freeze(['cdda', 'msm5205']);
 const inventories = new WeakMap();
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const requireValue = (condition, message) => { if (!condition) throw new Error(message); };
@@ -154,8 +157,10 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
 }
 
 /** Verify complete receipts, pinned inputs and actual outputs before running JS. */
-export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, inventory, verifySources = true} = {}) {
+export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, inventory,
+  verifySources = true, allowApplicationAudio = false} = {}) {
   requireValue(typeof verifySources === 'boolean', 'verifySources must be boolean');
+  requireValue(typeof allowApplicationAudio === 'boolean', 'allowApplicationAudio must be boolean');
   inventory ??= await loadWasmSdkInventory({root});
   const expectedSources = inventories.get(inventory);
   requireValue(expectedSources, 'inventory must be returned by loadWasmSdkInventory');
@@ -169,7 +174,42 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
   const entries = await readdir(absolute, {withFileTypes: true});
   requireValue(entries.length <= 4096, 'Too many files in WASM output directory');
   const wasmOutputs = entries.filter(entry => /\.(?:js|wasm)$/.test(entry.name)).map(entry => entry.name).sort();
-  requireValue(same(wasmOutputs, expectedOutputs), 'WASM output directory has missing or extra JS/WASM files');
+  const applicationAudio = [];
+  const applicationOutputs = [];
+  if (allowApplicationAudio) {
+    for (const id of APPLICATION_AUDIO) {
+      const names = [`${id}_wasm.js`, `${id}_wasm.wasm`];
+      const present = names.filter(name => wasmOutputs.includes(name));
+      requireValue(!present.length || present.length === names.length,
+        `Application audio output pair is incomplete: ${id}`);
+      if (!present.length) continue;
+      const outputs = [];
+      let wasm;
+      for (const name of names) {
+        // Reject even an internal symlink: these are explicit repository
+        // reference files, not an extensible alias/search-path mechanism.
+        requireValue(entries.find(entry => entry.name === name)?.isFile(),
+          `Application audio output must be a regular file, not a symlink: ${name}`);
+        const bytes = await containedFile(absolute, name);
+        outputs.push({path: name, size: bytes.length, sha256: sha256(bytes)});
+        if (name.endsWith('.wasm')) {
+          let compiled;
+          try { compiled = await WebAssembly.compile(bytes); }
+          catch (error) { throw new Error(`Invalid application audio WASM output: ${name}`, {cause: error}); }
+          const imports = WebAssembly.Module.imports(compiled);
+          const exports = WebAssembly.Module.exports(compiled);
+          requireValue(imports.length === 0 && exports.some(entry => entry.name === 'memory' && entry.kind === 'memory')
+            && ['init', 'render'].every(suffix => exports.some(entry => entry.name === `${id}_wasm_${suffix}` && entry.kind === 'function')),
+          `Application audio output has no standalone ${id} ABI: ${name}`);
+          wasm = {path: name, imports, exports};
+        }
+      }
+      applicationAudio.push({id, outputs, wasm});
+      applicationOutputs.push(...names);
+    }
+  }
+  requireValue(same(wasmOutputs, [...expectedOutputs, ...applicationOutputs].sort()),
+    'WASM output directory has missing or extra JS/WASM files');
   const sourceCache = new Map();
   const artifacts = [];
   for (const artifact of inventory.artifacts) {
@@ -235,5 +275,6 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
   }
   return {schemaVersion: 1, directory: absolute, artifactCount: artifacts.length,
     outputCount: expectedOutputs.length, verifiedSourceCount: verifySources ? sourceCache.size : 0,
-    sourcesVerified: verifySources, artifacts};
+    sourcesVerified: verifySources, artifacts, applicationAudioCount: applicationAudio.length,
+    applicationAudioOutputCount: applicationOutputs.length, applicationAudio};
 }
