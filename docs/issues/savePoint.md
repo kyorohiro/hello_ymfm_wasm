@@ -1,3 +1,13 @@
+## 2026-10-28 — PC Engine CD-ROM² external Examples complete
+
+- `w/tetorica-fm2612-examples`を公開npm **0.2.32**へ更新。CD-DAのトラック操作、MSM5205のサンプル変換／ループ、HuC6280＋ADPCM＋CD-DAの合奏をWeb／Nodeで各1例追加。各例は自作音声を生成し、外部disc／BIOS／ROM不要。
+- Webは`Playground({chip:'huc6280', pcEngineCd:true})`、Main／Worker選択・コード編集・初期化中／再生中Stop・終了時解放。Nodeは48 kHzの実WASMを共通frame時計で混ぜてWAVへ保存。
+- Node全**36例**成功。Chromium153／WebKit26.6×3例×Main／Workerの全**12構成**成功。実PCMで各音源の寄与と合奏、Pause／EOF／Stop後exact zero、再実行・エラー・pagehide・解放を検証。物理出力はmute、実聴／実機比較は未実施。
+- `npm run build`／`build:docs`で各**1181 files**を生成、全byte一致。Browserが取得した**191 assets**は両tree一致。npm **929 members**はinstall／docs/vendor／dist/vendor／public/vendorで公開アーカイブと同hash。
+- 通常dev serverも18routeのHTTP200／source byte一致を確認し終了。Ready状態のdesktop3枚＋compact1枚を確認、audio contextは0。プレビューWAV3件はExamplesの`output/pc-engine-cd-*.wav`。
+- ExamplesのREADME／catalog／runtime guide／依存lockも更新済み。**未commit／未push／GitHub Pages未公開**。本体・Tauri・SDK・VGM・Mixerデフォルト値の変更、npm再公開は行っていない。
+- 詳細：[pcengine_cd_examples_01.md](pcengine_cd_examples_01.md)／[JSON](pcengine_cd_examples_01.json)。次の候補は新C11 coreのSDK集約。`docs/cdda.md`末尾の古い未実装案内整理とTauri GUI実聴は別途。
+
 ## 2026-10-28 — CD-ROM² npm release published
 
 - Target: `tetorica-fm2612 0.2.32` only. CD-DA / MSM5205 APIs, real WASM, complete source/notice bundles and README examples are staged. Fixed SDK and VGM package unchanged.
