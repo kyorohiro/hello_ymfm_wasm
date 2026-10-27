@@ -18,6 +18,7 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
     return channels;
   }
   if(kind==='ay8910')return numbered('',3,'Tone / noise');
+  if(kind==='pokey')return numbered('',4,'Tone / polynomial noise');
   if(kind==='segapsg')return native(['Tone 1','Tone 2','Tone 3','Noise']);
   if(kind==='gameboy')return native(['Pulse 1','Pulse 2','Wave','Noise']);
   if(kind==='nes')return native(['Pulse 1','Pulse 2','Triangle','Noise','DMC',...(fdsEnabled?['FDS']:[])]);
@@ -40,6 +41,7 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
  * pitched voice for noise generators or streaming sample FIFOs.
  * @param {string} kind @param {string} [channel] */
 export function keyboardChannelHint(kind,channel='0') {
+  if(kind==='pokey')return 'Plays the selected physical POKEY channel using its current distortion and volume. Joined pairs use the upper channel; shared clock and filter settings affect the chip.';
   if(kind==='ay8910')return 'Uses this channel’s tone/noise mixer and volume or shared envelope. Noise and envelope settings are shared by all three channels.';
   if(kind==='pwm')return 'PWM plays a timed sample stream and has no independent pitched Keyboard channel.';
   if(!keyboardChannels(kind).length)return 'This chip has no Keyboard voice adapter. Use keyboard.bind() to connect a custom instrument.';

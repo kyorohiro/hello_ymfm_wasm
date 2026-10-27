@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 
 export const WASM_SDK_ARTIFACT_IDS = Object.freeze([
   'ay8910', 'dx7', 'gameboy_apu', 'huc6280', 'k051649', 'nesapu',
-  'nuked_opn2', 'okim6258', 'pwm32x', 'rf5c164', 'segapcm', 'segapsg',
+  'nuked_opn2', 'okim6258', 'pokey', 'pwm32x', 'rf5c164', 'segapcm', 'segapsg',
   'spc', 'wonderswan', 'y8950', 'ym2151', 'ym2203', 'ym2413', 'ym2608', 'ym2610b',
   'ym2612', 'ym3438', 'ym3526', 'ym3812', 'ymf262', 'ymf276', 'ymf278b', 'ymf288',
 ]);
@@ -93,6 +93,19 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
     requireValue(name !== MANIFEST, 'SDK manifest must not list itself');
     fileRecord(record, name);
   }
+  if (pin.localCandidate !== undefined) {
+    const candidate = pin.localCandidate;
+    requireValue(isObject(candidate) && same(Object.keys(candidate).sort(), ['baseCommit', 'changedPaths'])
+      && candidate.baseCommit === pin.sourceCommit
+      && Array.isArray(candidate.changedPaths) && candidate.changedPaths.length > 0
+      && candidate.changedPaths.every(name => typeof name === 'string')
+      && same(candidate.changedPaths, [...new Set(candidate.changedPaths)].sort()),
+    'Invalid local SDK candidate provenance');
+    for (const name of candidate.changedPaths) {
+      relativeName(name, 'local candidate path');
+      requireValue(manifest.files[name], `Local candidate path absent from source manifest: ${name}`);
+    }
+  }
   const catalogPath = 'catalog/source_inventory.json';
   const catalogBytes = await containedFile(sdkRoot, catalogPath, 4 * 1024 * 1024);
   const catalogRecord = manifest.files[catalogPath];
@@ -121,9 +134,12 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
       return {path: name, sha256: record.sha256, size: record.size};
     });
     const outputs = id === 'dx7' ? ['msfa.wasm'] : [`${id}_wasm.js`, `${id}_wasm.wasm`];
-    requireValue(Array.isArray(artifact.importedFiles) && artifact.importedFiles.length === outputs.length,
+    // POKEY is the first SDK-owned addition, rather than a binary imported
+    // from the application. Its freshly built outputs are pinned by receipts.
+    const importedCount = id === 'pokey' ? 0 : outputs.length;
+    requireValue(Array.isArray(artifact.importedFiles) && artifact.importedFiles.length === importedCount,
       `Invalid imported output list: ${id}`);
-    for (let index = 0; index < outputs.length; index++) {
+    for (let index = 0; index < importedCount; index++) {
       const imported = artifact.importedFiles[index];
       requireValue(isObject(imported) && imported.path === `dist/wasm/${outputs[index]}`
         && isHash(imported.sha256), `Unexpected imported output: ${id}`);
@@ -208,6 +224,8 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
           && exports.some(entry => entry.kind === 'function'), `WASM output has no sound-chip ABI: ${output.path}`);
         if (artifact.id === 'wonderswan') requireValue(exports.some(entry => entry.name === 'wonderswan_generate' && entry.kind === 'function'),
           `WASM output has no WonderSwan ABI: ${output.path}`);
+        if (artifact.id === 'pokey') requireValue(exports.some(entry => entry.name === 'pokey_generate' && entry.kind === 'function'),
+          `WASM output has no POKEY ABI: ${output.path}`);
         if (artifact.id === 'dx7') requireValue(imports.length === 0, 'Standalone DX7 WASM must not have imports');
         wasm = {path: output.path, imports, exports};
       }

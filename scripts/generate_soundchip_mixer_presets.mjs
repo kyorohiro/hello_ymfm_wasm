@@ -4,7 +4,7 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {buildPlaygroundMixerDefaults,MIXER_LISTENING_LEVELS} from './generate_playground_mixer_defaults.mjs';
 
-const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_03.json',import.meta.url));
+const defaultPsgReportPath = fileURLToPath(new URL('../docs/issues/soundchip_psg_levels_04.json',import.meta.url));
 
 /** Retain the measured output units, then balance standalone square-wave sources. */
 export function buildSoundChipMixerPresets(report, psgReport) {

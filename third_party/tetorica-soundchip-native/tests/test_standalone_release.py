@@ -341,7 +341,7 @@ class ReleaseAuditTests(unittest.TestCase):
         subprocess.run([sys.executable, self.root / "scripts/refresh_catalog.py"], check=True, capture_output=True)
         catalog = json.loads((self.root / "catalog/chips.json").read_text())
         self.assertEqual(catalog["upstreamReferences"], inventory["upstreamReferences"])
-        self.assertEqual(len(catalog["chips"]), 23)
+        self.assertEqual(len(catalog["chips"]), len(REQUIRED_CHIPS))
         for filename, content in originals.items():
             self.assertEqual((self.root / filename).read_bytes(), content)
         audit_catalog(self.root)
@@ -436,12 +436,12 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                                                    "fixture-ay8910-release.json", "fixture-ym2203-release.json", "fixture-ym2608-release.json",
                                                    "fixture-ym2610-release.json", "fixture-okim6258-release.json", "fixture-rf5c164-release.json",
                                                    "fixture-opl-release.json", "fixture-extra_opl-release.json", "fixture-y8950_memory-release.json", "fixture-gameboy-release.json", "fixture-huc6280-release.json", "fixture-nes-release.json",
-                                                   "fixture-pwm-release.json", "fixture-extra_pwm-release.json", "fixture-dx7-release.json", "fixture-snes-release.json", "fixture-spc-release.json", "fixture-nuked_ym2612-release.json", "fixture-nuked_colink-release.json", "fixture-wonderswan-release.json",
+                                                   "fixture-pwm-release.json", "fixture-extra_pwm-release.json", "fixture-dx7-release.json", "fixture-snes-release.json", "fixture-spc-release.json", "fixture-nuked_ym2612-release.json", "fixture-nuked_colink-release.json", "fixture-wonderswan-release.json", "fixture-pokey-release.json",
                                                    "example-genesis-release.json", "example-master-system-release.json",
                                                    "example-msx-release.json", "example-pc98-ym2203-release.json",
                                                    "example-pc98-ym2608-release.json", "example-neogeo-release.json",
                                                    "example-x68000-release.json", "example-megacd-release.json",
-                                                   "example-dos-opl-release.json", "example-msx-audio-release.json", "example-gameboy-release.json", "example-pcengine-release.json", "example-nes-fds-release.json", "example-32x-release.json", "example-dx7-release.json", "example-snes-release.json", "example-spc-release.json", "example-nuked-genesis-release.json", "example-wonderswan-release.json")]
+                                                   "example-dos-opl-release.json", "example-msx-audio-release.json", "example-gameboy-release.json", "example-pcengine-release.json", "example-nes-fds-release.json", "example-32x-release.json", "example-dx7-release.json", "example-snes-release.json", "example-spc-release.json", "example-nuked-genesis-release.json", "example-wonderswan-release.json", "example-pokey-release.json")]
         model = {"paths": {"source": str(self.root), "build": str(self.build)}, "configurations": [
             {"name": "Debug", "targets": [{"jsonFile": "fixture-debug.json"}]},
             {"name": "Release", "targets": targets},
@@ -457,7 +457,7 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                                                     {"path": str(self.build / "generated")}]}]}
         extra_targets = {}
         for chip in ("ym2151", "segapsg", "ym2413", "ay8910", "ym2203", "ym2608", "ym2610", "okim6258", "rf5c164",
-                     "opl", "extra_opl", "y8950_memory", "gameboy", "huc6280", "nes", "pwm", "extra_pwm", "dx7", "snes", "spc", "nuked_ym2612", "nuked_colink", "wonderswan"):
+                     "opl", "extra_opl", "y8950_memory", "gameboy", "huc6280", "nes", "pwm", "extra_pwm", "dx7", "snes", "spc", "nuked_ym2612", "nuked_colink", "wonderswan", "pokey"):
             target = copy.deepcopy(detail)
             target["name"] = f"tetorica_{chip}_fixture"
             target["nameOnDisk"] = executable.replace("ym2612", chip)
@@ -465,7 +465,7 @@ class NativeBuildPortabilityTests(unittest.TestCase):
             target["sources"][0]["path"] = f"native/tests/{chip}_fixture.cpp"
             extra_targets[f"fixture-{chip}-release.json"] = target
         for machine in ("genesis", "master_system", "msx", "pc98_ym2203", "pc98_ym2608", "neogeo", "x68000", "megacd",
-                        "dos_opl", "msx_audio", "gameboy", "pcengine", "nes_fds", "32x", "dx7", "snes", "spc", "nuked_genesis", "wonderswan"):
+                        "dos_opl", "msx_audio", "gameboy", "pcengine", "nes_fds", "32x", "dx7", "snes", "spc", "nuked_genesis", "wonderswan", "pokey"):
             example = copy.deepcopy(detail)
             example["name"] = f"tetorica_{machine}_wav"
             example["nameOnDisk"] = example["name"] + Path(executable).suffix
@@ -549,6 +549,7 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                                           ("fixture-nuked_ym2612-release.json", "tetorica_nuked_ym2612_fixture"),
                                           ("fixture-nuked_colink-release.json", "tetorica_nuked_colink_fixture"),
                                           ("fixture-wonderswan-release.json", "tetorica_wonderswan_fixture"),
+                                          ("fixture-pokey-release.json", "tetorica_pokey_fixture"),
                                           ("example-genesis-release.json", "tetorica_genesis_wav"),
                                           ("example-master-system-release.json", "tetorica_master_system_wav"),
                                           ("example-msx-release.json", "tetorica_msx_wav"),
@@ -567,7 +568,8 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                                           ("example-snes-release.json", "tetorica_snes_wav"),
                                           ("example-spc-release.json", "tetorica_spc_wav"),
                                           ("example-nuked-genesis-release.json", "tetorica_nuked_genesis_wav"),
-                                          ("example-wonderswan-release.json", "tetorica_wonderswan_wav")):
+                                          ("example-wonderswan-release.json", "tetorica_wonderswan_wav"),
+                                          ("example-pokey-release.json", "tetorica_pokey_wav")):
                 with self.subTest(multi_config=multi_config, target=target_name):
                     reply, model, _ = self.file_api_fixture(multi_config=multi_config)
                     release = next(item for item in model["configurations"] if item["name"] == "Release")
@@ -689,6 +691,8 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                                         str(self.build.resolve() / "nuked genesis example output.wav")])
         self.assertEqual(commands[21], [str(self.build.resolve() / "native/Release/tetorica_wonderswan_wav.exe"),
                                         str(self.build.resolve() / "wonderswan example output.wav")])
+        self.assertEqual(commands[22], [str(self.build.resolve() / "native/Release/tetorica_pokey_wav.exe"),
+                                        str(self.build.resolve() / "dual pokey example output.wav")])
 
     def test_native_build_rejects_an_unbuilt_ym2151_fixture_before_running_ctest(self):
         commands = []
@@ -714,10 +718,10 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                             "tetorica_ym2203_fixture", "tetorica_ym2608_fixture", "tetorica_ym2610_fixture",
                             "tetorica_okim6258_fixture", "tetorica_rf5c164_fixture",
                             "tetorica_opl_fixture", "tetorica_extra_opl_fixture", "tetorica_y8950_memory_fixture", "tetorica_gameboy_fixture", "tetorica_huc6280_fixture", "tetorica_nes_fixture",
-                            "tetorica_pwm_fixture", "tetorica_extra_pwm_fixture", "tetorica_dx7_fixture", "tetorica_snes_fixture", "tetorica_spc_fixture", "tetorica_nuked_ym2612_fixture", "tetorica_nuked_colink_fixture", "tetorica_wonderswan_fixture",
+                            "tetorica_pwm_fixture", "tetorica_extra_pwm_fixture", "tetorica_dx7_fixture", "tetorica_snes_fixture", "tetorica_spc_fixture", "tetorica_nuked_ym2612_fixture", "tetorica_nuked_colink_fixture", "tetorica_wonderswan_fixture", "tetorica_pokey_fixture",
                             "tetorica_master_system_wav", "tetorica_msx_wav", "tetorica_pc98_ym2203_wav",
                             "tetorica_pc98_ym2608_wav", "tetorica_neogeo_wav", "tetorica_x68000_wav", "tetorica_megacd_wav",
-                            "tetorica_dos_opl_wav", "tetorica_msx_audio_wav", "tetorica_gameboy_wav", "tetorica_pcengine_wav", "tetorica_nes_fds_wav", "tetorica_32x_wav", "tetorica_dx7_wav", "tetorica_snes_wav", "tetorica_spc_wav", "tetorica_nuked_genesis_wav", "tetorica_wonderswan_wav"):
+                            "tetorica_dos_opl_wav", "tetorica_msx_audio_wav", "tetorica_gameboy_wav", "tetorica_pcengine_wav", "tetorica_nes_fds_wav", "tetorica_32x_wav", "tetorica_dx7_wav", "tetorica_snes_wav", "tetorica_spc_wav", "tetorica_nuked_genesis_wav", "tetorica_wonderswan_wav", "tetorica_pokey_wav"):
                 with self.subTest(multi_config=multi_config, missing=missing):
                     self.build = self.work / f"native build {multi_config} {missing}"
                     self.build.mkdir()
@@ -743,7 +747,7 @@ class NativeBuildPortabilityTests(unittest.TestCase):
         for label, failing_command in (("Master System", 5), ("MSX", 6), ("PC-98 YM2203", 7), ("PC-98 YM2608", 8),
                                        ("NeoGeo", 9), ("X68000", 10), ("Mega-CD", 11),
                                        ("DOS PC OPL", 12), ("MSX-AUDIO", 13), ("Game Boy", 14), ("PC Engine", 15),
-                                       ("NES with FDS", 16), ("32X", 17), ("DX7", 18), ("SNES", 19), ("SPC", 20), ("Nuked Genesis", 21), ("WonderSwan", 22)):
+                                       ("NES with FDS", 16), ("32X", 17), ("DX7", 18), ("SNES", 19), ("SPC", 20), ("Nuked Genesis", 21), ("WonderSwan", 22), ("Dual POKEY", 23)):
             with self.subTest(label=label):
                 self.build = self.work / f"invalid {label} example build"
                 self.build.mkdir()
@@ -765,6 +769,42 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                     with self.assertRaisesRegex(AuditError, label + ".*nonzero PCM"):
                         checker.build_native(self.root, self.build, {})
                 self.assertEqual(len(commands), failing_command)
+
+    def test_pokey_parity_uses_discovered_executable_in_both_config_layouts(self):
+        for multi_config in (False, True):
+            with self.subTest(multi_config=multi_config):
+                self.build = self.work / f"POKEY parity build {multi_config}"
+                self.build.mkdir()
+                self.file_api_fixture(multi_config=multi_config)
+                fixtures = audit_native_file_api(self.root, self.build)
+                fixture = fixtures["tetorica_pokey_fixture"]
+                fixture.parent.mkdir(parents=True, exist_ok=True)
+                fixture.write_bytes(b"fixture executable")
+                wasm = self.work / "WASM release with spaces"
+                with patch.object(checker, "command") as execute:
+                    checker.check_pokey_parity(self.root, fixtures, wasm, {})
+                self.assertEqual(execute.call_args.args[0], ["node", self.root / "tests/check_pokey_core.mjs",
+                    "--fixture", fixture, "--wasm-dir", wasm])
+                self.assertTrue(str(fixture).endswith("tetorica_pokey_fixture.exe"))
+
+    def test_pokey_parity_rejects_missing_executable_before_running_node(self):
+        self.file_api_fixture()
+        fixtures = audit_native_file_api(self.root, self.build)
+        with patch.object(checker, "command") as execute:
+            with self.assertRaisesRegex(AuditError, "POKEY parity fixture was not built"):
+                checker.check_pokey_parity(self.root, fixtures, self.work / "wasm", {})
+        execute.assert_not_called()
+
+    def test_pokey_parity_build_only_selects_the_pokey_fixture(self):
+        fixture = self.build / "native/Release/tetorica_pokey_fixture.exe"
+        fixture.parent.mkdir(parents=True)
+        fixture.write_bytes(b"fixture executable")
+        fixtures = {"tetorica_pokey_fixture": fixture}
+        with patch.object(checker, "prepare_native_build", return_value=fixtures), patch.object(checker, "command") as execute:
+            self.assertEqual(checker.build_pokey_fixture(self.root, self.build, {}), fixtures)
+        self.assertEqual(execute.call_args_list[0].args[0], ["cmake", "--build", self.build.resolve(),
+            "--config", "Release", "--target", "tetorica_pokey_fixture", "--parallel", "2"])
+        self.assertEqual(execute.call_args_list[1].args[0], [fixture, "--self-test"])
 
     def write_wav(self, path, *, channels=2, rate=48000, width=2, frames=48000, samples=(1000, -2000)):
         frame = b"".join(samples[channel].to_bytes(2, "little", signed=True) for channel in range(channels)) if width == 2 else b"\x01" * channels * width

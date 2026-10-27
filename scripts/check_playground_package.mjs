@@ -5,6 +5,17 @@ const root=resolve(process.argv[2]);let count=0;const errors=[];
 function check(file,spec){if(!spec.startsWith('.'))return;const target=resolve(dirname(file),spec.split(/[?#]/)[0]);count++;if(!existsSync(target)||relative(root,target).startsWith('..'))errors.push(`${relative(root,file)}: ${spec}`);}
 function walk(dir){for(const ent of readdirSync(dir,{withFileTypes:true})){if(['vendor','examples','defaults','samples'].includes(ent.name))continue;const f=resolve(dir,ent.name);if(ent.isDirectory()){walk(f);continue;}if(!f.endsWith('.js'))continue;const src=readFileSync(f,'utf8');const mod=new SourceTextModule(src);for(const spec of mod.dependencySpecifiers)check(f,spec);for(const m of src.matchAll(/new URL\(\s*["']([^"']+)["']\s*,\s*import.meta.url/g))check(f,m[1]);}}
 walk(root);
+for(const file of [
+  ...['pokey','pokey-dual'].flatMap(mode=>[`tetorica-playground-${mode}.d.ts`,`defaults/${mode}/index.js`]),
+  'js/pokey.js','js/pokeysynth.js','js/pokeyaudioengine.js','js/playground_pokey.js',
+  'js/playground_pokey_audio.js','js/playground_pokey_worklet.js','js/playground_pokey_inspector.js',
+  'js/native_genesis_pokey.js','js/native_genesis_extra_pokey.js',
+  'generated/pokey_wasm.js','generated/pokey_wasm.wasm',
+  'licenses/libvgm-pokey/LICENSE','licenses/libvgm-pokey/README.md',
+  'sources/POKEY.md','sources/POKEY-SDK.json','sources/scripts/build_pokey_wasm.sh',
+  'sources/third_party/libvgm-pokey/pokey.cpp','sources/third_party/libvgm-pokey/pokey.h',
+  'sources/third_party/libvgm-pokey/upstream/pokey.c','sources/wasm/pokey_wasm.cpp',
+])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const file of ['examples/genesis/chip-level-comparison.js'])if(!existsSync(resolve(root,file)))errors.push(file);
 for(const file of ['tetorica-playground-msx.d.ts','tetorica-playground-msx-audio.d.ts','defaults/msx/index.js','defaults/msx-audio/index.js','playground_ay8910_voice_panel.js',
   'js/ay8910.js','js/ay8910synth.js','js/playground_ay8910.js','js/playground_ay8910_audio.js',

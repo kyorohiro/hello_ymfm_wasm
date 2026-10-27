@@ -14,7 +14,7 @@ export class GameboyApuAudioEngine {
   #states = new WeakMap();
   /**
    * Create the chip instances required by this engine.
-   * @param {{moduleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
+   * @param {{moduleFactory: import('./soundchip.js?v=pokey-mode-1').WasmModuleFactory, moduleOptions?: import('./soundchip.js?v=pokey-mode-1').WasmModuleOptions, clock?: number, outputSampleRate?: number, masterVolume?: number}} [options={}] Chip factories, clocks in Hz and loader settings.
    * @param {number} [options.outputSampleRate=44100] Output stereo frames per second.
    * @param {number} [options.masterVolume=1] Linear output gain, not dB.
    * @returns {Promise<GameboyApuAudioEngine>} Initialized engine owned by the caller.

@@ -5,16 +5,16 @@
       "size": 158
     },
     ".github/workflows/verify-sdk.yml": {
-      "sha256": "8a62edc134bc44483feae4b1d2e626c8d7ec762d3a4c7a8ca0bc04dd432f006c",
-      "size": 5771
+      "sha256": "4573a630e8e922af6860f16fd5699a824a9a11356dc79640045b27d6025554a0",
+      "size": 5925
     },
     ".gitignore": {
       "sha256": "cd063cd906d6d4b905d24e6803b3d3de42b165ca4bf4c5acde19fcdfd9060711",
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "4758b4733d28ac9fff7ab6aef1a60831849e6d71ae89ac51a3df31abe7b3e76f",
-      "size": 20344
+      "sha256": "5532f5644139b781c10860ba69a8f9bd3f59939eb0cd91e90254ddbe5c0345e6",
+      "size": 21379
     },
     "CMakeLists.txt": {
       "sha256": "8b5dbe7502fa95222524f326e282ce92a4df9e2a380c873ecda8e8156c963fe6",
@@ -29,52 +29,52 @@
       "size": 1517
     },
     "LICENSES.md": {
-      "sha256": "7ef13ca9a7634602d11e3dcaac28c6c9ae52c4f7c336bc1cd74d8286b3cab92b",
-      "size": 4841
+      "sha256": "5cffbb6fa9f35eb252c56ddc07a9eba9f8d3e75a26d93829a13cd9ef4aa690f9",
+      "size": 5367
     },
     "README.md": {
-      "sha256": "b4e8713d38db7eb5ead4314686d72a4f20a381ae552dc162e617d8ec5ec1185c",
-      "size": 24946
+      "sha256": "b15abbf8665b6736e6fa5c685124a57d12676097472a450eda63923aade3d198",
+      "size": 26737
     },
     "catalog/chips.json": {
-      "sha256": "8bf47d7864062bb1e5e23e7b70168f2e907120c6bd7a752452f8d58f77b382f1",
-      "size": 90333
+      "sha256": "ba58d174a3ec031381cb5d39c7f6a504475363abedeaf575e6d09c1b7b27258f",
+      "size": 93200
     },
     "catalog/native_inventory.json": {
-      "sha256": "331fae9db1b4ea3311605d06ef50efa93d18bc79d7f25a2d85acb452449093ac",
-      "size": 45133
+      "sha256": "615bde71c302d8b38165420cfeceb48a07a72867523f309ccab29c45ba939607",
+      "size": 47254
     },
     "catalog/source_inventory.json": {
-      "sha256": "3ad2ffea2273aa7066df8440259edcae7ae2a946e00fbcdf3a16c7de3d210e0c",
-      "size": 122272
+      "sha256": "c2be5de9936dee174d10cae31dc938e7442c83a9a91d4b42bf7b69d34b9a8e6a",
+      "size": 126440
     },
     "docs/architecture.md": {
       "sha256": "ac7b4ac21d2626c0b0bb17df995921aed0b23108bab968e7c57a8a6592ec922b",
       "size": 20757
     },
     "docs/chip-differences.md": {
-      "sha256": "1101c2ed6bb305fae542ea9d2c1a590c9f0df270c3488ee8a7cd5ee3d18aa134",
-      "size": 46412
+      "sha256": "667bfb0a619a29d66f3355835da0d7bdd08058bf6f5501224ac6f166db917f2f",
+      "size": 47110
     },
     "docs/releases.md": {
-      "sha256": "495f81f63a8412c62f0e5d3c6cd6aed1c8474614b063a292c198709734e65e92",
-      "size": 19874
+      "sha256": "7defda4de279448c3112354356e64fe6d6491a94efcb89eeaee786ef2c92dcde",
+      "size": 19880
     },
     "docs/research.md": {
       "sha256": "a7a491f75a30d0bb57639d245fe2744b82b703076486e792ddbd090cd3bc672c",
       "size": 12695
     },
     "docs/verification.md": {
-      "sha256": "69d48f1563fe4d9a3bc68393ba82a3fdeb9d0c5e4184fd7daeb0d6f133ec9451",
-      "size": 93011
+      "sha256": "1c137553ff1c9bc5d4b7ba74fdf98a9840f5e25d0e579116a1db47986987491b",
+      "size": 97045
     },
     "native/CMakeLists.txt": {
-      "sha256": "0408d716e018e326c6b01a3b0dcf77a0559f208853d299d5dfdf9d20a62809c4",
-      "size": 34501
+      "sha256": "07e10842298fe47046c6cf223a297b224a1e011c113dfe6c6e29c124e3d12ec5",
+      "size": 35714
     },
     "native/README.md": {
-      "sha256": "970d29471ba296c52fff260c64749ef56c92e5f144e8b8239598f7bcb00cadb8",
-      "size": 109384
+      "sha256": "9c2c3dbc716e6cd56c3e2df1c6c5896337b758419f1584a146e8228a22e0e1ea",
+      "size": 112563
     },
     "native/examples/dos_opl_wav.cpp": {
       "sha256": "4428515bf93f9644e5c32f793bf6c579f8765522f6ede2386a5ef8a780ab38a5",
@@ -132,6 +132,10 @@
       "sha256": "f359fef8f7c2ef84907adf9f39ef32d50dcb7f6643f90196d38e0469092a67fe",
       "size": 6555
     },
+    "native/examples/pokey_wav.cpp": {
+      "sha256": "612a6855bf3016823c517eff1c650793636595baa7fcf56da590bf6869531390",
+      "size": 5208
+    },
     "native/examples/sega32x_wav.cpp": {
       "sha256": "1fa10462582e73507d2fb0775dcd412804adc925ea3d3b1e626d11b441a8ba02",
       "size": 10283
@@ -183,6 +187,10 @@
     "native/include/tetorica/opl.hpp": {
       "sha256": "bd09e4fc2bdd26b0228b3ba1e4b2ef00e4db3282e7392c72646827d9e9a6f6a3",
       "size": 246
+    },
+    "native/include/tetorica/pokey.hpp": {
+      "sha256": "1a899cb7eb721d430f4e2dbb624c309c145601568f1168e2e246bd8e1eaa09c2",
+      "size": 761
     },
     "native/include/tetorica/pwm.hpp": {
       "sha256": "1401fdac5e6a23da3fb24b07008a563b595343e456931b4811d811212a3ceefc",
@@ -548,6 +556,10 @@
       "sha256": "83ed7bb39acd2d6b447ceb21cbd05a09a51e9cdf1d87b222373e98aee0f0f199",
       "size": 12681
     },
+    "native/tests/pokey_fixture.cpp": {
+      "sha256": "442a7432eb3b4183a9c1591377e32e71e003a2bbf19deacea21dd84d22291424",
+      "size": 15183
+    },
     "native/tests/pwm_fixture.cpp": {
       "sha256": "99e968e958dde2ddea6c124c2c58e7ab95177ed82e4a7f50cbebbc73209fb812",
       "size": 7696
@@ -621,8 +633,8 @@
       "size": 134
     },
     "scripts/build-wasm.sh": {
-      "sha256": "63ac01186c85dcee27cbd4607f504e0eece6b7998cea829b5f99b2c92a7fc716",
-      "size": 1664
+      "sha256": "d9c0eafa477e115d2fe83541a80e04203f7ad2e967228766a389536ad1df5e3e",
+      "size": 1670
     },
     "scripts/build_ay8910_wasm.sh": {
       "sha256": "5145ad700466a55a57898832eb194ac94dbaf060aa1dbd94ff52ec4a8038bd86",
@@ -659,6 +671,10 @@
     "scripts/build_opn_variant_wasm.sh": {
       "sha256": "ab99ea5ea94cef31de86f41b613c7cfa20e6fa12cea7aa1a51831493005aae2b",
       "size": 956
+    },
+    "scripts/build_pokey_wasm.sh": {
+      "sha256": "1f058e1c0be587f4443625f7ac3847850b838257e8c85b2835e38bfb8d228554",
+      "size": 761
     },
     "scripts/build_pwm32x_wasm.sh": {
       "sha256": "ed6cdb5573858a6959d9f985a74ed96ae52d066955767a80790e297d1d12c09e",
@@ -757,36 +773,44 @@
       "size": 1891
     },
     "scripts/refresh_catalog.py": {
-      "sha256": "c93870c05338962677841389768cb97e35dbf812374b02d7bc48602a5f9ec316",
-      "size": 3005
+      "sha256": "7f907403fe1aa17eba946d4cde04484e8edfa280bfa95e67040bc8295d5dfef1",
+      "size": 3058
     },
     "scripts/sdk_common.py": {
-      "sha256": "dc9c6dafb083fe0d1682a16cb9c4fe35149fe7a355edc03e269b3c1c0e082716",
-      "size": 10199
+      "sha256": "68221441d0a4b99ae62f17046700e75caf96b9ff1ba12e283a7cef8a293a845e",
+      "size": 10195
     },
     "sdk.json": {
-      "sha256": "4d9ac3ebbbc11c04ab60ae0d562efbccf59201b9fcdc8eebb44cc766c2c48783",
+      "sha256": "8dd9debb4ff06edd1d916a67aea49b33146571662116974ab8827343939755b0",
       "size": 285
     },
     "tests/README.md": {
-      "sha256": "035ab8c7f2b5730341d8e3da83f0e8360b3de9d96590ddbf1d77910e24012664",
-      "size": 16221
+      "sha256": "e58f1822112a581052419da8cdb2172472198f0d768d921d77647f88649ff2af",
+      "size": 18356
+    },
+    "tests/check_pokey_core.mjs": {
+      "sha256": "1464d5f78c950ba4952f6a37b4952d99161b17b5641275bad31796e32cdfceaa",
+      "size": 9840
     },
     "tests/check_standalone_release.py": {
-      "sha256": "041cb15b6e7b2a016fae48d274fcbd90a42c7aad9f3e293e7866d48b3b8d5c6d",
-      "size": 35243
+      "sha256": "4a898a43492d7a5b531c1f0e67c6b4e4cc7a4027ef154ed0d6701057ce3a6fee",
+      "size": 37531
     },
     "tests/javascript_reference_smoke.mjs": {
       "sha256": "ef97f7570de5b30233c84dcecc1d146185f6852756f8982ecc8cb43ef9d3bb02",
       "size": 9030
+    },
+    "tests/pokey_wasm_smoke.mjs": {
+      "sha256": "763b297025d470a386e0dc40381e30528fa157626a1884b681afe55f19733fc8",
+      "size": 6994
     },
     "tests/test_publish_release.py": {
       "sha256": "7a6cb96356914874306d46fd9d590178060c09530cc84ba6732f2e226b4f4a39",
       "size": 12625
     },
     "tests/test_standalone_release.py": {
-      "sha256": "0db55284d2935a5f32752ddd0f3f24deb2e3df07ee41a4aa4b0c73ae9599419d",
-      "size": 54752
+      "sha256": "bca2eb8cdc86cbd12bbdcbd9d4f8cec5846f64749333f32f0bd522e5faac1b31",
+      "size": 57658
     },
     "tests/wasm_smoke.mjs": {
       "sha256": "d4e04962cf013da5c52d8364c6cca170d324a7780d88df1d7845c07609055da6",
@@ -815,6 +839,30 @@
     "vendor/libvgm-msm5205/upstream/libvgm/snapshot-manifest.json": {
       "sha256": "5a0c2a24b046aaa0a1a0fb2b72fe0bed036d2b8f736be33dbf75155ea427bbef",
       "size": 1117
+    },
+    "vendor/libvgm-pokey/LICENSE": {
+      "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583",
+      "size": 1587
+    },
+    "vendor/libvgm-pokey/README.md": {
+      "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff",
+      "size": 7686
+    },
+    "vendor/libvgm-pokey/pokey.cpp": {
+      "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96",
+      "size": 37305
+    },
+    "vendor/libvgm-pokey/pokey.h": {
+      "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0",
+      "size": 1573
+    },
+    "vendor/libvgm-pokey/upstream/pokey.c": {
+      "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+      "size": 41726
+    },
+    "vendor/libvgm-pokey/upstream/snapshot-manifest.json": {
+      "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27",
+      "size": 841
     },
     "vendor/mame-32x-pwm/LICENSE": {
       "sha256": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6",
@@ -1500,6 +1548,10 @@
       "sha256": "3fc9abd084029938d8dbe1d73d30a92fe42e7dd7a0cc9e49f6395c35453c689d",
       "size": 2095
     },
+    "wasm/pokey_wasm.cpp": {
+      "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df",
+      "size": 1101
+    },
     "wasm/pwm32x_core.h": {
       "sha256": "5ad3e58e1d0133d676ffcc2e332840fb57f19d97cc52b6302b1914b084b8927c",
       "size": 5581
@@ -1580,5 +1632,5 @@
   "kind": "source",
   "name": "tetorica-soundchip-native",
   "schemaVersion": 1,
-  "version": "0.1.4"
+  "version": "0.1.5"
 }

@@ -1,7 +1,7 @@
 import {OPLSynth,OPLDirectTransport} from './opl_synth.js?v=audio-numeric-bindings-1';
 export {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
 export {YM3812_CLOCK} from './ym3812.js?v=audio-stability-2';
-export {YM3812WorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
+export {YM3812WorkletTransport} from './chip_worklet_transport.js?v=pokey-mode-1';
 
 /** Nine-channel OPL2 instrument API; channels and operators are zero-based. */
 export class YM3812Synth extends OPLSynth {

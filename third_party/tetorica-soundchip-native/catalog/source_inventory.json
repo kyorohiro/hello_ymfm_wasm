@@ -1642,6 +1642,68 @@
           "adaptation": "SDK include-path relocation only"
         }
       ]
+    },
+    {
+      "id": "libvgm-pokey",
+      "sourceFiles": [
+        "vendor/libvgm-pokey/pokey.cpp",
+        "vendor/libvgm-pokey/pokey.h",
+        "vendor/libvgm-pokey/upstream/pokey.c"
+      ],
+      "licenseFiles": [
+        "vendor/libvgm-pokey/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/ValleyBell/libvgm/blob/61b62d64455e039de2a1d01498afa9e9b5f1cb88/emu/cores/pokey.c"
+      ],
+      "sourceVersion": [
+        "libvgm POKEY 4.9 at 61b62d64455e039de2a1d01498afa9e9b5f1cb88; original BSD-labeled pokey.c retained byte-for-byte",
+        "SDK-owned C++14 adaptation; no unmarked libvgm helper headers or framework code imported; exact current bytes identified below"
+      ],
+      "files": [
+        {
+          "path": "vendor/libvgm-pokey/LICENSE",
+          "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583",
+          "originPath": "vendor/libvgm-pokey/LICENSE",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-authored standalone adaptation/provenance; working-tree bytes identified by SHA-256, not an upstream byte-identical import"
+        },
+        {
+          "path": "vendor/libvgm-pokey/README.md",
+          "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff",
+          "originPath": "vendor/libvgm-pokey/README.md",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-authored standalone adaptation/provenance; working-tree bytes identified by SHA-256, not an upstream byte-identical import"
+        },
+        {
+          "path": "vendor/libvgm-pokey/pokey.cpp",
+          "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96",
+          "originPath": "vendor/libvgm-pokey/pokey.cpp",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-authored standalone adaptation/provenance; working-tree bytes identified by SHA-256, not an upstream byte-identical import"
+        },
+        {
+          "path": "vendor/libvgm-pokey/pokey.h",
+          "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0",
+          "originPath": "vendor/libvgm-pokey/pokey.h",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-authored standalone adaptation/provenance; working-tree bytes identified by SHA-256, not an upstream byte-identical import"
+        },
+        {
+          "path": "vendor/libvgm-pokey/upstream/pokey.c",
+          "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+          "originPath": "emu/cores/pokey.c",
+          "originRepository": "https://github.com/ValleyBell/libvgm",
+          "originCommit": "61b62d64455e039de2a1d01498afa9e9b5f1cb88"
+        },
+        {
+          "path": "vendor/libvgm-pokey/upstream/snapshot-manifest.json",
+          "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27",
+          "originPath": "vendor/libvgm-pokey/upstream/snapshot-manifest.json",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-authored standalone adaptation/provenance; working-tree bytes identified by SHA-256, not an upstream byte-identical import"
+        }
+      ]
     }
   ],
   "artifacts": [
@@ -3072,6 +3134,31 @@
       "buildFiles": [
         "scripts/build-wasm.sh",
         "scripts/build_dx7_wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ]
+    },
+    {
+      "id": "pokey",
+      "chipIds": [
+        "pokey"
+      ],
+      "sourceFiles": [
+        "wasm/pokey_wasm.cpp",
+        "vendor/libvgm-pokey/pokey.cpp",
+        "vendor/libvgm-pokey/pokey.h",
+        "vendor/libvgm-pokey/upstream/pokey.c"
+      ],
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/libvgm-pokey/LICENSE"
+      ],
+      "buildScript": "scripts/build_pokey_wasm.sh",
+      "format": "emscripten-es-module",
+      "importedFiles": [],
+      "provenanceStatus": "SDK-owned first-stage adaptation; no imported reference binary. Fresh builds are identified by build-info.json.",
+      "buildFiles": [
+        "scripts/build-wasm.sh",
+        "scripts/build_pokey_wasm.sh",
         "scripts/record_wasm_build.mjs"
       ]
     }

@@ -24,7 +24,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['gameboy','gameboy',4194304,false],
     ['nes','nes',1789773,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],
-    ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['atari-st','ay8910',2000000,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
+    ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['atari-st','ay8910',2000000,false],['pokey','pokey',1789790,false],['pokey-dual','pokey',1789773,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
     ['dx7','dx7',undefined,false],
     ['ym3526','ym3526',3579545,false],['ym3812','ym3812',3579545,false],
     ['ymf262','ymf262',14318180,false],
@@ -36,6 +36,18 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(options.megaCD, mode.megaCD ?? mode.full);
     assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (mode.chip === 'pokey') {
+      assert.equal(mode.fmChannels,0);
+      assert.deepEqual(mode.chipTabs,[],'No placeholder voice-editor tab');
+      assert.equal(mode.declarationChip,mode.id);
+      assert.equal(mode.legacyDraftKey,mode.id,'single and dual drafts remain separate');
+      assert.equal(options.dualPokey,mode.id === 'pokey-dual');
+      assert.equal(options.clock,mode.clock);
+      assertWorkletUrl(options.workletUrl,'pokey');
+      assert.equal(options.wasmUrl,'https://example.com/app/generated/pokey_wasm.wasm');
+      assert.equal(options.ym2612WasmUrl,undefined);
+      continue;
+    }
     if (mode.engine === 'msx') {
       assert.equal(mode.declarationChip,mode.chip); assert.equal(mode.fmChannels,0);
       assert.equal(mode.label,mode.chip === 'msx' ? 'MSX' : 'MSX Audio');
@@ -136,10 +148,10 @@ test('every visible mode and the legacy Nuked mode have their own starter catalo
 });
 
 test('mode voice editors load the new processors after a cached website upgrade', () => {
-  for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js']]) {
+  for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js'], ['pokey','playground_pokey_worklet.js'], ['pokey-dual','playground_pokey_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'wonderswan-pcm-timeline-1', `${id} cannot reuse its pre-mode processor URL`);
+    assert.equal(url.searchParams.get('v'), 'pokey-mode-1', `${id} cannot reuse its pre-mode processor URL`);
   }
 });
 

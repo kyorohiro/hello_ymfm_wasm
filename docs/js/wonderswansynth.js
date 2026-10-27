@@ -1,9 +1,9 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
-import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=wonderswan-pcm-timeline-1';
+import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=pokey-mode-1';
 
 export {WONDERSWAN_CLOCK};
-export {WonderSwanWorkletTransport} from './chip_worklet_transport.js';
+export {WonderSwanWorkletTransport} from './chip_worklet_transport.js?v=pokey-mode-1';
 
 function integer(value, minimum, maximum, label = 'integer') {
   if (!Number.isInteger(value) || value < minimum || value > maximum) throw new RangeError(`Expected ${label} ${minimum}..${maximum}`);

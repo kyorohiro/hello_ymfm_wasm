@@ -83,10 +83,11 @@ async function processor(file){
     // a synchronous register recorder before sending the real transport packet.
     createSoundChipFactory:()=>()=>new Promise(()=>{}),
     Ym2612:{},Ym2608:{},Ay8910:{},Ym2413:{},Ym3526:{},Ym3812:{},Y8950:{},Ymf262:{},
-    Ym2151:{},GameboyApu:{},SegaPSG:{},NesApuWasm:{},
+    Ym2151:{},GameboyApu:{},SegaPSG:{},NesApuWasm:{},WonderSwan:{},Pokey:{},
+    WonderSwanAudioEngine:{},PokeyAudioEngine:{},
     ym2612Factory:{},ym2608Factory:{},ay8910Factory:{},ym2413Factory:{},
     ym3526Factory:{},ym3812Factory:{},y8950Factory:{},ymf262Factory:{},
-    ym2151Factory:{},gameboyFactory:{},psgFactory:{},nesFactory:{},
+    ym2151Factory:{},gameboyFactory:{},psgFactory:{},nesFactory:{},wonderswanFactory:{},pokeyFactory:{},
     AudioWorkletProcessor:class{constructor(){this.port={postMessage(){}};}},
     registerProcessor(_name,value){Type=value;},
   };

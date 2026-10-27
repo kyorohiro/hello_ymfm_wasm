@@ -18,6 +18,7 @@ import {createSegaPsgClient} from './playground_segapsg.js';
 import {createSnesClient} from './playground_snes.js';
 import {SnesSynth} from './snessynth.js';
 import {WonderSwanSynth} from './wonderswansynth.js';
+import {PokeySynth} from './pokeysynth.js';
 import {createRf5c164Client, createRf5c164Control} from './playground_rf5c164.js';
 
 function deferred() {
@@ -1830,4 +1831,31 @@ for(const allocation of ['useSoundChip','createSoundChip'])test(`Main WonderSwan
   assert.equal(runtime.context.retiredResetAttempted,true);assert.equal(devices[0].registers[16],2,'retired finally cannot reset the shared extra voice');
   runtime.context.stopNew();assert.equal(devices[0].registers[16],0,'retiring the sibling releases its extra voice');
   await runtime.finalize();assert(devices.every(device=>device.disposed),'extra endpoints are disposed');
+});
+
+for(const allocation of ['createSoundChip','useSoundChip'])test(`Main ${allocation} selects the POKEY extra client rather than the PCM fallback`,async t=>{
+  let endpoint,disposed=false;const registers=new Uint8Array(16),commands=[];
+  const factory=async(_context,_destination,options={})=>{
+    const port={start(){},close(){},postMessage(command){
+      commands.push(command);
+      if(command.method==='reset')registers.fill(0);
+      else if(command.method==='writeRegister')registers[command.args[0]]=command.args[1];
+      else if(command.method==='stopVoices')for(let ch=0;ch<4;ch++)registers[ch*2+1]&=240;
+      if(command.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:command.id,value:true}}));
+    }};
+    endpoint={port,clock:options.clock??1789790,node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){}},dispose(){disposed=true;}};
+    return endpoint;
+  };
+  const createRuntime=await runtimeWithOpnAudio(factory,'createPokeyAudio'),{runtime,megaDrive}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
+  const options=allocation==='createSoundChip'?",{id:'pokey:runtime-extra',clock:1789773}":'',clock=allocation==='createSoundChip'?1789773:1789790;
+  await runtime.playSource(`
+    const extra=await ${allocation}('pokey'${options});
+    extra.initialize();extra.setVolume(3,6);context.actualHz=extra.setNote(3,'A4');extra.noteOn(3,'A4');
+  `);
+  assert(endpoint.client instanceof PokeySynth,'the real runtime must construct the four-channel POKEY client');
+  assert.equal(endpoint.client.chip,'pokey');assert.equal(endpoint.client.channels,4);assert.equal(endpoint.client.clock,clock);
+  assert.equal(registers[15],3,'initialize starts the POKEY timers');assert.equal(registers[7],0xa6,'noteOn writes the selected AUDC with retained volume');
+  assert.equal(registers[6],72,'A4 uses the POKEY timer divider');assert.equal(runtime.context.actualHz,clock/(2*28*73));
+  assert(commands.some(command=>command.method==='writeRegister'&&command.channel===3));
+  await runtime.finalize();assert.equal(disposed,true);
 });

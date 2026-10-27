@@ -1,9 +1,9 @@
-import {WonderSwanSynth,WONDERSWAN_CLOCK} from './wonderswansynth.js?v=wonderswan-pcm-timeline-1';
-import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=wonderswan-pcm-timeline-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
-import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as bytes} from './native_genesis_voice_endpoint.js?v=wonderswan-pcm-timeline-1';
-import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=wonderswan-pcm-timeline-1';
+import {WonderSwanSynth,WONDERSWAN_CLOCK} from './wonderswansynth.js?v=pokey-mode-1';
+import {WonderSwanVoiceInspector} from './playground_wonderswan_inspector.js?v=pokey-mode-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=pokey-mode-1';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as bytes} from './native_genesis_voice_endpoint.js?v=pokey-mode-1';
+import {prepareWonderSwanTimeline} from './wonderswan_timeline.js?v=pokey-mode-1';
 
 export const WONDERSWAN_CLOCK_HELD_ERROR='Release the manually held WonderSwan voices before changing the clock';
 export const WONDERSWAN_CLOCK_PENDING_ERROR='WonderSwan clock change is scheduled; audition after it is applied';

@@ -1,5 +1,5 @@
-import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
-import {NesApuSynth} from './nesapusynth.js?v=nes-wasm-1';
+import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-mode-1';
+import {NesApuSynth} from './nesapusynth.js?v=pokey-mode-1';
 import {NES_APU_CLOCK} from './nesapu.js?v=nes-wasm-1';
 /** Same register generator as the public NES API; uploads await Worklet acknowledgement. */
 /** @param {MessagePort} port Ordered Worklet command/acknowledgement port, owned by the client.

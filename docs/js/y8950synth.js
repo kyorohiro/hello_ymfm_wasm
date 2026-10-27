@@ -1,7 +1,7 @@
 import {OPLSynth,OPLDirectTransport} from './opl_synth.js?v=audio-numeric-bindings-1';
 export {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
 export {Y8950_CLOCK} from './y8950.js?v=audio-stability-2';
-export {Y8950WorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
+export {Y8950WorkletTransport} from './chip_worklet_transport.js?v=pokey-mode-1';
 
 /** Y8950's nine-channel OPL FM section. ADPCM remains a separate raw API. */
 export class Y8950Synth extends OPLSynth {

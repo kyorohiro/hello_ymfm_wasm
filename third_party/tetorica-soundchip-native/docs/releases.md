@@ -25,13 +25,13 @@ Starting with 0.1.3, a version tag triggers automatic GitHub Release publication
 3. From that commit, create and push the matching tag. For the current version:
 
    ```sh
-   git tag v0.1.4
-   git push origin v0.1.4
+   git tag v0.1.5
+   git push origin v0.1.5
    ```
 
-4. Open the repository's **Actions → Verify SDK** run for the tag. All five Native jobs and both YM2612 and WonderSwan WASM jobs must succeed. The final **Publish GitHub Release** job then packages the tagged sources and publishes a Release containing:
+4. Open the repository's **Actions → Verify SDK** run for the tag. All five Native jobs and the YM2612, WonderSwan and POKEY WASM jobs must succeed. The final **Publish GitHub Release** job then packages the tagged sources and publishes a Release containing:
 
-   - `tetorica-soundchip-native-0.1.3-sources.zip`
+   - `tetorica-soundchip-native-0.1.5-sources.zip`
    - `SHA256SUMS`, listing the source ZIP's SHA-256
 
 The tag must equal `v` followed by the version in `sdk.json`. The publisher checks that the remote tag still points to the validated commit, uploads both files to a draft, and publishes only after the uploads succeed. A failed upload leaves a draft; rerun the failed job to resume. Published assets are checked rather than overwritten. Branch pushes, pull requests and manual validation runs do not publish releases. The WASM archive remains available in the **verified-sdk-archives** workflow artifact.

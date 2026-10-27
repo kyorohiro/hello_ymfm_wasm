@@ -23,7 +23,7 @@ async function load(options){
 }
 
 export class NesApuWasm {
-  /** @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').SoundChipOptions} [options] */
+  /** @param {import('./soundchip.js?v=pokey-mode-1').SoundChipOptions} [options] */
   static async create(options={}){
     const {clock=NES_APU_CLOCK,sampleRate=44100,fds=false}=options;validateNesApuClock(clock);
     if(!Number.isInteger(sampleRate)||sampleRate<8000||sampleRate>192000)throw new RangeError('Invalid NES sample rate');

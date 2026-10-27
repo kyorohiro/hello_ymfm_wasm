@@ -1,7 +1,7 @@
 # Native sources
 
 This directory contains existing chip-level C++/C ABI wrappers as bootstrap
-references and the SDK's raw WonderSwan C++ target, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
+references and the SDK's raw WonderSwan/POKEY C++ targets, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
 QuickJS, UI, or audio-device code. Existing applications still use their current
 sources. Collecting them here does not yet switch those consumers to this SDK.
 
@@ -32,10 +32,10 @@ translation-unit constraints.
 Requirements: CMake 3.20 or newer, a C++17 compiler and a C compiler (C11 or newer for Nuked).
 
 The independently buildable Native components are **ymfm YM2612, YM2151,
-YM2413, YM2203, YM2608 and YM2610/YM2610B, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback, WonderSwan and YM3526/YM3812/YMF262/Y8950**.
-These twenty-three chip IDs and the alternative Nuked YM2612 engine use twenty static libraries; YM2610/YM2610B share one
+YM2413, YM2203, YM2608 and YM2610/YM2610B, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback, WonderSwan, POKEY and YM3526/YM3812/YMF262/Y8950**.
+These twenty-four chip IDs and the alternative Nuked YM2612 engine use twenty-one static libraries; YM2610/YM2610B share one
 library, and four OPL-family chips share another. Constructors explicitly select
-the per-handle variant/kind. Twenty-five aliases/headers include generic OPL and the alternative Nuked engine:
+the per-handle variant/kind. Twenty-six aliases/headers include generic OPL and the alternative Nuked engine:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -67,6 +67,7 @@ build/native`. Neither build downloads dependencies.
 | `tetorica::dx7` | `tetorica_native_dx7` | `<tetorica/dx7.hpp>` | `native_dx7_*`; no public state snapshot |
 | `tetorica::snes` | `tetorica_native_snes` | `<tetorica/snes.hpp>` | `native_snes_*`, `NativeSnesState` |
 | `tetorica::spc` | `tetorica_native_spc` | `<tetorica/spc.hpp>` | `native_spc_*`, `NativeSpcState`, `NativeSpcEvent` |
+| `tetorica::pokey` | `tetorica_native_pokey` | `<tetorica/pokey.hpp>` | `tetorica::Pokey`, one four-channel chip per object |
 | `tetorica::wonderswan` | `tetorica_native_wonderswan` | `<tetorica/wonderswan.hpp>` | Raw C++ `WonderSwan` class; no Tauri C ABI |
 
 The imported adapters' exported names and observational state layouts remain
@@ -1647,6 +1648,8 @@ cmake --build build/native --config Release --target tetorica_wonderswan_wav tet
 ./build/native/native/tetorica_snes_wav "snes demo.wav"
 ./build/native/native/tetorica_spc_wav "spc demo.wav"
 ./build/native/native/tetorica_wonderswan_wav "wonderswan demo.wav"
+./build/native/native/tetorica_pokey_wav "dual pokey demo.wav"
+./build/native/native/tetorica_pokey_wav "dual pokey stereo demo.wav" --stereo
 # Visual Studio on Windows:
 ./build/native/native/Release/tetorica_32x_wav.exe "32x demo.wav"
 ./build/native/native/Release/tetorica_genesis_wav.exe "genesis demo.wav"
@@ -1666,6 +1669,7 @@ cmake --build build/native --config Release --target tetorica_wonderswan_wav tet
 ./build/native/native/Release/tetorica_snes_wav.exe "snes demo.wav"
 ./build/native/native/Release/tetorica_spc_wav.exe "spc demo.wav"
 ./build/native/native/Release/tetorica_wonderswan_wav.exe "wonderswan demo.wav"
+./build/native/native/Release/tetorica_pokey_wav.exe "dual pokey demo.wav"
 ```
 
 The one required argument selects the output WAV; the parent directory must
@@ -1680,6 +1684,28 @@ rather than inside an audio callback.
 `TETORICA_NATIVE_BUILD_EXAMPLES` defaults to `ON`. Disable it with
 `-DTETORICA_NATIVE_BUILD_EXAMPLES=OFF` for a library-only integration; tests are
 controlled separately by `TETORICA_NATIVE_BUILD_TESTS`.
+
+## Embed Atari POKEY and dual POKEY
+
+Link `tetorica::pokey` and include `<tetorica/pokey.hpp>`. Each noncopyable `tetorica::Pokey(clock, rate)` owns a separate four-channel chip, polynomial tables, divider/output history and monitor mutes. Clocks are whole-Hz values `1..100000000`; output rates are `8000..384000`. Invalid direct constructors fall back to `1789790 / 44100`; `validConfiguration()` lets a host reject them instead. Register addresses are local `0x00..0x0f`. Read-side I/O is separate from AUDF/AUDC write settings; RANDOM reads are non-timing peeks that advance only as audio time advances.
+
+`generate(left, right, frames)` writes raw positive mono PCM to both planar outputs with the legacy integer gain/clamp divided by `32768`. Rendering and controls allocate no memory after construction. Both output pointers must be non-null; zero frames do not advance state. `mute(0..3, bool)` suppresses a source while its counters and noise phase continue. `reset()` restores cold defaults, clears monitor mutes and output-rate remainder. Use one serialized owner per chip. No device, scheduler, ROM, machine CPU or portable save state is included. See the [component README](../vendor/libvgm-pokey/README.md) for the retained algorithm, real I/O limits and omitted libvgm framework dependencies.
+
+Dual POKEY is two ordinary objects, not an eight-channel variant. Route both mono outputs to both host channels at `0.5` each for the example's centered sum; a host can instead pan one chip per side. The fixture checks two different clocks and noise programs against isolated references while writes/renders are interleaved, and verifies that muting, resetting, destroying or recreating one chip leaves the other chip's continuation unchanged.
+
+```cpp
+#include <tetorica/pokey.hpp>
+
+tetorica::Pokey first(1789773, 48000), second(1789773, 48000);
+// Configure each chip independently; both have local channels 0..3.
+first.writeRegister(0, 63); first.writeRegister(1, 0xaf);
+second.writeRegister(0, 95); second.writeRegister(1, 0xa7);
+float firstL[128], firstR[128], secondL[128], secondR[128];
+first.generate(firstL, firstR, 128); second.generate(secondL, secondR, 128);
+// Host output L=R=0.5f*(firstL[i]+secondL[i]); no chip stereo register.
+```
+
+The example uses `1789773` Hz, rounding Atari Tetris's fractional `14318181 / 8` clock to the API's whole-Hz units. Its 20 Hz DC blocker and file-edge fades are listening-example policy only. Run `tetorica_pokey_wav output.wav` for centered mono, or append `--stereo` for the explicit split route. No Tetris music or ROM is bundled, and this is not a motherboard analog-mix measurement.
 
 ## Collected component references
 
@@ -1702,10 +1728,11 @@ controlled separately by `TETORICA_NATIVE_BUILD_TESTS`.
 | DX7 | `native_genesis_dx7.cpp`, generated Native MSFA tree | Standalone six-operator/16-slot target and fixture; original-voice WAV host |
 | 32X PWM | `native_genesis_pwm.cpp`, shared `pwm32x_core.h` | Standalone PWM target, primary/additional-tag fixtures and 32X WAV host |
 | SNES S-DSP | `native_genesis_snes.cpp`, accurate `SPC_DSP.cpp` | Standalone eight-voice target, instrument/timeline CTest entries and original-BRR WAV host; no SPC700 CPU |
+| POKEY | Shared `vendor/libvgm-pokey/pokey.cpp` and public C++ forwarder | One four-channel object per handle; dual-chip isolation fixture and original dual-POKEY WAV host |
 | WonderSwan | Shared `vendor/mame-wonderswan/wonderswan.cpp` and public C++ forwarder | Standalone raw four-channel headphone target, fixture and original-data WAV host; no Tauri C ABI |
 | SPC700 file player | `native_genesis_spc.cpp`, accurate `SPC_DSP.cpp`, `SNES_SPC.cpp`, `SNES_SPC_misc.cpp`, `SNES_SPC_state.cpp` | Standalone player target and fixture; original CPU-program/BRR WAV host |
 
-The grouped rows cover 23 public components. Component origins and notices are
+The grouped rows cover 24 public components. Component origins and notices are
 kept with the shared vendor inventory; these adapters do not replace the
 per-component notices. The Native DX7 snapshot has six host portability/API
 variants under `reference/overrides/msfa/`. Unchanged MSFA files are shared from

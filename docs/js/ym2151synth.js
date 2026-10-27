@@ -1,6 +1,6 @@
 import {noteToHz, opmPitchFromHz} from './soundchip_pitch.js';
 export {YM2151_CLOCK} from './ym2151.js?v=audio-stability-2';
-export {YM2151WorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
+export {YM2151WorkletTransport} from './chip_worklet_transport.js?v=pokey-mode-1';
 
 /** @typedef {{dt?: number, dt1?: number, multi?: number, mul?: number,
  * tl?: number, rs?: number, ks?: number, ar?: number, am?: boolean | number,

@@ -1,5 +1,5 @@
-import {YM2413Synth} from './ym2413synth.js?v=audio-numeric-bindings-1';
-import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
+import {YM2413Synth} from './ym2413synth.js?v=pokey-mode-1';
+import {attachChipClock,CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-mode-1';
 /** Register-authoring controls shared by Main and Worker. Adoption never writes audio.
  * @param {(method:string,args:unknown[],metadata?:{intentMask:number})=>unknown} send
  * @param {{clock?:number,close?:()=>void,request?:(method:string,args:unknown[])=>unknown}} [options] */

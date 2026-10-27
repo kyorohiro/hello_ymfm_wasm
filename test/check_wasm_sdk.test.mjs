@@ -42,7 +42,7 @@ test('WASM SDK CLI rejects duplicate, unknown, incomplete and mixed-help argumen
 test('WASM SDK command help performs no build or comparison',()=>{
   const result=spawnSync(process.execPath,[script,'--help'],{encoding:'utf8',timeout:10000});
   assert.ifError(result.error);assert.equal(result.status,0,result.stderr);
-  assert.match(result.stdout,/Usage:/);assert.match(result.stdout,/all 28 cores/);
+  assert.match(result.stdout,/Usage:/);assert.match(result.stdout,/all 29 cores/);
   assert.doesNotMatch(result.stdout,/WASM SDK validation:|Comparing \d|Building all/);
 });
 
@@ -147,7 +147,7 @@ test('command timeout kills a TERM-resistant descendant before returning',{skip:
   assert.equal(typeof await readFile(log,'utf8'),'string');
 });
 
-test('a malformed reference emits a failed summary with all 28 cores not compared',{timeout:30000},async t=>{
+test('a malformed reference emits a failed summary with all 29 cores not compared',{timeout:30000},async t=>{
   const dir=await temporary(t),checkout=join(dir,'checkout'),reference=join(dir,'reference'),work=join(dir,'output');
   // Exercise the real offline SDK check and failure-report path in an isolated
   // checkout so another validation run cannot change this test's input snapshot.
@@ -161,14 +161,14 @@ test('a malformed reference emits a failed summary with all 28 cores not compare
   const result=spawnSync(process.execPath,[join(checkout,'scripts/check_wasm_sdk.mjs'),
     '--work-dir',work,'--reference-dir',reference],{cwd:checkout,encoding:'utf8',timeout:25000,maxBuffer:1024*1024});
   assert.ifError(result.error);assert.notEqual(result.status,0,result.stdout+result.stderr);
-  assert.match(result.stderr,/exactly 28 artifacts/);
+  assert.match(result.stderr,/exactly 29 artifacts/);
   assert.doesNotMatch(result.stdout,/Comparing \d|Building all|PASS:/);
   const summary=JSON.parse(await readFile(join(work,'summary.json'),'utf8'));
   assert.equal(summary.schemaVersion,1);assert.equal(summary.passed,false);assert.equal(summary.stage,'preflight');
   assert.equal(summary.repositoryInputsUnchanged,true);assert.deepEqual(summary.artifacts,[]);
   assert.deepEqual(summary.expectedArtifacts,[...WASM_SDK_ARTIFACT_IDS]);
   assert.deepEqual(summary.notCompared,[...WASM_SDK_ARTIFACT_IDS]);
-  assert.equal(summary.offlineCheck.exitCode,0);assert.match(summary.error,/exactly 28 artifacts/);
+  assert.equal(summary.offlineCheck.exitCode,0);assert.match(summary.error,/exactly 29 artifacts/);
   assert(summary.completedAt);assert.deepEqual(await readdir(join(work,'reports')),[]);
   await absent(join(work,'rebuilt'));await absent(join(work,'reference'));
   assert.equal(await readFile(join(reference,'build-info.json'),'utf8'),JSON.stringify({schemaVersion:1,artifacts:[]})+'\n');

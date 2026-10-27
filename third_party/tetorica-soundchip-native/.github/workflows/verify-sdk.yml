@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        artifact: [ym2612, wonderswan]
+        artifact: [ym2612, wonderswan, pokey]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -105,13 +105,16 @@ jobs:
               sys.executable, 'scripts/package_release.py', '--out-dir', 'releases',
               '--wasm-dir', 'build/ci-wasm',
           ], check=True)
-          subprocess.run([
+          verification = [
               sys.executable, 'tests/check_standalone_release.py',
               '--source-zip', f'releases/tetorica-soundchip-native-{version}-sources.zip',
               '--wasm-zip', f'releases/tetorica-soundchip-native-{version}-wasm.zip',
               '--work-dir', str(pathlib.Path(os.environ['RUNNER_TEMP']) / 'SDK WASM isolation'),
               '--audit-only', '--javascript-smoke', '--wasm-smoke', '--build-wasm', '${{ matrix.artifact }}',
-          ], check=True)
+          ]
+          if '${{ matrix.artifact }}' == 'pokey':
+              verification.append('--pokey-native-parity')
+          subprocess.run(verification, check=True)
       - name: Retain verified archives
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

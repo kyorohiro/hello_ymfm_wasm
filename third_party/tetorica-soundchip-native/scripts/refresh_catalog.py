@@ -32,13 +32,13 @@ def main():
             "javascriptReferences": javascript,
             "upstreamReferences": upstream,
             "differencesDocument": "docs/chip-differences.md",
-            "notes": ["Source collection is complete for these 23 Playground IDs; each Native verificationScope records its supported API and tested configurations.",
+            "notes": ["Source collection covers these 24 SDK chip IDs; each Native verificationScope records its supported API and tested configurations. POKEY is a standalone SDK addition, not an application-mode integration.",
                       "A WASM recipe is not a claim of runtime verification; release build-info and tests report the verified scope.",
                       "snes (DSP/RAM access) and spc (SPC CPU/file player) share the SNES-SPC sources but remain separate APIs.",
-                      "JavaScript references are separate from the 23 Playground IDs and 28 WASM recipes; their Native/WASM ports are not implemented.",
+                      "JavaScript references are separate from the 24 SDK chip IDs and 29 WASM recipes; their Native/WASM ports are not implemented.",
                       "Pinned upstream source references preserve original C/C++ implementations and dependencies; they are not additional SDK Native/WASM targets."]}
     (ROOT / "catalog/chips.json").write_bytes(json_bytes(data))
-    print(f"Catalog written: {len(chips)} Playground chips, {len(additional)} additional WASM artifacts, {len(javascript)} JavaScript references, {len(upstream)} upstream source references")
+    print(f"Catalog written: {len(chips)} SDK chips, {len(additional)} additional WASM artifacts, {len(javascript)} JavaScript references, {len(upstream)} upstream source references")
 
 
 if __name__ == "__main__":

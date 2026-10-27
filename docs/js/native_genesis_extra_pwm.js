@@ -1,9 +1,9 @@
 /** Independent Native 32X PWM. Only controls and applied snapshots cross this
  * endpoint; FIFO playback and output-frame reservations stay on the callback. */
-import {readPwmInspector} from './playground_chip_inspector_state.js?v=wonderswan-pcm-timeline-1';
-import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
-import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=wonderswan-pcm-timeline-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-pcm-timeline-1';
+import {readPwmInspector} from './playground_chip_inspector_state.js?v=pokey-mode-1';
+import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {createNativeVoiceContext} from './native_genesis_voice_endpoint.js?v=pokey-mode-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
 
 export const EXTRA_PWM_ADMISSION_ERRORS=Object.freeze([
   'Native additional PWM write queue limit reached (1000000 entries / 1024 batches)',

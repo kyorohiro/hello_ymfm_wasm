@@ -10,7 +10,7 @@ import {SoundChipMixer} from './soundchip_mixer.js';
  * }} WorkletSoundChip
  */
 /** Main-side chip endpoint. The actual chip is created inside AudioWorklet. */
-const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'wonderswan']);
+const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'wonderswan', 'pokey']);
 /**
  * @param {import('./soundchip.js').WorkletChipName} name
  * @param {import('./soundchip.js').SoundChipOptions} options
@@ -109,6 +109,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
       dispose,
     };
     if (name === 'nes') Object.defineProperties(endpoint, {fdsEnabled: {value: Boolean(options.fds), enumerable: true}, clock: {value: options.clock ?? 1789773, enumerable: true}});
+    if (name === 'pokey') Object.defineProperty(endpoint, 'clock', {value: options.clock ?? 1789790, enumerable: true, writable: false, configurable: false});
     if (name === 'wonderswan') Object.defineProperty(endpoint, 'clock', {value: options.clock ?? 3072000, enumerable: true, writable: false, configurable: false});
     Object.defineProperty(endpoint, 'id', {value: id, enumerable: true, writable: false, configurable: false});
     return endpoint;

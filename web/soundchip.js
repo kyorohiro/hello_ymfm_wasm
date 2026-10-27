@@ -81,6 +81,11 @@ async function loadModule(name, options = {}) {
 
 const loaders = {
   /** @param {SoundChipOptions} [options] */
+  pokey: async (options) => {
+    const {Pokey} = await import('./pokey.js');
+    return Pokey.create(await loadModule('pokey', options));
+  },
+  /** @param {SoundChipOptions} [options] */
   wonderswan: async (options) => {
     const {WonderSwan} = await import('./wonderswan.js');
     return WonderSwan.create(await loadModule('wonderswan', options));
@@ -186,6 +191,7 @@ const loaders = {
  */
 const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
+ *   pokey: import('./pokey.js').Pokey,
  *   wonderswan: import('./wonderswan.js').WonderSwan,
  *   gameboy: import('./gameboyapu.js').GameboyApu,
  *   segapsg: import('./segapsg.js').SegaPSG,
@@ -207,7 +213,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   ymf278b: import('./ymf278b.js').Ymf278b,
  *   ymf288: import('./ymf288.js').Ymf288,
  * }} SoundChipMap */
-/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'} WorkletChipName */
+/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'|'pokey'} WorkletChipName */
 /**
  * @template {WorkletChipName} Name
  * @overload

@@ -64,6 +64,13 @@ playground_wonderswan.js
 playground_wonderswan_audio.js
 playground_wonderswan_worklet.js
 playground_wonderswan_inspector.js
+pokey.js
+pokeysynth.js
+pokeyaudioengine.js
+playground_pokey.js
+playground_pokey_audio.js
+playground_pokey_worklet.js
+playground_pokey_inspector.js
 okim6258audioengine.js
 okim6295audioengine.js
 bitcrusher-worklet.js
@@ -87,6 +94,8 @@ native_genesis_nes.js
 native_genesis_console.js
 native_genesis_wonderswan.js
 native_genesis_extra_wonderswan.js
+native_genesis_pokey.js
+native_genesis_extra_pokey.js
 native_genesis_snes.js
 native_genesis_pwm.js
 native_genesis_ym2608.js
@@ -421,6 +430,9 @@ perl -0pi -e 's#\./generated/spc_wasm#../generated/spc_wasm#g' \
   "${DOCS_JS_DIR}/playground_snes_worklet.js" "${DOCS_JS_DIR}/playground_snes_audio.js" "${DOCS_JS_DIR}/playground_spc_audio.js"
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${ROOT_DIR}/docs"
+node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${ROOT_DIR}/docs"
+perl -0pi -e 's#\./generated/#../generated/#g' \
+  "${DOCS_JS_DIR}/pokey.js" "${DOCS_JS_DIR}/playground_pokey_audio.js" "${DOCS_JS_DIR}/playground_pokey_worklet.js"
 node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"
 
 # Standalone WonderSwan assets use the same deployed generated directory.

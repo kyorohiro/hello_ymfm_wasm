@@ -1,5 +1,5 @@
 import {noteToHz,opmPitchFromHz} from './soundchip_pitch.js';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=pokey-mode-1';
 
 // Algorithm operator order is M1, M2, C1, C2. The bus stores M1, C1, M2, C2.
 const SLOTS=[0,16,8,24];
@@ -14,7 +14,7 @@ function identity(value){if(typeof value!=='string'||!value.length||value.length
  * Reads never write the chip, advance audio or flush the performance queue.
  */
 export class Ym2151VoiceInspector {
-  /** @param {import('./playground_native_voice_inspector.js?v=wonderswan-pcm-timeline-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions} [options] */
   constructor({clock=()=>3579545,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.clock=typeof clock==='function'?clock:()=>clock;this.sampleRate=sampleRate;
     this.dispatch=dispatch;this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();

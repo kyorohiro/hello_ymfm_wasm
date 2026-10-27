@@ -1,5 +1,23 @@
 # Verification record
 
+## SDK 0.1.5 preparation — 2026-10-27
+
+Version metadata and the changelog now identify the POKEY source candidate as **0.1.5**. Local source packaging does not create a Git tag, remote CI run or published release. An application may explicitly import a hash-pinned local candidate while recording its base commit and changed paths separately; replace that provenance only after adopting the actual tagged archive. The POKEY implementation and tested synthesis inputs remain unchanged from the development validation below.
+
+## POKEY and dual POKEY development validation — 2026-10-27
+
+This is local macOS development validation. `sdk.json` remains `0.1.4`; these local verification archives are not a new published `v0.1.4` release. The main application's fixed SDK 0.1.4 snapshot, runtime, Mixer and generated assets remain unchanged.
+
+- Source checks pass for **24 SDK chip IDs, 29 WASM recipes, two JavaScript references and 292 imported-file records**. Only the explicitly BSD-3-Clause-labeled libvgm `pokey.c` at `61b62d64455e039de2a1d01498afa9e9b5f1cb88` is retained as upstream POKEY source. Unmarked integration/helper files are omitted; both builds compile the documented standalone adaptation.
+- The actual Release POKEY fixture passed **3,055,137 checks**, including raw volume-only gain/clipping, real read-side I/O, immediate monitor mute with retained phase, cold reset, multiple clocks/rates, exact render partitions and independent dual-chip lifetimes. It observed zero C++ `new`/`new[]` allocations over 2,048 tested hot render/control blocks; direct C `malloc` was not instrumented. A separate AddressSanitizer/UndefinedBehaviorSanitizer build passed the same fixture.
+- An independently extracted source ZIP built all **21 Native libraries**, passed **26 CTest entries** from 25 fixture executables, and rendered/validated all **20 original WAV examples**. The two JavaScript references passed their 10 smoke checks without npm, a sibling checkout, an external ROM/sample or an audio device.
+- Emscripten 6.0.6 built POKEY from this checkout and again from an independently extracted source archive. Both released and rebuilt JS/WASM passed the standalone ABI smoke over **1,524,102 frames each**, covering all four physical voices, three clocks/rates, exact partitions and two handles sharing one module heap. Their WASM SHA-256 was `99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22`.
+- Both archive variants passed the actual Native/WASM comparison: **57 cases in two render layouts, 235,091 compared stereo frames, 32 independently specified checks and maximum difference zero per variant**. The comparison includes raw DAC/divider expectations and one chip's continuation while the other is muted, reset or destroyed. This establishes backend agreement for the tested scope, not equivalence to Atari hardware.
+- The original dual-POKEY example generated 144,000 frames of 48 kHz PCM16. Default 0.5/0.5 centered mono had equal channel peaks `0.14178466796875` and no differing stereo frames. Explicit `--stereo` produced peaks `0.08795166015625` / `0.1187744140625` and 143,989 differing frames. Its DC blocker and file fades apply only to listening output; raw library PCM remains positive mono with the legacy `/32768` scaling.
+- All **70 Python audit/release tests** passed, including missing/unbuilt POKEY artifacts and discovered `.exe` paths under single- and multi-configuration CMake layouts. The POKEY WASM CI job now uses `--pokey-native-parity` to build only the audited extracted fixture and compare it with both the archived and independently rebuilt WASM. The five-platform Native matrix and three WASM jobs are configured; no new remote CI run, tag or release is claimed here.
+
+The final local archive was repackaged after documentation updates and re-audited. Its non-document source/build/test payload is byte-identical to the archive that passed the extracted POKEY rebuild and parity checks. Existing historical records below retain their original release/platform scope.
+
 ## SDK 0.1.4 preparation — WonderSwan, 2026-10-27
 
 Local macOS validation extracted the source ZIP outside the checkouts, built all **20 Native libraries**, passed **25 CTest entries** from 24 fixture executables, and rendered/checked **19 stereo WAV examples**. Source inventories cover 23 chip IDs, 28 WASM recipes, two JavaScript references and 286 imported-file records. The 67 Python release/audit tests passed, including missing WonderSwan fixture/example checks for single- and multi-configuration CMake layouts.

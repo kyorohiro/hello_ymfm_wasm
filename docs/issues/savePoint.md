@@ -7,6 +7,42 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### SDK0.1.5候補・POKEY JS/Playground接続完了 — 2026-10-27
+
+ユーザーの「すすめて」で、前節のSDK更新/importとJS API・Playground接続を完了。
+SDK原本は0.1.5へ更新しlocal source ZIPを生成。本体/Tauriへ408fileを固定import済み。
+公開tagではなくlocalCandidateで、base commit f45cd27…と変更metadata5fileをpinへ明記。
+source ZIP SHA256 `aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07`。
+全29WASM recipeをbuild、従来55outputsはbyte不変、POKEY pairを追加。中央receiptは29artifact/57outputs。
+詳細は[sdk_015_adoption_01.md](sdk_015_adoption_01.md)。SDK/publictag・release・commit/pushは未実施。
+
+`Pokey` raw/Synth/10Hz speaker engine/汎用WorkletとTransportを追加。直接read/PCMは同期、Worklet read/barrierはACK付き。
+Playgroundには`pokey`（Atari 8-bit、1789790Hz）と`pokey-dual`（Atari Arcade、1789773Hz）を追加。
+各modeはchip:'pokey'。global `pokey`/`pokey2`、primary id `pokey`/`pokey:2`、4CHは0..3。
+Browserは専用Worklet、Nativeは独立extrasをprimaryとして所有。WorkerのNative portはglobalNameで分離する。
+POKEYのclockは生成時固定（同値ACK・異値拒否）。Mixerは新kind/2modeとも明示unity1・未校正、既存gainは不変。
+KeyboardのChip/CH選択、音量0保持、rawread、手動試奏保護、joined helper保護、停止・再実行を実装。
+POKEY固有Operatorsタブは今回追加せずchipTabs:[]。VGM Analyzer/importは未接続。
+
+全Web/Playground4419件、mode型、SDK76Node/22Pythonが成功（重複あり）。
+Native speaker36case・294912framesが差0、Native実コア9件、全Cargo756成功/4既存ignore。
+全29WASM batchは57outputs/40474厳密比較が成功。事前build済みSDK出力を再検証して利用。
+終了後の変更は4つのtest fixture/cache期待値のみで、runtime/SDK/build入力は不変。最終4419件は修正後の全体再実行。
+パッケージbuildは302module/28pair/349宣言、型3構成/実WASM28種/dual独立/全874file byte照合が成功。
+version0.2.30据え置きの未公開開発版で、npm公開版にはPOKEYは含まれない。
+候補tgz SHA256 `ce03debb000a5b09c8232775319754c3a2dfabcc70be4eb9de450e2da0d04bae`。
+PSG18実測は全値不変、source receipt04へ更新（soundchip_psg_calibration_refresh_03）。
+最終flatのChromium/WebKit全6routes（各Main/Worker）で単体/dual・Keyboard全4CH・独立Mixer・Stop/rerun・Genesis追加2台/片側disposeが成功。
+runnerはscripts/check_playground_pokey_browser.cjs。272served fileをZIPとhash照合、全954fileをstageとbyte照合（うち1件は既存.DS_Store）。
+Playground ZIPはrelease/hello_ymfm_wasm_pokey-mode-dev_itch_playground.zip、SHA256
+`e2cf91820eb2b5c946edbfe42fa9f6dd604f344dc2818768306442d9cdd734fe`。Synth ZIPも再生成・参照検査成功。
+Tauriへ953payload file取り込み済み、Python24/Node31件成功。
+対応source ZIP1913fileのSHA256 `46dcc0dea85b28ab97d521741fc342b2fe04dec30d880464a1d18a0294b9b001`。
+詳細・最終配布証跡は[atari_pokey_playground_01.md](atari_pokey_playground_01.md)と同名JSON。
+物理出力はミュートした自動測定。実聴/実機比較・POKEY Operators編集・VGM Analyzer/importは未実施。
+次は単体/dualをユーザー環境で実聴し、SDK0.1.5のcommit/tag公開後に公開archive来歴へ明示更新する。npm公開は別途。
+本体/SDK/Tauriは未commit。公開npm/tag/push/remoteCI/itch.io操作なし。
+
 ### Atari POKEY SDK原本・2台構成 — 2026-10-27
 
 作業対象は`w/tetorica-soundchip-native`のSDK原本。POKEYの単体Native/WASMコアを追加。

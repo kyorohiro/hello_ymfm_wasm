@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "reason": "The public direct factory gains a separate POKEY loader and its typed map/Worklet-name union. Existing chip loader behavior and gains are retained; strict provenance requires repeating the real PSG captures.",
+  "historicalReport": {
+    "path": "docs/issues/soundchip_psg_levels_03.json",
+    "sha256": "be9e48dc5b9a95bf5aa2f5840dc927625ab49497d76cc3380ddea7273f57af7a"
+  },
+  "refreshedReport": {
+    "path": "docs/issues/soundchip_psg_levels_04.json",
+    "sha256": "202488851293b071a12a10c32078ce58db24d8cfa4250202f27cf8832cb34e8b"
+  },
+  "changedSources": [
+    "web/soundchip.js"
+  ],
+  "sourceChange": {
+    "path": "web/soundchip.js",
+    "historicalSha256": "abf2a60579ccb17d805b0f3a429057626cf72f82259b284ce86e34d14ae08682",
+    "currentSha256": "c2e77b66b0b4e697332bfb04af02ba400b48c1da43ae82ac12c1bd9f7ec1d645",
+    "scope": "An independent POKEY dynamic-loader branch, direct API map and Worklet name are added; existing loader branches are unchanged. This is a functional addition, not comment-only canonicalization."
+  },
+  "measurementBodyExcludingSourcesIdentical": true,
+  "measurementBodySha256": "3bef97ea26e2938a5f926cabc5b9783b4299f117a225f739dc873db76d55e50d",
+  "measurementScriptUnchanged": true,
+  "actualMeasurementsRepeated": 18,
+  "captureMatrix": {
+    "kinds": [
+      "segapsg",
+      "ay8910",
+      "nes"
+    ],
+    "frequencyHz": [
+      220,
+      440,
+      880
+    ],
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "warmupSeconds": 0.25,
+    "captureSeconds": 1
+  },
+  "defaultsUnchanged": {
+    "segapsg": 0.45542,
+    "ay8910": 1.100331,
+    "nes": 1.514209
+  },
+  "generatedPresets": [
+    {
+      "path": "web/soundchip_mixer_presets.js",
+      "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+      "identicalToHead": true
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+      "identicalToHead": true
+    }
+  ],
+  "gainChanges": false,
+  "pokeyMeasured": false,
+  "pokeyDefault": "unity source gain, unmeasured",
+  "sourceHashGuardBypassed": false,
+  "physicalAudioTested": false,
+  "verification": {
+    "defaultSourceHashCheckPassed": true,
+    "generatorTestsPassed": 5
+  }
+}

@@ -1,7 +1,7 @@
 import {OPLSynth,OPLDirectTransport} from './opl_synth.js?v=audio-numeric-bindings-1';
 export {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
 export {YMF262_CLOCK} from './ymf262.js?v=audio-stability-2';
-export {YMF262WorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
+export {YMF262WorkletTransport} from './chip_worklet_transport.js?v=pokey-mode-1';
 
 /** Eighteen-channel OPL3 with six selectable four-operator pairs and stereo. */
 export class YMF262Synth extends OPLSynth {

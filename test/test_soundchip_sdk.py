@@ -84,6 +84,43 @@ class SoundchipSdkTests(unittest.TestCase):
                     sdk.import_archive(path, checksum, 'a' * 40, self.root)
                 self.assertFalse((self.root / sdk.SNAPSHOT).exists())
 
+    def test_local_candidate_marks_base_commit_and_preserves_strict_archive_checks(self):
+        path, checksum = self.archive(version='0.1.5')
+        pin = sdk.import_archive(path, checksum, 'a' * 40, self.root,
+                                 local_changed_paths=['sdk.json', 'catalog/extra-test.json'])
+        self.assertEqual(pin['localCandidate'], {'baseCommit': 'a' * 40,
+            'changedPaths': ['catalog/extra-test.json', 'sdk.json']})
+        self.assertEqual(sdk.check_installed(self.root), pin)
+        receipt = self.root / sdk.RECEIPT
+        for candidate in [[], {'baseCommit': 'b' * 40, 'changedPaths': ['sdk.json']},
+                          {'baseCommit': 'a' * 40, 'changedPaths': ['../escape']},
+                          {'baseCommit': 'a' * 40, 'changedPaths': ['absent.cpp']},
+                          {'baseCommit': 'a' * 40, 'changedPaths': ['sdk.json', 'sdk.json']},
+                          {'baseCommit': 'a' * 40, 'changedPaths': []}]:
+            receipt.write_text(json.dumps({**pin, 'localCandidate': candidate}))
+            with self.assertRaises(ValueError):
+                sdk.check_installed(self.root)
+        receipt.write_text(json.dumps(pin))
+        (self.root / sdk.SNAPSHOT / 'sdk.json').write_bytes(b'changed after import')
+        with self.assertRaisesRegex(ValueError, 'content hash/size mismatch'):
+            sdk.check_installed(self.root)
+
+    def test_local_candidate_rejects_bad_changed_paths_before_mutation(self):
+        path, checksum = self.archive(version='0.1.5')
+        for paths in [[], ['missing.cpp'], ['sdk.json', 'sdk.json'], ['../escape']]:
+            with self.subTest(paths=paths), self.assertRaises(ValueError):
+                sdk.import_archive(path, checksum, 'a' * 40, self.root, local_changed_paths=paths)
+            self.assertFalse((self.root / sdk.SNAPSHOT).exists())
+
+    def test_pokey_adaptation_and_licensed_original_are_an_indivisible_input_set(self):
+        for missing in sorted(sdk.POKEY_INPUTS):
+            def change(payload):
+                payload.update({name: b'POKEY input' for name in sdk.POKEY_INPUTS})
+                payload.pop(missing)
+            path, checksum = self.archive(version='0.1.5', alter_payload=change)
+            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, 'POKEY source release is incomplete'):
+                sdk.import_archive(path, checksum, 'a' * 40, self.root)
+
     def test_explicit_update_replaces_legacy_psg_layout_with_separate_component(self):
         initial = self.install(version='0.1.1')
         updated = self.install(version='0.1.2', layout='separated')

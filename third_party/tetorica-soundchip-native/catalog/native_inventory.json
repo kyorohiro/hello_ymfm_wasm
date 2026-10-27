@@ -853,6 +853,37 @@
         "CMakeLists.txt",
         "native/CMakeLists.txt"
       ]
+    },
+    {
+      "id": "pokey",
+      "sourceFiles": [
+        "native/include/tetorica/pokey.hpp",
+        "vendor/libvgm-pokey/pokey.cpp",
+        "vendor/libvgm-pokey/pokey.h"
+      ],
+      "status": "verified",
+      "target": "tetorica_native_pokey",
+      "verificationScope": "Standalone C++14 POKEY audio target: four channels per independently owned handle, polynomial noise, joined counters, audio high-pass interactions, high-clock and volume-only modes, real read-side I/O including RANDOM, monitor mute and deterministic reset. Whole-Hz clock is fixed at construction; output is positive mono duplicated to planar left/right with legacy /32768 gain and rational box integration. Host composes two handles for dual-POKEY centered mono or explicit stereo; no device, ROM/game music, machine CPU, external IRQ/serial/pot host integration, scheduler, portable save state or Playground backend. Native/WASM fixture results are recorded in docs/verification.md. Local macOS Release CTest passed; the actual Native/WASM comparison passed 57 cases in two render layouts, 235091 compared frames and 32 specified checks with zero difference. Remote platform CI remains configured, not claimed executed.",
+      "tests": [
+        "tetorica.pokey.self_test"
+      ],
+      "licenseStatus": "declared",
+      "licenseNote": "Only libvgm pokey.c explicitly labeled BSD-3-Clause is retained as upstream reference; its copyright notices and source pin are preserved. The standalone adaptation, public forwarder, build integration, fixtures and WAV host use BSD-3-Clause. No license is inferred for omitted libvgm framework/helper files.",
+      "tetoricaOriginalDefaultLicense": "BSD-3-Clause",
+      "licenseFiles": [
+        "LICENSE",
+        "vendor/libvgm-pokey/LICENSE"
+      ],
+      "declaredFileLicenses": {
+        "native/include/tetorica/pokey.hpp": "BSD-3-Clause",
+        "vendor/libvgm-pokey/pokey.cpp": "BSD-3-Clause",
+        "vendor/libvgm-pokey/pokey.h": "BSD-3-Clause"
+      },
+      "defaultLicensedFiles": [],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ]
     }
   ],
   "differencesDocument": "docs/chip-differences.md",

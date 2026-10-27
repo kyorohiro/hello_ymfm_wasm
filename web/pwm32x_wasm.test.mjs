@@ -89,8 +89,8 @@ async function processorFixture(file) {
     receiveChipInspector,readPwmInspector,createSoundChipFactory,ChipPCMRenderer,
     AudioWorkletProcessor:class{constructor(){this.port={postMessage(data){messages.push(data);if(data.ready||data.type==='ready')resolveReady(data);if(data.error)rejectReady(Error(data.error));}};}},
     registerProcessor(_name,Type){Processor=Type;}};
-  for(const name of ['Ym2612','Ym2608','Ay8910','Ym2413','Ym3526','Ym3812','Y8950','Ymf262','Ym2151','GameboyApu','SegaPSG','NesApuWasm','YM2612DirectTransport','YM2612DacPlayer'])scope[name]=Dummy;
-  for(const name of ['ay8910Factory','ym2413Factory','ym3526Factory','ym3812Factory','y8950Factory','ymf262Factory','ym2612Factory','ym2608Factory','ym2151Factory','gameboyFactory','psgFactory','nesFactory'])scope[name]=undefined;
+  for(const name of ['Ym2612','Ym2608','Ay8910','Ym2413','Ym3526','Ym3812','Y8950','Ymf262','Ym2151','GameboyApu','SegaPSG','NesApuWasm','WonderSwan','Pokey','WonderSwanAudioEngine','PokeyAudioEngine','YM2612DirectTransport','YM2612DacPlayer'])scope[name]=Dummy;
+  for(const name of ['ay8910Factory','ym2413Factory','ym3526Factory','ym3812Factory','y8950Factory','ymf262Factory','ym2612Factory','ym2608Factory','ym2151Factory','gameboyFactory','psgFactory','nesFactory','wonderswanFactory','pokeyFactory'])scope[name]=undefined;
   scope.createProcessorPerformance=options=>createProcessorPerformance({...options,rate:scope.sampleRate,nowFrame:()=>scope.currentFrame});
   const source=fs.readFileSync(new URL(file,import.meta.url),'utf8').replace(/^import .*;\n/gm,'');vm.runInNewContext(source,scope);
   const wasmBinary=fs.readFileSync(new URL('./generated/pwm32x_wasm.wasm',import.meta.url));

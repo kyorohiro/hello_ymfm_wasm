@@ -1,0 +1,25 @@
+{
+  "repository": "https://github.com/ValleyBell/libvgm",
+  "commit": "61b62d64455e039de2a1d01498afa9e9b5f1cb88",
+  "files": [
+    {
+      "upstreamPath": "emu/cores/pokey.c",
+      "localPath": "pokey.c",
+      "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9",
+      "license": "BSD-3-Clause",
+      "copyrightHolders": ["Brad Oliver", "Eric Smith", "Juergen Buchmueller"],
+      "modified": false
+    }
+  ],
+  "omittedDependencies": [
+    "stdtype.h",
+    "emu/cores/emutypes.h",
+    "emu/cores/pokey.h",
+    "emu/EmuStructs.h",
+    "emu/SoundDevs.h",
+    "emu/EmuCores.h",
+    "emu/snddef.h",
+    "emu/EmuHelper.h"
+  ],
+  "note": "Only the explicitly BSD-3-Clause-labeled core file is collected. No separate libvgm framework header license is inferred. The standalone adaptation uses original glue instead."
+}

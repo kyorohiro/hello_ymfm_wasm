@@ -330,3 +330,42 @@ const decodedChannel: Float32Array = decodedSample.channels[0];
 decodedChannel.subarray(0,32);
 // @ts-expect-error This binary-only decoder never fetches a path or URL.
 await decodeSampleWav('recording.wav');
+
+import {Pokey, POKEY_CLOCK} from 'tetorica-fm2612/pokey.js';
+import {PokeySynth, PokeyDirectTransport, PokeyWorkletTransport} from 'tetorica-fm2612/pokeysynth.js';
+import {PokeyAudioEngine} from 'tetorica-fm2612/pokeyaudioengine.js';
+const pokeyA=await createSoundChip('pokey',{id:'pokey:a',clock:POKEY_CLOCK,sampleRate:48000});
+const pokeyB=await createSoundChip('pokey',{id:'pokey:b',execution:'direct'});
+const pokeyRaw:Pokey=pokeyA;
+const pokeyId:string=pokeyA.id;
+const pokeyRead:number=pokeyA.readRegister(10);
+const pokeyPcm:{left:Float32Array;right:Float32Array}=pokeyA.generateStereo(128);
+pokeyA.generateStereoInto(new Float32Array(128),new Float32Array(128),128);
+pokeyA.reserveFrames(128);pokeyB.setChannelMuted(3,true);
+const pokeySynth=new PokeySynth({transport:new PokeyDirectTransport(pokeyA),clock:pokeyA.clock});
+pokeySynth.initialize();
+const pokeyHz:number=pokeySynth.setNote(0,'A4');pokeySynth.setVolume(0,6);pokeySynth.keyOn(0);
+const pokeySpeaker=new PokeyAudioEngine(pokeyA,1);
+pokeySpeaker.generateStereoView(128);
+const pokeyWorklet=await createSoundChip('pokey',{execution:'worklet',id:'pokey:audio'});
+const pokeyTransport=new PokeyWorkletTransport(pokeyWorklet);
+new PokeySynth({transport:pokeyTransport,clock:pokeyWorklet.clock}).initialize();
+const pokeyAsyncRead:number=await pokeyTransport.readRegister(10);
+const pokeyQueued:number=await pokeyTransport.scheduleWrites([{time:1,register:1,value:0xaf}]);
+await pokeyTransport.setChannelMuted(0,false);await pokeyTransport.clearScheduledWrites();await pokeyTransport.flush();
+new PokeyWorkletTransport(pokeyWorklet.createTransportPort()).writeRegister(1,0xaf,0);
+void [pokeyRaw,pokeyId,pokeyRead,pokeyPcm,pokeyHz,pokeyAsyncRead,pokeyQueued];
+// @ts-expect-error Raw POKEY IDs are readonly.
+pokeyA.id='changed';
+// @ts-expect-error Direct hardware readback is a number, not a string.
+pokeyA.readRegister(10).toUpperCase();
+// @ts-expect-error Worklet register reads require awaiting the audio thread.
+const pokeySyncRead:number=pokeyTransport.readRegister(10);
+// @ts-expect-error A Worklet endpoint does not render synchronously on Main.
+pokeyWorklet.generateStereo(128);
+// @ts-expect-error A direct chip has no browser audio output node.
+pokeyA.node.connect(new AudioContext().destination);
+// @ts-expect-error Physical-channel monitoring uses a boolean mute.
+pokeyA.setChannelMuted(0,1);
+// @ts-expect-error Render lengths are numeric.
+pokeyA.generateStereo('128');

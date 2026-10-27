@@ -1,10 +1,11 @@
-import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=wonderswan-pcm-timeline-1';
+import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=pokey-mode-1';
 
 /** The mode's primary instrument is playable before a script binds Keyboard.
  * Resolve its admin endpoint after audio preparation; never create a second chip.
  */
 const TARGETS = {
   wonderswan: ['wonderswan', 'WonderSwan · CH1'],
+  pokey: ['pokey', 'POKEY 1 · CH1'],
   gameboy: ['gameboy', 'Game Boy · Pulse 1'],
   nes: ['nes', 'NES + FDS · Pulse 1'],
   snes: ['snes', 'SNES · Voice 1'],
@@ -26,6 +27,10 @@ let sequence = 0;
 /** Authoring environments may contain several primary physical sound chips. */
 export function playgroundPrimaryKeyboardChips(mode,capabilities = {}) {
   const chip = mode.chip;
+  if (chip === 'pokey') return [
+    {id:'pokey',kind:'pokey',label:'POKEY 1 (primary)'},
+    ...(mode.dualPokey ? [{id:'pokey:2',kind:'pokey',label:'POKEY 2 (primary)'}] : []),
+  ];
   if (mode.id === 'atari-st') return [{id:'ay8910',kind:'ay8910',label:'YM2149 (primary)'}];
   if (chip === 'msx' || chip === 'msx-audio') return [
     ...(chip === 'msx-audio' ? [{id:'y8950',kind:'y8950',label:'Y8950 FM / ADPCM (primary)'}] : []),

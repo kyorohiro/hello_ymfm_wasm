@@ -487,7 +487,27 @@ if(MSVC)
   target_compile_options(tetorica_native_wonderswan PRIVATE /EHsc)
 endif()
 
+# The standalone BSD POKEY adaptation includes the retained sound algorithm
+# without libvgm's integration headers. Each object owns one four-channel chip;
+# hosts compose two objects for dual-POKEY machines.
+add_library(tetorica_native_pokey STATIC
+  "${TETORICA_SDK_ROOT}/vendor/libvgm-pokey/pokey.cpp"
+)
+add_library(tetorica::pokey ALIAS tetorica_native_pokey)
+target_compile_features(tetorica_native_pokey PUBLIC cxx_std_14)
+target_include_directories(tetorica_native_pokey PUBLIC
+  "${CMAKE_CURRENT_LIST_DIR}/include"
+)
+if(MSVC)
+  target_compile_options(tetorica_native_pokey PRIVATE /EHsc)
+endif()
+
 if(TETORICA_NATIVE_BUILD_EXAMPLES)
+  add_executable(tetorica_pokey_wav examples/pokey_wav.cpp)
+  target_link_libraries(tetorica_pokey_wav PRIVATE tetorica::pokey)
+  if(MSVC)
+    target_compile_options(tetorica_pokey_wav PRIVATE /EHsc)
+  endif()
   add_executable(tetorica_wonderswan_wav examples/wonderswan_wav.cpp)
   target_link_libraries(tetorica_wonderswan_wav PRIVATE tetorica::wonderswan)
   if(MSVC)
@@ -586,6 +606,15 @@ if(TETORICA_NATIVE_BUILD_EXAMPLES)
 endif()
 
 if(TETORICA_NATIVE_BUILD_TESTS)
+  add_executable(tetorica_pokey_fixture tests/pokey_fixture.cpp)
+  target_link_libraries(tetorica_pokey_fixture PRIVATE tetorica::pokey)
+  if(MSVC)
+    target_compile_options(tetorica_pokey_fixture PRIVATE /UNDEBUG /EHsc)
+  else()
+    target_compile_options(tetorica_pokey_fixture PRIVATE -UNDEBUG)
+  endif()
+  add_test(NAME tetorica.pokey.self_test
+    COMMAND tetorica_pokey_fixture --self-test)
   add_executable(tetorica_wonderswan_fixture tests/wonderswan_fixture.cpp)
   target_link_libraries(tetorica_wonderswan_fixture PRIVATE tetorica::wonderswan)
   if(MSVC)

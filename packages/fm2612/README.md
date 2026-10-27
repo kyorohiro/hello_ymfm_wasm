@@ -40,6 +40,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
 | PC Engine wavetable, noise and DDA | `tetorica-fm2612/huc6280synth.js` | `Huc6280Synth`, `Huc6280DirectTransport` |
 | WonderSwan wavetable, Voice PCM, noise and sweep | `tetorica-fm2612/wonderswansynth.js` | `WonderSwanSynth`, `WonderSwanDirectTransport`, `WonderSwanWorkletTransport` |
+| Atari POKEY, four voices per chip (unreleased) | `tetorica-fm2612/pokeysynth.js` | `PokeySynth`, `PokeyDirectTransport`, `PokeyWorkletTransport` |
 | OKIM6258 ADPCM samples | `tetorica-fm2612/okim6258synth.js` | `Oki6258Synth`, `encodeOki6258` |
 | RF5C164 PCM | `tetorica-fm2612/rf5c164synth.js` | `RF5C164Synth`, `RF5C164DirectTransport` |
 | 32X PWM | `tetorica-fm2612/pwm32x_transport.js` | `PWM32XDirectTransport`, `PWM32XWorkletTransport` |
@@ -491,6 +492,73 @@ For a stable application name, `{id: 'gb1'}` remains available. `useSoundChip` r
 per-name cache and returns the same object/ID until disposed or stopped; its `{id}` option is not supported. Disposing a client or
 stopping the runtime removes its output route.
 
+### POKEY and dual POKEY (unreleased)
+
+The development checkout adds POKEY for the **next package release**. Published
+`0.2.30` does not include it. Each instance owns one four-channel mono chip;
+dual POKEY uses two ordinary independent instances, rather than eight channels
+on one object.
+
+```js
+import {createSoundChip} from 'tetorica-fm2612';
+import {PokeySynth, PokeyDirectTransport} from 'tetorica-fm2612/pokeysynth.js';
+
+const chips = await Promise.all(['pokey:1', 'pokey:2'].map(id =>
+  createSoundChip('pokey', {id, sampleRate:48000, clock:1789773})));
+try {
+  const voices = chips.map(chip => new PokeySynth({
+    transport:new PokeyDirectTransport(chip), clock:chip.clock,
+  }));
+  for (const [index, voice] of voices.entries()) {
+    voice.initialize();
+    voice.setVolume(0, 6);
+    voice.noteOn(0, index ? 'C3' : 'C5');
+  }
+  const [first, second] = chips.map(chip => chip.generateStereo(1024));
+  // Both are mono. The host chooses mono summing or stereo placement/headroom.
+} finally {
+  for (const chip of chips) chip.dispose();
+}
+```
+
+The raw `Pokey` wrapper in `pokey.js` exposes synchronous `readRegister()`,
+`writeRegister()`, monitor mute and owned/borrowed/into PCM rendering. The
+hardware read-side register map differs from the write-side audio bank:
+`readRegister(0)` reads POT0, rather than the authored AUDF1 value. A Synth's
+`getRegisterSnapshot()` returns its local write-side shadow instead.
+
+For browser audio, create each chip with `{execution:'worklet', mixer}`, borrow
+it through `new PokeyWorkletTransport(chip)`, initialize a `PokeySynth`, and
+`await chip.start()`. Shared `SoundChipMixer` IDs independently control each
+chip's volume, Pan, Mute and Solo. `readRegister()` and `flush()` on the Worklet
+transport return promises; a transferred `createTransportPort()` also supports
+Worker-side Synth control. `scheduleWrites()` accepts absolute AudioContext
+seconds and local register offsets `0..15`, with at most 65,536 pending writes.
+Stop, reset and disposal cancel pending scheduled writes.
+
+POKEY physical channels are `0..3`. Distortion `5` is a pure square tone;
+the other modes use its polynomial/noise circuitry. AUDCTL clock, join and
+filter settings are shared by all four voices. Joined pairs `(0,1)` and `(2,3)`
+sound through their upper channel; their lower channel supplies a timer.
+`setFrequency()` returns the quantized pure-tone frequency and rejects pitches
+outside the selected timer range. Two chips retain independent clocks, noise
+phase, register state and lifetimes.
+
+Raw PCM retains the positive mono DAC output at `/32768`, duplicated into left
+and right, without Mixer gain or DC correction. The generic Worklet uses the
+`PokeyAudioEngine` speaker adapter, including its documented 10 Hz DC blocker;
+raw PCM remains unchanged. Source Mixer defaults stay at `1.0` until calibrated.
+The generic endpoint's separate output gain defaults to `0.25`, as with the
+other generic endpoints. No automatic half gain or invented hardware stereo is
+applied to dual POKEY.
+
+The package includes the adaptation, exact BSD-labeled upstream `pokey.c`,
+notices and standalone recipe in `sources/POKEY.md` and
+`licenses/libvgm-pokey/`. These inputs come from the fixed SDK 0.1.5 local
+candidate; `sources/POKEY-SDK.json` retains its archive hash and base-commit
+provenance without claiming an already published SDK tag. No Atari CPU, ROM,
+full machine emulation or external sample is included.
+
 ## Included sound chips
 
 | Family | Chips |
@@ -498,12 +566,13 @@ stopping the runtime removes its output route.
 | Yamaha OPN | YM2203, YM2608, YM2610/YM2610B, YM2612, YM3438, YMF276, YMF288 |
 | Yamaha OPM | YM2151 |
 | Yamaha OPL | YM2413, YM3526, YM3812, Y8950, YMF262, YMF278B |
-| PSG and console audio | AY8910, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280, K051649 |
+| PSG and console audio | AY8910, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280, K051649, WonderSwan; POKEY in the unreleased development checkout |
 | PCM and ADPCM | RF5C164, Sega PCM, OKIM6258, OKIM6295 |
 
 YM2612 includes ymfm and Nuked-OPN2 backends. YM2610 uses the YM2610B core
 with `variant: false`; OKIM6295 is implemented in JavaScript. The distribution
-includes 23 generated JS/WASM pairs. Chip and high-level Synth API coverage differ.
+development build includes 28 generated JS/WASM pairs plus the standalone DX7
+WASM. Chip and high-level Synth API coverage differ.
 
 ## Node.js: generate PCM
 
@@ -1050,6 +1119,11 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+The **unreleased next version** adds the POKEY Direct/AudioWorklet factory,
+four-channel Synth, Mixer/Worker transport, independently owned dual-POKEY
+instances and a self-contained BSD source bundle. The SDK 0.1.5 source candidate
+is hash pinned locally; no new npm version or SDK GitHub Release is implied.
 
 `0.2.30` connects **WonderSwan to the public Direct and AudioWorklet factory**,
 with the shared Mixer, typed raw API and `WonderSwanWorkletTransport` for Synth

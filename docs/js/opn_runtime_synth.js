@@ -7,7 +7,7 @@
 import { TetoricaAudioRuntime } from "./tetorica_audio_runtime.js?v=y8950-adpcm-ui-1";
 import { OPNWorkletTransport } from "./opn_fm_synth.js?v=audio-stability-2";
 
-/** @typedef {Pick<import('./megasynth.js?v=wonderswan-pcm-timeline-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
+/** @typedef {Pick<import('./megasynth.js?v=pokey-mode-1').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'|'workletUrl'> & {wasmUrl?:string,rhythmRom?:Uint8Array,rhythmRomUrl?:string}} OPNRuntimeSynthOptions */
 
 const MAX_MASTER_VOLUME = 3.8;
 

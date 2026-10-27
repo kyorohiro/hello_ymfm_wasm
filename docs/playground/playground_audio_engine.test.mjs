@@ -4,7 +4,7 @@ import {PLAYGROUND_MODES} from './playground_mode.js';
 import {supportsPlaygroundAudioEngineMode,resolvePlaygroundAudioEngine} from './playground_audio_engine.js';
 
 test('Native supports the existing standard modes and keeps Atari ST on Web Audio',()=>{
-  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,22);
+  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,24);
   for(const mode of PLAYGROUND_MODES){
     const native=mode.id!=='atari-st';
     assert.equal(supportsPlaygroundAudioEngineMode('webaudio',mode.id),true,mode.id);
@@ -29,6 +29,15 @@ test('WonderSwan supports Native only when selected in the desktop app',()=>{
     {requested:'native',engine:'native',available:true});
   assert.equal(resolvePlaygroundAudioEngine({modeId:'wonderswan',desktop:true}).engine,'webaudio');
   assert.equal(resolvePlaygroundAudioEngine({modeId:'wonderswan',desktop:false,search:'?audioEngine=native'}).engine,'webaudio');
+});
+
+test('single and dual POKEY modes use Web Audio by default and can select desktop Native',()=>{
+  for(const modeId of ['pokey','pokey-dual']) {
+    assert.equal(supportsPlaygroundAudioEngineMode('native',modeId),true);
+    assert.equal(resolvePlaygroundAudioEngine({modeId,desktop:true}).engine,'webaudio');
+    assert.equal(resolvePlaygroundAudioEngine({modeId,desktop:false,search:'?audioEngine=native'}).engine,'webaudio');
+    assert.equal(resolvePlaygroundAudioEngine({modeId,desktop:true,search:'?audioEngine=native'}).engine,'native');
+  }
 });
 
 test('Web Audio remains the default and Native requires desktop selection for Nuked modes',()=>{

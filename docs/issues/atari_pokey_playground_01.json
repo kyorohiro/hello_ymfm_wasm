@@ -1,0 +1,3380 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "passed": true,
+  "scope": "Local SDK candidate, POKEY raw/Synth/Worklet APIs and Browser/Native single/dual Playground modes. No publication.",
+  "publication": {
+    "commit": false,
+    "tag": false,
+    "push": false,
+    "npm": false,
+    "remoteCi": false,
+    "itch": false
+  },
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.5",
+    "sourceCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+    "archiveName": "tetorica-soundchip-native-0.1.5-sources.zip",
+    "archiveSha256": "aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07",
+    "manifestSha256": "bb542e394b76b1e3c6a34010ecd909d09230ce8b47e76daabf06ccf98d90f280",
+    "fileCount": 408,
+    "localCandidate": {
+      "baseCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "README.md",
+        "docs/releases.md",
+        "docs/verification.md",
+        "sdk.json"
+      ]
+    }
+  },
+  "modes": [
+    {
+      "id": "pokey",
+      "label": "Atari 8-bit",
+      "clock": 1789790,
+      "globals": [
+        "pokey"
+      ],
+      "ids": [
+        "pokey"
+      ]
+    },
+    {
+      "id": "pokey-dual",
+      "label": "Atari Arcade (Dual POKEY)",
+      "clock": 1789773,
+      "globals": [
+        "pokey",
+        "pokey2"
+      ],
+      "ids": [
+        "pokey",
+        "pokey:2"
+      ]
+    }
+  ],
+  "speaker": {
+    "rawPcm": "Unipolar legacy scale, unchanged",
+    "speakerDcBlockHz": 10,
+    "speakerGain": 1,
+    "mixerVolume": 1,
+    "calibrated": false,
+    "nativeBrowserParity": {
+      "cases": 36,
+      "frames": 294912,
+      "maximumDifference": 0,
+      "results": [
+        {
+          "rate": 44100,
+          "clock": 1789790,
+          "mode": 0,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789790,
+          "mode": 1,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789790,
+          "mode": 2,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789790,
+          "mode": 3,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789790,
+          "mode": 4,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789790,
+          "mode": 5,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789773,
+          "mode": 0,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789773,
+          "mode": 1,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789773,
+          "mode": 2,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789773,
+          "mode": 3,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789773,
+          "mode": 4,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 44100,
+          "clock": 1789773,
+          "mode": 5,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789790,
+          "mode": 0,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789790,
+          "mode": 1,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789790,
+          "mode": 2,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789790,
+          "mode": 3,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789790,
+          "mode": 4,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789790,
+          "mode": 5,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789773,
+          "mode": 0,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789773,
+          "mode": 1,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789773,
+          "mode": 2,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789773,
+          "mode": 3,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789773,
+          "mode": 4,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 48000,
+          "clock": 1789773,
+          "mode": 5,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789790,
+          "mode": 0,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789790,
+          "mode": 1,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789790,
+          "mode": 2,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789790,
+          "mode": 3,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789790,
+          "mode": 4,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789790,
+          "mode": 5,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789773,
+          "mode": 0,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789773,
+          "mode": 1,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789773,
+          "mode": 2,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789773,
+          "mode": 3,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789773,
+          "mode": 4,
+          "frames": 8192,
+          "maximumDifference": 0
+        },
+        {
+          "rate": 96000,
+          "clock": 1789773,
+          "mode": 5,
+          "frames": 8192,
+          "maximumDifference": 0
+        }
+      ]
+    }
+  },
+  "tests": {
+    "allWebAndPlayground": {
+      "passed": 4419,
+      "failed": 0,
+      "command": "node --test --test-concurrency=4 web/*.test.mjs docs/playground/*.test.mjs",
+      "log": {
+        "path": "/private/tmp/pokey-all-web-tests-final.log",
+        "bytes": 433848,
+        "sha256": "be0c0cf04cc960a1f74fbfabffb22af045162498e41d395d7e54c974879be7c4"
+      }
+    },
+    "cargo": {
+      "passed": 756,
+      "ignored": 4,
+      "failed": 0,
+      "log": {
+        "path": "/private/tmp/pokey-native-cargo-all-approved.log",
+        "bytes": 87631,
+        "sha256": "fa2e9eeef3b035bfb0ac9ec1b0aeaa811cb3e86fb7c79f7badb8b2018364c62c"
+      }
+    },
+    "tauriPython": 24,
+    "tauriNode": 31,
+    "publicPokeyJs": {
+      "passed": 11,
+      "failed": 0,
+      "log": {
+        "path": "/private/tmp/pokey-public-tests-final.log",
+        "sha256": "94b424abd324fd1ff0812d1119eef5bec5ab92c05ba42230b4b9a2dc803ad57a"
+      }
+    },
+    "sdkWasm": {
+      "passed": true,
+      "artifacts": 29,
+      "outputs": 57,
+      "comparisons": 40474,
+      "repositoryInputsUnchangedDuringRun": true,
+      "prebuiltSdkDirectory": "/private/tmp/pokey-sdk-015-all",
+      "receipt": {
+        "path": "/private/tmp/pokey-wasm-sdk-final/summary.json",
+        "bytes": 1429504,
+        "sha256": "521acd63c3d493d005463c798da0573ef4d2cf0f2c65ea73d35f0bad3822857d"
+      },
+      "cases": [
+        {
+          "id": "ay8910",
+          "passed": true,
+          "comparisons": 8208,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: all main bodies+127-frame continuation probes including selected reset/replays. Bounded chip/Engine positives and actual Player render-ahead/seek-prefix generation are separate components. Engine delegates directly to the chip; those native output frames and Player delivered/discarded frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 35223552,
+            "postScenarioProbeOutputStereoFrames": 2244852,
+            "totalWrapperSelfCheckOutputStereoFrames": 811166,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 4638492,
+            "totalPlayerDeliveredOutputStereoFrames": 3880188,
+            "totalOutputStereoFrames": 37468404,
+            "totalGeneratedOutputStereoFrames": 42918062
+          }
+        },
+        {
+          "id": "dx7",
+          "passed": true,
+          "comparisons": 360,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: mono scenario bodies, 257-frame continuation probes, selected panic/reprogram replays and wrapper/raw-ABI control output. Each Float32 element is one mono output frame. Internal block prefetch and unreturned core work are not counted.",
+          "frameCounts": {
+            "totalFrames": 8192,
+            "probeFrames": 257,
+            "scenarioBodyOutputMonoFrames": 6160384,
+            "postScenarioProbeOutputMonoFrames": 193264,
+            "totalScenarioOutputMonoFrames": 6353648,
+            "totalWrapperSelfCheckOutputMonoFrames": 1300492,
+            "totalGeneratedOutputMonoFrames": 7654140
+          }
+        },
+        {
+          "id": "gameboy_apu",
+          "passed": true,
+          "comparisons": 876,
+          "maximumDifference": 0,
+          "frameCountScope": "Both realbuilds: complete1024-frame bodies+97-frame probes; selected regular own/cross continuation bodies startat613 plusfreshprobes, resetreplays repeatfullbody/probe. Wrapper positives and actual Player generation separate; native ticks/internal Engine calls and delivered Player frames notaddedtwice.",
+          "frameCounts": {
+            "probeFrames": 97,
+            "scenarioBodyOutputStereoFrames": 2209836,
+            "postScenarioProbeOutputStereoFrames": 228144,
+            "totalWrapperSelfCheckOutputStereoFrames": 126486,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+            "totalPlayerDeliveredOutputStereoFrames": 248840,
+            "totalOutputStereoFrames": 2437980,
+            "totalGeneratedOutputStereoFrames": 2877906
+          }
+        },
+        {
+          "id": "huc6280",
+          "passed": true,
+          "comparisons": 828,
+          "maximumDifference": 0,
+          "frameCountScope": "Both actual builds: main complete768-frame bodies+97-frame continuation probes; selected regular reset/replays repeat complete bodies+probes. Independent wrapper positives/direct rawC output and actual Player Engine generation are separate components. Native chip-clock ticks and delivered Player frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 97,
+            "scenarioBodyOutputStereoFrames": 1465344,
+            "postScenarioProbeOutputStereoFrames": 185076,
+            "totalWrapperSelfCheckOutputStereoFrames": 130044,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+            "totalPlayerDeliveredOutputStereoFrames": 515076,
+            "totalOutputStereoFrames": 1650420,
+            "totalGeneratedOutputStereoFrames": 2394918
+          }
+        },
+        {
+          "id": "k051649",
+          "passed": true,
+          "comparisons": 774,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, including selected reset/reprogram replays; bounded wrapper/engine controls and all actual MSX Player engine generation are added separately. Stereo frame is one left/right pair. Engine internal chip sources and delivered player frames are not added twice.",
+          "frameCounts": {
+            "totalFrames": 2048,
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 3907584,
+            "postScenarioProbeOutputStereoFrames": 242316,
+            "totalWrapperSelfCheckOutputStereoFrames": 34122,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 2384316,
+            "totalPlayerDeliveredOutputStereoFrames": 2185560,
+            "totalOutputStereoFrames": 4149900,
+            "totalGeneratedOutputStereoFrames": 6568338
+          }
+        },
+        {
+          "id": "nesapu",
+          "passed": true,
+          "comparisons": 912,
+          "maximumDifference": 0,
+          "frameCountScope": "BothrealWASMbuilds:complete1024-framebody+97-frameprobe,selectedregularreset/replaysrepeatfullbody/probe. ActualWASMwrapperpositivesanddirectnative_sampleloopsareseparate. AuxiliaryJSreferenceframesrecorded/excluded; parserrecordinggeneratesnoaudio; noWASMPlayerframes.",
+          "frameCounts": {
+            "probeFrames": 97,
+            "scenarioBodyOutputStereoFrames": 2150400,
+            "postScenarioProbeOutputStereoFrames": 203700,
+            "totalWrapperSelfCheckOutputStereoFrames": 74820,
+            "totalJsReferenceOutputStereoFrames": 3598,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 0,
+            "totalPlayerDeliveredOutputStereoFrames": 0,
+            "totalOutputStereoFrames": 2354100,
+            "totalGeneratedOutputStereoFrames": 2428920
+          }
+        },
+        {
+          "id": "nuked_opn2",
+          "passed": true,
+          "comparisons": 462,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: scenario bodies and 127-frame probes, selected reset replays, wrapper controls, real Synth and actual engine-generated player output including prefetched PCM (delivered frame count is recorded separately). One stereo frame is one left/right pair. Bus-write discarded outputs are not delivered PCM and are not counted.",
+          "frameCounts": {
+            "totalFrames": 6144,
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 6414336,
+            "postScenarioProbeOutputStereoFrames": 132588,
+            "totalScenarioOutputStereoFrames": 6546924,
+            "totalWrapperSelfCheckOutputStereoFrames": 83816,
+            "totalSynthOutputStereoFrames": 12136,
+            "totalEngineOutputStereoFrames": 19808,
+            "totalGeneratedOutputStereoFrames": 6662684
+          }
+        },
+        {
+          "id": "okim6258",
+          "passed": true,
+          "comparisons": 2048,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds at their configured output rates: complete raw/Engine scenario renders and own/cross/reset continuations. Bounded wrapper self-checks and 31-frame pre-restore perturbations are separately counted; all three contribute to totalGeneratedOutputStereoFrames. Setup writes and zero-frame calls render no frames.",
+          "frameCounts": {
+            "totalOutputStereoFrames": 23949880,
+            "preRestorePerturbationOutputStereoFrames": 2108,
+            "totalWrapperSelfCheckOutputStereoFrames": 1520,
+            "totalGeneratedOutputStereoFrames": 23953508
+          }
+        },
+        {
+          "id": "pokey",
+          "passed": true,
+          "comparisons": 114,
+          "maximumDifference": 0,
+          "frameCounts": {
+            "totalComparedStereoFrames": 933888
+          }
+        },
+        {
+          "id": "pwm32x",
+          "passed": true,
+          "comparisons": 864,
+          "maximumDifference": 0,
+          "frameCountScope": "Both actual builds: main complete body+65-frame probes; selected regular own/cross continuation bodies start at389 with fresh65-frame probes; reset/replays have complete bodies/probes. Wrapper positives and actual Player Engine generation are separate components. Retained-JS-reference auxiliary frames are separately recorded and excluded, as are internal Engine source frames and delivered Player frames.",
+          "frameCounts": {
+            "probeFrames": 65,
+            "scenarioBodyOutputStereoFrames": 2439480,
+            "postScenarioProbeOutputStereoFrames": 168480,
+            "totalWrapperSelfCheckOutputStereoFrames": 32394,
+            "totalJsReferenceOutputStereoFrames": 7680,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 356220,
+            "totalPlayerDeliveredOutputStereoFrames": 290240,
+            "totalOutputStereoFrames": 2607960,
+            "totalGeneratedOutputStereoFrames": 2996574
+          }
+        },
+        {
+          "id": "rf5c164",
+          "passed": true,
+          "comparisons": 828,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 4634334,
+            "postScenarioProbeOutputStereoFrames": 301752,
+            "totalWrapperSelfCheckOutputStereoFrames": 16178,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+            "totalPlayerDeliveredOutputStereoFrames": 373260,
+            "totalOutputStereoFrames": 4936086,
+            "totalGeneratedOutputStereoFrames": 5422424
+          }
+        },
+        {
+          "id": "segapcm",
+          "passed": true,
+          "comparisons": 612,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds, complete scenario bodies plus127-frame post-scenario probes, selected own/cross continuation bodies starting at613 and selected reset/replay bodies and probes. Bounded controls, actual Player Engine generation and31-frame pre-restore perturbations are separately added. Engine internal sources and Player delivered frames are not counted twice.",
+          "frameCounts": {
+            "totalFrames": 2048,
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 4225320,
+            "postScenarioProbeOutputStereoFrames": 281178,
+            "preRestorePerturbationOutputStereoFrames": 7812,
+            "totalWrapperSelfCheckOutputStereoFrames": 76202,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+            "totalPlayerDeliveredOutputStereoFrames": 515076,
+            "totalOutputStereoFrames": 4506498,
+            "totalGeneratedOutputStereoFrames": 5204966
+          }
+        },
+        {
+          "id": "segapsg",
+          "passed": true,
+          "comparisons": 7074,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 30918870,
+            "postScenarioProbeOutputStereoFrames": 1945386,
+            "totalWrapperSelfCheckOutputStereoFrames": 392930,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 758694,
+            "totalPlayerDeliveredOutputStereoFrames": 639348,
+            "totalOutputStereoFrames": 32864256,
+            "totalGeneratedOutputStereoFrames": 34015880
+          }
+        },
+        {
+          "id": "spc",
+          "passed": true,
+          "comparisons": 80,
+          "maximumDifference": 0,
+          "frameCountScope": "All bounded nonzero PCM render requests go through one counter, including wrapper/trace positives, scenarios/probes, failed attempts and timeline-end silence. Direct invalid/zero validation-only calls never entering native rendering are excluded. Requested frames, successfully copied output frames and native position advances are reported separately. Internal 1024-frame chunks are not added again; failed trace rendering may advance native state before rejecting delivery, and ended timeline silence does not advance nativeFrames.",
+          "frameCounts": {
+            "bodyFrames": 4097,
+            "probeFrames": 97,
+            "totalDeliveredOutputStereoFrames": 1017898
+          }
+        },
+        {
+          "id": "wonderswan",
+          "passed": true,
+          "comparisons": 378,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: full scenario body in each owned/borrowed/into partition, followed by a full reset replay. Independent expectation/wrapper self-check frames are not included.",
+          "frameCounts": {
+            "totalComparedStereoFrames": 6193152
+          }
+        },
+        {
+          "id": "y8950",
+          "passed": true,
+          "comparisons": 1794,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 257,
+            "scenarioBodyOutputStereoFrames": 21823488,
+            "postScenarioProbeOutputStereoFrames": 1010010,
+            "totalOutputStereoFrames": 22833498,
+            "totalWrapperSelfCheckOutputStereoFrames": 555780,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 24162360
+          }
+        },
+        {
+          "id": "ym2151",
+          "passed": true,
+          "comparisons": 1408,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames and the 31-frame pre-restore perturbations are not counted as output frames.",
+          "frameCounts": {
+            "totalOutputStereoFrames": 17640320,
+            "preRestorePerturbationOutputStereoFrames": 1984,
+            "totalWrapperSelfCheckNativeStereoFrames": 398836,
+            "totalGeneratedOutputStereoFrames": 18041140
+          }
+        },
+        {
+          "id": "ym2203",
+          "passed": true,
+          "comparisons": 432,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+          "frameCounts": {
+            "totalOutputStereoFrames": 9770400
+          }
+        },
+        {
+          "id": "ym2413",
+          "passed": true,
+          "comparisons": 1284,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 257,
+            "scenarioBodyOutputStereoFrames": 15446016,
+            "postScenarioProbeOutputStereoFrames": 687732,
+            "totalOutputStereoFrames": 16133748,
+            "totalWrapperSelfCheckOutputStereoFrames": 391674,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 17298504
+          }
+        },
+        {
+          "id": "ym2608",
+          "passed": true,
+          "comparisons": 586,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+          "frameCounts": {
+            "totalOutputStereoFrames": 7264744
+          }
+        },
+        {
+          "id": "ym2610b",
+          "passed": true,
+          "comparisons": 1108,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+          "frameCounts": {
+            "totalOutputStereoFrames": 14063856,
+            "totalWrapperSelfCheckNativeStereoFrames": 1113736
+          }
+        },
+        {
+          "id": "ym2612",
+          "passed": true,
+          "comparisons": 444,
+          "maximumDifference": 0,
+          "frameCountScope": "Case/layout renders plus own-state, cross-state and reset continuations, counting both builds; additional wrapper self-check frames are excluded.",
+          "frameCounts": {
+            "totalStereoFrames": 11557320
+          }
+        },
+        {
+          "id": "ym3438",
+          "passed": true,
+          "comparisons": 450,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+          "frameCounts": {
+            "totalFrames": 6144,
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 6230016,
+            "postScenarioProbeOutputStereoFrames": 128778,
+            "totalScenarioOutputStereoFrames": 6358794,
+            "totalWrapperSelfCheckOutputStereoFrames": 39250,
+            "totalSynthOutputStereoFrames": 14336,
+            "totalGeneratedOutputStereoFrames": 6412380
+          }
+        },
+        {
+          "id": "ym3526",
+          "passed": true,
+          "comparisons": 1494,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 257,
+            "scenarioBodyOutputStereoFrames": 17952768,
+            "postScenarioProbeOutputStereoFrames": 806466,
+            "totalOutputStereoFrames": 18759234,
+            "totalWrapperSelfCheckOutputStereoFrames": 439962,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 19972278
+          }
+        },
+        {
+          "id": "ym3812",
+          "passed": true,
+          "comparisons": 1848,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 257,
+            "scenarioBodyOutputStereoFrames": 22081536,
+            "postScenarioProbeOutputStereoFrames": 993048,
+            "totalOutputStereoFrames": 23074584,
+            "totalWrapperSelfCheckOutputStereoFrames": 609410,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 24457076
+          }
+        },
+        {
+          "id": "ymf262",
+          "passed": true,
+          "comparisons": 3456,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+          "frameCounts": {
+            "probeFrames": 257,
+            "scenarioBodyOutputStereoFrames": 42799104,
+            "postScenarioProbeOutputStereoFrames": 1859652,
+            "totalOutputStereoFrames": 44658756,
+            "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+            "totalPlayerDeliveredOutputStereoFrames": 646698,
+            "totalGeneratedOutputStereoFrames": 46586694
+          }
+        },
+        {
+          "id": "ymf276",
+          "passed": true,
+          "comparisons": 462,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+          "frameCounts": {
+            "totalFrames": 6144,
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 6414336,
+            "postScenarioProbeOutputStereoFrames": 132588,
+            "totalScenarioOutputStereoFrames": 6546924,
+            "totalWrapperSelfCheckOutputStereoFrames": 107080,
+            "totalSynthOutputStereoFrames": 14336,
+            "totalGeneratedOutputStereoFrames": 6668340
+          }
+        },
+        {
+          "id": "ymf278b",
+          "passed": true,
+          "comparisons": 684,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: scenario body and127frameprobe output, selectedpublicreset/replays, boundedchipcontrols, realEngineoutput plusindependentmanualsourcereference, actual VGMEngine renderahead andseekprefix output. Playerdeliveredframes areaseparateview, notadded. Internalnativeframes underlying Engineoutput arenotaddedagain.",
+          "frameCounts": {
+            "totalFrames": 4096,
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 6176768,
+            "postScenarioProbeOutputStereoFrames": 191516,
+            "totalScenarioOutputStereoFrames": 6368284,
+            "totalWrapperSelfCheckOutputStereoFrames": 605762,
+            "totalEngineControlGeneratedOutputStereoFrames": 25348,
+            "totalPlayerGeneratedEngineOutputStereoFrames": 448386,
+            "totalGeneratedOutputStereoFrames": 7447780
+          }
+        },
+        {
+          "id": "ymf288",
+          "passed": true,
+          "comparisons": 606,
+          "maximumDifference": 0,
+          "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+          "frameCounts": {
+            "totalFrames": 6144,
+            "probeFrames": 127,
+            "scenarioBodyOutputStereoFrames": 8368128,
+            "postScenarioProbeOutputStereoFrames": 172974,
+            "totalScenarioOutputStereoFrames": 8541102,
+            "totalWrapperSelfCheckOutputStereoFrames": 254050,
+            "totalSynthOutputStereoFrames": 14336,
+            "totalGeneratedOutputStereoFrames": 8809488
+          }
+        }
+      ],
+      "postValidationChanges": {
+        "scope": "Only test fixture/cache expectations; no production runtime, SDK source, generated output or build recipe changed. The final full 4419-test run includes these fixes.",
+        "files": [
+          {
+            "path": "docs/playground/playground_mode.test.mjs",
+            "beforeSha256": "87a4f11604cd9814637a4b8af6dd298dd3783e09ce7574bb16563c48b5647c52",
+            "afterSha256": "0b8f546f2706dc06e09f633f6046ad7e3997e61a194bcd8b29ac22128753d6ad"
+          },
+          {
+            "path": "web/opn_frequency_batch.test.mjs",
+            "beforeSha256": "dda8c35935a371830f9e907f7973eecb7dca0d452a63b99bb046ff3115dcbb7f",
+            "afterSha256": "6704c283221df26f0fe4590bddd95e8beacee512e797943f2ebf88aba6c58f2a"
+          },
+          {
+            "path": "web/playground_independent_performance.test.mjs",
+            "beforeSha256": "6583d0e9f5aa9c465eab7035ed224c4f06bc003236fbf3707e2795ddc91d7a64",
+            "afterSha256": "94c10a414c810786af2cbe05ec25e45226327fdce3d39bd01e554e704314537d"
+          },
+          {
+            "path": "web/pwm32x_wasm.test.mjs",
+            "beforeSha256": "f61e90fc4447d1cbd90610a7321cd318bda7da7fcc19758c5c420808b0aa9a06",
+            "afterSha256": "44261423496c6420f83a4a2397ad0e5d0de7464568dee98355fffbecfc3bc8dc"
+          }
+        ]
+      }
+    }
+  },
+  "browser": {
+    "schemaVersion": 1,
+    "passed": true,
+    "docsDirectory": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_playground_pokey-mode-dev",
+    "physicalOutputMuted": true,
+    "results": [
+      {
+        "browser": "chromium",
+        "mode": "pokey",
+        "clock": 1789790,
+        "primary": {
+          "chips": [
+            [
+              "pokey",
+              "pokey"
+            ]
+          ],
+          "strips": [
+            "pokey"
+          ],
+          "fm": 0
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.025691249347397416,
+              "rms": 0.1446457939378328,
+              "peak": 0.45678773522377014,
+              "stepPeak": 0.37755629420280457,
+              "finite": true,
+              "hz": 487.06505191401305
+            },
+            {
+              "mean": 0.025691249347397416,
+              "rms": 0.1446457939378328,
+              "peak": 0.45678773522377014,
+              "stepPeak": 0.37755629420280457,
+              "finite": true,
+              "hz": 487.06505191401305
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.025504666972634205,
+                  "rms": 0.14692407717868441,
+                  "peak": 0.544921875,
+                  "stepPeak": 0.34010154753923416,
+                  "finite": true,
+                  "hz": 431.046019468537
+                },
+                {
+                  "mean": 0.025504666972634205,
+                  "rms": 0.14692407717868441,
+                  "peak": 0.544921875,
+                  "stepPeak": 0.34010154753923416,
+                  "finite": true,
+                  "hz": 431.046019468537
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.0060556699362877,
+                  "rms": 0.09108929601326424,
+                  "peak": 0.15586991608142853,
+                  "stepPeak": 0.18134640157222748,
+                  "finite": true,
+                  "hz": 437.7761927982898
+                },
+                {
+                  "mean": 0.0060556699362877,
+                  "rms": 0.09108929601326424,
+                  "peak": 0.15586991608142853,
+                  "stepPeak": 0.18134640157222748,
+                  "finite": true,
+                  "hz": 437.7761927982898
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": 4.7477698103648436e-05,
+                  "rms": 0.04515227246010436,
+                  "peak": 0.047038376331329346,
+                  "stepPeak": 0.0907563790678978,
+                  "finite": true,
+                  "hz": 437.8154407074917
+                },
+                {
+                  "mean": 4.7477698103648436e-05,
+                  "rms": 0.04515227246010436,
+                  "peak": 0.047038376331329346,
+                  "stepPeak": 0.0907563790678978,
+                  "finite": true,
+                  "hz": 437.8154407074917
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": 0.00022866717053737773,
+                  "rms": 0.0903018863814696,
+                  "peak": 0.09407664090394974,
+                  "stepPeak": 0.18167920410633087,
+                  "finite": true,
+                  "hz": 437.81528939647774
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.09407664090394974,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": null,
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.7717122511632
+              }
+            ],
+            "stopRerunSilent": true
+          },
+          {
+            "execution": "worker",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.012992606494890424,
+                  "rms": 0.058994453108524275,
+                  "peak": 0.5085846781730652,
+                  "stepPeak": 0.13625077903270721,
+                  "finite": true,
+                  "hz": 235.97371934667933
+                },
+                {
+                  "mean": 0.012992606494890424,
+                  "rms": 0.058994453108524275,
+                  "peak": 0.5085846781730652,
+                  "stepPeak": 0.13625077903270721,
+                  "finite": true,
+                  "hz": 235.97371934667933
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.0020604177086021025,
+                  "rms": 0.09044237546623186,
+                  "peak": 0.116848424077034,
+                  "stepPeak": 0.18165187537670135,
+                  "finite": true,
+                  "hz": 437.814731763962
+                },
+                {
+                  "mean": 0.0020604177086021025,
+                  "rms": 0.09044237546623186,
+                  "peak": 0.116848424077034,
+                  "stepPeak": 0.18165187537670135,
+                  "finite": true,
+                  "hz": 437.814731763962
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": 1.9738069170216477e-05,
+                  "rms": 0.045154173601663766,
+                  "peak": 0.04703865200281143,
+                  "stepPeak": 0.09084513783454895,
+                  "finite": true,
+                  "hz": 437.81566982120586
+                },
+                {
+                  "mean": 1.9738069170216477e-05,
+                  "rms": 0.045154173601663766,
+                  "peak": 0.04703865200281143,
+                  "stepPeak": 0.09084513783454895,
+                  "finite": true,
+                  "hz": 437.81566982120586
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": 0.00022825664127168466,
+                  "rms": 0.09031234642745782,
+                  "peak": 0.0940772071480751,
+                  "stepPeak": 0.1815236210823059,
+                  "finite": true,
+                  "hz": 437.82233512282494
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.0940772071480751,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": null,
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.7735008817621
+              }
+            ],
+            "stopRerunSilent": true
+          }
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "browser": "chromium",
+        "mode": "pokey-dual",
+        "clock": 1789773,
+        "primary": {
+          "chips": [
+            [
+              "pokey",
+              "pokey"
+            ],
+            [
+              "pokey:2",
+              "pokey"
+            ]
+          ],
+          "strips": [
+            "pokey",
+            "pokey:2"
+          ],
+          "fm": 0
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.012520035524119066,
+              "rms": 0.09923829192234729,
+              "peak": 0.2724609375,
+              "stepPeak": 0.2683013305068016,
+              "finite": true,
+              "hz": 271.0114362779028
+            },
+            {
+              "mean": 0.012520035524119066,
+              "rms": 0.09923829192234729,
+              "peak": 0.2724609375,
+              "stepPeak": 0.2683013305068016,
+              "finite": true,
+              "hz": 271.0114362779028
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.012465721294518062,
+                  "rms": 0.09927883545178842,
+                  "peak": 0.25678151845932007,
+                  "stepPeak": 0.2640555575489998,
+                  "finite": true,
+                  "hz": 259.01842469897286
+                },
+                {
+                  "mean": 0.012465721294518062,
+                  "rms": 0.09927883545178842,
+                  "peak": 0.25678151845932007,
+                  "stepPeak": 0.2640555575489998,
+                  "finite": true,
+                  "hz": 259.01842469897286
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.0063623965212897815,
+                  "rms": 0.09137967887927398,
+                  "peak": 0.15983746945858002,
+                  "stepPeak": 0.1745959147810936,
+                  "finite": true,
+                  "hz": 437.7910054764596
+                },
+                {
+                  "mean": 0.0063623965212897815,
+                  "rms": 0.09137967887927398,
+                  "peak": 0.15983746945858002,
+                  "stepPeak": 0.1745959147810936,
+                  "finite": true,
+                  "hz": 437.7910054764596
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": 0.0001399805421868905,
+                  "rms": 0.045170027077074,
+                  "peak": 0.048202093690633774,
+                  "stepPeak": 0.08825782313942909,
+                  "finite": true,
+                  "hz": 437.81266824778356
+                },
+                {
+                  "mean": 0.0001399805421868905,
+                  "rms": 0.045170027077074,
+                  "peak": 0.048202093690633774,
+                  "stepPeak": 0.08825782313942909,
+                  "finite": true,
+                  "hz": 437.81266824778356
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": -0.00026811133619730754,
+                  "rms": 0.09031148853081139,
+                  "peak": 0.09406943619251251,
+                  "stepPeak": 0.1784147396683693,
+                  "finite": true,
+                  "hz": 437.81290148698776
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.09406943619251251,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": {
+              "channels": [
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                },
+                {
+                  "mean": -9.468122793432343e-05,
+                  "rms": 0.0897109146888227,
+                  "peak": 0.0924268513917923,
+                  "stepPeak": 0.18143462389707565,
+                  "finite": true,
+                  "hz": 887.7858763953623
+                }
+              ],
+              "difference": 0.0924268513917923,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.7836793645938
+              },
+              {
+                "id": "pokey:2",
+                "channel": 3,
+                "hz": 437.7834638739885
+              }
+            ],
+            "stopRerunSilent": true
+          },
+          {
+            "execution": "worker",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.008043265350124784,
+                  "rms": 0.037640178924149496,
+                  "peak": 0.27174949645996094,
+                  "stepPeak": 0.13623046875,
+                  "finite": true,
+                  "hz": 496.1402278472625
+                },
+                {
+                  "mean": 0.008043265350124784,
+                  "rms": 0.037640178924149496,
+                  "peak": 0.27174949645996094,
+                  "stepPeak": 0.13623046875,
+                  "finite": true,
+                  "hz": 496.1402278472625
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.0014618060791917742,
+                  "rms": 0.09034350640158705,
+                  "peak": 0.11182113736867905,
+                  "stepPeak": 0.18079108744859695,
+                  "finite": true,
+                  "hz": 437.80294133690035
+                },
+                {
+                  "mean": 0.0014618060791917742,
+                  "rms": 0.09034350640158705,
+                  "peak": 0.11182113736867905,
+                  "stepPeak": 0.18079108744859695,
+                  "finite": true,
+                  "hz": 437.80294133690035
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": -0.00016779716102632847,
+                  "rms": 0.04515576542217114,
+                  "peak": 0.04703867807984352,
+                  "stepPeak": 0.09084980189800262,
+                  "finite": true,
+                  "hz": 437.8108634704289
+                },
+                {
+                  "mean": -0.00016779716102632847,
+                  "rms": 0.04515576542217114,
+                  "peak": 0.04703867807984352,
+                  "stepPeak": 0.09084980189800262,
+                  "finite": true,
+                  "hz": 437.8108634704289
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": -0.00031481631486940387,
+                  "rms": 0.09030183235516204,
+                  "peak": 0.09407582134008408,
+                  "stepPeak": 0.17942312359809875,
+                  "finite": true,
+                  "hz": 437.8025531773484
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.09407582134008408,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": {
+              "channels": [
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                },
+                {
+                  "mean": 0.00019244212380797876,
+                  "rms": 0.08973890000658401,
+                  "peak": 0.09242693334817886,
+                  "stepPeak": 0.1815827190876007,
+                  "finite": true,
+                  "hz": 887.7783394336188
+                }
+              ],
+              "difference": 0.09242693334817886,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.8014735341904
+              },
+              {
+                "id": "pokey:2",
+                "channel": 3,
+                "hz": 437.7936095961098
+              }
+            ],
+            "stopRerunSilent": true
+          }
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "browser": "chromium",
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "initial": {
+              "channels": [
+                {
+                  "mean": 0.011009358621322463,
+                  "rms": 0.1814758865850798,
+                  "peak": 0.30456286668777466,
+                  "stepPeak": 0.23860224708914757,
+                  "finite": true,
+                  "hz": 437.77634603912543
+                },
+                {
+                  "mean": 0.011009358621322463,
+                  "rms": 0.1814758865850798,
+                  "peak": 0.30456286668777466,
+                  "stepPeak": 0.23860224708914757,
+                  "finite": true,
+                  "hz": 437.77634603912543
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "survivor": {
+              "channels": [
+                {
+                  "mean": -5.104371808783981e-06,
+                  "rms": 0.09030711813100092,
+                  "peak": 0.09407594054937363,
+                  "stepPeak": 0.17960085719823837,
+                  "finite": true,
+                  "hz": 437.80562977974097
+                },
+                {
+                  "mean": -5.104371808783981e-06,
+                  "rms": 0.09030711813100092,
+                  "peak": 0.09407594054937363,
+                  "stepPeak": 0.17960085719823837,
+                  "finite": true,
+                  "hz": 437.80562977974097
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "independentDisposal": true,
+            "independentMixer": true,
+            "stopped": true
+          },
+          {
+            "execution": "worker",
+            "initial": {
+              "channels": [
+                {
+                  "mean": 0.002957361088192556,
+                  "rms": 0.15529974145878286,
+                  "peak": 0.2135506421327591,
+                  "stepPeak": 0.1814495548605919,
+                  "finite": true,
+                  "hz": 437.77447929201674
+                },
+                {
+                  "mean": 0.002957361088192556,
+                  "rms": 0.15529974145878286,
+                  "peak": 0.2135506421327591,
+                  "stepPeak": 0.1814495548605919,
+                  "finite": true,
+                  "hz": 437.77447929201674
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "survivor": {
+              "channels": [
+                {
+                  "mean": -0.0003379984686944226,
+                  "rms": 0.09030507195547997,
+                  "peak": 0.09407094120979309,
+                  "stepPeak": 0.17619245499372482,
+                  "finite": true,
+                  "hz": 437.8133170290077
+                },
+                {
+                  "mean": -0.0003379984686944226,
+                  "rms": 0.09030507195547997,
+                  "peak": 0.09407094120979309,
+                  "stepPeak": 0.17619245499372482,
+                  "finite": true,
+                  "hz": 437.8133170290077
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "independentDisposal": true,
+            "independentMixer": true,
+            "stopped": true
+          }
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "browser": "webkit",
+        "mode": "pokey",
+        "clock": 1789790,
+        "primary": {
+          "chips": [
+            [
+              "pokey",
+              "pokey"
+            ]
+          ],
+          "strips": [
+            "pokey"
+          ],
+          "fm": 0
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.025691249347397416,
+              "rms": 0.1446457939378328,
+              "peak": 0.45678773522377014,
+              "stepPeak": 0.37755629420280457,
+              "finite": true,
+              "hz": 487.06505191401305
+            },
+            {
+              "mean": 0.025691249347397416,
+              "rms": 0.1446457939378328,
+              "peak": 0.45678773522377014,
+              "stepPeak": 0.37755629420280457,
+              "finite": true,
+              "hz": 487.06505191401305
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.022044541496999914,
+                  "rms": 0.14202537281914462,
+                  "peak": 0.4085780382156372,
+                  "stepPeak": 0.4012181833386421,
+                  "finite": true,
+                  "hz": 479.20557391131126
+                },
+                {
+                  "mean": 0.022044541496999914,
+                  "rms": 0.14202537281914462,
+                  "peak": 0.4085780382156372,
+                  "stepPeak": 0.4012181833386421,
+                  "finite": true,
+                  "hz": 479.20557391131126
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.00710783594260711,
+                  "rms": 0.09140646236306055,
+                  "peak": 0.16754737496376038,
+                  "stepPeak": 0.18122060596942902,
+                  "finite": true,
+                  "hz": 437.7930867370072
+                },
+                {
+                  "mean": 0.00710783594260711,
+                  "rms": 0.09140646236306055,
+                  "peak": 0.16754737496376038,
+                  "stepPeak": 0.18122060596942902,
+                  "finite": true,
+                  "hz": 437.7930867370072
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": 0.00016900908407890824,
+                  "rms": 0.045150491311331094,
+                  "peak": 0.0470767468214035,
+                  "stepPeak": 0.09069345891475677,
+                  "finite": true,
+                  "hz": 437.81525991779824
+                },
+                {
+                  "mean": 0.00016900908407890824,
+                  "rms": 0.045150491311331094,
+                  "peak": 0.0470767468214035,
+                  "stepPeak": 0.09069345891475677,
+                  "finite": true,
+                  "hz": 437.81525991779824
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": -0.0002046969950004751,
+                  "rms": 0.09031294232565085,
+                  "peak": 0.09407661110162735,
+                  "stepPeak": 0.1817197948694229,
+                  "finite": true,
+                  "hz": 437.8156890027618
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.09407661110162735,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": null,
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.7872300472609
+              }
+            ],
+            "stopRerunSilent": true
+          },
+          {
+            "execution": "worker",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.01556334180918384,
+                  "rms": 0.06643075019101784,
+                  "peak": 0.45923078060150146,
+                  "stepPeak": 0.2797946631908417,
+                  "finite": true,
+                  "hz": 311.3353777341281
+                },
+                {
+                  "mean": 0.01556334180918384,
+                  "rms": 0.06643075019101784,
+                  "peak": 0.45923078060150146,
+                  "stepPeak": 0.2797946631908417,
+                  "finite": true,
+                  "hz": 311.3353777341281
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.0012822305363755504,
+                  "rms": 0.09032452945628705,
+                  "peak": 0.10754061490297318,
+                  "stepPeak": 0.18170052021741867,
+                  "finite": true,
+                  "hz": 437.80927846542295
+                },
+                {
+                  "mean": 0.0012822305363755504,
+                  "rms": 0.09032452945628705,
+                  "peak": 0.10754061490297318,
+                  "stepPeak": 0.18170052021741867,
+                  "finite": true,
+                  "hz": 437.80927846542295
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": -0.00016517637082991143,
+                  "rms": 0.045155591159863964,
+                  "peak": 0.0470663383603096,
+                  "stepPeak": 0.0908217690885067,
+                  "finite": true,
+                  "hz": 437.8154693805277
+                },
+                {
+                  "mean": -0.00016517637082991143,
+                  "rms": 0.045155591159863964,
+                  "peak": 0.0470663383603096,
+                  "stepPeak": 0.0908217690885067,
+                  "finite": true,
+                  "hz": 437.8154693805277
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": 0.00021424531482239217,
+                  "rms": 0.09030406024130935,
+                  "peak": 0.09407650679349899,
+                  "stepPeak": 0.18087948858737946,
+                  "finite": true,
+                  "hz": 437.8156409811279
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.09407650679349899,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": null,
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.7938619335323
+              }
+            ],
+            "stopRerunSilent": true
+          }
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "browser": "webkit",
+        "mode": "pokey-dual",
+        "clock": 1789773,
+        "primary": {
+          "chips": [
+            [
+              "pokey",
+              "pokey"
+            ],
+            [
+              "pokey:2",
+              "pokey"
+            ]
+          ],
+          "strips": [
+            "pokey",
+            "pokey:2"
+          ],
+          "fm": 0
+        },
+        "starter": {
+          "channels": [
+            {
+              "mean": 0.012520035524119066,
+              "rms": 0.09923829192234729,
+              "peak": 0.2724609375,
+              "stepPeak": 0.2683013305068016,
+              "finite": true,
+              "hz": 271.0114362779028
+            },
+            {
+              "mean": 0.012520035524119066,
+              "rms": 0.09923829192234729,
+              "peak": 0.2724609375,
+              "stepPeak": 0.2683013305068016,
+              "finite": true,
+              "hz": 271.0114362779028
+            }
+          ],
+          "difference": 0,
+          "frames": 8192,
+          "sampleRate": 48000
+        },
+        "executions": [
+          {
+            "execution": "main",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.012946261652643898,
+                  "rms": 0.09955669658411202,
+                  "peak": 0.25891077518463135,
+                  "stepPeak": 0.26138508319854736,
+                  "finite": true,
+                  "hz": 268.07309149747533
+                },
+                {
+                  "mean": 0.012946261652643898,
+                  "rms": 0.09955669658411202,
+                  "peak": 0.25891077518463135,
+                  "stepPeak": 0.26138508319854736,
+                  "finite": true,
+                  "hz": 268.07309149747533
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.0058686624924320085,
+                  "rms": 0.0912336826265513,
+                  "peak": 0.1556713581085205,
+                  "stepPeak": 0.17936290800571442,
+                  "finite": true,
+                  "hz": 437.7986182478144
+                },
+                {
+                  "mean": 0.0058686624924320085,
+                  "rms": 0.0912336826265513,
+                  "peak": 0.1556713581085205,
+                  "stepPeak": 0.17936290800571442,
+                  "finite": true,
+                  "hz": 437.7986182478144
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": -0.0001196909190042117,
+                  "rms": 0.04515634907950646,
+                  "peak": 0.04749896377325058,
+                  "stepPeak": 0.08972343057394028,
+                  "finite": true,
+                  "hz": 437.82012325511806
+                },
+                {
+                  "mean": -0.0001196909190042117,
+                  "rms": 0.04515634907950646,
+                  "peak": 0.04749896377325058,
+                  "stepPeak": 0.08972343057394028,
+                  "finite": true,
+                  "hz": 437.82012325511806
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": -0.00010023898678923615,
+                  "rms": 0.09030284295532354,
+                  "peak": 0.09407249093055725,
+                  "stepPeak": 0.17450720071792603,
+                  "finite": true,
+                  "hz": 437.8053083490116
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.09407249093055725,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": {
+              "channels": [
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                },
+                {
+                  "mean": -0.00011300362682753473,
+                  "rms": 0.08974332228651018,
+                  "peak": 0.09242664277553558,
+                  "stepPeak": 0.18134066462516785,
+                  "finite": true,
+                  "hz": 887.7873770168144
+                }
+              ],
+              "difference": 0.09242664277553558,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.789315000322
+              },
+              {
+                "id": "pokey:2",
+                "channel": 3,
+                "hz": 437.77473578412423
+              }
+            ],
+            "stopRerunSilent": true
+          },
+          {
+            "execution": "worker",
+            "starter": {
+              "channels": [
+                {
+                  "mean": 0.009758954809512943,
+                  "rms": 0.043465672868273075,
+                  "peak": 0.2707272171974182,
+                  "stepPeak": 0.13578493893146515,
+                  "finite": true,
+                  "hz": 392.2742473221018
+                },
+                {
+                  "mean": 0.009758954809512943,
+                  "rms": 0.043465672868273075,
+                  "peak": 0.2707272171974182,
+                  "stepPeak": 0.13578493893146515,
+                  "finite": true,
+                  "hz": 392.2742473221018
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "baseline": {
+              "channels": [
+                {
+                  "mean": 0.0009997057880184457,
+                  "rms": 0.09032560420268186,
+                  "peak": 0.10708469897508621,
+                  "stepPeak": 0.17971114814281464,
+                  "finite": true,
+                  "hz": 437.80717376109493
+                },
+                {
+                  "mean": 0.0009997057880184457,
+                  "rms": 0.09032560420268186,
+                  "peak": 0.10708469897508621,
+                  "stepPeak": 0.17971114814281464,
+                  "finite": true,
+                  "hz": 437.80717376109493
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "half": {
+              "channels": [
+                {
+                  "mean": -0.00015531534296542304,
+                  "rms": 0.045156785314981185,
+                  "peak": 0.04750851169228554,
+                  "stepPeak": 0.0906505286693573,
+                  "finite": true,
+                  "hz": 437.8130849589754
+                },
+                {
+                  "mean": -0.00015531534296542304,
+                  "rms": 0.045156785314981185,
+                  "peak": 0.04750851169228554,
+                  "stepPeak": 0.0906505286693573,
+                  "finite": true,
+                  "hz": 437.8130849589754
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "left": {
+              "channels": [
+                {
+                  "mean": 0.00034145736555046824,
+                  "rms": 0.09030778942104599,
+                  "peak": 0.09407662600278854,
+                  "stepPeak": 0.18061818182468414,
+                  "finite": true,
+                  "hz": 437.81351776514583
+                },
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                }
+              ],
+              "difference": 0.09407662600278854,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "second": {
+              "channels": [
+                {
+                  "mean": 0,
+                  "rms": 0,
+                  "peak": 0,
+                  "stepPeak": 0,
+                  "finite": true,
+                  "hz": 0
+                },
+                {
+                  "mean": -0.0002493211374208215,
+                  "rms": 0.08974816131616042,
+                  "peak": 0.09242686629295349,
+                  "stepPeak": 0.18167740106582642,
+                  "finite": true,
+                  "hz": 887.785944796661
+                }
+              ],
+              "difference": 0.09242686629295349,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "keyboard": [
+              {
+                "id": "pokey",
+                "channel": 3,
+                "hz": 437.7884786707508
+              },
+              {
+                "id": "pokey:2",
+                "channel": 3,
+                "hz": 437.7867219836515
+              }
+            ],
+            "stopRerunSilent": true
+          }
+        ],
+        "physicalOutputMuted": true
+      },
+      {
+        "browser": "webkit",
+        "additionalInGenesis": [
+          {
+            "execution": "main",
+            "initial": {
+              "channels": [
+                {
+                  "mean": 0.011003421965085636,
+                  "rms": 0.18214719548942904,
+                  "peak": 0.3045828938484192,
+                  "stepPeak": 0.35263389348983765,
+                  "finite": true,
+                  "hz": 437.79520945232673
+                },
+                {
+                  "mean": 0.011003421965085636,
+                  "rms": 0.18214719548942904,
+                  "peak": 0.3045828938484192,
+                  "stepPeak": 0.35263389348983765,
+                  "finite": true,
+                  "hz": 437.79520945232673
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "survivor": {
+              "channels": [
+                {
+                  "mean": 0.00033641208041501613,
+                  "rms": 0.0903051160362378,
+                  "peak": 0.09407586604356766,
+                  "stepPeak": 0.17948713898658752,
+                  "finite": true,
+                  "hz": 437.81064894902926
+                },
+                {
+                  "mean": 0.00033641208041501613,
+                  "rms": 0.0903051160362378,
+                  "peak": 0.09407586604356766,
+                  "stepPeak": 0.17948713898658752,
+                  "finite": true,
+                  "hz": 437.81064894902926
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "independentDisposal": true,
+            "independentMixer": true,
+            "stopped": true
+          },
+          {
+            "execution": "worker",
+            "initial": {
+              "channels": [
+                {
+                  "mean": 0.0031162929872152745,
+                  "rms": 0.06250256750073709,
+                  "peak": 0.2126559615135193,
+                  "stepPeak": 0.18145478516817093,
+                  "finite": true,
+                  "hz": 441.26122083015537
+                },
+                {
+                  "mean": 0.0031162929872152745,
+                  "rms": 0.06250256750073709,
+                  "peak": 0.2126559615135193,
+                  "stepPeak": 0.18145478516817093,
+                  "finite": true,
+                  "hz": 441.26122083015537
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "survivor": {
+              "channels": [
+                {
+                  "mean": 0.0003445980541840754,
+                  "rms": 0.09030329948753352,
+                  "peak": 0.09407594054937363,
+                  "stepPeak": 0.17960085719823837,
+                  "finite": true,
+                  "hz": 437.81352964648113
+                },
+                {
+                  "mean": 0.0003445980541840754,
+                  "rms": 0.09030329948753352,
+                  "peak": 0.09407594054937363,
+                  "stepPeak": 0.17960085719823837,
+                  "finite": true,
+                  "hz": 437.81352964648113
+                }
+              ],
+              "difference": 0,
+              "frames": 8192,
+              "sampleRate": 48000
+            },
+            "independentDisposal": true,
+            "independentMixer": true,
+            "stopped": true
+          }
+        ],
+        "physicalOutputMuted": true
+      }
+    ],
+    "sources": {
+      "generated/pokey_wasm.js": {
+        "bytes": 15128,
+        "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d"
+      },
+      "generated/pokey_wasm.wasm": {
+        "bytes": 18676,
+        "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22"
+      },
+      "generated/segapsg_wasm.js": {
+        "bytes": 33978,
+        "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+      },
+      "generated/segapsg_wasm.wasm": {
+        "bytes": 27286,
+        "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+      },
+      "generated/ym2612_wasm.js": {
+        "bytes": 34902,
+        "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+      },
+      "generated/ym2612_wasm.wasm": {
+        "bytes": 40357,
+        "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+      },
+      "index.html": {
+        "bytes": 128553,
+        "sha256": "4fd5dd49f72ff29c5aed77b12040a1b09e080f5c5c286b944087f0e1732c950d"
+      },
+      "js/adpcm_b_sample.js": {
+        "bytes": 7109,
+        "sha256": "6cd2346c09713427384f14c152c03b2334928f10e618184a521790a7e9815f93"
+      },
+      "js/audio_decode.js": {
+        "bytes": 1955,
+        "sha256": "0f972b3983adb38f09e218cf4f1b1dc2fc5e840f0e3cf754c4bd2cd40083e9f4"
+      },
+      "js/ay8910.js": {
+        "bytes": 6255,
+        "sha256": "38f50470d60a850773859ce210e5281d1ee0429f00021b7decd8b8be9554197b"
+      },
+      "js/ay8910synth.js": {
+        "bytes": 12974,
+        "sha256": "4eb50108d27aa364344cbab8190f63375430fb1477cc98091a0b2c10a8bb2cb6"
+      },
+      "js/bitcrusher-worklet.js": {
+        "bytes": 3444,
+        "sha256": "782a8c0f015770792f7226f3d6a874c23e067ecf8665337244baa5872b3d52d9"
+      },
+      "js/chip_worklet_transport.js": {
+        "bytes": 15505,
+        "sha256": "e4b1e5c08588475d1feee98b39058b0bd3cd813c0ac17e9038be09aa5d4e1c05"
+      },
+      "js/custom_fx.js": {
+        "bytes": 5764,
+        "sha256": "f719e32f063bdbdb4d7cb9bb7aff1087dde2152ade7449b2819f2d3a6cc4424e"
+      },
+      "js/fds_audio.js": {
+        "bytes": 5112,
+        "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+      },
+      "js/gameboy_runtime_synth.js": {
+        "bytes": 9714,
+        "sha256": "8d4394457b4f3e297330c091bfa2c39c2d216b6a008653de4216d1200bbf3232"
+      },
+      "js/gameboyapu.js": {
+        "bytes": 7127,
+        "sha256": "c2f2d12430a0a4365e3255f4378fd108d43c4a9567f99ffaa3a18a398bcbcc11"
+      },
+      "js/gameboysynth.js": {
+        "bytes": 13943,
+        "sha256": "32066bb478f7e3eb88f1790a67b0dbea680facfa02d8d67f4d310505147a12af"
+      },
+      "js/huc6280synth.js": {
+        "bytes": 11437,
+        "sha256": "a42b8f4ce90300b3d4a52f68402df9c7936c884f41ea79e9f4bf64fe4b974661"
+      },
+      "js/looper.js": {
+        "bytes": 24025,
+        "sha256": "a0cc220fd5754a106f3281e3bc69ee14baad6efe24897bba7c2706379ea1c366"
+      },
+      "js/megasynth_fx.js": {
+        "bytes": 62352,
+        "sha256": "e30a0ba1b8edddc95c14772c0b2792f20757d9fea3e64e9abd6f74584958c6e6"
+      },
+      "js/megasynth_recording.js": {
+        "bytes": 10125,
+        "sha256": "3d1b4bdce3f790bc1a648a07e61b8f3bd0ef9009d0133e35203c24400cc5a7cd"
+      },
+      "js/megasynth-fm-presets.js": {
+        "bytes": 6954,
+        "sha256": "daf3c42d3d6b1777d5729073eed9edf4d96a78d55e22fedfad394137d41bb06c"
+      },
+      "js/megasynth.js": {
+        "bytes": 33417,
+        "sha256": "ace4e56a5b46280d0a79ad3fb1a4a3c183f9ca2da84c97c017c4a2760295f941"
+      },
+      "js/midi_file.js": {
+        "bytes": 5341,
+        "sha256": "4751962bf77417ec198bb5f0434e325ce6c7e0dc7c4059ba6056d14f02e5e69f"
+      },
+      "js/midi_song.js": {
+        "bytes": 6966,
+        "sha256": "d86a06c6a37f57869fd11156a5ed5ebee5f093d8a01daf6430ac5c9499e99bb6"
+      },
+      "js/midi_source.js": {
+        "bytes": 12172,
+        "sha256": "d0db1daddfea52568b3c792d04de644814ea56f583f4757e55581c51a7931a75"
+      },
+      "js/msfa_dx7/src/preset.js": {
+        "bytes": 8629,
+        "sha256": "f1373d4699172658b979482e0bb1585301967ebb7d2668ad21d146b6d3824fe2"
+      },
+      "js/msfa_dx7/src/sysex.js": {
+        "bytes": 8610,
+        "sha256": "0bda70c08b34f084e10c4ff46c4319147d089c5a174b9e84bf023b86759c2b7e"
+      },
+      "js/native_audio_effect.wasm": {
+        "bytes": 48297,
+        "sha256": "d5183259003b3f7fdda5ba1f85e69c10687e95d13f5499fa2f5fbcf08d3de290"
+      },
+      "js/native_fx_engine.js": {
+        "bytes": 7061,
+        "sha256": "8f9ba9ff857a34dc46b2646d77838e79fd48cdf4d2d4f3caf7176091a575967f"
+      },
+      "js/native_fx_graph.js": {
+        "bytes": 3612,
+        "sha256": "fc9345f3a1c499b6fb5d2a893ed2c31c92394397e1a0ccaa343fc7b722e64ccf"
+      },
+      "js/native_fx_rack.js": {
+        "bytes": 2128,
+        "sha256": "92e57a539409d7139e4820d275fedff5e9862765f34a5cb3b3c07c67608429a5"
+      },
+      "js/native_fx.js": {
+        "bytes": 7922,
+        "sha256": "42cf0829acbc3cf779a5fc2005a6c1ac1ecfee92075f468da968c59b0fe4e27f"
+      },
+      "js/native_genesis_fx.js": {
+        "bytes": 863,
+        "sha256": "917dd7dd431a553e798de9f36affe772d51fac7c9aa01209caa9341577adba4f"
+      },
+      "js/native_genesis_livefx.js": {
+        "bytes": 5891,
+        "sha256": "bac52d6a63bcafe48086cb69959d006285e578473f6d4900adfca1b3d065716b"
+      },
+      "js/native_genesis_media.js": {
+        "bytes": 17764,
+        "sha256": "c8f6925a08e2671689c1204f780a21f0963bafaed218736f995288198e99316d"
+      },
+      "js/native_genesis_noise.js": {
+        "bytes": 5379,
+        "sha256": "92949c736bb44e4a1a577d562cc95bd8ad3bf62ed72e79c892bf48fe6a76a86c"
+      },
+      "js/native_genesis_worker.js": {
+        "bytes": 15676,
+        "sha256": "09ff2f63786870dadcf5249258a3227fce499cd6c0a9212fe85fbbd703207a08"
+      },
+      "js/native_livefx_context.js": {
+        "bytes": 8401,
+        "sha256": "2bf0d1eacceceea2932304505b2c68d01b8d1be174a93a09d0af7432361318f1"
+      },
+      "js/native_noise.js": {
+        "bytes": 4209,
+        "sha256": "c0ce2bdb16f1aed62e6b83f1b27c8e37b25fa2ee5035f0d332f59cd21ae3996f"
+      },
+      "js/native_runtime_synth.js": {
+        "bytes": 19020,
+        "sha256": "c4dce0498983f0506fa411776499aa85fd2b7772d04ba6cf8a9c443960f8cf1f"
+      },
+      "js/native_sample_processor.js": {
+        "bytes": 4443,
+        "sha256": "a1ee1cfa04b11bf4c66d8012e4a22d8a526a7a006333e6fe4e4540af3f1c8f27"
+      },
+      "js/native_sample.js": {
+        "bytes": 3642,
+        "sha256": "721d3cddcb65b6743997d3c50abb2788782f7ce107d57e8c8d1187764235b48b"
+      },
+      "js/native-fx-worklet.js": {
+        "bytes": 8783,
+        "sha256": "d490b7197cdc139314479ad5048725d62e23d12664b126b12dfebb209ef3c4ac"
+      },
+      "js/nes_apu_vendor/channel-dm.js": {
+        "bytes": 6890,
+        "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+      },
+      "js/nes_apu_vendor/channel-noise.js": {
+        "bytes": 3592,
+        "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+      },
+      "js/nes_apu_vendor/channel-square.js": {
+        "bytes": 5728,
+        "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+      },
+      "js/nes_apu_vendor/channel-triangle.js": {
+        "bytes": 3615,
+        "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+      },
+      "js/nes_apu_vendor/index.js": {
+        "bytes": 31024,
+        "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+      },
+      "js/nes_apu_vendor/utils.js": {
+        "bytes": 1154,
+        "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+      },
+      "js/nesapu.js": {
+        "bytes": 4113,
+        "sha256": "02b60105963a2fa72683ed41b559249bfedd63ab8651d2c3c3f6757064d8aa25"
+      },
+      "js/nesapuaudioengine.js": {
+        "bytes": 5704,
+        "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+      },
+      "js/nesapusynth.js": {
+        "bytes": 15152,
+        "sha256": "7e99925c5781c57fd03f69c6a15ccc88d1419d7fc3818a9a2ae4c8acda286d16"
+      },
+      "js/okim6258synth.js": {
+        "bytes": 14644,
+        "sha256": "e5fcebd778a9eb55eb170b593c866e4ee5f566a61bf688a9111a41bed777e7e9"
+      },
+      "js/opl_synth.js": {
+        "bytes": 20452,
+        "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48"
+      },
+      "js/opn_fm_synth.js": {
+        "bytes": 25346,
+        "sha256": "6c250cad5f4a92b7e2a3372fe7b84f30138ccf8e961c8aa06f192d8655a9f1f5"
+      },
+      "js/opn_fm_vgm.js": {
+        "bytes": 4213,
+        "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+      },
+      "js/opn_runtime_synth.js": {
+        "bytes": 11968,
+        "sha256": "e0a2e5c1f15956f048906a0c0151d3628519769fd59a9474f5d43a3a83d07225"
+      },
+      "js/opn_ssg_retained.js": {
+        "bytes": 1083,
+        "sha256": "ae6abb99646ab5efdd48c5236f04b7e7dfac09480062f77d432c6619a5903239"
+      },
+      "js/pitch.js": {
+        "bytes": 1888,
+        "sha256": "fd20f1f31c6c02fcf48213ed51209185a7addc8c526c867e7214563d6825cf42"
+      },
+      "js/playground_async_tasks.js": {
+        "bytes": 2223,
+        "sha256": "17fa8f4c308b5cd758c5230f274da3a1b4a984f3752479ebfd0e184b9bda08fd"
+      },
+      "js/playground_audio_endpoint.js": {
+        "bytes": 2002,
+        "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+      },
+      "js/playground_audio_scheduler.js": {
+        "bytes": 2799,
+        "sha256": "7ccc762cccce700ef496a764e8970ae21b0d97fd653c9611d885554f28aeeca8"
+      },
+      "js/playground_audition_guard.js": {
+        "bytes": 6373,
+        "sha256": "1b683b44ddd8e07930cebbf2f98c3924016509ab11b1f40e5cd58d69677a3310"
+      },
+      "js/playground_ay8910_audio.js": {
+        "bytes": 4616,
+        "sha256": "9a456299f69505aaa5f39940bcdf9df1cf21d3761b9cef5f8bfadce5d46fbce3"
+      },
+      "js/playground_ay8910.js": {
+        "bytes": 3688,
+        "sha256": "6eaa4b01199ddfe659dd87dbd58c0545d732754334c17e4fa3852031f00aea06"
+      },
+      "js/playground_chip_clock.js": {
+        "bytes": 5189,
+        "sha256": "9912d49fe7f5976de9c03d73e9d84dad4bf54f596a95591edeae07504b17561f"
+      },
+      "js/playground_chip_inspector_state.js": {
+        "bytes": 13141,
+        "sha256": "f539d982758b1d4a218677230327e9970334551213b4d0eb43fbb7526870f07a"
+      },
+      "js/playground_chip_inspector.js": {
+        "bytes": 8647,
+        "sha256": "348915e68f855f7fd18ba9481921d16b3195ede4754c100c86aecdd62c77fb32"
+      },
+      "js/playground_chip_port.js": {
+        "bytes": 2698,
+        "sha256": "d0a569b419552f7e6de36dd8b9732ab452d5e7daf141d5f2fe0cedfa66283591"
+      },
+      "js/playground_clock.js": {
+        "bytes": 19367,
+        "sha256": "e16aeee557adf6b1752bd48907e0671a979b2dd0c46a4afaa20befa9db7e885d"
+      },
+      "js/playground_duration.js": {
+        "bytes": 2009,
+        "sha256": "b6f1664b84569fd627d4d4e82a6c0b500edf142a3d9ced13f33ab5dc5606bfb1"
+      },
+      "js/playground_dx7_audio.js": {
+        "bytes": 5718,
+        "sha256": "bbab763b3d1c75a86b7a7a2c56717d7d112e3d4ea27556f08a7ed9817e54fdf7"
+      },
+      "js/playground_dx7.js": {
+        "bytes": 10267,
+        "sha256": "5937b29957d616a2b2b63f99f3a4a11e4fe01c5ea7999fab1f90e7b3e84bac9d"
+      },
+      "js/playground_execution.js": {
+        "bytes": 8875,
+        "sha256": "a4178b59713536fd21af4edd367b4afe2e9efbe2fee42862f61c59cc9d80b82e"
+      },
+      "js/playground_gameboy_audio.js": {
+        "bytes": 1930,
+        "sha256": "2a77aed61127aebc5137eef2e466ca8c027ac820300d847ae99d305205324736"
+      },
+      "js/playground_gameboy.js": {
+        "bytes": 3616,
+        "sha256": "6d3c63f3294cb58127205d5d7287cfb2117f2450e881eb0869145031d621d665"
+      },
+      "js/playground_huc6280_audio.js": {
+        "bytes": 4119,
+        "sha256": "fc384e29136ea664a72c1aab49726e176a278b714d9dea663068f2cf30fbe720"
+      },
+      "js/playground_huc6280.js": {
+        "bytes": 4378,
+        "sha256": "acc84f480b1a81125680a56bb1861ee4688813b8353a5392a7255480012b017e"
+      },
+      "js/playground_keyboard_channels.js": {
+        "bytes": 5381,
+        "sha256": "30671a69eb64b15c1440b64284ee5b749a78cabb50e6d6ece2cc478561bb4521"
+      },
+      "js/playground_keyboard.js": {
+        "bytes": 7290,
+        "sha256": "adfac62ea27c791390bba81feab06b82615bfdd1baa356c0bcc8cfb464699478"
+      },
+      "js/playground_live.js": {
+        "bytes": 14734,
+        "sha256": "e2cb7e5982d4e607ca72ac7d3af9e5613ba5410611dc591f1ae52e941e663f4e"
+      },
+      "js/playground_log.js": {
+        "bytes": 842,
+        "sha256": "a2a19ce457264c639b1afcb53d9758491a69dec7bee26c0a503c8a07d2a98ff6"
+      },
+      "js/playground_logic_worker.js": {
+        "bytes": 57698,
+        "sha256": "6b0519091686b790382fc1d6bc3f7c35985dbd5be7a8786d2de61b56a368d3b9"
+      },
+      "js/playground_midi.js": {
+        "bytes": 17595,
+        "sha256": "a92d68367fe948cfad70a3bbea8a17041f908a319a6899915a4c56dfe3d692a4"
+      },
+      "js/playground_music.js": {
+        "bytes": 11300,
+        "sha256": "26fb0f1839616deb531b7f2cfa6ad0b7049e9d53c9c045b7231024e69209b7d6"
+      },
+      "js/playground_native_primary.js": {
+        "bytes": 6932,
+        "sha256": "be0abeb18d94820a7f614c3efe4efe4e7fbe75e396ad477220e0a220f0078830"
+      },
+      "js/playground_native_sample_editor.js": {
+        "bytes": 2990,
+        "sha256": "f9be69de8907b55394f52f7e7b651e62cf2735275777484a79764c0d8274d935"
+      },
+      "js/playground_nes_audio.js": {
+        "bytes": 2821,
+        "sha256": "97153365f261ae520e328883c7636c8eaaa94c1f95f658ab3c9a9b866a797b38"
+      },
+      "js/playground_nes.js": {
+        "bytes": 5414,
+        "sha256": "c6a45fa42735bb7b4d8929b03bd9e70992d3550dbfa0035dd49fb0e30f535430"
+      },
+      "js/playground_noise.js": {
+        "bytes": 990,
+        "sha256": "64e4608fd0af00ce8e34eaa231d43da66f584d725c7b7f26fd3c376c5999de2d"
+      },
+      "js/playground_okim6258_audio.js": {
+        "bytes": 4117,
+        "sha256": "fe866785eac51f908590f4e27eca7cd574fba5eec8eec78a7bf4fb4f07190983"
+      },
+      "js/playground_okim6258.js": {
+        "bytes": 4743,
+        "sha256": "00033324402a6d17b5945529974ad67b53ece034baf9fb4b8a095f7864f72853"
+      },
+      "js/playground_opl_audio.js": {
+        "bytes": 4363,
+        "sha256": "6d14158ebdf818cb3f9ca7ca6d74bf9fcbea920aef9929b2f524a519140d305f"
+      },
+      "js/playground_opl.js": {
+        "bytes": 8943,
+        "sha256": "30a811c37c61128c37ea1d5d1eb49eb580c64bd07e365909a1349bd2c82dd250"
+      },
+      "js/playground_opn_audio.js": {
+        "bytes": 2628,
+        "sha256": "512b7c23a52a317596f2446d2b2cdf00b50ca724048c0c60544f9b984129542e"
+      },
+      "js/playground_opn_inspector.js": {
+        "bytes": 7113,
+        "sha256": "602075e2433029fcb30c9b912d3cc300efda9c9e6b45fce9f6e7d17441f6ced7"
+      },
+      "js/playground_opn.js": {
+        "bytes": 7572,
+        "sha256": "daf2cf4f2d4ff43f84c5077f595e62e65aa0adfe50b39cb012abd8e08e4cd518"
+      },
+      "js/playground_performance_host.js": {
+        "bytes": 3836,
+        "sha256": "cc87f96cfa642eac3a3996d8c4e37eda26a35ad687d1f6bbf16468cf8c9e9f2f"
+      },
+      "js/playground_performance_processor.js": {
+        "bytes": 29133,
+        "sha256": "50490a133469dd2112ffb39d6c861d427754d9866a6226377ad7d7fa39cd35dc"
+      },
+      "js/playground_performance_queue.js": {
+        "bytes": 9950,
+        "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+      },
+      "js/playground_performance_sender.js": {
+        "bytes": 8928,
+        "sha256": "2d7f1fc81b762656336d61b44ca77300db32d1857625dd45cf798295e476f047"
+      },
+      "js/playground_pokey_audio.js": {
+        "bytes": 4482,
+        "sha256": "b7cf7fd58d462c7ed4cee967a3f442110e50dd25253e45a6d4230f5f99265fc8"
+      },
+      "js/playground_pokey_inspector.js": {
+        "bytes": 4368,
+        "sha256": "7cad204b0f3c6628145bd806c263f90d81efadd7df2674dec585126c217e7990"
+      },
+      "js/playground_pokey_worklet.js": {
+        "bytes": 6168,
+        "sha256": "c7defed69ed32f02d40fcdedb4548f215ce6e2b700e271aeafc080c0d4a6fa26"
+      },
+      "js/playground_pokey.js": {
+        "bytes": 3287,
+        "sha256": "f347eda0fdf9f43461bb573c362a0eff0671209ab1ab2c8cbf3a6a6749efdfa4"
+      },
+      "js/playground_pwm_audio.js": {
+        "bytes": 2569,
+        "sha256": "3b2dc717751bfb345bd3935994cca8fdbb9fe26fa107525d8ef5a2a21f001d2a"
+      },
+      "js/playground_rf5c164_audio.js": {
+        "bytes": 2615,
+        "sha256": "6632cefde4c0f635ac9d61c08a104cb14aa579c978e3d6019e2ff47bb33c7f78"
+      },
+      "js/playground_rf5c164.js": {
+        "bytes": 5146,
+        "sha256": "1f61ae037e8ff38d3e156a72cd993736c1a9efb6b8229313b1f04ce45c4fc63b"
+      },
+      "js/playground_runtime.js": {
+        "bytes": 146262,
+        "sha256": "a0ed0e7c91b6a5dadc498b231606d1e32e2245c866acc3d2f19e6095da1be212"
+      },
+      "js/playground_sample_edit.js": {
+        "bytes": 17672,
+        "sha256": "789268d79daaff5a2e6e122a7cef3eb2280d758f742e3a2d3c2df655c5ac4cec"
+      },
+      "js/playground_sample_instrument.js": {
+        "bytes": 8176,
+        "sha256": "a65f67f1d7c272f5f469f8b241f38d4257e2e1bd596b5db689a84f56e3747f20"
+      },
+      "js/playground_segapsg_audio.js": {
+        "bytes": 4268,
+        "sha256": "298e88c2202ae3d4b0e112f3d388f06b90c5f2ae95e2c9d1476603c7830fa607"
+      },
+      "js/playground_segapsg.js": {
+        "bytes": 1737,
+        "sha256": "910505c0a54ae44d24b3441df500c0fd2e592bff4148db7c58de2c32a3b9467c"
+      },
+      "js/playground_snes_audio.js": {
+        "bytes": 3557,
+        "sha256": "9583aacf503978e05bc9749c45905b850787dfb72868b914691ee9f3ec3c7c0f"
+      },
+      "js/playground_snes.js": {
+        "bytes": 8235,
+        "sha256": "d7335499b06d1ec61beca306f7edeb64858235e69e2d0439765a7696af1aa889"
+      },
+      "js/playground_soundchip_options.js": {
+        "bytes": 1218,
+        "sha256": "b27539a9d38951f474e425b0d27f002fee103d40906f44b02e5c9055df1c8f7c"
+      },
+      "js/playground_soundchips.js": {
+        "bytes": 2701,
+        "sha256": "403bef9c7816f7394fdfb25203239db79127434cb50b626bd7fb579e8127d43f"
+      },
+      "js/playground_spc_audio.js": {
+        "bytes": 3489,
+        "sha256": "81800b53ca75675403d4d31d153b167bd0ae0cb78e51a802c81f3ea37d936dfd"
+      },
+      "js/playground_spc.js": {
+        "bytes": 10374,
+        "sha256": "20d6bf767a2ab29c5075d9d83248b1a075df2dc872d0c8e89ed6d98ed7b5b506"
+      },
+      "js/playground_sync.js": {
+        "bytes": 6563,
+        "sha256": "365fbf469d59bf714a19b25ae4ad8f2e6e2867c33eef944abfb43f66235f2b29"
+      },
+      "js/playground_wonderswan_audio.js": {
+        "bytes": 3606,
+        "sha256": "b10a285ea36d5e1c0f640079f24c85903d6adb63255916d1d0baee2665b26cce"
+      },
+      "js/playground_wonderswan.js": {
+        "bytes": 4328,
+        "sha256": "9da705537d5613a2654799fcbf18ba72acd9d6e940af148d8a6f6072e93a99f2"
+      },
+      "js/playground_worker_chip.js": {
+        "bytes": 10410,
+        "sha256": "4a8064bcadbea3fb32b32b9119172a6d2d52958ec3de921043f7a8efbb914dd9"
+      },
+      "js/playground_worker_dac.js": {
+        "bytes": 2739,
+        "sha256": "dc73ef5d97dbe853c6cf069f1ad55eeffcd412880e5ce9fe1559218f0d695261"
+      },
+      "js/playground_ym2151_audio.js": {
+        "bytes": 2848,
+        "sha256": "f87bd67030dcb860ca75d5de7595ebadd55ade1d55f0e8822a0f92a0cd3d7c69"
+      },
+      "js/playground_ym2151.js": {
+        "bytes": 4943,
+        "sha256": "832865df7280fb9a8b23109fc30c6a0d19b943c68e6777247c2d0360e6c57a53"
+      },
+      "js/playground_ym2413_audio.js": {
+        "bytes": 4191,
+        "sha256": "4576c50e0b0bbb143ebbb46523c86d3f020af7b0b5dbb8da414e03645f2e7e6b"
+      },
+      "js/playground_ym2413.js": {
+        "bytes": 3508,
+        "sha256": "9fa438c2f5bee1d98e73c4d47620f518e5f872f09690751cd3d08516008a9261"
+      },
+      "js/playground_ym2608_audio.js": {
+        "bytes": 1968,
+        "sha256": "85afd6a5f42b4862dbb9edf96420ad3f7454bf8b9415a215a3175be1ac5fc05b"
+      },
+      "js/playground_ym2608.js": {
+        "bytes": 5159,
+        "sha256": "50e85c418250e999d5dd7cf5733a5b40c8a2fcf959d6b0751762d3f8c46ae0bd"
+      },
+      "js/pokey.js": {
+        "bytes": 8390,
+        "sha256": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1"
+      },
+      "js/pokeyaudioengine.js": {
+        "bytes": 3482,
+        "sha256": "18ad1710e13e7df9cb9e23f67a1db158e2c3d871e439a461b7e17dd00fe87208"
+      },
+      "js/pokeysynth.js": {
+        "bytes": 8323,
+        "sha256": "d92b79feb1e4696f06fa865094c251ae3eb47f4d6cdf97256e5c557ec66e1259"
+      },
+      "js/pwm32x_playback.js": {
+        "bytes": 9063,
+        "sha256": "b2ff92e7f14c114cdc30facfbed40a8b010dfe72f31baa8f33e89ae7e52523ae"
+      },
+      "js/pwm32x_wasm.js": {
+        "bytes": 12449,
+        "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+      },
+      "js/pwm32x.js": {
+        "bytes": 6879,
+        "sha256": "50af72c1ca62fa84791b51ce04313b0a2375a9c7967831610ea6a4263a643d72"
+      },
+      "js/rf5c164_pcm.js": {
+        "bytes": 1537,
+        "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+      },
+      "js/rf5c164synth.js": {
+        "bytes": 4836,
+        "sha256": "c5ec88564106e996fbc5b9253358b2d4fd082fe96209616d42187f0fc73ca30a"
+      },
+      "js/s98_file.js": {
+        "bytes": 5878,
+        "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+      },
+      "js/segapsg_api.js": {
+        "bytes": 1086,
+        "sha256": "cfbc80e40bf100cec95af12da6f96790edefab1c7245bbc04f5b04e25e24aeaa"
+      },
+      "js/segapsg.js": {
+        "bytes": 10143,
+        "sha256": "efbc9805f2c7686b51c163c730f3b615fa34bbd57ad35521be1b034f19882630"
+      },
+      "js/segapsgsynth.js": {
+        "bytes": 10444,
+        "sha256": "326880650f7161ec619119802fd253312bf14775850bcb1ecfdc9a6ab33624e9"
+      },
+      "js/snes_brr.js": {
+        "bytes": 11140,
+        "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+      },
+      "js/snessynth.js": {
+        "bytes": 12872,
+        "sha256": "8a8e6f2d74aff977e0092deecbefda7d01b8a27eee217d1dcbb5b2e60a983ec3"
+      },
+      "js/soundchip_mixer.js": {
+        "bytes": 26367,
+        "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+      },
+      "js/soundchip_pitch.js": {
+        "bytes": 2854,
+        "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+      },
+      "js/spc_events.js": {
+        "bytes": 11461,
+        "sha256": "7142e0fad5e39e6d04c986c40fc00ef07e657e3d5dda250b52a1161de955e58e"
+      },
+      "js/spc_file.js": {
+        "bytes": 8896,
+        "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+      },
+      "js/spc.js": {
+        "bytes": 16728,
+        "sha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f"
+      },
+      "js/ssgsynth.js": {
+        "bytes": 6592,
+        "sha256": "c396b56e2d8033af183c6bdec9254ff40185e390d84e343188cf395856893e9f"
+      },
+      "js/stereo-width-worklet.js": {
+        "bytes": 1876,
+        "sha256": "36b8f452b84faef614677c97bdfca7fb34e2cb42fa4b5ec56e7cdfb68495fa50"
+      },
+      "js/tetorica_audio_runtime.js": {
+        "bytes": 35718,
+        "sha256": "c32f551679989c06a947baec40fa12f08d8e0dfb5a44388101595cf231f54cc3"
+      },
+      "js/tetorica_synth.js": {
+        "bytes": 3126,
+        "sha256": "ee4969a3d30ea7d7a0ed5f91d9702925c054bbefa2d45f03cb0e2f800951296a"
+      },
+      "js/tetorica_virtual_files/agent_commands.js": {
+        "bytes": 11601,
+        "sha256": "4bcedf16ddffa21bf8ea0ee96bf6f979a2f70e7ba9ed602c32ea88eec55fd9bd"
+      },
+      "js/tetorica_virtual_files/filesystem.js": {
+        "bytes": 20206,
+        "sha256": "25f821472b25bc58cf4b840a44111b2639013861ef14191de8bd684e973c9b41"
+      },
+      "js/tetorica_virtual_files/git.bundle.js": {
+        "bytes": 298711,
+        "sha256": "48bf6973ab36ecb1824c4b52c9e958d1d626b6796a47c0cf4d9b9e5f34ef89d1"
+      },
+      "js/tetorica_virtual_files/index.js": {
+        "bytes": 403,
+        "sha256": "e9b836b112402d3639d11e848e499b7cbbe28bff8e60e5d41ffc27878c1c5900"
+      },
+      "js/tetorica_virtual_files/patch.js": {
+        "bytes": 9693,
+        "sha256": "3a98170854a87d55c507b29d8df11489bdeffb7bb3c21b5fcc6c4533790364f5"
+      },
+      "js/tetorica_virtual_files/path.js": {
+        "bytes": 1112,
+        "sha256": "79be21a2ba017b48882cfd69f01edd19a3e6858190405cc0d4588dcfd8a218a4"
+      },
+      "js/tetorica_virtual_files/pipeline.js": {
+        "bytes": 2566,
+        "sha256": "8bc5455b2f0668dfd24a0d217bc5b4fa52633164e3bdc54f1f443660b69d43a6"
+      },
+      "js/tetorica_virtual_files/reader.js": {
+        "bytes": 1404,
+        "sha256": "90b21ba56ced53f65508513bc5741bea9b62af0b580fe218723628800ad76c6f"
+      },
+      "js/tetorica_virtual_files/shell.js": {
+        "bytes": 11716,
+        "sha256": "a542bdeffd9853d43b28a453fcd973963f96c3c078079437383ef6c1565633ed"
+      },
+      "js/tetorica_virtual_files/sync.js": {
+        "bytes": 5701,
+        "sha256": "7c2cb490bbf0ce036a79e1d513efcf41d1476e2ec778fe1867069a7a926432d4"
+      },
+      "js/tfi.js": {
+        "bytes": 9704,
+        "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+      },
+      "js/vgi.js": {
+        "bytes": 4366,
+        "sha256": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99"
+      },
+      "js/vgm_file.js": {
+        "bytes": 3428,
+        "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+      },
+      "js/wav.js": {
+        "bytes": 2582,
+        "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+      },
+      "js/wonderswan_timeline.js": {
+        "bytes": 6981,
+        "sha256": "826c39dc202a8432b388a24f88a4273923f0474c3a0d8b3118d7e899d19f48f5"
+      },
+      "js/wonderswan.js": {
+        "bytes": 9684,
+        "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+      },
+      "js/wonderswansynth.js": {
+        "bytes": 16546,
+        "sha256": "42ce3eb20486d4beb6c8bcaf3a3cb73d62cb59b65e3e75ae2ab47b84d04bccc8"
+      },
+      "js/y8950_adpcm_preview.js": {
+        "bytes": 5782,
+        "sha256": "e5b8110148683216a631bd8be37f80297981fa36919bbfa02b138dd746dd50af"
+      },
+      "js/y8950_adpcm.js": {
+        "bytes": 9004,
+        "sha256": "79f7fde2b22c5755e4c9647ce60ebf7ce8642aaa83d526dbe6f5cfd4456f4d3e"
+      },
+      "js/ym2203.js": {
+        "bytes": 12755,
+        "sha256": "a3aad7a8646f66e74bc60df34cd38239125885dc54005a378adf6ee89c616fa3"
+      },
+      "js/ym2203synth.js": {
+        "bytes": 2528,
+        "sha256": "7e509e17df2b7e720a955d927eb01c0f1f957f8d8edf4859bcf4108dd21e9fa3"
+      },
+      "js/ym2203vgm.js": {
+        "bytes": 416,
+        "sha256": "46fb8610523516bcab5b7865e5ae0ae50499c40753146ebe91ec531318a12979"
+      },
+      "js/ym2413.js": {
+        "bytes": 9503,
+        "sha256": "1050d68595dd6ba90b84075e7959426b354d1d6baf3f70c97a775a78244f0855"
+      },
+      "js/ym2413synth.js": {
+        "bytes": 17689,
+        "sha256": "92c4ca46e445bdcb42249453bf09c076811cd36d6c9a6f7684179240ee4f2516"
+      },
+      "js/ym2608.js": {
+        "bytes": 15637,
+        "sha256": "516cdc2850187020054b0b1f51b358dcb47564537939a7318a0a124b787f7cb4"
+      },
+      "js/ym2608synth.js": {
+        "bytes": 14449,
+        "sha256": "b10ce2b7ba371f7f3b03054ef1e462cf1330ed5e23099b4b36eff00b56874581"
+      },
+      "js/ym2608vgm.js": {
+        "bytes": 347,
+        "sha256": "f4c7ed23b7fa32cbbffa77f021db117b7872c76aab72f9257c2df04e1bf04ed3"
+      },
+      "js/ym2610b.js": {
+        "bytes": 11167,
+        "sha256": "c570d160829945d34c0a2f74f645f0af0e471a751793f0a1aecdbf20714c1624"
+      },
+      "js/ym2610bsynth.js": {
+        "bytes": 14731,
+        "sha256": "a6090ed64b558edfaeca0a33da06501f89f9be9631068bd0cdf84ee3247675d6"
+      },
+      "js/ym2610bvgm.js": {
+        "bytes": 345,
+        "sha256": "dea1dd197ee8984c9ec1dd0c94a6e56f7b6fc2f16ceffafd7545b8c31c92702c"
+      },
+      "js/ym2612_dac.js": {
+        "bytes": 7251,
+        "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+      },
+      "js/ym2612-worklet.js": {
+        "bytes": 25390,
+        "sha256": "ef4b6f61f2799b6f6a4cc786e976182be5d98df248c71db50d89b1b359910b90"
+      },
+      "js/ym2612.js": {
+        "bytes": 22574,
+        "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+      },
+      "js/ym2612synth.js": {
+        "bytes": 38595,
+        "sha256": "bed634eef169f2fe3ca0c20aef84d1d61ffd5937abf791a122858ef50ae08cb9"
+      },
+      "js/ym2612vgm.js": {
+        "bytes": 115343,
+        "sha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c"
+      },
+      "playground_audio_engine.js": {
+        "bytes": 6480,
+        "sha256": "11341961a517cd65c1c1c611c76669bb88300424e66a56bbddc6000b75baf6ca"
+      },
+      "playground_audio_input.js": {
+        "bytes": 32684,
+        "sha256": "a95c0fb7e19f51cc959d7dc06a43dc1b68bacd2afbff43ab091f7526f38fe4dc"
+      },
+      "playground_audio_monitor.js": {
+        "bytes": 17968,
+        "sha256": "7a75febe0c38063a50e0217b9bd42c93cb196fbab88717af8689e192663c020d"
+      },
+      "playground_autosave.js": {
+        "bytes": 3889,
+        "sha256": "46bbdd5614e1597ee9906db35edd53f407fd18a373b0484b3a92176a5c084abd"
+      },
+      "playground_ay8910_voice_panel.js": {
+        "bytes": 15887,
+        "sha256": "643de67b9a872611a3ef781cb2e79842dc184ed4e987f49a6fec1501f2b2ea72"
+      },
+      "playground_cassette.js": {
+        "bytes": 14751,
+        "sha256": "685f14c303706e60f27809b2c53d84003e356d1ce774df523475799b245a3346"
+      },
+      "playground_chip_tabs.css": {
+        "bytes": 3619,
+        "sha256": "7fbebbd6df6248a10a2c52d42d05c8b23c6de3b6ee2ca965d2b35698e81f29f1"
+      },
+      "playground_chip_tabs.js": {
+        "bytes": 40294,
+        "sha256": "3027fc306241e7e8bff68dc63bfe8613f501e85a21b00bc1389d3efe54c85c7a"
+      },
+      "playground_declarations.js": {
+        "bytes": 2809,
+        "sha256": "9da80f07a65d3d05788f174dfd2867cbedf59914eea2691ef36170c46377f9b7"
+      },
+      "playground_dx7_voice_panel.js": {
+        "bytes": 23705,
+        "sha256": "d5f44e21b596ddc6ed4b26f8d9d33c57376d3ee536b8a2aa578525cd1ddfaf67"
+      },
+      "playground_example_order.js": {
+        "bytes": 293,
+        "sha256": "3cc7c250eb119f8b459c821c39431cadc7252eafd4c7c12609aac3e7b86a9f97"
+      },
+      "playground_examples.js": {
+        "bytes": 187720,
+        "sha256": "21d9a29a5736d0af5a3474fbc644d7739536d22920833eedae6a4e325b45dc1c"
+      },
+      "playground_extra_fm_editor.js": {
+        "bytes": 9686,
+        "sha256": "23b8cde1180744eb6a2546f007504db88292f27316f7667ae6908a55d8a8dde5"
+      },
+      "playground_file_menu.js": {
+        "bytes": 8805,
+        "sha256": "dc2f9c1ee49cdf42a4e4cac502437a551938e699e981773493005ba5aa58a76e"
+      },
+      "playground_file_resize.js": {
+        "bytes": 3024,
+        "sha256": "be704ea2e301033fcd31bb14fd365ce224d9c0d46147caa1d616882092db7a8f"
+      },
+      "playground_file_tree.js": {
+        "bytes": 4867,
+        "sha256": "0a8a4c342bbf94023648d17cd952ba1e2e5a1595846fcf860518205aaf1addad"
+      },
+      "playground_fx_monitor.js": {
+        "bytes": 8329,
+        "sha256": "09b9b0a25dbf2261e48f4ac3a3ebb2c57798b7695a0194e974909a0287169ee9"
+      },
+      "playground_gameboy_voice_panel.js": {
+        "bytes": 26508,
+        "sha256": "3cb7b3af8f9ed831abedc5abff6398cc5802e110dea1745b72e1fd5c5af4300d"
+      },
+      "playground_git.js": {
+        "bytes": 5121,
+        "sha256": "dc23360e8b17c7215259d6ecb27f877ee8a661787c9a4ffe45d2a1bf6b1394cf"
+      },
+      "playground_huc6280_voice_panel.js": {
+        "bytes": 22944,
+        "sha256": "03b6f054b22f3ea162874f638d0b5397128e000d78f24603351e460ecbf4a42f"
+      },
+      "playground_midi_import.js": {
+        "bytes": 5429,
+        "sha256": "9117e97141479b5029e89fd9a2251187aebdc3c527c63e397beda7a2ba604064"
+      },
+      "playground_mixer_defaults.js": {
+        "bytes": 10210,
+        "sha256": "37faf519d67de839eaf37a49fede6b19a100020b2a2717d1e02fc05f1eab7491"
+      },
+      "playground_mixer_state.js": {
+        "bytes": 9635,
+        "sha256": "38c604fa37e3e8abc4ddcccce9293705b112d0b5776ba6c0c3846533499b24e1"
+      },
+      "playground_mixer.css": {
+        "bytes": 3251,
+        "sha256": "36ece42a32769420fb5eabc7754a10544d827bc0cffd9f2f43d160c499950b4c"
+      },
+      "playground_mixer.js": {
+        "bytes": 17492,
+        "sha256": "0e070cd489c6f11f1771d009dd513287e0400d635ad1a072db96e23146e8dd2d"
+      },
+      "playground_mode_keyboard.js": {
+        "bytes": 10896,
+        "sha256": "50587c4fa020e8277fc030fd7c4e65fc0c1c1ca6ec7d18469228ec3d2f226f6c"
+      },
+      "playground_mode_project.js": {
+        "bytes": 1139,
+        "sha256": "7b8010d2521ed12025d5420d7a4399473b8da33d3d3ba7831ea075e1bb55d2cf"
+      },
+      "playground_mode_starters.js": {
+        "bytes": 5053,
+        "sha256": "2cdce7eee00ba61c17a8e6a88ae10ce470f539d207e18afd48ffecea118127bd"
+      },
+      "playground_mode.js": {
+        "bytes": 11271,
+        "sha256": "fb13bb54a49a5f61f5f116bd18c89ff0a703ac1458181d04081e4e7ccb90f1f6"
+      },
+      "playground_monaco_completion.js": {
+        "bytes": 44996,
+        "sha256": "11fdef0baa3471666e82475506f6cfa0375190ddf7e2e32869ba79469b0316e6"
+      },
+      "playground_monaco_definitions.js": {
+        "bytes": 16494,
+        "sha256": "a92bddbd2773565653592900bcccbd22979863d20656f02b3dac8e872d95ca9a"
+      },
+      "playground_monaco.js": {
+        "bytes": 22695,
+        "sha256": "8e6583214b55fd49f08bfdb9c35df1a0608e24f9d118db8e3aa65568e96b40fc"
+      },
+      "playground_monitor_scale.js": {
+        "bytes": 1890,
+        "sha256": "2b5b0ea15d39d0f3edc5b95f52f3e07f8e46b5cba1810d06ff9aa482e7f35687"
+      },
+      "playground_nes_voice_panel.js": {
+        "bytes": 22772,
+        "sha256": "df7eb9ef6840968e3422dc852fa438d73115b128e3cf074fb6a7502dc7ecbc2d"
+      },
+      "playground_okim6258_voice_panel.js": {
+        "bytes": 18542,
+        "sha256": "aa02b790766206d1c0c999855f8775cde24915a7821de8166172733b8c99dedc"
+      },
+      "playground_operator_keyboard.js": {
+        "bytes": 21206,
+        "sha256": "4fad5ee728ef1e204558a2e5961d2e943741fcdb0f4cdc1be6a22354f86f0d36"
+      },
+      "playground_operator_tab.js": {
+        "bytes": 31862,
+        "sha256": "251386ce583489d08b8612c45afa1ff6e133ce6b2e000e3004fd58d1652fbafd"
+      },
+      "playground_operator_visual.js": {
+        "bytes": 157,
+        "sha256": "525b30e117e978940dfb25d3ed221cc3f8e32c5680c3cf212afff398394312c9"
+      },
+      "playground_opl_voice_panel.js": {
+        "bytes": 20419,
+        "sha256": "847749b1d5916b5a56899126b809a7f60d3ddf684e3cf8581de46ce5103d470b"
+      },
+      "playground_opn_ssg_editor.js": {
+        "bytes": 3900,
+        "sha256": "bfeb8cd2fe4f8fdb0bede00b56c43fa54c566e7ccf19c01c63fa837e2c729fbc"
+      },
+      "playground_opna_sample_editor.js": {
+        "bytes": 5835,
+        "sha256": "9f12ca50d4b7016ebb6a0bb01efe7d39a7636a9857ddc8275b5aa86254c2d0dc"
+      },
+      "playground_opnb_sample_editor.js": {
+        "bytes": 6277,
+        "sha256": "9110eb3e64e1b3610e7bc943c49f7f2a777acc79758a78283247113bdf6ad955"
+      },
+      "playground_page_lifecycle.js": {
+        "bytes": 930,
+        "sha256": "5abd0c650a6acd1fe63ac16dae4e37846d83fc0745a460794bfa110ebe824d47"
+      },
+      "playground_query.js": {
+        "bytes": 5090,
+        "sha256": "73042da2f2756e84d4325ce1fcf7cf360e1f1329ce1d29dbdaa3bc25120feac9"
+      },
+      "playground_sample_assets.js": {
+        "bytes": 4155,
+        "sha256": "afcc8051609cf097f4162bd0efd3c1dd380aff072ac59b9c82bff727d0faa173"
+      },
+      "playground_sample_editor.css": {
+        "bytes": 1876,
+        "sha256": "677cb0daa35099e8cdf0df036f62803313b8340f08d75b6acdc3e11f5d2482db"
+      },
+      "playground_shell_check.js": {
+        "bytes": 2342,
+        "sha256": "34637b1949ae34e7f17f33ce97733bb8cd7e612243a1654ee5e8eb51c6208129"
+      },
+      "playground_shell_diagnostics.js": {
+        "bytes": 1669,
+        "sha256": "3c1249f4f44daced60ab72ce65331c61d3e7c2dcfdadbc77e2a997316c332ba0"
+      },
+      "playground_shell_modules.js": {
+        "bytes": 2216,
+        "sha256": "81b44f3935567df337c8468eb549ecef2156cae0eb3d8d50c51474fed3d77c5e"
+      },
+      "playground_shell_runner.js": {
+        "bytes": 5365,
+        "sha256": "dac19421900728dc5b52041b295e5afad3f75a6369585859431787c19d576eff"
+      },
+      "playground_shell_session.js": {
+        "bytes": 6725,
+        "sha256": "1031dc868f897969192f5e92c6b5427a8c4b5a2de575f31d7a4943f59d55f66c"
+      },
+      "playground_shell.js": {
+        "bytes": 8469,
+        "sha256": "a099141ad3b822d6f3b04a1dfa1965c2a255f6b1eac7f3fcbda4ab13dbc8f299"
+      },
+      "playground_snes_voice_panel.js": {
+        "bytes": 9983,
+        "sha256": "9a6c8447d726b184c66b230304add24eafa9fdf782a821103b6f36e3a8d600d5"
+      },
+      "playground_spc_import.js": {
+        "bytes": 21224,
+        "sha256": "707725099c7f56b4c52c6167eaad0ea9a8162f05d671882e409a3d9a2b7d2970"
+      },
+      "playground_sync.js": {
+        "bytes": 4625,
+        "sha256": "df62ebdd2058eadd91e34c65a7c4bd4bea5efc4386217b5abfec83bbc4f94752"
+      },
+      "playground_tfi_editor.js": {
+        "bytes": 5638,
+        "sha256": "fda4c63a4ffa325ce7b2bc7b8fe55ef10536ce288a83367e8b8ce864a8cdfc29"
+      },
+      "playground_ui.js": {
+        "bytes": 8294,
+        "sha256": "3fa38c4e5efbcc917972e84f1d3b1b7b1b31f7f17402de8f415191c9623c86de"
+      },
+      "playground_vgm_import.js": {
+        "bytes": 24702,
+        "sha256": "c0f7136835f3e14dc45b312c9aca8e5055c5dad57c177969e85e1e6f2e34125c"
+      },
+      "playground_vgm_presets.js": {
+        "bytes": 2813,
+        "sha256": "ad672197a135dcd314f23157ff7c539380d6909dd9605713b44e935a6043a88d"
+      },
+      "playground_virtual_files.js": {
+        "bytes": 5121,
+        "sha256": "4f2ef0fbc086ba01b7f3ff4220f8447b1ad995c5e1826a221dfe6bef9e095409"
+      },
+      "playground_wonderswan_voice_panel.js": {
+        "bytes": 22640,
+        "sha256": "750bc108961d5e7ff44cc1ba6d3fe107a1480a43e7efcb849fea40ed9968c8fd"
+      },
+      "playground_workbench.js": {
+        "bytes": 7335,
+        "sha256": "0a2e14e842e655e6040e119338e5b56683fff20b7d2c4d04b14d84f01af9d6a0"
+      },
+      "playground_y8950_adpcm_panel.js": {
+        "bytes": 12778,
+        "sha256": "b3c574b5626632e94534af7476a312cb2f264d8ff932c010f5b75e9306be0a15"
+      },
+      "playground_ym2151_voice_panel.js": {
+        "bytes": 24794,
+        "sha256": "aa0866710259a0056af8dacd5e320000cecb31a3a3e6ea4c18ddb18bc166c95a"
+      },
+      "playground_ym2413_voice_panel.js": {
+        "bytes": 20303,
+        "sha256": "7bcf0ecede5b83ea36cc3feb584c26d7ecce01433f20e848a3a739b84bddf6ad"
+      },
+      "playground.js": {
+        "bytes": 122755,
+        "sha256": "0525febf2c7cb7240adc1c58f7fae74d371449645222953b89ddb4f5d8ae5fdc"
+      },
+      "rf5c164_vgm_export.js": {
+        "bytes": 9551,
+        "sha256": "8a298e9d19e0864dab60277f0402f7266f96520b1e6b860afb9e6a130aeca2c7"
+      },
+      "synth/synth_controls.js": {
+        "bytes": 10018,
+        "sha256": "468ca52efcb1b446249dc1c60eec9569b4b4870477a30c45870f0c469d880b5f"
+      },
+      "synth/synth_envelope.js": {
+        "bytes": 13551,
+        "sha256": "f392668d9114022e41f31be9b613737c09c51b78bb4ec48999eef4c565aa493d"
+      },
+      "synth/synth_keyboard.js": {
+        "bytes": 9982,
+        "sha256": "ba14f89680e240e2ccda1e13f7df6345f8e1ebec876613df9f1294eff93d83fc"
+      },
+      "synth/synth_operator_envelope.js": {
+        "bytes": 9649,
+        "sha256": "045d53bc9ce3ea2d25bcaf8ef7b9d8955409edc495770421571bdd64f743356a"
+      },
+      "tetorica-playground-globals.d.ts": {
+        "bytes": 113673,
+        "sha256": "e998452e0e613ead6b8693ca10ca5dafc344e7c30d6e520b08afe9e2dead11a5"
+      },
+      "tetorica-playground-pokey-dual.d.ts": {
+        "bytes": 117,
+        "sha256": "6d806a4116849fd9c4e5e48531c2a1a628d18ea226e9e1caf231aae1b2f7a4ae"
+      },
+      "tetorica-playground-pokey.d.ts": {
+        "bytes": 86,
+        "sha256": "630a17057a2224fb08697db2a61bedb27c011031e21b56376deda0c07a4b1410"
+      },
+      "tetorica-playground-ym2612.d.ts": {
+        "bytes": 110,
+        "sha256": "4e7d976da314a668bcdbd37254c5e1fb3f393e21e72d380d06eefb744ec02c74"
+      },
+      "tetorica-shell.d.ts": {
+        "bytes": 2953,
+        "sha256": "a0d17aeb969faf8a2e8489a00e6f1a869622e08db7b1b019cced67774326391d"
+      },
+      "vendor/es-module-lexer.js": {
+        "bytes": 27257,
+        "sha256": "95f6b0530ab27cb146e89bc33acfa45f606c66ee589d16469b414942fc1b4864"
+      },
+      "vendor/fflate.js": {
+        "bytes": 90922,
+        "sha256": "b7ca4450b19559a1d50eb381adcee94b82449674be4cd17789d9beba7e6122a1"
+      },
+      "wonderswan_vgm_import.js": {
+        "bytes": 19013,
+        "sha256": "ccdab9c09bdf27e27bbfa6688a9af75482a7d9f41618a13e3caec35ff61b5834"
+      },
+      "ym2203_high.js": {
+        "bytes": 3054,
+        "sha256": "277b2456042c80f66d9f7761bcddf9ba08c30b2183f41ccd6f3a6034d7b9387e"
+      },
+      "ym2608_high.js": {
+        "bytes": 2084,
+        "sha256": "46f04eaeaaaceb63958ce5edaa89dba057235079a596723a1dfa835dd65ca806"
+      },
+      "ym2608_vgm_import.js": {
+        "bytes": 3940,
+        "sha256": "7a810ac898c1e8b4eec32005d535f25f58d27908c46319222e05585c100f06de"
+      }
+    },
+    "checkerSha256": "cd1f968c620d23e84e1f6f15b89f9e65f5a2ce3605df02763d84ea7dab54080a"
+  },
+  "playgroundArchive": {
+    "passed": true,
+    "archive": "release/hello_ymfm_wasm_pokey-mode-dev_itch_playground.zip",
+    "bytes": 36680583,
+    "sha256": "e2cf91820eb2b5c946edbfe42fa9f6dd604f344dc2818768306442d9cdd734fe",
+    "fileCount": 954,
+    "browserServedFiles": 272,
+    "allStageArchiveBytesEqual": true,
+    "allBrowserServedArchiveHashesEqual": true,
+    "savePointHistoricalTailSha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7",
+    "ignoredDesktopMetadata": [
+      "samples/.DS_Store"
+    ]
+  },
+  "npmCandidate": {
+    "schemaVersion": 1,
+    "passed": true,
+    "version": "0.2.30",
+    "published": false,
+    "scope": "Local unreleased POKEY candidate retaining published version metadata; not a public npm release.",
+    "directory": "/private/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-fm2612-check-X1d0G6",
+    "archive": {
+      "path": "/private/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/tetorica-fm2612-check-X1d0G6/tetorica-fm2612-0.2.30.tgz",
+      "bytes": 1712471,
+      "sha256": "ce03debb000a5b09c8232775319754c3a2dfabcc70be4eb9de450e2da0d04bae",
+      "sha1": "ca2f0c3c3f8dcece794dec1fdab17fefa38bbb9b",
+      "integrity": "sha512-IaH9P+OXfr6buQoIFArWN4o5xM7SZIAkeeHIpm/M6ZmRgfQRkdhxh25JZ6/8gvvTAqw8kgV3nMhNS6Il0vzw7Q==",
+      "unpackedBytes": 6377317,
+      "fileCount": 874,
+      "everyMemberByteEqualStageAndConsumer": true
+    },
+    "build": {
+      "topLevelModules": 302,
+      "generatedPairs": 28,
+      "declarations": 349
+    },
+    "checks": {
+      "offlineInstalledConsumer": true,
+      "pcmRenderers": 15,
+      "generatedWasmEngines": 28,
+      "pokeySharedModuleDualHandleIsolation": true,
+      "NodeNext": true,
+      "Bundler": true,
+      "DomWithoutNodeAmbientTypes": true
+    },
+    "logs": [
+      "/private/tmp/pokey-sdk-package-final-build.log",
+      "/private/tmp/pokey-sdk-package-final-types.log",
+      "/private/tmp/pokey-sdk-package-final-check.log"
+    ]
+  },
+  "tauri": {
+    "frontend": {
+      "archive": "hello_ymfm_wasm_pokey-mode-dev_itch_playground.zip",
+      "sha256": "e2cf91820eb2b5c946edbfe42fa9f6dd604f344dc2818768306442d9cdd734fe",
+      "fileCount": 953
+    },
+    "sourceBundle": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/w/tetorica-fm2612-playground-tauri/native-source-bundle/application-sources.zip",
+      "sha256": "46dcc0dea85b28ab97d521741fc342b2fe04dec30d880464a1d18a0294b9b001",
+      "bytes": 42856472,
+      "fileCount": 1913,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "e2cf91820eb2b5c946edbfe42fa9f6dd604f344dc2818768306442d9cdd734fe"
+    },
+    "sdk": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.5",
+      "sourceCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+      "archiveName": "tetorica-soundchip-native-0.1.5-sources.zip",
+      "archiveSha256": "aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07",
+      "manifestSha256": "bb542e394b76b1e3c6a34010ecd909d09230ce8b47e76daabf06ccf98d90f280",
+      "fileCount": 408,
+      "localCandidate": {
+        "baseCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+        "changedPaths": [
+          "CHANGELOG.md",
+          "README.md",
+          "docs/releases.md",
+          "docs/verification.md",
+          "sdk.json"
+        ]
+      }
+    }
+  },
+  "synthArchive": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_pokey-mode-dev_itch_synth.zip",
+    "bytes": 772716,
+    "sha256": "7b0f1813c062631df3ccf3247d57794b32f2ecd830e76f10c9a612fd7ab8ed59"
+  },
+  "limits": [
+    "Physical outputs were muted for automatic Browser PCM capture; human listening and Atari hardware comparisons are not completed.",
+    "Clock is fixed at chip creation. Hardware timer range limits and joined-pair sharing apply.",
+    "POKEY Operators editor and VGM Analyzer/import are not implemented in this step.",
+    "Public npm 0.2.30 does not contain this unreleased development candidate."
+  ]
+}

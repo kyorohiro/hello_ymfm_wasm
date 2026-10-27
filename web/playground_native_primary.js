@@ -1,3 +1,4 @@
+import {createPokeyClient} from './playground_pokey.js';
 import {createAy8910Client} from './playground_ay8910.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
 import {createNesClient} from './playground_nes.js';
@@ -57,7 +58,7 @@ export function borrowNativeApi(raw, id, changed = () => {}, before = () => true
 }
 
 export function createNativePrimaryClient(name, port, options = {}, lifecycle = {}) {
-  const client = name==='pwm'?createPWM32XClient(port,{native:true},lifecycle):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name},lifecycle)
+  const client = name==='pokey'?createPokeyClient(port,options,lifecycle):name==='pwm'?createPWM32XClient(port,{native:true},lifecycle):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name},lifecycle)
     : name === 'nes' ? createNesClient(port, options,lifecycle)
     : name === 'gameboy' ? createGameboyClient(port,options,lifecycle)
     : name === 'snes' ? createSnesClient(port, options,lifecycle)
@@ -71,7 +72,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
   if(name==='pwm'){client._stopVoices=()=>client.stopVoices();if(options.clock!==undefined)client._adoptClock(options.clock);}
   if (!client) throw new Error(`Unsupported native primary: ${name}`);
   if (options.state && name!=='nes') client._adoptState?.(options.state);
-  else if (name === 'wonderswan' || name === 'huc6280' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();
+  else if (name === 'wonderswan' || name === 'huc6280' || name==='pokey' || name==='ay8910' || name==='ym2413' || OPL_CHIPS.includes(name)) client.initialize();
   return client;
 }
 
@@ -89,7 +90,7 @@ export function createNativeWorkerApis(connections, performance, observe, lifecy
       queueMicrotask(() => {queued = false; observe(connection.globalName, client._getState());});
     };
     client._onStateChange?.(changed);
-    apis[connection.globalName] = borrowNativeApi(client, connection.name, changed);
+    apis[connection.globalName] = borrowNativeApi(client, connection.id??connection.name, changed);
   }
   return {apis, raw,
     cancelAdpcmLoads(){for(const client of raw.values())client._cancelAdpcmLoads?.();},

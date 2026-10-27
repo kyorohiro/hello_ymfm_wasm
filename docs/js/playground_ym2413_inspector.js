@@ -1,11 +1,11 @@
-import {YM2413Synth,YM2413_INSTRUMENTS} from './ym2413synth.js?v=audio-numeric-bindings-1';
-import {keyboardChannels} from './playground_keyboard_channels.js?v=wonderswan-pcm-timeline-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
+import {YM2413Synth,YM2413_INSTRUMENTS} from './ym2413synth.js?v=pokey-mode-1';
+import {keyboardChannels} from './playground_keyboard_channels.js?v=pokey-mode-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=pokey-mode-1';
 const DRUMS=['bassDrum','snare','tom','cymbal','hiHat'],PHYSICAL=[6,7,8,8,7];
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};
 /** Applied YM2413 state. Register reads neither replay controls nor advance audio. */
 export class Ym2413VoiceInspector{
-  /** @param {import('./playground_native_voice_inspector.js?v=wonderswan-pcm-timeline-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions} [options] */
   constructor({clock=()=>3579545,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){this.clock=typeof clock==='function'?clock:()=>clock;this.sampleRate=sampleRate;this.dispatch=dispatch;this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();}
   resetAuditions(){for(const [key,id]of this.auditions)this.endAudition(this.voice(key).physical,identity(id));this.auditions.clear();}
   reset(){this.resetAuditions();this.registers=new Uint8Array(64);}

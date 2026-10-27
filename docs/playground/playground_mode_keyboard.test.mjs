@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlaygroundModeKeyboard,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js';
 
-for (const [chip,id] of [['wonderswan','wonderswan'],['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['msx','ym2413'],['msx-audio','y8950'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(chip => [chip,chip])]) {
+for (const [chip,id] of [['pokey','pokey'],['wonderswan','wonderswan'],['gameboy','gameboy'],['nes','nes'],['snes','snes'],['x68000','ym2151'],['msx','ym2413'],['msx-audio','y8950'],['huc6280','huc6280'],['segapsg','segapsg'],['dx7','dx7'],...['ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(chip => [chip,chip])]) {
   test(`${chip} keyboard borrows only the mode's primary instrument`, async () => {
     const calls = [], inspector = {list:() => [{id:'extra-1',kind:id},{id}],invoke:(...args) => {calls.push(args);return Promise.resolve(true);}};
     const target = createPlaygroundModeKeyboard({chip,getInspector:() => inspector});
@@ -44,4 +44,11 @@ test('disconnected or replaced runtime never receives stale releases', async () 
   inspector={list:()=>[{id:'extra',kind:'dx7'}],invoke:()=>assert.fail('must not borrow an independent chip')};
   await assert.rejects(target.noteOn({id:'missing',midi:69}),/not ready/);
   assert.equal(createPlaygroundModeKeyboard({chip:'ym2612',getInspector:()=>inspector}),null);
+});
+
+
+test('dual POKEY exposes two physical four-channel keyboard targets',()=>{
+  const chips=playgroundPrimaryKeyboardChips({id:'pokey-dual',chip:'pokey',dualPokey:true});
+  assert.deepEqual(chips,[{id:'pokey',kind:'pokey',label:'POKEY 1 (primary)'},{id:'pokey:2',kind:'pokey',label:'POKEY 2 (primary)'}]);
+  assert.deepEqual(playgroundPrimaryKeyboardChips({id:'pokey',chip:'pokey'}),chips.slice(0,1));
 });

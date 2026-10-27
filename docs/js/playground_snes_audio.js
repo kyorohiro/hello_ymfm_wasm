@@ -6,7 +6,7 @@ const modules=new WeakMap();
 export async function createSnesAudio(context,destination,options={}) {
   options.signal?.throwIfAborted();
   if(!context?.audioWorklet||context.state==='closed')throw new Error('SNES requires an open AudioContext with AudioWorklet');
-  const url=String(options.workletUrl??new URL('./playground_snes_worklet.js?v=wonderswan-pcm-timeline-1',import.meta.url));
+  const url=String(options.workletUrl??new URL('./playground_snes_worklet.js?v=pokey-mode-1',import.meta.url));
   let cache=modules.get(context);if(!cache)modules.set(context,cache=new Map());
   let module=cache.get(url);if(!module){module=context.audioWorklet.addModule(url);cache.set(url,module);module.catch(()=>cache.delete(url));}
   const wait=promise=>{const signal=options.signal;if(!signal)return promise;signal.throwIfAborted();return new Promise((resolve,reject)=>{const abort=()=>reject(signal.reason);signal.addEventListener('abort',abort,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort));});};

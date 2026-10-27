@@ -1,9 +1,9 @@
-import {validateChipClock,ChipClockResampler} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
+import {validateChipClock,ChipClockResampler} from './playground_chip_clock.js?v=pokey-mode-1';
 import {Ay8910} from './ay8910.js?v=audio-stability-2';
 import factory from '../generated/ay8910_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
-import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=wonderswan-pcm-timeline-1';
-import {receiveChipInspector} from './playground_chip_inspector_state.js?v=wonderswan-pcm-timeline-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=pokey-mode-1';
+import {Ay8910VoiceInspector} from './playground_ay8910_inspector.js?v=pokey-mode-1';
+import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-mode-1';
 class Processor extends AudioWorkletProcessor{
   constructor({processorOptions:{clock=1789773,type=0,flags=1,wasmBinary}}){
     super();this.baseClock=this.clock=clock;this.type=type;this.flags=flags;this.chip=null;this.dead=false;this.registers=new Uint8Array(16);this.mutedChannels=new Set([0,1,2]);this.resampler=new ChipClockResampler();

@@ -146,7 +146,10 @@ export function buildPlaygroundMixerPolicy(report) {
   // measurement set intact rather than fabricating a calibration capture.
   profile.factoryDefaults.kinds.push({name:'wonderswan',volume:1});
   profile.factoryModes.wonderswan={version:1,entries:[{id:'wonderswan',name:'wonderswan',settings:{volume:1}}]};
-  profile.calibration.unmeasuredKinds=['wonderswan'];
+  profile.factoryDefaults.kinds.push({name:'pokey',volume:1});
+  profile.factoryModes.pokey={version:1,entries:[{id:'pokey',name:'pokey',settings:{volume:1}}]};
+  profile.factoryModes['pokey-dual']={version:1,entries:[{id:'pokey',name:'pokey',settings:{volume:1}},{id:'pokey:2',name:'pokey',settings:{volume:1}}]};
+  profile.calibration.unmeasuredKinds=['wonderswan','pokey'];
   return profile;
 }
 

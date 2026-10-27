@@ -655,7 +655,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -683,6 +683,8 @@ type PlaygroundSelectedFm = {
   ym2608: YM2608FMApi;
   ym2610: YM2610FMApi;
   ym2610b: YM2610BFMApi;
+  pokey: never;
+  'pokey-dual': never;
   wonderswan: never;
   gameboy: never;
   nes: never;
@@ -713,6 +715,10 @@ declare const opm: PlaygroundPrimaryOpm;
 declare const pce: PlaygroundPrimaryHuc6280;
 /** Primary WonderSwan four-channel wavetable instrument. */
 declare const ws: PlaygroundPrimaryWonderSwan;
+/** Primary four-channel POKEY; initialized by the selected mode. */
+declare const pokey: PlaygroundPrimaryPokey;
+/** Second primary POKEY, available in dual-POKEY mode only. */
+declare const pokey2: PlaygroundPrimaryPokey;
 /** Primary MSFA DX7: six operators, 32 algorithms and 16 allocated voices. */
 declare const dx7: PlaygroundPrimaryDx7;
 /** Primary OPL family FM instrument, with physical zero-based channels. */
@@ -1172,7 +1178,9 @@ type PlaygroundAPIBase = {
 type PlaygroundFmConvenienceName = 'fm' | 'midi' | 'presets' | 'tfiToPreset' | 'vgiToPreset'
   | 'play' | 'write' | 'scheduleWritesSamples' | 'noteToBlockFnum' | 'hzToBlockFnum' | 'noteLerp'
   | 'setDacLookahead' | 'getDacLookahead';
-type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'wonderswan' ? {ws:PlaygroundPrimaryWonderSwan}
+type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'pokey' ? {pokey:PlaygroundPrimaryPokey}
+  : TetoricaSelectedChip extends 'pokey-dual' ? {pokey:PlaygroundPrimaryPokey;pokey2:PlaygroundPrimaryPokey}
+  : TetoricaSelectedChip extends 'wonderswan' ? {ws:PlaygroundPrimaryWonderSwan}
   : TetoricaSelectedChip extends 'gameboy' ? {gameboy: PlaygroundPrimaryGameboy}
   : TetoricaSelectedChip extends 'atari-st' ? {ay:PlaygroundPrimaryAy8910}
   : TetoricaSelectedChip extends 'msx' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
@@ -1808,6 +1816,7 @@ interface PlaygroundSpc {
   dispose():void;
 }
 type PlaygroundSoundChipMap = {
+  pokey: TetoricaSelectedChip extends 'pokey'|'pokey-dual' ? PlaygroundPrimaryPokey : PlaygroundPokey;
   ym2612: TetoricaSelectedChip extends PlaygroundGenesisSelectedChip ? YM2612FMApi : PlaygroundCreatedFm;
   ym2203: TetoricaSelectedChip extends 'ym2203' ? YM2203FMApi : PlaygroundCreatedYm2203;
   ym2610: TetoricaSelectedChip extends 'ym2610' ? YM2610FMApi : PlaygroundCreatedYm2610;
@@ -2295,3 +2304,43 @@ interface PlaygroundWonderSwan {
 type PlaygroundPrimaryWonderSwan = Omit<PlaygroundWonderSwan,'dispose'> & PlaygroundChipClock & {readonly id:string};
 /** Independent WonderSwan instrument in Web Audio and Native. */
 declare function createSoundChip(name:'wonderswan',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundWonderSwan & PlaygroundChipClock & {readonly id:string}>;
+
+/** One POKEY owns four zero-based physical voices. Joined pairs consume their lower timer. */
+type PlaygroundPokeyChannel = 0|1|2|3;
+interface PlaygroundPokey {
+  readonly chip:'pokey';
+  readonly channels:4;
+  readonly id:string;
+  readonly clock:number;
+  /** Reset hardware and authoring state; call initialize() before high-level operations. */
+  reset():void;
+  /** Reset to silent pure tones, AUDCTL=0, SKCTL=3. Already done for mode primaries. */
+  initialize():void;
+  writeRegister(register:number,value:number):void;
+  /** Hardware read-side I/O differs from the write-side audio register bank. */
+  readRegister(register:number):Promise<number>;
+  /** Copy the authored write-side bank, not hardware readback. */
+  getRegisterSnapshot():Uint8Array;
+  setFrequency(channel:PlaygroundPokeyChannel,hz:number):number;
+  setNote(channel:PlaygroundPokeyChannel,note:string|number):number;
+  /** Hardware amplitude 0..15, retained while keyed off. */
+  setVolume(channel:PlaygroundPokeyChannel,volume:number):void;
+  /** AUDC distortion bits 7..5; mode 5 is a pure tone. */
+  setDistortion(channel:PlaygroundPokeyChannel,distortion:0|1|2|3|4|5|6|7):void;
+  setVolumeOnly(channel:PlaygroundPokeyChannel,enabled:boolean):void;
+  setHighClock(channel:0|2,enabled:boolean):void;
+  setJoined(pair:0|1,enabled:boolean):void;
+  setBaseClock(clock:'64khz'|'15khz'):void;
+  setPoly9(enabled:boolean):void;
+  keyOn(channel:PlaygroundPokeyChannel):void;
+  keyOff(channel:PlaygroundPokeyChannel):void;
+  noteOn(channel:PlaygroundPokeyChannel,note:string|number):void;
+  allNotesOff():void;
+  setChannelMuted(channel:PlaygroundPokeyChannel,muted:boolean):Promise<void>;
+  /** Ordered clock edit preserves registers, authored gates and core phase. */
+  setClock(hz:number):Promise<void>;
+  dispose():void;
+}
+type PlaygroundPrimaryPokey = Omit<PlaygroundPokey,'dispose'>;
+/** Create an independent four-channel POKEY; dual POKEY uses two ordinary instances. */
+declare function createSoundChip(name:'pokey',options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundPokey>;

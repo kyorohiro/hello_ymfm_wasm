@@ -105,6 +105,13 @@ SEPARATED_SEGA_PSG = {
     'vendor/tetorica_sega_psg/segapsg.cpp', 'vendor/tetorica_sega_psg/segapsg.h',
     'vendor/tetorica_sega_psg/LICENSE', 'vendor/tetorica_sega_psg/README.md',
 }
+POKEY_INPUTS = {
+    'wasm/pokey_wasm.cpp', 'scripts/build_pokey_wasm.sh',
+    'vendor/libvgm-pokey/pokey.cpp', 'vendor/libvgm-pokey/pokey.h',
+    'vendor/libvgm-pokey/LICENSE', 'vendor/libvgm-pokey/README.md',
+    'vendor/libvgm-pokey/upstream/pokey.c',
+    'vendor/libvgm-pokey/upstream/snapshot-manifest.json',
+}
 
 
 def digest(data):
@@ -150,6 +157,10 @@ def manifest_records(raw):
     # An update still verifies the previous immutable snapshot before replacing
     # it. Accept complete historical or separated PSG inputs, never a mixture.
     names = set(files)
+    # Historical fixed snapshots must remain verifiable before an update.
+    # A POKEY-capable release must include its adaptation and licensed original.
+    if POKEY_INPUTS & names:
+        require(POKEY_INPUTS <= names, 'SDK POKEY source release is incomplete')
     require((LEGACY_SEGA_PSG <= names and not SEPARATED_SEGA_PSG & names)
             or (SEPARATED_SEGA_PSG <= names and not LEGACY_SEGA_PSG & names),
             'SDK source release is incomplete or mixes Sega PSG layouts')
@@ -227,10 +238,26 @@ def check_installed(root=ROOT):
     require(manifest['version'] == pin.get('version') and len(payload) == pin.get('fileCount'),
             'SDK pin version/file count differs')
     validate_payload(payload, manifest)
+    validate_local_candidate(pin.get('localCandidate'), pin['sourceCommit'], manifest)
     return pin
 
 
-def import_archive(archive, checksum, source_commit, root=ROOT):
+def validate_local_candidate(candidate, source_commit, manifest):
+    if candidate is None:
+        return
+    require(isinstance(candidate, dict)
+            and set(candidate) == {'baseCommit', 'changedPaths'}
+            and candidate['baseCommit'] == source_commit,
+            'Invalid SDK local-candidate base commit')
+    paths = candidate['changedPaths']
+    require(isinstance(paths, list) and paths and all(isinstance(name, str) for name in paths)
+            and paths == sorted(set(paths)), 'Invalid SDK local-candidate changed paths')
+    for name in paths:
+        relative(name)
+        require(name in manifest['files'], 'Local-candidate changed path absent from source archive: ' + name)
+
+
+def import_archive(archive, checksum, source_commit, root=ROOT, *, local_changed_paths=None):
     require(re.fullmatch('[0-9a-f]{40}', source_commit) is not None,
             'Expected the declared 40-character SDK source commit')
     payload, manifest = archive_payload(archive, checksum)
@@ -246,6 +273,13 @@ def import_archive(archive, checksum, source_commit, root=ROOT):
            'sourceCommit': source_commit, 'archiveName': archive.name,
            'archiveSha256': checksum, 'manifestSha256': digest(payload[MANIFEST]),
            'fileCount': len(payload)}
+    if local_changed_paths is not None:
+        # This is an immutable hash-pinned archive, but not the exact contents
+        # of sourceCommit. Label that revision as its base instead of implying
+        # a committed/tagged release that does not yet exist.
+        pin['localCandidate'] = {'baseCommit': source_commit,
+                                 'changedPaths': sorted(local_changed_paths)}
+        validate_local_candidate(pin['localCandidate'], source_commit, manifest)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.soundchip-sdk-', dir=destination.parent) as temporary:
         candidate = Path(temporary) / 'snapshot'
@@ -278,16 +312,20 @@ def main():
     parser.add_argument('--archive', type=Path, help='local SDK sources ZIP; no download is performed')
     parser.add_argument('--sha256', help='expected source-archive SHA-256')
     parser.add_argument('--source-commit', help='declared SDK source revision, recorded as provenance')
+    parser.add_argument('--local-changed-path', action='append',
+                        help='source path changed from --source-commit; marks an unpublished local candidate (repeatable)')
     args = parser.parse_args()
     if args.check:
-        if args.archive or args.sha256 or args.source_commit:
+        if args.archive or args.sha256 or args.source_commit or args.local_changed_path:
             parser.error('--check cannot be combined with import options')
         pin = check_installed()
     else:
         if not all((args.archive, args.sha256, args.source_commit)):
             parser.error('import requires --archive, --sha256 and --source-commit')
-        pin = import_archive(args.archive, args.sha256, args.source_commit)
-    print(f"SDK {pin['version']}: {pin['fileCount']} pinned files verified offline "
+        pin = import_archive(args.archive, args.sha256, args.source_commit,
+                             local_changed_paths=args.local_changed_path)
+    label = ' (unpublished local candidate; sourceCommit is its base)' if pin.get('localCandidate') else ''
+    print(f"SDK {pin['version']}{label}: {pin['fileCount']} pinned files verified offline "
           f"(archive SHA256 {pin['archiveSha256']})")
 
 

@@ -1,7 +1,7 @@
 import {noteToHz} from './soundchip_pitch.js';
 import {YM2413_CLOCK} from './ym2413.js?v=audio-stability-2';
 export {YM2413_CLOCK} from './ym2413.js?v=audio-stability-2';
-export {YM2413WorkletTransport} from './chip_worklet_transport.js?v=audio-numeric-bindings-1';
+export {YM2413WorkletTransport} from './chip_worklet_transport.js?v=pokey-mode-1';
 
 /** @typedef {{am?:boolean|number,vibrato?:boolean|number,egt?:boolean|number,sustain?:boolean|number,
  * ksr?:boolean|number,multi?:number,mul?:number,ksl?:number,tl?:number,ar?:number,dr?:number,

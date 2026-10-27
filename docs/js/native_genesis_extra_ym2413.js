@@ -1,9 +1,9 @@
-import {createYm2413RegisterClient} from './playground_ym2413.js?v=wonderswan-pcm-timeline-1';
-import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=wonderswan-pcm-timeline-1';
-import {CHIP_CLOCKS} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
-import {nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=wonderswan-pcm-timeline-1';
-import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=wonderswan-pcm-timeline-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=wonderswan-pcm-timeline-1';
+import {createYm2413RegisterClient} from './playground_ym2413.js?v=pokey-mode-1';
+import {Ym2413VoiceInspector} from './playground_ym2413_inspector.js?v=pokey-mode-1';
+import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-mode-1';
+import {nativeInteger as integer} from './native_genesis_voice_endpoint.js?v=pokey-mode-1';
+import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=pokey-mode-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
 
 export const EXTRA_YM2413_CLOCK_HELD_ERROR='Release the manually held additional YM2413 voices before changing the clock';
 const physicalDrums=[6,7,8,8,7];

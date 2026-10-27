@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {buildSoundChipMixerPresets,generateSoundChipMixerPresets,renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
 
 const baselineUrl = new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url);
-const psgUrl = new URL('../docs/issues/soundchip_psg_levels_03.json',import.meta.url);
+const psgUrl = new URL('../docs/issues/soundchip_psg_levels_04.json',import.meta.url);
 
 test('the npm preset reproduces from the shared measured baseline; checks reject edited output without overwriting it',async t=>{
   const directory = await mkdtemp(join(tmpdir(),'soundchip-presets-'));

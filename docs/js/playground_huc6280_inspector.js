@@ -1,6 +1,6 @@
 import {noteToHz} from './soundchip_pitch.js';
-import {validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
-import {nativeVoiceChannel} from './playground_performance_processor.js?v=wonderswan-pcm-timeline-1';
+import {validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
+import {nativeVoiceChannel} from './playground_performance_processor.js?v=pokey-mode-1';
 
 const integer=(v,max,label)=>{if(!Number.isInteger(v)||v<0||v>max)throw new RangeError(`${label} must be 0..${max}`);return v;};
 const boolean=(v,label)=>{if(typeof v!=='boolean')throw new TypeError(`${label} must be boolean`);return v;};
@@ -9,7 +9,7 @@ function identity(v){if(typeof v!=='string'||!v.length||v.length>128)throw new T
 
 /** Applied register/RAM mirror. No reads advance the chip or change its latch. */
 export class Huc6280VoiceInspector {
-  /** @param {import('./playground_native_voice_inspector.js?v=wonderswan-pcm-timeline-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions} [options] */
   constructor({clock=()=>3579545,sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
     this.clock=typeof clock==='function'?clock:()=>clock;this.sampleRate=sampleRate;this.dispatch=dispatch;this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();this.reset();
   }

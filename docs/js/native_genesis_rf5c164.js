@@ -1,8 +1,8 @@
 /** Native Mega-CD PCM controls. Only commands and one-off RAM uploads cross IPC. */
 import {RF5C164Synth} from './rf5c164synth.js?v=audio-stability-2';
 import {sampleBytes,encodeRf5c164} from './rf5c164_pcm.js';
-import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=wonderswan-pcm-timeline-1';
-import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=wonderswan-pcm-timeline-1';
+import {RfInspectorState,rfSampleMetadata} from './playground_chip_inspector_state.js?v=pokey-mode-1';
+import {CHIP_CLOCKS,validateChipClock} from './playground_chip_clock.js?v=pokey-mode-1';
 import {decodeNativeGenesisPCM} from './native_genesis_media.js';
 import {createOfflineAudioDecoder} from './audio_decode.js';
 

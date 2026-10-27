@@ -52,6 +52,8 @@ explicit per-file terms. The SDK public forwarder, fixture, and WAV host use
 the repository's BSD-3-Clause default. No MAME framework, ROM, or game audio is
 required by this target.
 
+[POKEY](vendor/libvgm-pokey/README.md) retains the explicitly BSD-3-Clause-labeled libvgm `pokey.c` at its recorded immutable revision and the original Brad Oliver, Eric Smith and Juergen Buchmueller notices. Its standalone C++ adaptation and SDK glue retain BSD-3-Clause. Unmarked libvgm framework/helper headers are omitted; the core file's declaration is not extended to them. The upstream source is retained for provenance and is not compiled as a second provider. Native and WASM compile the same standalone adaptation.
+
 The [MSM5205](vendor/libvgm-msm5205/LICENSE) and
 [OKIM6295](vendor/mame-okim6295/LICENSE) JavaScript references retain their BSD
 copyright notices and adaptation records. They are unchanged copies of the

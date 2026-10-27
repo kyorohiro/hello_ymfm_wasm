@@ -2,9 +2,9 @@
  * The raw BSD core remains unipolar; this speaker boundary follows the
  * Playground Worklet's tick-aligned wave midpoint correction.
  */
-import {WonderSwan, WONDERSWAN_CLOCK} from './wonderswan.js';
+import {WonderSwan, WONDERSWAN_CLOCK} from './wonderswan.js?v=wonderswan-pcm-timeline-1';
 
-/** @typedef {{moduleFactory?: import('./soundchip.js').WasmModuleFactory,
+/** @typedef {{moduleFactory?: import('./soundchip.js?v=pokey-mode-1').WasmModuleFactory,
  * moduleOptions?: object, clock?: number, outputSampleRate?: number,
  * masterVolume?: number}} WonderSwanAudioEngineOptions */
 export class WonderSwanAudioEngine {

@@ -65,10 +65,10 @@ async function sdkFixture(t, {sources = false} = {}) {
   return {root: base, sdkRoot, editCatalog};
 }
 
-test('loads the fixed 28-artifact inventory and freezes the validated recipe set', () => {
-  assert.equal(inventory.artifacts.length, 28);
+test('loads the fixed 29-artifact inventory and freezes the validated recipe set', () => {
+  assert.equal(inventory.artifacts.length, 29);
   assert.deepEqual(inventory.artifacts.map(artifact => artifact.id), WASM_SDK_ARTIFACT_IDS);
-  assert.equal(inventory.artifacts.flatMap(artifact => artifact.outputs).length, 55);
+  assert.equal(inventory.artifacts.flatMap(artifact => artifact.outputs).length, 57);
   assert.deepEqual(inventory.artifacts.find(artifact => artifact.id === 'dx7').outputs, ['msfa.wasm']);
   assert.equal(inventory.artifacts.find(artifact => artifact.id === 'nuked_opn2').compilerCommand, 'emcc');
   assert.throws(() => inventory.artifacts[0].sourcePaths.push('forged.cpp'), TypeError);
@@ -76,8 +76,8 @@ test('loads the fixed 28-artifact inventory and freezes the validated recipe set
 
 test('validates all actual receipts, pinned sources and WASM ABI descriptors without Emscripten', async () => {
   const summary = await verifyWasmBuildDirectory({root, directory: deployed, inventory});
-  assert.equal(summary.artifactCount, 28);
-  assert.equal(summary.outputCount, 55);
+  assert.equal(summary.artifactCount, 29);
+  assert.equal(summary.outputCount, 57);
   assert.equal(summary.verifiedSourceCount, new Set(inventory.artifacts.flatMap(artifact => artifact.sourcePaths)).size);
   assert.equal(summary.sourcesVerified, true);
   const dx7 = summary.artifacts.find(artifact => artifact.id === 'dx7');
@@ -91,7 +91,7 @@ test('validates all actual receipts, pinned sources and WASM ABI descriptors wit
 test('accepts an isolated copied build directory and explicitly skipped source I/O', async t => {
   const fixture = await outputFixture(t);
   const summary = await verifyWasmBuildDirectory({...fixture, inventory, verifySources: false});
-  assert.equal(summary.outputCount, 55);
+  assert.equal(summary.outputCount, 57);
   assert.equal(summary.verifiedSourceCount, 0);
   assert.equal(summary.sourcesVerified, false);
 });
@@ -113,7 +113,7 @@ test('requires WonderSwan in the central SDK receipt even if an old standalone r
     schemaVersion: 1, artifact: 'wonderswan',
     outputs: record.outputs.map(({path, size, sha256}) => ({path, bytes: size, sha256})),
   }));
-  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /exactly 28 artifacts/);
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /exactly 29 artifacts/);
 });
 
 test('requires both WonderSwan output files in every SDK build', async t => {
@@ -122,6 +122,24 @@ test('requires both WonderSwan output files in every SDK build', async t => {
     await rm(path.join(fixture.directory, name));
     await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /missing or extra/);
   }
+});
+
+test('requires both POKEY output files in every SDK build', async t => {
+  for (const name of ['pokey_wasm.js', 'pokey_wasm.wasm']) {
+    const fixture = await outputFixture(t);
+    await rm(path.join(fixture.directory, name));
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /missing or extra/);
+  }
+});
+
+test('rejects another sound-chip ABI substituted for POKEY despite matching output hashes', async t => {
+  const fixture = await outputFixture(t);
+  const bytes = await readFile(path.join(fixture.directory, 'ay8910_wasm.wasm'));
+  await writeFile(path.join(fixture.directory, 'pokey_wasm.wasm'), bytes);
+  Object.assign(fixture.receipt.artifacts.find(artifact => artifact.id === 'pokey').outputs.find(output => output.path === 'pokey_wasm.wasm'),
+    {size: bytes.length, sha256: sha256(bytes)});
+  await fixture.save();
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /WASM output has no POKEY ABI/);
 });
 
 test('rejects WonderSwan output byte changes with unchanged size', async t => {
@@ -157,8 +175,8 @@ test('rejects WonderSwan output symlinked outside the verified directory', async
 
 const receiptMutations = [
   ['wrong schema', receipt => { receipt.schemaVersion = 2; }, /schema 1/],
-  ['missing artifact', receipt => { receipt.artifacts.pop(); }, /exactly 28/],
-  ['extra artifact', receipt => { receipt.artifacts.push(structuredClone(receipt.artifacts[0])); }, /exactly 28/],
+  ['missing artifact', receipt => { receipt.artifacts.pop(); }, /exactly 29/],
+  ['extra artifact', receipt => { receipt.artifacts.push(structuredClone(receipt.artifacts[0])); }, /exactly 29/],
   ['duplicate artifact', receipt => { receipt.artifacts[1] = structuredClone(receipt.artifacts[0]); }, /exactly once/],
   ['unknown artifact', receipt => { receipt.artifacts[0].id = 'unknown'; }, /exactly once/],
   ['wrong format', receipt => { receipt.artifacts[0].format = 'standalone-wasm'; }, /format mismatch/],
@@ -293,9 +311,9 @@ test('rejects a manifest that differs from the pin', async t => {
 });
 
 const catalogMutations = [
-  ['missing build', catalog => catalog.artifacts.pop(), /exactly 28/],
-  ['duplicate build', catalog => { catalog.artifacts[0] = structuredClone(catalog.artifacts[1]); }, /supported 28/],
-  ['unknown build', catalog => { catalog.artifacts[0].id = 'unexpected'; }, /supported 28/],
+  ['missing build', catalog => catalog.artifacts.pop(), /exactly 29/],
+  ['duplicate build', catalog => { catalog.artifacts[0] = structuredClone(catalog.artifacts[1]); }, /supported 29/],
+  ['unknown build', catalog => { catalog.artifacts[0].id = 'unexpected'; }, /supported 29/],
   ['unsafe build script', catalog => { catalog.artifacts[0].buildScript = '../build.sh'; }, /Unexpected build script/],
   ['wrong standalone format', catalog => { catalog.artifacts.find(a => a.id === 'dx7').format = 'emscripten-es-module'; }, /Unexpected artifact format/],
   ['unsafe source path', catalog => { catalog.artifacts[0].sourceFiles[0] = '../outside.cpp'; }, /Unsafe .* source files/],

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "recordedDate": "2026-10-27",
+  "passed": true,
+  "scope": "Local SDK 0.1.5 source candidate and application fixed SDK/WASM adoption. No commit, tag, remote CI, published SDK release or npm publication.",
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.5",
+    "sourceCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+    "archiveName": "tetorica-soundchip-native-0.1.5-sources.zip",
+    "archiveSha256": "aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07",
+    "manifestSha256": "bb542e394b76b1e3c6a34010ecd909d09230ce8b47e76daabf06ccf98d90f280",
+    "fileCount": 408,
+    "localCandidate": {
+      "baseCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "README.md",
+        "docs/releases.md",
+        "docs/verification.md",
+        "sdk.json"
+      ]
+    }
+  },
+  "sourceArchive": {
+    "path": "/private/tmp/pokey-sdk-015-release/tetorica-soundchip-native-0.1.5-sources.zip",
+    "sha256": "aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07",
+    "published": false
+  },
+  "wasm": {
+    "artifactCount": 29,
+    "outputCount": 57,
+    "verifiedSourceCount": 175,
+    "compiler": "Emscripten 6.0.6",
+    "allExisting55OutputsByteIdentical": true,
+    "pokeyFixedSnapshotRebuildByteIdentical": true,
+    "directory": "/private/tmp/pokey-sdk-015-all"
+  },
+  "tests": {
+    "sdkPython": 70,
+    "applicationImportPython": 22,
+    "inventoryAndBatchCliNode": 76,
+    "sourceArchiveAuditPassed": true,
+    "javascriptReferenceChecks": 10,
+    "pokeyExactParity": {
+      "cases": 114,
+      "totalComparedStereoFrames": 933888,
+      "maximumDifference": 0,
+      "legacySmoke": {
+        "passed": true,
+        "artifact": "pokey",
+        "renderedFrames": 1524102,
+        "checks": [
+          "C-ABI-exports-null-and-configuration-guards",
+          "real-read-register-space-and-cold-reset",
+          "four-independent-physical-audio-channels",
+          "exact-render-partition-invariance-at-three-clocks-and-rates",
+          "dual-POKEY-interleaving-isolation-distinct-clock-and-lifetime"
+        ],
+        "outputPolicy": "one raw positive mono chip per handle, duplicated left/right, /32768; dual routing belongs to host"
+      },
+      "sdkSmoke": {
+        "passed": true,
+        "artifact": "pokey",
+        "renderedFrames": 1524102,
+        "checks": [
+          "C-ABI-exports-null-and-configuration-guards",
+          "real-read-register-space-and-cold-reset",
+          "four-independent-physical-audio-channels",
+          "exact-render-partition-invariance-at-three-clocks-and-rates",
+          "dual-POKEY-interleaving-isolation-distinct-clock-and-lifetime"
+        ],
+        "outputPolicy": "one raw positive mono chip per handle, duplicated left/right, /32768; dual routing belongs to host"
+      }
+    }
+  },
+  "limits": [
+    "The sourceCommit field identifies the base revision while localCandidate records the five uncommitted release metadata/documentation paths. The archive itself is immutable and strictly SHA-256 pinned.",
+    "Tagged release publication remains the maintainer git-tag workflow. The published v0.1.4 remains untouched.",
+    "Raw POKEY audio is positive mono duplicated left/right, with /32768 scaling; routing and speaker centering are host responsibilities.",
+    "Existing 55 JS/WASM output bytes and Mixer gains were not changed."
+  ]
+}

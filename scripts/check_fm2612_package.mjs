@@ -37,16 +37,24 @@ try {
     'msfa_dx7/LICENSE', 'msfa_dx7/THIRD_PARTY_NOTICES.md', 'msfa_dx7/README.vendor.md', 'msfa_dx7/vendor/msfa/COPYING']) {
     assert.ok(packedPaths.has(file), `DX7 package payload missing ${file}`);
   }
+  for(const file of ['pokey.js','pokey.d.ts','pokeysynth.js','pokeysynth.d.ts','pokeyaudioengine.js','pokeyaudioengine.d.ts',
+    'generated/pokey_wasm.js','generated/pokey_wasm.wasm','licenses/libvgm-pokey/LICENSE','licenses/libvgm-pokey/README.md',
+    'sources/third_party/libvgm-pokey/pokey.cpp','sources/third_party/libvgm-pokey/pokey.h',
+    'sources/third_party/libvgm-pokey/LICENSE','sources/third_party/libvgm-pokey/upstream/pokey.c',
+    'sources/third_party/libvgm-pokey/upstream/snapshot-manifest.json',
+    'sources/wasm/pokey_wasm.cpp','sources/scripts/build_pokey_wasm.sh','sources/POKEY.md','sources/POKEY-SDK.json']) {
+    assert(packedPaths.has(file),'POKEY module/source/notice payload missing '+file);
+  }
   const nativeModules = ['native_runtime_synth', 'playground_runtime', 'playground_logic_worker',
     'playground_keyboard', 'playground_sample_edit', 'playground_sample_instrument',
     'playground_chip_inspector', 'playground_chip_inspector_state', 'playground_native_voice_inspector',
-    ...['wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
-    'wonderswan','wonderswansynth','huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
+    ...['pokey','wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910'].flatMap(chip => ['playground_' + chip, 'playground_' + chip + '_audio', 'playground_' + chip + '_worklet', 'playground_' + chip + '_inspector']),
+    'pokey','pokeysynth','pokeyaudioengine','wonderswan','wonderswansynth','huc6280synth', 'okim6258synth','opl_synth','ym3526synth','ym3812synth','y8950synth','ymf262synth','ym2413synth','ay8910synth',
     'playground_opl','playground_opl_audio','playground_opl_worklet','playground_opl_inspector'];
   for (const name of nativeModules) for (const extension of ['js','d.ts']) {
     assert.ok(packedPaths.has(name + '.' + extension), `Native voice/sample package payload missing ${name}.${extension}`);
   }
-  for (const chip of ['wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910']) for (const extension of ['js','wasm']) {
+  for (const chip of ['pokey','wonderswan','huc6280','ym2151','okim6258','ym2413','ay8910']) for (const extension of ['js','wasm']) {
     assert.ok(packedPaths.has(`generated/${chip}_wasm.${extension}`), `Native voice WASM payload missing ${chip}.${extension}`);
   }
   for (const chip of ['wonderswan','huc6280','okim6258','ay8910']) for (const file of ['LICENSE','README.md']) {
@@ -75,6 +83,9 @@ import {FM_PRESETS} from 'tetorica-fm2612/megasynth-fm-presets';
 import {OPLSynth, OPLDirectTransport, OPL_PRESETS} from 'tetorica-fm2612/opl_synth';
 import {YM2413Synth,YM2413DirectTransport,YM2413_USER_PRESETS,YM2413_INSTRUMENTS} from 'tetorica-fm2612/ym2413synth';
 import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth';
+import {Pokey,POKEY_CLOCK} from 'tetorica-fm2612/pokey.js';
+import {PokeySynth,PokeyDirectTransport} from 'tetorica-fm2612/pokeysynth';
+import pokeyModuleFactory from 'tetorica-fm2612/generated/pokey_wasm.js';
 import {WonderSwan,WONDERSWAN_CLOCK} from 'tetorica-fm2612/wonderswan.js';
 import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
@@ -253,6 +264,28 @@ try {
   assert(Math.max(...survivingPcm.left)-Math.min(...survivingPcm.left)>.001,'Disposing a shared-module peer leaves this chip playing');
   synths[1].dispose();synths[2].dispose();
 } finally {wsChip.dispose();wsCustom?.dispose();wsSibling?.dispose();}
+// Two POKEY handles can share one module heap without sharing chip state.
+const pokeyModule=await pokeyModuleFactory({wasmBinary:await readFile(runtimeAssetUrl('generated/pokey_wasm.wasm'))});
+const pokeyA=await createSoundChip('pokey',{id:'installed-pokey-a',moduleFactory:()=>pokeyModule,sampleRate:48000});
+const pokeyB=await createSoundChip('pokey',{id:'installed-pokey-b',moduleFactory:()=>pokeyModule,sampleRate:48000});
+const pokeyReference=await createSoundChip('pokey',{moduleFactory:()=>pokeyModule,sampleRate:48000});
+try {
+  assert(pokeyA instanceof Pokey);assert.equal(pokeyA.clock,POKEY_CLOCK);assert.equal(pokeyA.sampleRate(),48000);
+  assert.equal(pokeyA.mixer,undefined,'Direct PCM has no implicit Mixer calibration');
+  assert.equal(new Set([pokeyA.id,pokeyB.id,pokeyReference.id]).size,3);
+  assert.equal(Object.getOwnPropertyDescriptor(pokeyA,'id').writable,false);
+  const synths=[pokeyA,pokeyB,pokeyReference].map(core=>new PokeySynth({transport:new PokeyDirectTransport(core)}));
+  for(const synth of synths){synth.initialize();synth.setVolume(0,6);synth.noteOn(0,'A4');}
+  for(const core of [pokeyA,pokeyB,pokeyReference]) {
+    const pcm=core.generateStereo(4096);assert.deepEqual(pcm.left,pcm.right,'One POKEY is mono');
+    assert(pcm.left.every(Number.isFinite)&&Math.max(...pcm.left)-Math.min(...pcm.left)>.001,'Installed POKEY produces varying PCM');
+    assert.equal(typeof core.readRegister(10),'number');
+  }
+  pokeyA.setChannelMuted(0,true);assert(pokeyA.generateStereo(256).left.every(value=>value===0));
+  pokeyA.reset();pokeyA.dispose();
+  assert.deepEqual(pokeyB.generateStereo(512),pokeyReference.generateStereo(512),'Peer mute/reset/disposal preserve POKEY continuation');
+  for(const synth of synths)synth.dispose();
+}finally{pokeyA.dispose();pokeyB.dispose();pokeyReference.dispose();}
 assert.equal(typeof globalThis.AudioContext, 'undefined');
 const {MegaSynthNode} = await import('tetorica-fm2612/node');
 const nodeSynth = new MegaSynthNode();

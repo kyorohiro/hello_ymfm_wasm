@@ -7,7 +7,7 @@ export {SOUNDCHIP_MIXER_PRESETS} from './soundchip_mixer_presets.js';
  * 動的 import の配布方法はバンドラーに依存するため、この入口はサイズ削減を保証しない。
  */
 import { createSoundChipFactory } from './soundchip_factory.js';
-import {createWorkletSoundChip} from './soundchip_worklet.js?v=wonderswan-pcm-timeline-1';
+import {createWorkletSoundChip} from './soundchip_worklet.js?v=pokey-mode-1';
 import {PWM32X} from './pwm32x.js?v=pwm-wasm-1';
 export {encodeWav} from './wav.js';
 
@@ -81,8 +81,13 @@ async function loadModule(name, options = {}) {
 
 const loaders = {
   /** @param {SoundChipOptions} [options] */
+  pokey: async (options) => {
+    const {Pokey} = await import('./pokey.js?v=pokey-mode-1');
+    return Pokey.create(await loadModule('pokey', options));
+  },
+  /** @param {SoundChipOptions} [options] */
   wonderswan: async (options) => {
-    const {WonderSwan} = await import('./wonderswan.js');
+    const {WonderSwan} = await import('./wonderswan.js?v=wonderswan-pcm-timeline-1');
     return WonderSwan.create(await loadModule('wonderswan', options));
   },
   nes: async options => {
@@ -186,7 +191,8 @@ const loaders = {
  */
 const createLocalSoundChip = createSoundChipFactory(loaders);
 /** @typedef {{
- *   wonderswan: import('./wonderswan.js').WonderSwan,
+ *   pokey: import('./pokey.js?v=pokey-mode-1').Pokey,
+ *   wonderswan: import('./wonderswan.js?v=wonderswan-pcm-timeline-1').WonderSwan,
  *   gameboy: import('./gameboyapu.js?v=audio-stability-2').GameboyApu,
  *   segapsg: import('./segapsg.js?v=audio-numeric-bindings-1').SegaPSG,
  *   pwm: import('./pwm32x.js?v=pwm-wasm-1').PWM32X | import('./pwm32x_wasm.js?v=pwm-wasm-1').PWM32XWasm,
@@ -207,13 +213,13 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   ymf278b: import('./ymf278b.js?v=audio-stability-2').Ymf278b,
  *   ymf288: import('./ymf288.js').Ymf288,
  * }} SoundChipMap */
-/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'} WorkletChipName */
+/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'|'pokey'} WorkletChipName */
 /**
  * @template {WorkletChipName} Name
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions & {execution: 'worklet'}} options
- * @returns {Promise<import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip & {name: Name}>}
+ * @returns {Promise<import('./soundchip_worklet.js?v=pokey-mode-1').WorkletSoundChip & {name: Name}>}
  */
 /**
  * @template {keyof SoundChipMap} Name
@@ -227,7 +233,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  * @overload
  * @param {Name} name
  * @param {SoundChipOptions} options
- * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip>}
+ * @returns {Promise<(SoundChipMap[Name] & {readonly id: string}) | import('./soundchip_worklet.js?v=pokey-mode-1').WorkletSoundChip>}
  */
 /** @param {keyof SoundChipMap} name @param {SoundChipOptions} [options] */
 export function createSoundChip(name, options = {}) {

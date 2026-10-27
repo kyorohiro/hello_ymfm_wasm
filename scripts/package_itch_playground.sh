@@ -110,6 +110,8 @@ tetorica-playground-snes.d.ts
 tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
 tetorica-playground-wonderswan.d.ts
+tetorica-playground-pokey.d.ts
+tetorica-playground-pokey-dual.d.ts
 tetorica-playground-ym3526.d.ts
 tetorica-playground-ym3812.d.ts
 tetorica-playground-y8950.d.ts
@@ -237,6 +239,13 @@ playground_huc6280_audio.js
 playground_huc6280_worklet.js
 huc6280synth.js
 huc6280audioengine.js
+pokey.js
+pokeysynth.js
+pokeyaudioengine.js
+playground_pokey.js
+playground_pokey_audio.js
+playground_pokey_worklet.js
+playground_pokey_inspector.js
 wonderswan.js
 wonderswansynth.js
 wonderswan_timeline.js
@@ -297,6 +306,8 @@ native_genesis_rf5c164.js
 native_genesis_dx7.js
 native_genesis_nes.js
 native_genesis_console.js
+native_genesis_pokey.js
+native_genesis_extra_pokey.js
 native_genesis_wonderswan.js
 native_genesis_extra_wonderswan.js
 native_genesis_snes.js
@@ -419,6 +430,8 @@ gameboy_apu_wasm.js
 gameboy_apu_wasm.wasm
 huc6280_wasm.js
 huc6280_wasm.wasm
+pokey_wasm.js
+pokey_wasm.wasm
 wonderswan_wasm.js
 wonderswan_wasm.wasm
 build-info.json
@@ -592,6 +605,7 @@ node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${DOCS_JS_DIR}/msfa_dx7/package.json")
 node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${STAGE_DIR}"
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
@@ -612,6 +626,7 @@ See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.
 
 Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 
+Atari POKEY sound: BSD-labeled libvgm/MAME POKEY adaptation, BSD-3-Clause. See licenses/libvgm-pokey/ and sources/POKEY.md.
 WonderSwan sound: MAME adaptation by Wilbert Pol and kyorohiro, BSD-3-Clause. See licenses/mame-wonderswan/.
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.

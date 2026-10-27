@@ -1,5 +1,5 @@
 import {watchAudioEndpoint} from './playground_audio_endpoint.js?v=y8950-adpcm-ui-1';
-import {validateYm2612Engine} from './playground_soundchip_options.js?v=y8950-adpcm-ui-1';
+import {validateYm2612Engine} from './playground_soundchip_options.js?v=pokey-mode-1';
 /** Browser setup; commands subsequently travel directly from Worker to Worklet. */
 const nativeFetch = globalThis.fetch?.bind(globalThis);
 /** @param {AudioContext} context
@@ -16,7 +16,7 @@ export async function createOpnAudio(context, destination, name, options = {}) {
   };
   const [wasmBinary] = await Promise.all([
     bytes(engine === 'nuked' ? '../generated/nuked_opn2_wasm.wasm' : {ym2612:'../generated/ym2612_wasm.wasm',ym2203:'../generated/ym2203_wasm.wasm',ym2610b:'../generated/ym2610b_wasm.wasm'}[backend]),
-    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=wonderswan-pcm-timeline-1', import.meta.url)),
+    context.audioWorklet.addModule(new URL('./playground_opn_worklet.js?v=pokey-mode-1', import.meta.url)),
   ]);
   const node = new AudioWorkletNode(context, 'tetorica-opn', {
     numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: {wasmBinary, name, ...(engine ? {engine} : {})},

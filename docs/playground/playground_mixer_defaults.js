@@ -23,7 +23,8 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
   "measuredEngineRoutes": 1,
   "measuredPrimaryRoutes": 28,
   "unmeasuredKinds": [
-    "wonderswan"
+    "wonderswan",
+    "pokey"
   ]
 });
 export const PLAYGROUND_MIXER_LISTENING_LEVELS = freeze({
@@ -126,6 +127,10 @@ const factoryDefaults = freeze({
     },
     {
       "name": "wonderswan",
+      "volume": 1
+    },
+    {
+      "name": "pokey",
       "volume": 1
     }
   ]
@@ -528,6 +533,37 @@ const factoryModes = freeze({
       {
         "id": "wonderswan",
         "name": "wonderswan",
+        "settings": {
+          "volume": 1
+        }
+      }
+    ]
+  },
+  "pokey": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "pokey",
+        "name": "pokey",
+        "settings": {
+          "volume": 1
+        }
+      }
+    ]
+  },
+  "pokey-dual": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "pokey",
+        "name": "pokey",
+        "settings": {
+          "volume": 1
+        }
+      },
+      {
+        "id": "pokey:2",
+        "name": "pokey",
         "settings": {
           "volume": 1
         }

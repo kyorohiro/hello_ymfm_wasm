@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.5",
+    "sourceCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+    "archiveName": "tetorica-soundchip-native-0.1.5-sources.zip",
+    "archiveSha256": "aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07",
+    "manifestSha256": "bb542e394b76b1e3c6a34010ecd909d09230ce8b47e76daabf06ccf98d90f280",
+    "fileCount": 408,
+    "localCandidate": {
+      "baseCommit": "f45cd2749ce20aeb77f39fcf90facf2772c5fa85",
+      "changedPaths": [
+        "CHANGELOG.md",
+        "README.md",
+        "docs/releases.md",
+        "docs/verification.md",
+        "sdk.json"
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "path": "LICENSE",
+      "size": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "wasm/pokey_wasm.cpp",
+      "size": 1101,
+      "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df"
+    },
+    {
+      "path": "scripts/build_pokey_wasm.sh",
+      "size": 761,
+      "sha256": "1f058e1c0be587f4443625f7ac3847850b838257e8c85b2835e38bfb8d228554"
+    },
+    {
+      "path": "vendor/libvgm-pokey/pokey.cpp",
+      "size": 37305,
+      "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96"
+    },
+    {
+      "path": "vendor/libvgm-pokey/pokey.h",
+      "size": 1573,
+      "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0"
+    },
+    {
+      "path": "vendor/libvgm-pokey/LICENSE",
+      "size": 1587,
+      "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583"
+    },
+    {
+      "path": "vendor/libvgm-pokey/README.md",
+      "size": 7686,
+      "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff"
+    },
+    {
+      "path": "vendor/libvgm-pokey/upstream/pokey.c",
+      "size": 41726,
+      "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9"
+    },
+    {
+      "path": "vendor/libvgm-pokey/upstream/snapshot-manifest.json",
+      "size": 841,
+      "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27"
+    }
+  ],
+  "modifications": [
+    "Only standalone recipe include/source paths relocate vendor/libvgm-pokey to third_party/libvgm-pokey. Core, bridge and upstream bytes are unchanged."
+  ]
+}
