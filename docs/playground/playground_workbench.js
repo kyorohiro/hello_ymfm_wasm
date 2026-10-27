@@ -1,4 +1,4 @@
-import {isSimplePlaygroundLayout} from './playground_mode.js?v=pokey-mode-1';
+import {isSimplePlaygroundLayout} from './playground_mode.js?v=pokey-voice-1';
 
 /** Arrange Files beside an editor and independently selectable bottom tools. */
 export function installPlaygroundWorkbench(root, {storage, search = window.location.search} = {}) {
@@ -46,14 +46,14 @@ export function installPlaygroundWorkbench(root, {storage, search = window.locat
   const toggle = element('button', 'dock-toggle');
   toggle.type = 'button'; toggle.textContent = 'Panel'; toggle.setAttribute('aria-controls', 'bottomDock');
   primaryTabs.appendChild(toggle);
-  for (const id of ['codePanel','operatorPanel','segapsgPanel','rf5c164Panel','pwmPanel','gameboyPanel','nesPanel','snesPanel','ym2151Panel','okim6258Panel','huc6280Panel','wonderswanPanel','dx7Panel','ym3812Panel','ym3526Panel','y8950Panel','ymf262Panel','ym2413Panel','ay8910Panel']) {
+  for (const id of ['codePanel','operatorPanel','segapsgPanel','rf5c164Panel','pwmPanel','gameboyPanel','nesPanel','snesPanel','ym2151Panel','okim6258Panel','huc6280Panel','wonderswanPanel','pokeyPanel','dx7Panel','ym3812Panel','ym3526Panel','y8950Panel','ymf262Panel','ym2413Panel','ay8910Panel']) {
     const panel = document.getElementById(id); if (panel) primaryPanels.appendChild(panel);
   }
   editor.append(primaryTabs, primaryPanels); right.append(editor, divider, dock);
   root.append(explorer, fileDivider, right);
   root.classList.add('workbench');
   const keyboardPanel = document.getElementById('keyboardPanel');
-  const auditionPanels = new Map(['operator', 'segapsg', 'rf5c164', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']
+  const auditionPanels = new Map(['operator', 'segapsg', 'rf5c164', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']
     .map(name => [name, document.getElementById(`${name}Panel`)]));
   let drag = null, visibilityHandler = null;
   function save() {try {storage?.setItem(key, JSON.stringify(state));} catch {}}

@@ -11,7 +11,7 @@ class Element {
   setAttribute(key, value) { this.attributes[key] = value; }
   addEventListener(name, callback) { (this.listeners[name] ??= []).push(callback); }
   removeEventListener(name, callback) { this.listeners[name] = (this.listeners[name] ?? []).filter(fn=>fn!==callback); }
-  async fire(name, extra = {}) { await Promise.all((this.listeners[name] ?? []).map(fn => fn({target: this, ...extra}))); await flush(); }
+  async fire(name, extra = {}) { await Promise.all((this.listeners[name] ?? []).map(fn => fn({type:name,target:this,preventDefault(){},...extra}))); await flush(); }
   setCustomValidity(value) { this.validityMessage = value; }
   reportValidity() {}
   getContext() { return null; }
@@ -28,13 +28,17 @@ function fixture(inspector, options = {}) {
     fire(name) { for (const callback of listeners.get(name) ?? []) callback(); },
     listenerCount(name) { return listeners.get(name)?.size ?? 0; },
   };
-  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','snes','ym2151','okim6258','wonderswan','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
+  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','snes','ym2151','okim6258','wonderswan','pokey','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
   const tabs = createPlaygroundChipTabs({roots, getInspector: () => inspector, pollMs: 100000, ...options});
   return {doc, roots, tabs};
 }
 const psgState = frequency => ({kind: 'segapsg', clock: 3579545, channels: [0, 1, 2].map(channel => ({channel, frequency, period: 254, attenuation: 4, active: true})), noise: {type: 'white', rate: 'tone3', attenuation: 7, active: true}});
 const snesState = (timeline={loaded:false}) => ({kind:'snes',samples:[{id:0,startAddress:1024,byteLength:9,frames:16,rootFrequencyHz:440,basePitch:4096,loop:true}],
   channels:Array.from({length:8},(_,channel)=>({channel,sample:0,pitch:4096,adsr1:0,adsr2:0,gain:100,volumeLeft:80,volumeRight:90,active:channel===1})),timeline});
+const pokeyState=(frequency=440)=>({kind:'pokey',clock:1789790,audctl:0,skctl:3,running:true,registers:Array.from({length:16},(_,index)=>index===15?3:0),
+  channels:Array.from({length:4},(_,channel)=>({channel,frequency,period:72,volume:0,configuredVolume:channel?8:0,distortion:5,volumeOnly:false,joined:false,helper:false,highClock:false,active:false,type:'Tone',reason:'Pure tone'}))});
+const chipAction=(root,name)=>walk(root).find(node=>node.dataset.chipAction===name);
+const chipChannel=(root,index)=>walk(root).find(node=>node.dataset.chipChannel===String(index));
 
 test('SNES applied voice editor selects physical voice and sends only the edited parameter',async()=>{
   const calls=[];let reads=0;
@@ -341,4 +345,89 @@ test('WonderSwan tab prepares only its primary chip and shares the selected phys
   await walk(roots.wonderswan).find(node=>node.dataset.chipAction==='ws-keyboard').fire('click');
   tabs.setVisible(null);const target=targets.at(-1);target.noteOn({id:'press',midi:69});await flush();assert.deepEqual(calls.at(-1).slice(0,2),['wonderswan','auditionOn']);assert.equal(calls.at(-1)[2][0],3);
   target.noteOff({id:'press'});await flush();assert.equal(calls.at(-1)[1],'auditionOff');tabs.dispose();
+});
+
+test('POKEY dual primary tabs route physical edits, held Keyboard leases and copied code to the selected instance',async()=>{
+  let prepared=false,preparations=0;const calls=[],reads=[],targets=[];
+  const inspector={list:()=>prepared?[{id:'pokey',kind:'pokey'},{id:'pokey:2',kind:'pokey'}]:[],read:async id=>{reads.push(id);return pokeyState(id==='pokey'?440:880);},invoke:async(...args)=>calls.push(args)};
+  const {tabs,roots}=fixture(inspector,{voiceApiNames:{pokey:'pokey','pokey:2':'pokey2'},ensureAudioReady:async()=>{prepared=true;preparations++;},onKeyboardTargetChange:target=>targets.push(target)});
+  try{
+    tabs.setVisible('pokey');await flush();assert.equal(preparations,0);assert.deepEqual(reads,[]);assert.deepEqual(calls,[],'opening a POKEY editor never creates or programs audio');
+    await chipAction(roots.pokey,'prepare').fire('click');assert.equal(preparations,1);assert.deepEqual(reads,['pokey']);assert.deepEqual(calls,[]);
+    assert.equal(walk(roots.pokey).filter(node=>node.dataset.chipChannel!==undefined).length,4);assert.equal(control(roots.pokey,'pokey-volume').value,'0');assert.match(control(roots.pokey,'pokey-code').value,/pokey\.setVolume\(0, 0\)/);
+    await tabs.refresh();assert.deepEqual(calls,[],'explicit refresh only reads applied state');
+    await chipChannel(roots.pokey,1).fire('click');const frequency=control(roots.pokey,'pokey-frequency');frequency.value='523.25';await frequency.fire('change');assert.deepEqual(calls[0],['pokey','setFrequency',[1,523.25]]);
+    await chipAction(roots.pokey,'pokey-keyboard').fire('click');const first=targets.at(-1);first.noteOn({id:'same-key',midi:60});await flush();const firstPress=calls.at(-1)[2][2];assert.deepEqual(calls.at(-1),['pokey','auditionOn',[1,60,firstPress]]);
+    const instance=control(roots.pokey,'instance');instance.value='pokey:2';await instance.fire('change');assert.ok(calls.some(([id,method,args])=>id==='pokey'&&method==='auditionOff'&&args[0]===1&&args[1]===firstPress));assert.equal(targets.at(-1),null,'instance switching retires the previous Keyboard binding');
+    assert.match(control(roots.pokey,'pokey-code').value,/pokey2\.setVolume\(0, 0\)/);assert.doesNotMatch(control(roots.pokey,'pokey-code').value,/^pokey\./m);
+    await chipChannel(roots.pokey,3).fire('click');const distortion=control(roots.pokey,'pokey-distortion');distortion.value='7';await distortion.fire('change');assert.deepEqual(calls.at(-1),['pokey:2','setDistortion',[3,7]]);assert.match(control(roots.pokey,'pokey-code').value,/pokey2\.setVolume\(3, 8\)/);
+    await chipAction(roots.pokey,'pokey-keyboard').fire('click');const second=targets.at(-1);assert.equal(second.name,'POKEY2 · CH4');second.noteOn({id:'same-key',midi:67});await flush();const secondPress=calls.at(-1)[2][2];assert.notEqual(secondPress,firstPress);assert.deepEqual(calls.at(-1),['pokey:2','auditionOn',[3,67,secondPress]]);
+    const before=calls.length;first.noteOff({id:'same-key'});first.allNotesOff();first.noteOn({id:'late',midi:65});await flush();assert.equal(calls.length,before,'retired targets cannot start or release the other chip');
+    tabs.setVisible(null);second.noteOff({id:'same-key'});await flush();assert.deepEqual(calls.at(-1),['pokey:2','auditionOff',[3,secondPress]],'hiding keeps the active Keyboard lease releasable');
+  }finally{tabs.dispose();}
+});
+
+test('POKEY editor audition selection reports helper and timeline availability without issuing failed invokes',async()=>{
+  let state=pokeyState();const selections=[],calls=[];
+  const inspector={list:()=>[{id:'pokey',kind:'pokey'}],read:async()=>state,invoke:async(...args)=>{calls.push(args);throw new Error('selection must not audition hardware');}};
+  const {tabs,roots}=fixture(inspector,{voiceApiNames:{pokey:'pokey'},onAuditionTargetChange:selection=>selections.push(selection)});
+  try{
+    tabs.setVisible('pokey');await flush();assert.deepEqual(selections.at(-1),{kind:'pokey',id:'pokey',channel:0});const before=selections.length;await tabs.refresh();assert.equal(selections.length,before,'unchanged ready snapshots keep the editor target stable');
+    state=pokeyState();state.audctl=state.registers[8]=16;state.channels[0].helper=state.channels[0].joined=true;await tabs.refresh();assert.deepEqual(selections.at(-1),{kind:'pokey',id:'pokey',channel:0,playable:false});
+    await chipAction(roots.pokey,'pokey-play').fire('click');await chipAction(roots.pokey,'pokey-keyboard').fire('click');assert.deepEqual(calls,[],'helper actions are suppressed before reaching the inspector');
+    await chipChannel(roots.pokey,1).fire('click');await roots.pokey.children.find(node=>node.tagName==='fieldset').fire('click');assert.deepEqual(selections.at(-1),{kind:'pokey',id:'pokey',channel:1});
+    for(const timeline of [{playing:true},{preparing:true},{pendingTimelines:1}]){
+      state={...pokeyState(),timeline};await tabs.refresh();assert.deepEqual(selections.at(-1),{kind:'pokey',id:'pokey',channel:1,playable:false});
+      await chipAction(roots.pokey,'pokey-play').fire('click');await chipAction(roots.pokey,'pokey-keyboard').fire('click');assert.deepEqual(calls,[],'busy actions are suppressed before reaching the inspector');
+      state={...pokeyState(),timeline:{loaded:true}};await tabs.refresh();assert.deepEqual(selections.at(-1),{kind:'pokey',id:'pokey',channel:1},'ready removes only the optional unavailable marker');
+    }
+    assert.deepEqual(calls,[],'readback and channel selection never send sound commands');
+  }finally{tabs.dispose();}
+});
+
+test('custom additional POKEY copied code binds the exact escaped identity without looking up a primary',async()=>{
+  const id='custom\nchip.reset();\u2028other',calls=[];
+  const inspector={list:()=>[{id,kind:'pokey',additional:true}],read:async selected=>{assert.equal(selected,id);return pokeyState();},invoke:async(...args)=>calls.push(args)};
+  const {tabs,roots}=fixture(inspector,{eventDrivenAdditionalKinds:['pokey'],voiceApiNames:{pokey:'pokey','pokey:2':'pokey2'}});
+  try{
+    tabs.setVisible('pokey');await flush();await tabs.refresh();assert.deepEqual(calls,[]);
+    const code=control(roots.pokey,'pokey-code').value;assert.match(code,/Bind chip to the selected POKEY instance "custom\\nchip\.reset\(\);\\u2028other"/);assert.match(code,/^chip\.setVolume\(0, 0\)/m);assert.doesNotMatch(code,/^pokey(?:2)?\.|useSoundChip|createSoundChip/m);
+    const volume=control(roots.pokey,'pokey-volume');volume.value='4';await volume.fire('change');assert.deepEqual(calls,[[id,'setVolume',[0,4]]]);
+  }finally{tabs.dispose();}
+});
+
+test('Native additional POKEY availability is metadata-only and editor reads follow visible events without polling',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const listeners=new Set(),availability=[],calls=[];let entries=[],reads=0,preparations=0;
+  const inspector={list:()=>entries,read:async()=>{reads++;return pokeyState();},invoke:async(...args)=>calls.push(args),subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
+  const watcher=createPlaygroundAdditionalChipTabAvailability({getInspector:()=>inspector,kinds:['pokey'],onAvailability:(...args)=>availability.push(args)});
+  const {tabs,roots}=fixture(inspector,{eventDrivenAdditionalKinds:['pokey'],pollMs:10,ensureAudioReady:async()=>{preparations++;}});
+  const emit=()=>{for(const listener of [...listeners])listener();};
+  try{
+    assert.deepEqual(availability,[['pokey',false]]);assert.equal(reads,0);
+    entries=[{id:'native-extra-pokey',kind:'pokey',additional:true,connected:true}];emit();assert.deepEqual(availability.at(-1),['pokey',true]);assert.equal(reads,0,'availability never reads chip state');
+    tabs.setVisible('pokey');await flush();assert.equal(reads,1);assert.equal(preparations,0);assert.match(control(roots.pokey,'pokey-code').value,/selected POKEY instance "native-extra-pokey"/);
+    t.mock.timers.tick(10000);await flush();assert.equal(reads,1,'the Native additional panel adds no polling timer');
+    emit();await flush();assert.equal(reads,2,'a connection event refreshes the visible panel once');
+    tabs.setVisible(null);const before=reads;emit();await tabs.refresh();t.mock.timers.tick(10000);await flush();assert.equal(reads,before,'hidden editor receives no state reads');
+    entries=[{id:'native-extra-pokey',kind:'pokey',additional:true,connected:false}];emit();assert.deepEqual(availability.at(-1),['pokey',false]);assert.equal(reads,before);assert.deepEqual(calls,[]);
+  }finally{tabs.dispose();watcher.dispose();}
+  assert.equal(listeners.size,0);assert.equal(preparations,0);
+});
+
+test('same-ID POKEY connection replacement fences stale controls, held targets and late edit ACKs',async()=>{
+  let token=1,finishOldEdit;const calls=[],targets=[],listeners=new Set();
+  const inspector={list:()=>[{id:'pokey:2',kind:'pokey',additional:true}],getConnectionToken:()=>token,read:async()=>pokeyState(token===1?440:880),
+    invoke:(...args)=>{calls.push({token,args});if(token===1&&args[1]==='setVolume')return new Promise(resolve=>{finishOldEdit=resolve;});return Promise.resolve();},subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);}};
+  const {tabs,roots}=fixture(inspector,{eventDrivenAdditionalKinds:['pokey'],voiceApiNames:{'pokey:2':'pokey2'},onKeyboardTargetChange:target=>targets.push(target)});
+  try{
+    tabs.setVisible('pokey');await flush();const oldVolume=control(roots.pokey,'pokey-volume');await chipChannel(roots.pokey,2).fire('click');await chipAction(roots.pokey,'pokey-keyboard').fire('click');const oldTarget=targets.at(-1);oldTarget.noteOn({id:'same',midi:60});await flush();oldVolume.value='5';await oldVolume.fire('change');assert.ok(finishOldEdit);
+    token=2;for(const listener of [...listeners])listener();await flush();const nextVolume=control(roots.pokey,'pokey-volume');assert.notEqual(nextVolume,oldVolume);assert.equal(targets.at(-1),null);assert.equal(control(roots.pokey,'pokey-frequency').value,'880');
+    assert.equal(calls.filter(call=>call.token===2&&call.args[1]==='auditionOff').length,0,'retiring the old connection must not send its release to the replacement');
+    const before=calls.length;oldVolume.value='2';await oldVolume.fire('change');oldTarget.noteOn({id:'late',midi:67});oldTarget.noteOff({id:'same'});oldTarget.allNotesOff();await flush();assert.equal(calls.length,before);
+    await chipAction(roots.pokey,'pokey-keyboard').fire('click');const nextTarget=targets.at(-1);nextTarget.noteOn({id:'same',midi:69});await flush();const newPress=calls.at(-1).args[2][2];assert.deepEqual(calls.at(-1),{token:2,args:['pokey:2','auditionOn',[0,69,newPress]]});
+    finishOldEdit();await flush();assert.equal(control(roots.pokey,'pokey-frequency').value,'880');assert.match(control(roots.pokey,'pokey-code').value,/pokey2\.setVolume\(0, 0\)/);
+    const count=calls.length;oldTarget.noteOff({id:'same'});assert.equal(calls.length,count);nextTarget.noteOff({id:'same'});await flush();assert.deepEqual(calls.at(-1),{token:2,args:['pokey:2','auditionOff',[0,newPress]]});
+    nextVolume.value='9';await nextVolume.fire('change');assert.deepEqual(calls.at(-1),{token:2,args:['pokey:2','setVolume',[0,9]]});
+  }finally{tabs.dispose();}
 });

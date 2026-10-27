@@ -364,7 +364,7 @@ export function createPlaygroundRuntime(
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
     if(megaDrive.pwm&&megaDrive.pwmDevice?.node?.port)entries.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)',port:megaDrive.pwmDevice.node.port});
-    for(const device of pcmDevices)entries.push({id:device.mixerId,kind:device.chipName,label:`${device.chipName.toUpperCase()}${device.engine==='nuked'?' (Nuked)':''} · ${device.mixerId}`,port:device.node.port,...(device.engine?{engine:device.engine}:{}),...(device.chipName==='nes'?{fdsEnabled:device.fdsEnabled}:{})});
+    for(const device of pcmDevices)entries.push({id:device.mixerId,kind:device.chipName,label:`${device.chipName.toUpperCase()}${device.engine==='nuked'?' (Nuked)':''} · ${device.mixerId}`,port:device.node.port,...(device.engine?{engine:device.engine}:{}),...(device.chipName==='nes'?{fdsEnabled:device.fdsEnabled}:{}),...(device.chipName==='pokey'?{additional:true}:{})});
     return entries;
   }});
   let releaseInspectorMixerSubscription=null;
@@ -2821,6 +2821,7 @@ export function createPlaygroundRuntime(
     if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
+    clearAuditions();
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     await primaryPcmSilence;
@@ -2961,6 +2962,7 @@ export function createPlaygroundRuntime(
     if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
+    clearAuditions();
     clearKeyboardHandlers();
     liveApi.clearRunFxChain({preservePrepared: true});
     setPlaybackState("running");

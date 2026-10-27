@@ -66,7 +66,10 @@ function fixture(t,{mode='genesis',future=false}={}){
   }
   function advance(ms){offset+=ms;for(let index=0;index<queue.length;){const entry=queue[index];if(entry.frame<=status().frame){queue.splice(index,1);const source=rack.get(entry.instance);if(source)apply(source.kind,source.state,entry.message,{owner:entry.owner});}else index++;}settle();}
   const invoke=async(command,args={})=>{
-    calls.push({command,args});if(command==='native_genesis_opl_status')return {ym3812:{...state('ym3812'),sourceMuteMask:0},sampleRate:48000,frame:status().frame,revision:0};
+    calls.push({command,args});if(command==='native_genesis_opl_status'){
+      const chip=OPL.includes(mode)?mode:'ym3812';
+      return {[chip]:{chip,clock:chip==='ymf262'?14318180:3579545,registers:Array(chip==='ymf262'?512:256).fill(0),channels:chip==='ymf262'?18:9,status:0,irq:false,ports:[0,0,0,0],sourceMuteMask:0,held:[],pendingCommands:[],sampleRate:48000,...(chip==='y8950'?{adpcmMemorySize:0,adpcmMemoryRevision:0,adpcmMemoryUploadRevision:0}:{})},sampleRate:48000,frame:status().frame,revision:0};
+    }
     const match=/^native_genesis_extra_(psg|ym2612|ym2203|ym2608|ym2610|ym2151|ym2413|ay8910|ym3526|ym3812|y8950|ymf262)_(create|dispose|status)$/.exec(command);
     if(match){const kind=match[1]==='psg'?'segapsg':match[1],op=match[2];if(op==='create'){if(gate)await gate.promise;if(rack.size>=16)throw Error('Native audio supports at most 16 additional sound chips');const s=state(kind);rack.set(args.instance,{kind,state:s});manual.set(s,new Map());owners.set(s,new Map());progress.set(s,0);}if(op==='dispose'){rack.delete(args.instance);settle();return true;}if(args.after&&queue.some(c=>c.instance===args.instance&&c.message.id===args.after))return new Promise((resolve,reject)=>waiters.push({kind,instance:args.instance,after:args.after,resolve,reject}));if(args.afterLayoutRevision!==undefined&&rack.get(args.instance).state.layoutRevision===args.afterLayoutRevision&&pending(args.instance))return new Promise((resolve,reject)=>waiters.push({kind,instance:args.instance,afterLayoutRevision:args.afterLayoutRevision,progress:progress.get(rack.get(args.instance).state),resolve,reject}));return snapshot(kind,args.instance);}
     if(command==='native_genesis_stop'||command==='native_genesis_shutdown'){rack.clear();queue.length=0;settle();}

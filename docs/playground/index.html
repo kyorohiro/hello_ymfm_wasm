@@ -2021,6 +2021,7 @@
             <button id="okim6258Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="okim6258Panel" hidden>OKIM6258</button>
             <button id="huc6280Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="huc6280Panel" hidden>HuC6280</button>
             <button id="wonderswanTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="wonderswanPanel" hidden>WonderSwan</button>
+            <button id="pokeyTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pokeyPanel" hidden>POKEY</button>
             <button id="dx7Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="dx7Panel" hidden>DX7</button>
             <button id="ym3812Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym3812Panel" hidden>YM3812</button>
             <button id="ym3526Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym3526Panel" hidden>YM3526</button>
@@ -2198,6 +2199,7 @@
             <p data-native-helper="huc6280" hidden>Open <strong>HuC6280</strong> to view and draw 32-sample, five-bit waveforms, adjust each channel’s volume and stereo balance, and try the sound with <strong>Hold to play</strong> or the shared Guitar Keyboard. <strong>Prepare audio</strong> works without Run. Noise is on CH5/CH6; LFO uses CH2 to modulate CH1. DDA is direct sample output, so switch to wavetable mode for note audition.</p>
             <p data-native-helper="wonderswan" hidden>Open <strong>WonderSwan</strong> to draw 32-sample, four-bit waveforms and adjust four channels’ left/right volume. Try the sound with <strong>Hold to play</strong> or the shared Guitar Keyboard. CH2 supports Voice PCM, CH3 Sweep and CH4 Noise. <code>ws.noteOn(0, "C4")</code> plays a channel; <code>ws.keyOff(0)</code> releases it.</p>
             <p data-native-helper="pokey" hidden><code>pokey</code> is the first four-channel POKEY. Use <code>pokey.setVolume(0, 6)</code>, <code>pokey.setNote(0, "C4")</code>, <code>pokey.keyOn(0)</code> and <code>pokey.keyOff(0)</code>. Channels are <code>0..3</code>; distortion 5 is a pure tone. Atari Arcade mode also provides <code>pokey2</code>, with its own four channels. Keyboard selects POKEY 1 or POKEY 2 and a physical channel. Each chip is mono; Mixer Pan controls host stereo placement.</p>
+            <p data-native-helper="pokey" hidden>Open <strong>POKEY</strong> to select a chip and physical channel, inspect applied registers, and edit volume, distortion, volume-only mode and shared clocks. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> or the shared Guitar Keyboard auditions the selected voice. Joined pairs use the upper channel for sound and the lower channel as a timer helper. Shared clock changes affect other voices on the same chip.</p>
             <p data-native-helper="huc6280" hidden><code>pce.setWaveform(0, wave)</code> loads 32 samples in <code>0..31</code>. Use <code>pce.setVolume(0, 20)</code>, <code>pce.noteOn(0, "C4")</code> and <code>pce.keyOff(0)</code>. Channels are <code>0..5</code>; noise is available on <code>4</code> and <code>5</code>.</p>
             <p data-native-helper="ym3812" hidden><code>opl</code> is the primary OPL2 instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3812</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
             <p data-native-helper="ym3526" hidden><code>opl</code> is the primary OPL instrument. Use <code>opl.setPreset(0, OPL_PRESETS.bell)</code>, <code>opl.noteOn(0, "C4")</code> and <code>opl.keyOff(0)</code>. Channels are numbered <code>0..8</code>; MIDI note 69 is A4. Open <strong>YM3526</strong> to inspect and edit operators, load an original preset and audition the current voice. Keyboard selects the chip and physical channel.</p>
@@ -2443,6 +2445,7 @@
           <section id="okim6258Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="okim6258Tab" hidden></section>
           <section id="huc6280Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="huc6280Tab" hidden></section>
           <section id="wonderswanPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="wonderswanTab" hidden></section>
+          <section id="pokeyPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="pokeyTab" hidden></section>
           <section id="dx7Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="dx7Tab" hidden></section>
           <section id="ym3812Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym3812Tab" hidden></section>
           <section id="ym3526Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym3526Tab" hidden></section>
@@ -2504,7 +2507,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=pokey-import-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=pokey-voice-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

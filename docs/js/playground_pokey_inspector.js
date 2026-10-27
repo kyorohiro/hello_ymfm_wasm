@@ -3,6 +3,7 @@ import {keyboardChannels} from './playground_keyboard_channels.js?v=pokey-mode-1
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=pokey-mode-1';
 const identity=value=>{if(typeof value!=='string'||!value.length||value.length>128)throw new TypeError('Audition identity must contain 1..128 characters');return `voice-editor:${value}`;};
 const channel=value=>{if(typeof value==='string'&&/^[0-3]$/.test(value))value=Number(value);if(!Number.isInteger(value)||value<0||value>3)throw new RangeError('POKEY channel must be 0..3');return value;};
+const distortionMode=(distortion,poly9)=>distortion===5||distortion===7?'Tone':distortion&1?'Poly5-gated tone':`Noise (${distortion&4?'':'Poly5 → '}${distortion&2?'Poly4':poly9?'Poly9':'Poly17'})`;
 
 export class PokeyVoiceInspector{
   /** @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions} [options] */
@@ -35,12 +36,18 @@ export class PokeyVoiceInspector{
     return this.stage(api=>api[method](...args));
   }
   read(){
-    const r=this.registers,clock=this.clock();
+    const r=this.registers,clock=this.clock(),audctl=r[8],skctl=r[15],baseDivider=audctl&1?114:28,poly9=!!(audctl&128),running=!!(skctl&3),twoTone=!!(skctl&8),serialClock=!!(skctl&0x70);
     const channels=Array.from({length:4},(_,ch)=>{const lower=ch&2,joined=!!(r[8]&(lower===0?16:8)),helper=joined&&ch===lower;
-      const high=!!(r[8]&(lower===0?64:32))&&(joined||ch===lower),divider=high?1:(r[8]&1?114:28),offset=high?(joined?7:4):1;
-      const period=joined?(r[lower*2]|r[(lower+1)*2]<<8):r[ch*2],frequency=clock/(2*divider*(period+offset));
-      return {channel:ch,period,frequency,joined,helper,highClock:high,distortion:r[ch*2+1]>>5,volume:r[ch*2+1]&15,configuredVolume:this.levels[ch],volumeOnly:!!(r[ch*2+1]&16),active:!!(r[ch*2+1]&15)};
+      const high=!!(audctl&(lower===0?64:32))&&(joined||ch===lower),divider=high?1:baseDivider,offset=high?(joined?7:4):1;
+      const audf=r[ch*2],audc=r[ch*2+1],period=joined&&!helper?(r[lower*2]|audf<<8):audf,frequency=clock/(2*divider*(period+offset));
+      const distortion=audc>>5,volume=audc&15,volumeOnly=!!(audc&16),highPass=ch===0?!!(audctl&4):ch===1?!!(audctl&2):false,filterClockFor=ch===2&&(audctl&4)?0:ch===3&&(audctl&2)?1:null;
+      const channelTwoTone=ch<2&&twoTone,type=volumeOnly?'Volume-only DAC':helper?'Joined timer helper':channelTwoTone?'Two-tone':serialClock?'Serial clock mode':highPass?'High-pass filtered':distortionMode(distortion,poly9);
+      const toneFrequency=type==='Tone'&&running&&volume>0?frequency:null,reason=volume===0?'Volume 0':!volumeOnly&&!running?'Timers stopped':type!=='Tone'?type:null;
+      // frequency remains the nominal timer calculation for existing clients.
+      // Only toneFrequency is a note estimate; helpers, noise, filters and DAC
+      // output do not have an independent square-tone pitch here.
+      return {channel:ch,audf,audc,period,divisor:divider,offset,frequency,timerHz:frequency,toneFrequency,type,reason,joined,helper,highClock:high,highPass,filterClockFor,running,twoTone:channelTwoTone,serialClock,distortion,volume,configuredVolume:this.levels[ch],volumeOnly,active:!!volume};
     });
-    return {kind:'pokey',clock,sampleRate:this.sampleRate,registers:Array.from(r),channels,keyboardChannels:keyboardChannels('pokey'),held:[...this.auditions.keys()]};
+    return {kind:'pokey',clock,sampleRate:this.sampleRate,audctl,skctl,baseClock:audctl&1?'15khz':'64khz',baseDivider,poly9,running,twoTone,serialClock,registers:Array.from(r),channels,keyboardChannels:keyboardChannels('pokey'),held:[...this.auditions.keys()]};
   }
 }

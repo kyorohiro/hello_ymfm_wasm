@@ -284,3 +284,18 @@ test('Inspector lists the physical YM2612 core without sending audio commands or
   entries[1].engine='ymfm';assert.equal(inspector.list()[1].engine,'nuked','caller metadata edits cannot replace the physical core');assert.equal(sent,0);
  }finally{inspector.dispose();}
 });
+
+test('Inspector preserves explicit additional metadata without requesting audio state or adding it to other entries',()=>{
+ let sent=0;const port={postMessage(){sent++;}};
+ const inspector=createChipInspector({endpoints:()=>[
+  {id:'pokey:extra',kind:'pokey',additional:true,port},
+  {id:'pokey',kind:'pokey',additional:false,port},
+  {id:'segapsg',kind:'segapsg',port},
+ ],decode:async()=>{}});
+ try{
+  const entries=inspector.list();assert.deepEqual(entries.map(entry=>entry.additional),[true,false,undefined]);
+  assert(!Object.hasOwn(entries[2],'additional'));
+  entries[0].additional=false;assert.equal(inspector.list()[0].additional,true);
+  assert.equal(sent,0);
+ }finally{inspector.dispose();}
+});

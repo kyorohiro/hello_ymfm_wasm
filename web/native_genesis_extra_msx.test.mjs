@@ -76,6 +76,13 @@ function fixture(t,{mode='genesis',future=false}={}){
   function advance(ms){offset+=ms;for(let i=0;i<queue.length;){const entry=queue[i];if(entry.frame<=status().frame){queue.splice(i,1);const source=rack.get(entry.instance);if(source)apply(source.kind,source.state,entry.message,{owner:entry.owner});}else i++;}settle();}
   const invoke=async(command,args={})=>{
     calls.push({command,args});if(command==='native_genesis_opl_status')return {ym3812:{chip:'ym3812',clock:3579545,registers:Array(256).fill(0),status:0,irq:false,held:[],pendingCommands:[],sourceMuteMask:0,sampleRate:48000},sampleRate:48000,frame:status().frame,revision:0};
+    if(command==='native_genesis_msx_status'||command==='native_genesis_master_system_status'){
+      const ym2413={clock:3579545,registers:Array(64).fill(0),status:0,irq:false,sourceMuteMask:0,held:[],pendingCommands:[],sampleRate:48000};
+      const primary=command==='native_genesis_msx_status'
+        ?{ay8910:{clock:1789773,registers:Array(16).fill(0),levels:[9,9,9],gates:[false,false,false],sourceMuteMask:0,held:[],pendingCommands:[],sampleRate:48000}}
+        :{segapsg:{stereo:255,clock:3579545,periods:[0,0,0],attenuations:[15,15,15,15],lastVolumes:[15,15,15,15],latched:0,mode:0,sourceMuteMask:0,held:[],pendingCommands:[],sampleRate:48000}};
+      return {...primary,ym2413,sampleRate:48000,frame:status().frame,revision:0};
+    }
     const match=/^native_genesis_extra_(psg|ym2612|ym2203|ym2608|ym2610|ym2151|ym2413|ay8910)_(create|dispose|status)$/.exec(command);
     if(match){const kind=match[1]==='psg'?'segapsg':match[1],op=match[2];if(op==='create'){if(gate)await gate.promise;if(rack.size>=16)throw Error('Native audio supports at most 16 additional sound chips');const s=state(kind);rack.set(args.instance,{kind,state:s});manual.set(s,new Map());owners.set(s,new Map());progress.set(s,0);}if(op==='dispose'){rack.delete(args.instance);settle();return true;}if(args.after&&queue.some(c=>c.instance===args.instance&&c.message.id===args.after))return new Promise((resolve,reject)=>waiters.push({kind,instance:args.instance,after:args.after,resolve,reject}));if(args.afterLayoutRevision!==undefined&&rack.get(args.instance).state.layoutRevision===args.afterLayoutRevision&&layoutPending(args.instance))return new Promise((resolve,reject)=>waiters.push({kind,instance:args.instance,afterLayoutRevision:args.afterLayoutRevision,progress:progress.get(rack.get(args.instance).state),resolve,reject}));return snapshot(kind,args.instance);}
     if(command==='native_genesis_stop'||command==='native_genesis_shutdown'){rack.clear();queue.length=0;settle();}

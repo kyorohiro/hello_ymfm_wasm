@@ -7,6 +7,40 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### POKEY Operators / voice editor完了 — 2026-10-27
+
+ユーザーの「pokeyでやり残したことを進めて」で、PlaygroundにPOKEYタブを追加。
+Atari 8-bit / Dual POKEYの4物理CH、2台の選択、Browser/Nativeの追加POKEYを扱う。
+適用済みtimer/register/volume/distortion/DAC/shared clock・poly・joinを表示・編集し、
+Hold/1秒preview/Guitar・PC Keyboardで試奏。共通Keyboardは右下にも表示できる。
+joined lower helperやtimeline準備/再生中は、共通Keyboardも発音命令を送らない。
+コードcopyはprimaryのpokey/pokey2を区別し、追加instanceは明示的なchip binding commentを出す。
+可視タブ用の既存更新処理を使い、開く・選択・状態取得では音源を書き戻さない。
+Browser追加POKEYのavailabilityはmetadataのみで更新し、hidden中のInspector RPCはない。
+
+実Browserで見つけた再Run後の試奏音残りも修正。
+Main/Workerとも音声準備完了と現run確認の後、新しいコード実行前に既存clearAuditionsを呼ぶ。
+無効な実行方式/未対応Worker/未知のsource/準備失敗では試奏を解除しない。
+新たに通るNative経路のテスト用snapshotを実際のRust protocolへ補完し、assertは維持。
+SDK/core/生成WASM/Mixer値・Rust/DSPは変更なし。cacheはpokey-voice-1。
+
+全Web/Playground4567件・mode型・Mixer生成値checkが成功。
+package305module/28WASMpair/352declaration・隔離install・実WASM・型3構成・880file検証成功。
+最終flatのChromium153/WebKit26.6 × single/dual/Genesis extras全6routeが成功。
+142capture/720896frames per channelで発音・pitch/level反応・解除後exact zero・左右一致を確認。
+単体のMain/Workerで手動lease/別CH所有権、hidden RPCなし、helper/busyの試奏RPCなしも確認。
+物理sinkはcapture後mute。実聴/実機比較は今回行っていない。
+
+ZIP全959fileがstageとbyte一致、実Browserの277served assetも同ZIPとSHA256一致。
+ZIP: release/hello_ymfm_wasm_pokey-voice-dev_itch_playground.zip
+SHA256: d367568cc0dfd300f0fdff05f5b50fc719c4e7028535706bd189f3a6a2499675
+Tauriへ958effective payload（既存規則で.DS_Store除外）を取り込み、dist/lock全一致。
+Python24/Node31・22offlinepins・source ZIP1919fileの検証が成功。Cargo再実行なし。
+source ZIP SHA256: f0afc0a1696c9b33f145215136a99b05e6f3c771ac923fd1ee2922784a9eb2d6
+詳細は[atari_pokey_operators_01.md](atari_pokey_operators_01.md)と同名JSON。
+commit/push/tag/remoteCI/npm/itch.io公開操作なし。npm公開版はFM0.2.31/VGM0.2.16のまま。
+残りの候補は実際のPOKEY VGM/音色の実聴・Atari実機との比較、外部POKEY I/O等。
+
 ### POKEY npm公開完了 — 2026-10-27
 
 ユーザー指定はnpm2packageのみ。FM0.2.31/VGM0.2.16へversion/README/CLI文書を更新し、配布物を検証済み。

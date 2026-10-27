@@ -308,8 +308,17 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>pokeyPrepareFiles.has(match[1]))){pokeyPrepareFiles.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+// Roll out the Operators panel and its applied-state reader with their callers.
+const pokeyVoiceVersion='pokey-voice-1';
+const pokeyVoiceFiles=new Set(['playground_pokey_voice_panel.js','playground_pokey_inspector.js','playground_pokey_worklet.js','playground_chip_inspector.js','playground_chip_tabs.js','playground_workbench.js','playground_operator_keyboard.js','playground_ui.js','playground.js','playground_mode.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(pokeyVoiceFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>pokeyVoiceFiles.has(match[1]))){pokeyVoiceFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
+  ...pokeyVoiceFiles,
   ...pokeyPrepareFiles,
   ...pokeyImportFiles,
   ...pokeyFiles,

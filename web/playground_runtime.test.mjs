@@ -1140,6 +1140,60 @@ function workerBridge(t) {
   };
   t.after(()=>{globalThis.Worker=previous;});return workers;
 }
+for(const execution of ['main','worker'])test(`accepted ${execution} reruns release held Operators auditions before new code without resetting the instrument`,async t=>{
+  const events=[],instrument={distortion:6,volume:11,period:93};let held=false,globalStops=0;
+  const {runtime,megaDrive}=setup(t,undefined,{onAuditionReset(){events.push('ui-release');held=false;}});
+  megaDrive.clearAuditions=()=>events.push('backend-release');
+  megaDrive.sample.stopAll=()=>{globalStops++;};
+  if(execution==='worker'){
+    const previous=globalThis.Worker;
+    globalThis.Worker=class{
+      postMessage(message){
+        if(message.type==='run'){assert.equal(held,false);events.push('user-code');queueMicrotask(()=>this.onmessage?.({data:{type:'complete',loopCount:0}}));}
+        if(message.type==='stop')queueMicrotask(()=>this.onmessage?.({data:{type:'stopped'}}));
+      }
+      terminate(){}
+    };
+    t.after(()=>{globalThis.Worker=previous;});
+  }
+  globalThis.playgroundReview={check(){assert.equal(held,false);events.push('user-code');}};
+  await runtime.initialize();assert.deepEqual(events,[],'audio initialization alone must preserve a manual audition');
+  megaDrive.fm.appliedPreset=instrument;
+  megaDrive.fm.reset=megaDrive.fm.setPreset=()=>assert.fail('Run must preserve the applied instrument');
+  for(let run=0;run<2;run++){
+    held=true;events.length=0;
+    await runtime.playSource(execution==='main'?'globalThis.playgroundReview.check();':'',{execution});
+    assert.deepEqual(events,['backend-release','ui-release','user-code']);assert.equal(held,false);assert.equal(globalStops,0);
+    assert.deepEqual(megaDrive.fm.appliedPreset,{distortion:6,volume:11,period:93});
+  }
+});
+test('rejected execution selection and unknown named sources preserve held Operators auditions',async t=>{
+  let releases=0;const {runtime}=setup(t,{chip:'ym2612',fmChannels:6,psg:true,dac:true,worker:false},{onAuditionReset(){releases++;}});
+  await assert.rejects(runtime.playSource('',{execution:'missing'}),/Unknown execution mode/);
+  await assert.rejects(runtime.playSource('',{execution:'worker'}),/Worker execution is unavailable/);
+  await assert.rejects(runtime.play('missing'),/Unknown source/);assert.equal(releases,0);
+});
+test('unavailable Worker environment rejects before releasing a held Operators audition',async t=>{
+  let releases=0;const {runtime}=setup(t,undefined,{onAuditionReset(){releases++;}}),previous=globalThis.Worker;
+  globalThis.Worker=undefined;t.after(()=>{globalThis.Worker=previous;});
+  await assert.rejects(runtime.playSource('',{execution:'worker'}),/Worker execution is not available/);assert.equal(releases,0);
+});
+for(const execution of ['main','worker']){
+  test(`first ${execution} Run waits for audio readiness before resetting Operators auditions`,async t=>{
+    const events=[],gate=deferred();let entered=false;
+    const {runtime,megaDrive}=setup(t,undefined,{onAuditionReset(){events.push('ui-release');}});
+    workerBridge(t);
+    megaDrive.start=async()=>{entered=true;await gate.promise;megaDrive.state='ready';events.push('audio-ready');};
+    megaDrive.clearAuditions=()=>{assert.equal(megaDrive.state,'ready','Native audition release requires a ready backend');events.push('backend-release');};
+    const playing=runtime.playSource('',{execution});await until(()=>entered);assert.deepEqual(events,[]);
+    gate.resolve();await playing;assert.deepEqual(events,['audio-ready','backend-release','ui-release']);
+  });
+  test(`failed ${execution} audio preparation leaves Operators auditions untouched`,async t=>{
+    let releases=0;const {runtime,megaDrive}=setup(t,undefined,{onAuditionReset(){releases++;}});workerBridge(t);
+    megaDrive.start=async()=>{throw new Error('Audio preparation failed');};
+    await assert.rejects(runtime.playSource('',{execution}),/Audio preparation failed/);assert.equal(releases,0);
+  });
+}
 for(const execution of ['main','worker'])test(`DX7 fatal primary failure restarts through Playground and reconnects ${execution} controls`,async t=>{
   const {runtime,megaDrive}=setup(t,{chip:'dx7',fmChannels:0,psg:false,dac:false}),workers=workerBridge(t);let starts=0;
   megaDrive.start=async()=>{
@@ -1772,7 +1826,7 @@ test('Main additional YM2612 snapshots its engine before ID reuse waits and pass
  `);
  assert.equal(requested.length,1);assert.equal(requested[0].engine,'nuked');assert.equal(requested[0].id,'engine-captured');
  assert.deepEqual(mixes,[{id:'engine-captured',name:'ym2612',engine:'nuked'}]);
- const listed=runtime.chipInspector.list().find(entry=>entry.id==='engine-captured');assert.equal(listed.engine,'nuked');assert.equal(listed.kind,'ym2612');assert.equal(listed.label,'YM2612 (Nuked) · engine-captured');
+ const listed=runtime.chipInspector.list().find(entry=>entry.id==='engine-captured');assert.equal(listed.engine,'nuked');assert.equal(listed.kind,'ym2612');assert.equal(listed.label,'YM2612 (Nuked) · engine-captured');assert(!Object.hasOwn(listed,'additional'),'other Browser chip metadata stays unchanged');
  runtime.stop();await runtime.finalize();assert(fixture.devices.every(device=>device.disposed));
 });
 
@@ -1834,7 +1888,7 @@ for(const allocation of ['useSoundChip','createSoundChip'])test(`Main WonderSwan
 });
 
 for(const allocation of ['createSoundChip','useSoundChip'])test(`Main ${allocation} selects the POKEY extra client rather than the PCM fallback`,async t=>{
-  let endpoint,disposed=false;const registers=new Uint8Array(16),commands=[];
+  let endpoint,disposed=false;const registers=new Uint8Array(16),commands=[],adminMessages=[];
   const factory=async(_context,_destination,options={})=>{
     const port={start(){},close(){},postMessage(command){
       commands.push(command);
@@ -1843,7 +1897,7 @@ for(const allocation of ['createSoundChip','useSoundChip'])test(`Main ${allocati
       else if(command.method==='stopVoices')for(let ch=0;ch<4;ch++)registers[ch*2+1]&=240;
       if(command.id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id:command.id,value:true}}));
     }};
-    endpoint={port,clock:options.clock??1789790,node:{port:{postMessage(){},addEventListener(){},removeEventListener(){},start(){}},disconnect(){}},dispose(){disposed=true;}};
+    endpoint={port,clock:options.clock??1789790,node:{port:{postMessage(message){adminMessages.push(message);},addEventListener(){},removeEventListener(){},start(){}},disconnect(){}},dispose(){disposed=true;}};
     return endpoint;
   };
   const createRuntime=await runtimeWithOpnAudio(factory,'createPokeyAudio'),{runtime,megaDrive}=setup(t,undefined,{},createRuntime);megaDrive.audio={masterInputNode:{}};
@@ -1857,5 +1911,9 @@ for(const allocation of ['createSoundChip','useSoundChip'])test(`Main ${allocati
   assert.equal(registers[15],3,'initialize starts the POKEY timers');assert.equal(registers[7],0xa6,'noteOn writes the selected AUDC with retained volume');
   assert.equal(registers[6],72,'A4 uses the POKEY timer divider');assert.equal(runtime.context.actualHz,clock/(2*28*73));
   assert(commands.some(command=>command.method==='writeRegister'&&command.channel===3));
+  const before=commands.length,entries=runtime.chipInspector.list(),listed=entries.find(entry=>entry.kind==='pokey');
+  assert.equal(listed.id,allocation==='createSoundChip'?'pokey:runtime-extra':'pokey:shared');assert.equal(listed.additional,true);
+  assert(entries.filter(entry=>entry.kind!=='pokey').every(entry=>!Object.hasOwn(entry,'additional')));
+  assert.equal(commands.length,before);assert.deepEqual(adminMessages,[],'listing the additional POKEY sends no audio or inspector requests');
   await runtime.finalize();assert.equal(disposed,true);
 });

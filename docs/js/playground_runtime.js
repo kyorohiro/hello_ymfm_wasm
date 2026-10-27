@@ -2,7 +2,7 @@ import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
 import {createSnesAudio} from './playground_snes_audio.js?v=pokey-prepare-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
-import {createChipInspector} from './playground_chip_inspector.js?v=pokey-prepare-1';
+import {createChipInspector} from './playground_chip_inspector.js?v=pokey-voice-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=pokey-prepare-1';
 import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pokey-import-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=pokey-prepare-1';
@@ -36,7 +36,7 @@ import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=pokey-prepare-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=pokey-prepare-1';
-import {createPokeyAudio} from './playground_pokey_audio.js?v=pokey-prepare-1';
+import {createPokeyAudio} from './playground_pokey_audio.js?v=pokey-voice-1';
 import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=pokey-prepare-1';
 import {createOki6258Audio} from './playground_okim6258_audio.js?v=pokey-prepare-1';
 import {createYm2608Audio} from './playground_ym2608_audio.js?v=pokey-prepare-1';
@@ -58,7 +58,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=pokey-prepare-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=pokey-prepare-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=pokey-voice-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -364,7 +364,7 @@ export function createPlaygroundRuntime(
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
     if(megaDrive.pwm&&megaDrive.pwmDevice?.node?.port)entries.push({id:'pwm',kind:'pwm',label:'32X PWM (primary)',port:megaDrive.pwmDevice.node.port});
-    for(const device of pcmDevices)entries.push({id:device.mixerId,kind:device.chipName,label:`${device.chipName.toUpperCase()}${device.engine==='nuked'?' (Nuked)':''} · ${device.mixerId}`,port:device.node.port,...(device.engine?{engine:device.engine}:{}),...(device.chipName==='nes'?{fdsEnabled:device.fdsEnabled}:{})});
+    for(const device of pcmDevices)entries.push({id:device.mixerId,kind:device.chipName,label:`${device.chipName.toUpperCase()}${device.engine==='nuked'?' (Nuked)':''} · ${device.mixerId}`,port:device.node.port,...(device.engine?{engine:device.engine}:{}),...(device.chipName==='nes'?{fdsEnabled:device.fdsEnabled}:{}),...(device.chipName==='pokey'?{additional:true}:{})});
     return entries;
   }});
   let releaseInspectorMixerSubscription=null;
@@ -2821,6 +2821,7 @@ export function createPlaygroundRuntime(
     if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
+    clearAuditions();
     clearKeyboardHandlers();
     liveApi.stopAllLoops();
     await primaryPcmSilence;
@@ -2961,6 +2962,7 @@ export function createPlaygroundRuntime(
     if (runToken !== currentRunToken) return;
     await ensureReady();
     if (runToken !== currentRunToken) return;
+    clearAuditions();
     clearKeyboardHandlers();
     liveApi.clearRunFxChain({preservePrepared: true});
     setPlaybackState("running");

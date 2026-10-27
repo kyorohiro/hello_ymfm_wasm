@@ -88,6 +88,9 @@ The Synth ZIP was rebuilt and its package dependency checks also passed.
 Machine-readable archive, Browser PCM/hash, Native, npm and SDK evidence is in
 [atari_pokey_playground_01.json](atari_pokey_playground_01.json).
 
-POKEY Operators editing, VGM Analyzer playback/import, external POKEY I/O and
-analog board emulation remain separate work. Automated PCM comparisons do not
-replace listening or comparison with Atari hardware.
+Subsequent work added [VGM Analyzer playback](atari_pokey_vgm_analyzer_01.md),
+[Playground VGM import](atari_pokey_vgm_import_01.md),
+[bounded timeline preparation](pokey_timeline_prepare_01.md), and the
+[POKEY voice editor](atari_pokey_operators_01.md).
+External POKEY I/O and analog board emulation remain separate work. Automated
+PCM comparisons do not replace listening or comparison with Atari hardware.

@@ -1,6 +1,49 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPokeyFixture,peak} from '../test/helpers/pokey_worklet_fixture.mjs';
+import {PokeyVoiceInspector} from './playground_pokey_inspector.js';
+
+test('POKEY inspector describes applied timer bytes, both joins and high clocks without treating helpers as pitched voices',()=>{
+  const inspector=new PokeyVoiceInspector();
+  for(const [register,value]of [[0,0x34],[1,0xa8],[2,0x12],[3,0xa8],[4,0x78],[5,0xa8],[6,0x56],[7,0xa8],[8,0xf9],[15,3]])inspector.observeWrite(register,value);
+  const state=inspector.read();assert.equal(state.audctl,0xf9);assert.equal(state.skctl,3);assert.equal(state.baseClock,'15khz');assert.equal(state.baseDivider,114);assert.equal(state.poly9,true);assert.equal(state.running,true);
+  for(const [lower,period]of [[0,0x1234],[2,0x5678]]){
+    const helper=state.channels[lower],voice=state.channels[lower+1];
+    assert.equal(helper.period,helper.audf);assert.equal(helper.type,'Joined timer helper');assert.equal(helper.toneFrequency,null);assert.equal(helper.helper,true);
+    assert.equal(voice.period,period);assert.equal(voice.type,'Tone');assert.equal(voice.divisor,1);assert.equal(voice.offset,7);assert.equal(voice.highClock,true);assert.equal(voice.toneFrequency,1789790/(2*(period+7)));assert.equal(voice.timerHz,voice.frequency);
+  }
+  inspector.observeWrite(8,0x60);const separate=inspector.read();
+  for(const ch of [0,2]){assert.equal(separate.channels[ch].highClock,true);assert.equal(separate.channels[ch].divisor,1);assert.equal(separate.channels[ch].offset,4);}
+  for(const ch of [1,3]){assert.equal(separate.channels[ch].highClock,false);assert.equal(separate.channels[ch].divisor,28);assert.equal(separate.channels[ch].offset,1);}
+  state.registers.fill(255);state.channels[0].audf=255;assert.equal(inspector.read().channels[0].audf,0x34,'view snapshots never become writeback');
+});
+
+test('POKEY inspector labels polynomial, DAC, filtered, stopped and SKCTL modes instead of inferring their notes',()=>{
+  const inspector=new PokeyVoiceInspector();inspector.observeWrite(15,3);inspector.observeWrite(0,71);
+  const modes=['Noise (Poly5 → Poly17)','Poly5-gated tone','Noise (Poly5 → Poly4)','Poly5-gated tone','Noise (Poly17)','Tone','Noise (Poly4)','Tone'];
+  for(let distortion=0;distortion<8;distortion++){
+    inspector.observeWrite(1,distortion*32+8);const state=inspector.read().channels[0];assert.equal(state.type,modes[distortion]);assert.equal(state.toneFrequency!==null,distortion===5||distortion===7);assert.equal(state.audc,distortion*32+8);assert.equal(state.distortion,distortion);
+  }
+  inspector.observeWrite(8,128);inspector.observeWrite(1,0x88);assert.equal(inspector.read().channels[0].type,'Noise (Poly9)');
+  inspector.observeWrite(1,0xb8);assert.equal(inspector.read().channels[0].type,'Volume-only DAC');assert.equal(inspector.read().channels[0].toneFrequency,null);
+  for(let ch=0;ch<4;ch++)inspector.observeWrite(ch*2+1,0xa8);inspector.observeWrite(8,6);const filtered=inspector.read();
+  for(const ch of [0,1]){assert.equal(filtered.channels[ch].highPass,true);assert.equal(filtered.channels[ch].type,'High-pass filtered');assert.equal(filtered.channels[ch].toneFrequency,null);}
+  assert.equal(filtered.channels[2].filterClockFor,0);assert.equal(filtered.channels[3].filterClockFor,1);assert.equal(filtered.channels[2].highPass,false);
+  inspector.observeWrite(8,0);inspector.observeWrite(15,11);const twoTone=inspector.read();assert.equal(twoTone.twoTone,true);assert.equal(twoTone.channels[0].type,'Two-tone');assert.equal(twoTone.channels[1].toneFrequency,null);assert.equal(twoTone.channels[2].type,'Tone');
+  inspector.observeWrite(15,0x13);const serial=inspector.read();assert.equal(serial.serialClock,true);assert(serial.channels.every(channel=>channel.type==='Serial clock mode'&&channel.toneFrequency===null));
+  inspector.observeWrite(15,0);const stopped=inspector.read();assert.equal(stopped.running,false);assert(stopped.channels.every(channel=>channel.reason==='Timers stopped'&&channel.toneFrequency===null));
+  for(const skctl of [1,2,3]){inspector.observeWrite(15,skctl);assert.equal(inspector.read().running,true);assert.equal(inspector.read().channels[0].toneFrequency,inspector.read().channels[0].frequency);}
+  inspector.observeWrite(1,0xa0);assert.equal(inspector.read().channels[0].reason,'Volume 0');assert.equal(inspector.read().channels[0].toneFrequency,null);
+});
+
+test('POKEY applied Operators snapshots do not consume reservations, change their time or render audio',async()=>{
+  const p=await createPokeyFixture();try{
+    p.receive({type:'performance-start',session:1});p.receive({performance:{session:1,owner:'later',time:.5},commands:[{method:'writeRegister',args:[1,0xa8]}]});
+    const before=p.processor.performance.getStats(),frame=p.processor.timelineState().currentFrame,registers=p.read().registers;
+    for(let count=0;count<10;count++)assert.deepEqual(p.read().registers,registers);
+    assert.deepEqual(p.processor.performance.getStats(),before);assert.equal(p.processor.timelineState().currentFrame,frame);assert.equal(before.queuedCommands,1);assert.equal(p.read().channels[0].toneFrequency,null);
+  }finally{p.close();}
+});
 
 test('POKEY inspector exposes four real applied voices without reading or advancing the sound core',async()=>{
   const p=await createPokeyFixture();

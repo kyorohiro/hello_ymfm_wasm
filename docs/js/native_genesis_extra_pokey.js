@@ -1,7 +1,7 @@
 import {preparePokeyTimeline} from './pokey_timeline.js?v=pokey-prepare-1';
 import {PokeySynth,POKEY_CLOCK} from './pokeysynth.js?v=pokey-mode-1';
 import {createPokeyRegisterClient} from './playground_pokey.js?v=pokey-prepare-1';
-import {PokeyVoiceInspector} from './playground_pokey_inspector.js?v=pokey-mode-1';
+import {PokeyVoiceInspector} from './playground_pokey_inspector.js?v=pokey-voice-1';
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=pokey-mode-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray as array} from './native_genesis_voice_endpoint.js?v=pokey-mode-1';

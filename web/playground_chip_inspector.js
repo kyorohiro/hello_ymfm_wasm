@@ -8,7 +8,7 @@ export function createChipInspector({endpoints, decode}) {
   // Layout is applied audio-thread metadata, independent of the authoring
   // shadows used by Main/Worker lookahead. Observing ports sends no requests.
   const layouts=new WeakMap();
-  const list=()=>{if(disposed)return [];synchronize();return endpoints().map(({id,kind,label,engine,fdsEnabled,port,rhythmEnabled})=>({id,kind,name:kind,label,connected:true,...(engine===undefined?{}:{engine}),...(fdsEnabled===undefined?{}:{fdsEnabled}),...(kind==='ym2413'?{rhythmEnabled:layouts.get(port)??rhythmEnabled??false}:{})}));};
+  const list=()=>{if(disposed)return [];synchronize();return endpoints().map(({id,kind,label,engine,fdsEnabled,port,rhythmEnabled,additional})=>({id,kind,name:kind,label,connected:true,...(engine===undefined?{}:{engine}),...(fdsEnabled===undefined?{}:{fdsEnabled}),...(additional===undefined?{}:{additional}),...(kind==='ym2413'?{rhythmEnabled:layouts.get(port)??rhythmEnabled??false}:{})}));};
   const connections=new WeakMap();let connectionSequence=0;
   function getConnectionToken(id){const {port}=endpointFor(id);if(!connections.has(port))connections.set(port,++connectionSequence);return connections.get(port);}
   const synchronize=()=>{

@@ -38,7 +38,7 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
     if (mode.chip === 'pokey') {
       assert.equal(mode.fmChannels,0);
-      assert.deepEqual(mode.chipTabs,[],'No placeholder voice-editor tab');
+      assert.deepEqual(mode.chipTabs,['pokey'],'POKEY modes expose the applied voice editor');
       assert.equal(mode.declarationChip,mode.id);
       assert.equal(mode.legacyDraftKey,mode.id,'single and dual drafts remain separate');
       assert.equal(options.dualPokey,mode.id === 'pokey-dual');
@@ -151,7 +151,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js'], ['pokey','playground_pokey_worklet.js'], ['pokey-dual','playground_pokey_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), 'pokey-prepare-1', `${id} cannot reuse its cached shared control transport`);
+    assert.equal(url.searchParams.get('v'), id.startsWith('pokey')?'pokey-voice-1':'pokey-prepare-1', `${id} cannot reuse its cached shared control transport`);
   }
 });
 

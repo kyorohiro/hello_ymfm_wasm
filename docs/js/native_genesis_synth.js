@@ -1,5 +1,5 @@
-import {createNativeGenesisExtraPokey,POKEY_TIMELINE_BUSY_ERROR,POKEY_TIMELINE_HELD_ERROR} from './native_genesis_extra_pokey.js?v=pokey-prepare-1';
-import {createNativeGenesisPokeyPrimary} from './native_genesis_pokey.js?v=pokey-prepare-1';
+import {createNativeGenesisExtraPokey,POKEY_TIMELINE_BUSY_ERROR,POKEY_TIMELINE_HELD_ERROR} from './native_genesis_extra_pokey.js?v=pokey-voice-1';
+import {createNativeGenesisPokeyPrimary} from './native_genesis_pokey.js?v=pokey-voice-1';
 import {createNativeGenesisExtraSpc,isExtraSpcRejection} from './native_genesis_extra_spc.js?v=pokey-mode-1';
 import {createNativeGenesisExtraSnes,EXTRA_SNES_ADMISSION_ERRORS} from './native_genesis_extra_snes.js?v=pokey-mode-1';
 import {createNativeGenesisExtraPwm,EXTRA_PWM_ADMISSION_ERRORS} from './native_genesis_extra_pwm.js?v=pokey-prepare-1';

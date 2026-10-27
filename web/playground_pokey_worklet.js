@@ -33,7 +33,7 @@ class Processor extends AudioWorkletProcessor{
   publishState(){this.port.postMessage({type:'pokey-state',state:this.inspector.getState()});}
   receive(data,port=this.port){
     if(Array.isArray(data)){for(const command of data)this.receive(command,port);return;}
-    if(data?.type==='chip-inspector'){receiveChipInspector(data,port,this.inspector?(action,method,args)=>{if(action!=='read'&&this.timelineCursor)throw new Error('Stop the POKEY timeline before editing its voices');const value=action==='read'?this.inspector.read():this.inspector.invoke(method,args);if(action!=='read')this.publishState();return value;}:null);return;}
+    if(data?.type==='chip-inspector'){receiveChipInspector(data,port,this.inspector?(action,method,args)=>{if(action!=='read'&&this.timelineCursor)throw new Error('Stop the POKEY timeline before editing its voices');const value=action==='read'?{...this.inspector.read(),timeline:this.timelineState()}:this.inspector.invoke(method,args);if(action!=='read')this.publishState();return value;}:null);return;}
     const stopping=data?.type==='performance-stop'&&Number.isSafeInteger(data.session)&&data.session>0&&data.session>=this.performance.getStats().latestSession;
     const replacing=data?.type==='performance-start'&&Number.isSafeInteger(data.session)&&data.session>this.performance.getStats().latestSession;
     const cancelling=data?.type==='performance-cancel-owner'&&data.session===this.performance.getStats().activeSession;

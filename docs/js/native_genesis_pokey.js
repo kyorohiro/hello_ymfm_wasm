@@ -1,4 +1,4 @@
-import {createNativeGenesisPokeyEndpoint} from './native_genesis_extra_pokey.js?v=pokey-prepare-1';
+import {createNativeGenesisPokeyEndpoint} from './native_genesis_extra_pokey.js?v=pokey-voice-1';
 /** Mode endpoints keep stable public clients while Native Stop retires the
  * callback rack. Replacement cores get fresh, increasing instance identities. */
 export function createNativeGenesisPokeyPrimary(synth,{id='pokey',globalName='pokey',clock=1789790}={}){

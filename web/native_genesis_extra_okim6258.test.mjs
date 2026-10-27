@@ -48,7 +48,7 @@ function fixture(t,{mode='genesis',future=false}={}){
   const invoke=async(command,args={})=>{
     calls.push({command,args});const match=/^native_genesis_extra_okim6258_(create|dispose|status)$/.exec(command);
     if(match){const op=match[1];if(op==='create'){if(gate)await gate.promise;if(rack.size>=16)throw Error('Native audio supports at most 16 additional sound chips');rack.set(args.instance,{instance:args.instance,state:state(),bytes:new Uint8Array()});}if(op==='dispose'){rack.delete(args.instance);settle();return true;}if(args.after&&queue.some(c=>c.instance===args.instance&&c.message.id===args.after))return new Promise((resolve,reject)=>waiters.push({instance:args.instance,after:args.after,resolve,reject}));return snapshot(args.instance);}
-    if(command==='native_genesis_x68000_status')return {okim6258:state(),sampleRate:48000,frame:status().frame};
+    if(command==='native_genesis_x68000_status')return {ym2151:{clock:4000000,registers:Array(256).fill(0),keyMasks:Array(8).fill(0),amDepth:0,pmDepth:0,status:0,irq:false,sourceMuteMask:0,held:[],pendingCommands:[],sampleRate:48000},okim6258:state(),sampleRate:48000,frame:status().frame};
     if(command==='native_genesis_stop'||command==='native_genesis_shutdown'){rack.clear();queue.length=0;settle();}
     if(command==='native_genesis_performance'&&args.op==='cancel-owner'){for(let i=queue.length-1;i>=0;i--)if(queue[i].owner===args.owner)queue.splice(i,1);for(const source of rack.values())apply(source,{method:'cancel-main-owner',targetGroup:`worker:${args.owner}`},{group:`worker:${args.owner}`});settle();}
     if(command==='native_genesis_commands'){

@@ -168,9 +168,9 @@ test('chip editors remain above a separately selected Mixer and navigate in visu
   assert.equal(options.mixerPanel.hidden, false);
 });
 
-for (const kind of ['gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910']) test(`${kind} voice editor coexists with Guitar Keyboard and keeps mode-specific navigation`,()=>{
+for (const kind of ['gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','pokey','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910']) test(`${kind} voice editor coexists with Guitar Keyboard and keeps mode-specific navigation`,()=>{
   const {options,events}=setup();
-  for(const name of ['segapsg','rf5c164','pwm','gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910']) {
+  for(const name of ['segapsg','rf5c164','pwm','gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','pokey','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910']) {
     options[`${name}Panel`]={};options[`${name}Tab`]={setAttribute(){},focus(){this.focused=true;}};
   }
   const ui=createPlaygroundUi({...options,chipTabs:[kind]});
@@ -190,16 +190,16 @@ for (const kind of ['gameboy','nes','snes','ym2151','okim6258','huc6280','wonder
 
 test('compact layouts float Keyboard for the selected playable chip and exclude streamed PWM', () => {
   const {options} = setup();
-  for (const name of ['gameboy','ym2151','pwm']) {
+  for (const name of ['gameboy','ym2151','pokey','pwm']) {
     options[`${name}Panel`] = {classList:classes()};
     options[`${name}Tab`] = {setAttribute() {}};
   }
-  const ui = createPlaygroundUi({...options,dockedPanels:false,chipTabs:['operator','gameboy','ym2151','pwm']});
-  for (const name of ['operator','gameboy','ym2151']) {
+  const ui = createPlaygroundUi({...options,dockedPanels:false,chipTabs:['operator','gameboy','ym2151','pokey','pwm']});
+  for (const name of ['operator','gameboy','ym2151','pokey']) {
     ui.setBottomTab(name);
     assert.equal(options.keyboardPanel.hidden,false);
     assert.equal(options.keyboardPanel.classList.contains('is-floating-keyboard'),true);
-    for (const other of ['operator','gameboy','ym2151']) {
+    for (const other of ['operator','gameboy','ym2151','pokey']) {
       assert.equal(options[`${other}Panel`].classList.contains('has-floating-keyboard'),other === name);
     }
   }
@@ -224,7 +224,7 @@ test('workbench moves one shared Keyboard between chip overlays and the selected
   });
   for (const name of ['fileExplorer','fileExplorerDivider','shellActions',
     ...['audioMonitor','fxMonitor','mixer','console','shell','keyboard','helpers'].flatMap(name => [`${name}Tab`,`${name}Panel`]),
-    ...['code','operator','segapsg','rf5c164','pwm','gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(name => `${name}Panel`)]) nodes.set(name,makeNode());
+    ...['code','operator','segapsg','rf5c164','pwm','gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','pokey','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(name => `${name}Panel`)]) nodes.set(name,makeNode());
   const tabbar = makeNode(), root = makeNode(); root.querySelector = () => tabbar;
   const previousDocument = globalThis.document, previousResizeObserver = globalThis.ResizeObserver;
   globalThis.document = {createElement:makeNode,getElementById:name => nodes.get(name)};
@@ -233,7 +233,7 @@ test('workbench moves one shared Keyboard between chip overlays and the selected
   try {
     workbench = installPlaygroundWorkbench(root,{storage:null,search:'?mode=gameboy'});
     const keyboard = nodes.get('keyboardPanel'), dock = keyboard.parentElement;
-    for (const name of ['operator','segapsg','rf5c164','gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910']) {
+    for (const name of ['operator','segapsg','rf5c164','gameboy','nes','snes','ym2151','okim6258','huc6280','wonderswan','pokey','dx7','ym3812','ym3526','y8950','ymf262','ym2413','ay8910']) {
       workbench.sync({primaryTab:name,bottomTab:'console',dockOpen:true});
       assert.notEqual(keyboard.parentElement,dock,`${name}: compact controls belong outside the dock`);
       assert.equal(keyboard.classList.contains('is-floating-keyboard'),true);

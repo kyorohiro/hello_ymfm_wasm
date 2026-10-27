@@ -25,9 +25,9 @@ const definitions = [
   {id:'atari-st', label:'Atari ST', chip:'ay8910', declarationChip:'atari-st', engine:'psg', fmChannels:0,
     clock:2000000, legacyDraftKey:'atari-st', chipTabs:['ay8910'], details:'YM2149 · 2,000,000 Hz · 3 tones + shared noise and envelope · Mono'},
   {id:'pokey', label:'Atari 8-bit', chip:'pokey', declarationChip:'pokey', engine:'psg', fmChannels:0,
-    clock:1789790, legacyDraftKey:'pokey', chipTabs:[], details:'POKEY · 1,789,790 Hz · 4 voices · Mono'},
+    clock:1789790, legacyDraftKey:'pokey', chipTabs:['pokey'], details:'POKEY · 1,789,790 Hz · 4 voices · Mono'},
   {id:'pokey-dual', label:'Atari Arcade (Dual POKEY)', chip:'pokey', declarationChip:'pokey-dual', engine:'psg', fmChannels:0,
-    clock:1789773, dualPokey:true, legacyDraftKey:'pokey-dual', chipTabs:[], details:'2 × POKEY · 1,789,773 Hz · 4 + 4 voices · Independent chips'},
+    clock:1789773, dualPokey:true, legacyDraftKey:'pokey-dual', chipTabs:['pokey'], details:'2 × POKEY · 1,789,773 Hz · 4 + 4 voices · Independent chips'},
   {id:'msx', label:'MSX', chip:'msx', declarationChip:'msx', engine:'msx', fmChannels:0, chipTabs:['ym2413','ay8910'],
     details:'PSG + MSX-MUSIC'},
   {id:'msx-audio', label:'MSX Audio', chip:'msx-audio', declarationChip:'msx-audio', engine:'msx', fmChannels:0, chipTabs:['y8950','ym2413','ay8910'],
@@ -97,7 +97,7 @@ export function createModeSynthOptions(mode, base = new URL('../js/', import.met
   const generated = new URL('generated/', new URL('../', base));
   if (mode.chip === 'pokey') return {
     chip:'pokey', clock:mode.clock, dualPokey:mode.dualPokey === true,
-    workletUrl:new URL('./playground_pokey_worklet.js?v=pokey-prepare-1',base).href,
+    workletUrl:new URL('./playground_pokey_worklet.js?v=pokey-voice-1',base).href,
     wasmUrl:new URL('pokey_wasm.wasm',generated).href,
     segaPsgWasmUrl:null, megaCD:false, mega32X:false,
   };

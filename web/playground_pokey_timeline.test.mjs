@@ -34,6 +34,31 @@ test('POKEY timeline rejects late/busy/manual edits and completion cannot surviv
     const state=await f.client.stopTimeline();assert.equal(state.cancelled,true);await cancelled;assert.equal(f.render()[0].every(value=>value===0),true);
   }finally{f.close();}
 });
+test('POKEY inspector reads report timeline ownership without rendering or changing voices',async()=>{
+  const f=await createPokeyFixture();try{
+    let sequence=0;
+    const read=()=>{
+      const before=f.processor.inspector.getState(),frame=f.processor.nowFrame(),id=`timeline-read:${++sequence}`;
+      f.receive({type:'chip-inspector',id,action:'read'});
+      const reply=f.messages.findLast(message=>message.type==='chip-inspector-result'&&message.id===id);
+      assert(reply&&!reply.error,JSON.stringify(reply));
+      assert.deepEqual(f.processor.inspector.getState(),before,'monitoring must not alter the applied voice');
+      assert.equal(f.processor.nowFrame(),frame,'monitoring must not generate audio');
+      return reply.value.timeline;
+    };
+    assert.equal(read().loaded,false);
+    const preparing=f.client.prepareTimeline(makeTrace());
+    assert.equal(read().preparing,true,'the editor must become busy before the upload finishes');
+    await f.pump(preparing);
+    assert.equal(read().loaded,true);assert.equal(read().preparing,false);
+    const playing=f.client.playTimeline({startFrame:f.processor.nowFrame()+512});
+    const cancelled=assert.rejects(playing,error=>error.name==='AbortError');
+    assert.equal(read().playing,true,'a future timeline start already owns the voices');
+    await f.client.stopTimeline();await cancelled;
+    assert.equal(read().playing,false);assert.equal(read().cancelled,true);
+    assert.equal(f.render()[0].every(value=>value===0),true);
+  }finally{f.close();}
+});
 test('POKEY timeline future start cancels on owner, replacement, reset, Stop and dispose',async()=>{
   for(const action of ['owner','replace','reset','stop','dispose']){const f=await createPokeyFixture();try{await f.pump(f.client.prepareTimeline(makeTrace()));f.receive({type:'performance-start',session:1});const messages=[],port={postMessage:m=>messages.push(m)};f.processor.receive({performance:{session:1,owner:'import',time:0},commands:[{method:'playTimeline',args:[{startFrame:512}],id:'play'}]},port);assert.equal(f.processor.timelineState().playing,true);
     if(action==='owner')f.receive({type:'performance-cancel-owner',session:1,owner:'import'});if(action==='replace')f.receive({type:'performance-start',session:2});if(action==='reset')f.client.reset();if(action==='stop')f.receive({type:'performance-stop',session:1});if(action==='dispose')f.processor.dispose();
