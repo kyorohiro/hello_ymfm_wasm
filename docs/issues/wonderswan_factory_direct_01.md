@@ -2,6 +2,11 @@
 
 Date: 2026-10-27.
 
+Follow-up: the direct factory and generic Worklet support were subsequently
+published in npm `0.2.30`. The development status below describes this earlier
+step; see [wonderswan_factory_worklet_01.md](wonderswan_factory_worklet_01.md)
+for the current implementation and release verification.
+
 The npm root entry now accepts `createSoundChip('wonderswan')` and returns
 an independent `WonderSwan` raw core with an immutable `id`. It uses the
 existing asset loader and supports `assetBaseUrl`, `moduleFactory`,

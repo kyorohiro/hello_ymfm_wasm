@@ -19,6 +19,7 @@ function integer(value, minimum, maximum, label) {
 export class WonderSwan {
   #module; #handle; #clock; #rate;
   #pointer = 0; #capacity = 0; #heap = null; #viewFrames = -1;
+  #shortHeap = null; #shortViews = null;
   #view = Object.freeze({left:new Float32Array(0), right:new Float32Array(0)});
   #empty = Object.freeze({left:new Float32Array(0), right:new Float32Array(0)});
 
@@ -116,6 +117,7 @@ export class WonderSwan {
   }
 
   /** Reserve output memory before a real-time render loop. Capacity is retained.
+   * Prefix views through 128 frames are prewarmed for AudioWorklet segments.
    * @param {number} frames
    * @returns {void}
    */
@@ -127,6 +129,13 @@ export class WonderSwan {
     if (!pointer) throw new Error('WonderSwan audio buffer allocation failed');
     if (this.#pointer) this.#module._free(this.#pointer);
     this.#pointer = pointer; this.#capacity = capacity; this.#heap = null;
+    this.#prepareShortViews();
+  }
+  #prepareShortViews() {
+    const heap=this.#module.HEAPF32,left=this.#pointer/4,right=left+this.#capacity;
+    this.#shortViews=Array.from({length:Math.min(128,this.#capacity)+1},(_,frames)=>frames?
+      Object.freeze({left:heap.subarray(left,left+frames),right:heap.subarray(right,right+frames)}):this.#empty);
+    this.#shortHeap=heap;
   }
   /** Borrowed PCM views: consume immediately. A later render, reserveFrames()
    * expansion, heap growth or dispose invalidates their contents/lifetime.
@@ -142,6 +151,10 @@ export class WonderSwan {
     const right = this.#pointer + this.#capacity * 4;
     this.#module._wonderswan_generate(this.#handle, this.#pointer, right, frames);
     const heap = this.#module.HEAPF32;
+    // Normal <=128-frame worklet spans reuse prewarmed wrappers even when
+    // register scheduling alternates between short segment lengths.
+    if(heap!==this.#shortHeap)this.#prepareShortViews();
+    if(frames<=128)return this.#shortViews[frames];
     if (heap !== this.#heap || frames !== this.#viewFrames) {
       this.#view = Object.freeze({left:heap.subarray(this.#pointer / 4, this.#pointer / 4 + frames),
         right:heap.subarray(right / 4, right / 4 + frames)});
@@ -183,6 +196,7 @@ export class WonderSwan {
     if (this.#handle) this.#module._wonderswan_destroy(this.#handle);
     this.#pointer = this.#handle = this.#capacity = 0;
     this.#heap = null; this.#viewFrames = -1;
+    this.#shortHeap = this.#shortViews = null;
     this.#view = this.#empty;
   }
 }

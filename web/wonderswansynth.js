@@ -3,6 +3,7 @@ import {WONDERSWAN_CLOCK} from './wonderswan.js';
 import {prepareWonderSwanTimeline} from './wonderswan_timeline.js';
 
 export {WONDERSWAN_CLOCK};
+export {WonderSwanWorkletTransport} from './chip_worklet_transport.js';
 
 function integer(value, minimum, maximum, label = 'integer') {
   if (!Number.isInteger(value) || value < minimum || value > maximum) throw new RangeError(`Expected ${label} ${minimum}..${maximum}`);

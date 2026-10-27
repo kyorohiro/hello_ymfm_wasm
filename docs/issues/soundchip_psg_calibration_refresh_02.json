@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "reason": "Adding WonderSwan to the JSDoc WorkletChipName union changes a tracked public factory source. Strict whole-file provenance requires repeating the existing PSG measurements.",
+  "historicalReport": {
+    "path": "docs/issues/soundchip_psg_levels_02.json",
+    "sha256": "77f1824c65e495f6bc139be3797b4093fa0d6f703d396db25475f4e28f9e317f"
+  },
+  "refreshedReport": {
+    "path": "docs/issues/soundchip_psg_levels_03.json",
+    "sha256": "be9e48dc5b9a95bf5aa2f5840dc927625ab49497d76cc3380ddea7273f57af7a"
+  },
+  "changedSources": [
+    "web/soundchip.js"
+  ],
+  "sourceChange": {
+    "path": "web/soundchip.js",
+    "historicalRevision": "1e9d94caff76ad9c6efc2392c3001b9a4c981b61",
+    "historicalSha256": "fabcd553ac956a08755a0a1ecf42f97aa0bc4d6362b8fe90a0add100de13c55c",
+    "currentSha256": "abf2a60579ccb17d805b0f3a429057626cf72f82259b284ce86e34d14ae08682",
+    "scope": "Only the JSDoc WorkletChipName union adds wonderswan; executable statements are unchanged.",
+    "executableCanonicalization": "esbuild transformSync, JavaScript loader, ES2022, ESM, legalComments=none, minifyWhitespace=true",
+    "executableByteIdentical": true,
+    "canonicalSha256": "c5a052c974853d8e382c959e902ea859d52cc1453ca657f43c1ce5224a2a5c3c",
+    "rawSourceIdenticalAfterSingleJSDocUnionEdit": true,
+    "exactEdit": {
+      "before": "|'ay8910'} WorkletChipName",
+      "after": "|'ay8910'|'wonderswan'} WorkletChipName"
+    }
+  },
+  "measurementBodyExcludingSourcesIdentical": true,
+  "measurementBodySha256": "3bef97ea26e2938a5f926cabc5b9783b4299f117a225f739dc873db76d55e50d",
+  "measurementScriptUnchanged": true,
+  "method": "Execute the unchanged public WASM measurement script for all 18 captures. Require every result field excluding source provenance to equal receipt 02 exactly; verify each fresh whole-file hash; canonicalize historical/current factory executable JavaScript after comment removal and require exact equality; compare checked-in preset bytes against HEAD.",
+  "actualMeasurementsRepeated": 18,
+  "captureMatrix": {
+    "kinds": [
+      "segapsg",
+      "ay8910",
+      "nes"
+    ],
+    "frequencyHz": [
+      220,
+      440,
+      880
+    ],
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "warmupSeconds": 0.25,
+    "captureSeconds": 1
+  },
+  "defaultsUnchanged": {
+    "segapsg": 0.45542,
+    "ay8910": 1.100331,
+    "nes": 1.514209
+  },
+  "generatedPresets": [
+    {
+      "path": "web/soundchip_mixer_presets.js",
+      "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6",
+      "identicalToHead": true
+    },
+    {
+      "path": "docs/js/soundchip_mixer_presets.js",
+      "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+      "identicalToHead": true
+    }
+  ],
+  "gainChanges": false,
+  "sourceHashGuardBypassed": false,
+  "physicalAudioTested": false,
+  "verification": {
+    "defaultSourceHashCheckPassed": true,
+    "generatorTestsPassed": 5
+  }
+}

@@ -7,6 +7,28 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### WonderSwan汎用Worklet・Examples・npm0.2.30 — 2026-10-27
+
+`createSoundChip('wonderswan', {execution:'worklet'})`と`WonderSwanWorkletTransport`を追加。
+共通Mixer・Main/Worker・転送MessagePort・非同期RAM/read/mute・ACK barrierに対応。
+実AudioContext sampleRateと固定chip clockを使い、出力は既存speaker rendererの中心値補正を再利用。
+raw Direct PCM・Mixer値・SDK0.1.4・C++・生成WASMは不変。source音量1.0とendpoint gain0.25は別。
+時刻付きVoice PCMは最大65,536件を事前予約、cursorで消費し、Stop/reset/dispose/owner取消で解除。
+短区間のborrowed viewをcacheし、heap拡張後も再生成する。owned PCM APIは保持。
+source94/既存generic8/既存WonderSwan73test成功。raw126case・3,096,576frames差0。
+293module/27pair/339宣言build、985参照/15renderer/実WASM27/3種の型構成が成功。
+最終archive841fileをstage/隔離installとbyte照合。Chromium153/WebKit26.6でMixer・実Worker・Voice PCM・停止後無音を確認。
+Examplesへ4CH Wave、Noise/Sweep、1秒12kHz Voice PCMのWeb/Node3例を追加。Node全30例とBrowser全6caseが成功。
+物理音声はミュートしたPCM測定で、ユーザーによる実聴は未確認。
+PSG校正18件を再実測し全数値一致。source receipt03へ更新しguardは維持、gain変更なし。
+検証済みtgz SHA256は`37039bfec4786e09163e955a8830b7c32b3db12651c68b41bedd22e8aec298e4`。
+npm0.2.30公開済み・latest確認済み。registry再取得と検証済みtgzの全byte/SHA1/SHA512一致。
+Examples依存/lockはregistry公開版0.2.30へ更新済み。全841package fileを検証済み配布物と照合。
+`build:docs`で59例・1,069fileを生成、ソース/リンク照合とdiff検査が成功。
+詳細は[wonderswan_factory_worklet_01.md](wonderswan_factory_worklet_01.md)と同名JSON。
+本体・Examplesは未commit。commit/push/tag/CI/itch.io/Examplesサイト公開の操作なし。
+次はExamplesをユーザー環境で実聴し、必要ならcommit/pushしてサイトを更新する。
+
 ### npm共通factoryのWonderSwan Direct対応 — 2026-10-27
 
 npm入口の`createSoundChip('wonderswan')`を追加。既存loaderと生coreを使い、独立handle・readonly ID・同期register/RAM/PCM APIを返す。

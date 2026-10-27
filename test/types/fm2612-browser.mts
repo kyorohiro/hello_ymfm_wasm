@@ -5,6 +5,7 @@ import {MegaSynth} from 'tetorica-fm2612/megasynth';
 import {Playground} from 'tetorica-fm2612/playground_runtime';
 import {createDeadlineScheduler} from 'tetorica-fm2612/playground_clock';
 import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth';
+import {WonderSwanWorkletTransport} from 'tetorica-fm2612/chip_worklet_transport';
 const wsChip=await createSoundChip('wonderswan',{sampleRate:48000,clock:3072000});
 const wsId:string=wsChip.id;
 wsChip.loadMemory(new Uint8Array([0x10,0x32]),0);
@@ -13,8 +14,23 @@ const wsByte:number=wsChip.readMemory(0x3fff),wsRegister:number=wsChip.readRegis
 const wsPcm:{left:Float32Array;right:Float32Array}=wsChip.generateStereo(128);
 new WonderSwanSynth({transport:new WonderSwanDirectTransport(wsChip)}).initialize();
 void [wsId,wsByte,wsRegister,wsPcm];
-// @ts-expect-error Generic WonderSwan creation currently supports direct execution only.
-await createSoundChip('wonderswan',{execution:'worklet'});
+const wsWorklet=await createSoundChip('wonderswan',{execution:'worklet',clock:3072000});
+const wsWorkletTransport=new WonderSwanWorkletTransport(wsWorklet);
+new WonderSwanSynth({transport:wsWorkletTransport,clock:wsWorklet.clock}).initialize();
+await wsWorkletTransport.loadMemory(new Uint8Array([0x10,0x32]),0);
+const wsAsyncByte:number=await wsWorkletTransport.readMemory(0);
+const wsAsyncRegister:number=await wsWorkletTransport.readRegister(0x90);
+const wsScheduled:number=await wsWorkletTransport.scheduleWrites([{time:1,register:0x89,value:128}]);
+await wsWorkletTransport.setChannelMuted(3,false);
+await wsWorkletTransport.clearScheduledWrites();await wsWorkletTransport.flush();
+new WonderSwanWorkletTransport(wsWorklet.createTransportPort()).writeMemory(0,0x10);
+void [wsAsyncByte,wsAsyncRegister,wsScheduled];
+// @ts-expect-error Worklet readback returns a Promise.
+wsWorkletTransport.readMemory(0).toFixed();
+// @ts-expect-error Worklet transport parameters keep numeric types.
+wsWorkletTransport.writeRegister('0x90',1);
+// @ts-expect-error Worklet endpoints cannot render synchronously on Main.
+wsWorklet.generateStereo(128);
 // @ts-expect-error Direct chips do not expose an AudioWorklet output node.
 wsChip.node.connect(new AudioContext().destination);
 // @ts-expect-error Browser direct IDs are readonly too.

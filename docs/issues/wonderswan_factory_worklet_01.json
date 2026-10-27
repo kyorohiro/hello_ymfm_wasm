@@ -1,0 +1,1380 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "package": "tetorica-fm2612",
+  "version": "0.2.30",
+  "implementationComplete": true,
+  "release": {
+    "files": 841,
+    "bytes": 1637849,
+    "sha256": "37039bfec4786e09163e955a8830b7c32b3db12651c68b41bedd22e8aec298e4",
+    "shasum": "6893bb5bc2875a41e35c8733bfe28dbd0d318ab2",
+    "integrity": "sha512-weixRle9x29IkldCpMTavBK2qvVwt2A1L8cEqvuUACfX0U5GO5v/yw/oIbkQzdlP4p5BK7yKdPpEyM3F9u5N7w==",
+    "allPackedFilesEqualStageAndInstalled": true
+  },
+  "publication": {
+    "passed": true,
+    "version": "0.2.30",
+    "latest": "0.2.30",
+    "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.30.tgz",
+    "fileCount": 841,
+    "bytes": 1637849,
+    "sha256": "37039bfec4786e09163e955a8830b7c32b3db12651c68b41bedd22e8aec298e4",
+    "shasum": "6893bb5bc2875a41e35c8733bfe28dbd0d318ab2",
+    "integrity": "sha512-weixRle9x29IkldCpMTavBK2qvVwt2A1L8cEqvuUACfX0U5GO5v/yw/oIbkQzdlP4p5BK7yKdPpEyM3F9u5N7w==",
+    "downloadByteEqualValidatedArchive": true
+  },
+  "sourceFiles": {
+    "web/soundchip.js": {
+      "bytes": 12399,
+      "sha256": "abf2a60579ccb17d805b0f3a429057626cf72f82259b284ce86e34d14ae08682"
+    },
+    "web/soundchip_worklet.js": {
+      "bytes": 6416,
+      "sha256": "fba798ce172b7079cf20a62ef0310c4c4fb8bd54822cefc2424248a91c416e5a"
+    },
+    "web/chip_worklet_transport.js": {
+      "bytes": 9264,
+      "sha256": "c5897a17e7f82c31f7aa9962aec939e00c60af089ee0585761daeb6aaa1217d1"
+    },
+    "web/soundchip-output-worklet.js": {
+      "bytes": 18094,
+      "sha256": "3d1240e354abd1d220842319d68941654529e0caabbb9447b0fdd9a21c5c2405"
+    },
+    "web/wonderswan.js": {
+      "bytes": 9684,
+      "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+    },
+    "web/wonderswanaudioengine.js": {
+      "bytes": 6258,
+      "sha256": "1152b8e397f8c9696b07bde036485b86bf36d1df91f99f36dd1376ca341f922f"
+    },
+    "web/wonderswansynth.js": {
+      "bytes": 16488,
+      "sha256": "d544ac6450cb2951e374b51f5b1310381a082be85d59248a96b98e2f1f063de2"
+    }
+  },
+  "validation": {
+    "focusedTests": {
+      "pass": 94,
+      "fail": 0
+    },
+    "legacyGenericProcessorTests": {
+      "pass": 8,
+      "fail": 0
+    },
+    "existingWonderSwanTests": {
+      "pass": 73,
+      "fail": 0
+    },
+    "rawComparisons": {
+      "cases": 126,
+      "frames": 3096576,
+      "maxDifference": 0,
+      "command": "node scripts/check_wonderswan_core.mjs",
+      "specifiedChecks": 24,
+      "scope": "Native vs WASM raw core and wrapper regression; distinct from speaker tests",
+      "report": "stdout only; no --out file retained"
+    },
+    "build": {
+      "modules": 293,
+      "generatedEnginePairs": 27,
+      "declarations": 339
+    },
+    "package": {
+      "localReferences": 985,
+      "renderers": 15,
+      "realWasmEngines": 27,
+      "passed": true
+    },
+    "logs": {
+      "ws-worklet-focused-tests.log": {
+        "bytes": 10161,
+        "sha256": "c19d1abdceb71c2e1e9a9e722ebc4975fe78a68d6013762d128151f18251ab8a"
+      },
+      "ws-worklet-legacy-processors.log": {
+        "bytes": 962,
+        "sha256": "0ca41b327d5984fdfc949f0a05d23581f1f698478339b1ba50acd671330055c5"
+      },
+      "ws-worklet-existing-wonderswan-tests.log": {
+        "bytes": 8230,
+        "sha256": "2aee32cb2f568b54651a2890a0c89a851d2a1d8f54a1b71e7101aa331a296765"
+      },
+      "ws-worklet-fm-build.log": {
+        "bytes": 165,
+        "sha256": "a4a66b2c6c440d354de590cc217c286cef81b0b8db2803ef3ca5b756b09d1ac5"
+      }
+    },
+    "browser": {
+      "schemaVersion": 1,
+      "passed": true,
+      "directory": "/private/tmp/ws-worklet-release/consumer/node_modules/tetorica-fm2612",
+      "physicalOutputMuted": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "base": {
+            "left": 0.0164794921875,
+            "right": 0.0164794921875
+          },
+          "half": {
+            "left": 0.00823974609375,
+            "right": 0.00823974609375
+          },
+          "pan": {
+            "left": 0.00823974609375,
+            "right": 0
+          },
+          "muted": {
+            "left": 0,
+            "right": 0
+          },
+          "channelMute": {
+            "left": 0,
+            "right": 0
+          },
+          "voice": {
+            "left": 0.0196533203125,
+            "right": 0.0196533203125
+          },
+          "voiceEnded": {
+            "left": 0,
+            "right": 0
+          },
+          "workerAudio": {
+            "left": 0.0164794921875,
+            "right": 0.0164794921875
+          },
+          "stopped": {
+            "left": 0,
+            "right": 0
+          },
+          "actualSampleRate": 48000,
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "base": {
+            "left": 0.0164794921875,
+            "right": 0.0164794921875
+          },
+          "half": {
+            "left": 0.00823974609375,
+            "right": 0.00823974609375
+          },
+          "pan": {
+            "left": 0.00823974609375,
+            "right": 0
+          },
+          "muted": {
+            "left": 0,
+            "right": 0
+          },
+          "channelMute": {
+            "left": 0,
+            "right": 0
+          },
+          "voice": {
+            "left": 0.0196533203125,
+            "right": 0.0196533203125
+          },
+          "voiceEnded": {
+            "left": 0,
+            "right": 0
+          },
+          "workerAudio": {
+            "left": 0.0164794921875,
+            "right": 0.0164794921875
+          },
+          "stopped": {
+            "left": 0,
+            "right": 0
+          },
+          "actualSampleRate": 48000,
+          "physicalOutputMuted": true
+        }
+      ],
+      "sources": {
+        "ay8910.js": {
+          "bytes": 6210,
+          "sha256": "9682007689d87b7cdf27b138f269e8c5c4fb478df909cac95a4dc80ce88267e6"
+        },
+        "chip_pcm_renderer.js": {
+          "bytes": 2901,
+          "sha256": "2f6a0c12777d11be5d68d6e597aca0bbdfde838596888fc283b08c095465f4d2"
+        },
+        "chip_worklet_transport.js": {
+          "bytes": 9264,
+          "sha256": "c5897a17e7f82c31f7aa9962aec939e00c60af089ee0585761daeb6aaa1217d1"
+        },
+        "fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "gameboyapu.js": {
+          "bytes": 7082,
+          "sha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4"
+        },
+        "generated/ay8910_wasm.js": {
+          "bytes": 12113,
+          "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+        },
+        "generated/gameboy_apu_wasm.js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        "generated/nesapu_wasm.js": {
+          "bytes": 16041,
+          "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+        },
+        "generated/pwm32x_wasm.js": {
+          "bytes": 12398,
+          "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+        },
+        "generated/segapsg_wasm.js": {
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+        },
+        "generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "generated/y8950_wasm.js": {
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+        },
+        "generated/ym2151_wasm.js": {
+          "bytes": 15584,
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+        },
+        "generated/ym2413_wasm.js": {
+          "bytes": 32911,
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+        },
+        "generated/ym2608_wasm.js": {
+          "bytes": 36356,
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+        },
+        "generated/ym2612_wasm.js": {
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+        },
+        "generated/ym3526_wasm.js": {
+          "bytes": 14274,
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+        },
+        "generated/ym3812_wasm.js": {
+          "bytes": 14274,
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+        },
+        "generated/ymf262_wasm.js": {
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+        },
+        "nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "nesapu_wasm.js": {
+          "bytes": 9222,
+          "sha256": "8e8e189e9cd44d790e829e079e1174c6021ffb429f97f798cef777c2f2ce857d"
+        },
+        "nesapu.js": {
+          "bytes": 4072,
+          "sha256": "40310717d0f0a75b4bdb1a3d20e5350eb1274a67c406fad0eeff9e8a188aba55"
+        },
+        "nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "playground_chip_clock.js": {
+          "bytes": 5174,
+          "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+        },
+        "playground_performance_processor.js": {
+          "bytes": 28142,
+          "sha256": "505a21b24585b7884b1955959427c1ff485d015cb3d098d63b14826d06ba2677"
+        },
+        "playground_performance_queue.js": {
+          "bytes": 9950,
+          "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+        },
+        "pwm32x_playback.js": {
+          "bytes": 8983,
+          "sha256": "1c66e5a14b80653a7a45aef0e4104655999befa72db3803a0db6b5665b7b3e0e"
+        },
+        "pwm32x_wasm.js": {
+          "bytes": 12348,
+          "sha256": "4a2153fecd827b463ed417f790ee80aab244e990e502a2b97396b013f65164c9"
+        },
+        "pwm32x.js": {
+          "bytes": 6836,
+          "sha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6"
+        },
+        "segapsg.js": {
+          "bytes": 10113,
+          "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+        },
+        "soundchip_factory.js": {
+          "bytes": 809,
+          "sha256": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca"
+        },
+        "soundchip_mixer_presets.js": {
+          "bytes": 2967,
+          "sha256": "4fac8186d8d0abe4a80c0a5d43fbdc806183207288f3d44921a41a6b6289e3e6"
+        },
+        "soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "soundchip_worklet.js": {
+          "bytes": 6416,
+          "sha256": "fba798ce172b7079cf20a62ef0310c4c4fb8bd54822cefc2424248a91c416e5a"
+        },
+        "soundchip-output-worklet.js": {
+          "bytes": 18094,
+          "sha256": "3d1240e354abd1d220842319d68941654529e0caabbb9447b0fdd9a21c5c2405"
+        },
+        "soundchip.js": {
+          "bytes": 12337,
+          "sha256": "550d236093a74005479decf08f4b01c71fc724791fd1df7010f17d461b27e764"
+        },
+        "wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "wonderswan_timeline.js": {
+          "bytes": 6966,
+          "sha256": "f3a2f04c22dd975138d1d1c19c36f5f043411a989842f88cfe4d208452c93c4d"
+        },
+        "wonderswan.js": {
+          "bytes": 9684,
+          "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+        },
+        "wonderswanaudioengine.js": {
+          "bytes": 6258,
+          "sha256": "1152b8e397f8c9696b07bde036485b86bf36d1df91f99f36dd1376ca341f922f"
+        },
+        "wonderswansynth.js": {
+          "bytes": 16488,
+          "sha256": "d544ac6450cb2951e374b51f5b1310381a082be85d59248a96b98e2f1f063de2"
+        },
+        "y8950.js": {
+          "bytes": 11054,
+          "sha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59"
+        },
+        "ym2151.js": {
+          "bytes": 11479,
+          "sha256": "1c872f7fbb9c498378ca1e926c296c4783d280a71dc5c3cf19a6a3b4521e3c90"
+        },
+        "ym2413.js": {
+          "bytes": 9473,
+          "sha256": "7515e2659b95e202041185661a6e1d103434c28d4b146166db7e99aaf562b20e"
+        },
+        "ym2608.js": {
+          "bytes": 15607,
+          "sha256": "52cb8790fc26c2a007256ddc9d46d9e635bed97688e9c3cbd8a8b0eeae476762"
+        },
+        "ym2612_dac.js": {
+          "bytes": 7251,
+          "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+        },
+        "ym2612.js": {
+          "bytes": 22574,
+          "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+        },
+        "ym2612synth.js": {
+          "bytes": 38580,
+          "sha256": "7375b502f5fb2b0bf93fca1be51868dab47d866ecd4879a744ba9bb7ad26d1cb"
+        },
+        "ym3526.js": {
+          "bytes": 9446,
+          "sha256": "3ce49fa8e36520db7a7d30edf03761cbacb4addf54f7d27dc00c80a908a3a71f"
+        },
+        "ym3812.js": {
+          "bytes": 9446,
+          "sha256": "ce35055a3a3c558c7af4a2ba662a53e4a39e3edaa5a0391ea5c6831de2a0d089"
+        },
+        "ymf262.js": {
+          "bytes": 10280,
+          "sha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3"
+        }
+      },
+      "checkerSha256": "bdb1c2e9cc4cbc4ba57fb80a8fda8ec0b50e2d0a95a1ad22f54e947ff36d56c2"
+    },
+    "examplesBrowser": {
+      "date": "2026-10-27",
+      "package": "tetorica-fm2612@0.2.30",
+      "tarball": "/private/tmp/ws-worklet-release/tetorica-fm2612-0.2.30.tgz",
+      "tarballSha256": "37039bfec4786e09163e955a8830b7c32b3db12651c68b41bedd22e8aec298e4",
+      "physicalOutput": "muted",
+      "sourceFiles": {
+        "examples/wonderswan/noise/01-noise-sweep/README.md": "09a5a4dc6e175ecae6b7a2ac02b9301ed63d52c0185cd822a50327b5b1f9623e",
+        "examples/wonderswan/noise/01-noise-sweep/node/main.mjs": "5cd45a6dbf10e103b0a71d7fe8e00a57cccf397108ea0c775c25336c328d2ff0",
+        "examples/wonderswan/noise/01-noise-sweep/web/index.html": "ce97f96d75510f3a110c0e5826c71bf76cf82c9d534822cfd84f9f6143eb63b9",
+        "examples/wonderswan/noise/01-noise-sweep/web/main.js": "3bd6ec59f565f024df29286bcf7a27a00a3fc878f2cf8d3b7e9b3ffc99885a2d",
+        "examples/wonderswan/voice/01-timed-pcm/README.md": "4e1822724fc002f546c4b3320154bbfb88799a480e8495b896d8a2a101076fe1",
+        "examples/wonderswan/voice/01-timed-pcm/node/main.mjs": "94bf6d2a7077168e571d4d017d2c50012db60ef8cec1d9f2495d5348a697b300",
+        "examples/wonderswan/voice/01-timed-pcm/web/index.html": "065eb971f372a9d9f76343f8fb37b274124160fc9c426167081072fc89bcb0d3",
+        "examples/wonderswan/voice/01-timed-pcm/web/main.js": "47c55e2ea14eb3b6c455b8dd78b349c752d993d3ccc55692167972db449326fd",
+        "examples/wonderswan/wave/01-four-channels/README.md": "e27714b92993c8315d58f2184fc563ae19c31c0b3179ce16e277a31b7e1894c4",
+        "examples/wonderswan/wave/01-four-channels/node/main.mjs": "c8d7f49ad82bab275ce8f909b1ea4db1a4535ee15bcf5268aff73bf14333c21b",
+        "examples/wonderswan/wave/01-four-channels/web/index.html": "671a8fb8406bfbecedfc982a419930007e284817d5b8fff461043e154d406570",
+        "examples/wonderswan/wave/01-four-channels/web/main.js": "14297cfd5f4b90a3f2d76c59e578e55289424f9fc82f8ba3c956288564cdfadb",
+        "examples/manifest.json": "b13cfa710e6e1c5890a4676315f0521875957730e4f898dae0f96a1b24de0ec7",
+        "public/index.html": "b6a9efc18075af766e4f85955dbdee010a065e7922ac2969e05651b0f1e37568",
+        "public/page.js": "6525e0c95aa23e9cf01f4d9daabf54d0277ca532c93461a332e12ee0f2ecf615",
+        "public/runtime.html": "8b2e9ca26d8a2a3a88fe40f5f6f1b8b1fdc1d7fb935f1fc6032b49f8e35a4410",
+        "scripts/check-wonderswan-browser.mjs": "bf86b91a58baec21d6577cfebe31a883e99da345ae5e4cb044fa502faaf8df90",
+        "scripts/check-node.mjs": "3ee71091a804656ee6f0c6f06b81882cde157c6afe5f48c61c77a248c3bb25e8",
+        "scripts/runtime.mjs": "92d04b7c56f401fb36b4775b5fd273af4249b0ee5a92239bfa969db5d3b1d661"
+      },
+      "servedRuntime": {
+        "package.json": "b7810011fa819c66f5c690975a86ce9bd8595c10d70dc06075a83804eb70b6b8",
+        "soundchip.js": "550d236093a74005479decf08f4b01c71fc724791fd1df7010f17d461b27e764",
+        "chip_worklet_transport.js": "c5897a17e7f82c31f7aa9962aec939e00c60af089ee0585761daeb6aaa1217d1",
+        "soundchip-output-worklet.js": "3d1240e354abd1d220842319d68941654529e0caabbb9447b0fdd9a21c5c2405",
+        "soundchip_worklet.js": "fba798ce172b7079cf20a62ef0310c4c4fb8bd54822cefc2424248a91c416e5a",
+        "wonderswan.js": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957",
+        "wonderswansynth.js": "d544ac6450cb2951e374b51f5b1310381a082be85d59248a96b98e2f1f063de2",
+        "wonderswanaudioengine.js": "1152b8e397f8c9696b07bde036485b86bf36d1df91f99f36dd1376ca341f922f",
+        "generated/wonderswan_wasm.js": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899",
+        "generated/wonderswan_wasm.wasm": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+        "licenses/mame-wonderswan/LICENSE": "28c9517f09fd60cf3b5152646b49bd12bcb5491624e5e4c93d8839b981ff01e9"
+      },
+      "subpath": true,
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "passed": true,
+          "subpath": true,
+          "path": "wonderswan/wave/01-four-channels",
+          "originalOutput": {
+            "peak": 0.01303268599166889,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0.01303268599166889,
+                  0.012187522932190284
+                ],
+                "maxAbs": 0.03568267822265625,
+                "finite": true,
+                "frequency": [
+                  816.8942673058704,
+                  455.0504044599313
+                ],
+                "pitchHits": [
+                  0,
+                  1
+                ],
+                "leftOnly": 0,
+                "rightOnly": 1
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 154,
+              "writeMemory": 128,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "editedOutput": {
+            "peak": 0.011728061638565455,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              },
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0,
+                  0
+                ],
+                "maxAbs": 0,
+                "finite": true,
+                "frequency": [
+                  0,
+                  0
+                ],
+                "pitchHits": [
+                  0,
+                  0
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              },
+              {
+                "peak": [
+                  0.011728061638565455,
+                  0.011728061638565455
+                ],
+                "maxAbs": 0.01654815673828125,
+                "finite": true,
+                "frequency": [
+                  440.3669724770642,
+                  441.0177677494918
+                ],
+                "pitchHits": [
+                  38,
+                  37
+                ],
+                "leftOnly": 36,
+                "rightOnly": 35
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 28,
+              "writeMemory": 80,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "cancelledInitialization": true,
+          "stoppedPlayback": true,
+          "rerun": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "passed": true,
+          "subpath": true,
+          "path": "wonderswan/noise/01-noise-sweep",
+          "originalOutput": {
+            "peak": 0.00915526907192439,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0.009155234147244576,
+                  0.00915526907192439
+                ],
+                "maxAbs": 0.010986328125,
+                "finite": true,
+                "frequency": [
+                  323.1334149326805,
+                  322.5806451612903
+                ],
+                "pitchHits": [
+                  2,
+                  2
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 73,
+              "writeMemory": 64,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "editedOutput": {
+            "peak": 0.011728061638565455,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              },
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0,
+                  0
+                ],
+                "maxAbs": 0,
+                "finite": true,
+                "frequency": [
+                  0,
+                  0
+                ],
+                "pitchHits": [
+                  0,
+                  0
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              },
+              {
+                "peak": [
+                  0.011728061638565455,
+                  0.011728061638565455
+                ],
+                "maxAbs": 0.01654815673828125,
+                "finite": true,
+                "frequency": [
+                  465.2223026783898,
+                  440.3669724770642
+                ],
+                "pitchHits": [
+                  37,
+                  39
+                ],
+                "leftOnly": 35,
+                "rightOnly": 35
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 28,
+              "writeMemory": 80,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "cancelledInitialization": true,
+          "stoppedPlayback": true,
+          "rerun": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "passed": true,
+          "subpath": true,
+          "path": "wonderswan/voice/01-timed-pcm",
+          "originalOutput": {
+            "peak": 0.01387164949319756,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0.01387164949319756,
+                  0.01387164949319756
+                ],
+                "maxAbs": 0.0196533203125,
+                "finite": true,
+                "frequency": [
+                  446.70332172763005,
+                  446.70332172763005
+                ],
+                "pitchHits": [
+                  14,
+                  14
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 25,
+              "writeMemory": 64,
+              "barrier": 2,
+              "schedule-writes": 1,
+              "start": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": [
+              {
+                "method": "schedule-writes",
+                "count": 12002,
+                "pcm": 12000
+              }
+            ]
+          },
+          "editedOutput": {
+            "peak": 0.011728230254656136,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              },
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0,
+                  0
+                ],
+                "maxAbs": 0,
+                "finite": true,
+                "frequency": [
+                  0,
+                  0
+                ],
+                "pitchHits": [
+                  0,
+                  0
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              },
+              {
+                "peak": [
+                  0.011728230254656136,
+                  0.011727396143232146
+                ],
+                "maxAbs": 0.01654815673828125,
+                "finite": true,
+                "frequency": [
+                  440,
+                  440
+                ],
+                "pitchHits": [
+                  38,
+                  37
+                ],
+                "leftOnly": 35,
+                "rightOnly": 35
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 28,
+              "writeMemory": 80,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "cancelledInitialization": true,
+          "stoppedPlayback": true,
+          "rerun": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "passed": true,
+          "subpath": true,
+          "path": "wonderswan/wave/01-four-channels",
+          "originalOutput": {
+            "peak": 0.012972826344763511,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0.012972826344763511,
+                  0.012096245635515972
+                ],
+                "maxAbs": 0.03568267822265625,
+                "finite": true,
+                "frequency": [
+                  781.7761503867514,
+                  550.9030029387486
+                ],
+                "pitchHits": [
+                  0,
+                  2
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 154,
+              "writeMemory": 128,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "editedOutput": {
+            "peak": 0.011728230254656136,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              },
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0,
+                  0
+                ],
+                "maxAbs": 0,
+                "finite": true,
+                "frequency": [
+                  0,
+                  0
+                ],
+                "pitchHits": [
+                  0,
+                  0
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              },
+              {
+                "peak": [
+                  0.011726605334574123,
+                  0.011728230254656136
+                ],
+                "maxAbs": 0.01654815673828125,
+                "finite": true,
+                "frequency": [
+                  440.3669724770642,
+                  439.918533604888
+                ],
+                "pitchHits": [
+                  32,
+                  31
+                ],
+                "leftOnly": 29,
+                "rightOnly": 29
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 28,
+              "writeMemory": 80,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "cancelledInitialization": true,
+          "stoppedPlayback": true,
+          "rerun": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "passed": true,
+          "subpath": true,
+          "path": "wonderswan/noise/01-noise-sweep",
+          "originalOutput": {
+            "peak": 0.00915526907192439,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0.00915526907192439,
+                  0.00915526907192439
+                ],
+                "maxAbs": 0.010986328125,
+                "finite": true,
+                "frequency": [
+                  337.30309232016015,
+                  337.30309232016015
+                ],
+                "pitchHits": [
+                  2,
+                  2
+                ],
+                "leftOnly": 1,
+                "rightOnly": 0
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 73,
+              "writeMemory": 64,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "editedOutput": {
+            "peak": 0.01172845771814186,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              },
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0,
+                  0
+                ],
+                "maxAbs": 0,
+                "finite": true,
+                "frequency": [
+                  0,
+                  0
+                ],
+                "pitchHits": [
+                  0,
+                  0
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              },
+              {
+                "peak": [
+                  0.01172845771814186,
+                  0.011726605334574123
+                ],
+                "maxAbs": 0.01654815673828125,
+                "finite": true,
+                "frequency": [
+                  440.3669724770642,
+                  439.56043956043953
+                ],
+                "pitchHits": [
+                  32,
+                  32
+                ],
+                "leftOnly": 30,
+                "rightOnly": 29
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 28,
+              "writeMemory": 80,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "cancelledInitialization": true,
+          "stoppedPlayback": true,
+          "rerun": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "passed": true,
+          "subpath": true,
+          "path": "wonderswan/voice/01-timed-pcm",
+          "originalOutput": {
+            "peak": 0.013873087062594698,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0.013873087062594698,
+                  0.013873087062594698
+                ],
+                "maxAbs": 0.0196533203125,
+                "finite": true,
+                "frequency": [
+                  445.8769464691462,
+                  445.8769464691462
+                ],
+                "pitchHits": [
+                  13,
+                  13
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 25,
+              "writeMemory": 64,
+              "barrier": 2,
+              "schedule-writes": 1,
+              "start": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": [
+              {
+                "method": "schedule-writes",
+                "count": 12002,
+                "pcm": 12000
+              }
+            ]
+          },
+          "editedOutput": {
+            "peak": 0.011728061638565455,
+            "nodes": [
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              },
+              {
+                "processor": "tetorica-soundchip",
+                "chip": "wonderswan"
+              }
+            ],
+            "meters": [
+              {
+                "peak": [
+                  0,
+                  0
+                ],
+                "maxAbs": 0,
+                "finite": true,
+                "frequency": [
+                  0,
+                  0
+                ],
+                "pitchHits": [
+                  0,
+                  0
+                ],
+                "leftOnly": 0,
+                "rightOnly": 0
+              },
+              {
+                "peak": [
+                  0.011728061638565455,
+                  0.011728061638565455
+                ],
+                "maxAbs": 0.01654815673828125,
+                "finite": true,
+                "frequency": [
+                  440,
+                  440.3669724770642
+                ],
+                "pitchHits": [
+                  32,
+                  33
+                ],
+                "leftOnly": 29,
+                "rightOnly": 29
+              }
+            ],
+            "physicalOutput": "muted",
+            "commandCounts": {
+              "reset": 1,
+              "writeRegister": 28,
+              "writeMemory": 80,
+              "start": 1,
+              "barrier": 1,
+              "clear-scheduled-writes": 1,
+              "dispose": 1
+            },
+            "scheduled": []
+          },
+          "cancelledInitialization": true,
+          "stoppedPlayback": true,
+          "rerun": true
+        }
+      ]
+    },
+    "examplesNode": {
+      "package": "tetorica-fm2612@0.2.30",
+      "physicalOutput": false,
+      "rawDcRetained": true,
+      "results": [
+        {
+          "example": "wave/01-four-channels",
+          "path": "/private/tmp/ws-examples-0230/wave-01-four-channels.wav",
+          "sha256": "4b419fddb96a7e335a07b66c54d51b3ddc04205533eaa9e5264183da045e410c",
+          "frames": 145530,
+          "seconds": 3.3,
+          "range": [
+            [
+              0,
+              2160
+            ],
+            [
+              0,
+              2160
+            ]
+          ],
+          "mean": [
+            769.2017865732151,
+            768.3539064110493
+          ],
+          "rms": [
+            0.028695278566481488,
+            0.028434183133444993
+          ],
+          "stereoDifferent": 105758
+        },
+        {
+          "example": "noise/01-noise-sweep",
+          "path": "/private/tmp/ws-examples-0230/noise-01-noise-sweep.wav",
+          "sha256": "9fdda0cfad75f5b377a75fd8761514d3e84ba149c3fc039b373d1ad3b40cb8e2",
+          "frames": 135828,
+          "seconds": 3.08,
+          "range": [
+            [
+              0,
+              720
+            ],
+            [
+              0,
+              720
+            ]
+          ],
+          "mean": [
+            258.1295167417616,
+            258.1295167417616
+          ],
+          "rms": [
+            0.0113810442371663,
+            0.0113810442371663
+          ],
+          "stereoDifferent": 0
+        },
+        {
+          "example": "voice/01-timed-pcm",
+          "path": "/private/tmp/ws-examples-0230/voice-01-timed-pcm.wav",
+          "sha256": "55dd4f59082084c2cba46ebae242df289629d32fccbd129cd02fa0c0dbd22455",
+          "frames": 55125,
+          "seconds": 1.25,
+          "range": [
+            [
+              0,
+              1664
+            ],
+            [
+              0,
+              1664
+            ]
+          ],
+          "mean": [
+            819.3277097505669,
+            819.3277097505669
+          ],
+          "rms": [
+            0.030498607712768026,
+            0.030498607712768026
+          ],
+          "stereoDifferent": 0
+        }
+      ]
+    }
+  },
+  "examples": {
+    "registryDependencyUpdated": true,
+    "docsBuildUpdated": true,
+    "finalReceiptSha256": "dea6bb1b5400aefbda074d44a12a9798445c8a2be6c539c03372d27e660490fa",
+    "validation": {
+      "date": "2026-10-27",
+      "package": "tetorica-fm2612@0.2.30",
+      "registry": {
+        "dependency": "0.2.30",
+        "resolved": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.30.tgz",
+        "integrity": "sha512-weixRle9x29IkldCpMTavBK2qvVwt2A1L8cEqvuUACfX0U5GO5v/yw/oIbkQzdlP4p5BK7yKdPpEyM3F9u5N7w==",
+        "installedFromRegistry": true
+      },
+      "testedTarball": {
+        "path": "/private/tmp/ws-worklet-release/tetorica-fm2612-0.2.30.tgz",
+        "sha256": "37039bfec4786e09163e955a8830b7c32b3db12651c68b41bedd22e8aec298e4"
+      },
+      "browser": {
+        "receipt": "/private/tmp/ws-examples-0230/browser-receipt.json",
+        "sha256": "fde43083872369b3f688655d33ed08efca6497b3ab474cccbd05ee58274b35b4",
+        "cases": [
+          {
+            "browser": "chromium",
+            "version": "153.0.8010.12",
+            "path": "wonderswan/wave/01-four-channels",
+            "passed": true
+          },
+          {
+            "browser": "chromium",
+            "version": "153.0.8010.12",
+            "path": "wonderswan/noise/01-noise-sweep",
+            "passed": true
+          },
+          {
+            "browser": "chromium",
+            "version": "153.0.8010.12",
+            "path": "wonderswan/voice/01-timed-pcm",
+            "passed": true
+          },
+          {
+            "browser": "webkit",
+            "version": "26.6",
+            "path": "wonderswan/wave/01-four-channels",
+            "passed": true
+          },
+          {
+            "browser": "webkit",
+            "version": "26.6",
+            "path": "wonderswan/noise/01-noise-sweep",
+            "passed": true
+          },
+          {
+            "browser": "webkit",
+            "version": "26.6",
+            "path": "wonderswan/voice/01-timed-pcm",
+            "passed": true
+          }
+        ],
+        "sourceHashesAreHistorical": true,
+        "changedSinceBrowser": [
+          "public/index.html",
+          "public/runtime.html"
+        ],
+        "changeReason": "Current-version text labels only in public/index.html and public/runtime.html; README current API version labels also updated but README was not a browser input. Example JS/Node code, catalog logic, manifest and checker unchanged."
+      },
+      "node": {
+        "receipt": "/private/tmp/ws-examples-0230/node-receipt.json",
+        "sha256": "23a73bf12ee0a3592932729e221619e068baa74839c83d97364a92fd71af2bef",
+        "allOfflineExamplesPassed": 30
+      },
+      "buildDocs": {
+        "passed": true,
+        "sourceFilesMatch": true,
+        "exampleCount": 59,
+        "fileCount": 1069,
+        "runtimeFiles": 841,
+        "runtimeAllFilesMatchTestedTarballInstall": true,
+        "localLinksAndSourceFilesExist": true
+      },
+      "finalSources": {
+        "examples/wonderswan/noise/01-noise-sweep/README.md": "09a5a4dc6e175ecae6b7a2ac02b9301ed63d52c0185cd822a50327b5b1f9623e",
+        "examples/wonderswan/noise/01-noise-sweep/node/main.mjs": "5cd45a6dbf10e103b0a71d7fe8e00a57cccf397108ea0c775c25336c328d2ff0",
+        "examples/wonderswan/noise/01-noise-sweep/web/index.html": "ce97f96d75510f3a110c0e5826c71bf76cf82c9d534822cfd84f9f6143eb63b9",
+        "examples/wonderswan/noise/01-noise-sweep/web/main.js": "3bd6ec59f565f024df29286bcf7a27a00a3fc878f2cf8d3b7e9b3ffc99885a2d",
+        "examples/wonderswan/voice/01-timed-pcm/README.md": "4e1822724fc002f546c4b3320154bbfb88799a480e8495b896d8a2a101076fe1",
+        "examples/wonderswan/voice/01-timed-pcm/node/main.mjs": "94bf6d2a7077168e571d4d017d2c50012db60ef8cec1d9f2495d5348a697b300",
+        "examples/wonderswan/voice/01-timed-pcm/web/index.html": "065eb971f372a9d9f76343f8fb37b274124160fc9c426167081072fc89bcb0d3",
+        "examples/wonderswan/voice/01-timed-pcm/web/main.js": "47c55e2ea14eb3b6c455b8dd78b349c752d993d3ccc55692167972db449326fd",
+        "examples/wonderswan/wave/01-four-channels/README.md": "e27714b92993c8315d58f2184fc563ae19c31c0b3179ce16e277a31b7e1894c4",
+        "examples/wonderswan/wave/01-four-channels/node/main.mjs": "c8d7f49ad82bab275ce8f909b1ea4db1a4535ee15bcf5268aff73bf14333c21b",
+        "examples/wonderswan/wave/01-four-channels/web/index.html": "671a8fb8406bfbecedfc982a419930007e284817d5b8fff461043e154d406570",
+        "examples/wonderswan/wave/01-four-channels/web/main.js": "14297cfd5f4b90a3f2d76c59e578e55289424f9fc82f8ba3c956288564cdfadb",
+        "examples/manifest.json": "b13cfa710e6e1c5890a4676315f0521875957730e4f898dae0f96a1b24de0ec7",
+        "public/index.html": "d649bb738d64de63edc46bf2cf204f598755e9397edbab3f21c0f25cb5418468",
+        "public/page.js": "6525e0c95aa23e9cf01f4d9daabf54d0277ca532c93461a332e12ee0f2ecf615",
+        "public/runtime.html": "569d4ee0983b2ab280c9cbb6a44bf2a699470478b0c9402123b609d4af67d959",
+        "scripts/check-wonderswan-browser.mjs": "bf86b91a58baec21d6577cfebe31a883e99da345ae5e4cb044fa502faaf8df90",
+        "scripts/check-node.mjs": "3ee71091a804656ee6f0c6f06b81882cde157c6afe5f48c61c77a248c3bb25e8",
+        "scripts/runtime.mjs": "92d04b7c56f401fb36b4775b5fd273af4249b0ee5a92239bfa969db5d3b1d661",
+        "README.md": "93aca0b2de7b71c734b74c157414292952a9eb9bf49ebce2fa3870dcbb8d2775",
+        "package.json": "470863e1bdce57b6620ba1ee9b8be5ee0e2d792706c70429e1058d43012af2b3",
+        "package-lock.json": "17e0a5b2f9617fc63a609946d11f02fb61a7757b68af85bb83f36335f128436e"
+      },
+      "notPerformed": [
+        "commit",
+        "push",
+        "website deployment",
+        "additional browser run after version-text-only edits"
+      ],
+      "docsHashesSummary": {
+        "files": 1069,
+        "sha256": "ced6e9b8f287791a03469dcd7f75bda8f2fe4db904372d332b66d037fa005be1"
+      }
+    }
+  },
+  "unchanged": [
+    "Mixer preset gains",
+    "C++ cores",
+    "fixed SDK 0.1.4",
+    "generated WASM binaries",
+    "dedicated Playground route"
+  ],
+  "operationsNotPerformed": [
+    "commit",
+    "push",
+    "tag",
+    "CI dispatch",
+    "itch.io publication"
+  ]
+}

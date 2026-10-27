@@ -39,7 +39,7 @@ entry points, rather than every internal Worker or Worklet module.
 | NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
 | PC Engine wavetable, noise and DDA | `tetorica-fm2612/huc6280synth.js` | `Huc6280Synth`, `Huc6280DirectTransport` |
-| WonderSwan wavetable, Voice PCM, noise and sweep | `tetorica-fm2612/wonderswansynth.js` | `WonderSwanSynth`, `WonderSwanDirectTransport` |
+| WonderSwan wavetable, Voice PCM, noise and sweep | `tetorica-fm2612/wonderswansynth.js` | `WonderSwanSynth`, `WonderSwanDirectTransport`, `WonderSwanWorkletTransport` |
 | OKIM6258 ADPCM samples | `tetorica-fm2612/okim6258synth.js` | `Oki6258Synth`, `encodeOki6258` |
 | RF5C164 PCM | `tetorica-fm2612/rf5c164synth.js` | `RF5C164Synth`, `RF5C164DirectTransport` |
 | 32X PWM | `tetorica-fm2612/pwm32x_transport.js` | `PWM32XDirectTransport`, `PWM32XWorkletTransport` |
@@ -146,7 +146,7 @@ complete setup, playback and cleanup.
 
 ### WonderSwan direct rendering
 
-The current development build supports `createSoundChip('wonderswan')` for
+Version 0.2.30 supports `createSoundChip('wonderswan')` for
 synchronous register, 16 KiB wave RAM and stereo PCM access in Browser,
 Worker and Node.js. The default clock is 3,072,000 Hz and the default output
 sample rate is 44,100 Hz; both can be specified when creating the chip.
@@ -174,9 +174,53 @@ The direct factory opens no audio device and returns raw PCM without Mixer
 gain or a DC filter. It supports the shared `assetBaseUrl`, `moduleFactory`,
 `moduleOptions` and `signal` loader settings. Ship
 `generated/wonderswan_wasm.js` and `generated/wonderswan_wasm.wasm` when copying
-a smaller deployment. Generic `execution:'worklet'` is not available for this
-chip; Playground uses its existing dedicated WonderSwan audio endpoint.
-This factory addition is not included in the published 0.2.29 package.
+a smaller deployment.
+
+### WonderSwan browser audio
+
+Use `execution:'worklet'` to render on the browser audio thread, with the same
+shared output Mixer as the other generic chip endpoints. The endpoint exposes
+the actual output `sampleRate()` and the fixed input `clock`; a supplied
+AudioContext controls the output sample rate.
+
+```js
+import {createSoundChip, SoundChipMixer} from 'tetorica-fm2612';
+import {WonderSwanSynth, WonderSwanWorkletTransport} from 'tetorica-fm2612/wonderswansynth.js';
+
+// Run from a user gesture, such as a Play button.
+const mixer = new SoundChipMixer();
+const chip = await createSoundChip('wonderswan', {execution:'worklet', mixer});
+const transport = new WonderSwanWorkletTransport(chip);
+const ws = new WonderSwanSynth({transport, clock:chip.clock});
+ws.initialize();
+ws.noteOn(0, 'A4');
+await transport.flush();
+await transport.start();
+// When finished: ws.allNotesOff(); await transport.flush();
+// ws.dispose(); await chip.dispose();
+```
+
+`mixer.set(chip.id, {volume:0.5, pan:-0.5})` adjusts the output independently
+from hardware channel volumes. The WonderSwan source default remains `1.0`;
+the endpoint's separate output `gain` defaults to `0.25`, as for other chips.
+The speaker path uses the existing tick-aligned waveform/Voice midpoint
+correction from Playground and Analyzer. Direct raw PCM is unchanged.
+
+The transport accepts a chip endpoint or a port returned by
+`chip.createTransportPort()` for use in an application Worker. `loadMemory()`
+copies up to 16 KiB and acknowledges the upload; `readRegister()`, `readMemory()`
+and `setChannelMuted()` are asynchronous. `flush()` waits for earlier messages
+on that port. Disposing a transport releases its listeners and pending requests;
+dispose the owned chip endpoint separately when finished.
+
+For synthetic Voice PCM, `scheduleWrites([{time, register, value}])` accepts
+absolute AudioContext seconds and absolute registers `0x80..0x9f`, resolving
+after the batch is queued. At most 65,536 writes may be pending. Queue the
+samples before playback rather than driving individual bytes with timers.
+`clearScheduledWrites()`, Stop, reset and disposal cancel pending writes.
+This bounded register scheduler is separate from Playground's packed VGM
+timeline API. The examples repository includes waveform, noise/sweep and
+timed Voice PCM examples for Browser and Node.
 
 ### NES + FDS WASM
 
@@ -986,10 +1030,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.29.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.30.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.29.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.30.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -1006,6 +1050,15 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.30` connects **WonderSwan to the public Direct and AudioWorklet factory**,
+with the shared Mixer, typed raw API and `WonderSwanWorkletTransport` for Synth
+and application Workers. RAM uploads/readback and bounded timed register
+writes acknowledge their audio-thread application or acceptance. Voice PCM
+uses queued audio-frame scheduling, with cancellation on Stop/reset/dispose.
+The output reuses the existing speaker midpoint correction; raw core PCM and
+Mixer calibration values are unchanged. Short borrowed PCM spans are cached
+before rendering to avoid creating views for every Voice PCM write.
 
 `0.2.29` adds the **WonderSwan WASM core and four-channel Synth API**, including
 wavetable editing, Voice PCM, noise and sweep. The shared Playground runtime

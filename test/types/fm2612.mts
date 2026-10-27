@@ -22,6 +22,7 @@ import {YM2413Synth,YM2413DirectTransport,YM2413_INSTRUMENTS,YM2413_USER_PRESETS
 import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth.js';
 import {WonderSwan} from 'tetorica-fm2612/wonderswan.js';
 import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth.js';
+import {WonderSwanWorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js';
 const calibratedOptions: SoundChipMixerOptions = mixerPresetsSubpath.calibrated;
 const calibratedMixer = new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
 new SoundChipMixer(calibratedOptions);
@@ -66,8 +67,27 @@ void [wsRaw,wsIsAny,wsId,wsRegister,wsMemory,wsPcm,wsView,wsRate,wsClock];
 wsChip.id='other';
 // @ts-expect-error The synchronous WonderSwan core has no output node.
 wsChip.node.connect(new AudioContext().destination);
-// @ts-expect-error A generic WonderSwan Worklet endpoint is not implemented.
-await createSoundChip('wonderswan',{execution:'worklet'});
+const wsWorklet=await createSoundChip('wonderswan',{execution:'worklet',clock:3072000});
+const wsWorkletTransport=new WonderSwanWorkletTransport(wsWorklet);
+new WonderSwanSynth({transport:wsWorkletTransport,clock:wsWorklet.clock}).initialize();
+const wsAsyncByte:number=await wsWorkletTransport.readMemory(0);
+const wsAsyncRegister:number=await wsWorkletTransport.readRegister(0x90);
+const wsUploaded:void=await wsWorkletTransport.loadMemory(new Uint8Array([0x10,0x32]),0);
+const wsScheduled:number=await wsWorkletTransport.scheduleWrites([{time:1,register:0x89,value:128},{time:1.1,address:0x89,value:255,port:0}]);
+await wsWorkletTransport.setChannelMuted(0,true);
+await wsWorkletTransport.clearScheduledWrites();await wsWorkletTransport.flush();
+new WonderSwanWorkletTransport(wsWorklet.createTransportPort()).writeRegister(0x90,1,0,1);
+void [wsAsyncByte,wsAsyncRegister,wsUploaded,wsScheduled];
+// @ts-expect-error Audio-thread reads are asynchronous.
+const wsSynchronousByte:number=wsWorkletTransport.readMemory(0);
+// @ts-expect-error WonderSwan RAM uploads require bytes.
+wsWorkletTransport.loadMemory([0,1]);
+// @ts-expect-error Hardware monitor mutes are boolean.
+wsWorkletTransport.setChannelMuted(0,1);
+// @ts-expect-error Worklet chips do not synchronously render PCM on Main.
+wsWorklet.generateStereo(128);
+// @ts-expect-error Worklet clock metadata is readonly.
+wsWorklet.clock=123;
 // @ts-expect-error Packed wave memory requires bytes, not ordinary number arrays.
 wsChip.loadMemory([0,1,2]);
 // @ts-expect-error Register reads retain their numeric type.

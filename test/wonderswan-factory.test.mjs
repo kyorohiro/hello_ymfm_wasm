@@ -115,14 +115,14 @@ test('an already aborted WonderSwan request does not import assets or invoke its
   assert.equal(calls, 0);
 });
 
-test('unsupported WonderSwan Worklet execution rejects before allocating an AudioContext', async () => {
+test('unsupported generic Worklet execution rejects before allocating an AudioContext', async () => {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'AudioContext');
   let contexts = 0;
   Object.defineProperty(globalThis, 'AudioContext', {configurable:true, value:class {
     constructor() {contexts++; throw new Error('must not allocate audio');}
   }});
   try {
-    await assert.rejects(createSoundChip('wonderswan', {execution:'worklet'}), /Worklet chip not supported: wonderswan/);
+    await assert.rejects(createSoundChip('ym2203', {execution:'worklet'}), /Worklet chip not supported: ym2203/);
     assert.equal(contexts, 0);
   } finally {
     if (descriptor) Object.defineProperty(globalThis, 'AudioContext', descriptor);

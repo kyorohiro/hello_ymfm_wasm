@@ -86,9 +86,14 @@ export class WonderSwanAudioEngine {
       }
     }
   }
-  processFrames(frames){
+  /** Borrowed, speaker-centered PCM. Consume before the next render or dispose.
+   * Stable frame sizes reuse the core's output views and allocate no PCM arrays.
+   * @param {number} frames
+   * @returns {Readonly<{left:Float32Array,right:Float32Array}>}
+   */
+  generateStereoView(frames){
     this.alive();const raw=this.chip.generateStereoView(frames);
-    const left=new Float32Array(frames),right=new Float32Array(frames),r=this.registers;
+    const {left,right}=raw,r=this.registers;
     const silent=!(r[16]&15)||!(r[17]&8);
     for(let i=0;i<frames;i++){
       this.speakerPhase+=this.engineRate;
@@ -99,11 +104,16 @@ export class WonderSwanAudioEngine {
       left[i]=silent?0:Math.fround(raw.left[i]-centerLeft)*this.volume;
       right[i]=silent?0:Math.fround(raw.right[i]-centerRight)*this.volume;
     }
-    return {left,right};
+    return raw;
+  }
+  /** Owned speaker-centered PCM, valid after subsequent renders and disposal. */
+  processFrames(frames){
+    const {left,right}=this.generateStereoView(frames);
+    return {left:new Float32Array(left),right:new Float32Array(right)};
   }
   process(left,right,frames){
     if(!(left instanceof Float32Array)||!(right instanceof Float32Array)||left.length<frames||right.length<frames)throw new RangeError('Invalid buffers');
-    const pcm=this.processFrames(frames);left.set(pcm.left);right.set(pcm.right);
+    const pcm=this.generateStereoView(frames);left.set(pcm.left);right.set(pcm.right);
   }
 }
 /** @param {WonderSwanAudioEngineOptions} [options] */

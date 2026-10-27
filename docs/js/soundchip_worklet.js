@@ -1,19 +1,19 @@
-import {SoundChipMixer} from './soundchip_mixer.js?v=y8950-adpcm-ui-1';
+import {SoundChipMixer} from './soundchip_mixer.js';
 /**
  * @typedef {{
- * execution: 'worklet', name: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WorkletChipName,
+ * execution: 'worklet', name: import('./soundchip.js').WorkletChipName,
  * port: MessagePort, node: AudioWorkletNode, audioContext: AudioContext,
- * mixer: import('./soundchip_mixer.js?v=y8950-adpcm-ui-1').SoundChipMixer, readonly id: string,
+ * mixer: import('./soundchip_mixer.js').SoundChipMixer, readonly id: string,
  * readonly fdsEnabled?: boolean, readonly clock?: number,
  * sampleRate(): number, request(method: string, args?: unknown[]): Promise<unknown>,
  * createTransportPort(): MessagePort, start(): Promise<void>, stop(): Promise<void>, dispose(): Promise<void>
  * }} WorkletSoundChip
  */
 /** Main-side chip endpoint. The actual chip is created inside AudioWorklet. */
-const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
+const supported = new Set(['ym2612', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'wonderswan']);
 /**
- * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WorkletChipName} name
- * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').SoundChipOptions} options
+ * @param {import('./soundchip.js').WorkletChipName} name
+ * @param {import('./soundchip.js').SoundChipOptions} options
  * @param {() => Promise<Uint8Array | ArrayBuffer | undefined>} loadBinary
  * @returns {Promise<WorkletSoundChip>}
  */
@@ -65,7 +65,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
     options.signal?.throwIfAborted();
     await context.resume();
     const wasmBinary = await loadBinary();
-    await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js?v=wonderswan-pcm-timeline-1', import.meta.url).href);
+    await context.audioWorklet.addModule(new URL('./soundchip-output-worklet.js', import.meta.url).href);
     options.signal?.throwIfAborted();
     const chipOptions = Object.fromEntries(['clock', 'sampleRate', 'flags', 'variant', 'outputMode', 'fds', 'implementation'].filter(key => options[key] !== undefined).map(key => [key, options[key]]));
     node = new AudioWorkletNode(context, 'tetorica-soundchip', {
@@ -109,6 +109,7 @@ export async function createWorkletSoundChip(name, options, loadBinary) {
       dispose,
     };
     if (name === 'nes') Object.defineProperties(endpoint, {fdsEnabled: {value: Boolean(options.fds), enumerable: true}, clock: {value: options.clock ?? 1789773, enumerable: true}});
+    if (name === 'wonderswan') Object.defineProperty(endpoint, 'clock', {value: options.clock ?? 3072000, enumerable: true, writable: false, configurable: false});
     Object.defineProperty(endpoint, 'id', {value: id, enumerable: true, writable: false, configurable: false});
     return endpoint;
   } catch (error) {await dispose(); throw error;}

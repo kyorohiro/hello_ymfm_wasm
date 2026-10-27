@@ -207,7 +207,7 @@ const createLocalSoundChip = createSoundChipFactory(loaders);
  *   ymf278b: import('./ymf278b.js?v=audio-stability-2').Ymf278b,
  *   ymf288: import('./ymf288.js').Ymf288,
  * }} SoundChipMap */
-/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'} WorkletChipName */
+/** @typedef {'ym2612'|'ym2608'|'ym2151'|'gameboy'|'segapsg'|'pwm'|'nes'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'wonderswan'} WorkletChipName */
 /**
  * @template {WorkletChipName} Name
  * @overload
