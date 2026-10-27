@@ -40,7 +40,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
 | PC Engine wavetable, noise and DDA | `tetorica-fm2612/huc6280synth.js` | `Huc6280Synth`, `Huc6280DirectTransport` |
 | WonderSwan wavetable, Voice PCM, noise and sweep | `tetorica-fm2612/wonderswansynth.js` | `WonderSwanSynth`, `WonderSwanDirectTransport`, `WonderSwanWorkletTransport` |
-| Atari POKEY, four voices per chip (unreleased) | `tetorica-fm2612/pokeysynth.js` | `PokeySynth`, `PokeyDirectTransport`, `PokeyWorkletTransport` |
+| Atari POKEY, four voices per chip | `tetorica-fm2612/pokeysynth.js` | `PokeySynth`, `PokeyDirectTransport`, `PokeyWorkletTransport` |
 | OKIM6258 ADPCM samples | `tetorica-fm2612/okim6258synth.js` | `Oki6258Synth`, `encodeOki6258` |
 | RF5C164 PCM | `tetorica-fm2612/rf5c164synth.js` | `RF5C164Synth`, `RF5C164DirectTransport` |
 | 32X PWM | `tetorica-fm2612/pwm32x_transport.js` | `PWM32XDirectTransport`, `PWM32XWorkletTransport` |
@@ -492,10 +492,9 @@ For a stable application name, `{id: 'gb1'}` remains available. `useSoundChip` r
 per-name cache and returns the same object/ID until disposed or stopped; its `{id}` option is not supported. Disposing a client or
 stopping the runtime removes its output route.
 
-### POKEY and dual POKEY (unreleased)
+### POKEY and dual POKEY
 
-The development checkout adds POKEY for the **next package release**. Published
-`0.2.30` does not include it. Each instance owns one four-channel mono chip;
+Version `0.2.31` adds POKEY. Each instance owns one four-channel mono chip;
 dual POKEY uses two ordinary independent instances, rather than eight channels
 on one object.
 
@@ -566,12 +565,12 @@ full machine emulation or external sample is included.
 | Yamaha OPN | YM2203, YM2608, YM2610/YM2610B, YM2612, YM3438, YMF276, YMF288 |
 | Yamaha OPM | YM2151 |
 | Yamaha OPL | YM2413, YM3526, YM3812, Y8950, YMF262, YMF278B |
-| PSG and console audio | AY8910, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280, K051649, WonderSwan; POKEY in the unreleased development checkout |
+| PSG and console audio | AY8910, Sega PSG, Game Boy APU, NES APU + FDS, HuC6280, K051649, WonderSwan, POKEY |
 | PCM and ADPCM | RF5C164, Sega PCM, OKIM6258, OKIM6295 |
 
 YM2612 includes ymfm and Nuked-OPN2 backends. YM2610 uses the YM2610B core
 with `variant: false`; OKIM6295 is implemented in JavaScript. The distribution
-development build includes 28 generated JS/WASM pairs plus the standalone DX7
+includes 28 generated JS/WASM pairs plus the standalone DX7
 WASM. Chip and high-level Synth API coverage differ.
 
 ## Node.js: generate PCM
@@ -1099,10 +1098,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.30.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.31.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.30.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.31.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -1120,10 +1119,14 @@ instrument/sample ROMs are not included.
 
 ## Release notes
 
-The **unreleased next version** adds the POKEY Direct/AudioWorklet factory,
+`0.2.31` adds the POKEY Direct/AudioWorklet factory,
 four-channel Synth, Mixer/Worker transport, independently owned dual-POKEY
-instances and a self-contained BSD source bundle. The SDK 0.1.5 source candidate
-is hash pinned locally; no new npm version or SDK GitHub Release is implied.
+instances and a self-contained BSD source bundle. The bundled Playground
+timeline client transfers small owned chunks and validates them across audio
+quanta, with atomic commit and cancellation on Stop, owner/session replacement
+and disposal. The SDK 0.1.5 source candidate remains hash pinned, with its local
+archive/base-commit provenance retained; this npm release does not publish an
+SDK GitHub Release.
 
 `0.2.30` connects **WonderSwan to the public Direct and AudioWorklet factory**,
 with the shared Mixer, typed raw API and `WonderSwanWorkletTransport` for Synth

@@ -1,0 +1,1332 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "date": "2026-10-27",
+  "scope": "Publication of the two npm packages only, including POKEY support.",
+  "publication": {
+    "tetorica-fm2612": "0.2.31",
+    "tetorica-vgm": "0.2.16",
+    "bothLatestConfirmed": true,
+    "bothPublishExitCodes": 0,
+    "sdkRelease": false,
+    "itchIo": false,
+    "examplesUpdate": false,
+    "commit": false,
+    "push": false,
+    "tag": false
+  },
+  "unchanged": [
+    "SDK core sources",
+    "generated WASM binaries",
+    "Mixer calibration values"
+  ],
+  "tests": {
+    "fm": {
+      "modules": 305,
+      "wasmPairs": 28,
+      "declarations": 352,
+      "isolatedConsumer": true,
+      "typeConfigurations": [
+        "NodeNext",
+        "Bundler",
+        "Browser without Node ambient types"
+      ],
+      "files": 880,
+      "allMembersMatchStageAndIsolatedInstall": true
+    },
+    "vgm": {
+      "vgmApiCliAnalyzer": {
+        "total": 1034,
+        "passed": 1033,
+        "skipped": 1,
+        "failed": 0,
+        "existingOptionalSkip": "mml2mdr compiles generated MML to verified MDX notes and voice bytes"
+      },
+      "sharedVgmParserPlayer": {
+        "total": 124,
+        "passed": 124,
+        "failed": 0
+      }
+    },
+    "vgmIsolatedConsumer": {
+      "modules": 168,
+      "channelCases": 12,
+      "seekCases": 2,
+      "files": 277,
+      "allMembersMatchStageAndIsolatedInstall": true
+    }
+  },
+  "registry": {
+    "fm": {
+      "schemaVersion": 1,
+      "passed": true,
+      "name": "tetorica-fm2612",
+      "version": "0.2.31",
+      "latest": "0.2.31",
+      "registryTarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.31.tgz",
+      "downloadedTarball": "/private/tmp/npm-pokey-release-20261027/fm/registry/tetorica-fm2612-0.2.31.tgz",
+      "sha256": "6941d3474abd619fd0cec1b41b79f51c6011ca49d3bf9ab47ca31422e641851d",
+      "sha1": "63c922734e99630f6f9358e0ad97130b3031a308",
+      "integrity": "sha512-HfHFj0zKCd2SRi50YgkBa6LlEe9mZr8KaaQJKbneI+6XNVYW/iJCCylbFwoq6tu5dNuFv/DsFDHTTJFvSktBtQ==",
+      "bytes": 1724251,
+      "files": 880,
+      "downloadEqualsVerifiedTarball": true,
+      "allRegistryMembersEqualStaging": true,
+      "npmMetadataMatches": true,
+      "metadata": {
+        "version": "0.2.31",
+        "dist": {
+          "shasum": "63c922734e99630f6f9358e0ad97130b3031a308",
+          "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.31.tgz",
+          "fileCount": 880,
+          "integrity": "sha512-HfHFj0zKCd2SRi50YgkBa6LlEe9mZr8KaaQJKbneI+6XNVYW/iJCCylbFwoq6tu5dNuFv/DsFDHTTJFvSktBtQ==",
+          "signatures": [
+            {
+              "sig": "MEQCIDszQQ2CJToJZyEVm0aHe7QJhC2a49G2Zb8aq+wr1uTmAiAvhwlz/pxQOiF80jcy2qlrNIF2D5PQMpjt2CiYzc98Dw==",
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+            },
+            {
+              "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+              "sig": "MEYCIQCI1/OoHOtpFLAhAiJuP2iqq3NGNF2Hge86EQIJxnJOLAIhAPhD0VAAj2xwXhUpqpm106v9/oBW7Z0srGzj3MVjkr4Q"
+            }
+          ],
+          "unpackedSize": 6429394
+        },
+        "dist-tags": {
+          "latest": "0.2.31"
+        }
+      }
+    },
+    "vgm": {
+      "schemaVersion": 1,
+      "passed": true,
+      "verifiedAtUtc": "2026-10-27T08:14:35.615225+00:00",
+      "package": "tetorica-vgm",
+      "version": "0.2.16",
+      "published": true,
+      "latest": "0.2.16",
+      "publishedAtUtc": "2026-10-27T08:11:10.748Z",
+      "registryTarballUrl": "https://registry.npmjs.org/tetorica-vgm/-/tetorica-vgm-0.2.16.tgz",
+      "preparedTarball": "/private/tmp/npm-pokey-release-20261027/vgm/tetorica-vgm-0.2.16.tgz",
+      "downloadedTarball": "/private/tmp/npm-pokey-release-20261027/vgm/registry/tetorica-vgm-0.2.16.tgz",
+      "bytes": 895228,
+      "files": 277,
+      "unpackedBytes": 2960390,
+      "sha256": "1ee60b3caa7978f0129d3af7436860f6d19bc32aabe65977de9f4ab8d8add0a2",
+      "sha1": "0271236d54f7955c2c0c0f6aaf0ea654c33e9a1b",
+      "sha512": "030bb2c469bca2049e6e9660e0cb0844847613dffc4c4eff44985babab317f75168f79e15f223303df8df473954a1b6cfa4dca6ed5d6e0846e9bb5ccc99f1d8b",
+      "npmIntegrity": "sha512-AwuyxGm8ogSebpZg4MsIRIR2E9/8TE7/RJhbq6sxf3UWj3nhXyIzA9+N9HOVShts+k3KbtXW4IRum7XMyZ8diw==",
+      "metadataMatchesPreparedManifest": true,
+      "registryHashesMatchPreparedCandidate": true,
+      "downloadedTarballExactlyMatchesPreparedBytes": true,
+      "everyPublishedMemberMatchesPreparedBytes": true,
+      "originalIsolatedInstallProof": "/private/tmp/npm-pokey-release-20261027/vgm/installed-pokey-check.json",
+      "registryMetadata": "/private/tmp/npm-pokey-release-20261027/vgm/registry/published-exact.json",
+      "registryDistTags": "/private/tmp/npm-pokey-release-20261027/vgm/registry/published-dist-tags.json",
+      "commandLogs": [
+        "/private/tmp/npm-pokey-release-20261027/vgm/registry/published-exact.log",
+        "/private/tmp/npm-pokey-release-20261027/vgm/registry/published-dist-tags.log",
+        "/private/tmp/npm-pokey-release-20261027/vgm/registry/published-pack.log"
+      ],
+      "pollingNote": "Initial sandbox reads failed with ENOTFOUND. Approved npm registry reads/download succeeded; no publish command repeated.",
+      "packedFiles": {
+        "assets/opna-rhythm/LICENSE": {
+          "bytes": 1764,
+          "sha256": "fc3f6037e016ec318ec521034aa3c643a01c557c216859bf4dc49b0031ce94f7"
+        },
+        "LICENSE": {
+          "bytes": 1519,
+          "sha256": "2d2e9213c170a9866c616fa85b6da993a6724e10befc61f468ed9bfb84c4691c"
+        },
+        "licenses/fixnes-fds/LICENSE": {
+          "bytes": 1062,
+          "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce"
+        },
+        "licenses/jsnes/LICENSE": {
+          "bytes": 10758,
+          "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+        },
+        "licenses/libvgm-pokey/LICENSE": {
+          "bytes": 1587,
+          "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583"
+        },
+        "licenses/snes-spc/LICENSE": {
+          "bytes": 26526,
+          "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+        },
+        "sources/LICENSE": {
+          "bytes": 1517,
+          "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+        },
+        "sources/third_party/libvgm-pokey/LICENSE": {
+          "bytes": 1587,
+          "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583"
+        },
+        "sources/third_party/snes-spc/LICENSE": {
+          "bytes": 26526,
+          "sha256": "20c17d8b8c48a600800dfd14f95d5cb9ff47066a9641ddeab48dc54aec96e331"
+        },
+        "licenses/tetorica-nes/LICENSE-FDS": {
+          "bytes": 1062,
+          "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce"
+        },
+        "sources/third_party/tetorica-nes/LICENSE-FDS": {
+          "bytes": 1062,
+          "sha256": "f906a51cbcf80751c1d3cba9920e5ff87b95a2721587a509b632a76af09e89ce"
+        },
+        "licenses/tetorica-nes/LICENSE-JSNES": {
+          "bytes": 10758,
+          "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+        },
+        "sources/third_party/tetorica-nes/LICENSE-JSNES": {
+          "bytes": 10758,
+          "sha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+        },
+        "web/tetorica_ym2608_adpcm_rom.bin": {
+          "bytes": 8192,
+          "sha256": "c33441f88d712f2864a33a962a88ae5800d2c5a5df418a8a345f2532cecb7704"
+        },
+        "licenses/fixnes-fds/upstream/audio_fds.c": {
+          "bytes": 7799,
+          "sha256": "c264925ba2c2f9a9d1389750a5023b217ec13b3ecd9212bf6443de9faa299590"
+        },
+        "sources/third_party/libvgm-pokey/upstream/pokey.c": {
+          "bytes": 41726,
+          "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9"
+        },
+        "sources/third_party/snes-spc/snes_spc/dsp.cpp": {
+          "bytes": 2600,
+          "sha256": "80b7ff9f2f7ab4af0485c5faaa3dc333359a8892c63b996a3448c047bad62bb6"
+        },
+        "sources/third_party/tetorica-nes/nes_core.cpp": {
+          "bytes": 32166,
+          "sha256": "6658f4012eeac783ea72693b2284dd150dcb2e22a1f29859b83e1ae3d333f959"
+        },
+        "sources/wasm/nesapu_wasm.cpp": {
+          "bytes": 2389,
+          "sha256": "49f5f980b5685fc4b3878369e367700e37fbf143db4930765ab347a702d7e105"
+        },
+        "sources/wasm/pokey_wasm.cpp": {
+          "bytes": 1101,
+          "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df"
+        },
+        "sources/third_party/libvgm-pokey/pokey.cpp": {
+          "bytes": 37305,
+          "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96"
+        },
+        "sources/third_party/snes-spc/snes_spc/SNES_SPC_misc.cpp": {
+          "bytes": 9468,
+          "sha256": "d89d85fd584299360eb304219658f2b92121b5dd4e8a4089e1e7d4806c1a8d3e"
+        },
+        "sources/third_party/snes-spc/snes_spc/SNES_SPC_state.cpp": {
+          "bytes": 3676,
+          "sha256": "6af18978d82617f12b9830b87e06dd6c27f772b78de9d18a8ebbdf38d93309d2"
+        },
+        "sources/third_party/snes-spc/snes_spc/SNES_SPC.cpp": {
+          "bytes": 17737,
+          "sha256": "3d235748b0c520a000263b8098305061673b405754c900a94b9545991628533f"
+        },
+        "sources/third_party/snes-spc/snes_spc/SPC_DSP.cpp": {
+          "bytes": 26250,
+          "sha256": "ec2ad75d60192fd1d03c63b5fea25874f96ec1beade45d6cecbd08277f35c9fc"
+        },
+        "sources/third_party/snes-spc/snes_spc/SPC_Filter.cpp": {
+          "bytes": 1768,
+          "sha256": "34c6ab92475d5fd700c3e01bff7d2fe8e59f8d188a0719c1ad12141d905f62e8"
+        },
+        "sources/wasm/spc_wasm.cpp": {
+          "bytes": 15355,
+          "sha256": "2c88efc7f10d0b4cd1124163f0a99caf0e1d8cac3ba1767de1134c30d62e8d77"
+        },
+        "sources/third_party/snes-spc/snes_spc/spc.cpp": {
+          "bytes": 4212,
+          "sha256": "0f6bf884f2d6ef5728d8bb3fc277ff1e1bf74813251d8308f4e6d3aa1e33ec1f"
+        },
+        "sources/third_party/snes-spc/snes_spc/blargg_common.h": {
+          "bytes": 5205,
+          "sha256": "4bc17a19fe46de2860868d3f88c037aee718b4dedc61450a28de3d1336053dba"
+        },
+        "sources/third_party/snes-spc/snes_spc/blargg_config.h": {
+          "bytes": 620,
+          "sha256": "b318cfcd2828719d8e3435e4972bc75ba82697c2cc6b8d291130d66d7b6904b8"
+        },
+        "sources/third_party/snes-spc/snes_spc/blargg_endian.h": {
+          "bytes": 6364,
+          "sha256": "97062e15b46e1347a4fc2e95fd131bcb89c1b8947b28d20a27c1f342a387d637"
+        },
+        "sources/third_party/snes-spc/snes_spc/blargg_source.h": {
+          "bytes": 3037,
+          "sha256": "bd6b376d6d9b1bccce3b89e915b1ad9a6fede7d43b273258bfa13c3855fb1a6a"
+        },
+        "sources/third_party/snes-spc/snes_spc/dsp.h": {
+          "bytes": 2512,
+          "sha256": "ac61fc96a688ce7429942a76562b0ce8cfb014f84c2c2398ef875b0f33521c2b"
+        },
+        "sources/third_party/tetorica-nes/nes_core.h": {
+          "bytes": 2163,
+          "sha256": "7834ca83834271574d58ba754061ca8eea619776a7acea6f702cfe3b811b3b31"
+        },
+        "sources/third_party/libvgm-pokey/pokey.h": {
+          "bytes": 1573,
+          "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0"
+        },
+        "sources/third_party/snes-spc/snes_spc/SNES_SPC.h": {
+          "bytes": 9033,
+          "sha256": "3ebf24542de1405b054fc7f044516aa25eabdd530a66daf1f91468a1e52a00ae"
+        },
+        "sources/third_party/snes-spc/snes_spc/SPC_CPU.h": {
+          "bytes": 24078,
+          "sha256": "8f28ed5a3461cbf85c64c6a8ecdb6f51b486396e37940e112b94748b44c3a7a8"
+        },
+        "sources/third_party/snes-spc/snes_spc/SPC_DSP.h": {
+          "bytes": 8413,
+          "sha256": "736ac067d04e38bd1bc888c8e06799579a35fa14c9879f7c7ab7b69c6b085f8a"
+        },
+        "sources/third_party/snes-spc/snes_spc/SPC_Filter.h": {
+          "bytes": 1065,
+          "sha256": "a86f33de7fbaa1d448de8e3879c4619e1d9a30a494c5a9606d682cee8dd89bb9"
+        },
+        "sources/third_party/snes-spc/snes_spc/spc.h": {
+          "bytes": 4758,
+          "sha256": "e45c8e2862f44a23804bb6fe14c747e16f49efc2e991a92138d285c36b45e0c7"
+        },
+        "docs/vgm_analyzer/analyzer_core.js": {
+          "bytes": 9773,
+          "sha256": "c62b63209df50ef8200e0eb158a25591e9b55ec9e30a1d4950a6e52361eacdde"
+        },
+        "docs/generated/ay8910_wasm.js": {
+          "bytes": 12113,
+          "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b"
+        },
+        "docs/js/ay8910.js": {
+          "bytes": 6264,
+          "sha256": "f4859ede97baedb225ab72d26e73bbe98389eef3ae7a3bbb88c6b7e136925355"
+        },
+        "docs/js/ay8910audioengine.js": {
+          "bytes": 5469,
+          "sha256": "202020634fe956c486eb42333db0dcfee4f21c2313f59600097d35f15ff8406e"
+        },
+        "docs/js/nes_apu_vendor/channel-dm.js": {
+          "bytes": 6890,
+          "sha256": "94eed4be74f42c3a12f0559e736cefa73598be4b49bb83cd95ff619183b7cae7"
+        },
+        "docs/js/nes_apu_vendor/channel-noise.js": {
+          "bytes": 3592,
+          "sha256": "9955835564f858bbb74927d0ffc202f815c24f67d63d17be09308a7cd5ccb812"
+        },
+        "docs/js/nes_apu_vendor/channel-square.js": {
+          "bytes": 5728,
+          "sha256": "668da0573d064a3c6a7afe777f84d1635c7d541cfae315ee477b2209adbc6317"
+        },
+        "docs/js/nes_apu_vendor/channel-triangle.js": {
+          "bytes": 3615,
+          "sha256": "4729ea94c099b7c08b6f74c3d96249212261c1f1bbf3ba53dd261e18347c6506"
+        },
+        "docs/js/chip_pcm_renderer.js": {
+          "bytes": 2901,
+          "sha256": "2f6a0c12777d11be5d68d6e597aca0bbdfde838596888fc283b08c095465f4d2"
+        },
+        "docs/vgm_analyzer/dac_samples.js": {
+          "bytes": 1924,
+          "sha256": "282043a4342058fae916b1f0f6a13ddc794e32239af9c7f51e026056e33b8697"
+        },
+        "docs/js/fds_audio.js": {
+          "bytes": 5112,
+          "sha256": "a40594267909ec49f07897913877e3e27aee345ed783f8044d7f5f6e13c09ee9"
+        },
+        "docs/vgm_analyzer/fm_snapshot.js": {
+          "bytes": 2881,
+          "sha256": "46bbd1a12c3903406fa1d939d438f22ab730bbf577c1cb8db48866ad97597514"
+        },
+        "docs/generated/gameboy_apu_wasm.js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5"
+        },
+        "docs/vgm_analyzer/gameboy_notes.js": {
+          "bytes": 4359,
+          "sha256": "4ef866e45c9d1e49e3a4fde70f9e2d59bbd2ac04b5dce8fde9983bac7b1960a9"
+        },
+        "docs/vgm_analyzer/gameboy_voices.js": {
+          "bytes": 4702,
+          "sha256": "0769eaaa8150529c9a2e76d50e7857e519737da9c0a552e9f2a63eb0f165cb8a"
+        },
+        "docs/vgm_analyzer/gameboy_waves.js": {
+          "bytes": 2475,
+          "sha256": "0ed850aab97071d70a9285640d5886ba28f181d45ef9ba6cf93c1937ca456dc2"
+        },
+        "docs/js/gameboyapu.js": {
+          "bytes": 7136,
+          "sha256": "cbfd33c3eef9110f1d0940ff46ebfa8c151da3370687833f959e354c6ecb49d9"
+        },
+        "docs/js/gameboyapuaudioengine.js": {
+          "bytes": 5631,
+          "sha256": "4f156b61336c9be04ad89e3b8b63c48949eac2b57a9af8b3e26e0078f8f342fa"
+        },
+        "docs/js/genesisaudioengine.js": {
+          "bytes": 14803,
+          "sha256": "b94cdf9c52306fa3a67c86c5d656f4da54f0b992c5c191bc8436f0cc571c90ca"
+        },
+        "docs/vgm_analyzer/huc6280_notes.js": {
+          "bytes": 4019,
+          "sha256": "619b9f2a9d9a391d816f0e547dad7e6fe21bc45499a11265d867660ee3153c13"
+        },
+        "docs/generated/huc6280_wasm.js": {
+          "bytes": 13612,
+          "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f"
+        },
+        "docs/js/huc6280audioengine.js": {
+          "bytes": 6271,
+          "sha256": "0d7c581d237779ca2bf360488f8cf75e65d2bcf0ebe1da18fef21416fffd652b"
+        },
+        "cli/index.js": {
+          "bytes": 822,
+          "sha256": "05f6fa89ae153ed7841d8da5dc0a5910c8fb684347d7bdfa47487c252c499456"
+        },
+        "docs/js/nes_apu_vendor/index.js": {
+          "bytes": 31024,
+          "sha256": "04b0d09d5a3a8dad0667d764decc6e261c81c83ab493e2423191f259f2a98122"
+        },
+        "docs/generated/k051649_wasm.js": {
+          "bytes": 11133,
+          "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7"
+        },
+        "docs/js/k051649.js": {
+          "bytes": 5758,
+          "sha256": "59f557541f76cc6cbf6c91fecbcf56d4a97e4667da8e3c3ceac028297945b673"
+        },
+        "docs/js/k051649audioengine.js": {
+          "bytes": 4683,
+          "sha256": "f98ac099bc857e87e21c5e62d0c9a5e5a0b21655607a1df6f7fc95f6230e010c"
+        },
+        "cli/main.js": {
+          "bytes": 17052,
+          "sha256": "25f048883dab4cb3ae6313c88c34a79ad91829c3b9e3a2bf07ba320218af2f0c"
+        },
+        "docs/vgm_analyzer/mdx_export.js": {
+          "bytes": 5306,
+          "sha256": "7c264faa9e76dc03db296396265c2d96f79d6d8c1a0f0e4e301656f443a827dc"
+        },
+        "docs/vgm_analyzer/mgsdrv_mml.js": {
+          "bytes": 8656,
+          "sha256": "62ce6209ae05d0c26bc86e8128925c380d0a65d8df186213692ed5e403b9f544"
+        },
+        "docs/vgm_analyzer/mixer_calibration_data.js": {
+          "bytes": 631,
+          "sha256": "c861aa403c2a6a4e7df6aef024f63571334b9fbf37c37335122bc3dd11f0bd86"
+        },
+        "docs/vgm_analyzer/mixer_defaults.js": {
+          "bytes": 1948,
+          "sha256": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28"
+        },
+        "docs/js/msm5205audioengine.js": {
+          "bytes": 3560,
+          "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5"
+        },
+        "docs/vgm_analyzer/msx_notes.js": {
+          "bytes": 6260,
+          "sha256": "ff1b82a72692f7473d3348e462bf424358f477082be6879db1fd40262ea022cf"
+        },
+        "docs/js/msxaudioengine.js": {
+          "bytes": 7972,
+          "sha256": "cdcae66d00a34da46b44aef7f1e3edc0059fc4c1a344e5dd9ea446c5b7f07a7e"
+        },
+        "docs/js/multichipaudioengine.js": {
+          "bytes": 4698,
+          "sha256": "84702d4cfbdd655d4ed747d052239d9ec0dda689cacdb41ea0b108d18830474b"
+        },
+        "docs/vgm_analyzer/nes_notes.js": {
+          "bytes": 3338,
+          "sha256": "5d2fb0563f838a2d0649b2a28723611bced52b1bbf992b83d10690e9aa4f5ab7"
+        },
+        "docs/generated/nesapu_wasm.js": {
+          "bytes": 16041,
+          "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b"
+        },
+        "docs/js/nesapu_wasm.js": {
+          "bytes": 9324,
+          "sha256": "0bc07cab4c52cef9d62041f1ab532610c4e6158ae48e7c854178107138a45e2b"
+        },
+        "docs/js/nesapu.js": {
+          "bytes": 4116,
+          "sha256": "0b3c5187f2630ea675636b1da600f9ab1358a176208e111052676f7e1003e80d"
+        },
+        "docs/js/nesapuaudioengine.js": {
+          "bytes": 5704,
+          "sha256": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947"
+        },
+        "docs/vgm_analyzer/oki6258_samples.js": {
+          "bytes": 2871,
+          "sha256": "d0ba906cc3f880a083c4394fa575e1e2aa935fa1e1de314267f69dc42236517d"
+        },
+        "docs/generated/okim6258_wasm.js": {
+          "bytes": 14797,
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b"
+        },
+        "docs/js/okim6258audioengine.js": {
+          "bytes": 8196,
+          "sha256": "b0585c93ff9fd565f2bd305f5a3fee5c495511d8764ec7e993fba4c346e8cf0b"
+        },
+        "docs/js/okim6295audioengine.js": {
+          "bytes": 6878,
+          "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2"
+        },
+        "docs/vgm_analyzer/opl_notes.js": {
+          "bytes": 4193,
+          "sha256": "a278879dda96054a0b2f5698828a23ded83d373f61e1ee2f476850c7d488ea0c"
+        },
+        "docs/vgm_analyzer/opm_export.js": {
+          "bytes": 4742,
+          "sha256": "cfe9192492c88c142df37a0f7e06f155bf63e40f7ee3a4f49fdf3fa3bda6e120"
+        },
+        "docs/vgm_analyzer/opm_mml.js": {
+          "bytes": 3586,
+          "sha256": "66ecb96cf1634c5161d65de61c80212908ff788cb3c8f6b8ea1fb3e728104b74"
+        },
+        "docs/vgm_analyzer/opm_monitor.js": {
+          "bytes": 7175,
+          "sha256": "bb1b11213dfdc05c82ce11e86a22e62409efe2578bac6c14d7679b106ac8c9b7"
+        },
+        "docs/vgm_analyzer/opm_notes.js": {
+          "bytes": 3907,
+          "sha256": "02f1c798029a106e02077dc6072dc797743902635c5eead30930a70f29a4c6bd"
+        },
+        "docs/vgm_analyzer/opm_tfi.js": {
+          "bytes": 3095,
+          "sha256": "45e83093aa2643e650582b123922bcc5af6fbd7f56252ce6eaafb6a5bb2c002a"
+        },
+        "docs/js/opn_fm_vgm.js": {
+          "bytes": 4213,
+          "sha256": "d9535987aa4284e817172b1cff3cfbdbe893cca70b6cebfe4c09f616802bbc1c"
+        },
+        "docs/js/opn_variant.js": {
+          "bytes": 4826,
+          "sha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16"
+        },
+        "docs/vgm_analyzer/playback_core.js": {
+          "bytes": 27540,
+          "sha256": "72ec6bc31aae851a5c60e6583f0df61543749eaf3243c9569d0498578a2b75db"
+        },
+        "docs/vgm_analyzer/playback_mixer.js": {
+          "bytes": 4616,
+          "sha256": "d73de8178e9aa3f9ce70a5ace6cf21c7cf527c65945b83bda2cfeb7d26d99cc1"
+        },
+        "docs/js/playground_chip_clock.js": {
+          "bytes": 5232,
+          "sha256": "00e4aa6a1d0445309783a0cbf48b4513723d37e26065b5b7d28f3a034e8d46bc"
+        },
+        "docs/js/playground_performance_processor.js": {
+          "bytes": 29133,
+          "sha256": "50490a133469dd2112ffb39d6c861d427754d9866a6226377ad7d7fa39cd35dc"
+        },
+        "docs/js/playground_performance_queue.js": {
+          "bytes": 9950,
+          "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+        },
+        "docs/vgm_analyzer/pokey_playback.js": {
+          "bytes": 2680,
+          "sha256": "b05a932af04dc8f9125db8262ed046f08c096951d60f2381d45b1df13d6b4b52"
+        },
+        "docs/generated/pokey_wasm.js": {
+          "bytes": 15128,
+          "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d"
+        },
+        "docs/js/pokey.js": {
+          "bytes": 8390,
+          "sha256": "5df2648616b46f159397e6899ce12f93dca9f8150db63c475584263d43b97ca1"
+        },
+        "docs/js/pokeyaudioengine.js": {
+          "bytes": 3482,
+          "sha256": "18ad1710e13e7df9cb9e23f67a1db158e2c3d871e439a461b7e17dd00fe87208"
+        },
+        "docs/vgm_analyzer/psg_monitor.js": {
+          "bytes": 3454,
+          "sha256": "092bc0fdfea5c48eea8c1a016a772e14389cda02c7345d6eed2ede31d8c75e1f"
+        },
+        "docs/vgm_analyzer/pwm_samples.js": {
+          "bytes": 3734,
+          "sha256": "a9406ad97828779beec4231ad5824bba4866c1a84f4f3b23265cee7a9e51f4de"
+        },
+        "docs/js/pwm32x_playback.js": {
+          "bytes": 9066,
+          "sha256": "ad828d6e3f8c28c3f3651a701005970cca66ca3a04309475a2308abab2d61932"
+        },
+        "docs/generated/pwm32x_wasm.js": {
+          "bytes": 12398,
+          "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643"
+        },
+        "docs/js/pwm32x_wasm.js": {
+          "bytes": 12449,
+          "sha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9"
+        },
+        "docs/js/pwm32x.js": {
+          "bytes": 6885,
+          "sha256": "32fc07ab58957d8dcb2b931cb17219e4ada4490ba46937f77abd97f140b7ff28"
+        },
+        "cli/render.js": {
+          "bytes": 3460,
+          "sha256": "d725ad4a686a67cdbe7a295c3a808e27996e9f9279b09626e155bdf7c6d1706d"
+        },
+        "docs/vgm_analyzer/rf5c164_samples.js": {
+          "bytes": 3728,
+          "sha256": "88721185dade0c3ed70f2b7bf5441798eb1149e8c1094d7472505885ad220211"
+        },
+        "docs/generated/rf5c164_wasm.js": {
+          "bytes": 35162,
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58"
+        },
+        "docs/js/rf5c164.js": {
+          "bytes": 10224,
+          "sha256": "0ea1b5f03533b7537548e0bee277b5b01f0636474797f4b5469c2acef52f3203"
+        },
+        "docs/js/s98_file.js": {
+          "bytes": 5878,
+          "sha256": "4c010069909e09ed6d6e37cb37ecceb58ece99d2b92427d7988dfca476c8dcd1"
+        },
+        "docs/vgm_analyzer/sample_core.js": {
+          "bytes": 20378,
+          "sha256": "e0ed0d60f30ee8bbe41571b86f6fae5dc316593759cba395ec423d402d0d1240"
+        },
+        "docs/vgm_analyzer/sample_render.js": {
+          "bytes": 8844,
+          "sha256": "242cc68837f52dd5e6f50b088f36858145240be9c5dfb4e932c90ddd176319a3"
+        },
+        "docs/vgm_analyzer/sbi_export.js": {
+          "bytes": 6336,
+          "sha256": "3ba4709a80c52430dba0c96fc1ae824da68868ceac74beca8e39d320326fd41e"
+        },
+        "docs/vgm_analyzer/scc_notes.js": {
+          "bytes": 1930,
+          "sha256": "150d78f6dd46e03887ab498d75aa1e84ff4310d6d66ffd52b8c7c9b79f535e08"
+        },
+        "docs/vgm_analyzer/score_groups.js": {
+          "bytes": 2975,
+          "sha256": "bee506765793d9a6d94a686386932091ae0ce17958826897ad3d5a3abdd9c430"
+        },
+        "docs/vgm_analyzer/segapcm_samples.js": {
+          "bytes": 6264,
+          "sha256": "c2bd8624e44ea28618e04dfd5d327089377bad8032013ec8eed627338cd4505b"
+        },
+        "docs/generated/segapcm_wasm.js": {
+          "bytes": 12513,
+          "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5"
+        },
+        "docs/js/segapcm.js": {
+          "bytes": 8592,
+          "sha256": "2dc311982e23b5fabd83c12f7a44a10887a74eb47d492b1aa26ead0cb5a8dbdc"
+        },
+        "docs/js/segapcmaudioengine.js": {
+          "bytes": 6159,
+          "sha256": "9b92113c437f64aed9d76712e8ecec46134836a8fbf7a54ae25246990772dc61"
+        },
+        "docs/generated/segapsg_wasm.js": {
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7"
+        },
+        "docs/js/segapsg.js": {
+          "bytes": 10149,
+          "sha256": "c482525bb445b73b03ed35832ca3855f25d29c145267b16ecb9687e0e8e72c46"
+        },
+        "docs/js/snes_brr.js": {
+          "bytes": 11140,
+          "sha256": "03f8f77cd56c1033762d370c8efe764a76e1ac3e73b4f9d55a350564fdb8234d"
+        },
+        "docs/vgm_analyzer/snes_notes.js": {
+          "bytes": 12923,
+          "sha256": "6630cbefa5ac2d62d03812915814e315fd538174bd8ccb4565ca497ef6eaa425"
+        },
+        "docs/vgm_analyzer/snes_score.js": {
+          "bytes": 1741,
+          "sha256": "6900129bf9b17060b3a6da224c0d2e6311e58e3797f46ce60331512be9204e4a"
+        },
+        "docs/js/soundchip_factory.js": {
+          "bytes": 809,
+          "sha256": "fa2300906e905eeea8c189a3d2d9d341fb8d252e7b63c06be9cec66818dcd9ca"
+        },
+        "docs/js/soundchip_mixer_presets.js": {
+          "bytes": 2986,
+          "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+        },
+        "docs/js/soundchip_mixer.js": {
+          "bytes": 26367,
+          "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb"
+        },
+        "docs/js/soundchip_pitch.js": {
+          "bytes": 2854,
+          "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+        },
+        "docs/js/soundchip_worklet.js": {
+          "bytes": 6694,
+          "sha256": "fe660447ae257564eeb3ad43b6a8096b3f42c8eb8e84c7c14b9b423000dc13ed"
+        },
+        "docs/js/soundchip-output-worklet.js": {
+          "bytes": 20088,
+          "sha256": "c13b932f8435e89ee4bf0b131a16d9b1c7db7959fa2e73bfb70423c4c51febe1"
+        },
+        "docs/js/soundchip.js": {
+          "bytes": 13486,
+          "sha256": "598c0400f19ca2ed5e4ad88df3abd688d477139963a5edf92fe65ca5a1f328a3"
+        },
+        "docs/js/spc_events.js": {
+          "bytes": 11461,
+          "sha256": "7142e0fad5e39e6d04c986c40fc00ef07e657e3d5dda250b52a1161de955e58e"
+        },
+        "docs/js/spc_file.js": {
+          "bytes": 8896,
+          "sha256": "0fb197919fad347724ceec4038b67606bcffc037749f4eb2b547c55b9bd77578"
+        },
+        "docs/js/spc_performance.js": {
+          "bytes": 8437,
+          "sha256": "665272a96b74ca19f8ba2b611e25ccb573431386aaa3b8a8abce4ec988060b28"
+        },
+        "docs/js/spc_pitch.js": {
+          "bytes": 9709,
+          "sha256": "ad0e753f90c6559b76316b1b484d06ed00fe7f0300e58714d6c482c09897f5fd"
+        },
+        "docs/generated/spc_wasm.js": {
+          "bytes": 41458,
+          "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699"
+        },
+        "cli/spc.js": {
+          "bytes": 10081,
+          "sha256": "103923c0df5f08483af07ce51a0813861467c4d866d1025e624f9c3c95597272"
+        },
+        "docs/js/spc.js": {
+          "bytes": 16728,
+          "sha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f"
+        },
+        "docs/vgm_analyzer/stored_zip.js": {
+          "bytes": 4446,
+          "sha256": "dc4e7a8eda73cdc160b5a9493cadfd40d087158d4af9634bcc7cdd6811d2b968"
+        },
+        "docs/vgm_analyzer/tfi_archive.js": {
+          "bytes": 4103,
+          "sha256": "627da46893baf0a1ad88f8c75c3b856a1260df244993e12452c6a45dd4ed5991"
+        },
+        "docs/vgm_analyzer/tfi_extract.js": {
+          "bytes": 6515,
+          "sha256": "55dadec941da833452b58f30c9631c817dbe3fd85799f8159fadc41cca66898f"
+        },
+        "docs/js/tfi.js": {
+          "bytes": 9704,
+          "sha256": "7e7a3ff7d840ff0d12555d30ff373896c91e6d89641e5db6c6f39875e39dd720"
+        },
+        "docs/vgm_analyzer/tone_notes.js": {
+          "bytes": 3712,
+          "sha256": "2bc6ad72321385bf109f28021defcaa3006453949e56963c8d753864baab5a3f"
+        },
+        "docs/js/nes_apu_vendor/utils.js": {
+          "bytes": 1154,
+          "sha256": "3e97884bae801319ac802378ace60591f489dec533aec2e26663685ab08f378c"
+        },
+        "docs/js/vgi.js": {
+          "bytes": 4366,
+          "sha256": "6c648f3cf29f38660178c13813b19c9c95326bfa0bf634e060e1591d79741d99"
+        },
+        "docs/js/vgm_file.js": {
+          "bytes": 3428,
+          "sha256": "2539d82ea2b17f5d37b7f66e88bcc948acda4d906613358c14a1bd102c36bf48"
+        },
+        "docs/vgm_analyzer/vgm_json.js": {
+          "bytes": 3474,
+          "sha256": "102fddf60c56ff33dbc76c167de45146df8714ae05301126ec1107dc2f39d892"
+        },
+        "docs/vgm_analyzer/vgm_lilypond.js": {
+          "bytes": 10134,
+          "sha256": "fcc8baa02d35aea15ee2e3ae7f96f54710885ce12c0cc78ea05c1a7df80a6868"
+        },
+        "docs/vgm_analyzer/vgm_midi.js": {
+          "bytes": 13471,
+          "sha256": "27ff50c98ec33229bf98c12ca0f15fb93e84c87ec5f32a392588b09e5e892c61"
+        },
+        "docs/vgm_analyzer/vgm_mml_music.js": {
+          "bytes": 8057,
+          "sha256": "2a99983d938d38be2f72ef5d5ab77123318d4dd1a23481902a17f0ecd959bed2"
+        },
+        "docs/vgm_analyzer/vgm_mml.js": {
+          "bytes": 9170,
+          "sha256": "07ebe27efd6feaa3db9e1cc5e25e5fd0073d058fa111481673d7dc8b159536f9"
+        },
+        "docs/vgm_analyzer/vgm_musicxml.js": {
+          "bytes": 5447,
+          "sha256": "68e91c6ca3cfaf4b1cc415990a1f98627826837d3838aced6513c76871b867aa"
+        },
+        "docs/vgm_analyzer/vgm_notes.js": {
+          "bytes": 8174,
+          "sha256": "c8393e3665c4fdec067be0a707baa0a827ad347fe2799c40dfadeda84fe73e5b"
+        },
+        "docs/vgm_analyzer/vgm_wav.js": {
+          "bytes": 4410,
+          "sha256": "6e0d03aba44d88ec7d1531effa80281678366b2e4f2eea75d22d6880bb11b763"
+        },
+        "docs/js/vgmplayer.js": {
+          "bytes": 24207,
+          "sha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3"
+        },
+        "docs/js/wav.js": {
+          "bytes": 2582,
+          "sha256": "986245e48eb0c28cc5b0e967c131f604177b839b8f34e17bd0aa3f5f1e385fd6"
+        },
+        "docs/vgm_analyzer/wonderswan_notes.js": {
+          "bytes": 3427,
+          "sha256": "4fe6457e057d787ee77ada558a130592a1e7b83a57d3fa7f0b03f1acfa3b89c9"
+        },
+        "docs/vgm_analyzer/wonderswan_voice_render.js": {
+          "bytes": 3009,
+          "sha256": "286400012569e19494365453f39cf4c7b020d77e953c4213cb1aec09518c0962"
+        },
+        "docs/vgm_analyzer/wonderswan_voice_samples.js": {
+          "bytes": 10452,
+          "sha256": "b55d5d5a60809db35ac992ca99acf802e951ff50a6000ecd18fe71d16bc3fa28"
+        },
+        "docs/generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+        },
+        "docs/vgm_analyzer/wonderswan_waves.js": {
+          "bytes": 9503,
+          "sha256": "2f97d7bd2a2fc72fd02ba1bc6c310e9d277c517c8b8b1cd7ed79444b78642677"
+        },
+        "docs/js/wonderswan.js": {
+          "bytes": 9684,
+          "sha256": "effda6602a156ffaa34f94b6f1edf14a44a1722dc20e116fd3e7df397bef9957"
+        },
+        "docs/js/wonderswanaudioengine.js": {
+          "bytes": 6304,
+          "sha256": "ba59155c4db23edb3b7b62279fa6154f2bb52778c9911983c24a2808eb0a64b7"
+        },
+        "docs/generated/y8950_wasm.js": {
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77"
+        },
+        "docs/js/y8950.js": {
+          "bytes": 11090,
+          "sha256": "8219615e64a6576704f6f469523e5747b978abe46bc38affd300a3aa76974e09"
+        },
+        "docs/js/y8950audioengine.js": {
+          "bytes": 7959,
+          "sha256": "ed38e4c7e5601d8d44198a4b25ab46b430926666dd2716819d9ff14261b88f28"
+        },
+        "docs/generated/ym2151_wasm.js": {
+          "bytes": 15584,
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304"
+        },
+        "docs/js/ym2151.js": {
+          "bytes": 11515,
+          "sha256": "b485c0393bc53f4bd482073a143d595dbeb23ad2aceca9c2ae4a2ae8996eb199"
+        },
+        "docs/js/ym2151audioengine.js": {
+          "bytes": 11430,
+          "sha256": "19b3755be31af5a38a812f2125c04a7c8302e2863ce5dd826302ca1650e3da07"
+        },
+        "docs/generated/ym2203_wasm.js": {
+          "bytes": 35153,
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e"
+        },
+        "docs/js/ym2203.js": {
+          "bytes": 12761,
+          "sha256": "94c7c1f289e3aca63d279b97b9cbb0a014a7258dabe412dafb553e1713340715"
+        },
+        "docs/js/ym2203audioengine.js": {
+          "bytes": 8820,
+          "sha256": "52107ae322a83263aee9edf241b8ca0a8db161bac4752f2ca694c71e3ad2d7b7"
+        },
+        "docs/vgm_analyzer/ym2413_monitor.js": {
+          "bytes": 3550,
+          "sha256": "309261dd9a98af20dbbd0f84281651f4aa4db42ec219d1ec6b925f453650fd12"
+        },
+        "docs/vgm_analyzer/ym2413_notes.js": {
+          "bytes": 2321,
+          "sha256": "8d8ae0a5ce19cced098645827a2c696a1a8cd164e31e52970ffb43ea1c06ec58"
+        },
+        "docs/generated/ym2413_wasm.js": {
+          "bytes": 32911,
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803"
+        },
+        "docs/js/ym2413.js": {
+          "bytes": 9509,
+          "sha256": "a0dab8f557501de21a9b98083d33415ee9faf92fbdd0c0161fe7e1fce78659d1"
+        },
+        "docs/js/ym2413audioengine.js": {
+          "bytes": 7154,
+          "sha256": "d12011920aa2a8eba40bbbf23b66f04b86325dc5585df204fc2a6b1bad4eea78"
+        },
+        "docs/generated/ym2608_wasm.js": {
+          "bytes": 36356,
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a"
+        },
+        "docs/js/ym2608.js": {
+          "bytes": 15643,
+          "sha256": "54384da784d96c0875f9edf224dfa8c77911f5e192ef15cdf11fa79d1765e522"
+        },
+        "docs/js/ym2608audioengine.js": {
+          "bytes": 9964,
+          "sha256": "7f679903430e52de210219ffa00cf38adffba836e6f2dca58909caf2f61ed593"
+        },
+        "docs/generated/ym2610b_wasm.js": {
+          "bytes": 36296,
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879"
+        },
+        "docs/js/ym2610b.js": {
+          "bytes": 11176,
+          "sha256": "68b31010b86b2d1bdd0ad684469b80aba7020e30edf80d41504158e59c6197e0"
+        },
+        "docs/js/ym2610baudioengine.js": {
+          "bytes": 7785,
+          "sha256": "f8a4a637b53bdf3cba6fe5f5eb179f251ecf0831c7b313231bef146cb8b3296c"
+        },
+        "docs/js/ym2612_dac.js": {
+          "bytes": 7251,
+          "sha256": "c5b5c78066cc665604085efb5ad395efddee39ebcc760bc7e7adbe4960e2bcaf"
+        },
+        "docs/generated/ym2612_wasm.js": {
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667"
+        },
+        "docs/js/ym2612.js": {
+          "bytes": 22574,
+          "sha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2"
+        },
+        "docs/js/ym2612synth.js": {
+          "bytes": 38598,
+          "sha256": "495408c80ab002bd49fafc32f7e8fb44c1e5b0ab6bcc219eb62edd36635d1138"
+        },
+        "docs/js/ym2612vgm.js": {
+          "bytes": 117637,
+          "sha256": "1587950d955d577262a11e754f533133b8194d65272e740c8b48b9f3b465e06b"
+        },
+        "docs/js/ym3438.js": {
+          "bytes": 1134,
+          "sha256": "2047551436fddce9d32f6c0cd78bbcd556572c33e080583de465f306008720fb"
+        },
+        "docs/generated/ym3526_wasm.js": {
+          "bytes": 14274,
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d"
+        },
+        "docs/js/ym3526.js": {
+          "bytes": 9482,
+          "sha256": "1baf1ffb07d176501eb4bc0ed1f40b298456c1cf916e0d15178f11a1fa46fa09"
+        },
+        "docs/js/ym3526audioengine.js": {
+          "bytes": 7333,
+          "sha256": "dd2a00912e4b6b75210a045ead43024b1a07286fdda5c430e9e3ad6add224eb0"
+        },
+        "docs/generated/ym3812_wasm.js": {
+          "bytes": 14274,
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d"
+        },
+        "docs/js/ym3812.js": {
+          "bytes": 9482,
+          "sha256": "236ac03c51c27cb84583a5a5f2dcbbc04c3eb723ec144d52907e713871bbaf30"
+        },
+        "docs/js/ym3812audioengine.js": {
+          "bytes": 7333,
+          "sha256": "c8d21c54cfe50fcd734f2dae6efd19134c8448fc5be02251688275b5c02ff2ef"
+        },
+        "docs/vgm_analyzer/ymf262_notes.js": {
+          "bytes": 3983,
+          "sha256": "f30b898647db21088ef318a8fbd9ee83491b1be5a6acb81137dca8d955ce26a5"
+        },
+        "docs/generated/ymf262_wasm.js": {
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7"
+        },
+        "docs/js/ymf262.js": {
+          "bytes": 10316,
+          "sha256": "b58e439d9c0fd61b6a9ae8a26b114abc830888e25926885054ce28e1f02c3596"
+        },
+        "docs/js/ymf262audioengine.js": {
+          "bytes": 7646,
+          "sha256": "f4a4e64e37259a46af9996ffdad3bc5f8af0ba17f6a883cbd9ace62647719424"
+        },
+        "docs/js/ymf276.js": {
+          "bytes": 1134,
+          "sha256": "e5dd22e5b552fb9562958ccbc85bc44c2ea772c262c55c651d249764abb9da1d"
+        },
+        "docs/vgm_analyzer/ymf278b_samples.js": {
+          "bytes": 4483,
+          "sha256": "f8afd3d93515c330e9ace1ab212c9dc33778ac6d01bd74fa7cffbe7f296f3eed"
+        },
+        "docs/generated/ymf278b_wasm.js": {
+          "bytes": 15707,
+          "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48"
+        },
+        "docs/js/ymf278b.js": {
+          "bytes": 11571,
+          "sha256": "2e7f9014676815618582381a1350fcd172a002dff05d5bb936aac2eb8d30c727"
+        },
+        "docs/js/ymf278baudioengine.js": {
+          "bytes": 8609,
+          "sha256": "5ce3df0a3e9652ace2cb08f8ac4a42a691db8c140f7b288129e538abec0b46df"
+        },
+        "docs/js/ymf288.js": {
+          "bytes": 1145,
+          "sha256": "a2e14c7906153c5d6423ed16012dc7c908d983d0c5fb9cfbbb04e7749f0c4e03"
+        },
+        "package.json": {
+          "bytes": 1059,
+          "sha256": "3fcac1ee53a7182c6a4efaa3a5189417824abddd14bb7126d35dc18c4882f7b7"
+        },
+        "sources/POKEY-SDK.json": {
+          "bytes": 2368,
+          "sha256": "e91f4847a37602ab7b9b4e5f141c4891d67e4a80606d4de7867a593c4818765a"
+        },
+        "sources/third_party/libvgm-pokey/upstream/snapshot-manifest.json": {
+          "bytes": 841,
+          "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27"
+        },
+        "licenses/tetorica-nes/AUTHORS-JSNES.md": {
+          "bytes": 390,
+          "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a"
+        },
+        "sources/third_party/tetorica-nes/AUTHORS-JSNES.md": {
+          "bytes": 390,
+          "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a"
+        },
+        "licenses/jsnes/AUTHORS.md": {
+          "bytes": 390,
+          "sha256": "7d65bfd33da03428907b8213520832c26c9531f08c1f1dd2794dd477b9764b6a"
+        },
+        "CLI.md": {
+          "bytes": 54118,
+          "sha256": "60c22f23f2d7089614f59cd194991959e1e3beb751e724362d867b1587ccfc1d"
+        },
+        "sources/NES-FDS.md": {
+          "bytes": 1057,
+          "sha256": "c98ec969c6504fb04e8ed7e2ea54332100c7c27c430c4b8c235ae73ff04ed863"
+        },
+        "sources/POKEY.md": {
+          "bytes": 1017,
+          "sha256": "66b6cb15f6dc44e404f8f604cba2105881ee8944a85a706c88736fdd94ab69e4"
+        },
+        "assets/opna-rhythm/README.md": {
+          "bytes": 5023,
+          "sha256": "df4b2594c82d11d4e80147321dd95a5d49e29df99f38d1c05edeec2f56b9e1be"
+        },
+        "licenses/fixnes-fds/README.md": {
+          "bytes": 1149,
+          "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316"
+        },
+        "licenses/jsnes/README.md": {
+          "bytes": 924,
+          "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792"
+        },
+        "licenses/libvgm-pokey/README.md": {
+          "bytes": 7686,
+          "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff"
+        },
+        "licenses/snes-spc/README.md": {
+          "bytes": 3444,
+          "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775"
+        },
+        "licenses/tetorica-nes/README.md": {
+          "bytes": 3903,
+          "sha256": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396"
+        },
+        "README.md": {
+          "bytes": 29609,
+          "sha256": "993d43395692eba0f7cec41a0e270d7b6ad99371b64f2a737d1955ad6c699a20"
+        },
+        "sources/third_party/libvgm-pokey/README.md": {
+          "bytes": 7686,
+          "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff"
+        },
+        "sources/third_party/snes-spc/README.md": {
+          "bytes": 3444,
+          "sha256": "0a4ef415f103b996772d321ba2ff28614a27a9c83cfe4afd437a779e58ab0775"
+        },
+        "sources/third_party/tetorica-nes/README.md": {
+          "bytes": 3903,
+          "sha256": "a05841c89d8a6a892d772b57d8e3501bf6b28ef8f50226731bb0cab401261396"
+        },
+        "sources/third_party/snes-spc/README.upstream.md": {
+          "bytes": 3249,
+          "sha256": "da0bfe0b5183787d61314fe7964e2c231675a9e61ce734ff7887b55fbf7d1362"
+        },
+        "sources/SNES-SPC.md": {
+          "bytes": 947,
+          "sha256": "267d7078a59c99d6d56b81b200f97f9db84ea3b481f80a563797df8abd91f328"
+        },
+        "licenses/tetorica-nes/UPSTREAM-FDS.md": {
+          "bytes": 1149,
+          "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316"
+        },
+        "sources/third_party/tetorica-nes/UPSTREAM-FDS.md": {
+          "bytes": 1149,
+          "sha256": "012c4710304da747754bc21ab7683e41f406e83de42b03b0bc4531c0ba5e1316"
+        },
+        "licenses/tetorica-nes/UPSTREAM-JSNES.md": {
+          "bytes": 924,
+          "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792"
+        },
+        "sources/third_party/tetorica-nes/UPSTREAM-JSNES.md": {
+          "bytes": 924,
+          "sha256": "58808d4249949339577eff9a5312ebc357755cd328d8bfa59621d399f2bac792"
+        },
+        "assets/opna-rhythm/generate.mjs": {
+          "bytes": 930,
+          "sha256": "e8defa8e0a9e2b9aa162061e9b2a58fc720e105797d89db416f3237ae719d413"
+        },
+        "assets/opna-rhythm/synthesis.mjs": {
+          "bytes": 10090,
+          "sha256": "6b26b31f91396a3cd6e66f45753edd8825237e5f25549f7f4f84b7cbc6817c18"
+        },
+        "sources/scripts/build_nesapu_wasm.sh": {
+          "bytes": 1082,
+          "sha256": "884ff7505447afc232e860bac6e633652ed26c6097c5e0a10e5c14dffee09c4d"
+        },
+        "sources/scripts/build_pokey_wasm.sh": {
+          "bytes": 771,
+          "sha256": "e04a4ac7fada1b9ed8eada97785739fc56016386315950dc347cecda5fa3f372"
+        },
+        "sources/scripts/build_spc_wasm.sh": {
+          "bytes": 1505,
+          "sha256": "3ecc18550f6af95ce8c57c96879da6785727e903e40428f1b6e8ce9fea4e720b"
+        },
+        "sources/third_party/snes-spc/changes.txt": {
+          "bytes": 3569,
+          "sha256": "2f753e4f016d9cd8a37dc338f7a4d1bae70cd3a3623027f514542bee8daea148"
+        },
+        "licenses/libvgm-msm5205.txt": {
+          "bytes": 1543,
+          "sha256": "3315f9a2466767cf2e59ccc74f593bd702af01d44519e3d2d48cdf4d9891512e"
+        },
+        "sources/third_party/snes-spc/license.txt": {
+          "bytes": 26436,
+          "sha256": "5df07007198989c622f5d41de8d703e7bef3d0e79d62e24332ee739a452af62a"
+        },
+        "licenses/mame-32x-pwm.txt": {
+          "bytes": 1513,
+          "sha256": "6a64f110345311659c26dc7bfdc5d8e05542fec917afbd63aa623d8d5a0098f6"
+        },
+        "licenses/mame-ay8910.txt": {
+          "bytes": 1510,
+          "sha256": "9ce97eec16b71e54663cfff119162feb89ae254464bf2bad3c8b8d73870e9a0e"
+        },
+        "licenses/mame-gameboy.txt": {
+          "bytes": 1529,
+          "sha256": "acb20353889f489aba276d31cbd8ffce15c6bd353f873dc2255e67053446f3dc"
+        },
+        "licenses/mame-huc6280.txt": {
+          "bytes": 1517,
+          "sha256": "d9aef90a96f93be90d39250e2a85c4ce78b381b6abbf16856fc337e71263dc1d"
+        },
+        "licenses/mame-k051649.txt": {
+          "bytes": 1515,
+          "sha256": "8c50ff4995e94ba978d1ae2e90e3fd6fd4864c7d9dd3be0bc0ce37d754cf7b07"
+        },
+        "licenses/mame-okim6258.txt": {
+          "bytes": 1514,
+          "sha256": "ee01db1519dfa17005dd1ef3a1baf7ff77395a08a7299406be4bbfdba1103973"
+        },
+        "licenses/mame-okim6295.txt": {
+          "bytes": 1542,
+          "sha256": "951803c525415c349f53adab1fde00c49b242e981f1242931140791c18b72176"
+        },
+        "licenses/mame-rf5c164.txt": {
+          "bytes": 1529,
+          "sha256": "0a2b34be38b92350c6503001de126a201bcd297203b839ac1dfc6ebd005dd853"
+        },
+        "licenses/mame-segapcm.txt": {
+          "bytes": 1536,
+          "sha256": "90f2e4f538108c6004c13fb752c70eba8f5dcb6075289d9cab39edefd870f820"
+        },
+        "licenses/mame-wonderswan.txt": {
+          "bytes": 1574,
+          "sha256": "28c9517f09fd60cf3b5152646b49bd12bcb5491624e5e4c93d8839b981ff01e9"
+        },
+        "sources/third_party/snes-spc/readme.txt": {
+          "bytes": 3134,
+          "sha256": "3832c72b8bf6c5b4e4b6d424d674c2a658b92aa595be10b14bdb715b0d6eb22b"
+        },
+        "sources/third_party/snes-spc/snes_spc.txt": {
+          "bytes": 10661,
+          "sha256": "bf36fda81ac9ad8fecee4efe59bd360772ea0eaa49a0ea801dc06761a07ff295"
+        },
+        "docs/generated/ay8910_wasm.wasm": {
+          "bytes": 13549,
+          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+        },
+        "docs/generated/gameboy_apu_wasm.wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd"
+        },
+        "docs/generated/huc6280_wasm.wasm": {
+          "bytes": 8935,
+          "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073"
+        },
+        "docs/generated/k051649_wasm.wasm": {
+          "bytes": 9399,
+          "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c"
+        },
+        "docs/generated/nesapu_wasm.wasm": {
+          "bytes": 30410,
+          "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e"
+        },
+        "docs/generated/okim6258_wasm.wasm": {
+          "bytes": 20173,
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d"
+        },
+        "docs/generated/pokey_wasm.wasm": {
+          "bytes": 18676,
+          "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22"
+        },
+        "docs/generated/pwm32x_wasm.wasm": {
+          "bytes": 10636,
+          "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c"
+        },
+        "docs/generated/rf5c164_wasm.wasm": {
+          "bytes": 27583,
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818"
+        },
+        "docs/generated/segapcm_wasm.wasm": {
+          "bytes": 13966,
+          "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f"
+        },
+        "docs/generated/segapsg_wasm.wasm": {
+          "bytes": 27286,
+          "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305"
+        },
+        "docs/generated/spc_wasm.wasm": {
+          "bytes": 63074,
+          "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408"
+        },
+        "docs/generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+        },
+        "docs/generated/y8950_wasm.wasm": {
+          "bytes": 22425,
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9"
+        },
+        "docs/generated/ym2151_wasm.wasm": {
+          "bytes": 31322,
+          "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26"
+        },
+        "docs/generated/ym2203_wasm.wasm": {
+          "bytes": 45306,
+          "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13"
+        },
+        "docs/generated/ym2413_wasm.wasm": {
+          "bytes": 33469,
+          "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04"
+        },
+        "docs/generated/ym2608_wasm.wasm": {
+          "bytes": 53893,
+          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f"
+        },
+        "docs/generated/ym2610b_wasm.wasm": {
+          "bytes": 51172,
+          "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316"
+        },
+        "docs/generated/ym2612_wasm.wasm": {
+          "bytes": 40357,
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633"
+        },
+        "docs/generated/ym3526_wasm.wasm": {
+          "bytes": 18894,
+          "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11"
+        },
+        "docs/generated/ym3812_wasm.wasm": {
+          "bytes": 19058,
+          "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6"
+        },
+        "docs/generated/ymf262_wasm.wasm": {
+          "bytes": 21377,
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716"
+        },
+        "docs/generated/ymf278b_wasm.wasm": {
+          "bytes": 26827,
+          "sha256": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30"
+        }
+      }
+    }
+  },
+  "verifiedArtifacts": {
+    "fm": {
+      "name": "tetorica-fm2612",
+      "version": "0.2.31",
+      "tarball": "/private/tmp/npm-pokey-release-20261027/fm/tetorica-fm2612-0.2.31.tgz",
+      "bytes": 1724251,
+      "files": 880,
+      "sha256": "6941d3474abd619fd0cec1b41b79f51c6011ca49d3bf9ab47ca31422e641851d",
+      "sha1": "63c922734e99630f6f9358e0ad97130b3031a308",
+      "integrity": "sha512-HfHFj0zKCd2SRi50YgkBa6LlEe9mZr8KaaQJKbneI+6XNVYW/iJCCylbFwoq6tu5dNuFv/DsFDHTTJFvSktBtQ=="
+    },
+    "vgm": {
+      "package": "tetorica-vgm",
+      "version": "0.2.16",
+      "tarball": "/private/tmp/npm-pokey-release-20261027/vgm/tetorica-vgm-0.2.16.tgz",
+      "bytes": 895228,
+      "unpackedBytes": 2960390,
+      "files": 277,
+      "sha256": "1ee60b3caa7978f0129d3af7436860f6d19bc32aabe65977de9f4ab8d8add0a2",
+      "sha1": "0271236d54f7955c2c0c0f6aaf0ea654c33e9a1b",
+      "sha512": "030bb2c469bca2049e6e9660e0cb0844847613dffc4c4eff44985babab317f75168f79e15f223303df8df473954a1b6cfa4dca6ed5d6e0846e9bb5ccc99f1d8b",
+      "npmIntegrity": "sha512-AwuyxGm8ogSebpZg4MsIRIR2E9/8TE7/RJhbq6sxf3UWj3nhXyIzA9+N9HOVShts+k3KbtXW4IRum7XMyZ8diw=="
+    }
+  },
+  "sourceInputs": {
+    "packages/fm2612/package.json": {
+      "bytes": 2364,
+      "sha256": "c3555a02f180ea9dfe2b3ec43f8c4932bb9ee1bc51af6d1bae3c25b2d956d1e3"
+    },
+    "packages/fm2612/README.md": {
+      "bytes": 77266,
+      "sha256": "8097206c4074783963dba5d57b651c7424ee002db740193e0c557b1490b1e3af"
+    },
+    "packages/vgm/package.json": {
+      "bytes": 1059,
+      "sha256": "3fcac1ee53a7182c6a4efaa3a5189417824abddd14bb7126d35dc18c4882f7b7"
+    },
+    "packages/vgm/README.md": {
+      "bytes": 29609,
+      "sha256": "993d43395692eba0f7cec41a0e270d7b6ad99371b64f2a737d1955ad6c699a20"
+    },
+    "CLI.md": {
+      "bytes": 54118,
+      "sha256": "60c22f23f2d7089614f59cd194991959e1e3beb751e724362d867b1587ccfc1d"
+    },
+    "scripts/check_pokey_vgm_package.mjs": {
+      "bytes": 17765,
+      "sha256": "efae6c575d5e57f8b3f9dad8d7957e1411789bdf3b1133422bc69a4c81bbad43"
+    }
+  },
+  "receipts": [
+    {
+      "path": "/private/tmp/npm-pokey-release-20261027/fm/verified.json",
+      "bytes": 728,
+      "sha256": "4af706a8aaa1ed7c7f329ea3d1d73d9ac25ce3cfde702efeed9d826c57a84e30"
+    },
+    {
+      "path": "/private/tmp/npm-pokey-release-20261027/fm/registry/verified.json",
+      "bytes": 1606,
+      "sha256": "2985642fcc44f6f747f02e1f4f3231f84bf96460975719b263d503cd4785c46d"
+    },
+    {
+      "path": "/private/tmp/npm-pokey-release-20261027/vgm/release-receipt.json",
+      "bytes": 2190,
+      "sha256": "b9eb5840e02674f82bb6d744b94515c3cf6ebc087a861439b90995a3a76efa6c"
+    },
+    {
+      "path": "/private/tmp/npm-pokey-release-20261027/vgm/registry/postpublish-verification.json",
+      "bytes": 43900,
+      "sha256": "9f6bcab90f4f3dac46abf77488ed53cb3880d9c5c46fbc0113d0dbec4fa82263"
+    },
+    {
+      "path": "/private/tmp/npm-pokey-release-20261027/vgm/installed-pokey-check.json",
+      "bytes": 55065,
+      "sha256": "80183cf551b4e1debe5b883186a3ed4c492cc4cbb0022904a3102944bda2ee6d"
+    },
+    {
+      "path": "/private/tmp/npm-pokey-fm-build.log",
+      "bytes": 165,
+      "sha256": "8709465ce653d2605e15bf721a98e6331e24d6b309bd25687c5bf5c95040df11"
+    },
+    {
+      "path": "/private/tmp/npm-pokey-fm-package.log",
+      "bytes": 1587,
+      "sha256": "dd770bf2dd53788d245af1db5cc4e5d4365f2728e522772e5315d97302b5dc30"
+    }
+  ],
+  "note": "Published archives were downloaded again and are binary-identical to the exact artifacts used for isolated pre-publication checks. The SDK 0.1.5 local-candidate provenance remains explicit in the included source bundle."
+}

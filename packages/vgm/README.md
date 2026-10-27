@@ -7,11 +7,12 @@ the same BRR pitch estimates and score algorithms as the browser Analyzer.
 Requires **Node.js 22 or later**. WASM engines are included, with no npm runtime
 dependencies; Emscripten is not required to use the package.
 
-## Unreleased: Atari POKEY
+## Atari POKEY (0.2.16)
 
-The development build adds single and dual POKEY playback, independent Mixer
+Version 0.2.16 adds single and dual POKEY playback, independent Mixer
 sources, 4/8 channel mutes and WAV rendering. POKEY score and FM voice exports
-are unavailable. These additions are not included in the published 0.2.15.
+are unavailable. Playback supports tone, polynomial noise and volume-only DAC
+streams; each chip retains its own state and channel controls.
 
 ## Quick start
 
@@ -24,7 +25,7 @@ npx tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 ```
 
 To test a local build, install its distribution tarball with
-`npm install ./tetorica-vgm-0.2.15.tgz`, then use `npx tetorica-vgm --help`.
+`npm install ./tetorica-vgm-0.2.16.tgz`, then use `npx tetorica-vgm --help`.
 
 Try playback, Note-ish and sheet music in the
 [browser VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html).

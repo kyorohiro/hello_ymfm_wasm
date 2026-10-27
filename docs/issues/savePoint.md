@@ -7,6 +7,20 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### POKEY npm公開完了 — 2026-10-27
+
+ユーザー指定はnpm2packageのみ。FM0.2.31/VGM0.2.16へversion/README/CLI文書を更新し、配布物を検証済み。
+FM305module/28pair/352宣言・隔離install/実WASM28種/型3構成が成功。880file全byteがstage/installと一致。
+VGMは1157成功/1既存optional skip、隔離168module/単双POKEY/12channel/2seek/API/CLI/source/全277file照合成功。
+検証済tgzとreceiptは`/private/tmp/npm-pokey-release-20261027/{fm,vgm}/`へ保持。
+FM tgz SHA256 `6941d3474abd619fd0cec1b41b79f51c6011ca49d3bf9ab47ca31422e641851d`。
+VGM tgz SHA256 `1ee60b3caa7978f0129d3af7436860f6d19bc32aabe65977de9f4ab8d8add0a2`。
+更新リンクでのユーザー認証後、両方の検証済tgzのnpm publishはexit0。FM0.2.31/VGM0.2.16の公開とlatestをregistryで確認済み。
+registryから取得し直したtgzは検証済候補と全byte/SHA1/SHA512が一致。公開物のFM880file/VGM277fileも照合済み。
+公開時の認証待機とnpm側の非同期反映待ちは解消済み。今回のnpm2package公開作業は完了。
+SDK/core/WASM/Mixer変更なし。SDK候補0.1.5の公開、Examples/itch/Tauri/ZIP更新、commit/push/tagは今回対象外。
+詳細は[npm_pokey_release_01.md](npm_pokey_release_01.md)と同名JSON。
+
 ### POKEY timeline準備の分割 — 2026-10-27
 
 ユーザーの「すすめて」で、演奏中の大trace prepareによるWorklet集中負荷を軽減。

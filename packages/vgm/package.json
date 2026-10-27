@@ -1,6 +1,6 @@
 {
   "name": "tetorica-vgm",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "description": "VGM and experimental SPC analysis, MIDI and sheet music exports",
   "type": "module",
   "license": "BSD-3-Clause",
@@ -39,6 +39,8 @@
     "audio",
     "vgm",
     "vgz",
+    "atari",
+    "pokey",
     "s98",
     "cli",
     "ym2612",

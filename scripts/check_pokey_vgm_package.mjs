@@ -85,7 +85,8 @@ try {
   }
   for(const name of ['README.md','CLI.md']){
     const text=await readFile(join(installed,name),'utf8');
-    assert.match(text,/POKEY/);assert.match(text,/unreleased/i,'Do not imply the development build is already published');
+    assert.match(text,/## Atari POKEY \(0\.2\.16\)/,'Document the first POKEY package release');
+    assert.doesNotMatch(text,/##\s+(?:Unreleased:\s*Atari POKEY|Atari POKEY\s*\(unreleased\))/i,'Release documentation must not label POKEY unreleased');
   }
   const notice=await readFile(join(installed,'licenses/libvgm-pokey/LICENSE'),'utf8');
   assert.match(notice,/Redistribution and use/);assert.match(notice,/Brad Oliver/);
