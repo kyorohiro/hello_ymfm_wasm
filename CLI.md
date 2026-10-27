@@ -941,7 +941,7 @@ node cli/main.js export test/fixtures/wonderswan-tone.vgz --format midi --output
 ```
 
 The original fixture contains no game or ROM data. This repository's shared
-Browser/Node paths are updated together; this addition is not yet npm-published.
+Browser/Node paths share this support, available in `tetorica-vgm` 0.2.15.
 
 
 ## WonderSwan waveform snapshots
@@ -969,7 +969,7 @@ node cli/main.js samples song.vgz --id 1 --format wav --occurrence 1 --output wa
 JSON uses `schemaVersion: 1`, `chip: "wonderswan"`, `kind: "wave"`,
 `representation: "written-wave-ram"`, `waveform`, `packedBytes` and
 `observations` in original 44,100 Hz VGM sample time. The ZIP includes a shared
-manifest. This addition is not yet npm-published.
+manifest. This support is available in `tetorica-vgm` 0.2.15.
 
 ## WonderSwan timed Voice PCM captures
 

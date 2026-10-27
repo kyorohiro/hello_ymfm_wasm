@@ -1,0 +1,391 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "sourceCommit": "c5dd39fc",
+  "registry": "https://registry.npmjs.org",
+  "published": true,
+  "packages": [
+    {
+      "name": "tetorica-vgm",
+      "version": "0.2.15",
+      "registryVerification": {
+        "package": "tetorica-vgm",
+        "version": "0.2.15",
+        "latest": "0.2.15",
+        "tarball": "https://registry.npmjs.org/tetorica-vgm/-/tetorica-vgm-0.2.15.tgz",
+        "bytes": 851196,
+        "sha256": "99e674a0d812e14d14633a03dfd617603ec2dd89ee7a6dd1f1aefc9d799de6da",
+        "shasum": "0058b6b431cc650ed92bacfac242ee8a6e064b12",
+        "integrity": "sha512-U6i9+KijSaRH1TVHljZuJs4S4LZ44kp0tWLBFv6HizyRGklBHTqLYlW35CKPzstRLYRVprMW+zc13bwJP8c+bg==",
+        "registryMetadataMatchesHashes": true,
+        "byteIdenticalToValidatedTarball": true
+      },
+      "validation": {
+        "passed": true,
+        "package": {
+          "name": "tetorica-vgm",
+          "version": "0.2.15",
+          "license": "BSD-3-Clause"
+        },
+        "tarball": {
+          "name": "tetorica-vgm-0.2.15.tgz",
+          "bytes": 851196,
+          "sha256": "99e674a0d812e14d14633a03dfd617603ec2dd89ee7a6dd1f1aefc9d799de6da"
+        },
+        "sourceFiles": {
+          "cli/index.js": {
+            "bytes": 822,
+            "sha256": "05f6fa89ae153ed7841d8da5dc0a5910c8fb684347d7bdfa47487c252c499456"
+          },
+          "cli/main.js": {
+            "bytes": 17052,
+            "sha256": "25f048883dab4cb3ae6313c88c34a79ad91829c3b9e3a2bf07ba320218af2f0c"
+          },
+          "cli/render.js": {
+            "bytes": 3401,
+            "sha256": "96ec4da30d536540581349b5c209f2ec6bb303a5efd8dd1ea4299e1dc6e1e0aa"
+          },
+          "docs/vgm_analyzer/analyzer_core.js": {
+            "bytes": 9697,
+            "sha256": "5b5d9dbdb72ca2725c8af4a9fdd540530b450368ed0d2dff32ccf9ab55483f3b"
+          },
+          "docs/vgm_analyzer/sample_core.js": {
+            "bytes": 20383,
+            "sha256": "a65fd5cc57a8eb679fc370b4f98eb6d067c574047b067db28f9138c8092e01aa"
+          },
+          "docs/vgm_analyzer/sample_render.js": {
+            "bytes": 8844,
+            "sha256": "242cc68837f52dd5e6f50b088f36858145240be9c5dfb4e932c90ddd176319a3"
+          },
+          "docs/vgm_analyzer/wonderswan_waves.js": {
+            "bytes": 9503,
+            "sha256": "2f97d7bd2a2fc72fd02ba1bc6c310e9d277c517c8b8b1cd7ed79444b78642677"
+          },
+          "docs/vgm_analyzer/mixer_defaults.js": {
+            "bytes": 1948,
+            "sha256": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28"
+          },
+          "docs/vgm_analyzer/mixer_calibration_data.js": {
+            "bytes": 631,
+            "sha256": "d940890fbae1a615de0818717cfddf613806daf23a66cf9ca72336c381f8fac7"
+          },
+          "docs/js/soundchip_mixer_presets.js": {
+            "bytes": 2986,
+            "sha256": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e"
+          },
+          "docs/vgm_analyzer/wonderswan_voice_samples.js": {
+            "bytes": 10452,
+            "sha256": "b55d5d5a60809db35ac992ca99acf802e951ff50a6000ecd18fe71d16bc3fa28"
+          },
+          "docs/vgm_analyzer/wonderswan_voice_render.js": {
+            "bytes": 3009,
+            "sha256": "286400012569e19494365453f39cf4c7b020d77e953c4213cb1aec09518c0962"
+          },
+          "docs/js/wonderswanaudioengine.js": {
+            "bytes": 5856,
+            "sha256": "8ca29f96e47e0f300b4ab827a6171dd7481d4ce3f353e52072b35f9f1f8c41e5"
+          },
+          "docs/generated/wonderswan_wasm.js": {
+            "bytes": 11356,
+            "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+          },
+          "docs/generated/wonderswan_wasm.wasm": {
+            "bytes": 10321,
+            "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+          },
+          "README.md": {
+            "bytes": 29194,
+            "sha256": "406a22b92b0160f0daf1ca0505280b9dde8bcd6b7ffa258577bfb058ff39cbd4",
+            "sourcePath": "packages/vgm/README.md"
+          },
+          "CLI.md": {
+            "bytes": 53154,
+            "sha256": "0a2da5428774266c3e32c49899d8b38e351641d340a490dcf73c59109c5d045e",
+            "sourcePath": "CLI.md"
+          }
+        },
+        "checkerSha256": "ea5c956b7c3ec7d2951a0b7fd904457ba41b4c00d8772f34cff6df0f5599055d",
+        "offlineInstall": true,
+        "cli": true,
+        "exports": [
+          "midi",
+          "musicxml",
+          "lilypond"
+        ],
+        "waveSamples": {
+          "count": 2,
+          "json": true,
+          "previewWav": true,
+          "cli": true
+        },
+        "voiceSamples": {
+          "count": 3,
+          "metadataArrays": true,
+          "nativeJson": true,
+          "allZip": true,
+          "cliListing": true,
+          "cliJson": true,
+          "cliWav": true,
+          "cliZip": true,
+          "wavMatchesOriginalSegment": true,
+          "wavSha256": "6af8d00536ae179533fcacf09c04dd7afdfcc2776a0dceec4b3c97da9460df56"
+        },
+        "largeFile": {
+          "sourceSha256": "45f7e2ee1b9235e15be683192cc9f5f65edaa5a488fdcf458d4ad902a883aebf",
+          "durationSamples": 4231606,
+          "voiceCaptures": 10,
+          "unplayedWaves": 6,
+          "pcmBytes": 1151160,
+          "firstVoice": {
+            "id": 1,
+            "pcmBytes": 119702,
+            "jsonBytes": 4373841,
+            "jsonSha256": "c098f04deb5aa0082cb264162f655bb28a2d1d52dc4850f0812f3174a06ccfef"
+          },
+          "cliListing": true,
+          "cliNativeJson": true
+        },
+        "modes": [
+          {
+            "mode": "wave",
+            "wavBytes": 17684,
+            "muted": true
+          },
+          {
+            "mode": "noise",
+            "wavBytes": 17684,
+            "muted": true
+          },
+          {
+            "mode": "sweep",
+            "wavBytes": 17684,
+            "muted": true
+          },
+          {
+            "mode": "voice",
+            "wavBytes": 17684,
+            "muted": true
+          }
+        ],
+        "physicalAudioTested": false
+      },
+      "cliRegression": {
+        "passed": 16,
+        "failed": 0,
+        "log": {
+          "path": "/private/tmp/tetorica-vgm-0215-cli-tests.log",
+          "bytes": 18698,
+          "sha256": "d8a8038509d2ab7c0a1b566436126b00c3cebbbc3b300aafab463a94b1da99ba"
+        }
+      },
+      "dependencyCheck": {
+        "passed": true,
+        "references": 467
+      },
+      "registryLatestMetadata": {
+        "version": "0.2.15",
+        "dist-tags": {
+          "latest": "0.2.15"
+        },
+        "dist.integrity": "sha512-U6i9+KijSaRH1TVHljZuJs4S4LZ44kp0tWLBFv6HizyRGklBHTqLYlW35CKPzstRLYRVprMW+zc13bwJP8c+bg=="
+      }
+    },
+    {
+      "name": "tetorica-fm2612",
+      "version": "0.2.29",
+      "registryVerification": {
+        "verifiedAt": "2026-10-27T01:21:45.384555+00:00",
+        "package": "tetorica-fm2612",
+        "version": "0.2.29",
+        "latest": "0.2.29",
+        "registry": "https://registry.npmjs.org",
+        "metadataEndpoint": "https://registry.npmjs.org/tetorica-fm2612/0.2.29",
+        "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.29.tgz",
+        "downloadedPath": "/private/tmp/tetorica-release-20261027/tetorica-fm2612-0.2.29-registry.tgz",
+        "retainedPath": "/private/tmp/tetorica-release-20261027/tetorica-fm2612-0.2.29.tgz",
+        "bytes": 1632347,
+        "sha256": "9becd489cea743faeaef9f538a0c46b1f03f25671ee5f22051b43665dfc0f5d2",
+        "shasum": "40435fa31d4855f36142703b8dc5c1312e606c81",
+        "integrity": "sha512-3XdBwgvbo5PRw8ez3JeQmTTcUMDCBWO6hkhSMV4hvEK4gaKXwkitZWxlBLof5XYnkH0cvDdcOr3oM2EDU/zrWw==",
+        "registryMetadataMatchesHashes": true,
+        "byteIdenticalToValidatedTarball": true,
+        "note": "Initial npm view E404 was stale; no-cache direct registry requests succeeded. No republish."
+      },
+      "validation": {
+        "passed": true,
+        "package": "tetorica-fm2612",
+        "version": "0.2.29",
+        "tarball": {
+          "path": "/private/tmp/tetorica-release-20261027/tetorica-fm2612-0.2.29.tgz",
+          "bytes": 1632347,
+          "files": 841,
+          "unpackedBytes": 6123171,
+          "sha256": "9becd489cea743faeaef9f538a0c46b1f03f25671ee5f22051b43665dfc0f5d2",
+          "shasum": "40435fa31d4855f36142703b8dc5c1312e606c81",
+          "integrity": "sha512-3XdBwgvbo5PRw8ez3JeQmTTcUMDCBWO6hkhSMV4hvEK4gaKXwkitZWxlBLof5XYnkH0cvDdcOr3oM2EDU/zrWw=="
+        },
+        "exactTarballInstalledOffline": true,
+        "allPackedFilesEqualStageAndInstalled": true,
+        "checks": {
+          "build": {
+            "modules": 293,
+            "generatedPairs": 27,
+            "jsdocDeclarations": 339,
+            "log": "/private/tmp/tetorica-fm2612-029-build.log"
+          },
+          "installedPackage": {
+            "passed": true,
+            "localReferences": 981,
+            "renderers": 15,
+            "wasmEngines": 27,
+            "log": "/private/tmp/tetorica-fm2612-029-check.log",
+            "note": "Checker repacked the same byte-identical841-file stage; its compressedsize differs. Exact retained tarball was separately installed and verified file-by-file."
+          },
+          "types": {
+            "passed": true,
+            "resolutions": [
+              "NodeNext",
+              "Bundler",
+              "Browser without Node ambient types"
+            ],
+            "log": "/private/tmp/tetorica-fm2612-029-types.log"
+          },
+          "wonderswan": {
+            "passed": true,
+            "installed": "/private/tmp/tetorica-release-20261027/fm-consumer/node_modules/tetorica-fm2612",
+            "version": "0.2.29",
+            "direct": {
+              "frames": 4096,
+              "peak": 0.1318359375,
+              "stereoEqual": true,
+              "keyOffSilent": true
+            },
+            "results": [
+              {
+                "browser": "chromium",
+                "version": "153.0.8010.12",
+                "peak": 0.06591796875,
+                "offPeak": 0,
+                "sampleRate": 48000,
+                "timedVoicePcmCompleted": true,
+                "physicalOutputMuted": true
+              },
+              {
+                "browser": "webkit",
+                "version": "26.6",
+                "peak": 0.06591796875,
+                "offPeak": 0,
+                "sampleRate": 48000,
+                "timedVoicePcmCompleted": true,
+                "physicalOutputMuted": true
+              }
+            ],
+            "servedFiles": {
+              "playground_wonderswan_audio.js": {
+                "bytes": 3500,
+                "sha256": "c2e12dbad40017a69e1a6ac337900ee74ff577af049bc827f6efb6bbbb40bce4"
+              },
+              "playground_audio_endpoint.js": {
+                "bytes": 2002,
+                "sha256": "e8171d21fe682dd58d8d60c1cfb3f74b442586c254a8698d341fc4e1a7f1f9cd"
+              },
+              "wonderswan.js": {
+                "bytes": 7520,
+                "sha256": "28a108ef5341dd6e12d9b4ded4a45601c89aa8135c1e7fc5e702940a0e5e29c3"
+              },
+              "playground_chip_clock.js": {
+                "bytes": 5174,
+                "sha256": "2a68272176626ec69e2ebafe5459148568498bcbe9e1e61c1d814041e18d587d"
+              },
+              "playground_wonderswan.js": {
+                "bytes": 4283,
+                "sha256": "ca0ec003444379428b562c19d040c950a55f3ed5b15ed976e9f45fcf61b9ef9c"
+              },
+              "wonderswansynth.js": {
+                "bytes": 16416,
+                "sha256": "fd48439901691ee29c40c9b248528b99490f6d49dbf1f6a22a5bbdfa58c32ed5"
+              },
+              "wonderswan_timeline.js": {
+                "bytes": 6966,
+                "sha256": "f3a2f04c22dd975138d1d1c19c36f5f043411a989842f88cfe4d208452c93c4d"
+              },
+              "soundchip_pitch.js": {
+                "bytes": 2854,
+                "sha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9"
+              },
+              "generated/wonderswan_wasm.wasm": {
+                "bytes": 10321,
+                "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab"
+              },
+              "playground_wonderswan_worklet.js": {
+                "bytes": 20154,
+                "sha256": "a235d63fe3b2f5f6eb290815e8a8883846ca5b8d52f2af92d06bb5db3a6dcc63"
+              },
+              "generated/wonderswan_wasm.js": {
+                "bytes": 11356,
+                "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899"
+              },
+              "playground_performance_processor.js": {
+                "bytes": 28142,
+                "sha256": "505a21b24585b7884b1955959427c1ff485d015cb3d098d63b14826d06ba2677"
+              },
+              "playground_wonderswan_inspector.js": {
+                "bytes": 8961,
+                "sha256": "72b28320834fe15c40703bd28e12eb14be808ef87b6a7b76621405d10a231ec4"
+              },
+              "playground_chip_inspector_state.js": {
+                "bytes": 13049,
+                "sha256": "89a5f4c62defa490d5fd1603af0baeb763dcb00c319ea377714ada92cd350d9e"
+              },
+              "playground_performance_queue.js": {
+                "bytes": 9950,
+                "sha256": "b3bfb3e11be32fdd6c861519341f39389c484d1752627e8aeb9c6fad87bf14b5"
+              },
+              "rf5c164synth.js": {
+                "bytes": 4816,
+                "sha256": "824cd3a389fd70bc362b745a52ee7301ac2745f2ec8a02a12c3e79f8417fcfea"
+              },
+              "segapsg_api.js": {
+                "bytes": 1032,
+                "sha256": "1a55c1d148536425eef54fe5ec4c3151b6ef5a734f9695a379b3a6344a7bd75d"
+              },
+              "rf5c164_pcm.js": {
+                "bytes": 1537,
+                "sha256": "da5835ccd54b0b8d07a82ea8cab10153044c7c20513b973c622957dc8d0b657a"
+              },
+              "segapsgsynth.js": {
+                "bytes": 10390,
+                "sha256": "e19b274b8b2e11241e3bf3354d7a23a4d1fdf44b0a912dca3f291b4ab217ef8d"
+              },
+              "segapsg.js": {
+                "bytes": 10113,
+                "sha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed"
+              }
+            }
+          }
+        }
+      },
+      "completeValidationReceipt": {
+        "path": "/private/tmp/tetorica-release-20261027/fm-validation.json",
+        "bytes": 127591,
+        "sha256": "fabba39aa92e70e25979ed17660dd5b933e8bbc11176ebfc5a5e33d5c90e6498"
+      }
+    }
+  ],
+  "notes": [
+    "Both latest tags match the published versions.",
+    "Registry downloads are byte-identical to the validated archives.",
+    "Initial registry propagation delays were allowed to finish; accepted publications were not resubmitted.",
+    "The FM generic checker repacked the same 841-file stage; its different compressed size was resolved by comparing all retained archive members with the checked stage and exact-archive install.",
+    "No changes to calibrated Mixer gain values."
+  ],
+  "notPerformed": [
+    "human listening",
+    "original hardware comparison",
+    "git commit",
+    "git tag",
+    "git push",
+    "CI dispatch",
+    "itch.io release"
+  ]
+}

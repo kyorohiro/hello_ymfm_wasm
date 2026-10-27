@@ -39,6 +39,7 @@ entry points, rather than every internal Worker or Worklet module.
 | NES APU and FDS | `tetorica-fm2612/nesapusynth.js` | `NesApuSynth`, `NesApuDirectTransport`, `NesApuWorkletTransport` |
 | Sega PSG tone and noise | `tetorica-fm2612/segapsgsynth.js` | `SegaPSGSynth`, `SegaPSGDirectTransport`, `psgPeriodFromFrequency`, `psgPeriodFromNote` |
 | PC Engine wavetable, noise and DDA | `tetorica-fm2612/huc6280synth.js` | `Huc6280Synth`, `Huc6280DirectTransport` |
+| WonderSwan wavetable, Voice PCM, noise and sweep | `tetorica-fm2612/wonderswansynth.js` | `WonderSwanSynth`, `WonderSwanDirectTransport` |
 | OKIM6258 ADPCM samples | `tetorica-fm2612/okim6258synth.js` | `Oki6258Synth`, `encodeOki6258` |
 | RF5C164 PCM | `tetorica-fm2612/rf5c164synth.js` | `RF5C164Synth`, `RF5C164DirectTransport` |
 | 32X PWM | `tetorica-fm2612/pwm32x_transport.js` | `PWM32XDirectTransport`, `PWM32XWorkletTransport` |
@@ -951,10 +952,10 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.28.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.29.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.28.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.29.tgz
 ```
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -971,6 +972,14 @@ Tetorica-generated and includes its license and generator. External
 instrument/sample ROMs are not included.
 
 ## Release notes
+
+`0.2.29` adds the **WonderSwan WASM core and four-channel Synth API**, including
+wavetable editing, Voice PCM, noise and sweep. The shared Playground runtime
+provides its AudioWorklet playback and timed register/RAM/Voice PCM timelines,
+preserving the original 44,100 Hz event positions. Prebuilt cores are now built
+from the fixed sound-chip SDK 0.1.4; included standalone source bundles and
+component notices follow their fixed SDK sources. The calibrated Mixer values
+are unchanged.
 
 `0.2.28` updates the **opt-in calibrated Mixer preset** to the shared listening
 levels: Sega PSG `0.35`, AY-3-8910 `0.85`, NES `1.16`, Game Boy `0.36`, and

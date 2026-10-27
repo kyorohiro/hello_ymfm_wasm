@@ -7,6 +7,15 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### npm公開 — 2026-10-27
+
+`tetorica-vgm@0.2.15`と`tetorica-fm2612@0.2.29`を公開済み。両方のlatestとregistry配布物を確認。
+registryからの再downloadは検証済みtgzと全byte一致し、SHA1/SHA512 integrityも一致。
+VGMは時間付きVoice PCM/未使用Wave RAM区別、FMはWonderSwan core/Synth/Worklet/timelineとSDK0.1.4 sourceを含む。
+VGM隔離install/API/CLI/JSON/ZIP/WAV/実曲/CLI16件、FM全841file照合/実WASM27種/型/Chromium・WebKit Worklet試験が成功。
+Mixer値は変更なし。詳細は[npm_wonderswan_release_01.md](npm_wonderswan_release_01.md)と同名JSON。
+今回のversion/README/公開記録変更は未commit。tag/push/CI/itch.io操作なし。
+
 ### 現在地
 
 VGM AnalyzerのWonderSwan Sample Explorerへ時間付きVoice PCM抽出を追加。
@@ -34,7 +43,7 @@ cacheは`wonderswan-voice-samples-1`。更新Analyzerを再読み込みし、同
 元C++/SDK固定ソース/55 WASM出力は不変。配布時の既存校正receiptのJSDoc cache URL差分は、
 実測30件の完全一致を確認して新receiptへ更新。Mixer値/計算式は変更していない。
 
-Analyzer/Samplesの本体変更とAnalyzer Tauriへの取り込みが未commit。npm版は0.2.14のままlocal pack検証のみ、公開・tag・CI操作なし。
+Analyzer/Samplesの本体変更は`c5dd39fc`までcommit済み。続いてnpm VGM0.2.15/FM0.2.29を公開（上記）。
 次は更新Analyzerを再読み込みし、同じVGZから抽出したVoice PCMをユーザー環境で実聴する。
 詳細は[wonderswan_voice_samples_01.md](wonderswan_voice_samples_01.md)。最終配布証跡は同名JSONへ保存済み。
 

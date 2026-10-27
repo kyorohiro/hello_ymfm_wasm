@@ -18,7 +18,7 @@ npx tetorica-vgm render song.vgz --output song.wav --max-seconds 120
 ```
 
 To test a local build, install its distribution tarball with
-`npm install ./tetorica-vgm-0.2.14.tgz`, then use `npx tetorica-vgm --help`.
+`npm install ./tetorica-vgm-0.2.15.tgz`, then use `npx tetorica-vgm --help`.
 
 Try playback, Note-ish and sheet music in the
 [browser VGM Analyzer](https://kyorohiro.github.io/hello_ymfm_wasm/vgm_analyzer/index.html).
@@ -511,6 +511,16 @@ OPN internal FM/SSG/rhythm/ADPCM ratios remain unchanged; analysis and score
 exports are unchanged. This fixed balance does not normalize individual
 tracks, waveforms, instruments, or polyphony.
 
+## Version 0.2.15
+
+WonderSwan VGM playback, channel mute and wavetable note exports are now
+included. Sample extraction exports written Wave RAM and timed CH2 Voice PCM
+through the API and CLI. Voice captures retain their original write timing,
+output routing and native-tick phase for JSON / ZIP export and preview WAVs.
+Wave metadata distinguishes played intervals from unused RAM candidates.
+The bundled WASM core, component notices and sample format documentation are
+included; external ROMs are not required.
+
 ## MDX export
 
 The new `--format mdx` option writes a compiled `.mdx` file for YM2151 FM A–H.
@@ -550,7 +560,7 @@ node cli/main.js export test/fixtures/wonderswan-tone.vgz --format midi --output
 ```
 
 The original fixture contains no game or ROM data. This repository's shared
-Browser/Node paths are updated together; this addition is not yet npm-published.
+Browser/Node paths share this support, available in `tetorica-vgm` 0.2.15.
 
 
 ## WonderSwan waveform snapshots
@@ -578,7 +588,7 @@ node cli/main.js samples song.vgz --id 1 --format wav --occurrence 1 --output wa
 JSON uses `schemaVersion: 1`, `chip: "wonderswan"`, `kind: "wave"`,
 `representation: "written-wave-ram"`, `waveform`, `packedBytes` and
 `observations` in original 44,100 Hz VGM sample time. The ZIP includes a shared
-manifest. This addition is not yet npm-published.
+manifest. This support is available in `tetorica-vgm` 0.2.15.
 
 ## WonderSwan timed Voice PCM captures
 
