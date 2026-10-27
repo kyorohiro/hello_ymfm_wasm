@@ -1,0 +1,1772 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "failedRuns": [
+    {
+      "id": 40431173080,
+      "jobId": 121948933417,
+      "head": "c5dd39fcd706fc093330d2d76f69d3752d561c15",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40431173080",
+      "stage": "Comparing 7/28: nuked_opn2"
+    },
+    {
+      "id": 40432531260,
+      "jobId": 121953409307,
+      "head": "519470c4f852f0ac9fc8327cc1735a79e8d76fb1",
+      "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40432531260",
+      "stage": "Comparing 7/28: nuked_opn2"
+    }
+  ],
+  "cause": "The strict Web/docs wrapper comparison did not recognize the new wonderswan-pcm-timeline-1 import cache key in JSDoc type annotations. No PCM comparison had failed.",
+  "changedFiles": [
+    {
+      "path": "scripts/check_nuked_opn2_wasm_sdk.mjs",
+      "bytes": 38325,
+      "sha256": "e92d7d3747a46c08fac4b11fdf30d7bfebdb0a1a76d576e4c2c5cb172c898da6"
+    },
+    {
+      "path": "scripts/check_ym3438_wasm_sdk.mjs",
+      "bytes": 30290,
+      "sha256": "dfeb8e61734038f99b28f7f3af8acea2bab24eb6b7a4312b10e380e49ad22939"
+    },
+    {
+      "path": "scripts/check_ymf276_wasm_sdk.mjs",
+      "bytes": 36063,
+      "sha256": "d35a55b8552762dc73d0af669c181499550ad88397a3704c3ea5ac59e07342a8"
+    },
+    {
+      "path": "scripts/check_ymf288_wasm_sdk.mjs",
+      "bytes": 41333,
+      "sha256": "8020c77ce62385754702a689cd41949d1ef86617fdafd898b4506ff746373ed3"
+    }
+  ],
+  "change": "Add the single known cache key to existing explicit allowlists in four checkers; preserve all other wrapper, source, output, ABI and exact PCM comparisons.",
+  "wrapperAuditBefore": [
+    {
+      "checker": "check_ay8910_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ay8910|soundchip|ym2612vgm)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_dx7_wasm_sdk.mjs",
+      "normalizer": "exact bytes",
+      "pairs": 5,
+      "failures": []
+    },
+    {
+      "checker": "check_gameboy_apu_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:gameboyapu|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_huc6280_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/soundchip\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 1,
+      "failures": []
+    },
+    {
+      "checker": "check_k051649_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:k051649|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_nesapu_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:nesapu|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1').replace(/(nesapu_wasm\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 1,
+      "failures": []
+    },
+    {
+      "checker": "check_nuked_opn2_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.js)\\?v=(?:audio-stability-2|audio-numeric-bindings-1|pwm-wasm-1|y8950-adpcm-ui-1|msm5205-1|vgm-frequency-order-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)(?=['\"])/g,'$1')",
+      "pairs": 6,
+      "failures": [
+        {
+          "pair": [
+            "web/ym2612synth.js",
+            "docs/js/ym2612synth.js"
+          ],
+          "lines": [
+            {
+              "line": 307,
+              "web": "   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js').WorkletSoundChip} node",
+              "docs": "   * @param {AudioWorkletNode | MessagePort | import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip} node"
+            }
+          ]
+        },
+        {
+          "pair": [
+            "web/genesisaudioengine.js",
+            "docs/js/genesisaudioengine.js"
+          ],
+          "lines": [
+            {
+              "line": 42,
+              "web": "   * @param {{ym2612ModuleFactory: import('./soundchip.js').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: \"legacy\"|\"mame\", pwmOutputMode?: \"dac\"|\"duty\", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings.",
+              "docs": "   * @param {{ym2612ModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, ym2612ModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, segaPsgModuleFactory: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, segaPsgModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, ym2612Clock?: number, psgClock?: number, masterVolume?: number, rf5c164ModuleFactory?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory, rf5c164ModuleOptions?: import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions, rf5c164Clock?: number, pwmModel?: \"legacy\"|\"mame\", pwmOutputMode?: \"dac\"|\"duty\", pwmClock?: number}} [options={}] Chip factories, clocks in Hz and loader settings."
+            }
+          ]
+        },
+        {
+          "pair": [
+            "web/segapsg.js",
+            "docs/js/segapsg.js"
+          ],
+          "lines": [
+            {
+              "line": 37,
+              "web": "   * @param {import('./soundchip.js').WasmModuleFactory} options.moduleFactory Generated WASM module factory.",
+              "docs": "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleFactory} options.moduleFactory Generated WASM module factory."
+            },
+            {
+              "line": 38,
+              "web": "   * @param {import('./soundchip.js').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile.",
+              "docs": "   * @param {import('./soundchip.js?v=wonderswan-pcm-timeline-1').WasmModuleOptions} [options.moduleOptions] Forwarded loader options, e.g. wasmBinary or locateFile."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "checker": "check_okim6258_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/soundchip\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 1,
+      "failures": []
+    },
+    {
+      "checker": "check_pwm32x_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ym2612|segapsg|rf5c164|pwm32x|pwm32x_wasm|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1').replace(/(pwm32x_wasm\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 3,
+      "failures": []
+    },
+    {
+      "checker": "check_rf5c164_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_segapcm_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:segapcm|segapsg|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_segapsg_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_spc_wasm_sdk.mjs",
+      "normalizer": "exact bytes",
+      "pairs": 1,
+      "failures": []
+    },
+    {
+      "checker": "check_wonderswan_wasm_sdk.mjs",
+      "normalizer": "exact bytes",
+      "pairs": 0,
+      "failures": []
+    },
+    {
+      "checker": "check_y8950_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:y8950|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ym2151_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2151|soundchip|segapsg|segapcm)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ym2203_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2203|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ym2413_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2413|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ym2608_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2608|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ym2610b_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2610b|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ym2612_wasm_sdk.mjs",
+      "normalizer": "exact bytes",
+      "pairs": 1,
+      "failures": []
+    },
+    {
+      "checker": "check_ym3438_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:opn_fm_synth|ym2612synth)\\.js)\\?v=(?:audio-stability-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1').replace(/(\\.\\/soundchip_worklet\\.js)\\?v=(?:y8950-adpcm-ui-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1').replace(/(\\.\\/ym2612\\.js)\\?v=(?:audio-numeric-bindings-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1')",
+      "pairs": 5,
+      "failures": [
+        {
+          "pair": [
+            "web/opn_fm_synth.js",
+            "docs/js/opn_fm_synth.js"
+          ],
+          "lines": [
+            {
+              "line": 108,
+              "web": "  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js').WorkletSoundChip} node",
+              "docs": "  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip} node"
+            },
+            {
+              "line": 111,
+              "web": "    /** @type {import('./soundchip_worklet.js').WorkletSoundChip|null} */",
+              "docs": "    /** @type {import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip|null} */"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "checker": "check_ym3526_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym3526|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ym3812_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym3812|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ymf262_wasm_sdk.mjs",
+      "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ymf262|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 2,
+      "failures": []
+    },
+    {
+      "checker": "check_ymf276_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:opn_fm_synth|ym2612synth)\\.js)\\?v=(?:audio-stability-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1').replace(/(\\.\\/soundchip_worklet\\.js)\\?v=(?:y8950-adpcm-ui-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1').replace(/(\\.\\/ym2612\\.js)\\?v=(?:audio-numeric-bindings-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1')",
+      "pairs": 5,
+      "failures": [
+        {
+          "pair": [
+            "web/opn_fm_synth.js",
+            "docs/js/opn_fm_synth.js"
+          ],
+          "lines": [
+            {
+              "line": 108,
+              "web": "  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js').WorkletSoundChip} node",
+              "docs": "  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip} node"
+            },
+            {
+              "line": 111,
+              "web": "    /** @type {import('./soundchip_worklet.js').WorkletSoundChip|null} */",
+              "docs": "    /** @type {import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip|null} */"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "checker": "check_ymf278b_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ymf278b|soundchip|segapsg|ym2612vgm)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+      "pairs": 4,
+      "failures": []
+    },
+    {
+      "checker": "check_ymf288_wasm_sdk.mjs",
+      "normalizer": "b=>b.toString().replace(/(\\.\\/(?:opn_fm_synth|ym2612synth)\\.js)\\?v=(?:audio-stability-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1').replace(/(\\.\\/soundchip_worklet\\.js)\\?v=(?:y8950-adpcm-ui-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1').replace(/(\\.\\/ym2612\\.js)\\?v=(?:audio-numeric-bindings-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1)/g,'$1')",
+      "pairs": 5,
+      "failures": [
+        {
+          "pair": [
+            "web/opn_fm_synth.js",
+            "docs/js/opn_fm_synth.js"
+          ],
+          "lines": [
+            {
+              "line": 108,
+              "web": "  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js').WorkletSoundChip} node",
+              "docs": "  /** @param {AudioWorkletNode|MessagePort|import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip} node"
+            },
+            {
+              "line": 111,
+              "web": "    /** @type {import('./soundchip_worklet.js').WorkletSoundChip|null} */",
+              "docs": "    /** @type {import('./soundchip_worklet.js?v=wonderswan-pcm-timeline-1').WorkletSoundChip|null} */"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "wrapperAuditAfter": {
+    "schemaVersion": 1,
+    "passed": true,
+    "checkers": 28,
+    "pairChecks": 68,
+    "failed": [],
+    "changedPaths": [
+      "scripts/check_nuked_opn2_wasm_sdk.mjs",
+      "scripts/check_ym3438_wasm_sdk.mjs",
+      "scripts/check_ymf276_wasm_sdk.mjs",
+      "scripts/check_ymf288_wasm_sdk.mjs"
+    ],
+    "onlyTokenAdditions": true,
+    "productionFilesUnchanged": true,
+    "generatedOutputsUnchanged": true,
+    "results": [
+      {
+        "checker": "scripts/check_ay8910_wasm_sdk.mjs",
+        "checkerSha256": "b6364ebd8f1ab6270b24f30c6f7c2be93a22afed6ad5a0b25872e8bc92d42bba",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ay8910|soundchip|ym2612vgm)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ay8910.js",
+            "docs": "docs/js/ay8910.js",
+            "webSha256": "9682007689d87b7cdf27b138f269e8c5c4fb478df909cac95a4dc80ce88267e6",
+            "docsSha256": "c18db167ffc900df5f62c8ff35d07f4f343dcacd11775fcdbc933234b790a4c6",
+            "passed": true
+          },
+          {
+            "web": "web/ay8910audioengine.js",
+            "docs": "docs/js/ay8910audioengine.js",
+            "webSha256": "2670a42959292567012f95d9693ca798d44fc6eb68e65a7aafa28b96089b1302",
+            "docsSha256": "a96172582b64ea31699faaff34c9177ae635bc316227a7b91a63caa793f5cda2",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_dx7_wasm_sdk.mjs",
+        "checkerSha256": "4523239ec359408b3c9eeb72f2c4ac90066f964495afb30eeff341d9ffae0647",
+        "normalizer": "exact bytes",
+        "checks": [
+          {
+            "web": "web/msfa_dx7/src/index.js",
+            "docs": "docs/js/msfa_dx7/src/index.js",
+            "webSha256": "5fcf0cadc460510afc16e64d7ee93b91d4affaf545ee14b3ae35fa17e0173be5",
+            "docsSha256": "5fcf0cadc460510afc16e64d7ee93b91d4affaf545ee14b3ae35fa17e0173be5",
+            "passed": true
+          },
+          {
+            "web": "web/msfa_dx7/src/preset.js",
+            "docs": "docs/js/msfa_dx7/src/preset.js",
+            "webSha256": "f1373d4699172658b979482e0bb1585301967ebb7d2668ad21d146b6d3824fe2",
+            "docsSha256": "f1373d4699172658b979482e0bb1585301967ebb7d2668ad21d146b6d3824fe2",
+            "passed": true
+          },
+          {
+            "web": "web/msfa_dx7/src/sysex.js",
+            "docs": "docs/js/msfa_dx7/src/sysex.js",
+            "webSha256": "0bda70c08b34f084e10c4ff46c4319147d089c5a174b9e84bf023b86759c2b7e",
+            "docsSha256": "0bda70c08b34f084e10c4ff46c4319147d089c5a174b9e84bf023b86759c2b7e",
+            "passed": true
+          },
+          {
+            "web": "web/msfa_dx7/src/browser.js",
+            "docs": "docs/js/msfa_dx7/src/browser.js",
+            "webSha256": "b614e4a7d6483d2393359ff6f06017d27cfd1878f241af82c84481cd62366af9",
+            "docsSha256": "b614e4a7d6483d2393359ff6f06017d27cfd1878f241af82c84481cd62366af9",
+            "passed": true
+          },
+          {
+            "web": "web/msfa_dx7/src/dx7-worklet.js",
+            "docs": "docs/js/msfa_dx7/src/dx7-worklet.js",
+            "webSha256": "093d347abae7cc9d91ff946555ca8b2753f0a7afc5e729e13e2d408823b09425",
+            "docsSha256": "093d347abae7cc9d91ff946555ca8b2753f0a7afc5e729e13e2d408823b09425",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_gameboy_apu_wasm_sdk.mjs",
+        "checkerSha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:gameboyapu|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/gameboyapu.js",
+            "docs": "docs/js/gameboyapu.js",
+            "webSha256": "a652fa6e4b15457878d41ba4bfa47474bb902c943230ddc8ab89a2327f7b0cc4",
+            "docsSha256": "fe0e2eb6d31a2ef9f80bc8fc7a76978fb37fa79281b7c79b300bace7402de548",
+            "passed": true
+          },
+          {
+            "web": "web/gameboyapuaudioengine.js",
+            "docs": "docs/js/gameboyapuaudioengine.js",
+            "webSha256": "a442b51b4a5f2b85bde2a1d7b012861d789c14c7255853517d4e72f60b982da2",
+            "docsSha256": "9f24b7c254ea815788247b76c39d0de33a5652afbf4b2eab819430f52a92b5eb",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_huc6280_wasm_sdk.mjs",
+        "checkerSha256": "a965bd1276141e1bac5be5f004c07e6956b0ef3c52420b2969bba3972dce4299",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/soundchip\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/huc6280audioengine.js",
+            "docs": "docs/js/huc6280audioengine.js",
+            "webSha256": "f15ec898f788104937bb68c61a915390af5aa9ffd22a8afdbc022640493e390d",
+            "docsSha256": "e1b56f67dd3d9fe1a0c87efed35901b4aaa201ed06f3d1f7b7ea6ba5649c63e2",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_k051649_wasm_sdk.mjs",
+        "checkerSha256": "6610f84886d46ba99901b307490cf1c0e006ef072eaf066ba176c73c04d0c6e3",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:k051649|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/k051649.js",
+            "docs": "docs/js/k051649.js",
+            "webSha256": "8424ef387d15bb3a7385151b968227376f7def4f969e55857ed001fd62186711",
+            "docsSha256": "6f63ab59a241db7a88b19d231c741ca3f1f35767c73732ad3e9947f107798f1b",
+            "passed": true
+          },
+          {
+            "web": "web/k051649audioengine.js",
+            "docs": "docs/js/k051649audioengine.js",
+            "webSha256": "d0bca6e687ae764128281fe8b6f4a6bf337585b5467af0c01b884638967cdfa3",
+            "docsSha256": "c0bec23f6072a041b54fc8e14d3beaafeffe90ef0c1c2b1ccb5bc8b825c23798",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_nesapu_wasm_sdk.mjs",
+        "checkerSha256": "48d3e138c580fe0f51dcba700a22f3ca3976dbbc82938d8ea69e016614af61e5",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:nesapu|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1').replace(/(nesapu_wasm\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/nesapu_wasm.js",
+            "docs": "docs/js/nesapu_wasm.js",
+            "webSha256": "f1b256734769b72d95ab4a7cf48ed3d37336c3116d68626e994579d289b75529",
+            "docsSha256": "2ed76803f77ec0d688869ec6701f0585c2ee566f82b2ca760ae2866b62137dff",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_nuked_opn2_wasm_sdk.mjs",
+        "checkerSha256": "e92d7d3747a46c08fac4b11fdf30d7bfebdb0a1a76d576e4c2c5cb172c898da6",
+        "normalizer": "b=>b.toString().replace(/(\\.js)\\?v=(?:audio-stability-2|audio-numeric-bindings-1|pwm-wasm-1|y8950-adpcm-ui-1|msm5205-1|vgm-frequency-order-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)(?=['\"])/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym2612.js",
+            "docs": "docs/js/ym2612.js",
+            "webSha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+            "docsSha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+            "passed": true
+          },
+          {
+            "web": "web/ym2612synth.js",
+            "docs": "docs/js/ym2612synth.js",
+            "webSha256": "7375b502f5fb2b0bf93fca1be51868dab47d866ecd4879a744ba9bb7ad26d1cb",
+            "docsSha256": "09ca02325419add8cfeb9bf14a30de8b8fa7eccc1d82f0f83078faa25b5b1e85",
+            "passed": true
+          },
+          {
+            "web": "web/genesisaudioengine.js",
+            "docs": "docs/js/genesisaudioengine.js",
+            "webSha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9",
+            "docsSha256": "b93985a0501cd2c3aca66d427640d1e868d78dad63e1e41c0a413d0e2a394495",
+            "passed": true
+          },
+          {
+            "web": "web/vgmplayer.js",
+            "docs": "docs/js/vgmplayer.js",
+            "webSha256": "a4ce723a8d2c59cd99d842b3081d40a7b94626cea867672224fe4921e286a515",
+            "docsSha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33",
+            "passed": true
+          },
+          {
+            "web": "web/segapsg.js",
+            "docs": "docs/js/segapsg.js",
+            "webSha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed",
+            "docsSha256": "41a7d377d6becc2a5645c6fdb41e44447fe5c479f8a4ce3ab944995938746022",
+            "passed": true
+          },
+          {
+            "web": "web/soundchip_pitch.js",
+            "docs": "docs/js/soundchip_pitch.js",
+            "webSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "docsSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_okim6258_wasm_sdk.mjs",
+        "checkerSha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/soundchip\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/okim6258audioengine.js",
+            "docs": "docs/js/okim6258audioengine.js",
+            "webSha256": "8127100494801bdf63a5f3b454f7d2a07029eaeead69da8bd1c369ddad9b1d2b",
+            "docsSha256": "4aa1274b6c4ad5dbe8630a7e6ed8b912e320ab1c3dde94da642314f588fcc237",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_pwm32x_wasm_sdk.mjs",
+        "checkerSha256": "a721581b5f2156ee15e6742963faac1dfc0a107f509801b8daa1e0ab5ba5c74e",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ym2612|segapsg|rf5c164|pwm32x|pwm32x_wasm|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1').replace(/(pwm32x_wasm\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/pwm32x.js",
+            "docs": "docs/js/pwm32x.js",
+            "webSha256": "90d2387f25fc630ff42bee4ccf86c26235b484b73431ece73e61461e55fc9cb6",
+            "docsSha256": "3214fa25f11fff13b708cb336c3895e3f1a8b1462c392523c54e8be9e149a9f6",
+            "passed": true
+          },
+          {
+            "web": "web/pwm32x_wasm.js",
+            "docs": "docs/js/pwm32x_wasm.js",
+            "webSha256": "67c9a57c5d099d7a94cf8daf74613f5c787df3bc990079e1cbffc811a4008920",
+            "docsSha256": "158a97f6a5bfd6d822b812bb67acfdbcd07274b8028e9287b0bab7a8962325c9",
+            "passed": true
+          },
+          {
+            "web": "web/genesisaudioengine.js",
+            "docs": "docs/js/genesisaudioengine.js",
+            "webSha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9",
+            "docsSha256": "b93985a0501cd2c3aca66d427640d1e868d78dad63e1e41c0a413d0e2a394495",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_rf5c164_wasm_sdk.mjs",
+        "checkerSha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/rf5c164.js",
+            "docs": "docs/js/rf5c164.js",
+            "webSha256": "feeda7db22bf3b3be39aafabd51547d37661c69cacb6a72607bb8ad599a76e67",
+            "docsSha256": "df9e9d39b380996602449035685e94052ec940cdecdd2b5b1b988f4990134d7c",
+            "passed": true
+          },
+          {
+            "web": "web/genesisaudioengine.js",
+            "docs": "docs/js/genesisaudioengine.js",
+            "webSha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9",
+            "docsSha256": "b93985a0501cd2c3aca66d427640d1e868d78dad63e1e41c0a413d0e2a394495",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_segapcm_wasm_sdk.mjs",
+        "checkerSha256": "065d7c015d55a92e3dd3b2867c2356912c13d8d65f779e3fdfbf37d985c85a7b",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:segapcm|segapsg|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/segapcm.js",
+            "docs": "docs/js/segapcm.js",
+            "webSha256": "a6b7244de3fdb4b65d66463b4868eede2cb151cbd676ce26fa18184f7ed77808",
+            "docsSha256": "5bfd23c7c7fab99065e1d85a3a951120af957e626d379d2df10850d5363083c2",
+            "passed": true
+          },
+          {
+            "web": "web/segapcmaudioengine.js",
+            "docs": "docs/js/segapcmaudioengine.js",
+            "webSha256": "8dc0dea1d8c0a29dd785b30617045404f8a98f9d9456f5ff43f72cc283e23ed8",
+            "docsSha256": "d30f58a3ab98ad3d1717ddf9a7cfd80ee1ec2eee9aa2eed2b63df4d1927bca51",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_segapsg_wasm_sdk.mjs",
+        "checkerSha256": "24d4760f0175a8f34e7c57fc22c1d0b10b4d457cf3763ed1adc1a3ee29903f3a",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ym2612|segapsg|rf5c164|pwm32x|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/segapsg.js",
+            "docs": "docs/js/segapsg.js",
+            "webSha256": "e63e1c25a9ac80721f8cd7ea1474710af125c83d4d2e682e6c4a97f40aa50bed",
+            "docsSha256": "41a7d377d6becc2a5645c6fdb41e44447fe5c479f8a4ce3ab944995938746022",
+            "passed": true
+          },
+          {
+            "web": "web/genesisaudioengine.js",
+            "docs": "docs/js/genesisaudioengine.js",
+            "webSha256": "a13cf2e1cbc50cd95324956b53d04d9dd145e4f0e7d8ea472e9aeb58634de1c9",
+            "docsSha256": "b93985a0501cd2c3aca66d427640d1e868d78dad63e1e41c0a413d0e2a394495",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_spc_wasm_sdk.mjs",
+        "checkerSha256": "015f215ca537356c7b7993d160409006fdee4de23e7a62382279abfee0df907e",
+        "normalizer": "exact bytes",
+        "checks": [
+          {
+            "web": "web/spc.js",
+            "docs": "docs/js/spc.js",
+            "webSha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f",
+            "docsSha256": "ab76ca3db5ec710e52278c1945cd0e052fb3c537fffed7c2e5741d157571739f",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_wonderswan_wasm_sdk.mjs",
+        "checkerSha256": "c88703b40c0998804c6c890672c254bf3a1daae560b705d45717f4ee03e17786",
+        "normalizer": "exact bytes",
+        "checks": []
+      },
+      {
+        "checker": "scripts/check_y8950_wasm_sdk.mjs",
+        "checkerSha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:y8950|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/y8950.js",
+            "docs": "docs/js/y8950.js",
+            "webSha256": "6813e093ed3ba6ba87609e00a1ac7b8ac5b6afdcdf47bbf621dab1e3d87b6e59",
+            "docsSha256": "8df7aca08ba5e1eb31ac3bbe1bd3241e0d8a8e74838cddc306011ba5bcdc295e",
+            "passed": true
+          },
+          {
+            "web": "web/y8950audioengine.js",
+            "docs": "docs/js/y8950audioengine.js",
+            "webSha256": "36e82e69c3f7f5ea703df80dc34c400197ec80bbd3f9def422ae321b3e4f6e60",
+            "docsSha256": "d9614f4b07d21813630a59ef788b92ddc0aed10930bd5ba28499470f033324f9",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym2151_wasm_sdk.mjs",
+        "checkerSha256": "3da1be74ea5acf84f8cf3d52b3ddd1e91a36eb8e69e78d85789701cbcfd9e261",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2151|soundchip|segapsg|segapcm)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym2151.js",
+            "docs": "docs/js/ym2151.js",
+            "webSha256": "1c872f7fbb9c498378ca1e926c296c4783d280a71dc5c3cf19a6a3b4521e3c90",
+            "docsSha256": "039cf167c0bf23c1ec6ce436b6b7486d52dc92eec4499ccdbfd27d02a6e8720b",
+            "passed": true
+          },
+          {
+            "web": "web/ym2151audioengine.js",
+            "docs": "docs/js/ym2151audioengine.js",
+            "webSha256": "5e02d00d67aec8781634fe6cd227e817a64ae24c9debc51da2e2f7b4989afb6b",
+            "docsSha256": "28bb640a25a32c042adb942902926c41b3e9cdc848b8b615a2ff52f8d89a483a",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym2203_wasm_sdk.mjs",
+        "checkerSha256": "255074f1515aa0117dc72c901bf216c60385c6c598fc59cae927bf6828382b88",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2203|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym2203.js",
+            "docs": "docs/js/ym2203.js",
+            "webSha256": "d66a1f566a58d80e9db8b83c420ed14b05a3be14e9a32d7d282ec1fc3390b065",
+            "docsSha256": "a19eac247b63b605ad796fdc78a9f5b3f18219ce1f1f793c0ffca67ee991ab3f",
+            "passed": true
+          },
+          {
+            "web": "web/ym2203audioengine.js",
+            "docs": "docs/js/ym2203audioengine.js",
+            "webSha256": "341c1921602fec7da90e49c20c93d79cfca0d1c417f90761d295950945df3dc5",
+            "docsSha256": "5caa9aa5758d0667cb72ea77158ed254539fcf166d4286f1349fe7bc251bd8d2",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym2413_wasm_sdk.mjs",
+        "checkerSha256": "7afcab6d6fb22433a7a9b24e1220f81074c38e214d7a4b832f074946d1e01d01",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2413|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym2413.js",
+            "docs": "docs/js/ym2413.js",
+            "webSha256": "7515e2659b95e202041185661a6e1d103434c28d4b146166db7e99aaf562b20e",
+            "docsSha256": "5ea915d378741edf4784711154fb14e8b48cb2fd0c30083b6492162de9abdba9",
+            "passed": true
+          },
+          {
+            "web": "web/ym2413audioengine.js",
+            "docs": "docs/js/ym2413audioengine.js",
+            "webSha256": "d09d64d4fbb5a40319732867dcebbfd10b09f99bac942825b2ea162e8e7f2ef4",
+            "docsSha256": "ccfdf4e110715784a518d6992797bb4964057df83039a80364acbd4c71564c50",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym2608_wasm_sdk.mjs",
+        "checkerSha256": "52098aa6de97c47465ca6ffb18b75d9f77c5bbff2a849f311b8a16f9ad1f817f",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2608|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym2608.js",
+            "docs": "docs/js/ym2608.js",
+            "webSha256": "52cb8790fc26c2a007256ddc9d46d9e635bed97688e9c3cbd8a8b0eeae476762",
+            "docsSha256": "d90489958661e7f007c595060c84cf2976a8ae9b45887ccf060d3f9ebd38dadd",
+            "passed": true
+          },
+          {
+            "web": "web/ym2608audioengine.js",
+            "docs": "docs/js/ym2608audioengine.js",
+            "webSha256": "67e5b4e72d02bf1c70318f073bc740cb5e28cfba1b466cce77274cc7c7ff8630",
+            "docsSha256": "0d68c4623218f71932d0acc7d465629c92085a5703919cc2795f5e8d56169bcf",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym2610b_wasm_sdk.mjs",
+        "checkerSha256": "784945441d06630daeec7d0db7f68efef69b0e3df1b85d0bb46c230b88f1d103",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym2610b|soundchip)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym2610b.js",
+            "docs": "docs/js/ym2610b.js",
+            "webSha256": "74c94f231bf16d2bd756aaa734829c3a9cfed24336ce32d0d78b73f24990bdd6",
+            "docsSha256": "202e9909606335a68635fdcfe6934d7f5999cc586c270210d9c6d5b3897497d6",
+            "passed": true
+          },
+          {
+            "web": "web/ym2610baudioengine.js",
+            "docs": "docs/js/ym2610baudioengine.js",
+            "webSha256": "c4c9dd6fd79e3f4ba4a832750370ec7edbe33332c1803e3f7c732f28efe73e12",
+            "docsSha256": "f665924c39f5f558950a3759d44972e3fa5a1a66624e53c326ebe14225a1405e",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym2612_wasm_sdk.mjs",
+        "checkerSha256": "a249b53fc868016db7d61ce65f1de581c67f416811186e827795a2469077b514",
+        "normalizer": "exact bytes",
+        "checks": [
+          {
+            "web": "web/ym2612.js",
+            "docs": "docs/js/ym2612.js",
+            "webSha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+            "docsSha256": "a94016aa0f36d8a48465d7c8420af282e00c27e3ffb2b6d00d668f266a4f92b2",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym3438_wasm_sdk.mjs",
+        "checkerSha256": "dfeb8e61734038f99b28f7f3af8acea2bab24eb6b7a4312b10e380e49ad22939",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:opn_fm_synth|ym2612synth)\\.js)\\?v=(?:audio-stability-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1').replace(/(\\.\\/soundchip_worklet\\.js)\\?v=(?:y8950-adpcm-ui-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1').replace(/(\\.\\/ym2612\\.js)\\?v=(?:audio-numeric-bindings-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym3438.js",
+            "docs": "docs/js/ym3438.js",
+            "webSha256": "2047551436fddce9d32f6c0cd78bbcd556572c33e080583de465f306008720fb",
+            "docsSha256": "2047551436fddce9d32f6c0cd78bbcd556572c33e080583de465f306008720fb",
+            "passed": true
+          },
+          {
+            "web": "web/opn_variant.js",
+            "docs": "docs/js/opn_variant.js",
+            "webSha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16",
+            "docsSha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16",
+            "passed": true
+          },
+          {
+            "web": "web/opn_variant_synth.js",
+            "docs": "docs/js/opn_variant_synth.js",
+            "webSha256": "be8bdd25066471b998937729a946cb5f05cbb8f1976fa2645598d3fd3c449b70",
+            "docsSha256": "9ab82c6eda0de2d4a85121db3cfc42d6826ec0ffeea70d22a42a56a145559136",
+            "passed": true
+          },
+          {
+            "web": "web/opn_fm_synth.js",
+            "docs": "docs/js/opn_fm_synth.js",
+            "webSha256": "bbcfcdb66e495f0733752d4c673b6dd98e321ba4a2fb9f743ff451eb7238a558",
+            "docsSha256": "164565cc6c4c6caa0514e666584c274d19d973d7b651cfa43d9275e3efceb63c",
+            "passed": true
+          },
+          {
+            "web": "web/soundchip_pitch.js",
+            "docs": "docs/js/soundchip_pitch.js",
+            "webSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "docsSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym3526_wasm_sdk.mjs",
+        "checkerSha256": "bb42c4ddf4222a366f06c7fa6e44401338667c902fe73b4fcb0ed6807c6b3413",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym3526|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym3526.js",
+            "docs": "docs/js/ym3526.js",
+            "webSha256": "3ce49fa8e36520db7a7d30edf03761cbacb4addf54f7d27dc00c80a908a3a71f",
+            "docsSha256": "101c59f32b02f1a4f6ec9659be8d363c212d9770c8924baa7f54d30c09436acf",
+            "passed": true
+          },
+          {
+            "web": "web/ym3526audioengine.js",
+            "docs": "docs/js/ym3526audioengine.js",
+            "webSha256": "aff3c8cb5262941ea97eb828a0a89f1b0d725f18f76587d81056b1821ff378d4",
+            "docsSha256": "8ce1b713d891be9ad8f7439695406911f597ff0ecd39e70480a5ab8f9c3afb03",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ym3812_wasm_sdk.mjs",
+        "checkerSha256": "500acfee83ae5f33705953adb5bca92926aee63fad0678b546776b7857687e49",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ym3812|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ym3812.js",
+            "docs": "docs/js/ym3812.js",
+            "webSha256": "ce35055a3a3c558c7af4a2ba662a53e4a39e3edaa5a0391ea5c6831de2a0d089",
+            "docsSha256": "61e0751d219a62b9818c97cb9debc0c5c2808ec8210be9c04da26c58713591ea",
+            "passed": true
+          },
+          {
+            "web": "web/ym3812audioengine.js",
+            "docs": "docs/js/ym3812audioengine.js",
+            "webSha256": "6141295ab09a32198988346fedef04c3d07455e82fd5fab16070b250dac7442e",
+            "docsSha256": "72c5e92e295566e95ea96e4da5c0430aea8e07e2e09cc569ddedbe66d4629109",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ymf262_wasm_sdk.mjs",
+        "checkerSha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833",
+        "normalizer": "bytes=>bytes.toString().replace(/(\\.\\/(?:ymf262|soundchip|segapsg)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ymf262.js",
+            "docs": "docs/js/ymf262.js",
+            "webSha256": "0505487ec8488b9bdf0fffa6d95b3477289e9723f1ccadd03177aa5beab3ebe3",
+            "docsSha256": "476c524243e0b9e9b3d0bbc0ea1be162868e31cd9b7eddac5a586cff24133fa2",
+            "passed": true
+          },
+          {
+            "web": "web/ymf262audioengine.js",
+            "docs": "docs/js/ymf262audioengine.js",
+            "webSha256": "e89a1e1630985db2b2a565a2572a323b8b1ec682cade69645a7ad00c0473dac9",
+            "docsSha256": "14093244aee9c05a7d9ba763887105bc154af76b340d0dfc3c9effd67b17e06b",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ymf276_wasm_sdk.mjs",
+        "checkerSha256": "d35a55b8552762dc73d0af669c181499550ad88397a3704c3ea5ac59e07342a8",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:opn_fm_synth|ym2612synth)\\.js)\\?v=(?:audio-stability-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1').replace(/(\\.\\/soundchip_worklet\\.js)\\?v=(?:y8950-adpcm-ui-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1').replace(/(\\.\\/ym2612\\.js)\\?v=(?:audio-numeric-bindings-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ymf276.js",
+            "docs": "docs/js/ymf276.js",
+            "webSha256": "e5dd22e5b552fb9562958ccbc85bc44c2ea772c262c55c651d249764abb9da1d",
+            "docsSha256": "e5dd22e5b552fb9562958ccbc85bc44c2ea772c262c55c651d249764abb9da1d",
+            "passed": true
+          },
+          {
+            "web": "web/opn_variant.js",
+            "docs": "docs/js/opn_variant.js",
+            "webSha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16",
+            "docsSha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16",
+            "passed": true
+          },
+          {
+            "web": "web/opn_variant_synth.js",
+            "docs": "docs/js/opn_variant_synth.js",
+            "webSha256": "be8bdd25066471b998937729a946cb5f05cbb8f1976fa2645598d3fd3c449b70",
+            "docsSha256": "9ab82c6eda0de2d4a85121db3cfc42d6826ec0ffeea70d22a42a56a145559136",
+            "passed": true
+          },
+          {
+            "web": "web/opn_fm_synth.js",
+            "docs": "docs/js/opn_fm_synth.js",
+            "webSha256": "bbcfcdb66e495f0733752d4c673b6dd98e321ba4a2fb9f743ff451eb7238a558",
+            "docsSha256": "164565cc6c4c6caa0514e666584c274d19d973d7b651cfa43d9275e3efceb63c",
+            "passed": true
+          },
+          {
+            "web": "web/soundchip_pitch.js",
+            "docs": "docs/js/soundchip_pitch.js",
+            "webSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "docsSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ymf278b_wasm_sdk.mjs",
+        "checkerSha256": "803a6d4219c2ff15dcb6ee971df514534243165257663e9d3f8c39196766f953",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:ymf278b|soundchip|segapsg|ym2612vgm)\\.js)\\?v=[^\"'\\s)]+/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ymf278b.js",
+            "docs": "docs/js/ymf278b.js",
+            "webSha256": "2406a80a277a0523c839b00b544466faaec2cfed2e11cba76f537c603e5e7195",
+            "docsSha256": "14f4dc5bb1c88ed1ac00a096fc7b202dfddd79842c0ae85c457780e60780a6b1",
+            "passed": true
+          },
+          {
+            "web": "web/ymf278baudioengine.js",
+            "docs": "docs/js/ymf278baudioengine.js",
+            "webSha256": "573f6761ab455efa0a8d7e7f24a4127deea6ef98f778c83ea3a109462340fb97",
+            "docsSha256": "3164337ddc05c62fb5b9b93c90a6976221c1e7f19a0df883bcc072b124d55ba4",
+            "passed": true
+          },
+          {
+            "web": "web/vgmplayer.js",
+            "docs": "docs/js/vgmplayer.js",
+            "webSha256": "a4ce723a8d2c59cd99d842b3081d40a7b94626cea867672224fe4921e286a515",
+            "docsSha256": "64ccae8fb092189869bb60e338a1c202a1e9835331a27081c95a436766d08a33",
+            "passed": true
+          },
+          {
+            "web": "web/ym2612vgm.js",
+            "docs": "docs/js/ym2612vgm.js",
+            "webSha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c",
+            "docsSha256": "a12990d6803e84c2cc87fa5e01832c35f3583a032202bb4f32d2ce1327e3315c",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "checker": "scripts/check_ymf288_wasm_sdk.mjs",
+        "checkerSha256": "8020c77ce62385754702a689cd41949d1ef86617fdafd898b4506ff746373ed3",
+        "normalizer": "b=>b.toString().replace(/(\\.\\/(?:opn_fm_synth|ym2612synth)\\.js)\\?v=(?:audio-stability-2|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1').replace(/(\\.\\/soundchip_worklet\\.js)\\?v=(?:y8950-adpcm-ui-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1').replace(/(\\.\\/ym2612\\.js)\\?v=(?:audio-numeric-bindings-1|wonderswan-mode-2|wonderswan-native-1|wonderswan-vgm-1|wonderswan-pcm-timeline-1)/g,'$1')",
+        "checks": [
+          {
+            "web": "web/ymf288.js",
+            "docs": "docs/js/ymf288.js",
+            "webSha256": "a2e14c7906153c5d6423ed16012dc7c908d983d0c5fb9cfbbb04e7749f0c4e03",
+            "docsSha256": "a2e14c7906153c5d6423ed16012dc7c908d983d0c5fb9cfbbb04e7749f0c4e03",
+            "passed": true
+          },
+          {
+            "web": "web/opn_variant.js",
+            "docs": "docs/js/opn_variant.js",
+            "webSha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16",
+            "docsSha256": "70e5d4f7a7cedd3e4d837f610b7176dc0e927c6eb844a4514339b4d37ca9db16",
+            "passed": true
+          },
+          {
+            "web": "web/opn_variant_synth.js",
+            "docs": "docs/js/opn_variant_synth.js",
+            "webSha256": "be8bdd25066471b998937729a946cb5f05cbb8f1976fa2645598d3fd3c449b70",
+            "docsSha256": "9ab82c6eda0de2d4a85121db3cfc42d6826ec0ffeea70d22a42a56a145559136",
+            "passed": true
+          },
+          {
+            "web": "web/opn_fm_synth.js",
+            "docs": "docs/js/opn_fm_synth.js",
+            "webSha256": "bbcfcdb66e495f0733752d4c673b6dd98e321ba4a2fb9f743ff451eb7238a558",
+            "docsSha256": "164565cc6c4c6caa0514e666584c274d19d973d7b651cfa43d9275e3efceb63c",
+            "passed": true
+          },
+          {
+            "web": "web/soundchip_pitch.js",
+            "docs": "docs/js/soundchip_pitch.js",
+            "webSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "docsSha256": "c8bcce0f27c2500d6090b5e56660e697b8b03d7ec011cee4deba05664038bae9",
+            "passed": true
+          }
+        ]
+      }
+    ]
+  },
+  "guardTests": {
+    "passed": 95,
+    "failed": 0,
+    "log": {
+      "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix-tests.log",
+      "bytes": 7052,
+      "sha256": "fc7fa680742f7d8e608f40aee5d510fe175ccd092b5c77cd6037c87cb8ea6b43"
+    }
+  },
+  "parity": {
+    "passed": true,
+    "nodeVersion": "v26.12.0",
+    "artifacts": 28,
+    "outputs": 55,
+    "comparisons": 40360,
+    "maximumDifference": 0,
+    "repositoryInputsUnchanged": true,
+    "command": "node scripts/check_wasm_sdk.mjs --sdk-dir /private/tmp/wasm-sdk-ci-40431173080/rebuilt --work-dir /private/tmp/wasm-sdk-wonderswan-cache-fix",
+    "sourceOfCandidate": "Real Emscripten 6.0.6 Linux builds retained by failed CI run40431173080, artifact12701319647; no recompilation in this repair.",
+    "candidateArchive": {
+      "path": "/private/tmp/wasm-sdk-40431173080-artifact.zip",
+      "bytes": 1935870,
+      "sha256": "bacaebf07037ec1eeb61cd8bc1c50bba1558165d7f946bc1f4a43636fbcae1e7"
+    },
+    "summary": {
+      "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/summary.json",
+      "bytes": 1395010,
+      "sha256": "f73ad85b7757b41d9cc996a7991e5b4cff26b3dc0c1861dba8da70ed06389980"
+    },
+    "reports": [
+      {
+        "id": "ay8910",
+        "passed": true,
+        "comparisons": 8208,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: all main bodies+127-frame continuation probes including selected reset/replays. Bounded chip/Engine positives and actual Player render-ahead/seek-prefix generation are separate components. Engine delegates directly to the chip; those native output frames and Player delivered/discarded frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 35223552,
+          "postScenarioProbeOutputStereoFrames": 2244852,
+          "totalWrapperSelfCheckOutputStereoFrames": 811166,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 4638492,
+          "totalPlayerDeliveredOutputStereoFrames": 3880188,
+          "totalOutputStereoFrames": 37468404,
+          "totalGeneratedOutputStereoFrames": 42918062
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ay8910_wasm_sdk.mjs",
+          "bytes": 35828,
+          "sha256": "b6364ebd8f1ab6270b24f30c6f7c2be93a22afed6ad5a0b25872e8bc92d42bba"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ay8910.json",
+          "bytes": 5837754,
+          "sha256": "26406c37076154e7470c91d87cfd5dbacb37bc07d6e9aeb488271ef054bd65b0"
+        }
+      },
+      {
+        "id": "dx7",
+        "passed": true,
+        "comparisons": 360,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: mono scenario bodies, 257-frame continuation probes, selected panic/reprogram replays and wrapper/raw-ABI control output. Each Float32 element is one mono output frame. Internal block prefetch and unreturned core work are not counted.",
+        "frameCounts": {
+          "totalFrames": 8192,
+          "probeFrames": 257,
+          "scenarioBodyOutputMonoFrames": 6160384,
+          "postScenarioProbeOutputMonoFrames": 193264,
+          "totalScenarioOutputMonoFrames": 6353648,
+          "totalWrapperSelfCheckOutputMonoFrames": 1300492,
+          "totalGeneratedOutputMonoFrames": 7654140
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_dx7_wasm_sdk.mjs",
+          "bytes": 33345,
+          "sha256": "4523239ec359408b3c9eeb72f2c4ac90066f964495afb30eeff341d9ffae0647"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/dx7.json",
+          "bytes": 305044,
+          "sha256": "4773365b3c129c66b60823f900ef2218db5d29a089ddeacbf3a0e9c42f6ad23b"
+        }
+      },
+      {
+        "id": "gameboy_apu",
+        "passed": true,
+        "comparisons": 876,
+        "maximumDifference": 0,
+        "frameCountScope": "Both realbuilds: complete1024-frame bodies+97-frame probes; selected regular own/cross continuation bodies startat613 plusfreshprobes, resetreplays repeatfullbody/probe. Wrapper positives and actual Player generation separate; native ticks/internal Engine calls and delivered Player frames notaddedtwice.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 2209836,
+          "postScenarioProbeOutputStereoFrames": 228144,
+          "totalWrapperSelfCheckOutputStereoFrames": 126486,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 313440,
+          "totalPlayerDeliveredOutputStereoFrames": 248840,
+          "totalOutputStereoFrames": 2437980,
+          "totalGeneratedOutputStereoFrames": 2877906
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_gameboy_apu_wasm_sdk.mjs",
+          "bytes": 38408,
+          "sha256": "5ff8f9b856851b25c364df4cf0b1faa0ab357e7480ec57aabd82da9c6c497b9d"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/gameboy_apu.json",
+          "bytes": 783368,
+          "sha256": "4ecf4bd1c96e22cb5cdf84ae8fcd7df9a35a6a52bc1f3aebdf319adc4460f539"
+        }
+      },
+      {
+        "id": "huc6280",
+        "passed": true,
+        "comparisons": 828,
+        "maximumDifference": 0,
+        "frameCountScope": "Both actual builds: main complete768-frame bodies+97-frame continuation probes; selected regular reset/replays repeat complete bodies+probes. Independent wrapper positives/direct rawC output and actual Player Engine generation are separate components. Native chip-clock ticks and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 1465344,
+          "postScenarioProbeOutputStereoFrames": 185076,
+          "totalWrapperSelfCheckOutputStereoFrames": 130044,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+          "totalPlayerDeliveredOutputStereoFrames": 515076,
+          "totalOutputStereoFrames": 1650420,
+          "totalGeneratedOutputStereoFrames": 2394918
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_huc6280_wasm_sdk.mjs",
+          "bytes": 37545,
+          "sha256": "a965bd1276141e1bac5be5f004c07e6956b0ef3c52420b2969bba3972dce4299"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/huc6280.json",
+          "bytes": 578277,
+          "sha256": "f7789b119db677bbe1bfb2a2d8e0b8b5d7ab47ff76a734c2110bf1001d63e452"
+        }
+      },
+      {
+        "id": "k051649",
+        "passed": true,
+        "comparisons": 774,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, including selected reset/reprogram replays; bounded wrapper/engine controls and all actual MSX Player engine generation are added separately. Stereo frame is one left/right pair. Engine internal chip sources and delivered player frames are not added twice.",
+        "frameCounts": {
+          "totalFrames": 2048,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 3907584,
+          "postScenarioProbeOutputStereoFrames": 242316,
+          "totalWrapperSelfCheckOutputStereoFrames": 34122,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 2384316,
+          "totalPlayerDeliveredOutputStereoFrames": 2185560,
+          "totalOutputStereoFrames": 4149900,
+          "totalGeneratedOutputStereoFrames": 6568338
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_k051649_wasm_sdk.mjs",
+          "bytes": 34848,
+          "sha256": "6610f84886d46ba99901b307490cf1c0e006ef072eaf066ba176c73c04d0c6e3"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/k051649.json",
+          "bytes": 489400,
+          "sha256": "1ee9de44ef0f845b125686622d105b852121c0ffee8af26aefa4588029d00ca5"
+        }
+      },
+      {
+        "id": "nesapu",
+        "passed": true,
+        "comparisons": 912,
+        "maximumDifference": 0,
+        "frameCountScope": "BothrealWASMbuilds:complete1024-framebody+97-frameprobe,selectedregularreset/replaysrepeatfullbody/probe. ActualWASMwrapperpositivesanddirectnative_sampleloopsareseparate. AuxiliaryJSreferenceframesrecorded/excluded; parserrecordinggeneratesnoaudio; noWASMPlayerframes.",
+        "frameCounts": {
+          "probeFrames": 97,
+          "scenarioBodyOutputStereoFrames": 2150400,
+          "postScenarioProbeOutputStereoFrames": 203700,
+          "totalWrapperSelfCheckOutputStereoFrames": 74820,
+          "totalJsReferenceOutputStereoFrames": 3598,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 0,
+          "totalPlayerDeliveredOutputStereoFrames": 0,
+          "totalOutputStereoFrames": 2354100,
+          "totalGeneratedOutputStereoFrames": 2428920
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nesapu_wasm_sdk.mjs",
+          "bytes": 33115,
+          "sha256": "48d3e138c580fe0f51dcba700a22f3ca3976dbbc82938d8ea69e016614af61e5"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/nesapu.json",
+          "bytes": 941044,
+          "sha256": "da69955a7bd2abba17f6c9d8c787fd8156c616506c1df9bbd97292c669af3553"
+        }
+      },
+      {
+        "id": "nuked_opn2",
+        "passed": true,
+        "comparisons": 462,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame probes, selected reset replays, wrapper controls, real Synth and actual engine-generated player output including prefetched PCM (delivered frame count is recorded separately). One stereo frame is one left/right pair. Bus-write discarded outputs are not delivered PCM and are not counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6414336,
+          "postScenarioProbeOutputStereoFrames": 132588,
+          "totalScenarioOutputStereoFrames": 6546924,
+          "totalWrapperSelfCheckOutputStereoFrames": 83816,
+          "totalSynthOutputStereoFrames": 12136,
+          "totalEngineOutputStereoFrames": 19808,
+          "totalGeneratedOutputStereoFrames": 6662684
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_nuked_opn2_wasm_sdk.mjs",
+          "bytes": 38325,
+          "sha256": "e92d7d3747a46c08fac4b11fdf30d7bfebdb0a1a76d576e4c2c5cb172c898da6"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/nuked_opn2.json",
+          "bytes": 424122,
+          "sha256": "84d6796f828cc91d98be372ff0086df9644463ee7a86a8bdb6bad69f2af88b15"
+        }
+      },
+      {
+        "id": "okim6258",
+        "passed": true,
+        "comparisons": 2048,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds at their configured output rates: complete raw/Engine scenario renders and own/cross/reset continuations. Bounded wrapper self-checks and 31-frame pre-restore perturbations are separately counted; all three contribute to totalGeneratedOutputStereoFrames. Setup writes and zero-frame calls render no frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 23949880,
+          "preRestorePerturbationOutputStereoFrames": 2108,
+          "totalWrapperSelfCheckOutputStereoFrames": 1520,
+          "totalGeneratedOutputStereoFrames": 23953508
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_okim6258_wasm_sdk.mjs",
+          "bytes": 36653,
+          "sha256": "43c0c0776c43d87174b8a8dbe8b352bff53ce128b206cda08980e76cf71d482b"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/okim6258.json",
+          "bytes": 1309673,
+          "sha256": "0a7efbaa177e352992d077b35b80ed6d37c103c30623a1e4ed2554d0d07b00e1"
+        }
+      },
+      {
+        "id": "pwm32x",
+        "passed": true,
+        "comparisons": 864,
+        "maximumDifference": 0,
+        "frameCountScope": "Both actual builds: main complete body+65-frame probes; selected regular own/cross continuation bodies start at389 with fresh65-frame probes; reset/replays have complete bodies/probes. Wrapper positives and actual Player Engine generation are separate components. Retained-JS-reference auxiliary frames are separately recorded and excluded, as are internal Engine source frames and delivered Player frames.",
+        "frameCounts": {
+          "probeFrames": 65,
+          "scenarioBodyOutputStereoFrames": 2439480,
+          "postScenarioProbeOutputStereoFrames": 168480,
+          "totalWrapperSelfCheckOutputStereoFrames": 32394,
+          "totalJsReferenceOutputStereoFrames": 7680,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 356220,
+          "totalPlayerDeliveredOutputStereoFrames": 290240,
+          "totalOutputStereoFrames": 2607960,
+          "totalGeneratedOutputStereoFrames": 2996574
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_pwm32x_wasm_sdk.mjs",
+          "bytes": 44346,
+          "sha256": "a721581b5f2156ee15e6742963faac1dfc0a107f509801b8daa1e0ab5ba5c74e"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/pwm32x.json",
+          "bytes": 830605,
+          "sha256": "b467339009d6c830d8c98b3af329efde5ca8a0b32cc96a14afde07cad4a89e02"
+        }
+      },
+      {
+        "id": "rf5c164",
+        "passed": true,
+        "comparisons": 828,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 4634334,
+          "postScenarioProbeOutputStereoFrames": 301752,
+          "totalWrapperSelfCheckOutputStereoFrames": 16178,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 470160,
+          "totalPlayerDeliveredOutputStereoFrames": 373260,
+          "totalOutputStereoFrames": 4936086,
+          "totalGeneratedOutputStereoFrames": 5422424
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_rf5c164_wasm_sdk.mjs",
+          "bytes": 41001,
+          "sha256": "4621e23d54edea588d62fc201f012ab1cbd6538056bf26922181382c43ea051e"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/rf5c164.json",
+          "bytes": 726544,
+          "sha256": "e37e4ffedcae1f66c6d313069bbffbef717554d8c62c8688018344b5a4739d95"
+        }
+      },
+      {
+        "id": "segapcm",
+        "passed": true,
+        "comparisons": 612,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds, complete scenario bodies plus127-frame post-scenario probes, selected own/cross continuation bodies starting at613 and selected reset/replay bodies and probes. Bounded controls, actual Player Engine generation and31-frame pre-restore perturbations are separately added. Engine internal sources and Player delivered frames are not counted twice.",
+        "frameCounts": {
+          "totalFrames": 2048,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 4225320,
+          "postScenarioProbeOutputStereoFrames": 281178,
+          "preRestorePerturbationOutputStereoFrames": 7812,
+          "totalWrapperSelfCheckOutputStereoFrames": 76202,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 614454,
+          "totalPlayerDeliveredOutputStereoFrames": 515076,
+          "totalOutputStereoFrames": 4506498,
+          "totalGeneratedOutputStereoFrames": 5204966
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapcm_wasm_sdk.mjs",
+          "bytes": 43920,
+          "sha256": "065d7c015d55a92e3dd3b2867c2356912c13d8d65f779e3fdfbf37d985c85a7b"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/segapcm.json",
+          "bytes": 619977,
+          "sha256": "e9ea6fbc3b8a9fe80fe83c6f1d91697ec3d9b567df5132e2162e6b4b64d7b9e0"
+        }
+      },
+      {
+        "id": "segapsg",
+        "passed": true,
+        "comparisons": 7074,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body+127-frame probes; selected regular own/cross continuation bodies start at613 and have fresh127-frame probes; reset/replays have complete bodies/probes. Wrapper positives and real Player Engine generation are separate components. Source frames internal to Engine and delivered Player frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 30918870,
+          "postScenarioProbeOutputStereoFrames": 1945386,
+          "totalWrapperSelfCheckOutputStereoFrames": 392930,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 758694,
+          "totalPlayerDeliveredOutputStereoFrames": 639348,
+          "totalOutputStereoFrames": 32864256,
+          "totalGeneratedOutputStereoFrames": 34015880
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_segapsg_wasm_sdk.mjs",
+          "bytes": 38903,
+          "sha256": "24d4760f0175a8f34e7c57fc22c1d0b10b4d457cf3763ed1adc1a3ee29903f3a"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/segapsg.json",
+          "bytes": 5721077,
+          "sha256": "2877f9760fc30013f5a5e03a719d276ba85c243ef9474da1aa12e75ab373dfbe"
+        }
+      },
+      {
+        "id": "spc",
+        "passed": true,
+        "comparisons": 80,
+        "maximumDifference": 0,
+        "frameCountScope": "All bounded nonzero PCM render requests go through one counter, including wrapper/trace positives, scenarios/probes, failed attempts and timeline-end silence. Direct invalid/zero validation-only calls never entering native rendering are excluded. Requested frames, successfully copied output frames and native position advances are reported separately. Internal 1024-frame chunks are not added again; failed trace rendering may advance native state before rejecting delivery, and ended timeline silence does not advance nativeFrames.",
+        "frameCounts": {
+          "bodyFrames": 4097,
+          "probeFrames": 97,
+          "totalDeliveredOutputStereoFrames": 1017898
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_spc_wasm_sdk.mjs",
+          "bytes": 29756,
+          "sha256": "015f215ca537356c7b7993d160409006fdee4de23e7a62382279abfee0df907e"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/spc.json",
+          "bytes": 135079,
+          "sha256": "9abdb1f191b0502a2d96df9884b6f2bc484eef9e7092316c081a238bd15a5b5e"
+        }
+      },
+      {
+        "id": "wonderswan",
+        "passed": true,
+        "comparisons": 378,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: full scenario body in each owned/borrowed/into partition, followed by a full reset replay. Independent expectation/wrapper self-check frames are not included.",
+        "frameCounts": {
+          "totalComparedStereoFrames": 6193152
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_wonderswan_wasm_sdk.mjs",
+          "bytes": 9667,
+          "sha256": "c88703b40c0998804c6c890672c254bf3a1daae560b705d45717f4ee03e17786"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/wonderswan.json",
+          "bytes": 235302,
+          "sha256": "ee46d11b659bdf09749602e3ad4c4a4bb94a9bf4eef70c242dc0328e211e955d"
+        }
+      },
+      {
+        "id": "y8950",
+        "passed": true,
+        "comparisons": 1794,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 21823488,
+          "postScenarioProbeOutputStereoFrames": 1010010,
+          "totalOutputStereoFrames": 22833498,
+          "totalWrapperSelfCheckOutputStereoFrames": 555780,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 24162360
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_y8950_wasm_sdk.mjs",
+          "bytes": 58704,
+          "sha256": "05988eeb5e087bcb5937bcaabba7c693f47e10e89998acb7a9fbaeff567b8ab4"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/y8950.json",
+          "bytes": 1111826,
+          "sha256": "35924f52204da2c212d88b66454820015324d8e6434497575105ba91f17b14a8"
+        }
+      },
+      {
+        "id": "ym2151",
+        "passed": true,
+        "comparisons": 1408,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames and the 31-frame pre-restore perturbations are not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 17640320,
+          "preRestorePerturbationOutputStereoFrames": 1984,
+          "totalWrapperSelfCheckNativeStereoFrames": 398836,
+          "totalGeneratedOutputStereoFrames": 18041140
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2151_wasm_sdk.mjs",
+          "bytes": 29405,
+          "sha256": "3da1be74ea5acf84f8cf3d52b3ddd1e91a36eb8e69e78d85789701cbcfd9e261"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym2151.json",
+          "bytes": 992595,
+          "sha256": "8f92524ae39d2329670f787f4e5d16361ea3fdd0616d9a503c43c084c9930488"
+        }
+      },
+      {
+        "id": "ym2203",
+        "passed": true,
+        "comparisons": 432,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 9770400
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2203_wasm_sdk.mjs",
+          "bytes": 25447,
+          "sha256": "255074f1515aa0117dc72c901bf216c60385c6c598fc59cae927bf6828382b88"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym2203.json",
+          "bytes": 295858,
+          "sha256": "853baad2a167ba4017c9af910a1e118fcdda2dc6d86e68e58d2bb29b8aef7106"
+        }
+      },
+      {
+        "id": "ym2413",
+        "passed": true,
+        "comparisons": 1284,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 15446016,
+          "postScenarioProbeOutputStereoFrames": 687732,
+          "totalOutputStereoFrames": 16133748,
+          "totalWrapperSelfCheckOutputStereoFrames": 391674,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 17298504
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2413_wasm_sdk.mjs",
+          "bytes": 34147,
+          "sha256": "7afcab6d6fb22433a7a9b24e1220f81074c38e214d7a4b832f074946d1e01d01"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym2413.json",
+          "bytes": 813058,
+          "sha256": "40ce6cdb1a1e3c3315bb57ceecc3c20ae861bb59ab392ff4784b047066aebdaa"
+        }
+      },
+      {
+        "id": "ym2608",
+        "passed": true,
+        "comparisons": 586,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 7264744
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2608_wasm_sdk.mjs",
+          "bytes": 27889,
+          "sha256": "52098aa6de97c47465ca6ffb18b75d9f77c5bbff2a849f311b8a16f9ad1f817f"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym2608.json",
+          "bytes": 395793,
+          "sha256": "a2ee46909d8a1488fe39b8f1c8c8019715fb3732b09f3069e83e7be8d2f02ea2"
+        }
+      },
+      {
+        "id": "ym2610b",
+        "passed": true,
+        "comparisons": 1108,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: low-level PCM frames or resampled engine output frames, including own/cross-state/reset continuations; wrapper self-check frames excluded. Engine source frames are intentionally not counted as output frames.",
+        "frameCounts": {
+          "totalOutputStereoFrames": 14063856,
+          "totalWrapperSelfCheckNativeStereoFrames": 1113736
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2610b_wasm_sdk.mjs",
+          "bytes": 31720,
+          "sha256": "784945441d06630daeec7d0db7f68efef69b0e3df1b85d0bb46c230b88f1d103"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym2610b.json",
+          "bytes": 778421,
+          "sha256": "a3acfe6080f5e67bd907b3a8e0ddddd7bbbb51103b53eb3ee1ab5c8c87437438"
+        }
+      },
+      {
+        "id": "ym2612",
+        "passed": true,
+        "comparisons": 444,
+        "maximumDifference": 0,
+        "frameCountScope": "Case/layout renders plus own-state, cross-state and reset continuations, counting both builds; additional wrapper self-check frames are excluded.",
+        "frameCounts": {
+          "totalStereoFrames": 11557320
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym2612_wasm_sdk.mjs",
+          "bytes": 25016,
+          "sha256": "a249b53fc868016db7d61ce65f1de581c67f416811186e827795a2469077b514"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym2612.json",
+          "bytes": 285504,
+          "sha256": "3392073fc6d039fd285f8eac7278bc256e23b40e0aba80c19702a73c5e278d49"
+        }
+      },
+      {
+        "id": "ym3438",
+        "passed": true,
+        "comparisons": 450,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6230016,
+          "postScenarioProbeOutputStereoFrames": 128778,
+          "totalScenarioOutputStereoFrames": 6358794,
+          "totalWrapperSelfCheckOutputStereoFrames": 39250,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 6412380
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3438_wasm_sdk.mjs",
+          "bytes": 30290,
+          "sha256": "dfeb8e61734038f99b28f7f3af8acea2bab24eb6b7a4312b10e380e49ad22939"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym3438.json",
+          "bytes": 405226,
+          "sha256": "8f0694e8236386dee2b51d0c2ee9ce5461fb26c917f6461e245e4763dc5bce60"
+        }
+      },
+      {
+        "id": "ym3526",
+        "passed": true,
+        "comparisons": 1494,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 17952768,
+          "postScenarioProbeOutputStereoFrames": 806466,
+          "totalOutputStereoFrames": 18759234,
+          "totalWrapperSelfCheckOutputStereoFrames": 439962,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 19972278
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3526_wasm_sdk.mjs",
+          "bytes": 37404,
+          "sha256": "bb42c4ddf4222a366f06c7fa6e44401338667c902fe73b4fcb0ed6807c6b3413"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym3526.json",
+          "bytes": 922551,
+          "sha256": "37e9c218f769e503447104abe46a0199f533360f254228e1cff3a31bbd4c473e"
+        }
+      },
+      {
+        "id": "ym3812",
+        "passed": true,
+        "comparisons": 1848,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 22081536,
+          "postScenarioProbeOutputStereoFrames": 993048,
+          "totalOutputStereoFrames": 23074584,
+          "totalWrapperSelfCheckOutputStereoFrames": 609410,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 24457076
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ym3812_wasm_sdk.mjs",
+          "bytes": 40382,
+          "sha256": "500acfee83ae5f33705953adb5bca92926aee63fad0678b546776b7857687e49"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ym3812.json",
+          "bytes": 1128220,
+          "sha256": "253ca5433865cc4d65e06263b50c82fa55f1ec97673b92e59bdacb3ae6bad7b0"
+        }
+      },
+      {
+        "id": "ymf262",
+        "passed": true,
+        "comparisons": 3456,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: main complete body renders plus explicit257-frame post-scenario probes, including selected public reset/replays. Bounded wrapper positives and actual VgmPlayer Engine render-ahead/seek-prefix frames are separate components of totalGeneratedOutputStereoFrames. Engine internal native source frames and player delivered frames are not added twice.",
+        "frameCounts": {
+          "probeFrames": 257,
+          "scenarioBodyOutputStereoFrames": 42799104,
+          "postScenarioProbeOutputStereoFrames": 1859652,
+          "totalOutputStereoFrames": 44658756,
+          "totalWrapperSelfCheckOutputStereoFrames": 1154856,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 773082,
+          "totalPlayerDeliveredOutputStereoFrames": 646698,
+          "totalGeneratedOutputStereoFrames": 46586694
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf262_wasm_sdk.mjs",
+          "bytes": 47220,
+          "sha256": "8be3f4761e4097de9cccb90e640ec48119b049ba17b4af38f43816014880a833"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ymf262.json",
+          "bytes": 2178774,
+          "sha256": "72717e19543e91084244ad46ef4e83a77953c2c38c5c955fe0e1f7cd7b9cf554"
+        }
+      },
+      {
+        "id": "ymf276",
+        "passed": true,
+        "comparisons": 462,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6414336,
+          "postScenarioProbeOutputStereoFrames": 132588,
+          "totalScenarioOutputStereoFrames": 6546924,
+          "totalWrapperSelfCheckOutputStereoFrames": 107080,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 6668340
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf276_wasm_sdk.mjs",
+          "bytes": 36063,
+          "sha256": "d35a55b8552762dc73d0af669c181499550ad88397a3704c3ea5ac59e07342a8"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ymf276.json",
+          "bytes": 431439,
+          "sha256": "c06bf1ce565ac878c99ec5a19d1d15c96db241d1fd18f09b06849981dfb75b8b"
+        }
+      },
+      {
+        "id": "ymf278b",
+        "passed": true,
+        "comparisons": 684,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario body and127frameprobe output, selectedpublicreset/replays, boundedchipcontrols, realEngineoutput plusindependentmanualsourcereference, actual VGMEngine renderahead andseekprefix output. Playerdeliveredframes areaseparateview, notadded. Internalnativeframes underlying Engineoutput arenotaddedagain.",
+        "frameCounts": {
+          "totalFrames": 4096,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 6176768,
+          "postScenarioProbeOutputStereoFrames": 191516,
+          "totalScenarioOutputStereoFrames": 6368284,
+          "totalWrapperSelfCheckOutputStereoFrames": 605762,
+          "totalEngineControlGeneratedOutputStereoFrames": 25348,
+          "totalPlayerGeneratedEngineOutputStereoFrames": 448386,
+          "totalGeneratedOutputStereoFrames": 7447780
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf278b_wasm_sdk.mjs",
+          "bytes": 48870,
+          "sha256": "803a6d4219c2ff15dcb6ee971df514534243165257663e9d3f8c39196766f953"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ymf278b.json",
+          "bytes": 530983,
+          "sha256": "08b423826139b398b0a35934a00b5774b80e4fc429abcf88fec72de2fc7a8a63"
+        }
+      },
+      {
+        "id": "ymf288",
+        "passed": true,
+        "comparisons": 606,
+        "maximumDifference": 0,
+        "frameCountScope": "Both builds: scenario bodies and 127-frame continuation probes, selected reset/reprogram replays, bounded wrapper controls and real Synth output. A stereo frame is one left/right pair; no source or delivered frames are double-counted.",
+        "frameCounts": {
+          "totalFrames": 6144,
+          "probeFrames": 127,
+          "scenarioBodyOutputStereoFrames": 8368128,
+          "postScenarioProbeOutputStereoFrames": 172974,
+          "totalScenarioOutputStereoFrames": 8541102,
+          "totalWrapperSelfCheckOutputStereoFrames": 254050,
+          "totalSynthOutputStereoFrames": 14336,
+          "totalGeneratedOutputStereoFrames": 8809488
+        },
+        "checker": {
+          "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/scripts/check_ymf288_wasm_sdk.mjs",
+          "bytes": 41333,
+          "sha256": "8020c77ce62385754702a689cd41949d1ef86617fdafd898b4506ff746373ed3"
+        },
+        "report": {
+          "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix/reports/ymf288.json",
+          "bytes": 505643,
+          "sha256": "b14268d49168a5aba0e77cff902aaac3eac8110851a9be86ef99cbc3f37a9854"
+        }
+      }
+    ],
+    "log": {
+      "path": "/private/tmp/wasm-sdk-wonderswan-cache-fix.log",
+      "bytes": 865,
+      "sha256": "362d9c72281d34591fd86127bb3909cb7a9b24db625493ddffd2f25e1a8b43c9"
+    }
+  },
+  "unchanged": [
+    "Runtime source",
+    "Generated JS/WASM output",
+    "Sound-chip SDK source",
+    "Mixer values",
+    "Published npm packages",
+    "CI workflow"
+  ],
+  "notPerformed": [
+    "New compilation",
+    "Commit",
+    "Push",
+    "Remote CI rerun with this patch",
+    "npm publish"
+  ]
+}

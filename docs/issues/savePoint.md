@@ -7,6 +7,18 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### WASM SDK CI修正 — 2026-10-27
+
+GitHub Actionsのrun40431173080/40432531260は、全28音源のbuild後、7番目Nuked OPN2のWeb/docs同期確認で失敗。
+JSDoc importへ追加した`wonderswan-pcm-timeline-1`が4checkerの既知cache keyに未登録だった。
+Nuked OPN2/YM3438/YMF276/YMF288の許可リスト4行へ同keyを追加。他の検証は維持。
+全28checker/68wrapper組の静的監査、CI先頭95testが成功。
+失敗CIで実build済みのLinux Emscripten6.0.6成果物を再利用し、全28音源/55出力/40,360厳密比較が差0で完了。
+ローカル比較はNode26.12.0、元CIはNode22.23.3。新しい再compileや修正後remote CI実行はしていない。
+Runtime/SDK/JS・WASM/Mixer/npm配布物は不変、npm再公開不要。今回の修正・記録は未commit/push。
+次はcommitしてpushし、既存workflowの再実行結果を確認する。
+詳細は[wasm_sdk_cache_key_ci_01.md](wasm_sdk_cache_key_ci_01.md)と同名JSON。
+
 ### npm公開 — 2026-10-27
 
 `tetorica-vgm@0.2.15`と`tetorica-fm2612@0.2.29`を公開済み。両方のlatestとregistry配布物を確認。
