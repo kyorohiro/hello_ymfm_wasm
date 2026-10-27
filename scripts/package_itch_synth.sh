@@ -187,6 +187,7 @@ done
 cp "${ROOT_DIR}/docs/playground/playground_vgm_presets.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_vgm_import.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/wonderswan_vgm_import.js" "${STAGE_DIR}/playground/"
+cp "${ROOT_DIR}/docs/playground/pokey_vgm_import.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_cassette.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/playground_file_tree.js" "${ROOT_DIR}/docs/playground/playground_example_order.js" "${STAGE_DIR}/playground/"
 cp "${ROOT_DIR}/docs/playground/vendor/fflate.js" "${ROOT_DIR}/docs/playground/vendor/fflate-LICENSE" "${STAGE_DIR}/playground/vendor/"
