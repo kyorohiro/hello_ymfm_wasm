@@ -1,0 +1,2440 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-27T19:19:17.804Z",
+  "status": "completed",
+  "conclusion": "success",
+  "headSha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+  "headBranch": "v0.91.2+test",
+  "htmlUrl": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+  "event": "push",
+  "runId": 40564352907,
+  "runAttempt": 1,
+  "jobs": [
+    {
+      "id": 122401495219,
+      "name": "build (macos-arm64, macos-14, dmg)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495219",
+      "startedAt": "2026-10-27T18:54:56Z",
+      "completedAt": "2026-10-27T19:04:54Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-27T18:54:56Z",
+          "completed_at": "2026-10-27T18:54:59Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-27T18:54:59Z",
+          "completed_at": "2026-10-27T18:55:04Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-27T18:55:04Z",
+          "completed_at": "2026-10-27T18:55:05Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-27T18:55:05Z",
+          "completed_at": "2026-10-27T18:55:05Z"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@1.91.1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-27T18:55:05Z",
+          "completed_at": "2026-10-27T18:55:13Z"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-27T18:55:13Z",
+          "completed_at": "2026-10-27T18:55:26Z"
+        },
+        {
+          "name": "Install Linux dependencies",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-27T18:55:26Z",
+          "completed_at": "2026-10-27T18:55:26Z"
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-27T18:55:26Z",
+          "completed_at": "2026-10-27T18:55:28Z"
+        },
+        {
+          "name": "Run npm test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-27T18:55:28Z",
+          "completed_at": "2026-10-27T18:55:31Z"
+        },
+        {
+          "name": "Verify committed Playground assets",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-27T18:55:31Z",
+          "completed_at": "2026-10-27T18:55:32Z"
+        },
+        {
+          "name": "Prepare bundled audio runtime before Cargo tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-27T18:55:32Z",
+          "completed_at": "2026-10-27T18:55:36Z"
+        },
+        {
+          "name": "Verify Native source snapshots and matching source ZIP offline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-27T18:55:36Z",
+          "completed_at": "2026-10-27T18:55:38Z"
+        },
+        {
+          "name": "Verify bundled Audify loads and exits normally",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-27T18:55:38Z",
+          "completed_at": "2026-10-27T18:55:38Z"
+        },
+        {
+          "name": "Test native MCP protocol and transport",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-27T18:55:38Z",
+          "completed_at": "2026-10-27T18:57:28Z"
+        },
+        {
+          "name": "Check Native stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-27T18:57:28Z",
+          "completed_at": "2026-10-27T18:59:00Z"
+        },
+        {
+          "name": "Check mixed Native extra-chip stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-27T18:59:00Z",
+          "completed_at": "2026-10-27T19:00:55Z"
+        },
+        {
+          "name": "Upload Native validation reports",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-27T19:00:55Z",
+          "completed_at": "2026-10-27T19:00:56Z"
+        },
+        {
+          "name": "Build desktop app",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-27T19:00:56Z",
+          "completed_at": "2026-10-27T19:00:56Z"
+        },
+        {
+          "name": "Build and attach to draft release",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-27T19:00:56Z",
+          "completed_at": "2026-10-27T19:04:44Z"
+        },
+        {
+          "name": "Upload installers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-27T19:04:44Z",
+          "completed_at": "2026-10-27T19:04:49Z"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-27T19:04:49Z",
+          "completed_at": "2026-10-27T19:04:50Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-27T19:04:50Z",
+          "completed_at": "2026-10-27T19:04:50Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-27T19:04:50Z",
+          "completed_at": "2026-10-27T19:04:50Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-10-27T19:04:50Z",
+          "completed_at": "2026-10-27T19:04:51Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-10-27T19:04:51Z",
+          "completed_at": "2026-10-27T19:04:53Z"
+        }
+      ]
+    },
+    {
+      "id": 122401495606,
+      "name": "build (windows-x86_64, windows-latest, nsis)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495606",
+      "startedAt": "2026-10-27T18:54:55Z",
+      "completedAt": "2026-10-27T19:11:38Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-27T18:54:57Z",
+          "completed_at": "2026-10-27T18:55:00Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-27T18:55:00Z",
+          "completed_at": "2026-10-27T18:55:16Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-27T18:55:16Z",
+          "completed_at": "2026-10-27T18:55:27Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-27T18:55:27Z",
+          "completed_at": "2026-10-27T18:55:28Z"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@1.91.1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-27T18:55:28Z",
+          "completed_at": "2026-10-27T18:55:42Z"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-27T18:55:42Z",
+          "completed_at": "2026-10-27T18:56:23Z"
+        },
+        {
+          "name": "Install Linux dependencies",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-27T18:56:23Z",
+          "completed_at": "2026-10-27T18:56:23Z"
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-27T18:56:23Z",
+          "completed_at": "2026-10-27T18:56:33Z"
+        },
+        {
+          "name": "Run npm test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-27T18:56:33Z",
+          "completed_at": "2026-10-27T18:56:44Z"
+        },
+        {
+          "name": "Verify committed Playground assets",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-27T18:56:44Z",
+          "completed_at": "2026-10-27T18:56:45Z"
+        },
+        {
+          "name": "Prepare bundled audio runtime before Cargo tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-27T18:56:45Z",
+          "completed_at": "2026-10-27T18:58:16Z"
+        },
+        {
+          "name": "Verify Native source snapshots and matching source ZIP offline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-27T18:58:16Z",
+          "completed_at": "2026-10-27T18:58:19Z"
+        },
+        {
+          "name": "Verify bundled Audify loads and exits normally",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-27T18:58:19Z",
+          "completed_at": "2026-10-27T18:58:23Z"
+        },
+        {
+          "name": "Test native MCP protocol and transport",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-27T18:58:23Z",
+          "completed_at": "2026-10-27T19:01:24Z"
+        },
+        {
+          "name": "Check Native stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-27T19:01:24Z",
+          "completed_at": "2026-10-27T19:03:35Z"
+        },
+        {
+          "name": "Check mixed Native extra-chip stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-27T19:03:35Z",
+          "completed_at": "2026-10-27T19:05:46Z"
+        },
+        {
+          "name": "Upload Native validation reports",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-27T19:05:46Z",
+          "completed_at": "2026-10-27T19:05:47Z"
+        },
+        {
+          "name": "Build desktop app",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-27T19:05:47Z",
+          "completed_at": "2026-10-27T19:05:47Z"
+        },
+        {
+          "name": "Build and attach to draft release",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-27T19:05:47Z",
+          "completed_at": "2026-10-27T19:11:29Z"
+        },
+        {
+          "name": "Upload installers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-27T19:11:29Z",
+          "completed_at": "2026-10-27T19:11:34Z"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-27T19:11:34Z",
+          "completed_at": "2026-10-27T19:11:34Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-27T19:11:34Z",
+          "completed_at": "2026-10-27T19:11:34Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-27T19:11:34Z",
+          "completed_at": "2026-10-27T19:11:34Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-10-27T19:11:34Z",
+          "completed_at": "2026-10-27T19:11:36Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-10-27T19:11:36Z",
+          "completed_at": "2026-10-27T19:11:37Z"
+        }
+      ]
+    },
+    {
+      "id": 122401495622,
+      "name": "build (linux-arm64, ubuntu-24.04-arm, deb,appimage)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495622",
+      "startedAt": "2026-10-27T18:54:56Z",
+      "completedAt": "2026-10-27T19:11:28Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-27T18:54:57Z",
+          "completed_at": "2026-10-27T18:54:59Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-27T18:54:59Z",
+          "completed_at": "2026-10-27T18:55:01Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-27T18:55:01Z",
+          "completed_at": "2026-10-27T18:55:02Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-27T18:55:02Z",
+          "completed_at": "2026-10-27T18:55:03Z"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@1.91.1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-27T18:55:03Z",
+          "completed_at": "2026-10-27T18:55:08Z"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-27T18:55:08Z",
+          "completed_at": "2026-10-27T18:55:09Z"
+        },
+        {
+          "name": "Install Linux dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-27T18:55:09Z",
+          "completed_at": "2026-10-27T18:55:40Z"
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-27T18:55:40Z",
+          "completed_at": "2026-10-27T18:55:41Z"
+        },
+        {
+          "name": "Run npm test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-27T18:55:41Z",
+          "completed_at": "2026-10-27T18:55:44Z"
+        },
+        {
+          "name": "Verify committed Playground assets",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-27T18:55:44Z",
+          "completed_at": "2026-10-27T18:55:44Z"
+        },
+        {
+          "name": "Prepare bundled audio runtime before Cargo tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-27T18:55:44Z",
+          "completed_at": "2026-10-27T18:55:47Z"
+        },
+        {
+          "name": "Verify Native source snapshots and matching source ZIP offline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-27T18:55:47Z",
+          "completed_at": "2026-10-27T18:55:48Z"
+        },
+        {
+          "name": "Verify bundled Audify loads and exits normally",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-27T18:55:48Z",
+          "completed_at": "2026-10-27T18:55:49Z"
+        },
+        {
+          "name": "Test native MCP protocol and transport",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-27T18:55:49Z",
+          "completed_at": "2026-10-27T18:59:41Z"
+        },
+        {
+          "name": "Check Native stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-27T18:59:41Z",
+          "completed_at": "2026-10-27T19:01:38Z"
+        },
+        {
+          "name": "Check mixed Native extra-chip stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-27T19:01:38Z",
+          "completed_at": "2026-10-27T19:03:31Z"
+        },
+        {
+          "name": "Upload Native validation reports",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-27T19:03:31Z",
+          "completed_at": "2026-10-27T19:03:32Z"
+        },
+        {
+          "name": "Build desktop app",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-27T19:03:32Z",
+          "completed_at": "2026-10-27T19:03:32Z"
+        },
+        {
+          "name": "Build and attach to draft release",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-27T19:03:32Z",
+          "completed_at": "2026-10-27T19:11:02Z"
+        },
+        {
+          "name": "Upload installers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-27T19:11:02Z",
+          "completed_at": "2026-10-27T19:11:12Z"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-27T19:11:12Z",
+          "completed_at": "2026-10-27T19:11:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-27T19:11:26Z",
+          "completed_at": "2026-10-27T19:11:26Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-27T19:11:26Z",
+          "completed_at": "2026-10-27T19:11:26Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-10-27T19:11:26Z",
+          "completed_at": "2026-10-27T19:11:26Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-10-27T19:11:26Z",
+          "completed_at": "2026-10-27T19:11:26Z"
+        }
+      ]
+    },
+    {
+      "id": 122401495916,
+      "name": "build (linux-x86_64, ubuntu-24.04, deb,appimage)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495916",
+      "startedAt": "2026-10-27T18:54:55Z",
+      "completedAt": "2026-10-27T19:12:49Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-27T18:54:56Z",
+          "completed_at": "2026-10-27T18:54:57Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-27T18:54:57Z",
+          "completed_at": "2026-10-27T18:55:02Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-27T18:55:02Z",
+          "completed_at": "2026-10-27T18:55:03Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-27T18:55:03Z",
+          "completed_at": "2026-10-27T18:55:03Z"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@1.91.1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-27T18:55:03Z",
+          "completed_at": "2026-10-27T18:55:12Z"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-27T18:55:12Z",
+          "completed_at": "2026-10-27T18:55:12Z"
+        },
+        {
+          "name": "Install Linux dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-27T18:55:12Z",
+          "completed_at": "2026-10-27T18:55:37Z"
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-27T18:55:37Z",
+          "completed_at": "2026-10-27T18:55:39Z"
+        },
+        {
+          "name": "Run npm test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-27T18:55:39Z",
+          "completed_at": "2026-10-27T18:55:43Z"
+        },
+        {
+          "name": "Verify committed Playground assets",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-27T18:55:43Z",
+          "completed_at": "2026-10-27T18:55:43Z"
+        },
+        {
+          "name": "Prepare bundled audio runtime before Cargo tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-27T18:55:43Z",
+          "completed_at": "2026-10-27T18:55:46Z"
+        },
+        {
+          "name": "Verify Native source snapshots and matching source ZIP offline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-27T18:55:46Z",
+          "completed_at": "2026-10-27T18:55:48Z"
+        },
+        {
+          "name": "Verify bundled Audify loads and exits normally",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-27T18:55:48Z",
+          "completed_at": "2026-10-27T18:55:49Z"
+        },
+        {
+          "name": "Test native MCP protocol and transport",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-27T18:55:49Z",
+          "completed_at": "2026-10-27T19:00:01Z"
+        },
+        {
+          "name": "Check Native stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-27T19:00:01Z",
+          "completed_at": "2026-10-27T19:01:39Z"
+        },
+        {
+          "name": "Check mixed Native extra-chip stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-27T19:01:39Z",
+          "completed_at": "2026-10-27T19:03:23Z"
+        },
+        {
+          "name": "Upload Native validation reports",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-27T19:03:23Z",
+          "completed_at": "2026-10-27T19:03:24Z"
+        },
+        {
+          "name": "Build desktop app",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-27T19:03:24Z",
+          "completed_at": "2026-10-27T19:03:24Z"
+        },
+        {
+          "name": "Build and attach to draft release",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-27T19:03:24Z",
+          "completed_at": "2026-10-27T19:12:17Z"
+        },
+        {
+          "name": "Upload installers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-27T19:12:17Z",
+          "completed_at": "2026-10-27T19:12:29Z"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-27T19:12:29Z",
+          "completed_at": "2026-10-27T19:12:47Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-27T19:12:47Z",
+          "completed_at": "2026-10-27T19:12:47Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-27T19:12:47Z",
+          "completed_at": "2026-10-27T19:12:47Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-10-27T19:12:47Z",
+          "completed_at": "2026-10-27T19:12:47Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-10-27T19:12:47Z",
+          "completed_at": "2026-10-27T19:12:48Z"
+        }
+      ]
+    },
+    {
+      "id": 122401495928,
+      "name": "build (macos-x86_64, macos-15-intel, dmg)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495928",
+      "startedAt": "2026-10-27T18:55:00Z",
+      "completedAt": "2026-10-27T19:18:30Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-27T18:54:59Z",
+          "completed_at": "2026-10-27T18:55:08Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-27T18:55:08Z",
+          "completed_at": "2026-10-27T18:55:18Z"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-27T18:55:18Z",
+          "completed_at": "2026-10-27T18:55:27Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-27T18:55:27Z",
+          "completed_at": "2026-10-27T18:55:27Z"
+        },
+        {
+          "name": "Run dtolnay/rust-toolchain@1.91.1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-27T18:55:27Z",
+          "completed_at": "2026-10-27T18:56:11Z"
+        },
+        {
+          "name": "Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-27T18:56:11Z",
+          "completed_at": "2026-10-27T18:57:47Z"
+        },
+        {
+          "name": "Install Linux dependencies",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-27T18:57:47Z",
+          "completed_at": "2026-10-27T18:57:47Z"
+        },
+        {
+          "name": "Run npm ci",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-27T18:57:47Z",
+          "completed_at": "2026-10-27T18:57:57Z"
+        },
+        {
+          "name": "Run npm test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-27T18:57:57Z",
+          "completed_at": "2026-10-27T18:58:14Z"
+        },
+        {
+          "name": "Verify committed Playground assets",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-27T18:58:14Z",
+          "completed_at": "2026-10-27T18:58:15Z"
+        },
+        {
+          "name": "Prepare bundled audio runtime before Cargo tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-27T18:58:15Z",
+          "completed_at": "2026-10-27T18:58:40Z"
+        },
+        {
+          "name": "Verify Native source snapshots and matching source ZIP offline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-27T18:58:40Z",
+          "completed_at": "2026-10-27T18:58:46Z"
+        },
+        {
+          "name": "Verify bundled Audify loads and exits normally",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-27T18:58:46Z",
+          "completed_at": "2026-10-27T18:58:50Z"
+        },
+        {
+          "name": "Test native MCP protocol and transport",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-27T18:58:50Z",
+          "completed_at": "2026-10-27T19:04:25Z"
+        },
+        {
+          "name": "Check Native stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-27T19:04:25Z",
+          "completed_at": "2026-10-27T19:08:03Z"
+        },
+        {
+          "name": "Check mixed Native extra-chip stability without audio devices",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-27T19:08:03Z",
+          "completed_at": "2026-10-27T19:11:31Z"
+        },
+        {
+          "name": "Upload Native validation reports",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-27T19:11:31Z",
+          "completed_at": "2026-10-27T19:11:33Z"
+        },
+        {
+          "name": "Build desktop app",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-10-27T19:11:33Z",
+          "completed_at": "2026-10-27T19:11:33Z"
+        },
+        {
+          "name": "Build and attach to draft release",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-27T19:11:33Z",
+          "completed_at": "2026-10-27T19:18:10Z"
+        },
+        {
+          "name": "Upload installers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-27T19:18:10Z",
+          "completed_at": "2026-10-27T19:18:22Z"
+        },
+        {
+          "name": "Post Run Swatinem/rust-cache@v2",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-27T19:18:22Z",
+          "completed_at": "2026-10-27T19:18:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-27T19:18:23Z",
+          "completed_at": "2026-10-27T19:18:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-27T19:18:23Z",
+          "completed_at": "2026-10-27T19:18:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-10-27T19:18:23Z",
+          "completed_at": "2026-10-27T19:18:25Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-10-27T19:18:25Z",
+          "completed_at": "2026-10-27T19:18:25Z"
+        }
+      ]
+    }
+  ],
+  "api": {
+    "run": {
+      "id": 40564352907,
+      "name": "Build Desktop",
+      "node_id": "WFR_kwLOU35mHc8AAAAJcdLniw",
+      "head_branch": "v0.91.2+test",
+      "head_sha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+      "path": ".github/workflows/build-desktop.yml",
+      "display_title": "PC Engine CD-ROM² mode",
+      "run_number": 63,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "workflow_id": 372637939,
+      "check_suite_id": 109949515642,
+      "check_suite_node_id": "CS_kwDOU35mHc8AAAAZmYB3eg",
+      "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+      "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+      "pull_requests": [],
+      "created_at": "2026-10-27T18:54:51Z",
+      "updated_at": "2026-10-27T19:18:31Z",
+      "actor": {
+        "login": "kyorohiro",
+        "id": 1310669,
+        "node_id": "MDQ6VXNlcjEzMTA2Njk=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1310669?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/kyorohiro",
+        "html_url": "https://github.com/kyorohiro",
+        "followers_url": "https://api.github.com/users/kyorohiro/followers",
+        "following_url": "https://api.github.com/users/kyorohiro/following{/other_user}",
+        "gists_url": "https://api.github.com/users/kyorohiro/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/kyorohiro/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/kyorohiro/subscriptions",
+        "organizations_url": "https://api.github.com/users/kyorohiro/orgs",
+        "repos_url": "https://api.github.com/users/kyorohiro/repos",
+        "events_url": "https://api.github.com/users/kyorohiro/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/kyorohiro/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "run_attempt": 1,
+      "referenced_workflows": [],
+      "run_started_at": "2026-10-27T18:54:51Z",
+      "triggering_actor": {
+        "login": "kyorohiro",
+        "id": 1310669,
+        "node_id": "MDQ6VXNlcjEzMTA2Njk=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1310669?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/kyorohiro",
+        "html_url": "https://github.com/kyorohiro",
+        "followers_url": "https://api.github.com/users/kyorohiro/followers",
+        "following_url": "https://api.github.com/users/kyorohiro/following{/other_user}",
+        "gists_url": "https://api.github.com/users/kyorohiro/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/kyorohiro/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/kyorohiro/subscriptions",
+        "organizations_url": "https://api.github.com/users/kyorohiro/orgs",
+        "repos_url": "https://api.github.com/users/kyorohiro/repos",
+        "events_url": "https://api.github.com/users/kyorohiro/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/kyorohiro/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "jobs_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/jobs",
+      "logs_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/logs",
+      "check_suite_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/check-suites/109949515642",
+      "artifacts_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/artifacts",
+      "cancel_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/cancel",
+      "rerun_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/rerun",
+      "previous_attempt_url": null,
+      "workflow_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/workflows/372637939",
+      "head_commit": {
+        "id": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+        "tree_id": "23cbac37abb6c5cd0df7641848ecb29722a0f579",
+        "message": "PC Engine CD-ROM² mode",
+        "timestamp": "2026-10-27T18:53:30Z",
+        "author": {
+          "name": "kyorohiro",
+          "email": "kyorohiro@gmail.com"
+        },
+        "committer": {
+          "name": "kyorohiro",
+          "email": "kyorohiro@gmail.com"
+        }
+      },
+      "repository": {
+        "id": 1400792605,
+        "node_id": "R_kgDOU35mHQ",
+        "name": "tetorica-fm2612-playground-tauri",
+        "full_name": "kyorohiro/tetorica-fm2612-playground-tauri",
+        "private": false,
+        "owner": {
+          "login": "kyorohiro",
+          "id": 1310669,
+          "node_id": "MDQ6VXNlcjEzMTA2Njk=",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1310669?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/kyorohiro",
+          "html_url": "https://github.com/kyorohiro",
+          "followers_url": "https://api.github.com/users/kyorohiro/followers",
+          "following_url": "https://api.github.com/users/kyorohiro/following{/other_user}",
+          "gists_url": "https://api.github.com/users/kyorohiro/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/kyorohiro/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/kyorohiro/subscriptions",
+          "organizations_url": "https://api.github.com/users/kyorohiro/orgs",
+          "repos_url": "https://api.github.com/users/kyorohiro/repos",
+          "events_url": "https://api.github.com/users/kyorohiro/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/kyorohiro/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri",
+        "description": null,
+        "fork": false,
+        "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri",
+        "forks_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/forks",
+        "keys_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/teams",
+        "hooks_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/hooks",
+        "issue_events_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/events",
+        "assignees_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/tags",
+        "blobs_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/languages",
+        "stargazers_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/stargazers",
+        "contributors_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/contributors",
+        "subscribers_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/subscribers",
+        "subscription_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/subscription",
+        "commits_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/merges",
+        "archive_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/downloads",
+        "issues_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/labels{/name}",
+        "releases_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/deployments"
+      },
+      "head_repository": {
+        "id": 1400792605,
+        "node_id": "R_kgDOU35mHQ",
+        "name": "tetorica-fm2612-playground-tauri",
+        "full_name": "kyorohiro/tetorica-fm2612-playground-tauri",
+        "private": false,
+        "owner": {
+          "login": "kyorohiro",
+          "id": 1310669,
+          "node_id": "MDQ6VXNlcjEzMTA2Njk=",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1310669?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/kyorohiro",
+          "html_url": "https://github.com/kyorohiro",
+          "followers_url": "https://api.github.com/users/kyorohiro/followers",
+          "following_url": "https://api.github.com/users/kyorohiro/following{/other_user}",
+          "gists_url": "https://api.github.com/users/kyorohiro/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/kyorohiro/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/kyorohiro/subscriptions",
+          "organizations_url": "https://api.github.com/users/kyorohiro/orgs",
+          "repos_url": "https://api.github.com/users/kyorohiro/repos",
+          "events_url": "https://api.github.com/users/kyorohiro/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/kyorohiro/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri",
+        "description": null,
+        "fork": false,
+        "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri",
+        "forks_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/forks",
+        "keys_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/teams",
+        "hooks_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/hooks",
+        "issue_events_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/events",
+        "assignees_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/tags",
+        "blobs_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/languages",
+        "stargazers_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/stargazers",
+        "contributors_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/contributors",
+        "subscribers_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/subscribers",
+        "subscription_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/subscription",
+        "commits_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/issues/comments{/number}",
+        "contents_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/merges",
+        "archive_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/downloads",
+        "issues_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/labels{/name}",
+        "releases_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/releases{/id}",
+        "deployments_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/deployments"
+      }
+    },
+    "jobs": {
+      "total_count": 5,
+      "jobs": [
+        {
+          "id": 122401495219,
+          "run_id": 40564352907,
+          "workflow_name": "Build Desktop",
+          "head_branch": "v0.91.2+test",
+          "run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+          "run_attempt": 1,
+          "node_id": "CR_kwDOU35mHc8AAAAcf7KYsw",
+          "head_sha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+          "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/jobs/122401495219",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495219",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-27T18:54:52Z",
+          "started_at": "2026-10-27T18:54:56Z",
+          "completed_at": "2026-10-27T19:04:54Z",
+          "name": "build (macos-arm64, macos-14, dmg)",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-27T18:54:56Z",
+              "completed_at": "2026-10-27T18:54:59Z"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-27T18:54:59Z",
+              "completed_at": "2026-10-27T18:55:04Z"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-27T18:55:04Z",
+              "completed_at": "2026-10-27T18:55:05Z"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-27T18:55:05Z",
+              "completed_at": "2026-10-27T18:55:05Z"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@1.91.1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-27T18:55:05Z",
+              "completed_at": "2026-10-27T18:55:13Z"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-27T18:55:13Z",
+              "completed_at": "2026-10-27T18:55:26Z"
+            },
+            {
+              "name": "Install Linux dependencies",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 7,
+              "started_at": "2026-10-27T18:55:26Z",
+              "completed_at": "2026-10-27T18:55:26Z"
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-27T18:55:26Z",
+              "completed_at": "2026-10-27T18:55:28Z"
+            },
+            {
+              "name": "Run npm test",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-27T18:55:28Z",
+              "completed_at": "2026-10-27T18:55:31Z"
+            },
+            {
+              "name": "Verify committed Playground assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-27T18:55:31Z",
+              "completed_at": "2026-10-27T18:55:32Z"
+            },
+            {
+              "name": "Prepare bundled audio runtime before Cargo tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-27T18:55:32Z",
+              "completed_at": "2026-10-27T18:55:36Z"
+            },
+            {
+              "name": "Verify Native source snapshots and matching source ZIP offline",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-27T18:55:36Z",
+              "completed_at": "2026-10-27T18:55:38Z"
+            },
+            {
+              "name": "Verify bundled Audify loads and exits normally",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-27T18:55:38Z",
+              "completed_at": "2026-10-27T18:55:38Z"
+            },
+            {
+              "name": "Test native MCP protocol and transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-27T18:55:38Z",
+              "completed_at": "2026-10-27T18:57:28Z"
+            },
+            {
+              "name": "Check Native stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-27T18:57:28Z",
+              "completed_at": "2026-10-27T18:59:00Z"
+            },
+            {
+              "name": "Check mixed Native extra-chip stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-10-27T18:59:00Z",
+              "completed_at": "2026-10-27T19:00:55Z"
+            },
+            {
+              "name": "Upload Native validation reports",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-10-27T19:00:55Z",
+              "completed_at": "2026-10-27T19:00:56Z"
+            },
+            {
+              "name": "Build desktop app",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 18,
+              "started_at": "2026-10-27T19:00:56Z",
+              "completed_at": "2026-10-27T19:00:56Z"
+            },
+            {
+              "name": "Build and attach to draft release",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19,
+              "started_at": "2026-10-27T19:00:56Z",
+              "completed_at": "2026-10-27T19:04:44Z"
+            },
+            {
+              "name": "Upload installers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20,
+              "started_at": "2026-10-27T19:04:44Z",
+              "completed_at": "2026-10-27T19:04:49Z"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 37,
+              "started_at": "2026-10-27T19:04:49Z",
+              "completed_at": "2026-10-27T19:04:50Z"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 38,
+              "started_at": "2026-10-27T19:04:50Z",
+              "completed_at": "2026-10-27T19:04:50Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 39,
+              "started_at": "2026-10-27T19:04:50Z",
+              "completed_at": "2026-10-27T19:04:50Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 40,
+              "started_at": "2026-10-27T19:04:50Z",
+              "completed_at": "2026-10-27T19:04:51Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 41,
+              "started_at": "2026-10-27T19:04:51Z",
+              "completed_at": "2026-10-27T19:04:53Z"
+            }
+          ],
+          "check_run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/check-runs/122401495219",
+          "labels": [
+            "macos-14"
+          ],
+          "runner_id": 1000010600,
+          "runner_name": "GitHub Actions 1000010600",
+          "runner_group_id": 0,
+          "runner_group_name": "GitHub Actions"
+        },
+        {
+          "id": 122401495606,
+          "run_id": 40564352907,
+          "workflow_name": "Build Desktop",
+          "head_branch": "v0.91.2+test",
+          "run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+          "run_attempt": 1,
+          "node_id": "CR_kwDOU35mHc8AAAAcf7KaNg",
+          "head_sha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+          "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/jobs/122401495606",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495606",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-27T18:54:52Z",
+          "started_at": "2026-10-27T18:54:55Z",
+          "completed_at": "2026-10-27T19:11:38Z",
+          "name": "build (windows-x86_64, windows-latest, nsis)",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-27T18:54:57Z",
+              "completed_at": "2026-10-27T18:55:00Z"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-27T18:55:00Z",
+              "completed_at": "2026-10-27T18:55:16Z"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-27T18:55:16Z",
+              "completed_at": "2026-10-27T18:55:27Z"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-27T18:55:27Z",
+              "completed_at": "2026-10-27T18:55:28Z"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@1.91.1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-27T18:55:28Z",
+              "completed_at": "2026-10-27T18:55:42Z"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-27T18:55:42Z",
+              "completed_at": "2026-10-27T18:56:23Z"
+            },
+            {
+              "name": "Install Linux dependencies",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 7,
+              "started_at": "2026-10-27T18:56:23Z",
+              "completed_at": "2026-10-27T18:56:23Z"
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-27T18:56:23Z",
+              "completed_at": "2026-10-27T18:56:33Z"
+            },
+            {
+              "name": "Run npm test",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-27T18:56:33Z",
+              "completed_at": "2026-10-27T18:56:44Z"
+            },
+            {
+              "name": "Verify committed Playground assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-27T18:56:44Z",
+              "completed_at": "2026-10-27T18:56:45Z"
+            },
+            {
+              "name": "Prepare bundled audio runtime before Cargo tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-27T18:56:45Z",
+              "completed_at": "2026-10-27T18:58:16Z"
+            },
+            {
+              "name": "Verify Native source snapshots and matching source ZIP offline",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-27T18:58:16Z",
+              "completed_at": "2026-10-27T18:58:19Z"
+            },
+            {
+              "name": "Verify bundled Audify loads and exits normally",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-27T18:58:19Z",
+              "completed_at": "2026-10-27T18:58:23Z"
+            },
+            {
+              "name": "Test native MCP protocol and transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-27T18:58:23Z",
+              "completed_at": "2026-10-27T19:01:24Z"
+            },
+            {
+              "name": "Check Native stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-27T19:01:24Z",
+              "completed_at": "2026-10-27T19:03:35Z"
+            },
+            {
+              "name": "Check mixed Native extra-chip stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-10-27T19:03:35Z",
+              "completed_at": "2026-10-27T19:05:46Z"
+            },
+            {
+              "name": "Upload Native validation reports",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-10-27T19:05:46Z",
+              "completed_at": "2026-10-27T19:05:47Z"
+            },
+            {
+              "name": "Build desktop app",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 18,
+              "started_at": "2026-10-27T19:05:47Z",
+              "completed_at": "2026-10-27T19:05:47Z"
+            },
+            {
+              "name": "Build and attach to draft release",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19,
+              "started_at": "2026-10-27T19:05:47Z",
+              "completed_at": "2026-10-27T19:11:29Z"
+            },
+            {
+              "name": "Upload installers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20,
+              "started_at": "2026-10-27T19:11:29Z",
+              "completed_at": "2026-10-27T19:11:34Z"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 37,
+              "started_at": "2026-10-27T19:11:34Z",
+              "completed_at": "2026-10-27T19:11:34Z"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 38,
+              "started_at": "2026-10-27T19:11:34Z",
+              "completed_at": "2026-10-27T19:11:34Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 39,
+              "started_at": "2026-10-27T19:11:34Z",
+              "completed_at": "2026-10-27T19:11:34Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 40,
+              "started_at": "2026-10-27T19:11:34Z",
+              "completed_at": "2026-10-27T19:11:36Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 41,
+              "started_at": "2026-10-27T19:11:36Z",
+              "completed_at": "2026-10-27T19:11:37Z"
+            }
+          ],
+          "check_run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/check-runs/122401495606",
+          "labels": [
+            "windows-latest"
+          ],
+          "runner_id": 1000010599,
+          "runner_name": "GitHub Actions 1000010599",
+          "runner_group_id": 0,
+          "runner_group_name": "GitHub Actions"
+        },
+        {
+          "id": 122401495622,
+          "run_id": 40564352907,
+          "workflow_name": "Build Desktop",
+          "head_branch": "v0.91.2+test",
+          "run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+          "run_attempt": 1,
+          "node_id": "CR_kwDOU35mHc8AAAAcf7KaRg",
+          "head_sha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+          "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/jobs/122401495622",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495622",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-27T18:54:52Z",
+          "started_at": "2026-10-27T18:54:56Z",
+          "completed_at": "2026-10-27T19:11:28Z",
+          "name": "build (linux-arm64, ubuntu-24.04-arm, deb,appimage)",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-27T18:54:57Z",
+              "completed_at": "2026-10-27T18:54:59Z"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-27T18:54:59Z",
+              "completed_at": "2026-10-27T18:55:01Z"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-27T18:55:01Z",
+              "completed_at": "2026-10-27T18:55:02Z"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-27T18:55:02Z",
+              "completed_at": "2026-10-27T18:55:03Z"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@1.91.1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-27T18:55:03Z",
+              "completed_at": "2026-10-27T18:55:08Z"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-27T18:55:08Z",
+              "completed_at": "2026-10-27T18:55:09Z"
+            },
+            {
+              "name": "Install Linux dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-27T18:55:09Z",
+              "completed_at": "2026-10-27T18:55:40Z"
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-27T18:55:40Z",
+              "completed_at": "2026-10-27T18:55:41Z"
+            },
+            {
+              "name": "Run npm test",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-27T18:55:41Z",
+              "completed_at": "2026-10-27T18:55:44Z"
+            },
+            {
+              "name": "Verify committed Playground assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-27T18:55:44Z",
+              "completed_at": "2026-10-27T18:55:44Z"
+            },
+            {
+              "name": "Prepare bundled audio runtime before Cargo tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-27T18:55:44Z",
+              "completed_at": "2026-10-27T18:55:47Z"
+            },
+            {
+              "name": "Verify Native source snapshots and matching source ZIP offline",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-27T18:55:47Z",
+              "completed_at": "2026-10-27T18:55:48Z"
+            },
+            {
+              "name": "Verify bundled Audify loads and exits normally",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-27T18:55:48Z",
+              "completed_at": "2026-10-27T18:55:49Z"
+            },
+            {
+              "name": "Test native MCP protocol and transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-27T18:55:49Z",
+              "completed_at": "2026-10-27T18:59:41Z"
+            },
+            {
+              "name": "Check Native stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-27T18:59:41Z",
+              "completed_at": "2026-10-27T19:01:38Z"
+            },
+            {
+              "name": "Check mixed Native extra-chip stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-10-27T19:01:38Z",
+              "completed_at": "2026-10-27T19:03:31Z"
+            },
+            {
+              "name": "Upload Native validation reports",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-10-27T19:03:31Z",
+              "completed_at": "2026-10-27T19:03:32Z"
+            },
+            {
+              "name": "Build desktop app",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 18,
+              "started_at": "2026-10-27T19:03:32Z",
+              "completed_at": "2026-10-27T19:03:32Z"
+            },
+            {
+              "name": "Build and attach to draft release",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19,
+              "started_at": "2026-10-27T19:03:32Z",
+              "completed_at": "2026-10-27T19:11:02Z"
+            },
+            {
+              "name": "Upload installers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20,
+              "started_at": "2026-10-27T19:11:02Z",
+              "completed_at": "2026-10-27T19:11:12Z"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 37,
+              "started_at": "2026-10-27T19:11:12Z",
+              "completed_at": "2026-10-27T19:11:26Z"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 38,
+              "started_at": "2026-10-27T19:11:26Z",
+              "completed_at": "2026-10-27T19:11:26Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 39,
+              "started_at": "2026-10-27T19:11:26Z",
+              "completed_at": "2026-10-27T19:11:26Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 40,
+              "started_at": "2026-10-27T19:11:26Z",
+              "completed_at": "2026-10-27T19:11:26Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 41,
+              "started_at": "2026-10-27T19:11:26Z",
+              "completed_at": "2026-10-27T19:11:26Z"
+            }
+          ],
+          "check_run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/check-runs/122401495622",
+          "labels": [
+            "ubuntu-24.04-arm"
+          ],
+          "runner_id": 1000010598,
+          "runner_name": "GitHub Actions 1000010598",
+          "runner_group_id": 0,
+          "runner_group_name": "GitHub Actions"
+        },
+        {
+          "id": 122401495916,
+          "run_id": 40564352907,
+          "workflow_name": "Build Desktop",
+          "head_branch": "v0.91.2+test",
+          "run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+          "run_attempt": 1,
+          "node_id": "CR_kwDOU35mHc8AAAAcf7KbbA",
+          "head_sha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+          "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/jobs/122401495916",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495916",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-27T18:54:52Z",
+          "started_at": "2026-10-27T18:54:55Z",
+          "completed_at": "2026-10-27T19:12:49Z",
+          "name": "build (linux-x86_64, ubuntu-24.04, deb,appimage)",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-27T18:54:56Z",
+              "completed_at": "2026-10-27T18:54:57Z"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-27T18:54:57Z",
+              "completed_at": "2026-10-27T18:55:02Z"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-27T18:55:02Z",
+              "completed_at": "2026-10-27T18:55:03Z"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-27T18:55:03Z",
+              "completed_at": "2026-10-27T18:55:03Z"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@1.91.1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-27T18:55:03Z",
+              "completed_at": "2026-10-27T18:55:12Z"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-27T18:55:12Z",
+              "completed_at": "2026-10-27T18:55:12Z"
+            },
+            {
+              "name": "Install Linux dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7,
+              "started_at": "2026-10-27T18:55:12Z",
+              "completed_at": "2026-10-27T18:55:37Z"
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-27T18:55:37Z",
+              "completed_at": "2026-10-27T18:55:39Z"
+            },
+            {
+              "name": "Run npm test",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-27T18:55:39Z",
+              "completed_at": "2026-10-27T18:55:43Z"
+            },
+            {
+              "name": "Verify committed Playground assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-27T18:55:43Z",
+              "completed_at": "2026-10-27T18:55:43Z"
+            },
+            {
+              "name": "Prepare bundled audio runtime before Cargo tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-27T18:55:43Z",
+              "completed_at": "2026-10-27T18:55:46Z"
+            },
+            {
+              "name": "Verify Native source snapshots and matching source ZIP offline",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-27T18:55:46Z",
+              "completed_at": "2026-10-27T18:55:48Z"
+            },
+            {
+              "name": "Verify bundled Audify loads and exits normally",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-27T18:55:48Z",
+              "completed_at": "2026-10-27T18:55:49Z"
+            },
+            {
+              "name": "Test native MCP protocol and transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-27T18:55:49Z",
+              "completed_at": "2026-10-27T19:00:01Z"
+            },
+            {
+              "name": "Check Native stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-27T19:00:01Z",
+              "completed_at": "2026-10-27T19:01:39Z"
+            },
+            {
+              "name": "Check mixed Native extra-chip stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-10-27T19:01:39Z",
+              "completed_at": "2026-10-27T19:03:23Z"
+            },
+            {
+              "name": "Upload Native validation reports",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-10-27T19:03:23Z",
+              "completed_at": "2026-10-27T19:03:24Z"
+            },
+            {
+              "name": "Build desktop app",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 18,
+              "started_at": "2026-10-27T19:03:24Z",
+              "completed_at": "2026-10-27T19:03:24Z"
+            },
+            {
+              "name": "Build and attach to draft release",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19,
+              "started_at": "2026-10-27T19:03:24Z",
+              "completed_at": "2026-10-27T19:12:17Z"
+            },
+            {
+              "name": "Upload installers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20,
+              "started_at": "2026-10-27T19:12:17Z",
+              "completed_at": "2026-10-27T19:12:29Z"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 37,
+              "started_at": "2026-10-27T19:12:29Z",
+              "completed_at": "2026-10-27T19:12:47Z"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 38,
+              "started_at": "2026-10-27T19:12:47Z",
+              "completed_at": "2026-10-27T19:12:47Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 39,
+              "started_at": "2026-10-27T19:12:47Z",
+              "completed_at": "2026-10-27T19:12:47Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 40,
+              "started_at": "2026-10-27T19:12:47Z",
+              "completed_at": "2026-10-27T19:12:47Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 41,
+              "started_at": "2026-10-27T19:12:47Z",
+              "completed_at": "2026-10-27T19:12:48Z"
+            }
+          ],
+          "check_run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/check-runs/122401495916",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "runner_id": 1000010602,
+          "runner_name": "GitHub Actions 1000010602",
+          "runner_group_id": 0,
+          "runner_group_name": "GitHub Actions"
+        },
+        {
+          "id": 122401495928,
+          "run_id": 40564352907,
+          "workflow_name": "Build Desktop",
+          "head_branch": "v0.91.2+test",
+          "run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+          "run_attempt": 1,
+          "node_id": "CR_kwDOU35mHc8AAAAcf7KbeA",
+          "head_sha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+          "url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/actions/jobs/122401495928",
+          "html_url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907/job/122401495928",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-27T18:54:52Z",
+          "started_at": "2026-10-27T18:55:00Z",
+          "completed_at": "2026-10-27T19:18:30Z",
+          "name": "build (macos-x86_64, macos-15-intel, dmg)",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1,
+              "started_at": "2026-10-27T18:54:59Z",
+              "completed_at": "2026-10-27T18:55:08Z"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2,
+              "started_at": "2026-10-27T18:55:08Z",
+              "completed_at": "2026-10-27T18:55:18Z"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3,
+              "started_at": "2026-10-27T18:55:18Z",
+              "completed_at": "2026-10-27T18:55:27Z"
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4,
+              "started_at": "2026-10-27T18:55:27Z",
+              "completed_at": "2026-10-27T18:55:27Z"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@1.91.1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5,
+              "started_at": "2026-10-27T18:55:27Z",
+              "completed_at": "2026-10-27T18:56:11Z"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6,
+              "started_at": "2026-10-27T18:56:11Z",
+              "completed_at": "2026-10-27T18:57:47Z"
+            },
+            {
+              "name": "Install Linux dependencies",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 7,
+              "started_at": "2026-10-27T18:57:47Z",
+              "completed_at": "2026-10-27T18:57:47Z"
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8,
+              "started_at": "2026-10-27T18:57:47Z",
+              "completed_at": "2026-10-27T18:57:57Z"
+            },
+            {
+              "name": "Run npm test",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9,
+              "started_at": "2026-10-27T18:57:57Z",
+              "completed_at": "2026-10-27T18:58:14Z"
+            },
+            {
+              "name": "Verify committed Playground assets",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10,
+              "started_at": "2026-10-27T18:58:14Z",
+              "completed_at": "2026-10-27T18:58:15Z"
+            },
+            {
+              "name": "Prepare bundled audio runtime before Cargo tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11,
+              "started_at": "2026-10-27T18:58:15Z",
+              "completed_at": "2026-10-27T18:58:40Z"
+            },
+            {
+              "name": "Verify Native source snapshots and matching source ZIP offline",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12,
+              "started_at": "2026-10-27T18:58:40Z",
+              "completed_at": "2026-10-27T18:58:46Z"
+            },
+            {
+              "name": "Verify bundled Audify loads and exits normally",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13,
+              "started_at": "2026-10-27T18:58:46Z",
+              "completed_at": "2026-10-27T18:58:50Z"
+            },
+            {
+              "name": "Test native MCP protocol and transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14,
+              "started_at": "2026-10-27T18:58:50Z",
+              "completed_at": "2026-10-27T19:04:25Z"
+            },
+            {
+              "name": "Check Native stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15,
+              "started_at": "2026-10-27T19:04:25Z",
+              "completed_at": "2026-10-27T19:08:03Z"
+            },
+            {
+              "name": "Check mixed Native extra-chip stability without audio devices",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16,
+              "started_at": "2026-10-27T19:08:03Z",
+              "completed_at": "2026-10-27T19:11:31Z"
+            },
+            {
+              "name": "Upload Native validation reports",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17,
+              "started_at": "2026-10-27T19:11:31Z",
+              "completed_at": "2026-10-27T19:11:33Z"
+            },
+            {
+              "name": "Build desktop app",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 18,
+              "started_at": "2026-10-27T19:11:33Z",
+              "completed_at": "2026-10-27T19:11:33Z"
+            },
+            {
+              "name": "Build and attach to draft release",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19,
+              "started_at": "2026-10-27T19:11:33Z",
+              "completed_at": "2026-10-27T19:18:10Z"
+            },
+            {
+              "name": "Upload installers",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20,
+              "started_at": "2026-10-27T19:18:10Z",
+              "completed_at": "2026-10-27T19:18:22Z"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@v2",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 37,
+              "started_at": "2026-10-27T19:18:22Z",
+              "completed_at": "2026-10-27T19:18:23Z"
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 38,
+              "started_at": "2026-10-27T19:18:23Z",
+              "completed_at": "2026-10-27T19:18:23Z"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 39,
+              "started_at": "2026-10-27T19:18:23Z",
+              "completed_at": "2026-10-27T19:18:23Z"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 40,
+              "started_at": "2026-10-27T19:18:23Z",
+              "completed_at": "2026-10-27T19:18:25Z"
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 41,
+              "started_at": "2026-10-27T19:18:25Z",
+              "completed_at": "2026-10-27T19:18:25Z"
+            }
+          ],
+          "check_run_url": "https://api.github.com/repos/kyorohiro/tetorica-fm2612-playground-tauri/check-runs/122401495928",
+          "labels": [
+            "macos-15-intel"
+          ],
+          "runner_id": 1000010601,
+          "runner_name": "GitHub Actions 1000010601",
+          "runner_group_id": 0,
+          "runner_group_name": "GitHub Actions"
+        }
+      ]
+    }
+  }
+}

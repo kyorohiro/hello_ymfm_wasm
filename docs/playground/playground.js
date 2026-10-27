@@ -1,7 +1,8 @@
+import {createPlaygroundCdrom2AudioPanels} from './playground_cdrom2_audio_panels.js?v=cdrom2-panels-1';
 import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=pokey-mode-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=pcengine-cd-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=cdrom2-panels-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=pcengine-cd-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
@@ -12,7 +13,7 @@ import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
   installPlaygroundAudioEngineSettings, supportsPlaygroundAudioEngineMode} from './playground_audio_engine.js?v=pcengine-cd-1';
 import {openDraftStore, createProjectAutosave} from './playground_autosave.js?v=mode-handoff-1';
 import {PLAYGROUND_MODES, resolvePlaygroundMode, createModeSynthOptions,
-  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=pcengine-cd-1';
+  createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js?v=cdrom2-panels-1';
 import {saveModeProject, consumeModeProject} from './playground_mode_project.js?v=wonderswan-pcm-timeline-1';
 import {reconcileModeProject} from './playground_mode_starters.js?v=wonderswan-pcm-timeline-1';
 let desktopAutosave = null;
@@ -27,6 +28,7 @@ let additionalChipTabAvailability = null;
 let keyboardInspector = null;
 let extraFmEditor = null;
 let operatorPanelShown = false;
+let cdrom2AudioPanels=null;
 let keyboardDockShown = false;
 let pendingDesktopCassetteAssets = null;
 const cassettePresetNames = new Set();
@@ -95,12 +97,12 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=pcengine-cd-1";
+} from "../js/playground_runtime.js?v=cdrom2-panels-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=pokey-prepare-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=pokey-voice-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=cdrom2-panels-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";
@@ -630,6 +632,7 @@ window.addEventListener("pagehide", event => {
     mixerPanel?.dispose();
     mixerState.dispose();
     chipTabs?.dispose();
+    cdrom2AudioPanels?.dispose();
     additionalChipTabAvailability?.dispose();
     keyboardRouting.dispose();
     void tfiFileEditor.dispose();
@@ -1802,7 +1805,7 @@ const ui =
     helpersPanel,
     operatorPanel,
     keyboardPanel,
-    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'mixer'].flatMap(name => [
+    ...Object.fromEntries(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'msm5205', 'cdda', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'mixer'].flatMap(name => [
       [`${name}Tab`, document.getElementById(`${name}Tab`)],
       [`${name}Panel`, document.getElementById(`${name}Panel`)],
     ])),
@@ -1823,6 +1826,7 @@ const ui =
       if (extraFmEditor) extraFmEditor.setVisible(primary === 'operator');
       else operatorTab?.setVisible(primary === "operator");
       chipTabs?.setVisible(['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].includes(primary) ? primary : null);
+      cdrom2AudioPanels?.setVisible(['msm5205','cdda'].includes(primary)?primary:null);
       mixerPanel?.setVisible(tool === 'mixer');
       operatorKeyboard?.setView(tool === "keyboard" ? "keyboard" : primary === 'operator' && extraFmEditor?.isExtraSelected() ? 'extra-fm' : primary);
       tfiFileEditor.setVisible(primary === "code" && Boolean(activeTfiFilePath));
@@ -1930,6 +1934,7 @@ function createRuntime() {
     onRuntimeState(nextState) {
       setRuntimeState(nextState);
       syncWorkerExecutionLock();
+      cdrom2AudioPanels?.refresh();
     },
     onLog(line) {
       logLine(line);
@@ -2043,6 +2048,12 @@ chipTabs = createPlaygroundChipTabs({
   },
   onError: error => setStatus(`Sound chip: ${error.message}`),
 });
+cdrom2AudioPanels=createPlaygroundCdrom2AudioPanels({
+  roots:Object.fromEntries(['msm5205','cdda'].map(kind=>[kind,document.getElementById(`${kind}Panel`)])),
+  readState:kind=>runtime.getSystemAudioState(kind),
+  onError:error=>setStatus(`CD-ROM² audio: ${error.message}`),
+});
+if(selectedMode.pcEngineCd)document.getElementById('huc6280Tab').textContent='HuC6280 PSG';
 const pageLifecycle = installPlaygroundPageLifecycle({
   target: window,
   getRuntime: () => runtime,

@@ -3306,6 +3306,19 @@ export function createPlaygroundRuntime(
     emitRuntimeState("Audio idle");
   }
 
+  /** Read an already connected system audio source without preparing audio.
+   * Hidden/absent sources stay absent; a retired Run cannot publish stale state.
+   * @param {'msm5205'|'cdda'} kind
+   */
+  async function getSystemAudioState(kind) {
+    if(kind!=='msm5205'&&kind!=='cdda')throw new RangeError('Unknown system audio source');
+    const device=kind==='msm5205'?msm5205Device:cddaDevice,token=currentRunToken;
+    if(!device)return null;
+    const current=()=>token===currentRunToken&&device===(kind==='msm5205'?msm5205Device:cddaDevice);
+    try {const state=await device.player.getState();return current()?state:null;}
+    catch(error){if(!current())return null;throw error;}
+  }
+
   function getState() {
     let audio = "idle";
 
@@ -3357,6 +3370,7 @@ export function createPlaygroundRuntime(
     clear,
     finalize,
     getState,
+    getSystemAudioState,
     setMasterVolume,
     getMasterVolume,
     setTiming,

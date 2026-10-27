@@ -7,6 +7,29 @@ Last updated: 2026-10-28
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### CD-ROM² sourceタブ追加完了 — 2026-10-28
+
+新modeへHuC6280 PSG／MSM5205 ADPCM／CD-DAの3タブ。既存HuC音色編集は維持。
+MSMはRAM／rate／nibble位置、CD-DAは形式／track／位置などをread-only表示。
+Run前から構成が分かる。新2panelはtab-entry／Refresh等のsnapshotのみ、定期pollingなし。
+`runtime.getSystemAudioState(kind)`は既存endpointを読むだけで、音声準備・発音・設定書込なし。
+Stop／旧Run／hide後の遅延応答を保護。通常PC Engineでは2タブを隠す。DSP／Rust／SDK変更なし。
+
+新規runtime12／panel8／workbench1を含むWeb関連4657件、型・npm367宣言・CI guard105件が成功。
+大量並列で既存Workerの300ms待機が1件timeout、単独103件と並列数4の全件は成功（コード変更なし）。
+Chromium／WebKitのdesktop／compact4構成＋通常PC Engine2確認が成功。
+Run前のaudio context／worklet／messageは0、再生中のinspection messageはstateのみ。
+全280source hash、192flat runtime assetの同一性、画面2枚を目視確認。物理出力mute。
+
+`release/hello_ymfm_wasm_cdrom2-panels-dev_itch_playground.zip`（998files）を作成。
+SHA256 `d405028c329aa89b7ed838d4e81ff108ba6e48fd2949d4f91b6fc96c06e1abee`。
+Tauriへ997effective files取込、Native source ZIP1976filesと24offline pin検証。
+source ZIP SHA256 `7a243c9fbaf2a13a6c449b8dae66c354cc01519729f2466b268db08ad6d0a4f0`。
+今回のUI変更は未commit／未push。先にpushされた`v0.91.2+test`はNative実装側のCI確認。
+同tagのBuild DesktopはmacOS ARM／Intel・Windows x64・Linux x64／ARMの全5構成で成功。
+run: https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907
+詳細：[cdrom2_operator_tabs_01.md](cdrom2_operator_tabs_01.md)と同名JSON。
+
 ### PC Engine CD-ROM² 3系統の音声対応完了 — 2026-10-28
 
 ユーザーの続きの「進めて」で、MSM5205を共通C11／WASM／Nativeへ接続。

@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "complete",
+  "scope": {
+    "mode": "pc-engine-cd",
+    "tabs": [
+      "HuC6280 PSG",
+      "MSM5205 ADPCM",
+      "CD-DA"
+    ],
+    "readOnlySystemPanels": true,
+    "periodicPolling": false,
+    "audioInitializationOnRead": false,
+    "audioWritesOnRead": false,
+    "dspChanged": false,
+    "nativeCodeChanged": false,
+    "sdkChanged": false,
+    "committed": false,
+    "published": false
+  },
+  "tests": {
+    "webPassed": 4657,
+    "failed": 0,
+    "testConcurrency": 4,
+    "newRuntimeObserverTests": 12,
+    "newPanelTests": 8,
+    "newWorkbenchTest": 1,
+    "browserRoutes": 4,
+    "plainPcEngineChecks": 2,
+    "physicalOutputMuted": true,
+    "playgroundModeTypes": "passed",
+    "npmBuildDeclarations": 367,
+    "ciSdkGuards": 105
+  },
+  "browser": {
+    "receipt": "cdrom2_operator_tabs_01_browser.json",
+    "receiptSha256": "821c59ba64c87dc1e95b7a6a8f35e054be375b844f6a71c013d78945ecf98c0a",
+    "checkerSha256": "554945124b8a7ad6ff402a4bccfc9f28fdbc33887b7e5be45d47229bf7a8675f",
+    "sourceHashesVerified": 280,
+    "identicalFlatRuntimeAssets": 192,
+    "screenshots": "/private/tmp/cdrom2-panels-visual/"
+  },
+  "artifact": {
+    "path": "release/hello_ymfm_wasm_cdrom2-panels-dev_itch_playground.zip",
+    "sha256": "d405028c329aa89b7ed838d4e81ff108ba6e48fd2949d4f91b6fc96c06e1abee",
+    "zipFiles": 998,
+    "tauriEffectiveFiles": 997,
+    "nativeSourceBundleFiles": 1976,
+    "nativeSourceBundleSha256": "7a243c9fbaf2a13a6c449b8dae66c354cc01519729f2466b268db08ad6d0a4f0"
+  },
+  "ciTagUnderObservation": {
+    "tag": "v0.91.2+test",
+    "headSha": "11b2d11fe7cb47942749fa81fdd62a7fbbb55aa8",
+    "runId": 40564352907,
+    "url": "https://github.com/kyorohiro/tetorica-fm2612-playground-tauri/actions/runs/40564352907",
+    "scope": "pushed MSM5205/native implementation; this local frontend follow-up is not included in that tag",
+    "status": "completed",
+    "conclusion": "success",
+    "platforms": [
+      "macos-arm64",
+      "macos-x86_64",
+      "windows-x86_64",
+      "linux-x86_64",
+      "linux-arm64"
+    ],
+    "receipt": "cdrom2_ci_v0912_test.json",
+    "receiptSha256": "ad2f40e048b2e306395010f199b253865d910bdb194c31bbc32044cca29ee98b"
+  },
+  "sourceHashes": {
+    "web/playground_runtime.js": {
+      "bytes": 153325,
+      "sha256": "d5543eafe57737e078bedc289eaa2d7bcfa08990b24c09db714e4206515c675e"
+    },
+    "docs/js/playground_runtime.js": {
+      "bytes": 154383,
+      "sha256": "e5818c054d4918e9a75ff01d53c9f936d7165397988cfdbbd518f50bd67472b5"
+    },
+    "docs/playground/index.html": {
+      "bytes": 130843,
+      "sha256": "8a493c50c53333ba2fcc0f2be61e152d0ba3ac284df88fd094f89815c9c326af"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124688,
+      "sha256": "856bdfbde74c810424f037980ef9d9f1b304fe1a57a767ae40fcd2cce2fc2d51"
+    },
+    "docs/playground/playground_cdrom2_audio_panels.js": {
+      "bytes": 8833,
+      "sha256": "6c9d48a7e7e90298e9e3b5bef149524f632fff99d6300f17172339b34b9dc339"
+    },
+    "docs/playground/playground_ui.js": {
+      "bytes": 8376,
+      "sha256": "a91b3893234af244607f482a3b8d8ed84530add20b0200d8ac794e5c67423899"
+    },
+    "docs/playground/playground_workbench.js": {
+      "bytes": 7387,
+      "sha256": "0bed537dbf27cc9ba4f8c1504bc14bdc2643f8d48dc3ecd2fe43b0cee90641f4"
+    },
+    "docs/playground/playground_mode.js": {
+      "bytes": 11630,
+      "sha256": "9450f4de02e443b4829509921f4bde61cc349473eeb7e3159c1e01fb7b596b27"
+    },
+    "scripts/check_cdrom2_panels_browser.cjs": {
+      "bytes": 13495,
+      "sha256": "554945124b8a7ad6ff402a4bccfc9f28fdbc33887b7e5be45d47229bf7a8675f"
+    },
+    "scripts/version_playground_runtime.mjs": {
+      "bytes": 31779,
+      "sha256": "9741cb1ca184bf4cf3e2fc89d20c29ad2bb1756ccaebcf391090a05be92ec26b"
+    }
+  },
+  "nativeSourceVerification": {
+    "schemaVersion": 1,
+    "deviceOpened": false,
+    "networkUsed": false,
+    "platform": "darwin",
+    "snapshots": [
+      {
+        "script": "sync_native_cdda.py",
+        "status": "passed",
+        "summary": "Native CD-DA source snapshot: verified (3 verbatim C/header/license files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_dx7.py",
+        "status": "passed",
+        "summary": "Native DX7 snapshot verified (32 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_game_gear.py",
+        "status": "passed",
+        "summary": "Native Game Gear snapshot verified (7 files, 3 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_gameboy.py",
+        "status": "passed",
+        "summary": "Native Game Boy source verified (5 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis.py",
+        "status": "passed",
+        "summary": "Native Genesis snapshot verified (16 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_fx.py",
+        "status": "passed",
+        "summary": "Native FX snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_livefx.py",
+        "status": "passed",
+        "summary": "Native LiveFX snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_genesis_noise.py",
+        "status": "passed",
+        "summary": "Native noise snapshot: verified",
+        "error": ""
+      },
+      {
+        "script": "sync_native_huc6280.py",
+        "status": "passed",
+        "summary": "Native HuC6280 verified (6 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_master_system.py",
+        "status": "passed",
+        "summary": "Native Master System snapshot verified (12 files, 9 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_megacd.py",
+        "status": "passed",
+        "summary": "Native RF5C164 snapshot verified (6 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msm5205.py",
+        "status": "passed",
+        "summary": "Native MSM5205 source snapshot: verified (4 verbatim C/header/license/provenance files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msx.py",
+        "status": "passed",
+        "summary": "Native MSX snapshot verified (10 files, 5 shared OPLL sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_msx_audio.py",
+        "status": "passed",
+        "summary": "Native MSX Audio snapshot verified (7 files, 6 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_nes.py",
+        "status": "passed",
+        "summary": "Native NES verified (15 pinned reference files, 2 C++ mirrors)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_nuked.py",
+        "status": "passed",
+        "summary": "Native Nuked snapshot verified (9 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_opl.py",
+        "status": "passed",
+        "summary": "Native DOS OPL snapshot verified (11 files, 4 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_pwm.py",
+        "status": "passed",
+        "summary": "Native PWM source verified (3 files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_snes.py",
+        "status": "passed",
+        "summary": "Native SNES verified (34 exact source files)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_x68000.py",
+        "status": "passed",
+        "summary": "Native X68000 snapshot verified (11 files, 5 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2203.py",
+        "status": "passed",
+        "summary": "Native YM2203 snapshot verified (9 files, 9 shared sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2608.py",
+        "status": "passed",
+        "summary": "Native YM2608 snapshot verified (4 files, 11 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "sync_native_ym2610b.py",
+        "status": "passed",
+        "summary": "Native YM2610B snapshot verified (3 files, 11 shared ymfm sources)",
+        "error": ""
+      },
+      {
+        "script": "import_soundchip_sdk.py",
+        "status": "passed",
+        "summary": "SDK 0.1.5 (unpublished local candidate; sourceCommit is its base): 408 pinned files verified offline (archive SHA256 aebde59e8c8c95ea55d69d42b17e6b9ef2231835a4935411292948e740d98a07)",
+        "error": ""
+      }
+    ],
+    "sourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "7a243c9fbaf2a13a6c449b8dae66c354cc01519729f2466b268db08ad6d0a4f0",
+      "files": 1976,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "d405028c329aa89b7ed838d4e81ff108ba6e48fd2949d4f91b6fc96c06e1abee"
+    },
+    "status": "passed",
+    "elapsedSeconds": 1.724
+  }
+}

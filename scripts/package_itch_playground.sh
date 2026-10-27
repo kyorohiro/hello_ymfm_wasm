@@ -42,6 +42,7 @@ playground_snes_voice_panel.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
+playground_cdrom2_audio_panels.js
 playground_wonderswan_voice_panel.js
 playground_pokey_voice_panel.js
 playground_dx7_voice_panel.js

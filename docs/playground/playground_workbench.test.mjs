@@ -312,3 +312,17 @@ for (const chipTabs of [['operator'], ['operator','segapsg'], ['operator','segap
     assert.equal(options.helpersPanel.hidden, false, 'common tools remain available');
   });
 }
+
+test('PC Engine CD source tabs stay mode-specific and leave instrument Keyboard in the dock',()=>{
+ const {options,events}=setup();
+ for(const name of ['huc6280','msm5205','cdda']){options[`${name}Panel`]={classList:classes()};options[`${name}Tab`]={setAttribute(){},focus(){this.focused=true;}};}
+ const ui=createPlaygroundUi({...options,chipTabs:['huc6280','msm5205','cdda']});
+ ui.setBottomTab('huc6280');assert.equal(options.keyboardPanel.hidden,false);
+ for(const kind of ['msm5205','cdda']){
+  ui.setBottomTab(kind);assert.equal(options[`${kind}Panel`].hidden,false);assert.equal(options.keyboardPanel.hidden,true,'playback source panels do not present an unrelated instrument keyboard');
+  ui.setDockVisible(false);assert.equal(options.keyboardPanel.hidden,true);ui.setDockVisible(true);
+ }
+ ui.moveBottomTabFocus(options.huc6280Tab,1);assert.equal(events.at(-1).primaryTab,'msm5205');
+ ui.moveBottomTabFocus(options.msm5205Tab,1);assert.equal(events.at(-1).primaryTab,'cdda');
+ const plain=createPlaygroundUi({...options,chipTabs:['huc6280']});assert.equal(options.msm5205Tab.hidden,true);assert.equal(options.cddaTab.hidden,true);plain.setBottomTab('cdda');assert.equal(options.cddaPanel.hidden,true);
+});

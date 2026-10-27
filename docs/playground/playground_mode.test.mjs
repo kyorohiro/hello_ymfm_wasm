@@ -109,7 +109,7 @@ test('modes select native chips, clocks and console expansions', () => {
       continue;
     }
     if (['nes','snes','x68000','huc6280','wonderswan'].includes(mode.chip)) {
-      assert.deepEqual(mode.chipTabs, mode.chip === 'nes' ? ['nes'] : mode.chip === 'x68000' ? ['ym2151','okim6258'] : mode.chip === 'huc6280' ? ['huc6280'] : mode.chip === 'wonderswan' ? ['wonderswan'] : ['snes']);
+      assert.deepEqual(mode.chipTabs, mode.chip === 'nes' ? ['nes'] : mode.chip === 'x68000' ? ['ym2151','okim6258'] : mode.chip === 'huc6280' ? mode.pcEngineCd ? ['huc6280','msm5205','cdda'] : ['huc6280'] : mode.chip === 'wonderswan' ? ['wonderswan'] : ['snes']);
       assert.equal(mode.fmChannels,0);
       assert.equal(options.fds,mode.chip==='nes');
       const wasm = {wonderswan:'wonderswan',snes:'spc',x68000:'ym2151',huc6280:'huc6280'}[mode.chip];
