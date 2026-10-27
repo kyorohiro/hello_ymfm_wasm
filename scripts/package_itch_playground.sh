@@ -128,6 +128,13 @@ tetorica-playground-mega-cd.d.ts
 "
 
 RUNTIME_FILES="
+cdda_source.js
+cdda_pcm.js
+cdda_player.js
+cdda_audio.js
+cdda_worklet.js
+cdda_native.js
+cdda_offline.js
 spc.js
 spc_trace.js
 spc_events.js
@@ -505,6 +512,7 @@ mkdir -p "${RELEASE_DIR}"
 rm -rf "${STAGE_DIR}"
 rm -f "${ZIP_PATH}"
 mkdir -p "${STAGE_DIR}/js" "${STAGE_DIR}/synth" "${STAGE_DIR}/generated" "${STAGE_DIR}/samples" "${STAGE_DIR}/vendor" "${STAGE_DIR}/licenses/nuked-opn2" "${STAGE_DIR}/vgm_analyzer"
+node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${STAGE_DIR}"
 cp "${ROOT_DIR}/docs/vgm_analyzer/spc_brr_candidates.js" "${STAGE_DIR}/vgm_analyzer/spc_brr_candidates.js"
 
 for file in ${PLAYGROUND_FILES}; do

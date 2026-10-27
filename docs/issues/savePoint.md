@@ -7,6 +7,42 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### CD-ROM²音声・CD-DA第1段階完了 — 2026-10-27
+
+ユーザーの`todo_cdromrom_01.md`確認後の「進めて」で、共通CD-DA PCM音源を実装。
+44.1kHz stereo PCM16 WAV／JSON track manifest、Play／Pause／Resume／Stop／Seek、位置取得、独立Mixerを追加。
+PC EngineのPSGとBrowser／Nativeで混合でき、PlaygroundのMain／Workerとoffline WAV出力へ接続した。
+MSM5205は従来のAnalyzer向けJSのまま。3系統のCD-ROM²全体は未完了として、計画10章に段階を明記。
+
+共通C11 coreは`native/cdda/`（BSD-3-Clause）。WASM2257bytes、固定128KiB memory／4KiB入力窓。
+元PCM16を保持して必要部分だけ変換。描画中の確保・拡張・ファイル読込やUIからのblock供給はない。
+選択track最大256MiB、Nativeは現在source＋upload＋retainedの合計。同じ音声frame時計で進める。
+Stopの予約取消、準備中の取消、切替とStopの競合、旧generationのcleanupを検証。
+既存SDK pin／chip source・WASM／Mixer校正値は変更なし。
+
+PC Engine modeのNew Cassetteへ`examples/pc-engine/pce-cdda.js`を追加。
+元WAVをその場で生成するPSG＋stereo CD-DAのExample。外部音声／BIOS不要。
+API使用法は[../cdda.md](../cdda.md)、実装詳細・検証は[cdda_pcm_01.md](cdda_pcm_01.md)と同名JSON。
+次はMSM5205をNative／WASM・Playgroundへ接続し、その後3系統を混合するExampleと完了条件を確認する。
+CUE／BIN、圧縮音声、CD全体の保持、物理CD、CPU／SCSI／BIOSは初回対象外のまま。
+
+Web関連199件・全mode型＋CD-DA正負fixtureが成功。実coreは8／44.1／48／384kHzのNative/WASM/独立基準が一致。
+Chromium153／WebKit26.6の単独44.1/48kHz＋実Playground Main/Worker全8routeが成功。
+捕捉PCM差最大1.1920941123122475e-8、全282served file/checkerが最終checkoutとhash一致。
+音声/runtime190assetは最終flat ZIPと同hash。実聴／Tauri GUI操作／実機比較は未実施、物理sinkは捕捉後mute。
+全Cargo771成功／0失敗／4既存ignore。共有callback/event queue変更のため全Rust回帰を実行した。
+
+ZIP: `release/hello_ymfm_wasm_cdda-pcm-dev_itch_playground.zip`、全975fileがstageとbyte一致。
+SHA256 `18cbe5f9c64ca0bda4561f6cff9b5f5fc077c80deecef6c7af38c3698904f6c9`。
+Tauriへ974effective payload取込、ZIP/dist/lock全一致。`npm run dev`で利用できる状態。
+Native source ZIP1943file、SHA256 `48460e85d45f76b086459bb722ee7614555c63718607ba2b0db4f30510027897`。
+全23offline pin・Python26／Node31成功。Tauriの新CD-DA snapshotもstandalone検証へ追加。
+本体の同期／照合は`node scripts/sync_cdda_native.mjs --write|--check`、app側は`sync_native_cdda.py --check`。
+
+npm開発候補は312module／28chip pair＋CD-DA／360宣言／903file。
+隔離installでCD-DAの実WASM再生・44.1→48kHz・stereo／EOF／予約Pause／WAV出力と公開型を確認済み。
+公開npmはFM0.2.31／VGM0.2.16のまま、今回の候補は未公開。commit/push/tag/remoteCI/itch.io公開も行っていない。
+
 ### POKEY外部Examples追加完了 — 2026-10-27
 
 `w/tetorica-fm2612-examples`を公開済みnpmの`tetorica-fm2612@0.2.31`へ更新。

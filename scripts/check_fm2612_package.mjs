@@ -25,6 +25,12 @@ try {
   for (const file of ['msm5205audioengine.js', 'licenses/libvgm-msm5205/README.md', 'licenses/libvgm-msm5205/LICENSE']) {
     assert.ok(packedPaths.has(file), `MSM5205 reference renderer notice missing ${file}`);
   }
+  for(const file of ['cdda_source.js','cdda_player.js','cdda_audio.js','cdda_native.js','cdda_worklet.js','cdda_pcm.js','cdda_offline.js',
+    'cdda_offline.d.ts','cdda_pcm.d.ts','generated/cdda_wasm.js','generated/cdda_wasm.wasm',
+    'sources/native/cdda/cdda_pcm.c','sources/native/cdda/cdda_pcm.h','sources/native/cdda/cdda_wasm.c',
+    'sources/native/cdda/LICENSE','sources/native/cdda/README.md','sources/scripts/build_cdda_wasm.sh']) {
+    assert(packedPaths.has(file),'CD-DA PCM module/source payload missing '+file);
+  }
   for(const file of ['nesapu_wasm.js','nesapu_wasm.d.ts','generated/nesapu_wasm.js','generated/nesapu_wasm.wasm',
     'licenses/tetorica-nes/LICENSE-JSNES','licenses/tetorica-nes/LICENSE-FDS','licenses/tetorica-nes/AUTHORS-JSNES.md','licenses/tetorica-nes/UPSTREAM-JSNES.md','licenses/tetorica-nes/UPSTREAM-FDS.md','licenses/tetorica-nes/README.md','licenses/jsnes/AUTHORS.md',
     'sources/third_party/tetorica-nes/nes_core.cpp','sources/third_party/tetorica-nes/nes_core.h','sources/wasm/nesapu_wasm.cpp','sources/scripts/build_nesapu_wasm.sh','sources/NES-FDS.md',
@@ -67,6 +73,28 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await writeFile(join(consumer,'cdda-check.mjs'),`
+import assert from 'node:assert/strict';
+import {createCddaOffline} from 'tetorica-fm2612/cdda_offline.js';
+import {encodeWav} from 'tetorica-fm2612/wav.js';
+const frames=4410,left=Float32Array.from({length:frames},(_,i)=>Math.sin(2*Math.PI*i/100)*.2),right=Float32Array.from({length:frames},(_,i)=>Math.cos(2*Math.PI*i/70)*.1);
+const renderer=await createCddaOffline({sampleRate:48000});
+try {
+  await renderer.cdda.load(encodeWav({left,right,sampleRate:44100}));
+  await renderer.cdda.play();
+  const pcm=renderer.render(4800);
+  assert(pcm.left.every(Number.isFinite)&&pcm.right.every(Number.isFinite));
+  assert(pcm.left.some(value=>Math.abs(value)>.15)&&pcm.right.some(value=>Math.abs(value)>.08));
+  assert(pcm.left.some((value,i)=>Math.abs(value-pcm.right[i])>.05));
+  const state=await renderer.cdda.getState();assert.equal(state.state,'ended');assert.equal(state.positionFrames,frames);
+  assert(renderer.render(128).left.every(value=>value===0));
+  await renderer.cdda.play();renderer.schedule(renderer.currentFrame+64,{type:'pause'});
+  const paused=renderer.render(128);assert(paused.left.slice(64).every(value=>value===0));
+  assert(encodeWav(pcm).byteLength>44);
+} finally {renderer.dispose();}
+console.log('Installed CD-DA verified: module-relative WASM, stereo PCM16, 44.1 to 48 kHz, EOF, scheduled Pause and WAV output.');
+`);
+  execFileSync(process.execPath,[join(consumer,'cdda-check.mjs')],{cwd:consumer,stdio:'inherit'});
   execFileSync(process.execPath, ['--experimental-vm-modules', join(root, 'scripts/check_synth_package.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
   execFileSync(process.execPath, [join(root, 'scripts/check_web_runtime.mjs'), installed], {cwd: consumer, stdio: 'inherit'});
   await writeFile(join(consumer, 'check.mjs'), `

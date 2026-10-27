@@ -95,7 +95,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=pokey-voice-1";
+} from "../js/playground_runtime.js?v=cdda-pcm-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=pokey-prepare-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
@@ -1908,6 +1908,10 @@ async function openSampleEditor(asset = DEFAULT_SAMPLE_ASSET) {
 function createRuntime() {
   return createPlaygroundRuntime({
     inputAudio,
+    async readCddaFile(path){
+      const record=virtualFiles.get(path);if(!record)throw new Error(`CD-DA file not found: ${path}`);
+      return record.type==='text'?new TextEncoder().encode(record.data):record.data;
+    },
     midiFileSupported: !useNukedEngine,
     workerLookaheadSeconds: readWorkerLookahead() / 1000,
     megaDrive,

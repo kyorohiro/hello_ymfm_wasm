@@ -799,6 +799,26 @@ declare const adpcmA: PlaygroundCreatedYm2610['adpcmA'];
 /** Neo Geo YM2610/YM2610B modes: primary ADPCM-B, identical to adpcm. */
 declare const adpcmB: PlaygroundCreatedYm2610['adpcmB'];
 
+type PlaygroundCddaTrack = {number:number;file?:string;title?:string;startFrame?:number;endFrame?:number};
+type PlaygroundCddaTiming = {/** Absolute audio-clock seconds; omitted means next available frame. */ at?:number};
+type PlaygroundCddaState = {
+  state:'ready'|'playing'|'paused'|'ended';track:number|null;title:string;
+  positionFrames:number;positionSeconds:number;durationFrames:number;durationSeconds:number;
+  outputFrame:number;volume:number;mute:boolean;tracks:ReadonlyArray<PlaygroundCddaTrack>;
+  sourceRate:44100;sampleRate:number;
+};
+type PlaygroundCddaAPI = {
+  /** First stage accepts 44.1kHz stereo PCM16 WAV, or a JSON track manifest. File paths refer to Virtual Files. */
+  load(source:ArrayBuffer|Uint8Array|string|{tracks:PlaygroundCddaTrack[]}):Promise<ReadonlyArray<PlaygroundCddaTrack>>;
+  play(track?:number,options?:PlaygroundCddaTiming & {offset?:number}):Promise<unknown>;
+  pause(options?:PlaygroundCddaTiming):Promise<unknown>;
+  resume(options?:PlaygroundCddaTiming):Promise<unknown>;
+  stop(options?:PlaygroundCddaTiming):Promise<unknown>;
+  seek(seconds:number,options?:PlaygroundCddaTiming):Promise<unknown>;
+  getState():Promise<PlaygroundCddaState>;
+  list():Promise<ReadonlyArray<PlaygroundCddaTrack>>;
+};
+declare const cdda: PlaygroundCddaAPI;
 declare const sample: PlaygroundSampleAPI;
 declare const stream: PlaygroundStreamAPI;
 declare const noise: PlaygroundNoiseAPI;
@@ -886,6 +906,7 @@ declare function liveCleanup(names: string[], fn: () => Promise<void> | void): v
 type PlaygroundLivePrepareAPI = {
   fx: FXApi;
   sample: PlaygroundSampleAPI;
+  cdda: PlaygroundCddaAPI;
   stream: PlaygroundStreamAPI;
   noise: PlaygroundNoiseAPI;
   log: (...args: unknown[]) => void;
@@ -1113,6 +1134,7 @@ type PlaygroundAPIBase = {
   context: PlaygroundContext;
   /** Preloaded sample playback API. */
   sample: PlaygroundSampleAPI;
+  cdda: PlaygroundCddaAPI;
   /** Streamed BGM-style playback API. */
   stream: PlaygroundStreamAPI;
   /** Looping noise-source helper for ambient beds. */

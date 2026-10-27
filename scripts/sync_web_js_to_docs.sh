@@ -10,6 +10,13 @@ DOCS_JS_DIR="${ROOT_DIR}/docs/js"
 # between `web/` and `docs/js/`.
 #
 SYNC_FILES="
+cdda_source.js
+cdda_pcm.js
+cdda_player.js
+cdda_audio.js
+cdda_worklet.js
+cdda_native.js
+cdda_offline.js
 spc.js
 spc_trace.js
 spc_events.js
@@ -434,6 +441,8 @@ perl -0pi -e 's#\./generated/spc_wasm#../generated/spc_wasm#g' \
 node "${ROOT_DIR}/scripts/copy_spc_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${ROOT_DIR}/docs"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${ROOT_DIR}/docs"
+node "${ROOT_DIR}/scripts/copy_cdda_sources.mjs" "${ROOT_DIR}/docs"
+perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/cdda_pcm.js" "${DOCS_JS_DIR}/cdda_audio.js" "${DOCS_JS_DIR}/cdda_offline.js"
 perl -0pi -e 's#\./generated/#../generated/#g' \
   "${DOCS_JS_DIR}/pokey.js" "${DOCS_JS_DIR}/playground_pokey_audio.js" "${DOCS_JS_DIR}/playground_pokey_worklet.js"
 # Runtime defaults resolve from the Playground page in the website layout.

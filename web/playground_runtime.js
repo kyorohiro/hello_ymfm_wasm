@@ -36,6 +36,9 @@ import {createPrimaryGameboyApi} from './playground_gameboy.js';
 import {createGameboyClient} from './playground_gameboy.js';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js';
 import {createHuc6280Audio} from './playground_huc6280_audio.js';
+import {createCddaAudio} from './cdda_audio.js';
+import {createNativeCdda} from './cdda_native.js';
+import {createCddaPlayer} from './cdda_player.js';
 import {createPokeyAudio} from './playground_pokey_audio.js';
 import {createWonderSwanAudio} from './playground_wonderswan_audio.js';
 import {createOki6258Audio} from './playground_okim6258_audio.js';
@@ -138,6 +141,7 @@ const SCALE_INTERVALS = {
  *   onAuditionReset?: (() => void) | null,
  *   onKeyboardTargetChange?: ((target:PlaygroundKeyboardTarget|null) => void) | null,
  *   inputAudio?: ((options: {title?:string,asset?:string,edit?:boolean}, context: {signal:AbortSignal}) => Promise<null|{name:string,source:'file'|'microphone',sampleRate:number,channels:Float32Array[]}>) | null,
+ *   readCddaFile?: (path:string)=>Promise<Uint8Array|ArrayBuffer>,
  * }} [options]
  * @returns Runtime controls and accessors; initialize audio before using the synth.
  */
@@ -291,6 +295,34 @@ export function createPlaygroundRuntime(
     }
   }
   let currentRunToken = 0;
+  let cddaDevice=null,cddaPreparation=null,cddaGeneration=new AbortController();
+  async function ensureCdda(runToken){
+    if(runToken!==currentRunToken)throw new Error('Run stopped');
+    await ensureMediaReady();
+    if(runToken!==currentRunToken)throw new Error('Run stopped');
+    if(cddaDevice)return cddaDevice.player;
+    if(!cddaPreparation){
+      const signal=cddaGeneration.signal;
+      cddaPreparation=(async()=>{
+        const adapter=capabilities.backend==='native-genesis'?createNativeCdda(megaDrive,{signal}):await createCddaAudio(megaDrive.audioContext,{signal,onError:error=>{if(!signal.aborted&&runToken===currentRunToken){emitStatus(`CD-DA: ${error.message}`);retireCdda();}}});
+        let release;
+        try{
+          signal.throwIfAborted();if(runToken!==currentRunToken)throw new Error('Run stopped');
+          release=adapter.node?megaDrive.mixer.connect('cdda','cdda',adapter.node,megaDrive.audio.masterInputNode,megaDrive.audioContext)
+            :megaDrive.mixer.register('cdda','cdda',settings=>{adapter.command({type:'mix',volume:settings.volume,mute:settings.effectiveMuted??settings.muted,pan:settings.pan}).catch(error=>{if(!signal.aborted)emitLog(`CD-DA: ${error.message}`);});});
+          const player=createCddaPlayer(adapter,{signal,readFile:options.readCddaFile,getMix:()=>megaDrive.mixer.get('cdda')});
+          cddaDevice={player,adapter,release};return player;
+        }catch(error){release?.();adapter.dispose();throw error;}
+      })();
+      const pending=cddaPreparation;pending.finally(()=>{if(cddaPreparation===pending)cddaPreparation=null;}).catch(()=>{});
+    }
+    return cddaPreparation;
+  }
+  function retireCdda(){
+    cddaGeneration.abort(new DOMException('Run stopped','AbortError'));cddaGeneration=new AbortController();
+    cddaPreparation=null;
+    if(cddaDevice){const old=cddaDevice;cddaDevice=null;try{old.release?.();}finally{old.player.dispose();}}
+  }
   let currentLoopContext = null;
   // A shared Promise can release several Main callers in one microtask turn.
   // Resume this Native endpoint's caller on its own host task so another
@@ -1149,6 +1181,7 @@ export function createPlaygroundRuntime(
   }
 
   function stopAllAudio() {
+    retireCdda();
     for(const endpoint of megaDrive.primaryEndpoints??[])endpoint.client._cancelAdpcmLoads?.();
     noiseOwnership?.clear();
     const fromCleanup=currentLoopContext?.keyboardCleanup===true||liveApi.hasPendingCleanups();
@@ -1772,6 +1805,7 @@ export function createPlaygroundRuntime(
       cleanup(); return;
     }
     if(command.startsWith('mixer.')) {const method=command.slice(6);if(!['set','get','reset','list'].includes(method)) throw new Error('Unknown mixer method');return megaDrive.mixer[method](...args);}
+    if(command.startsWith('cdda.')){const method=command.slice(5);if(!['load','play','pause','resume','stop','seek','getState','list'].includes(method))throw new Error('Unknown CD-DA method');return globals.cdda[method](...args);}
     if(command==='pcm.decode')return decodePcm(args[0]);
     if(command==='audio.input')return globals.inputAudio(args[0]);
     if (command === "midi.file") return globals.midi.playFile(...args);
@@ -2257,6 +2291,11 @@ export function createPlaygroundRuntime(
       list: () =>
         megaDrive.sample.list(),
     };
+    const cddaApi=Object.fromEntries(['load','play','pause','resume','stop','seek','getState','list'].map(method=>[method,async(...args)=>{
+      if(runToken!==currentRunToken)throw new Error('Run stopped');
+      const player=await ensureCdda(runToken);if(runToken!==currentRunToken)throw new Error('Run stopped');
+      return player[method](...args);
+    }]));
     const streamApi = {
       load: loadStream,
       play: playStream,
@@ -2312,6 +2351,7 @@ export function createPlaygroundRuntime(
       fx,
       psg,
       sample: sampleApi,
+      cdda: cddaApi,
       stream: streamApi,
       dac: dacApi,
       noise: noiseApi,
@@ -2427,6 +2467,7 @@ export function createPlaygroundRuntime(
       psg,
       context: runtime.context,
       sample: sampleApi,
+      cdda: cddaApi,
       stream: streamApi,
       noise: noiseApi,
       control: controlNoiseVoice,
@@ -2591,6 +2632,7 @@ export function createPlaygroundRuntime(
         fx,
         psg,
         sample: pg.sample,
+        cdda: pg.cdda,
         stream: pg.stream,
         noise: pg.noise,
         control: pg.control,

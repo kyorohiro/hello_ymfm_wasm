@@ -9,6 +9,7 @@ import {copyPwmSources} from './copy_pwm_sources.mjs';
 import {copyNukedSources} from './copy_nuked_sources.mjs';
 import {copySegaPsgSources} from './copy_segapsg_sources.mjs';
 import {copyPokeySources} from './copy_pokey_sources.mjs';
+import {copyCddaSources} from './copy_cdda_sources.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const stage = resolve(process.argv[2]);
 const nested = process.argv[3] === 'js';
@@ -27,7 +28,7 @@ const modules = readdirSync(join(root,'web')).filter(n=>n.endsWith('.js') && !n.
 for (const name of modules) {
   let source=readFileSync(join(root,'web',name),'utf8');
   // Match the established docs/js layout for module-relative generated assets.
-  if (nested && (name.includes('worklet') || ['playground_nes_audio.js','playground_pwm_audio.js','vgm_runtime.js','spc_audio.js','playground_spc_audio.js','playground_snes_audio.js','playground_rf5c164_audio.js','playground_ym2608_audio.js','playground_gameboy_audio.js','playground_opl_audio.js','playground_ym2413_audio.js','playground_ay8910_audio.js','playground_wonderswan_audio.js','playground_pokey_audio.js'].includes(name)))
+  if (nested && (name.includes('worklet') || ['cdda_audio.js','cdda_pcm.js','cdda_offline.js','playground_nes_audio.js','playground_pwm_audio.js','vgm_runtime.js','spc_audio.js','playground_spc_audio.js','playground_snes_audio.js','playground_rf5c164_audio.js','playground_ym2608_audio.js','playground_gameboy_audio.js','playground_opl_audio.js','playground_ym2413_audio.js','playground_ay8910_audio.js','playground_wonderswan_audio.js','playground_pokey_audio.js'].includes(name)))
     source=source.replaceAll('./generated/', '../generated/');
   if (name === 'nesapu.js') source=source.replace('../docs/js/nesapuaudioengine.js', './nesapuaudioengine.js');
   if(name==='pwm32x_wasm.js'){
@@ -58,6 +59,7 @@ await copyPwmSources(stage);
 await copyNukedSources(stage);
 await copySegaPsgSources(stage);
 await copyPokeySources(stage);
+await copyCddaSources(stage);
 const dx7Version = JSON.parse(readFileSync(join(root,'web/msfa_dx7/package.json'),'utf8')).version;
 for (const name of ['jsnes','fixnes-fds']) cpSync(join(root,'third_party',name),join(stage,'licenses',name),{recursive:true});
 copyFileSync(join(root,'web/native_audio_effect.wasm'),join(jsDir,'native_audio_effect.wasm'));

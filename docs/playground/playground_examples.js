@@ -550,6 +550,11 @@ export const EXAMPLE_FILES = [
     "data": "// Select Mode: SNES. Two tuned BRR voices, independently balanced left/right.\nsetBpm(110);\nconst duetSample = await livePrepare('snes-mode-duet-brr', async () =>\n  snes.loadBRR(new Uint8Array([0xc3, 0x13, 0x57, 0x75, 0x31, 0xfd, 0xb9, 0x9b, 0xdf]),\n    {baseFrequencyHz:2000, loopStartSamples:0}));\nsnes.setPreset(0, {\n  sample:duetSample, adsr1:0x8e, adsr2:0xe0, gain:127,\n  volumeLeft:75, volumeRight:15,\n});\nsnes.setPreset(1, {\n  sample:duetSample, adsr1:0x8e, adsr2:0xe0, gain:127,\n  volumeLeft:15, volumeRight:60,\n});\n\nliveLoop('snes-stereo-duet', async () => {\n  const leadLine = ['C4', 'E4', 'G4', 'C5', 'B4', 'G4', 'E4', 'D4'];\n  const bassLine = ['C3', 'C3', 'C3', 'C3', 'G2', 'G2', 'G2', 'G2'];\n  for (let step = 0; step < leadLine.length; step++) {\n    snes.noteOn(0, leadLine[step]); snes.noteOn(1, bassLine[step]);\n    await beat(0.4);\n    snes.noteOff(0); snes.noteOff(1);\n    await beat(0.1);\n  }\n});\n"
   },
   {
+    "path": "/examples/pc-engine/pce-cdda.js",
+    "name": "pce-cdda",
+    "data": "// PC Engine + CD-DA (first stage: PSG + stereo PCM16, without ADPCM).\n// Original generated test audio: no game disc or BIOS is required.\n// For your own 44.1 kHz stereo PCM16 WAV in Virtual Files, replace the\n// generated WAV below with: await cdda.load('/audio/track02.wav');\nconst rate = 44100, seconds = 8, frames = rate * seconds;\nconst wav = new Uint8Array(44 + frames * 4), view = new DataView(wav.buffer);\nconst tag = (offset, text) => { for (let i = 0; i < text.length; i++) wav[offset + i] = text.charCodeAt(i); };\ntag(0, 'RIFF'); view.setUint32(4, wav.length - 8, true); tag(8, 'WAVE');\ntag(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\nview.setUint16(22, 2, true); view.setUint32(24, rate, true); view.setUint32(28, rate * 4, true);\nview.setUint16(32, 4, true); view.setUint16(34, 16, true); tag(36, 'data'); view.setUint32(40, frames * 4, true);\nfor (let i = 0; i < frames; i++) {\n  const t = i / rate, envelope = Math.min(1, t * 20, (seconds - t) * 20);\n  view.setInt16(44 + i * 4, Math.round(Math.sin(2 * Math.PI * 220 * t) * 3500 * envelope), true);\n  view.setInt16(46 + i * 4, Math.round(Math.sin(2 * Math.PI * 330 * t) * 3500 * envelope), true);\n}\nawait cdda.load(wav);\nawait cdda.play();\n// Transport: await cdda.pause(); await cdda.resume(); await cdda.seek(2);\n// await cdda.getState() reports the audio-side source frame and position.\n// Mixer has independent \"cdda\" and \"huc6280\" inputs.\npce.setWaveform(0, Array.from({length: 32}, (_, i) => Math.round(15.5 + 15.5 * Math.sin(i * Math.PI / 16))));\npce.setVolume(0, 22);\npce.setPan(0, 15, 15);\nsetBpm(120);\nliveLoop('psg-over-cdda', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'B4']) {\n    pce.noteOn(0, note);\n    await beat(1);\n  }\n});\n"
+  },
+  {
     "path": "/examples/pc-engine/pce-mode-noise.js",
     "name": "pce-mode-noise",
     "data": "// Select Mode: PC Engine. Physical channels 4 and 5 support noise.\nsetBpm(120);\npce.setVolume(4, 24); pce.setPan(4, 15, 10);\npce.setVolume(5, 20); pce.setPan(5, 10, 15);\npce.setNoise(4, {enabled:true, frequency:18});\npce.setNoise(5, {enabled:true, frequency:28}); // Frequency is a hardware code 0..31.\n\nliveLoop('pce-noise-drums', async () => {\n  for (let step = 0; step < 8; step++) {\n    const channel = step % 2 ? 5 : 4;\n    pce.keyOn(channel);\n    await beat(step % 2 ? 0.12 : 0.2);\n    pce.keyOff(channel);\n    await beat(step % 2 ? 0.38 : 0.3);\n  }\n});\n"
@@ -775,7 +780,8 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
   "pc-engine": [
     "/examples/pc-engine/pce-mode-wave.js",
     "/examples/pc-engine/pce-mode-stereo.js",
-    "/examples/pc-engine/pce-mode-noise.js"
+    "/examples/pc-engine/pce-mode-noise.js",
+    "/examples/pc-engine/pce-cdda.js"
   ],
   "game-gear": [
     "/examples/game-gear/gg-mode-melody.js",

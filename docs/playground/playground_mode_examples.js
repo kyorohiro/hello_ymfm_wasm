@@ -29,7 +29,7 @@ const definitions = {
   nes: ['/examples/nes/nes-mode-pulse.js','/examples/nes/nes-mode-fds.js','/examples/nes/nes-mode-rhythm.js'],
   snes: ['/examples/snes/snes-mode-brr.js','/examples/snes/snes-mode-stereo.js'],
   x68000: ['/examples/x68000/x68000-mode-opm.js','/examples/x68000/x68000-mode-adpcm.js'],
-  'pc-engine': ['/examples/pc-engine/pce-mode-wave.js','/examples/pc-engine/pce-mode-stereo.js','/examples/pc-engine/pce-mode-noise.js'],
+  'pc-engine': ['/examples/pc-engine/pce-mode-wave.js','/examples/pc-engine/pce-mode-stereo.js','/examples/pc-engine/pce-mode-noise.js','/examples/pc-engine/pce-cdda.js'],
   'game-gear': ['/examples/game-gear/gg-mode-melody.js', '/examples/game-gear/gg-mode-noise.js', '/examples/game-gear/gg-mode-stereo.js'],
   'master-system': ['/examples/master-system/sms-mode-melody.js', '/examples/master-system/sms-mode-noise.js',
     '/examples/master-system/sms-opll-instruments.js', '/examples/master-system/sms-opll-user-patch.js', '/examples/master-system/sms-opll-rhythm.js'],

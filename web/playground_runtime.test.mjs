@@ -1090,12 +1090,15 @@ test('finalize settles pending Worker runs and main-mode stop waits; late Worker
 
 test('removing a sounding loop releases its note', async t => {
   const { runtime, megaDrive } = setup(t);
-  const notes = [];
+  const notes = [], released = deferred();
   megaDrive.fm.noteOn = c => notes.push(['on', c]);
-  megaDrive.fm.noteOff = c => notes.push(['off', c]);
+  megaDrive.fm.noteOff = c => {notes.push(['off', c]); if(c === 0) released.resolve();};
   await runtime.playSource('liveLoop("lead", async () => { await play("C4", { duration: 60 }); });');
   await runtime.playSource('');
-  await new Promise(resolve => setTimeout(resolve, 20));
+  await new Promise((resolve,reject) => {
+    const timer=setTimeout(()=>reject(new Error('Removed loop did not release its note')),1000);
+    released.promise.then(()=>{clearTimeout(timer);resolve();});
+  });
   assert.deepEqual(notes, [['on', 0], ['off', 0]]);
 });
 

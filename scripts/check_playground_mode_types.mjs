@@ -11,7 +11,7 @@ try {
   const fixtures = [
     ...['ym2612', 'mega-cd', 'ym2203', 'ym2608', 'ym2610', 'ym2610b'].map(chip => `playground-mode-${chip}.ts`),
     ...['pokey','pokey-dual','wonderswan','gameboy','nes','snes','x68000','huc6280','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','msx','msx-audio','atari-st'].map(chip => `playground-mode-${chip}.ts`),
-    'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts',
+    'playground-time.ts', 'playground-tone.ts', 'playground-chip-clock.ts', 'playground-cdda.ts',
   ];
   for (const fixture of fixtures) {
     let fixturePath = join(root, 'test/types', fixture);
