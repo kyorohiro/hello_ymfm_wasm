@@ -7,10 +7,11 @@ import {fileURLToPath} from 'node:url';
 import {setTimeout as delay} from 'node:timers/promises';
 import test from 'node:test';
 import {checkWasmSdk, parseWasmSdkArguments, runWasmSdkCommand} from '../scripts/check_wasm_sdk.mjs';
-import {WASM_SDK_ARTIFACT_IDS} from '../scripts/wasm_sdk_inventory.mjs';
+import {WASM_SDK_ARTIFACT_IDS,loadWasmSdkInventory} from '../scripts/wasm_sdk_inventory.mjs';
 
 const root=await realpath(resolve(dirname(fileURLToPath(import.meta.url)),'..'));
 const script=resolve(root,'scripts/check_wasm_sdk.mjs');
+const inventory=await loadWasmSdkInventory({root});
 async function temporary(t){
   const dir=await realpath(await mkdtemp(join(tmpdir(),'tetorica-wasm-sdk-cli-')));
   t.after(()=>rm(dir,{recursive:true,force:true}));return dir;
@@ -161,14 +162,14 @@ test('a malformed reference emits a failed summary with all 29 cores not compare
   const result=spawnSync(process.execPath,[join(checkout,'scripts/check_wasm_sdk.mjs'),
     '--work-dir',work,'--reference-dir',reference],{cwd:checkout,encoding:'utf8',timeout:25000,maxBuffer:1024*1024});
   assert.ifError(result.error);assert.notEqual(result.status,0,result.stdout+result.stderr);
-  assert.match(result.stderr,/exactly 29 artifacts/);
+  assert.match(result.stderr,new RegExp(`exactly ${inventory.builds.length} artifacts`));
   assert.doesNotMatch(result.stdout,/Comparing \d|Building all|PASS:/);
   const summary=JSON.parse(await readFile(join(work,'summary.json'),'utf8'));
   assert.equal(summary.schemaVersion,1);assert.equal(summary.passed,false);assert.equal(summary.stage,'preflight');
   assert.equal(summary.repositoryInputsUnchanged,true);assert.deepEqual(summary.artifacts,[]);
   assert.deepEqual(summary.expectedArtifacts,[...WASM_SDK_ARTIFACT_IDS]);
   assert.deepEqual(summary.notCompared,[...WASM_SDK_ARTIFACT_IDS]);
-  assert.equal(summary.offlineCheck.exitCode,0);assert.match(summary.error,/exactly 29 artifacts/);
+  assert.equal(summary.offlineCheck.exitCode,0);assert.match(summary.error,new RegExp(`exactly ${inventory.builds.length} artifacts`));
   assert(summary.completedAt);assert.deepEqual(await readdir(join(work,'reports')),[]);
   await absent(join(work,'rebuilt'));await absent(join(work,'reference'));
   assert.equal(await readFile(join(reference,'build-info.json'),'utf8'),JSON.stringify({schemaVersion:1,artifacts:[]})+'\n');

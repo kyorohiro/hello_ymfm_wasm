@@ -121,6 +121,44 @@ class SoundchipSdkTests(unittest.TestCase):
             with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, 'POKEY source release is incomplete'):
                 sdk.import_archive(path, checksum, 'a' * 40, self.root)
 
+    def test_application_audio_update_verifies_historical_snapshot_before_replacing_it(self):
+        initial = self.install(version='0.1.4')
+        def add_audio(payload):
+            for inputs in sdk.APPLICATION_AUDIO_INPUTS.values():
+                payload.update({name: b'licensed application audio source' for name in inputs})
+        updated = self.install(version='0.1.5', alter_payload=add_audio)
+        self.assertNotEqual(initial['archiveSha256'], updated['archiveSha256'])
+        self.assertNotIn('localCandidate', updated)
+        for inputs in sdk.APPLICATION_AUDIO_INPUTS.values():
+            for name in inputs:
+                self.assertTrue((self.root / sdk.SNAPSHOT / name).is_file())
+        self.assertEqual(sdk.check_installed(self.root), updated)
+
+    def test_application_audio_source_license_and_standalone_tests_are_required_together(self):
+        initial = self.install(version='0.1.4')
+        all_inputs = set().union(*sdk.APPLICATION_AUDIO_INPUTS.values())
+        for missing in sorted(all_inputs):
+            def change(payload):
+                payload.update({name: b'application audio input' for name in all_inputs})
+                payload.pop(missing)
+            with self.subTest(missing=missing):
+                path, checksum = self.archive(version='0.1.5', alter_payload=change)
+                with self.assertRaisesRegex(ValueError, 'source release is incomplete'):
+                    sdk.import_archive(path, checksum, 'b' * 40, self.root)
+                self.assertEqual(sdk.check_installed(self.root), initial)
+
+    def test_application_audio_update_does_not_overwrite_modified_historical_sources(self):
+        self.install(version='0.1.4')
+        modified = self.root / sdk.SNAPSHOT / 'vendor/ymfm/ymfm_opn.cpp'
+        modified.write_bytes(b'local edit retained')
+        def add_audio(payload):
+            for inputs in sdk.APPLICATION_AUDIO_INPUTS.values():
+                payload.update({name: b'application audio input' for name in inputs})
+        archive, checksum = self.archive(version='0.1.5', alter_payload=add_audio)
+        with self.assertRaisesRegex(ValueError, 'content hash/size mismatch'):
+            sdk.import_archive(archive, checksum, 'b' * 40, self.root)
+        self.assertEqual(modified.read_bytes(), b'local edit retained')
+
     def test_explicit_update_replaces_legacy_psg_layout_with_separate_component(self):
         initial = self.install(version='0.1.1')
         updated = self.install(version='0.1.2', layout='separated')

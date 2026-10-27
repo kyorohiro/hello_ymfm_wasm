@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro.
-// Real native/WASM comparison, independently checked against the unchanged
+// Real fixed-SDK Native/WASM comparison, independently checked against the unchanged
 // JavaScript/libvgm decoder. No AudioContext or mocked sound chip is involved.
 import assert from 'node:assert/strict';
 import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
@@ -19,6 +19,7 @@ const run = (program, args) => {
   assert.equal(r.status, 0, `${program} ${args.join(' ')}\n${r.stdout}\n${r.stderr}`);
   return r.stdout;
 };
+run('python3', [join(root, 'scripts/import_soundchip_sdk.py'), '--check']);
 await writeFile(join(temp, 'native.cpp'), String.raw`
 #include "msm5205_pcm.h"
 #include <cassert>
@@ -76,10 +77,10 @@ int main(int argc,char **argv) {
 }
 `);
 run(process.env.CXX || 'clang++', ['-std=c++14', '-O2', '-ffp-contract=off', '-x', 'c++',
-  join(temp, 'native.cpp'), join(root, 'native/msm5205/msm5205_pcm.c'),
-  '-I', join(root, 'native/msm5205'), '-o', join(temp, 'native')]);
+  join(temp, 'native.cpp'), join(root, 'third_party/tetorica-soundchip-native/vendor/tetorica-msm5205/msm5205_pcm.c'),
+  '-I', join(root, 'third_party/tetorica-soundchip-native/vendor/tetorica-msm5205'), '-o', join(temp, 'native')]);
 run(process.env.CC || 'clang', ['-std=c11', '-Wall', '-Wextra', '-Werror', '-c',
-  join(root, 'native/msm5205/msm5205_pcm.c'), '-o', join(temp, 'c11.o')]);
+  join(root, 'third_party/tetorica-soundchip-native/vendor/tetorica-msm5205/msm5205_pcm.c'), '-o', join(temp, 'c11.o')]);
 
 const bytes = Uint8Array.from({length: 65536}, (_, i) => (i * 73 + (i >> 3) + 0x37) & 255);
 await writeFile(join(temp, 'ram.adpcm'), bytes);

@@ -113,18 +113,23 @@ synchronous chip register writes at an exact output-frame boundary.
 
 ## Implementation and scope
 
-The BSD-3-Clause C11 core is in `native/cdda/`. Browser and offline playback use
+The BSD-3-Clause C11 core is pinned under
+`third_party/tetorica-soundchip-native/vendor/tetorica-cdda/`. Browser and offline playback use
 the same core through a 2,257-byte WASM module, fixed 128 KiB memory and a 4 KiB
 PCM input window. Audio rendering does not allocate, grow WASM memory, decode
 whole tracks, read files or ask the UI to supply each block. Native reads its
 immutable PCM16 source within the existing audio callback. It never frees the
 last PCM owner on that callback.
 
-Rebuild with `sh scripts/build_cdda_wasm.sh`. The generated WASM and complete
-source/rebuild recipe are included in the runtime packaging. Existing VGM
+Rebuild with `sh scripts/build_cdda_wasm.sh`; this checks the fixed SDK pin and
+builds its original core and bridge. Runtime packages include the generated
+WASM and self-contained sources under `sources/native/cdda/`. Their
+`sources/CDDA.md` guide and `sources/CDDA.json` receipt record the fixed SDK and
+standalone recipe; rebuilding a package needs Emscripten and no SDK checkout.
+Existing VGM
 commands and chip APIs are unchanged. A VGM without external CD-DA audio and
 its timeline cannot reconstruct those tracks.
 
-Follow-up work: MSM5205 Native/WASM and Playground integration, the complete
-PSG + ADPCM + CD-DA example, CD-ROM²-specific memory/control semantics, and any
-additional disc or compressed-audio import formats.
+MSM5205 Native/WASM, Playground integration and the PSG + ADPCM + CD-DA example
+are available; see [MSM5205](msm5205.md). Physical CD-ROM² controller emulation
+and additional disc/compressed-audio import formats remain outside this module.

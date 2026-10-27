@@ -649,7 +649,8 @@ See js/msfa_dx7/LICENSE, THIRD_PARTY_NOTICES.md and README.vendor.md.
 Game Boy DMG APU: MAME adaptation, BSD-3-Clause. See licenses/mame-gameboy/.
 
 Atari POKEY sound: BSD-labeled libvgm/MAME POKEY adaptation, BSD-3-Clause. See licenses/libvgm-pokey/ and sources/POKEY.md.
-MSM5205 PCM and PC Engine ADPCM RAM helper: BSD-3-Clause, adapted from the existing libvgm-based JavaScript renderer. See licenses/tetorica-msm5205/ and sources/MSM5205.md for copyright, complete source and rebuilding.
+CD-DA PCM: original Tetorica C11 implementation, BSD-3-Clause, distributed by the fixed sound-chip SDK. See licenses/tetorica-cdda/ and sources/CDDA.md for copyright, complete source and standalone rebuilding.
+MSM5205 PCM and PC Engine ADPCM RAM helper: BSD-3-Clause, adapted from the existing libvgm-based JavaScript renderer and distributed by the fixed sound-chip SDK. See licenses/tetorica-msm5205/ and sources/MSM5205.md for copyright, complete source and standalone rebuilding.
 WonderSwan sound: MAME adaptation by Wilbert Pol and kyorohiro, BSD-3-Clause. See licenses/mame-wonderswan/.
 PC Engine HuC6280 PSG: MAME adaptation by Charles MacDonald, BSD-3-Clause. See licenses/mame-huc6280/.
 X68000 OKIM6258 ADPCM: MAME adaptation by Barry Rodewald, BSD-3-Clause. See licenses/mame-okim6258/.

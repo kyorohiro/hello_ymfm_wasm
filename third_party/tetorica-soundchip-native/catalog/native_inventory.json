@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "notes": [
-    "Reference C++/C ABI adapters and the raw WonderSwan C++ target are included for all 23 public chip IDs; each verificationScope records supported APIs and tested configurations.",
-    "Standalone CMake targets build twenty static libraries covering all twenty-three chip IDs: YM2612, YM2203, YM2608, YM2610/YM2610B, YM2151, YM2413, Sega PSG, AY-3-8910, OKIM6258, RF5C164, the shared YM3526/YM3812/YMF262/Y8950 OPL family, Game Boy, HuC6280, NES with optional FDS, 32X PWM, DX7, SNES S-DSP, the SPC700/SPC-file player and WonderSwan. The alternative Nuked YM2612 engine adds a separate library but no chip identifier.",
-    "Vendor component origins and license files are recorded by the shared source inventory, rather than copied again here."
+    "Standalone chip libraries cover 24 public chip IDs, including Atari POKEY. Nuked is an alternative YM2612 engine, not an additional chip ID.",
+    "Twenty-one chip static libraries are joined by two separate C11 application-audio libraries: CD-DA and MSM5205. These devices are not added to the generic chip-ID catalog.",
+    "Verification scopes describe tested APIs and configurations; local results do not claim remote platform CI or release publication."
   ],
   "chips": [
     {
@@ -891,5 +891,59 @@
     "tetoricaOriginal": "BSD-3-Clause",
     "licenseFile": "LICENSE",
     "explicitDeclarations": "Existing file-level and third-party licenses take precedence for their corresponding files."
-  }
+  },
+  "applicationAudio": [
+    {
+      "id": "cdda",
+      "role": "application-audio",
+      "kind": "pcm-device",
+      "sourceFiles": [
+        "vendor/tetorica-cdda/cdda_pcm.c",
+        "vendor/tetorica-cdda/cdda_pcm.h"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica-cdda/LICENSE",
+        "vendor/tetorica-cdda/NOTICE.md"
+      ],
+      "target": "tetorica_native_cdda",
+      "cmakeAlias": "tetorica::cdda",
+      "publicHeader": "native/include/tetorica/cdda.h",
+      "status": "verified",
+      "buildFiles": [
+        "native/CMakeLists.txt",
+        "native/include/tetorica/cdda.h"
+      ],
+      "tests": [
+        "native/tests/cdda_fixture.c",
+        "native/tests/pce_cd_fixture.cpp"
+      ],
+      "verificationScope": "Targeted local Release C11 tests and C++14 three-source co-link test passed. Full extracted archive and remote CI results are recorded separately."
+    },
+    {
+      "id": "msm5205",
+      "role": "application-audio",
+      "kind": "adpcm-device",
+      "sourceFiles": [
+        "vendor/tetorica-msm5205/msm5205_pcm.c",
+        "vendor/tetorica-msm5205/msm5205_pcm.h"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica-msm5205/LICENSE",
+        "vendor/tetorica-msm5205/NOTICE.md"
+      ],
+      "target": "tetorica_native_msm5205",
+      "cmakeAlias": "tetorica::msm5205",
+      "publicHeader": "native/include/tetorica/msm5205.h",
+      "status": "verified",
+      "buildFiles": [
+        "native/CMakeLists.txt",
+        "native/include/tetorica/msm5205.h"
+      ],
+      "tests": [
+        "native/tests/msm5205_fixture.c",
+        "native/tests/pce_cd_fixture.cpp"
+      ],
+      "verificationScope": "Targeted local Release C11 tests and C++14 three-source co-link test passed. Full extracted archive and remote CI results are recorded separately."
+    }
+  ]
 }

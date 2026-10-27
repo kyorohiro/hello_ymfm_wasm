@@ -20,7 +20,8 @@ Tetorica's original code does not replace those component terms.
   projects, source versions, import paths, and SHA-256 hashes. Reference WASM
   artifacts are identified separately from their source files. Its
   `javascriptReferences` section records the MSM5205 and OKIM6295 engines
-  separately from compiled artifacts.
+  separately from compiled artifacts. The `applicationAudio` arrays identify
+  the CD-DA and MSM5205 C cores, Native headers/targets and standalone WASM pairs.
 - [catalog/native_inventory.json](catalog/native_inventory.json) maps Native
   wrappers to their sources and records existing file-level declarations and the
   BSD default for Tetorica-authored glue.
@@ -58,6 +59,10 @@ The [MSM5205](vendor/libvgm-msm5205/LICENSE) and
 [OKIM6295](vendor/mame-okim6295/LICENSE) JavaScript references retain their BSD
 copyright notices and adaptation records. They are unchanged copies of the
 Analyzer engines, with no sample ROM or third-party music bundled. Their vendor directories also contain independently pinned upstream C/C++ files whose headers explicitly declare BSD-3-Clause. Their snapshot manifests record immutable revisions and per-file hashes.
+
+[Tetorica CD-DA](vendor/tetorica-cdda/README.md) is original 2026 kyorohiro code under its [BSD-3-Clause license](vendor/tetorica-cdda/LICENSE). The PCM core, public C ABI and WASM bridge contain no CD-controller or machine emulator.
+
+[Tetorica MSM5205](vendor/tetorica-msm5205/README.md) retains the existing BSD ADPCM/FIFO adaptation credits to Aaron Giles, eito, cam900, Valley Bell and Mao, alongside the 2026 kyorohiro PCM host and PC Engine RAM driver notice. Its [LICENSE](vendor/tetorica-msm5205/LICENSE) and [NOTICE.md](vendor/tetorica-msm5205/NOTICE.md) accompany the compiled module. This C11 port preserves the existing JavaScript decoder model; it does not compile the separately collected libvgm reference or inherit a license for omitted framework files. Original SDK forwarders, build glue and tests use the repository BSD default.
 
 libvgm's unmarked integration headers, support implementation, and player code are not included. Its [license discussion](https://github.com/ValleyBell/libvgm/issues/129) reports incomplete per-module assignment; the license of an emulator source file is not extended to the surrounding framework. MAME's included OKIM6295/ADPCM files likewise retain their own BSD declarations; the complete MAME framework is not bundled.
 

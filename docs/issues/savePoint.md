@@ -1,3 +1,15 @@
+## 2026-10-28 — SDK 0.1.5公開／本体・Tauriの固定SDK移行完了
+
+- SDK集約commit `52062d0`のCIはNative5platform＋WASM5構成が成功。公開metadataを整えた`3bb8d9ceffa50ad183d1ab856e031fe649425bca`をcommit／pushし、`v0.1.5`を作成。タグCIも全10構成＋公開job成功、[SDK 0.1.5](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.5)は公開済み。SDK repoはclean。
+- 公開source ZIPは431files、SHA256 `e37be75316a35a4159d8760afa9e4b86a9a4b8d4d24f674cc15e3e5e52c44309`。ローカル候補とbyte一致、全payloadがtagged sourceと一致。Manifest SHA256 `e2b5703a2bbf44323d5331b522aa167fa091fcb13ceadebe14d021efe3aa07e7`。本体・Tauriとも同一公開SDKへ更新しlocalCandidateを除去。
+- 本体は29chip＋別枠2applicationAudioの計31buildへ対応。全31実build、183source input、61unique outputs／75deployed filesが移行前とbyte一致。metadata receiptのみ更新。40,474比較とCD-DA／MSM5205の実Native/WASM／raw JS互換が成功、最終試験中の入力変更なし。
+- 本体125 Node＋55 audio unit＋25 Python importer＋3 wrapper routingが成功。固定SDKのみをcompileし、旧`native/cdda`／`native/msm5205`の複製11filesを削除。配布source bundleは従来のnative/*レイアウト維持、SDKがなくてもC11／C++14／WASMを単独再buildでき、2組ともdescriptor／WASMが完全一致。
+- Tauriの2C11 buildも固定SDKへ変更。旧原本11filesを削除し、同期ツールはread-only検証へ。Rust/API／時計／DSP／gainは変更なし、既存284core入力＋新4C/Hが移行前と同byte。Cargo780成功／既存4ignore、Python30成功、24offline source checks成功。
+- npm stage／tarballは935files、実行・型・source receipts・license検証成功。version0.2.32のまま、**npm再公開なし**。tarball SHA256 `9217432e28bddbb4b65ff9e3f4f77193de3df0d090016399f9c54ff6482b0c2b`。将来公開する場合は新versionが必要。
+- Playground ZIP `release/hello_ymfm_wasm_sdk-015-cdrom2-dev_itch_playground.zip`、1004files／SHA256 `e3f63f9fea0f948879ae9c43afa8c7615b18b856e53173615d7cba771f4f7449`。全stage bytes／2source bundleを検証しTauriへ1003effective files取込。対応source ZIP1995files／SHA256 `d43176f2d17940a06527e30e61a1079290a310f24968c45c0d5f0b44576824bf`も生成・検証済み。
+- **本体・Tauriは未commit／未push**。SDKだけcommit／tag／公開済み。本体とTauriのremote CI、GUI実聴、itch.io／desktop app公開は未実施。次はconsumer変更のcommit後、desktop CIで確認。
+- 詳細：[sdk_015_cdrom2_release_adoption_01.md](sdk_015_cdrom2_release_adoption_01.md)／[JSON](sdk_015_cdrom2_release_adoption_01.json)。これより下の未公開／候補扱いは各時点の履歴。
+
 ## 2026-10-28 — CD-DA / MSM5205 SDK集約完了
 
 - `w/tetorica-soundchip-native`へ本体の新C11 coreを収録。`vendor/tetorica-cdda/`／`vendor/tetorica-msm5205/`にソース・BSDライセンス・NOTICE・英語README。原本core／header／WASM bridgeは本体とbyte一致、全306snapshot hashを検証。

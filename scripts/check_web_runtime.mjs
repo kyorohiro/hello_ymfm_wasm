@@ -3,6 +3,7 @@ import {readFileSync, readdirSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
+import {checkApplicationAudioSourceBundles} from './check_application_audio_source_bundles.mjs';
 const root=resolve(process.argv[2]);
 // These caller-provided ROMs must never be distributed, even through samples/.
 const excludedRoms = new Set(['ym2608_adpcm_rom.bin', 'yrw801.rom']);
@@ -19,6 +20,10 @@ const manifest=JSON.parse(readFileSync(join(root,'runtime-manifest.json'),'utf8'
 assert(manifest.chips.includes('nesapu'),'NES/FDS WASM must be listed in the engine inventory');
 assert(!manifest.javascriptChips.includes('nes'),'The default NES renderer must not be listed as JavaScript');
 const dir=manifest.layout==='js' ? join(root,'js') : root;
+if(manifest.applicationAudio){
+  assert.deepEqual(manifest.applicationAudio,['cdda','msm5205'],'Application audio remains separate from generic chip IDs');
+  await checkApplicationAudioSourceBundles(root);
+}
 const {createSoundChip}=await import(pathToFileURL(join(dir,'soundchip.js')));
 const yamaha=manifest.chips.filter(n=>/^(ym|y8950$|ay8910$)/.test(n));
 for (const name of yamaha) {

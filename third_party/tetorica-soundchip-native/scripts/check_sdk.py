@@ -10,7 +10,7 @@ def main():
     parser.add_argument("--root", type=Path, default=ROOT)
     args = parser.parse_args()
     result = check_collection(args.root.resolve())
-    print("Collection OK: {chips} chips, {artifacts} WASM recipes, {javascriptReferences} JavaScript references, {snapshotFiles} snapshot files checked".format(**result))
+    print("Collection OK: {chips} chips, {artifacts} chip WASM recipes, {applicationAudio} application-audio modules, {javascriptReferences} JavaScript references, {snapshotFiles} snapshot files checked".format(**result))
 
 
 if __name__ == "__main__":

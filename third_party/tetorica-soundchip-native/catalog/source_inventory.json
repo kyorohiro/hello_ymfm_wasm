@@ -1704,6 +1704,174 @@
           "originNote": "SDK-authored standalone adaptation/provenance; working-tree bytes identified by SHA-256, not an upstream byte-identical import"
         }
       ]
+    },
+    {
+      "id": "tetorica-cdda",
+      "sourceFiles": [
+        "vendor/tetorica-cdda/cdda_pcm.c",
+        "vendor/tetorica-cdda/cdda_pcm.h",
+        "wasm/cdda_wasm.c"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica-cdda/LICENSE",
+        "vendor/tetorica-cdda/NOTICE.md"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/hello_ymfm_wasm"
+      ],
+      "sourceVersion": [
+        "Tetorica application C11 core imported byte-for-byte from d216b0d63f5061fa2e61262d6298d904076f81a6; per-file SHA-256 is authoritative.",
+        "Host file parsing, track/sample preparation, device output, scheduling and synchronized ownership are outside these low-level C APIs."
+      ],
+      "files": [
+        {
+          "path": "vendor/tetorica-cdda/LICENSE",
+          "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91",
+          "size": 1517,
+          "originPath": "native/cdda/LICENSE",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+        },
+        {
+          "path": "vendor/tetorica-cdda/NOTICE.md",
+          "sha256": "32dd325f1ede34b3da8c72a7a2fd65d25fe4c645051788057e9c37d669ae634c",
+          "size": 791,
+          "originPath": "vendor/tetorica-cdda/NOTICE.md",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-owned integration/documentation, current bytes identified by SHA-256; not an upstream byte-identical import."
+        },
+        {
+          "path": "vendor/tetorica-cdda/README.md",
+          "sha256": "dbc86540b87a112395a472dc0d84eb4f1c96d65dcc2579de245b1ec689ea6f5d",
+          "size": 4288,
+          "originPath": "vendor/tetorica-cdda/README.md",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-owned integration/documentation, current bytes identified by SHA-256; not an upstream byte-identical import."
+        },
+        {
+          "path": "vendor/tetorica-cdda/cdda_pcm.c",
+          "sha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb",
+          "size": 5021,
+          "originPath": "native/cdda/cdda_pcm.c",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb"
+        },
+        {
+          "path": "vendor/tetorica-cdda/cdda_pcm.h",
+          "sha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6",
+          "size": 2890,
+          "originPath": "native/cdda/cdda_pcm.h",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6"
+        },
+        {
+          "path": "wasm/cdda_wasm.c",
+          "sha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012",
+          "size": 1954,
+          "originPath": "native/cdda/cdda_wasm.c",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012"
+        },
+        {
+          "path": "scripts/build_cdda_wasm.sh",
+          "sha256": "21ddd64e21865427b32d2d6faa43a0f79c3dd967839a8bc5b4090ee3bf3ad39f",
+          "size": 1555,
+          "originPath": "scripts/build_cdda_wasm.sh",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "baf1b3bbece8846319242d8dc7e6c3b11528b49f5021395dd29c47f8b0ad826e",
+          "amendmentNote": "SDK-relative build paths/default output and EMCC selection only; C synthesis and WASM ABI unchanged."
+        }
+      ]
+    },
+    {
+      "id": "tetorica-msm5205",
+      "sourceFiles": [
+        "vendor/tetorica-msm5205/msm5205_pcm.c",
+        "vendor/tetorica-msm5205/msm5205_pcm.h",
+        "wasm/msm5205_wasm.c"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica-msm5205/LICENSE",
+        "vendor/tetorica-msm5205/NOTICE.md"
+      ],
+      "upstream": [
+        "https://github.com/kyorohiro/hello_ymfm_wasm",
+        "https://github.com/ValleyBell/libvgm/blob/master/emu/cores/msm5205.c"
+      ],
+      "sourceVersion": [
+        "Tetorica application C11 core imported byte-for-byte from d216b0d63f5061fa2e61262d6298d904076f81a6; per-file SHA-256 is authoritative.",
+        "Host file parsing, track/sample preparation, device output, scheduling and synchronized ownership are outside these low-level C APIs."
+      ],
+      "files": [
+        {
+          "path": "vendor/tetorica-msm5205/LICENSE",
+          "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a",
+          "size": 1617,
+          "originPath": "native/msm5205/LICENSE",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
+        },
+        {
+          "path": "vendor/tetorica-msm5205/NOTICE.md",
+          "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d",
+          "size": 2064,
+          "originPath": "native/msm5205/NOTICE.md",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
+        },
+        {
+          "path": "vendor/tetorica-msm5205/README.md",
+          "sha256": "06c3b63100c2359b5f9c02cc4bb195c713d42ebd7b5348dbbfbcc332348b0630",
+          "size": 5722,
+          "originPath": "vendor/tetorica-msm5205/README.md",
+          "originRepository": "https://github.com/kyorohiro/tetorica-soundchip-native",
+          "originNote": "SDK-owned integration/documentation, current bytes identified by SHA-256; not an upstream byte-identical import."
+        },
+        {
+          "path": "vendor/tetorica-msm5205/msm5205_pcm.c",
+          "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be",
+          "size": 6720,
+          "originPath": "native/msm5205/msm5205_pcm.c",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be"
+        },
+        {
+          "path": "vendor/tetorica-msm5205/msm5205_pcm.h",
+          "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9",
+          "size": 3618,
+          "originPath": "native/msm5205/msm5205_pcm.h",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9"
+        },
+        {
+          "path": "wasm/msm5205_wasm.c",
+          "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471",
+          "size": 2191,
+          "originPath": "native/msm5205/msm5205_wasm.c",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471"
+        },
+        {
+          "path": "scripts/build_msm5205_wasm.sh",
+          "sha256": "2712749f182d50a1c57f0615b3dc47bf6a8e1c6b2e1de9e37ca879ce623b8ca1",
+          "size": 1397,
+          "originPath": "scripts/build_msm5205_wasm.sh",
+          "originRepository": "https://github.com/kyorohiro/hello_ymfm_wasm",
+          "originCommit": "d216b0d63f5061fa2e61262d6298d904076f81a6",
+          "originalSha256": "395c4c8dc612ba4bb3ebace1d17452c35b0727367f14014a59bf55cb76eb9621",
+          "amendmentNote": "SDK-relative build paths/default output and EMCC selection only; C synthesis and WASM ABI unchanged."
+        }
+      ]
     }
   ],
   "artifacts": [
@@ -3175,10 +3343,12 @@
         "vendor/libvgm-msm5205/LICENSE"
       ],
       "native": {
-        "status": "not-ported"
+        "status": "separate-application-module",
+        "module": "msm5205"
       },
       "wasm": {
-        "status": "not-ported"
+        "status": "separate-application-module",
+        "module": "msm5205"
       },
       "provenanceStatus": "imported-reference-source; unchanged from the Tetorica JavaScript implementation"
     },
@@ -3286,6 +3456,54 @@
         "native": "not-integrated",
         "wasm": "not-integrated"
       }
+    }
+  ],
+  "applicationAudio": [
+    {
+      "id": "cdda",
+      "role": "application-audio",
+      "kind": "pcm-device",
+      "chipIds": [],
+      "format": "standalone-audio-wasm",
+      "sourceFiles": [
+        "vendor/tetorica-cdda/cdda_pcm.c",
+        "vendor/tetorica-cdda/cdda_pcm.h",
+        "wasm/cdda_wasm.c"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica-cdda/LICENSE",
+        "vendor/tetorica-cdda/NOTICE.md"
+      ],
+      "buildScript": "scripts/build_cdda_wasm.sh",
+      "buildFiles": [
+        "scripts/build_cdda_wasm.sh"
+      ],
+      "provenanceStatus": "source recipe collected; compiled/runtime verification is recorded separately",
+      "memoryBytes": 131072,
+      "hostImports": 0
+    },
+    {
+      "id": "msm5205",
+      "role": "application-audio",
+      "kind": "adpcm-device",
+      "chipIds": [],
+      "format": "standalone-audio-wasm",
+      "sourceFiles": [
+        "vendor/tetorica-msm5205/msm5205_pcm.c",
+        "vendor/tetorica-msm5205/msm5205_pcm.h",
+        "wasm/msm5205_wasm.c"
+      ],
+      "licenseFiles": [
+        "vendor/tetorica-msm5205/LICENSE",
+        "vendor/tetorica-msm5205/NOTICE.md"
+      ],
+      "buildScript": "scripts/build_msm5205_wasm.sh",
+      "buildFiles": [
+        "scripts/build_msm5205_wasm.sh"
+      ],
+      "provenanceStatus": "source recipe collected; compiled/runtime verification is recorded separately",
+      "memoryBytes": 131072,
+      "hostImports": 0
     }
   ]
 }

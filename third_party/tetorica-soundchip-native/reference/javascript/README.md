@@ -2,7 +2,7 @@
 
 This directory contains the existing Tetorica JavaScript implementations of MSM5205 and OKIM6295. They are synchronous PCM renderers with no audio-device, browser, npm, or other repository dependency. The two engine files are copied byte for byte from the main Tetorica source tree; their packaged hashes and origins are recorded in [the source inventory](../../catalog/source_inventory.json).
 
-These engines are JavaScript references. They do not yet have SDK Native integrations, WASM build recipes, or SDK C ABI entry points. Independently pinned upstream C/C++ originals are collected separately in the vendor directories. Their API is the direct engine API below, rather than `createSoundChip()`.
+These engine files remain unchanged JavaScript references with the direct APIs below, rather than `createSoundChip()`. MSM5205 also has a separate [C11 Native/WASM module](../../vendor/tetorica-msm5205/README.md), preserving the raw register/FIFO behavior and adding a distinct PC Engine RAM playback helper. That compiled module appears under the catalogs' `applicationAudio` entries, not the generic chip factory. OKIM6295 remains reference-only, with no compiled SDK target. Independently pinned upstream C/C++ originals remain separate provenance/reference material, not automatically linked providers.
 
 ## Run the example
 

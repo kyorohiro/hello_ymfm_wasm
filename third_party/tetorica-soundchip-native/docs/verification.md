@@ -1,5 +1,20 @@
 # Verification record
 
+## Unreleased CD-DA and MSM5205 aggregation — 2026-10-28
+
+This is local SDK source aggregation and validation, with the existing 0.1.5 candidate metadata retained. No SDK version tag, remote CI run, published archive or consuming application's fixed SDK pin is changed by this work. Historical records below retain their original dates and scope.
+
+- The original CD-DA and MSM5205 C11 cores, headers and WASM bridges are included without synthesis changes in the two `vendor/tetorica-*` component directories and `wasm/{cdda,msm5205}_wasm.c`. Public C forwarders expose `tetorica::cdda` / `tetorica::msm5205` and the unchanged `cdda_pcm_*` / `msm5205_pcm_*` ABIs. Source audits cover **306 snapshot records**, 24 chip IDs, 29 sound-chip WASM artifacts, two separate `applicationAudio` modules and both JavaScript references. The aggregate build selector exposes 31 recipes. All **88 Python audit/release regression tests** passed, including rejection of parity requests without a supplied or rebuilt application-audio module.
+- An independently extracted source archive built all **23 Native static libraries** and **49 executables**: 28 fixtures and 21 WAV examples. Release CTest passed **29/29 entries**. All **21 WAV examples** rendered 144,000 frames of 48 kHz stereo PCM16, with finite, nonzero output and no clipping. The two unchanged JavaScript references passed their **10 smoke checks**. These stages required no Tauri, npm dependency, sibling checkout, machine runtime or audio device.
+- The three new Native CTest entries also passed from a standalone `cmake -S native` Release build. Two C11 consumers check the CD-DA/MSM5205 source/control contracts; a C++14 consumer links both with the real HuC6280 target.
+- Local Emscripten builds produced both descriptor/raw-WASM pairs byte-identically to the corresponding main application files. Each module has no host imports, fixed 128 KiB linear memory and at most 128 stereo output frames per bridge call. Both archived pairs and both pairs rebuilt from the independently extracted sources passed their standalone Node ABI smokes.
+- Independently compiled C11 cores and C++14 hosts matched both archived and isolated-source rebuilt WASM exactly: CD-DA at 8/44.1/48/384 kHz; MSM5205 raw behavior and the separate PCE driver at 44.1/48 kHz, including all 16 rate register values, an alternate clock and exact render partitions. The raw decoder oracle is the unchanged Analyzer JavaScript reference. Maximum Native/WASM PCM difference was zero in the tested cases; this establishes model agreement, not analog/hardware equivalence.
+- The new original three-source WAV example auditions HuC6280, MSM5205 and CD-DA before their sum. Measured solo RMS values were approximately 0.05679, 0.07070 and 0.05656; the combined peak was approximately 0.30832, with no clipping and an exactly silent final **0.2 seconds**. The explicit 0.5 master scalar applies once. No human listening test is claimed.
+
+The outer archive-checker invocation exited with status 1 when its final Emscripten rebuild encountered a toolchain-cache `PermissionError`. The failed build subprocess was retried with the required cache access; both isolated-source builds, ABI smokes and Native parity checks then completed successfully as separate stages, without a source-code change. The completed stages above are not a claim that the original outer invocation returned success.
+
+The configured five-platform Native matrix and five selected WASM jobs do not establish remote platform success for these additions. No new SDK release or consumer-pin update is claimed.
+
 ## SDK 0.1.5 preparation — 2026-10-27
 
 Version metadata and the changelog now identify the POKEY source candidate as **0.1.5**. Local source packaging does not create a Git tag, remote CI run or published release. An application may explicitly import a hash-pinned local candidate while recording its base commit and changed paths separately; replace that provenance only after adopting the actual tagged archive. The POKEY implementation and tested synthesis inputs remain unchanged from the development validation below.

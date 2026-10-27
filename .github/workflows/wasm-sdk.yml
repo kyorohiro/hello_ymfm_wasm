@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   wasm-sdk:
-    name: All 28 WASM builds
+    name: All 31 fixed SDK WASM builds
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -31,7 +31,7 @@ jobs:
         with:
           version: '6.0.6'
       - name: Test receipt validation, runner guards and standalone DX7 checks
-        run: node --test test/wasm_sdk_inventory.test.mjs test/check_wasm_sdk.test.mjs test/check_dx7_wasm_sdk_cli.test.mjs test/wonderswan_sdk_receipt.test.mjs
+        run: node --test test/wasm_sdk_inventory.test.mjs test/application_audio_sdk.test.mjs test/check_wasm_sdk.test.mjs test/check_dx7_wasm_sdk_cli.test.mjs test/wonderswan_sdk_receipt.test.mjs
       - name: Build all fixed SDK cores and compare with the committed runtimes
         run: node scripts/check_wasm_sdk.mjs --work-dir "$RUNNER_TEMP/wasm-sdk"
       - name: Retain build logs, receipts and parity reports
@@ -54,10 +54,15 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22'
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
       - uses: emscripten-core/setup-emsdk@667eb33f24e84e7f362c16d8d7fff0629a73e15e # v15
         with:
           version: '6.0.6'
-      - name: Build application-owned PCM cores
+      - name: Check fixed SDK routing and snapshot guards
+        run: python3 -m unittest discover -s test -p 'test_application_audio_sdk_build.py'
+      - name: Build PCM cores from the fixed SDK
         run: |
           sh scripts/build_cdda_wasm.sh
           sh scripts/build_msm5205_wasm.sh
@@ -67,6 +72,8 @@ jobs:
           node scripts/check_msm5205_core.mjs > "$RUNNER_TEMP/msm5205-core.json"
       - name: Check sample preparation, lifecycle and three-source offline output
         run: node --test web/cdda_*.test.mjs web/msm5205_*.test.mjs
+      - name: Rebuild distributed source bundles without the SDK checkout
+        run: node scripts/check_application_audio_source_bundles.mjs --build
       - name: Retain audio core comparison reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

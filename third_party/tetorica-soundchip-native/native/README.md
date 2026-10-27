@@ -1,7 +1,7 @@
 # Native sources
 
 This directory contains existing chip-level C++/C ABI wrappers as bootstrap
-references and the SDK's raw WonderSwan/POKEY C++ targets, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
+references, the SDK's raw WonderSwan/POKEY C++ targets, and the CD-DA/MSM5205 C11 modules, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
 QuickJS, UI, or audio-device code. Existing applications still use their current
 sources. Collecting them here does not yet switch those consumers to this SDK.
 
@@ -29,13 +29,11 @@ translation-unit constraints.
 
 ## Build support
 
-Requirements: CMake 3.20 or newer, a C++17 compiler and a C compiler (C11 or newer for Nuked).
+Requirements for the complete build: CMake 3.20 or newer, a C++17 compiler and a C11 compiler. The CD-DA and MSM5205 modules can also compile independently as C11 and expose C-compatible headers to C or C++14 callers.
 
 The independently buildable Native components are **ymfm YM2612, YM2151,
 YM2413, YM2203, YM2608 and YM2610/YM2610B, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback, WonderSwan, POKEY and YM3526/YM3812/YMF262/Y8950**.
-These twenty-four chip IDs and the alternative Nuked YM2612 engine use twenty-one static libraries; YM2610/YM2610B share one
-library, and four OPL-family chips share another. Constructors explicitly select
-the per-handle variant/kind. Twenty-six aliases/headers include generic OPL and the alternative Nuked engine:
+These 24 chip IDs and the alternative Nuked YM2612 engine use 21 static libraries. Separate CD-DA and MSM5205 application-audio modules bring the total to 23 libraries and 28 aliases/public headers. YM2610/YM2610B share a library, as do four OPL-family chips; constructors explicitly select the per-handle variant/kind. Generic OPL and the alternative Nuked engine add aliases without adding chip IDs:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -46,7 +44,7 @@ ctest --test-dir build -C Release --output-on-failure
 The same targets can be configured directly with `cmake -S native -B
 build/native`. Neither build downloads dependencies.
 
-| CMake target | Static library target | Public C++ header | Public API |
+| CMake target | Static library target | Public header | Public API |
 | --- | --- | --- | --- |
 | `tetorica::ym2612` | `tetorica_native_ym2612` | `<tetorica/ym2612.hpp>` | `native_ym2612_*`, `NativeYm2612State` |
 | `tetorica::nuked_ym2612` | `tetorica_native_nuked_ym2612` | `<tetorica/nuked_ym2612.hpp>` | `native_nuked_ym2612_*`, `tetorica_nuked_*`, `NativeYm2612State` |
@@ -69,11 +67,13 @@ build/native`. Neither build downloads dependencies.
 | `tetorica::spc` | `tetorica_native_spc` | `<tetorica/spc.hpp>` | `native_spc_*`, `NativeSpcState`, `NativeSpcEvent` |
 | `tetorica::pokey` | `tetorica_native_pokey` | `<tetorica/pokey.hpp>` | `tetorica::Pokey`, one four-channel chip per object |
 | `tetorica::wonderswan` | `tetorica_native_wonderswan` | `<tetorica/wonderswan.hpp>` | Raw C++ `WonderSwan` class; no Tauri C ABI |
+| `tetorica::cdda` | `tetorica_native_cdda` | `<tetorica/cdda.h>` | `cdda_pcm_*`, `cdda_pcm_state`; original C11 PCM device |
+| `tetorica::msm5205` | `tetorica_native_msm5205` | `<tetorica/msm5205.h>` | `msm5205_pcm_*`, `msm5205_pcm_state`; raw decoder and PCE RAM helper |
 
 The imported adapters' exported names and observational state layouts remain
 unchanged. Their headers expose the current reference C ABI to C++ hosts; they
 are not yet a new versioned, portable C-only SDK header. WonderSwan instead
-exposes its existing raw C++ class, with no new C ABI or state structure.
+exposes its existing raw C++ class, with no new C ABI or state structure. The two application-audio headers are a separate exception: they forward the original C11 declarations with `extern "C"` for C++ consumers, without introducing renamed wrapper functions.
 
 The YM2612 fixture exercises two independent instances, all six FM channels, DAC, timers,
 status/IRQ, clock changes, observational snapshots, cancellation, retained Stop,
@@ -107,8 +107,7 @@ clock/divider guards, pan, repeat, retained Stop/reset and observation.
 The RF5C164 fixture covers both profiles, eight voices, sign-magnitude PCM,
 loop markers, RAM/bank access, clock conversion, reset retention and the
 additional profile's immediate source cancellation and observation.
-Twenty-four fixture executables supply twenty-five CTest tests, with assertions enabled
-in Release builds. The SNES executable supplies two entries.
+The full suite supplies 29 CTest entries from 28 fixture executables, with assertions enabled in Release builds. The SNES executable supplies two entries. Three fixtures cover CD-DA, MSM5205 and their combined HuC6280 host.
 The three OPL-family fixtures exercise primary controls/PCM, additional source
 ownership/held output, and Y8950 writable-page memory separately. The shared OPL
 library covers four selected chip kinds; each handle constructs only one kind.
@@ -1768,3 +1767,68 @@ supply their own lifetime and synchronization policy. None of the Native wrapper
 Playground's 16-instance/64 MiB rack, timestamp queue, owner leases, or thread
 coordination by itself. Each host must keep chip access serial and satisfy the
 existing pointer-lifetime contract.
+
+
+## Embed CD-DA and PC Engine ADPCM
+
+These two application-audio modules retain the same C11 core/header/bridge bytes as the Web/Native application sources. Link only the modules needed by the host:
+
+```cmake
+target_link_libraries(your_application PRIVATE
+  tetorica::huc6280 tetorica::msm5205 tetorica::cdda)
+```
+
+`tetorica::cdda` and `tetorica::msm5205` do not depend on HuC6280 or on one another; the three-target link above is an example PC Engine CD sound configuration. They appear in the catalogs' `applicationAudio` arrays, not the 24 generic chip IDs. There is no SDK JavaScript chip factory, machine emulator, audio device, event queue, Mixer preset or encoded-sample loader associated with these targets.
+
+### CD-DA stereo PCM
+
+Include `<tetorica/cdda.h>`, create a `cdda_pcm_state`, initialize it with the integer host output rate, and prepare decoded raw audio:
+
+```c
+#include <tetorica/cdda.h>
+
+int prepare_track(cdda_pcm_state *s, const uint8_t *pcm, uint32_t bytes) {
+    return cdda_pcm_init(s, 48000) && cdda_pcm_prepare(s, pcm, bytes);
+}
+/* After preparation, serialize these calls with all other state access:
+   cdda_pcm_play(s);
+   cdda_pcm_render(s, left, right, frames);
+*/
+```
+
+The source must be nonempty, raw interleaved **little-endian stereo PCM16 at 44,100 Hz**, with a byte length divisible by four and no greater than 256 MiB. A RIFF/WAV header must be parsed and excluded by the host. Preparation borrows immutable data until replacement or the end of the player's use; the core neither allocates nor owns the bytes. It preserves gain, mute and the host output-frame counter.
+
+Output is planar float at 8,000–384,000 Hz with integer source-frame/phase timing and linear interpolation. The render function replaces both buffers, including exact silence when inactive. At EOF the cursor is exactly the source-frame count, phase is zero and state is Ended; the final source sample is held until its duration expires. Play starts from zero, Pause preserves cursor/phase, Resume continues, and Stop rewinds to Ready while retaining the source. Seek addresses source frames, including the EOF position. No looping, disc access, track transition or fade is implicit.
+
+`prepare_windowed()` and `set_window()` support a host-retained source with a smaller borrowed scratch window. The window must cover each render's source frames and interpolation lookahead. Insufficient coverage rejects a render before writing its outputs. The standalone WASM bridge uses this path with a fixed 4 KiB window rather than storing a complete track in its 128 KiB heap.
+
+### MSM5205 raw and RAM modes
+
+Include `<tetorica/msm5205.h>`, initialize a host-owned `msm5205_pcm_state`, then prepare a packed sample and play a bounded nibble range:
+
+```c
+#include <tetorica/msm5205.h>
+
+int prepare_sample(msm5205_pcm_state *s, const uint8_t *adpcm, uint32_t bytes) {
+    return msm5205_pcm_init(s, 48000, MSM5205_PCM_DEFAULT_CLOCK) &&
+           msm5205_pcm_prepare(s, adpcm, bytes);
+}
+/* With state access serialized, a full one-shot at PCE rate register 12:
+   msm5205_pcm_play(s, 0, bytes * 2, 0, 12);
+   msm5205_pcm_render(s, left, right, frames);
+*/
+```
+
+The core borrows 1–65,536 immutable bytes, high nibble first. Offset and length are **nibbles**, permitting odd boundaries, and must describe a nonempty range in the prepared data. Play resets predictor/step, decodes its first nibble immediately and advances through the remaining stream on the source clock. The rate register 0–15 gives `clock / (48 * (16 - rate))`. The compatibility default is 1,536,000 Hz: register 12 is 8 kHz and 15 is 32 kHz. Other explicit clock values, including 1,540,200 Hz, are supported. Guards accept integer output rates 8,000–384,000 Hz and clock 1–`0x3fffffff`.
+
+One-shot EOF gives cursor `offset + length`, zero phase and exact silence. Looping wraps the encoded source without resetting predictor/step; the host must prepare data that can loop smoothly. Arbitrary middle ranges can click, grow or decay. Stop selects silent Ready RAM mode, retaining the source. Reset retains source/gain/mute/output-frame count and restores full range, rate 15 and raw-control defaults; with a source attached it remains in Ready RAM mode.
+
+Raw register writes retain the Analyzer model: a seven-nibble FIFO, reset, 3/4-bit decoding, internal prescalers and external VCLK. Registers are 0–7, values 0–15. The first write after RAM playback cancels that playback and starts a fresh raw decoder; the source remains available for a later explicit Play. Raw initialization/reset without a source intentionally retains signal −2 and its small DC output. A host that renders the device before its first sample should call Stop for exact inactive silence. The core adds no DC filter, gain preset, pan or normalization. See the [component guide](../vendor/tetorica-msm5205/README.md) for the register map and reference provenance.
+
+### Lifetime, observation and mixed output
+
+Both modules return 1 on success and 0 for invalid input, with rejected operations preserving state. Gain is finite 0–16 and mute is exactly 0 or 1. While playing, mute and gain zero mask output while clock/decoder progression continues. The `output_frames` counter includes all rendered host frames, including inactive silence. CD-DA retains distinct stereo channels; MSM5205 duplicates mono to left and right.
+
+The C state is caller-owned and contains a borrowed source pointer, so it is not a portable serialized checkpoint. Read fields only while rendering and controls are excluded. Prepare storage on control, publish it through the host's own synchronized handoff, and retire it only after the callback can no longer use it. The cores contain no allocation/free, locking, host callbacks or lifetime queue. A shared render clock and host scheduling are required when mixing these devices with HuC6280; sample encoding, file decoding, WAV/track manifests, fades, mixing gains and device output remain host work.
+
+`tetorica_pcengine_cd_wav [output.wav]` demonstrates this boundary using original generated data. Its default file is `pcengine-cd.wav`: three seconds of 48 kHz stereo PCM16, with HuC6280, ADPCM and CD-DA solo sections, then their sum and a silent tail. The example applies one explicit master scalar; it establishes no SDK-wide loudness preset or hardware analog balance.

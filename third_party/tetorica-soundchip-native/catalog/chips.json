@@ -213,6 +213,108 @@
       ]
     }
   ],
+  "applicationAudio": [
+    {
+      "id": "cdda",
+      "kind": "pcm-device",
+      "licenseFiles": [
+        "vendor/tetorica-cdda/LICENSE",
+        "vendor/tetorica-cdda/NOTICE.md"
+      ],
+      "native": {
+        "buildFiles": [
+          "native/CMakeLists.txt",
+          "native/include/tetorica/cdda.h"
+        ],
+        "cmakeAlias": "tetorica::cdda",
+        "id": "cdda",
+        "kind": "pcm-device",
+        "licenseFiles": [
+          "vendor/tetorica-cdda/LICENSE",
+          "vendor/tetorica-cdda/NOTICE.md"
+        ],
+        "publicHeader": "native/include/tetorica/cdda.h",
+        "role": "application-audio",
+        "sourceFiles": [
+          "vendor/tetorica-cdda/cdda_pcm.c",
+          "vendor/tetorica-cdda/cdda_pcm.h"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_cdda",
+        "tests": [
+          "native/tests/cdda_fixture.c",
+          "native/tests/pce_cd_fixture.cpp"
+        ],
+        "verificationScope": "Targeted local Release C11 tests and C++14 three-source co-link test passed. Full extracted archive and remote CI results are recorded separately."
+      },
+      "role": "application-audio",
+      "sourceFiles": [
+        "vendor/tetorica-cdda/cdda_pcm.c",
+        "vendor/tetorica-cdda/cdda_pcm.h",
+        "wasm/cdda_wasm.c"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_cdda_wasm.sh",
+            "format": "standalone-audio-wasm",
+            "id": "cdda"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    },
+    {
+      "id": "msm5205",
+      "kind": "adpcm-device",
+      "licenseFiles": [
+        "vendor/tetorica-msm5205/LICENSE",
+        "vendor/tetorica-msm5205/NOTICE.md"
+      ],
+      "native": {
+        "buildFiles": [
+          "native/CMakeLists.txt",
+          "native/include/tetorica/msm5205.h"
+        ],
+        "cmakeAlias": "tetorica::msm5205",
+        "id": "msm5205",
+        "kind": "adpcm-device",
+        "licenseFiles": [
+          "vendor/tetorica-msm5205/LICENSE",
+          "vendor/tetorica-msm5205/NOTICE.md"
+        ],
+        "publicHeader": "native/include/tetorica/msm5205.h",
+        "role": "application-audio",
+        "sourceFiles": [
+          "vendor/tetorica-msm5205/msm5205_pcm.c",
+          "vendor/tetorica-msm5205/msm5205_pcm.h"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_msm5205",
+        "tests": [
+          "native/tests/msm5205_fixture.c",
+          "native/tests/pce_cd_fixture.cpp"
+        ],
+        "verificationScope": "Targeted local Release C11 tests and C++14 three-source co-link test passed. Full extracted archive and remote CI results are recorded separately."
+      },
+      "role": "application-audio",
+      "sourceFiles": [
+        "vendor/tetorica-msm5205/msm5205_pcm.c",
+        "vendor/tetorica-msm5205/msm5205_pcm.h",
+        "wasm/msm5205_wasm.c"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_msm5205_wasm.sh",
+            "format": "standalone-audio-wasm",
+            "id": "msm5205"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    }
+  ],
   "chips": [
     {
       "id": "ay8910",
@@ -2132,14 +2234,16 @@
         "vendor/libvgm-msm5205/LICENSE"
       ],
       "native": {
-        "status": "not-ported"
+        "module": "msm5205",
+        "status": "separate-application-module"
       },
       "provenanceStatus": "imported-reference-source; unchanged from the Tetorica JavaScript implementation",
       "sourceFiles": [
         "reference/javascript/msm5205audioengine.js"
       ],
       "wasm": {
-        "status": "not-ported"
+        "module": "msm5205",
+        "status": "separate-application-module"
       }
     },
     {
@@ -2165,7 +2269,8 @@
     "Source collection covers these 24 SDK chip IDs; each Native verificationScope records its supported API and tested configurations. POKEY is a standalone SDK addition, not an application-mode integration.",
     "A WASM recipe is not a claim of runtime verification; release build-info and tests report the verified scope.",
     "snes (DSP/RAM access) and spc (SPC CPU/file player) share the SNES-SPC sources but remain separate APIs.",
-    "JavaScript references are separate from the 24 SDK chip IDs and 29 WASM recipes; their Native/WASM ports are not implemented.",
+    "Two application-audio modules, CD-DA and MSM5205, are separate from the 24 SDK chip IDs and 29 chip WASM recipes; they add two standalone C/WASM recipes without changing existing chip APIs.",
+    "The MSM5205 JavaScript reference remains unchanged and serves as a behavioral reference for the separate C application module. OKIM6295 remains a JavaScript/upstream reference without an SDK Native/WASM target.",
     "Pinned upstream source references preserve original C/C++ implementations and dependencies; they are not additional SDK Native/WASM targets."
   ],
   "schemaVersion": 1,

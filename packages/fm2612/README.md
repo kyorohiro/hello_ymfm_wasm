@@ -176,7 +176,12 @@ execution and independent Mixer inputs; experimental Native playback requires
 a compatible Tauri host. This package implements audio playback, not a console,
 BIOS or disc-image reader. External sample/disc ROMs are not included. Complete
 BSD sources and build recipes are in `sources/native/cdda/` and
-`sources/native/msm5205/`, with the MSM5205 upstream attribution preserved.
+`sources/native/msm5205/`, with BSD notices and the MSM5205 upstream attribution
+preserved. These original core/bridge bytes come from the fixed sound-chip SDK;
+`sources/CDDA.json` and `sources/MSM5205.json` record the SDK pin and source
+hashes. See `sources/CDDA.md` and `sources/MSM5205.md` for standalone Emscripten
+recipes that require no SDK checkout or importer. Application-audio modules
+remain separate from generic sound-chip factory IDs.
 
 ### OPL family instruments
 
@@ -638,9 +643,9 @@ applied to dual POKEY.
 
 The package includes the adaptation, exact BSD-labeled upstream `pokey.c`,
 notices and standalone recipe in `sources/POKEY.md` and
-`licenses/libvgm-pokey/`. These inputs come from the fixed SDK 0.1.5 local
-candidate; `sources/POKEY-SDK.json` retains its archive hash and base-commit
-provenance without claiming an already published SDK tag. No Atari CPU, ROM,
+`licenses/libvgm-pokey/`. These inputs come from the fixed SDK 0.1.5;
+`sources/POKEY-SDK.json` retains its source archive hash and commit provenance.
+No Atari CPU, ROM,
 full machine emulation or external sample is included.
 
 ## Included sound chips
@@ -1189,6 +1194,11 @@ The build is staged in `dist/fm2612/`; packing produces
 npm install /absolute/path/to/tetorica-fm2612-0.2.32.tgz
 ```
 
+Current source bundles use published `tetorica-soundchip-native` SDK **0.1.5**.
+The SDK provides 29 chip WASM recipes and 2 separate application-audio recipes
+(CD-DA and MSM5205). Bundled source receipts preserve its source commit, archive
+and manifest hashes; standalone recipes rebuild without checking out the SDK.
+
 The existing `tetorica-vgm` CLI package is built separately. This first package
 keeps the browser payload together with the shared core; separate browser/Node
 adapter packages can reuse the core later without duplicating it.
@@ -1219,9 +1229,9 @@ four-channel Synth, Mixer/Worker transport, independently owned dual-POKEY
 instances and a self-contained BSD source bundle. The bundled Playground
 timeline client transfers small owned chunks and validates them across audio
 quanta, with atomic commit and cancellation on Stop, owner/session replacement
-and disposal. The SDK 0.1.5 source candidate remains hash pinned, with its local
-archive/base-commit provenance retained; this npm release does not publish an
-SDK GitHub Release.
+and disposal. That npm release used a hash-pinned SDK 0.1.5 source candidate
+with local archive/base-commit provenance. Current source bundles use the
+published SDK 0.1.5 release described above.
 
 `0.2.30` connects **WonderSwan to the public Direct and AudioWorklet factory**,
 with the shared Mixer, typed raw API and `WonderSwanWorkletTransport` for Synth

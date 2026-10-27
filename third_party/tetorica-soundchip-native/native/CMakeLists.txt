@@ -10,6 +10,18 @@ get_filename_component(TETORICA_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE
 option(TETORICA_NATIVE_BUILD_TESTS "Build the standalone Native core tests" ON)
 option(TETORICA_NATIVE_BUILD_EXAMPLES "Build the standalone Native examples" ON)
 
+# Application-owned PCM transports. Keep the original C ABI and C11 sources;
+# these modules own no device, machine, source allocation, or Tauri dependency.
+foreach(component IN ITEMS cdda msm5205)
+  add_library(tetorica_native_${component} STATIC
+    "${TETORICA_SDK_ROOT}/vendor/tetorica-${component}/${component}_pcm.c")
+  add_library(tetorica::${component} ALIAS tetorica_native_${component})
+  target_compile_features(tetorica_native_${component} PUBLIC c_std_11)
+  target_include_directories(tetorica_native_${component} PUBLIC
+    "${CMAKE_CURRENT_LIST_DIR}/include"
+    "${TETORICA_SDK_ROOT}/vendor/tetorica-${component}")
+endforeach()
+
 # First independently buildable component. The Native-owned provider explicitly
 # instantiates adapter templates without changing the pinned ymfm source bytes.
 # No Rust, Tauri, CPAL, device, or fetch is used.
@@ -503,6 +515,13 @@ if(MSVC)
 endif()
 
 if(TETORICA_NATIVE_BUILD_EXAMPLES)
+  add_executable(tetorica_pcengine_cd_wav examples/pcengine_cd_wav.cpp)
+  target_compile_features(tetorica_pcengine_cd_wav PRIVATE cxx_std_14)
+  target_link_libraries(tetorica_pcengine_cd_wav PRIVATE
+    tetorica::huc6280 tetorica::msm5205 tetorica::cdda)
+  if(MSVC)
+    target_compile_options(tetorica_pcengine_cd_wav PRIVATE /EHsc)
+  endif()
   add_executable(tetorica_pokey_wav examples/pokey_wav.cpp)
   target_link_libraries(tetorica_pokey_wav PRIVATE tetorica::pokey)
   if(MSVC)
@@ -606,6 +625,25 @@ if(TETORICA_NATIVE_BUILD_EXAMPLES)
 endif()
 
 if(TETORICA_NATIVE_BUILD_TESTS)
+  add_executable(tetorica_cdda_fixture tests/cdda_fixture.c)
+  target_link_libraries(tetorica_cdda_fixture PRIVATE tetorica::cdda)
+  add_executable(tetorica_msm5205_fixture tests/msm5205_fixture.c)
+  target_link_libraries(tetorica_msm5205_fixture PRIVATE tetorica::msm5205)
+  add_executable(tetorica_pce_cd_fixture tests/pce_cd_fixture.cpp)
+  target_compile_features(tetorica_pce_cd_fixture PRIVATE cxx_std_14)
+  target_link_libraries(tetorica_pce_cd_fixture PRIVATE
+    tetorica::huc6280 tetorica::msm5205 tetorica::cdda)
+  foreach(fixture IN ITEMS cdda msm5205 pce_cd)
+    if(MSVC)
+      target_compile_options(tetorica_${fixture}_fixture PRIVATE /UNDEBUG)
+    else()
+      target_compile_options(tetorica_${fixture}_fixture PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME tetorica.${fixture}.self_test COMMAND tetorica_${fixture}_fixture)
+  endforeach()
+  if(MSVC)
+    target_compile_options(tetorica_pce_cd_fixture PRIVATE /EHsc)
+  endif()
   add_executable(tetorica_pokey_fixture tests/pokey_fixture.cpp)
   target_link_libraries(tetorica_pokey_fixture PRIVATE tetorica::pokey)
   if(MSVC)

@@ -11,6 +11,7 @@ CHIP_IDS = frozenset((
     "huc6280", "okim6258", "ym3526", "ym3812", "y8950", "ymf262", "ym2413", "ay8910", "wonderswan", "pokey",
 ))
 JAVASCRIPT_REFERENCE_IDS = frozenset(("msm5205", "okim6295"))
+APPLICATION_AUDIO_IDS = frozenset(("cdda", "msm5205"))
 UPSTREAM_REFERENCE_IDS = frozenset((
     "libvgm-msm5205-upstream", "libvgm-okim6295-upstream", "mame-okim6295-upstream",
 ))
@@ -161,6 +162,29 @@ def check_collection(root=ROOT):
                 check_references(item)
     for value in (inventory, native, catalog):
         check_references(value)
+    applications = inventory.get("applicationAudio", [])
+    native_audio_entries = native.get("applicationAudio", [])
+    catalog_audio_entries = catalog.get("applicationAudio", [])
+    native_applications = {entry["id"]: entry for entry in native_audio_entries}
+    catalog_applications = {entry["id"]: entry for entry in catalog_audio_entries}
+    application_ids = [entry["id"] for entry in applications]
+    if applications or native_applications or catalog_applications:
+        if len(application_ids) != len(set(application_ids)) or len(native_audio_entries) != len(native_applications) or len(catalog_audio_entries) != len(catalog_applications) or set(application_ids) != APPLICATION_AUDIO_IDS or set(native_applications) != APPLICATION_AUDIO_IDS or set(catalog_applications) != APPLICATION_AUDIO_IDS:
+            raise ValueError("Application audio inventories must include CD-DA and MSM5205 exactly once")
+        for entry in applications:
+            identifier = entry["id"]
+            if entry.get("format") != "standalone-audio-wasm" or entry.get("role") != "application-audio" or entry.get("chipIds") != []:
+                raise ValueError(f"Application audio is a separate standalone PCM API: {identifier}")
+            if not entry.get("sourceFiles") or not entry.get("licenseFiles") or not set(entry["sourceFiles"] + entry["licenseFiles"]).issubset(recorded_sources):
+                raise ValueError(f"Application audio lacks source/license hash provenance: {identifier}")
+            device = native_applications[identifier]
+            if device.get("target") != f"tetorica_native_{identifier}" or device.get("cmakeAlias") != f"tetorica::{identifier}":
+                raise ValueError(f"Application audio has an invalid Native target: {identifier}")
+            if device.get("publicHeader") != f"native/include/tetorica/{identifier}.h":
+                raise ValueError(f"Application audio has an invalid public header: {identifier}")
+            local_path(root, device["publicHeader"])
+            if catalog_applications[identifier].get("native") != device or catalog_applications[identifier].get("wasm", {}).get("artifacts") != [{key: entry[key] for key in ("id", "format", "buildScript")}]:
+                raise ValueError(f"Application audio catalogs differ; run scripts/refresh_catalog.py: {identifier}")
     javascript = inventory.get("javascriptReferences", [])
     javascript_ids = [entry["id"] for entry in javascript]
     if len(javascript_ids) != len(set(javascript_ids)) or set(javascript_ids) != JAVASCRIPT_REFERENCE_IDS:
@@ -170,8 +194,9 @@ def check_collection(root=ROOT):
     for entry in javascript:
         if entry.get("format") != "javascript-es-module":
             raise ValueError(f"Unsupported JavaScript reference format: {entry['id']}")
-        if entry.get("native", {}).get("status") != "not-ported" or entry.get("wasm", {}).get("status") != "not-ported":
-            raise ValueError(f"JavaScript reference must not claim a Native/WASM port: {entry['id']}")
+        expected_backend = {"status": "separate-application-module", "module": "msm5205"} if entry["id"] == "msm5205" and applications else {"status": "not-ported"}
+        if entry.get("native") != expected_backend or entry.get("wasm") != expected_backend:
+            raise ValueError(f"JavaScript reference must retain its separate backend role: {entry['id']}")
         name = entry.get("entryPoint")
         local_path(root, name)
         if not entry.get("licenseFiles") or not entry.get("sourceFiles") or name not in entry["sourceFiles"]:
@@ -182,4 +207,4 @@ def check_collection(root=ROOT):
         if not chip.get("sourceFiles") or not chip.get("licenseFiles"):
             raise ValueError(f"Incomplete chip catalog entry: {chip['id']}")
     upstream = check_upstream_references(root, inventory, catalog)
-    return {"chips": len(ids), "artifacts": len(inventory["artifacts"]), "javascriptReferences": len(javascript), "upstreamReferences": upstream, "snapshotFiles": count}
+    return {"chips": len(ids), "artifacts": len(inventory["artifacts"]), "applicationAudio": len(applications), "javascriptReferences": len(javascript), "upstreamReferences": upstream, "snapshotFiles": count}

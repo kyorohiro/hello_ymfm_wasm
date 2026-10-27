@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright (c) 2026, kyorohiro
-// Compile the shared source as C and C++, compare actual Native/WASM PCM,
+// Compile the fixed SDK source as C and C++, compare actual Native/WASM PCM,
 // and exercise windowed loading without an AudioContext or synthetic mock.
 import assert from 'node:assert/strict';
 import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
@@ -18,6 +18,7 @@ const run = (program, args) => {
   assert.equal(result.status, 0, `${program} ${args.join(' ')}\n${result.stdout}\n${result.stderr}`);
   return result.stdout;
 };
+run('python3', [join(root, 'scripts/import_soundchip_sdk.py'), '--check']);
 const source = String.raw`
 #include "cdda_pcm.h"
 #include <cassert>
@@ -98,10 +99,10 @@ int main(int argc, char **argv) {
 `;
 await writeFile(join(temp, 'native.cpp'), source);
 run(process.env.CXX || 'clang++', ['-std=c++14', '-O2', '-ffp-contract=off', '-x', 'c++',
-  join(temp, 'native.cpp'), join(root, 'native/cdda/cdda_pcm.c'),
-  '-I', join(root, 'native/cdda'), '-o', join(temp, 'native')]);
+  join(temp, 'native.cpp'), join(root, 'third_party/tetorica-soundchip-native/vendor/tetorica-cdda/cdda_pcm.c'),
+  '-I', join(root, 'third_party/tetorica-soundchip-native/vendor/tetorica-cdda'), '-o', join(temp, 'native')]);
 run(process.env.CC || 'clang', ['-std=c11', '-Wall', '-Wextra', '-Werror', '-c',
-  join(root, 'native/cdda/cdda_pcm.c'), '-o', join(temp, 'cdda-c11.o')]);
+  join(root, 'third_party/tetorica-soundchip-native/vendor/tetorica-cdda/cdda_pcm.c'), '-o', join(temp, 'cdda-c11.o')]);
 const sourceFrames = 131072;
 const pcm = new Uint8Array(sourceFrames * 4);
 const pcmView = new DataView(pcm.buffer);

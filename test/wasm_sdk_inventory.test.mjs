@@ -24,7 +24,7 @@ async function outputFixture(t) {
   const base = await temporary(t);
   const directory = path.join(base, 'outputs');
   await mkdir(directory);
-  await Promise.all(inventory.artifacts.flatMap(artifact => artifact.outputs).map(name =>
+  await Promise.all(inventory.builds.flatMap(artifact => artifact.outputs).map(name =>
     copyFile(path.join(deployed, name), path.join(directory, name))));
   const receipt = structuredClone(original);
   const save = () => writeFile(path.join(directory, 'build-info.json'), JSON.stringify(receipt));
@@ -38,7 +38,7 @@ async function sdkFixture(t, {sources = false} = {}) {
   await mkdir(sdkRoot, {recursive: true});
   await copyFile(path.join(root, 'third_party/soundchip-sdk.json'), path.join(base, 'third_party/soundchip-sdk.json'));
   const names = new Set(['RELEASE-MANIFEST.json', 'catalog/source_inventory.json']);
-  if (sources) for (const artifact of inventory.artifacts) for (const name of artifact.sourcePaths) names.add(name);
+  if (sources) for (const artifact of inventory.builds) for (const name of artifact.sourcePaths) names.add(name);
   await Promise.all([...names].map(async name => {
     const target = path.join(sdkRoot, name);
     await mkdir(path.dirname(target), {recursive: true});
@@ -78,7 +78,7 @@ test('validates all actual receipts, pinned sources and WASM ABI descriptors wit
   const summary = await verifyWasmBuildDirectory({root, directory: deployed, inventory, allowApplicationAudio: true});
   assert.equal(summary.artifactCount, 29);
   assert.equal(summary.outputCount, 57);
-  assert.equal(summary.verifiedSourceCount, new Set(inventory.artifacts.flatMap(artifact => artifact.sourcePaths)).size);
+  assert.equal(summary.verifiedSourceCount, new Set(inventory.builds.flatMap(artifact => artifact.sourcePaths)).size);
   assert.equal(summary.sourcesVerified, true);
   assert.equal(summary.applicationAudioCount, 2);
   assert.equal(summary.applicationAudioOutputCount, 4);
@@ -96,27 +96,35 @@ test('accepts an isolated copied build directory and explicitly skipped source I
   assert.equal(summary.outputCount, 57);
   assert.equal(summary.verifiedSourceCount, 0);
   assert.equal(summary.sourcesVerified, false);
-  assert.equal(summary.applicationAudioCount, 0);
-  assert.equal(summary.applicationAudioOutputCount, 0);
-  assert.deepEqual(summary.applicationAudio, []);
+  assert.equal(summary.applicationAudioCount, inventory.applicationAudio.length);
+  assert.equal(summary.applicationAudioOutputCount, inventory.applicationAudio.length * 2);
+  assert.deepEqual(summary.applicationAudio.map(a => a.id), inventory.applicationAudio.map(a => a.id));
 });
 
 async function applicationFixture(t, ids = ['cdda', 'msm5205']) {
   const fixture = await outputFixture(t);
+  const oldSDK = await sdkFixture(t);
+  await oldSDK.editCatalog(catalog => { delete catalog.applicationAudio; });
+  const historicalInventory = await loadWasmSdkInventory(oldSDK);
+  fixture.receipt.artifacts = fixture.receipt.artifacts.filter(a => !['cdda', 'msm5205'].includes(a.id));
+  for (const id of ['cdda', 'msm5205']) for (const ext of ['js', 'wasm'])
+    await rm(path.join(fixture.directory, `${id}_wasm.${ext}`), {force: true});
+  await fixture.save();
   for (const id of ids) for (const ext of ['js', 'wasm']) {
     const name = `${id}_wasm.${ext}`;
     await copyFile(path.join(deployed, name), path.join(fixture.directory, name));
   }
-  return fixture;
+  return {...fixture, inventory: historicalInventory};
 }
 
-test('default SDK validation still rejects the deployed application-owned pairs', async () => {
-  await assert.rejects(verifyWasmBuildDirectory({directory: deployed, inventory, verifySources: false}), /missing or extra/);
+test('historical SDK validation rejects unpinned application pairs without explicit opt-in', async t => {
+  const fixture = await applicationFixture(t);
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, verifySources: false}), /missing or extra/);
 });
 
 test('explicit application opt-in reports the two known devices separately with actual byte hashes and ABI', async t => {
   const fixture = await applicationFixture(t);
-  const summary = await verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true});
+  const summary = await verifyWasmBuildDirectory({...fixture, inventory: fixture.inventory, verifySources: false, allowApplicationAudio: true});
   assert.equal(summary.artifactCount, 29); assert.equal(summary.outputCount, 57);
   assert.equal(summary.applicationAudioCount, 2); assert.equal(summary.applicationAudioOutputCount, 4);
   assert.deepEqual(summary.applicationAudio.map(a => a.id), ['cdda', 'msm5205']);
@@ -134,7 +142,7 @@ test('explicit application opt-in reports the two known devices separately with 
 test('application opt-in permits a complete known pair but never imports its JavaScript', async t => {
   const fixture = await applicationFixture(t, ['cdda']);
   await writeFile(path.join(fixture.directory, 'cdda_wasm.js'), 'throw new Error("metadata validation must not execute generated JS");');
-  const summary = await verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true});
+  const summary = await verifyWasmBuildDirectory({...fixture, inventory: fixture.inventory, verifySources: false, allowApplicationAudio: true});
   assert.equal(summary.applicationAudioCount, 1); assert.equal(summary.applicationAudioOutputCount, 2);
   assert.deepEqual(summary.applicationAudio.map(a => a.id), ['cdda']);
 });
@@ -143,7 +151,7 @@ test('application opt-in rejects each partial known pair', async t => {
   for (const id of ['cdda', 'msm5205']) for (const ext of ['js', 'wasm']) {
     const fixture = await applicationFixture(t, [id]);
     await rm(path.join(fixture.directory, `${id}_wasm.${ext}`));
-    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}),
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory: fixture.inventory, verifySources: false, allowApplicationAudio: true}),
       /Application audio output pair is incomplete/);
   }
 });
@@ -151,7 +159,7 @@ test('application opt-in rejects each partial known pair', async t => {
 test('application opt-in still rejects unknown extra JS/WASM outputs', async t => {
   const fixture = await applicationFixture(t);
   await writeFile(path.join(fixture.directory, 'another_audio_wasm.js'), 'throw new Error("never execute");');
-  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}), /missing or extra/);
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory: fixture.inventory, verifySources: false, allowApplicationAudio: true}), /missing or extra/);
 });
 
 test('application opt-in rejects internal and external symbolic links for either output', async t => {
@@ -161,7 +169,7 @@ test('application opt-in rejects internal and external symbolic links for either
     await copyFile(path.join(fixture.directory, name), target);
     await rm(path.join(fixture.directory, name));
     await symlink(target, path.join(fixture.directory, name));
-    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}),
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory: fixture.inventory, verifySources: false, allowApplicationAudio: true}),
       /Application audio output must be a regular file, not a symlink/);
   }
 });
@@ -170,7 +178,7 @@ test('application opt-in rejects malformed and substituted application WASM desp
   for (const bytes of [Buffer.from('not WASM'), await readFile(path.join(deployed, 'msm5205_wasm.wasm'))]) {
     const fixture = await applicationFixture(t, ['cdda']);
     await writeFile(path.join(fixture.directory, 'cdda_wasm.wasm'), bytes);
-    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory, verifySources: false, allowApplicationAudio: true}),
+    await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory: fixture.inventory, verifySources: false, allowApplicationAudio: true}),
       /Invalid application audio WASM|no standalone cdda ABI/);
   }
 });
@@ -197,7 +205,7 @@ test('requires WonderSwan in the central SDK receipt even if an old standalone r
     schemaVersion: 1, artifact: 'wonderswan',
     outputs: record.outputs.map(({path, size, sha256}) => ({path, bytes: size, sha256})),
   }));
-  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), /exactly 29 artifacts/);
+  await assert.rejects(verifyWasmBuildDirectory({...fixture, inventory}), new RegExp(`exactly ${inventory.builds.length} artifacts`));
 });
 
 test('requires both WonderSwan output files in every SDK build', async t => {
@@ -259,8 +267,8 @@ test('rejects WonderSwan output symlinked outside the verified directory', async
 
 const receiptMutations = [
   ['wrong schema', receipt => { receipt.schemaVersion = 2; }, /schema 1/],
-  ['missing artifact', receipt => { receipt.artifacts.pop(); }, /exactly 29/],
-  ['extra artifact', receipt => { receipt.artifacts.push(structuredClone(receipt.artifacts[0])); }, /exactly 29/],
+  ['missing artifact', receipt => { receipt.artifacts.pop(); }, new RegExp(`exactly ${inventory.builds.length}`)],
+  ['extra artifact', receipt => { receipt.artifacts.push(structuredClone(receipt.artifacts[0])); }, new RegExp(`exactly ${inventory.builds.length}`)],
   ['duplicate artifact', receipt => { receipt.artifacts[1] = structuredClone(receipt.artifacts[0]); }, /exactly once/],
   ['unknown artifact', receipt => { receipt.artifacts[0].id = 'unknown'; }, /exactly once/],
   ['wrong format', receipt => { receipt.artifacts[0].format = 'standalone-wasm'; }, /format mismatch/],
@@ -395,7 +403,7 @@ test('rejects a manifest that differs from the pin', async t => {
 });
 
 const catalogMutations = [
-  ['missing build', catalog => catalog.artifacts.pop(), /exactly 29/],
+  ['missing build', catalog => catalog.artifacts.pop(), new RegExp(`exactly ${inventory.artifacts.length}`)],
   ['duplicate build', catalog => { catalog.artifacts[0] = structuredClone(catalog.artifacts[1]); }, /supported 29/],
   ['unknown build', catalog => { catalog.artifacts[0].id = 'unexpected'; }, /supported 29/],
   ['unsafe build script', catalog => { catalog.artifacts[0].buildScript = '../build.sh'; }, /Unexpected build script/],

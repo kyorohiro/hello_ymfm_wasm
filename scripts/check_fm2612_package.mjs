@@ -28,13 +28,15 @@ try {
   for(const file of ['msm5205_pcm.js','msm5205_pcm.d.ts','msm5205_player.js','msm5205_audio.js','msm5205_native.js','msm5205_sample.js','msm5205_sample.d.ts','msm5205_worklet.js',
     'generated/msm5205_wasm.js','generated/msm5205_wasm.wasm',
     'sources/native/msm5205/msm5205_pcm.c','sources/native/msm5205/msm5205_pcm.h','sources/native/msm5205/msm5205_wasm.c',
-    'sources/native/msm5205/LICENSE','sources/native/msm5205/NOTICE.md','sources/native/msm5205/README.md','sources/scripts/build_msm5205_wasm.sh']) {
+    'sources/native/msm5205/LICENSE','sources/native/msm5205/NOTICE.md','sources/native/msm5205/README.md','sources/scripts/build_msm5205_wasm.sh',
+    'sources/MSM5205.md','sources/MSM5205.json','licenses/tetorica-msm5205/LICENSE','licenses/tetorica-msm5205/NOTICE.md']) {
     assert(packedPaths.has(file),'PC Engine CD ADPCM module/source payload missing '+file);
   }
   for(const file of ['cdda_source.js','cdda_player.js','cdda_audio.js','cdda_native.js','cdda_worklet.js','cdda_pcm.js','cdda_offline.js',
     'cdda_offline.d.ts','cdda_pcm.d.ts','generated/cdda_wasm.js','generated/cdda_wasm.wasm',
     'sources/native/cdda/cdda_pcm.c','sources/native/cdda/cdda_pcm.h','sources/native/cdda/cdda_wasm.c',
-    'sources/native/cdda/LICENSE','sources/native/cdda/README.md','sources/scripts/build_cdda_wasm.sh']) {
+    'sources/native/cdda/LICENSE','sources/native/cdda/NOTICE.md','sources/native/cdda/README.md','sources/scripts/build_cdda_wasm.sh',
+    'sources/CDDA.md','sources/CDDA.json','licenses/tetorica-cdda/LICENSE','licenses/tetorica-cdda/NOTICE.md']) {
     assert(packedPaths.has(file),'CD-DA PCM module/source payload missing '+file);
   }
   for(const file of ['nesapu_wasm.js','nesapu_wasm.d.ts','generated/nesapu_wasm.js','generated/nesapu_wasm.wasm',

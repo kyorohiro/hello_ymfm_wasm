@@ -436,12 +436,12 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                                                    "fixture-ay8910-release.json", "fixture-ym2203-release.json", "fixture-ym2608-release.json",
                                                    "fixture-ym2610-release.json", "fixture-okim6258-release.json", "fixture-rf5c164-release.json",
                                                    "fixture-opl-release.json", "fixture-extra_opl-release.json", "fixture-y8950_memory-release.json", "fixture-gameboy-release.json", "fixture-huc6280-release.json", "fixture-nes-release.json",
-                                                   "fixture-pwm-release.json", "fixture-extra_pwm-release.json", "fixture-dx7-release.json", "fixture-snes-release.json", "fixture-spc-release.json", "fixture-nuked_ym2612-release.json", "fixture-nuked_colink-release.json", "fixture-wonderswan-release.json", "fixture-pokey-release.json",
+                                                   "fixture-pwm-release.json", "fixture-extra_pwm-release.json", "fixture-dx7-release.json", "fixture-snes-release.json", "fixture-spc-release.json", "fixture-nuked_ym2612-release.json", "fixture-nuked_colink-release.json", "fixture-wonderswan-release.json", "fixture-pokey-release.json", "fixture-cdda-release.json", "fixture-msm5205-release.json", "fixture-pce_cd-release.json",
                                                    "example-genesis-release.json", "example-master-system-release.json",
                                                    "example-msx-release.json", "example-pc98-ym2203-release.json",
                                                    "example-pc98-ym2608-release.json", "example-neogeo-release.json",
                                                    "example-x68000-release.json", "example-megacd-release.json",
-                                                   "example-dos-opl-release.json", "example-msx-audio-release.json", "example-gameboy-release.json", "example-pcengine-release.json", "example-nes-fds-release.json", "example-32x-release.json", "example-dx7-release.json", "example-snes-release.json", "example-spc-release.json", "example-nuked-genesis-release.json", "example-wonderswan-release.json", "example-pokey-release.json")]
+                                                   "example-dos-opl-release.json", "example-msx-audio-release.json", "example-gameboy-release.json", "example-pcengine-release.json", "example-nes-fds-release.json", "example-32x-release.json", "example-dx7-release.json", "example-snes-release.json", "example-spc-release.json", "example-nuked-genesis-release.json", "example-wonderswan-release.json", "example-pokey-release.json", "example-pcengine-cd-release.json")]
         model = {"paths": {"source": str(self.root), "build": str(self.build)}, "configurations": [
             {"name": "Debug", "targets": [{"jsonFile": "fixture-debug.json"}]},
             {"name": "Release", "targets": targets},
@@ -457,7 +457,7 @@ class NativeBuildPortabilityTests(unittest.TestCase):
                                                     {"path": str(self.build / "generated")}]}]}
         extra_targets = {}
         for chip in ("ym2151", "segapsg", "ym2413", "ay8910", "ym2203", "ym2608", "ym2610", "okim6258", "rf5c164",
-                     "opl", "extra_opl", "y8950_memory", "gameboy", "huc6280", "nes", "pwm", "extra_pwm", "dx7", "snes", "spc", "nuked_ym2612", "nuked_colink", "wonderswan", "pokey"):
+                     "opl", "extra_opl", "y8950_memory", "gameboy", "huc6280", "nes", "pwm", "extra_pwm", "dx7", "snes", "spc", "nuked_ym2612", "nuked_colink", "wonderswan", "pokey", "cdda", "msm5205", "pce_cd"):
             target = copy.deepcopy(detail)
             target["name"] = f"tetorica_{chip}_fixture"
             target["nameOnDisk"] = executable.replace("ym2612", chip)
@@ -465,7 +465,7 @@ class NativeBuildPortabilityTests(unittest.TestCase):
             target["sources"][0]["path"] = f"native/tests/{chip}_fixture.cpp"
             extra_targets[f"fixture-{chip}-release.json"] = target
         for machine in ("genesis", "master_system", "msx", "pc98_ym2203", "pc98_ym2608", "neogeo", "x68000", "megacd",
-                        "dos_opl", "msx_audio", "gameboy", "pcengine", "nes_fds", "32x", "dx7", "snes", "spc", "nuked_genesis", "wonderswan", "pokey"):
+                        "dos_opl", "msx_audio", "gameboy", "pcengine", "nes_fds", "32x", "dx7", "snes", "spc", "nuked_genesis", "wonderswan", "pokey", "pcengine_cd"):
             example = copy.deepcopy(detail)
             example["name"] = f"tetorica_{machine}_wav"
             example["nameOnDisk"] = example["name"] + Path(executable).suffix

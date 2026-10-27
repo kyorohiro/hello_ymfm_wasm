@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        artifact: [ym2612, wonderswan, pokey]
+        artifact: [ym2612, wonderswan, pokey, cdda, msm5205]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -114,6 +114,8 @@ jobs:
           ]
           if '${{ matrix.artifact }}' == 'pokey':
               verification.append('--pokey-native-parity')
+          if '${{ matrix.artifact }}' in ('cdda', 'msm5205'):
+              verification.append('--application-audio-parity')
           subprocess.run(verification, check=True)
       - name: Retain verified archives
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

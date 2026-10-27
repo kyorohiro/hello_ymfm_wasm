@@ -112,6 +112,18 @@ POKEY_INPUTS = {
     'vendor/libvgm-pokey/upstream/pokey.c',
     'vendor/libvgm-pokey/upstream/snapshot-manifest.json',
 }
+APPLICATION_AUDIO_INPUTS = {
+    name: {
+        f'vendor/tetorica-{name}/{name}_pcm.c',
+        f'vendor/tetorica-{name}/{name}_pcm.h',
+        f'vendor/tetorica-{name}/LICENSE',
+        f'vendor/tetorica-{name}/NOTICE.md',
+        f'vendor/tetorica-{name}/README.md',
+        f'wasm/{name}_wasm.c', f'scripts/build_{name}_wasm.sh',
+        'tests/application_audio_wasm_smoke.mjs',
+        'tests/check_application_audio_core.mjs',
+    } for name in ('cdda', 'msm5205')
+}
 
 
 def digest(data):
@@ -161,6 +173,15 @@ def manifest_records(raw):
     # A POKEY-capable release must include its adaptation and licensed original.
     if POKEY_INPUTS & names:
         require(POKEY_INPUTS <= names, 'SDK POKEY source release is incomplete')
+    # Existing immutable snapshots must still verify before replacement. When
+    # a release contains either application-audio module, require its complete
+    # licensed source, standalone WASM bridge and self-contained checks.
+    for audio, inputs in APPLICATION_AUDIO_INPUTS.items():
+        module_paths = {name for name in inputs if name.startswith((
+            f'vendor/tetorica-{audio}/', f'wasm/{audio}_',
+            f'scripts/build_{audio}_'))}
+        if module_paths & names:
+            require(inputs <= names, f'SDK {audio} source release is incomplete')
     require((LEGACY_SEGA_PSG <= names and not SEPARATED_SEGA_PSG & names)
             or (SEPARATED_SEGA_PSG <= names and not LEGACY_SEGA_PSG & names),
             'SDK source release is incomplete or mixes Sega PSG layouts')

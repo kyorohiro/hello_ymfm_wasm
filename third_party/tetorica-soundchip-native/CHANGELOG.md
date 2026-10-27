@@ -1,11 +1,15 @@
 # Changelog
 
-## 0.1.5 — POKEY and dual POKEY
+## 0.1.5 — POKEY, CD-DA and MSM5205
 
+- Add the original C11 CD-DA PCM device and MSM5205 raw decoder / PC Engine ADPCM RAM helper, preserving the application core/header/bridge bytes and component notices.
+- Expose `tetorica::cdda` and `tetorica::msm5205` through public `<tetorica/cdda.h>` / `<tetorica/msm5205.h>` headers and the unchanged `cdda_pcm_*` / `msm5205_pcm_*` ABIs. Both accept C and C++ callers without an audio device or machine runtime.
+- Add two `standalone-audio-wasm` descriptor/raw-WASM recipes, three Native fixtures and an original HuC6280 + MSM5205 + CD-DA WAV host. Catalog these two modules separately under `applicationAudio`; the existing 24 chip IDs and 29 sound-chip WASM artifacts stay unchanged.
+- Retain both Analyzer JavaScript references and the licensed upstream ADPCM source references. OKIM6295 remains reference-only. Document source lifetime, nibble/rate/loop timing and the host integration boundary.
 - Add a BSD-3-Clause standalone POKEY 4.9 adaptation from the pinned, explicitly licensed libvgm core file; retain its exact upstream source, notices and provenance while omitting unmarked framework/helper files. Native and WASM compile the same four-channel core.
 - Add independently owned multi-instance handles, synchronous real read-side I/O, raw mono PCM, deterministic reset, source mute and allocation-free rendering. Two ordinary handles supply dual POKEY; host routing remains explicit.
-- Add Native/WASM parity and dual-handle isolation tests, original centered-mono/stereo WAV demonstrations, source-archive build checks and a POKEY WASM CI job. The collection now describes 24 chip IDs and 29 WASM recipes; Native builds produce 21 libraries, 26 CTest entries and 20 offline WAV examples.
-- Prepare a new 0.1.5 source release. The published 0.1.4 archive remains unchanged; consumers explicitly adopt the new source snapshot. A local candidate archive is not a published tag or release.
+- Add Native/WASM parity and dual-handle isolation tests, original centered-mono/stereo WAV demonstrations, source-archive build checks and a POKEY WASM CI job. With the application-audio modules, the collection describes 24 chip IDs and 31 WASM recipes; Native builds produce 23 libraries, 29 CTest entries and 21 offline WAV examples.
+- Publish sources through the matching `v0.1.5` tag after all five Native and five WASM validation jobs succeed. The published 0.1.4 archive remains unchanged; consumers explicitly adopt the new source snapshot. Local packaging alone does not publish a release.
 
 ## 0.1.4 — WonderSwan source and standalone builds
 
