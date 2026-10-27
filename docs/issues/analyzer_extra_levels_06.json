@@ -1,0 +1,1093 @@
+{
+  "schemaVersion": 1,
+  "passed": true,
+  "gainUnits": "source",
+  "method": "actual Analyzer createPlaybackEngine/processFrames, synthetic one-voice references, unity source Mixer/master, no device",
+  "sampleRate": 44100,
+  "warmupFrames": 8820,
+  "captureFrames": 17640,
+  "frequencies": [
+    220,
+    440,
+    880
+  ],
+  "referenceFrequencyHz": 440,
+  "targetAmplitude": 0.12881777435541153,
+  "maximumGain": 2,
+  "normalization": "None. Fixed gain uses measured peak-to-peak amplitude at 440 Hz. Input quantization and core frequency response are retained.",
+  "limitations": [
+    "YMF278B measures the current core FM section with reset mix registers; its PCM instrument levels, external wave ROM, and physical hardware mix accuracy are not calibrated.",
+    "ADPCM references exercise decoder full scale, not perceptual loudness or arbitrary encoded samples.",
+    "SCC/SCC+ references use channel 0; their waveform-sharing differences do not alter this single-channel output scale.",
+    "Requested pitches may be quantized by a chip frequency register or nibble timing. 220/880 Hz captures check the actual frequency response; they do not set separate gains."
+  ],
+  "defaults": {
+    "segaPcm": 0.261709,
+    "k051649": 1.103844,
+    "ymf278b": 1.465915,
+    "msm5205": 0.128849,
+    "okim6295": 0.128849
+  },
+  "rows": [
+    {
+      "id": "segaPcm",
+      "variant": "sega-pcm",
+      "frequencyHz": 220,
+      "actualFrequencyHz": 221.25244140625,
+      "clockHz": 4000000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample sine repeated through a 256-byte looping ROM",
+        "channels": 1,
+        "positiveSampleCode": 255,
+        "negativeSampleCode": 1,
+        "centerCode": 128,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 127,
+        "clockDivider": 128,
+        "pitchStep": 58
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "segaPcm",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.492218017578125,
+      "amplitude": 0.492218017578125,
+      "left": {
+        "minimum": -0.492218017578125,
+        "maximum": 0.492218017578125,
+        "amplitude": 0.492218017578125,
+        "peak": 0.492218017578125,
+        "mean": 0.0001723926066841493,
+        "rms": 0.34857619141946916,
+        "acRms": 0.3485761487900335
+      },
+      "right": {
+        "minimum": -0.492218017578125,
+        "maximum": 0.492218017578125,
+        "amplitude": 0.492218017578125,
+        "peak": 0.492218017578125,
+        "mean": 0.0001723926066841493,
+        "rms": 0.34857619141946916,
+        "acRms": 0.3485761487900335
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "a2ed202197d39d5fb2976519241cb51e8d63c95bb60ccd70ea8839c94e4baf87"
+    },
+    {
+      "id": "segaPcm",
+      "variant": "sega-pcm",
+      "frequencyHz": 440,
+      "actualFrequencyHz": 438.690185546875,
+      "clockHz": 4000000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample sine repeated through a 256-byte looping ROM",
+        "channels": 1,
+        "positiveSampleCode": 255,
+        "negativeSampleCode": 1,
+        "centerCode": 128,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 127,
+        "clockDivider": 128,
+        "pitchStep": 115
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "segaPcm",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.492218017578125,
+      "amplitude": 0.492218017578125,
+      "left": {
+        "minimum": -0.492218017578125,
+        "maximum": 0.492218017578125,
+        "amplitude": 0.492218017578125,
+        "peak": 0.492218017578125,
+        "mean": -0.00045144531336734956,
+        "rms": 0.34856769016662165,
+        "acRms": 0.34856739782317997
+      },
+      "right": {
+        "minimum": -0.492218017578125,
+        "maximum": 0.492218017578125,
+        "amplitude": 0.492218017578125,
+        "peak": 0.492218017578125,
+        "mean": -0.00045144531336734956,
+        "rms": 0.34856769016662165,
+        "acRms": 0.34856739782317997
+      },
+      "derivedGain": 0.2617087748823935,
+      "volume": 0.261709,
+      "maxPartitionDifference": 0,
+      "pcmSha256": "453baa6653a5a43d08b440f9d5e45fb8c3aa6f7a0c8052b5401e5fa6364eb6d7"
+    },
+    {
+      "id": "segaPcm",
+      "variant": "sega-pcm",
+      "frequencyHz": 880,
+      "actualFrequencyHz": 881.195068359375,
+      "clockHz": 4000000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample sine repeated through a 256-byte looping ROM",
+        "channels": 1,
+        "positiveSampleCode": 255,
+        "negativeSampleCode": 1,
+        "centerCode": 128,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 127,
+        "clockDivider": 128,
+        "pitchStep": 231
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "segaPcm",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.492218017578125,
+      "amplitude": 0.492218017578125,
+      "left": {
+        "minimum": -0.492218017578125,
+        "maximum": 0.492218017578125,
+        "amplitude": 0.492218017578125,
+        "peak": 0.492218017578125,
+        "mean": -0.0001317748917259335,
+        "rms": 0.348027515648838,
+        "acRms": 0.34802749070163996
+      },
+      "right": {
+        "minimum": -0.492218017578125,
+        "maximum": 0.492218017578125,
+        "amplitude": 0.492218017578125,
+        "peak": 0.492218017578125,
+        "mean": -0.0001317748917259335,
+        "rms": 0.348027515648838,
+        "acRms": 0.34802749070163996
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "05fb0159c2189474a2d79f7f0193aa091da9ee39e2300c895211bde7ccaf8786"
+    },
+    {
+      "id": "k051649",
+      "variant": "scc",
+      "frequencyHz": 220,
+      "actualFrequencyHz": 220.1984498031496,
+      "clockHz": 1789773,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample signed sine wavetable",
+        "channels": 1,
+        "wavePort": 0,
+        "positiveSampleCode": 127,
+        "negativeSampleCode": -127,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 15,
+        "frequencyRegister": 253
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "k051649",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.11669921875,
+      "amplitude": 0.11669921875,
+      "left": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0004173560857939399,
+        "rms": 0.08238130335981675,
+        "acRms": 0.08238024615865022
+      },
+      "right": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0004173560857939399,
+        "rms": 0.08238130335981675,
+        "acRms": 0.08238024615865022
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "cdbf02f152e436f1aa6ab6c7a198412099c6a768ce17e2f42333ce261a54d3fe"
+    },
+    {
+      "id": "k051649",
+      "variant": "scc",
+      "frequencyHz": 440,
+      "actualFrequencyHz": 440.3968996062992,
+      "clockHz": 1789773,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample signed sine wavetable",
+        "channels": 1,
+        "wavePort": 0,
+        "positiveSampleCode": 127,
+        "negativeSampleCode": -127,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 15,
+        "frequencyRegister": 126
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "k051649",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.11669921875,
+      "amplitude": 0.11669921875,
+      "left": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0003790721691875721,
+        "rms": 0.08237055591443987,
+        "acRms": 0.08236968365815431
+      },
+      "right": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0003790721691875721,
+        "rms": 0.08237055591443987,
+        "acRms": 0.08236968365815431
+      },
+      "derivedGain": 1.1038443593300535,
+      "volume": 1.103844,
+      "maxPartitionDifference": 0,
+      "pcmSha256": "71f99e959e3d5607837a7daf4d6e9ac69f90d2eb32dcf08e75b7ba4d9ba4edcd"
+    },
+    {
+      "id": "k051649",
+      "variant": "scc",
+      "frequencyHz": 880,
+      "actualFrequencyHz": 873.91259765625,
+      "clockHz": 1789773,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample signed sine wavetable",
+        "channels": 1,
+        "wavePort": 0,
+        "positiveSampleCode": 127,
+        "negativeSampleCode": -127,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 15,
+        "frequencyRegister": 63
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "k051649",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.11669921875,
+      "amplitude": 0.11669921875,
+      "left": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.00042574794694305297,
+        "rms": 0.08228651074199707,
+        "acRms": 0.08228540933105014
+      },
+      "right": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.00042574794694305297,
+        "rms": 0.08228651074199707,
+        "acRms": 0.08228540933105014
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "bf2000b9b1d0770735cd076abe5009b906a11421a86ddae014f00a73e2301954"
+    },
+    {
+      "id": "k051649",
+      "variant": "scc-plus",
+      "frequencyHz": 220,
+      "actualFrequencyHz": 220.1984498031496,
+      "clockHz": 1789773,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample signed sine wavetable",
+        "channels": 1,
+        "wavePort": 4,
+        "positiveSampleCode": 127,
+        "negativeSampleCode": -127,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 15,
+        "frequencyRegister": 253
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "k051649",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.11669921875,
+      "amplitude": 0.11669921875,
+      "left": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0004173560857939399,
+        "rms": 0.08238130335981675,
+        "acRms": 0.08238024615865022
+      },
+      "right": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0004173560857939399,
+        "rms": 0.08238130335981675,
+        "acRms": 0.08238024615865022
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "cdbf02f152e436f1aa6ab6c7a198412099c6a768ce17e2f42333ce261a54d3fe"
+    },
+    {
+      "id": "k051649",
+      "variant": "scc-plus",
+      "frequencyHz": 440,
+      "actualFrequencyHz": 440.3968996062992,
+      "clockHz": 1789773,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample signed sine wavetable",
+        "channels": 1,
+        "wavePort": 4,
+        "positiveSampleCode": 127,
+        "negativeSampleCode": -127,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 15,
+        "frequencyRegister": 126
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "k051649",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.11669921875,
+      "amplitude": 0.11669921875,
+      "left": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0003790721691875721,
+        "rms": 0.08237055591443987,
+        "acRms": 0.08236968365815431
+      },
+      "right": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.0003790721691875721,
+        "rms": 0.08237055591443987,
+        "acRms": 0.08236968365815431
+      },
+      "derivedGain": 1.1038443593300535,
+      "volume": 1.103844,
+      "maxPartitionDifference": 0,
+      "pcmSha256": "71f99e959e3d5607837a7daf4d6e9ac69f90d2eb32dcf08e75b7ba4d9ba4edcd"
+    },
+    {
+      "id": "k051649",
+      "variant": "scc-plus",
+      "frequencyHz": 880,
+      "actualFrequencyHz": 873.91259765625,
+      "clockHz": 1789773,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "32-sample signed sine wavetable",
+        "channels": 1,
+        "wavePort": 4,
+        "positiveSampleCode": 127,
+        "negativeSampleCode": -127,
+        "peakSignedMagnitude": 127,
+        "quantizationHeadroom": 0.0078125,
+        "channelVolume": 15,
+        "frequencyRegister": 63
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "k051649",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.11669921875,
+      "amplitude": 0.11669921875,
+      "left": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.00042574794694305297,
+        "rms": 0.08228651074199707,
+        "acRms": 0.08228540933105014
+      },
+      "right": {
+        "minimum": -0.1171875,
+        "maximum": 0.1162109375,
+        "amplitude": 0.11669921875,
+        "peak": 0.1171875,
+        "mean": -0.00042574794694305297,
+        "rms": 0.08228651074199707,
+        "acRms": 0.08228540933105014
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "bf2000b9b1d0770735cd076abe5009b906a11421a86ddae014f00a73e2301954"
+    },
+    {
+      "id": "ymf278b",
+      "variant": "fm-only",
+      "frequencyHz": 220,
+      "actualFrequencyHz": 219.86533717105266,
+      "clockHz": 33868800,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "sustained FM sine carrier, modulator at maximum attenuation",
+        "channels": 1,
+        "carrierTotalLevel": 0,
+        "modulatorTotalLevel": 63,
+        "feedback": 0,
+        "attackRate": 15,
+        "decayRate": 0,
+        "sustainLevel": 0,
+        "fmClockDivider": 684,
+        "pitch": {
+          "fnum": 582,
+          "block": 3
+        },
+        "fmOutput": "DO2 mixed stereo, PCM silent",
+        "mixRegisters": "chip reset defaults; no artificial FM mix boost",
+        "quantizationHeadroom": 0
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "ymf278b",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.0878753662109375,
+      "amplitude": 0.0878753662109375,
+      "left": {
+        "minimum": -0.087890625,
+        "maximum": 0.087860107421875,
+        "amplitude": 0.0878753662109375,
+        "peak": 0.087890625,
+        "mean": 0.000009480517467403627,
+        "rms": 0.061989997854003484,
+        "acRms": 0.06198999712904611
+      },
+      "right": {
+        "minimum": -0.087890625,
+        "maximum": 0.087860107421875,
+        "amplitude": 0.0878753662109375,
+        "peak": 0.087890625,
+        "mean": 0.000009480517467403627,
+        "rms": 0.061989997854003484,
+        "acRms": 0.06198999712904611
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "6a01aac270cd24198f6eb7c66ec09edbd1dd3757db442a398cc34cdf60543277"
+    },
+    {
+      "id": "ymf278b",
+      "variant": "fm-only",
+      "frequencyHz": 440,
+      "actualFrequencyHz": 439.7306743421053,
+      "clockHz": 33868800,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "sustained FM sine carrier, modulator at maximum attenuation",
+        "channels": 1,
+        "carrierTotalLevel": 0,
+        "modulatorTotalLevel": 63,
+        "feedback": 0,
+        "attackRate": 15,
+        "decayRate": 0,
+        "sustainLevel": 0,
+        "fmClockDivider": 684,
+        "pitch": {
+          "fnum": 582,
+          "block": 4
+        },
+        "fmOutput": "DO2 mixed stereo, PCM silent",
+        "mixRegisters": "chip reset defaults; no artificial FM mix boost",
+        "quantizationHeadroom": 0
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "ymf278b",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.0878753662109375,
+      "amplitude": 0.0878753662109375,
+      "left": {
+        "minimum": -0.087890625,
+        "maximum": 0.087860107421875,
+        "amplitude": 0.0878753662109375,
+        "peak": 0.087890625,
+        "mean": 0.000025950321534863944,
+        "rms": 0.06197788084471101,
+        "acRms": 0.06197787541197268
+      },
+      "right": {
+        "minimum": -0.087890625,
+        "maximum": 0.087860107421875,
+        "amplitude": 0.0878753662109375,
+        "peak": 0.087890625,
+        "mean": 0.000025950321534863944,
+        "rms": 0.06197788084471101,
+        "acRms": 0.06197787541197268
+      },
+      "derivedGain": 1.4659145094905799,
+      "volume": 1.465915,
+      "maxPartitionDifference": 0,
+      "pcmSha256": "db34db1442a8a917ec594dc61f2c49035db4e4b051e66e9a25d4d2a9522f463d"
+    },
+    {
+      "id": "ymf278b",
+      "variant": "fm-only",
+      "frequencyHz": 880,
+      "actualFrequencyHz": 879.4613486842106,
+      "clockHz": 33868800,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "sustained FM sine carrier, modulator at maximum attenuation",
+        "channels": 1,
+        "carrierTotalLevel": 0,
+        "modulatorTotalLevel": 63,
+        "feedback": 0,
+        "attackRate": 15,
+        "decayRate": 0,
+        "sustainLevel": 0,
+        "fmClockDivider": 684,
+        "pitch": {
+          "fnum": 582,
+          "block": 5
+        },
+        "fmOutput": "DO2 mixed stereo, PCM silent",
+        "mixRegisters": "chip reset defaults; no artificial FM mix boost",
+        "quantizationHeadroom": 0
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "ymf278b",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.0878753662109375,
+      "amplitude": 0.0878753662109375,
+      "left": {
+        "minimum": -0.087890625,
+        "maximum": 0.087860107421875,
+        "amplitude": 0.0878753662109375,
+        "peak": 0.087890625,
+        "mean": 0.00004071605448820153,
+        "rms": 0.06196303168097499,
+        "acRms": 0.061963018303665754
+      },
+      "right": {
+        "minimum": -0.087890625,
+        "maximum": 0.087860107421875,
+        "amplitude": 0.0878753662109375,
+        "peak": 0.087890625,
+        "mean": 0.00004071605448820153,
+        "rms": 0.06196303168097499,
+        "acRms": 0.061963018303665754
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "ff2c7fb63e464ce73b53a53893ed3f44023cf32489284214795cdd8c8e67ab29"
+    },
+    {
+      "id": "msm5205",
+      "variant": "4bit-internal-vclk",
+      "frequencyHz": 220,
+      "actualFrequencyHz": 220,
+      "clockHz": 1536000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "synthetic alternating positive/negative maximum-delta ADPCM nibbles (7/F)",
+        "channels": 1,
+        "bits": 4,
+        "prescaler": 2,
+        "clockDivider": 48,
+        "nibbleRate": 32000,
+        "positiveDecoderCode": 2047,
+        "negativeDecoderCode": -2048,
+        "quantizationHeadroom": 0.000244140625,
+        "note": "The seven-entry FIFO is fed only for the upcoming internal VCLK decode; no overflow/underflow."
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "msm5205",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.999755859375,
+      "amplitude": 0.999755859375,
+      "left": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": 0.0013589941184807255,
+        "rms": 0.9945845690979661,
+        "acRms": 0.9945836406370119
+      },
+      "right": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": 0.0013589941184807255,
+        "rms": 0.9945845690979661,
+        "acRms": 0.9945836406370119
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "8299bea73b66d56d739a1dd906846c9d536c94f67605ad25051c1bfeb3d1199b"
+    },
+    {
+      "id": "msm5205",
+      "variant": "4bit-internal-vclk",
+      "frequencyHz": 440,
+      "actualFrequencyHz": 440,
+      "clockHz": 1536000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "synthetic alternating positive/negative maximum-delta ADPCM nibbles (7/F)",
+        "channels": 1,
+        "bits": 4,
+        "prescaler": 2,
+        "clockDivider": 48,
+        "nibbleRate": 32000,
+        "positiveDecoderCode": 2047,
+        "negativeDecoderCode": -2048,
+        "quantizationHeadroom": 0.000244140625,
+        "note": "The seven-entry FIFO is fed only for the upcoming internal VCLK decode; no overflow/underflow."
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "msm5205",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.999755859375,
+      "amplitude": 0.999755859375,
+      "left": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": -0.0006326619189342404,
+        "rms": 0.9886680035612512,
+        "acRms": 0.9886678011368057
+      },
+      "right": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": -0.0006326619189342404,
+        "rms": 0.9886680035612512,
+        "acRms": 0.9886678011368057
+      },
+      "derivedGain": 0.12884923168736645,
+      "volume": 0.128849,
+      "maxPartitionDifference": 0,
+      "pcmSha256": "05d11dd15465b0e000ba68e21393da5e4d86c64cbdf5f04917afd822c150c756"
+    },
+    {
+      "id": "msm5205",
+      "variant": "4bit-internal-vclk",
+      "frequencyHz": 880,
+      "actualFrequencyHz": 880,
+      "clockHz": 1536000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "synthetic alternating positive/negative maximum-delta ADPCM nibbles (7/F)",
+        "channels": 1,
+        "bits": 4,
+        "prescaler": 2,
+        "clockDivider": 48,
+        "nibbleRate": 32000,
+        "positiveDecoderCode": 2047,
+        "negativeDecoderCode": -2048,
+        "quantizationHeadroom": 0.000244140625,
+        "note": "The seven-entry FIFO is fed only for the upcoming internal VCLK decode; no overflow/underflow."
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "msm5205",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.999755859375,
+      "amplitude": 0.999755859375,
+      "left": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": 0.00038730335884353743,
+        "rms": 0.9779995585373643,
+        "acRms": 0.9779994818482205
+      },
+      "right": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": 0.00038730335884353743,
+        "rms": 0.9779995585373643,
+        "acRms": 0.9779994818482205
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "7463a336db3174f85fa6f17154d198da9c8479db98de23062817d162b8140ffe"
+    },
+    {
+      "id": "okim6295",
+      "variant": "one-voice-pin7-high",
+      "frequencyHz": 220,
+      "actualFrequencyHz": 220,
+      "clockHz": 1000000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "synthetic alternating positive/negative maximum-delta ADPCM nibbles (7/F)",
+        "channels": 1,
+        "voice": 0,
+        "volumeTableIndex": 0,
+        "pin7High": true,
+        "clockDivider": 132,
+        "nibbleRate": 7575.757575757576,
+        "positiveDecoderCode": 2047,
+        "negativeDecoderCode": -2048,
+        "quantizationHeadroom": 0.000244140625,
+        "sampleBytes": 4096,
+        "sampleDurationSeconds": 1.0813439999999999
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "okim6295",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.999755859375,
+      "amplitude": 0.999755859375,
+      "left": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": -0.0004857900191326531,
+        "rms": 0.9756191919975279,
+        "acRms": 0.9756190710528195
+      },
+      "right": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": -0.0004857900191326531,
+        "rms": 0.9756191919975279,
+        "acRms": 0.9756190710528195
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "1e330037d944e9263e901da3652e7c524f6a28f46d718df2e40a4b05ff7a9ca5"
+    },
+    {
+      "id": "okim6295",
+      "variant": "one-voice-pin7-high",
+      "frequencyHz": 440,
+      "actualFrequencyHz": 440,
+      "clockHz": 1000000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "synthetic alternating positive/negative maximum-delta ADPCM nibbles (7/F)",
+        "channels": 1,
+        "voice": 0,
+        "volumeTableIndex": 0,
+        "pin7High": true,
+        "clockDivider": 132,
+        "nibbleRate": 7575.757575757576,
+        "positiveDecoderCode": 2047,
+        "negativeDecoderCode": -2048,
+        "quantizationHeadroom": 0.000244140625,
+        "sampleBytes": 4096,
+        "sampleDurationSeconds": 1.0813439999999999
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "okim6295",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.999755859375,
+      "amplitude": 0.999755859375,
+      "left": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": -0.0018310546875,
+        "rms": 0.9508702942584621,
+        "acRms": 0.9508685312607131
+      },
+      "right": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": -0.0018310546875,
+        "rms": 0.9508702942584621,
+        "acRms": 0.9508685312607131
+      },
+      "derivedGain": 0.12884923168736645,
+      "volume": 0.128849,
+      "maxPartitionDifference": 0,
+      "pcmSha256": "6cb9682e36452610d8b25c97677fbd9fa2f045dc8dc72938224b069c162fde81"
+    },
+    {
+      "id": "okim6295",
+      "variant": "one-voice-pin7-high",
+      "frequencyHz": 880,
+      "actualFrequencyHz": 880,
+      "clockHz": 1000000,
+      "referencePeak": 1,
+      "referencePeakMeaning": "Maximum symmetric source/decoder range; quantization retained, no artificial codec-headroom correction.",
+      "reference": {
+        "waveform": "synthetic alternating positive/negative maximum-delta ADPCM nibbles (7/F)",
+        "channels": 1,
+        "voice": 0,
+        "volumeTableIndex": 0,
+        "pin7High": true,
+        "clockDivider": 132,
+        "nibbleRate": 7575.757575757576,
+        "positiveDecoderCode": 2047,
+        "negativeDecoderCode": -2048,
+        "quantizationHeadroom": 0.000244140625,
+        "sampleBytes": 4096,
+        "sampleDurationSeconds": 1.0813439999999999
+      },
+      "downstreamTrim": 1,
+      "mixer": [
+        {
+          "id": "okim6295",
+          "gain": 1,
+          "pan": 0,
+          "muted": false
+        }
+      ],
+      "measuredAmplitude": 0.999755859375,
+      "amplitude": 0.999755859375,
+      "left": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": 0.0002748658056972789,
+        "rms": 0.8992784760791763,
+        "acRms": 0.8992784340726038
+      },
+      "right": {
+        "minimum": -1,
+        "maximum": 0.99951171875,
+        "amplitude": 0.999755859375,
+        "peak": 1,
+        "mean": 0.0002748658056972789,
+        "rms": 0.8992784760791763,
+        "acRms": 0.8992784340726038
+      },
+      "maxPartitionDifference": 0,
+      "pcmSha256": "0782a3c99e4a26f82d121b9b2aa8a158e5c90ecee498111f39f22f5f5760ff18"
+    }
+  ],
+  "sources": {
+    "scripts/calibrate_analyzer_extra_levels.mjs": {
+      "sha256": "e3584c4665785d04f36f10583bfa28764c25f8c6c93a4d8ba8faef051574f946",
+      "size": 13907
+    },
+    "cli/render.js": {
+      "sha256": "d725ad4a686a67cdbe7a295c3a808e27996e9f9279b09626e155bdf7c6d1706d",
+      "size": 3460
+    },
+    "docs/vgm_analyzer/playback_core.js": {
+      "sha256": "72ec6bc31aae851a5c60e6583f0df61543749eaf3243c9569d0498578a2b75db",
+      "size": 27540
+    },
+    "docs/vgm_analyzer/playback_mixer.js": {
+      "sha256": "d73de8178e9aa3f9ce70a5ace6cf21c7cf527c65945b83bda2cfeb7d26d99cc1",
+      "size": 4616
+    },
+    "docs/vgm_analyzer/mixer_defaults.js": {
+      "sha256": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28",
+      "size": 1948
+    },
+    "docs/js/soundchip_mixer.js": {
+      "sha256": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb",
+      "size": 26367
+    },
+    "docs/js/vgmplayer.js": {
+      "sha256": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3",
+      "size": 24207
+    },
+    "docs/js/opl_synth.js": {
+      "sha256": "18ac5165c25956409cc2acdca9bca48847b1ff597a1d16eaa381f0633b354a48",
+      "size": 20452
+    },
+    "docs/js/segapcmaudioengine.js": {
+      "sha256": "9b92113c437f64aed9d76712e8ecec46134836a8fbf7a54ae25246990772dc61",
+      "size": 6159
+    },
+    "docs/js/segapcm.js": {
+      "sha256": "2dc311982e23b5fabd83c12f7a44a10887a74eb47d492b1aa26ead0cb5a8dbdc",
+      "size": 8592
+    },
+    "docs/generated/segapcm_wasm.js": {
+      "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5",
+      "size": 12513
+    },
+    "docs/generated/segapcm_wasm.wasm": {
+      "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f",
+      "size": 13966
+    },
+    "docs/js/msxaudioengine.js": {
+      "sha256": "cdcae66d00a34da46b44aef7f1e3edc0059fc4c1a344e5dd9ea446c5b7f07a7e",
+      "size": 7972
+    },
+    "docs/js/k051649audioengine.js": {
+      "sha256": "f98ac099bc857e87e21c5e62d0c9a5e5a0b21655607a1df6f7fc95f6230e010c",
+      "size": 4683
+    },
+    "docs/js/k051649.js": {
+      "sha256": "59f557541f76cc6cbf6c91fecbcf56d4a97e4667da8e3c3ceac028297945b673",
+      "size": 5758
+    },
+    "docs/generated/k051649_wasm.js": {
+      "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7",
+      "size": 11133
+    },
+    "docs/generated/k051649_wasm.wasm": {
+      "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c",
+      "size": 9399
+    },
+    "docs/js/ymf278baudioengine.js": {
+      "sha256": "5ce3df0a3e9652ace2cb08f8ac4a42a691db8c140f7b288129e538abec0b46df",
+      "size": 8609
+    },
+    "docs/js/ymf278b.js": {
+      "sha256": "2e7f9014676815618582381a1350fcd172a002dff05d5bb936aac2eb8d30c727",
+      "size": 11571
+    },
+    "docs/generated/ymf278b_wasm.js": {
+      "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48",
+      "size": 15707
+    },
+    "docs/generated/ymf278b_wasm.wasm": {
+      "sha256": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30",
+      "size": 26827
+    },
+    "docs/js/msm5205audioengine.js": {
+      "sha256": "1a533692e8645764149fda07ebc0feed1a18010872fe1b27b546b3de0c82a5c5",
+      "size": 3560
+    },
+    "docs/js/okim6295audioengine.js": {
+      "sha256": "31e35347376e163ba0f52948da4666bf20ac257481e84177e42c773a829f25a2",
+      "size": 6878
+    }
+  }
+}

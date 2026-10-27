@@ -1,0 +1,629 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "baseCommit": "3df4336b8652b1708e10bef77b1ba53903e4ba5c",
+  "status": "prepared and verified for manual upload; not uploaded",
+  "measurementRefresh": [
+    {
+      "previousReceipt": "analyzer_extra_levels_05.json",
+      "currentReceipt": "analyzer_extra_levels_06.json",
+      "rows": 18,
+      "allNonSourceFieldsExactlyEqual": true,
+      "sha256": "c9ec4a0b7361cb38cea1aa103952fe122e35d072ce2815ca8fbce03ee9c89317",
+      "changedSources": [
+        {
+          "path": "docs/js/segapcmaudioengine.js",
+          "previousSha256": "5531dfcbebea0bada41d7cb34ee3133853a94b9a1ce501da2140c330f1c3b72a",
+          "currentSha256": "9b92113c437f64aed9d76712e8ecec46134836a8fbf7a54ae25246990772dc61",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/segapcm.js",
+          "previousSha256": "fd072f9273bc60a4cf90c56be853d30ea9a162807a65a7c7bcb2ffabe4826881",
+          "currentSha256": "2dc311982e23b5fabd83c12f7a44a10887a74eb47d492b1aa26ead0cb5a8dbdc",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/msxaudioengine.js",
+          "previousSha256": "89b1a66fe6963e3cd6f079af58a8ca87767c8e339bc82be7745416b018708ad8",
+          "currentSha256": "cdcae66d00a34da46b44aef7f1e3edc0059fc4c1a344e5dd9ea446c5b7f07a7e",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/k051649audioengine.js",
+          "previousSha256": "b986d7e333bc1e7df3e9278afc906d99ccace8f7fd55bc0094b106fc03e720bc",
+          "currentSha256": "f98ac099bc857e87e21c5e62d0c9a5e5a0b21655607a1df6f7fc95f6230e010c",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/k051649.js",
+          "previousSha256": "af37b215ed0acccf682894cdf8e322ca00d9cc4397fbf057f7e324572a3e8514",
+          "currentSha256": "59f557541f76cc6cbf6c91fecbcf56d4a97e4667da8e3c3ceac028297945b673",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/ymf278baudioengine.js",
+          "previousSha256": "06694b0014730bf581e2f6abd68016744ac00344303694d8ea63a4a70309258a",
+          "currentSha256": "5ce3df0a3e9652ace2cb08f8ac4a42a691db8c140f7b288129e538abec0b46df",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/ymf278b.js",
+          "previousSha256": "73c9ed73815829f90eca8f6b95e457d5faf01f090e3d5f908551965f96b5afbd",
+          "currentSha256": "2e7f9014676815618582381a1350fcd172a002dff05d5bb936aac2eb8d30c727",
+          "change": "JSDoc import cache query only"
+        }
+      ]
+    },
+    {
+      "previousReceipt": "analyzer_psg_levels_06.json",
+      "currentReceipt": "analyzer_psg_levels_07.json",
+      "rows": 12,
+      "allNonSourceFieldsExactlyEqual": true,
+      "sha256": "f29e3cee4d2e034aaf7a24e68e0652bc03606f91bbbcfe741d9c9f4ca7c306bd",
+      "changedSources": [
+        {
+          "path": "docs/js/ym2608audioengine.js",
+          "previousSha256": "129ba38aeb9967ee53d7ce58b49b2733611379d8a8d72c86fdb9c2db72e143fa",
+          "currentSha256": "7f679903430e52de210219ffa00cf38adffba836e6f2dca58909caf2f61ed593",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/genesisaudioengine.js",
+          "previousSha256": "2732f2076a7096c136d409cf211fd05e031b3c35e358de13a61901c57d53f688",
+          "currentSha256": "b94cdf9c52306fa3a67c86c5d656f4da54f0b992c5c191bc8436f0cc571c90ca",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/ay8910audioengine.js",
+          "previousSha256": "39737c692891d5183f520ad74e8e00b001bf803df6eb96b9c16096a68287ec8f",
+          "currentSha256": "202020634fe956c486eb42333db0dcfee4f21c2313f59600097d35f15ff8406e",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/nesapusynth.js",
+          "previousSha256": "7e99925c5781c57fd03f69c6a15ccc88d1419d7fc3818a9a2ae4c8acda286d16",
+          "currentSha256": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/ym2608.js",
+          "previousSha256": "516cdc2850187020054b0b1f51b358dcb47564537939a7318a0a124b787f7cb4",
+          "currentSha256": "54384da784d96c0875f9edf224dfa8c77911f5e192ef15cdf11fa79d1765e522",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/ay8910.js",
+          "previousSha256": "38f50470d60a850773859ce210e5281d1ee0429f00021b7decd8b8be9554197b",
+          "currentSha256": "f4859ede97baedb225ab72d26e73bbe98389eef3ae7a3bbb88c6b7e136925355",
+          "change": "JSDoc import cache query only"
+        },
+        {
+          "path": "docs/js/segapsg.js",
+          "previousSha256": "efbc9805f2c7686b51c163c730f3b615fa34bbd57ad35521be1b034f19882630",
+          "currentSha256": "c482525bb445b73b03ed35832ca3855f25d29c145267b16ecb9687e0e8e72c46",
+          "change": "JSDoc import cache query only"
+        }
+      ]
+    }
+  ],
+  "unchanged": {
+    "nesReceiptAndAll11Sources": true,
+    "generatedExecutableGainTable": true,
+    "mixerPresetsAndListeningLevels": true,
+    "wasm": true,
+    "playground1005PayloadFilesMatchPriorTestedZip": true
+  },
+  "checks": {
+    "relatedTests": {
+      "passed": 12,
+      "failed": 0
+    },
+    "realAnalyzerRoutes": {
+      "schemaVersion": 1,
+      "passed": true,
+      "referenceHz": 440,
+      "warmupSeconds": 0.2,
+      "captureSeconds": 0.4,
+      "method": "Original single-voice VGM programs through actual Analyzer engines; fresh-core unity/default PCM ratio, fixed peak or selected PSG-family listening-level targets, reset gain and exact PCM16 WAV comparisons.",
+      "limits": "Representative ymfm/PSG/RF/AY/NES routes only; OPNA internal SSG retains its existing renderer balance at gain1.03357. Standalone Sega PSG, canonical AY flags1 and NES pulse targets use the unchanged raw AC-RMS references times the explicit listening level; they no longer target equal OPNA FM RMS. No physical output device, perceived-loudness normalization, arbitrary music or polyphony claim. Other chip references are validated separately.",
+      "sources": {
+        "docs/vgm_analyzer/playback_mixer.js": "d73de8178e9aa3f9ce70a5ace6cf21c7cf527c65945b83bda2cfeb7d26d99cc1",
+        "docs/vgm_analyzer/playback_core.js": "72ec6bc31aae851a5c60e6583f0df61543749eaf3243c9569d0498578a2b75db",
+        "docs/vgm_analyzer/mixer_defaults.js": "19c1210297535d871a4d03980eaf905afdad8d91f7b3a895f8e231a61122af28",
+        "docs/vgm_analyzer/mixer_calibration_data.js": "1e9f428407db0d7d977a695c6fce1ccb35c574c94b28912b1e3562aad327cd0a",
+        "docs/js/soundchip_mixer.js": "c041315110e9b98119c37cea04b1c4bea308fb52cb591b53101e1e61213eb5bb",
+        "docs/js/soundchip_mixer_presets.js": "c16f2da45ad2d2a85651ac25a03d42e6cbe9503eee2e611df9b8a7d0600f845e",
+        "docs/js/genesisaudioengine.js": "b94cdf9c52306fa3a67c86c5d656f4da54f0b992c5c191bc8436f0cc571c90ca",
+        "docs/js/y8950audioengine.js": "ed38e4c7e5601d8d44198a4b25ab46b430926666dd2716819d9ff14261b88f28",
+        "docs/js/ym2608audioengine.js": "7f679903430e52de210219ffa00cf38adffba836e6f2dca58909caf2f61ed593",
+        "docs/js/vgmplayer.js": "5e0788e0aee5e824b380b54d5d3f499b63c31a9189b3e36d971367aa49208ce3",
+        "docs/js/ay8910audioengine.js": "202020634fe956c486eb42333db0dcfee4f21c2313f59600097d35f15ff8406e",
+        "docs/js/nesapuaudioengine.js": "5c0f6d91170b339cca384d5cdf99180af39c2b6a0b2afdb14b8582a04676c947",
+        "docs/js/nesapusynth.js": "be2b1c3008fe6617852b3dd194c018bb85089375443775444df1879e445a3f1e",
+        "docs/issues/analyzer_psg_balance_01.json": "b7d51840ce1499bbd94199fcad76df7b9a5a2cfd4bd5d82a3f3232b8439d0771",
+        "scripts/measure_analyzer_psg_balance.mjs": "3f95066363b64d37dd55b43136e4962044889517bdf1155f8ac179cb0898e657",
+        "docs/issues/analyzer_psg_levels_01.json": "6a234c9833d6889e704b436f48b50bba75d18ccf2760272df37f869ab6076ab3",
+        "scripts/measure_analyzer_psg_levels.mjs": "78390212486d113635713d2034d9bd443a398f09e3d2891c5feed2ec373c6ba1",
+        "docs/generated/ym2612_wasm.wasm": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+        "docs/generated/segapsg_wasm.wasm": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+        "docs/generated/rf5c164_wasm.wasm": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+        "docs/generated/y8950_wasm.wasm": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+        "docs/generated/ym2608_wasm.wasm": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+        "docs/generated/ay8910_wasm.wasm": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689"
+      },
+      "rows": [
+        {
+          "route": "genesis-fm",
+          "source": "ym2612",
+          "kind": "ym2612",
+          "legacyEngineTrim": 0.9,
+          "gainUnits": "source",
+          "sampleRate": 53267,
+          "frames": 31960,
+          "defaultGain": 0.775938,
+          "measuredGainRatio": 0.7759380006753954,
+          "maxGainError": 1.2431159615577947e-08,
+          "maxRestartGainError": 1.2431159615577947e-08,
+          "unityAmplitude": 0.166015625,
+          "calibratedAmplitude": 0.1288178376853466,
+          "unityAcRms": 0.11770845845549353,
+          "calibratedAcRms": 0.09133446587795578,
+          "targetAmplitude": 0.12881777435541153,
+          "targetMetric": "amplitude",
+          "targetKind": "common calibration reference",
+          "relativeTargetError": 4.916241984620484e-07,
+          "restart": "exact",
+          "wav": "exact",
+          "wavFrames": 31960,
+          "referenceSha256": "5d5239c97e6cd54605c665dd60f54d39b842b4877c2b031d964141a26cf0c3af"
+        },
+        {
+          "route": "genesis-psg",
+          "source": "psg",
+          "kind": "segapsg",
+          "legacyEngineTrim": 0.35,
+          "gainUnits": "source",
+          "sampleRate": 53267,
+          "frames": 31960,
+          "defaultGain": 0.35,
+          "measuredGainRatio": 0.3499999962739904,
+          "maxGainError": 7.450580569168253e-10,
+          "maxRestartGainError": 7.450580569168253e-10,
+          "unityAmplitude": 0.20000000298023224,
+          "calibratedAmplitude": 0.07000000029802322,
+          "unityAcRms": 0.1999998424033034,
+          "calibratedAcRms": 0.06999994409611957,
+          "targetAcRms": 0.06999998186947358,
+          "targetMetric": "acRms",
+          "targetKind": "historical raw AC RMS times selected standalone listening level",
+          "historicalReferenceGain": 0.45542,
+          "selectedRawGain": 0.35,
+          "relativeTargetError": 5.396194828755085e-07,
+          "restart": "exact",
+          "wav": "exact",
+          "wavFrames": 31960,
+          "referenceSha256": "ad58742d5cbf8bd9ab5e25f4f85989cf2a254d4a3b42c6c092729470ca8caebc"
+        },
+        {
+          "route": "genesis-rf5c164",
+          "source": "rf5c164",
+          "kind": "rf5c164",
+          "legacyEngineTrim": 1,
+          "gainUnits": "source",
+          "sampleRate": 53267,
+          "frames": 31960,
+          "defaultGain": 0.280286,
+          "measuredGainRatio": 0.2802859950192448,
+          "maxGainError": 6.909370409147186e-09,
+          "maxRestartGainError": 6.909370409147186e-09,
+          "unityAmplitude": 0.4595947265625,
+          "calibratedAmplitude": 0.12881796061992645,
+          "unityAcRms": 0.3251690363802083,
+          "calibratedAcRms": 0.09114032691125339,
+          "targetAmplitude": 0.12881777435541153,
+          "targetMetric": "amplitude",
+          "targetKind": "common calibration reference",
+          "relativeTargetError": 1.4459535251365452e-06,
+          "restart": "exact",
+          "wav": "exact",
+          "wavFrames": 31960,
+          "referenceSha256": "f8918023ac5e48a9ba8accafc5f2580cfac65f789a9c8508e05b3a47b0566eba"
+        },
+        {
+          "route": "y8950-psg",
+          "source": "psg",
+          "kind": "segapsg",
+          "legacyEngineTrim": 1,
+          "gainUnits": "source",
+          "sampleRate": 44100,
+          "frames": 26460,
+          "defaultGain": 0.35,
+          "measuredGainRatio": 0.3499999962743608,
+          "maxGainError": 7.450580569168253e-10,
+          "maxRestartGainError": 7.450580569168253e-10,
+          "unityAmplitude": 0.20000000298023224,
+          "calibratedAmplitude": 0.07000000029802322,
+          "unityAcRms": 0.199999898856904,
+          "calibratedAcRms": 0.06999996385487309,
+          "targetAcRms": 0.06999998186947358,
+          "targetMetric": "acRms",
+          "targetKind": "historical raw AC RMS times selected standalone listening level",
+          "historicalReferenceGain": 0.45542,
+          "selectedRawGain": 0.35,
+          "relativeTargetError": 2.57351502219727e-07,
+          "restart": "exact",
+          "wav": "exact",
+          "wavFrames": 26460,
+          "referenceSha256": "df62db8e96e8e875202e31f6d290acf30ced963c4c110b44f4ee9e38ab54fe15"
+        },
+        {
+          "route": "ym2608-fm",
+          "source": "ym2608",
+          "kind": "ym2608",
+          "legacyEngineTrim": 1,
+          "gainUnits": "source",
+          "sampleRate": 44100,
+          "frames": 26460,
+          "defaultGain": 1.03357,
+          "measuredGainRatio": 1.0335700018323737,
+          "maxGainError": 1.7168745397588836e-08,
+          "maxRestartGainError": 1.7168745397588836e-08,
+          "unityAmplitude": 0.1246337890625,
+          "calibratedAmplitude": 0.12881775200366974,
+          "unityAcRms": 0.08812549554718932,
+          "calibratedAcRms": 0.09108386858557634,
+          "targetAmplitude": 0.12881777435541153,
+          "targetMetric": "amplitude",
+          "targetKind": "common calibration reference",
+          "relativeTargetError": 1.7351442305191256e-07,
+          "restart": "gain preserved at matching native history",
+          "wav": "exact",
+          "wavFrames": 26460,
+          "referenceSha256": "63eab23b0ede4da7330cf23efed17dc455d17cc4edd64c98c005ee581f13518e"
+        },
+        {
+          "route": "ym2608-ssg",
+          "source": "ym2608",
+          "kind": "ym2608",
+          "legacyEngineTrim": 1,
+          "gainUnits": "source",
+          "sampleRate": 44100,
+          "frames": 26460,
+          "defaultGain": 1.03357,
+          "measuredGainRatio": 1.0335700180235743,
+          "maxGainError": 2.4174451773717465e-08,
+          "maxRestartGainError": 2.4174451773717465e-08,
+          "unityAmplitude": 0.1666412353515625,
+          "calibratedAmplitude": 0.1722353845834732,
+          "unityAcRms": 0.16553073488646633,
+          "calibratedAcRms": 0.1710876046236842,
+          "targetAmplitude": 0.17223538162231447,
+          "targetMetric": "amplitude",
+          "targetKind": "retained OPNA SSG balance",
+          "relativeTargetError": 1.7192511192476445e-08,
+          "restart": "gain preserved at matching native history",
+          "wav": "exact",
+          "wavFrames": 26460,
+          "referenceSha256": "9b0dbc2d79a7f307a0d6aec28752d127a4f5014c40d49a55be40e1c3204a4df7"
+        },
+        {
+          "route": "standalone-ay8910",
+          "source": "ay8910",
+          "kind": "ay8910",
+          "legacyEngineTrim": 1,
+          "gainUnits": "source",
+          "sampleRate": 44100,
+          "frames": 26460,
+          "defaultGain": 0.85,
+          "measuredGainRatio": 0.8500000181533126,
+          "maxGainError": 3.3527612769423953e-09,
+          "maxRestartGainError": 3.3527612769423953e-09,
+          "unityAmplitude": 0.08333333395421505,
+          "calibratedAmplitude": 0.07083333469927311,
+          "unityAcRms": 0.08277880568938203,
+          "calibratedAcRms": 0.07036198566187334,
+          "targetAcRms": 0.07036188787913794,
+          "targetMetric": "acRms",
+          "targetKind": "historical raw AC RMS times selected standalone listening level",
+          "historicalReferenceGain": 1.100331,
+          "selectedRawGain": 0.85,
+          "relativeTargetError": 1.3897116513117425e-06,
+          "restart": "exact",
+          "wav": "exact",
+          "wavFrames": 26460,
+          "referenceSha256": "c2c1230605171d84384d5eedec95c70cae8424f8f152f05a04368a8215eccf74"
+        },
+        {
+          "route": "standalone-nesApu",
+          "source": "nesApu",
+          "kind": "nes",
+          "legacyEngineTrim": 1,
+          "gainUnits": "source",
+          "sampleRate": 44100,
+          "frames": 26460,
+          "defaultGain": 1.16,
+          "measuredGainRatio": 1.1599999998551294,
+          "maxGainError": 2.8610229518832853e-08,
+          "maxRestartGainError": 2.8610229518832853e-08,
+          "unityAmplitude": 0.06353759765625,
+          "calibratedAmplitude": 0.07370361313223839,
+          "unityAcRms": 0.06021422930343739,
+          "calibratedAcRms": 0.06984850599157266,
+          "targetAcRms": 0.06986833275821684,
+          "targetMetric": "acRms",
+          "targetKind": "historical raw AC RMS times selected standalone listening level",
+          "historicalReferenceGain": 1.512236,
+          "selectedRawGain": 1.16,
+          "relativeTargetError": 0.00028377328986495254,
+          "restart": "exact",
+          "wav": "exact",
+          "wavFrames": 26460,
+          "referenceSha256": "3f0d7e96c40ddf2edd8d9d80a2211181bd6294b01b9ef4ef239e637a69f61d99"
+        }
+      ]
+    },
+    "packagedBrowser": {
+      "physicalOutputMuted": true,
+      "logSha256": "9921732be6fbda30229c01c1517d7a91723e8c6e2b5a01c3aa82ef01ef3465be",
+      "results": [
+        {
+          "browser": "chromium",
+          "passed": true,
+          "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_vgm_analyzer_web-20261028-3df4336",
+          "defaultGains": {
+            "genesis-pcm.vgz": {
+              "ym2612": 0.775938,
+              "psg": 0.35,
+              "rf5c164": 0.280286
+            },
+            "gameboy-tone.vgm": {
+              "gameBoyDmg": 0.36
+            },
+            "nes-tone.vgm": {
+              "nesApu": 1.16
+            },
+            "y8950-psg.vgz": {
+              "y8950": 1.03357,
+              "psg": 0.35
+            },
+            "ay-tone.vgm": {
+              "ay8910": 0.85
+            },
+            "ym2608-fm.vgm": {
+              "ym2608": 1.03357
+            },
+            "ym2608-ssg.vgm": {
+              "ym2608": 1.03357
+            }
+          },
+          "opnaPcm": [
+            {
+              "section": "fm",
+              "defaults": {
+                "peak": 0.03217289596796036,
+                "acRms": 0.022734070838668522,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 253
+              },
+              "unity": {
+                "peak": 0.0311279296875,
+                "acRms": 0.021995700006576312,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 426
+              },
+              "half": {
+                "peak": 0.01556396484375,
+                "acRms": 0.010997862182728978,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 599
+              },
+              "muted": {
+                "peak": 0,
+                "acRms": 0,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 772
+              },
+              "defaultRatio": 1.0335688717281764,
+              "halfRatio": 0.5000005537191732
+            },
+            {
+              "section": "ssg",
+              "defaults": {
+                "peak": 0.12629437446594238,
+                "acRms": 0.06194500873181875,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1009
+              },
+              "unity": {
+                "peak": 0.1221923828125,
+                "acRms": 0.059933059193735164,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1182
+              },
+              "half": {
+                "peak": 0.06109619140625,
+                "acRms": 0.029966529596867582,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1355
+              },
+              "muted": {
+                "peak": 0,
+                "acRms": 0,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1528
+              },
+              "defaultRatio": 1.0335699456218297,
+              "halfRatio": 0.5
+            }
+          ],
+          "checked": [
+            "load-without-storage-writes",
+            "first-Play-calibration-including-AY",
+            "before-and-after-Play-explicit-gain",
+            "reload-persistence",
+            "pan-only-lazy-source-gain",
+            "legacy-gain-context-conversion-without-storage-writes",
+            "pan-retains-legacy-basis",
+            "new-source-gain-shared-across-owners",
+            "Reset-empty-overrides-master-and-mute",
+            "Reset-preserves-FX",
+            "real-WASM-AudioWorklet-muted-output",
+            "OPNA-FM-and-SSG-actual-borrowed-PCM-gain-and-mute"
+          ]
+        },
+        {
+          "browser": "webkit",
+          "passed": true,
+          "root": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/itch_vgm_analyzer_web-20261028-3df4336",
+          "defaultGains": {
+            "genesis-pcm.vgz": {
+              "ym2612": 0.775938,
+              "psg": 0.35,
+              "rf5c164": 0.280286
+            },
+            "gameboy-tone.vgm": {
+              "gameBoyDmg": 0.36
+            },
+            "nes-tone.vgm": {
+              "nesApu": 1.16
+            },
+            "y8950-psg.vgz": {
+              "y8950": 1.03357,
+              "psg": 0.35
+            },
+            "ay-tone.vgm": {
+              "ay8910": 0.85
+            },
+            "ym2608-fm.vgm": {
+              "ym2608": 1.03357
+            },
+            "ym2608-ssg.vgm": {
+              "ym2608": 1.03357
+            }
+          },
+          "opnaPcm": [
+            {
+              "section": "fm",
+              "defaults": {
+                "peak": 0.03217289596796036,
+                "acRms": 0.022734070838668522,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 269
+              },
+              "unity": {
+                "peak": 0.0311279296875,
+                "acRms": 0.021995700006576312,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 442
+              },
+              "half": {
+                "peak": 0.01556396484375,
+                "acRms": 0.010997862182728978,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 615
+              },
+              "muted": {
+                "peak": 0,
+                "acRms": 0,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 788
+              },
+              "defaultRatio": 1.0335688717281764,
+              "halfRatio": 0.5000005537191732
+            },
+            {
+              "section": "ssg",
+              "defaults": {
+                "peak": 0.12629437446594238,
+                "acRms": 0.06194500873181875,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1041
+              },
+              "unity": {
+                "peak": 0.1221923828125,
+                "acRms": 0.059933059193735164,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1214
+              },
+              "half": {
+                "peak": 0.06109619140625,
+                "acRms": 0.029966529596867582,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1387
+              },
+              "muted": {
+                "peak": 0,
+                "acRms": 0,
+                "warmupFrames": 8820,
+                "frames": 11025,
+                "viewCalls": 1560
+              },
+              "defaultRatio": 1.0335699456218297,
+              "halfRatio": 0.5
+            }
+          ],
+          "checked": [
+            "load-without-storage-writes",
+            "first-Play-calibration-including-AY",
+            "before-and-after-Play-explicit-gain",
+            "reload-persistence",
+            "pan-only-lazy-source-gain",
+            "legacy-gain-context-conversion-without-storage-writes",
+            "pan-retains-legacy-basis",
+            "new-source-gain-shared-across-owners",
+            "Reset-empty-overrides-master-and-mute",
+            "Reset-preserves-FX",
+            "real-WASM-AudioWorklet-muted-output",
+            "OPNA-FM-and-SSG-actual-borrowed-PCM-gain-and-mute"
+          ]
+        }
+      ]
+    },
+    "bothPackageDependencyChecks": "passed",
+    "allZipPayloadBytesMatchStages": true
+  },
+  "archives": [
+    {
+      "kind": "playground",
+      "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_web-20261028-3df4336_itch_playground.zip",
+      "fileCount": 1005,
+      "bytes": 36785410,
+      "sha256": "4bd992df36dd2faaa89e21a8c779baa0654c5905d849b5b07da22de79b7d3e39",
+      "allStageBytesMatch": true,
+      "rootIndexHtml": true,
+      "serviceWorkerRegistrationRemoved": true
+    },
+    {
+      "kind": "vgm_analyzer",
+      "archive": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_web-20261028-3df4336_itch_vgm_analyzer.zip",
+      "fileCount": 421,
+      "bytes": 1899882,
+      "sha256": "3ea8211b9ee53b59dc46028150533cbf4c251b7665eb37787430121ac7bef98f",
+      "allStageBytesMatch": true,
+      "rootIndexHtml": true,
+      "serviceWorkerRegistrationRemoved": true
+    }
+  ],
+  "publication": {
+    "performed": false,
+    "destination": "itch.io, Web only",
+    "manualByUser": true
+  },
+  "sourceEdits": "Historical receipts retained; add current receipts and update generator/provenance comments only."
+}

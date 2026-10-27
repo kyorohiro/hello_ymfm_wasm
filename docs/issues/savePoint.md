@@ -1,3 +1,11 @@
+## 2026-10-28 — itch.io Web版2本の公開準備完了
+
+- ユーザーがVGM Analyzer／Playgroundを手動公開予定。本体baseは`3df4336b`（Mega-CD CD-DAまでcommit済み）。アップロード操作は行っていない。
+- Analyzerの測定source hash不一致を解消。14filesの差はJSDoc cache URLのみ。実18＋12captureを再測定し、旧記録のsources以外はPCM hash・測定値・gainを含め完全一致。extra06／PSG07を追加しgeneratorと生成物の由来コメントだけ更新。音量・WASM・実行コードは不変。
+- 関連12tests／実Analyzer8routes／配布stageでChromium・WebKit各12checks成功。Playground新ZIPの1005payloadは前回の実Browser検証済ZIPと全byte一致。両ZIPの依存参照・root index.html・stage全byte一致を検証済み。
+- 手動upload用：`release/hello_ymfm_wasm_web-20261028-3df4336_itch_playground.zip`／`release/hello_ymfm_wasm_web-20261028-3df4336_itch_vgm_analyzer.zip`。itch.io公開後のiframe上の確認は未実施。
+- 今回の測定記録等は未commit。npm／Tauri取込／tag／公開操作なし。詳細：[analyzer_mixer_calibration_refresh_04.md](analyzer_mixer_calibration_refresh_04.md)／[JSON](analyzer_mixer_calibration_refresh_04.json)。
+
 ## 2026-10-28 — Mega-CD CD-DA／4音源デモ追加完了
 
 - Mega CD modeにCD-DAタブ。YM2612／Sega PSG／RF5C164／CD-DAの4系統を表示する。既存の共通API／read-only panelを再利用し、定期pollingや音声書込は追加しない。Genesis／32X／PC Engineの構成は維持。
