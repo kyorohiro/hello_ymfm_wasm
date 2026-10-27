@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "status": "complete; editable SDK addition, unreleased",
+  "scope": "editable SDK only; low-level Native/WASM, no JS factory or Playground mode yet",
+  "sdk": "w/tetorica-soundchip-native",
+  "sourceFiles": {
+    "vendor/libvgm-pokey/pokey.cpp": {
+      "bytes": 37305,
+      "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96"
+    },
+    "vendor/libvgm-pokey/pokey.h": {
+      "bytes": 1573,
+      "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0"
+    },
+    "vendor/libvgm-pokey/LICENSE": {
+      "bytes": 1587,
+      "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583"
+    },
+    "vendor/libvgm-pokey/README.md": {
+      "bytes": 7686,
+      "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff"
+    },
+    "vendor/libvgm-pokey/upstream/pokey.c": {
+      "bytes": 41726,
+      "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9"
+    },
+    "vendor/libvgm-pokey/upstream/snapshot-manifest.json": {
+      "bytes": 841,
+      "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27"
+    },
+    "native/include/tetorica/pokey.hpp": {
+      "bytes": 761,
+      "sha256": "1a899cb7eb721d430f4e2dbb624c309c145601568f1168e2e246bd8e1eaa09c2"
+    },
+    "wasm/pokey_wasm.cpp": {
+      "bytes": 1101,
+      "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df"
+    },
+    "scripts/build_pokey_wasm.sh": {
+      "bytes": 761,
+      "sha256": "1f058e1c0be587f4443625f7ac3847850b838257e8c85b2835e38bfb8d228554"
+    },
+    "tests/check_pokey_core.mjs": {
+      "bytes": 9840,
+      "sha256": "1464d5f78c950ba4952f6a37b4952d99161b17b5641275bad31796e32cdfceaa"
+    }
+  },
+  "upstream": {
+    "url": "https://github.com/ValleyBell/libvgm/blob/61b62d64455e039de2a1d01498afa9e9b5f1cb88/emu/cores/pokey.c",
+    "license": "BSD-3-Clause declared on the included C file",
+    "separateFrameworkHeadersImported": false
+  },
+  "validation": {
+    "nativeWasm": {
+      "passed": true,
+      "cases": 57,
+      "layouts": 2,
+      "comparedStereoFrames": 235091,
+      "specifiedChecks": 32,
+      "maximumDifference": 0,
+      "wasmSha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22",
+      "scope": "Native/WASM raw audio parity, block invariance, DAC/dividers, shared-module dual handles; no hardware accuracy claim"
+    },
+    "nativeCTest": {
+      "passed": true,
+      "tests": 1,
+      "platform": "macOS arm64; AppleClang17"
+    },
+    "wasmSmoke": {
+      "passed": true,
+      "renderedFrames": 1524102
+    },
+    "independentReadOnlyReview": {
+      "blockers": 0,
+      "scope": "ported digital algorithm, ownership, resampler arithmetic, ABI/license boundaries"
+    },
+    "sdkIntegration": {
+      "passed": true,
+      "scope": "Editable SDK only; local unpublished 0.1.4 development. Fixed main SDK/runtime/binaries unchanged.",
+      "sourceInventory": {
+        "chips": 24,
+        "wasmRecipes": 29,
+        "javascriptReferences": 2,
+        "snapshotRecords": 292
+      },
+      "native": {
+        "libraries": 21,
+        "fixtureExecutables": 25,
+        "ctestPassed": 26,
+        "ctestFailed": 0,
+        "offlineWavExamples": 20,
+        "log": "/private/tmp/pokey-sdk-release-isolation.log"
+      },
+      "pokeyFixture": {
+        "checks": 3055137,
+        "hotBlocks": 2048,
+        "trackedCppNewAllocations": 0,
+        "directMallocTracked": false,
+        "asanUbsan": "passed"
+      },
+      "python": {
+        "passed": 70,
+        "failed": 0,
+        "log": "/private/tmp/pokey-sdk-python-tests.log"
+      },
+      "isolatedPokeyWasm": {
+        "toolchain": "Emscripten 6.0.6",
+        "releasedSmokeFrames": 1524102,
+        "rebuiltSmokeFrames": 1524102,
+        "releasedRebuiltPairByteIdentical": true,
+        "parityPerVariant": {
+          "cases": 57,
+          "layouts": 2,
+          "comparedStereoFrames": 235091,
+          "specifiedChecks": 32,
+          "maximumDifference": 0
+        },
+        "log": "/private/tmp/pokey-sdk-parity-isolation-approved.log"
+      },
+      "finalArchiveAudit": {
+        "passed": true,
+        "wasmSmoke": true,
+        "javascriptSmoke": true,
+        "log": "/private/tmp/pokey-sdk-final-archive-audit.log",
+        "sameFileSetAsRebuiltArchive": true,
+        "onlyDocumentationChangesSinceRebuild": [
+          "CHANGELOG.md",
+          "README.md",
+          "docs/verification.md",
+          "tests/README.md"
+        ],
+        "fullNativeCompiledSourceFilesByteIdentical": 286
+      },
+      "dualWav": {
+        "frames": 144000,
+        "sampleRate": 48000,
+        "defaultMix": "Both mono chips to both output channels at 0.5 each; listening-only 20 Hz DC blocker and file fades.",
+        "monoPeaks": [
+          0.14178466796875,
+          0.14178466796875
+        ],
+        "monoDifferentStereoFrames": 0,
+        "explicitStereoPeaks": [
+          0.08795166015625,
+          0.1187744140625
+        ],
+        "explicitStereoDifferentFrames": 143989
+      },
+      "archives": [
+        {
+          "path": "/private/tmp/pokey-sdk-release-final/tetorica-soundchip-native-0.1.4-sources.zip",
+          "sha256": "441da0b4052099178e355be545c0ced06e580f6c5a966f3b63660ba46222226b",
+          "bytes": 1105408
+        },
+        {
+          "path": "/private/tmp/pokey-sdk-release-final/tetorica-soundchip-native-0.1.4-wasm.zip",
+          "sha256": "4b6014204bb1c50647db7bc2e126998bf66e2b0fb9a8743d73fe84c37392bbf5",
+          "bytes": 1169081
+        }
+      ],
+      "wasm": [
+        {
+          "path": "/private/tmp/pokey-sdk-wasm/pokey_wasm.js",
+          "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d",
+          "bytes": 15128
+        },
+        {
+          "path": "/private/tmp/pokey-sdk-wasm/pokey_wasm.wasm",
+          "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22",
+          "bytes": 18676
+        }
+      ],
+      "ci": "Five Native platform jobs and three WASM jobs configured. The POKEY job runs --pokey-native-parity. No new remote CI run, tag or release triggered.",
+      "commands": [
+        "python3 -m unittest discover -s tests -p test_*.py",
+        "cmake --build /private/tmp/pokey-sdk-agent-native --target tetorica_pokey_fixture tetorica_pokey_wav --parallel 2",
+        "ctest --test-dir /private/tmp/pokey-sdk-agent-native -R pokey --output-on-failure",
+        "c++ -std=c++14 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Inative/include native/tests/pokey_fixture.cpp vendor/libvgm-pokey/pokey.cpp -o /private/tmp/pokey-sdk-asan",
+        "python3 tests/check_standalone_release.py --source-zip SOURCES.zip --wasm-zip WASM.zip --work-dir ISOLATED",
+        "python3 tests/check_standalone_release.py --source-zip SOURCES.zip --wasm-zip WASM.zip --work-dir ISOLATED --audit-only --javascript-smoke --wasm-smoke --build-wasm pokey --pokey-native-parity",
+        "python3 tests/check_standalone_release.py --source-zip FINAL-SOURCES.zip --wasm-zip FINAL-WASM.zip --work-dir FINAL-ISOLATED --audit-only --wasm-smoke --javascript-smoke"
+      ]
+    },
+    "sdkIntegrationReceiptSha256": "b4d835da2328ae6a6c6541bff9b4f7be6c86a13d51d9f3388a255fc9ac4a4802"
+  },
+  "wav": {
+    "file": "/private/tmp/pokey-sdk-native/dual-pokey-mono.wav",
+    "bytes": 576044,
+    "sha256": "bdc04ba83503b3bb1de05b6c4d89c8304afc7b98e7a87f5a94b4fca3da68b163",
+    "sampleRate": 48000,
+    "frames": 144000,
+    "seconds": 3.0,
+    "channels": 2,
+    "leftEqualsRight": true,
+    "peak": 0.14178466796875,
+    "rms": 0.051687770696843514,
+    "source": "original synthetic dual POKEY sketch",
+    "hostPolicy": "0.5 each mono mix; example-only20Hz DC block and fade; raw core untouched"
+  },
+  "fixedSdkAndExistingRuntimeChanged": false,
+  "published": false,
+  "committed": false,
+  "remaining": [
+    "new SDK release/import",
+    "JS raw/Synth API",
+    "Playground mode",
+    "VGM Analyzer integration",
+    "remote CI and user listening"
+  ],
+  "finalSdkChangeFiles": {
+    ".github/workflows/verify-sdk.yml": {
+      "bytes": 5925,
+      "sha256": "4573a630e8e922af6860f16fd5699a824a9a11356dc79640045b27d6025554a0"
+    },
+    "CHANGELOG.md": {
+      "bytes": 21311,
+      "sha256": "ca376f5c274d26f24abc036c0d05a5ba1b1f97cb66bbeaed4f721f8277155a61"
+    },
+    "LICENSES.md": {
+      "bytes": 5367,
+      "sha256": "5cffbb6fa9f35eb252c56ddc07a9eba9f8d3e75a26d93829a13cd9ef4aa690f9"
+    },
+    "README.md": {
+      "bytes": 26682,
+      "sha256": "e749b16fc1e80c9e041c507e341a18712ed4ae0e728628dcd11d5e6232fe0b97"
+    },
+    "catalog/chips.json": {
+      "bytes": 93200,
+      "sha256": "ba58d174a3ec031381cb5d39c7f6a504475363abedeaf575e6d09c1b7b27258f"
+    },
+    "catalog/native_inventory.json": {
+      "bytes": 47254,
+      "sha256": "615bde71c302d8b38165420cfeceb48a07a72867523f309ccab29c45ba939607"
+    },
+    "catalog/source_inventory.json": {
+      "bytes": 126440,
+      "sha256": "c2be5de9936dee174d10cae31dc938e7442c83a9a91d4b42bf7b69d34b9a8e6a"
+    },
+    "docs/chip-differences.md": {
+      "bytes": 47110,
+      "sha256": "667bfb0a619a29d66f3355835da0d7bdd08058bf6f5501224ac6f166db917f2f"
+    },
+    "docs/verification.md": {
+      "bytes": 96507,
+      "sha256": "318058e1f87eab184d6981484bcecbf3f89f96db3d7f5e6e4763921a519c4b1e"
+    },
+    "native/CMakeLists.txt": {
+      "bytes": 35714,
+      "sha256": "07e10842298fe47046c6cf223a297b224a1e011c113dfe6c6e29c124e3d12ec5"
+    },
+    "native/README.md": {
+      "bytes": 112563,
+      "sha256": "9c2c3dbc716e6cd56c3e2df1c6c5896337b758419f1584a146e8228a22e0e1ea"
+    },
+    "native/examples/pokey_wav.cpp": {
+      "bytes": 5208,
+      "sha256": "612a6855bf3016823c517eff1c650793636595baa7fcf56da590bf6869531390"
+    },
+    "native/include/tetorica/pokey.hpp": {
+      "bytes": 761,
+      "sha256": "1a899cb7eb721d430f4e2dbb624c309c145601568f1168e2e246bd8e1eaa09c2"
+    },
+    "native/tests/pokey_fixture.cpp": {
+      "bytes": 15183,
+      "sha256": "442a7432eb3b4183a9c1591377e32e71e003a2bbf19deacea21dd84d22291424"
+    },
+    "scripts/build-wasm.sh": {
+      "bytes": 1670,
+      "sha256": "d9c0eafa477e115d2fe83541a80e04203f7ad2e967228766a389536ad1df5e3e"
+    },
+    "scripts/build_pokey_wasm.sh": {
+      "bytes": 761,
+      "sha256": "1f058e1c0be587f4443625f7ac3847850b838257e8c85b2835e38bfb8d228554"
+    },
+    "scripts/refresh_catalog.py": {
+      "bytes": 3058,
+      "sha256": "7f907403fe1aa17eba946d4cde04484e8edfa280bfa95e67040bc8295d5dfef1"
+    },
+    "scripts/sdk_common.py": {
+      "bytes": 10195,
+      "sha256": "68221441d0a4b99ae62f17046700e75caf96b9ff1ba12e283a7cef8a293a845e"
+    },
+    "tests/README.md": {
+      "bytes": 18356,
+      "sha256": "e58f1822112a581052419da8cdb2172472198f0d768d921d77647f88649ff2af"
+    },
+    "tests/check_pokey_core.mjs": {
+      "bytes": 9840,
+      "sha256": "1464d5f78c950ba4952f6a37b4952d99161b17b5641275bad31796e32cdfceaa"
+    },
+    "tests/check_standalone_release.py": {
+      "bytes": 37531,
+      "sha256": "4a898a43492d7a5b531c1f0e67c6b4e4cc7a4027ef154ed0d6701057ce3a6fee"
+    },
+    "tests/pokey_wasm_smoke.mjs": {
+      "bytes": 6994,
+      "sha256": "763b297025d470a386e0dc40381e30528fa157626a1884b681afe55f19733fc8"
+    },
+    "tests/test_standalone_release.py": {
+      "bytes": 57658,
+      "sha256": "bca2eb8cdc86cbd12bbdcbd9d4f8cec5846f64749333f32f0bd522e5faac1b31"
+    },
+    "vendor/libvgm-pokey/LICENSE": {
+      "bytes": 1587,
+      "sha256": "d61744586409c4f1292cfae859f1d6d5804c7d760a08deb639bed7915b613583"
+    },
+    "vendor/libvgm-pokey/README.md": {
+      "bytes": 7686,
+      "sha256": "ff97a585e94ebd638fde52d1e5e5e8a14fd62004ca595815a3a2ab9fed3bc1ff"
+    },
+    "vendor/libvgm-pokey/pokey.cpp": {
+      "bytes": 37305,
+      "sha256": "37c1fbcc36ea3dbe1c69aa7561e17bfdf61baa5e4d6b67796b51ad5038898b96"
+    },
+    "vendor/libvgm-pokey/pokey.h": {
+      "bytes": 1573,
+      "sha256": "2ee02e5484e3bcf5462aced120ac1a9401c271cd05eab63863aa64ca3dfd91b0"
+    },
+    "vendor/libvgm-pokey/upstream/pokey.c": {
+      "bytes": 41726,
+      "sha256": "f90898d3f8b774f7e7ffefafa47f61ffeea893599582f32bed08c83542757ef9"
+    },
+    "vendor/libvgm-pokey/upstream/snapshot-manifest.json": {
+      "bytes": 841,
+      "sha256": "0a67f9222d2847bd61490b037a909b11dc9ec7aa4dccee039328e1cd7b4e3e27"
+    },
+    "wasm/pokey_wasm.cpp": {
+      "bytes": 1101,
+      "sha256": "7c4e97d0f0c2e62c13f206d2190590de82ef29f8f5b0dd4709bf43ebe64ee5df"
+    }
+  }
+}

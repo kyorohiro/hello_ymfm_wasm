@@ -7,6 +7,29 @@ Last updated: 2026-10-27
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### Atari POKEY SDK原本・2台構成 — 2026-10-27
+
+作業対象は`w/tetorica-soundchip-native`のSDK原本。POKEYの単体Native/WASMコアを追加。
+BSD-3-Clause明示のlibvgm `pokey.c`をcommit61b62d…へ固定し、原本/SHA/credits/LICENSEを保持。
+ライセンス無記載の別framework headerは含めず、独自C++14接続へ置換。
+`tetorica::Pokey`とC ABIの各handleが4CH/clock/ノイズ/位相/mute/resetを独立所有する。
+同一WASM内の複数handleにも対応。2台はホスト側でmono合成/明示stereo routingできる。
+Atari TetrisのMAME driverは2台をMASTER_CLOCK/8、mono0.5ずつで接続。Exampleは整数近似1789773Hz。
+raw coreはlegacy gain744・32767clip・/32768・DCを保持。Mixer調整やboard filterは追加しない。
+Native/WASM57case×2分割・235091framesが差0。独立DAC/pitch/bounds/dual検証32件成功。
+Native CTestとWASM smoke1524102framesが成功。独立コードreviewもblockerなし。
+配布ソース抽出から全21Native libraryをbuild、全26CTest/20WAV/10JSチェック成功。
+POKEY fixture3,055,137checks・ASan/UBSan、Python全70testが成功。
+抽出ソースから再buildしたWASMもpair全byte一致し、配布/再build両方でsmoke1,524,102framesとNative比較57caseが成功。
+最終archive監査済み。再build試験後の差分は文書4fileのみ、全286Native source/header/CMake fileは全体build試験時と一致。
+CIは5Native構成と3WASM構成、POKEY jobでNativeとの2比較を行う形へ拡張。remote CIは未実行。
+試聴用は`/private/tmp/pokey-sdk-native/dual-pokey-mono.wav`（自作3秒・48kHz）。
+ホストExampleだけ20Hz DC blockerとfadeを使い、raw coreとは分離。実聴/実機比較は未実施。
+本体の固定SDK0.1.4・既存WASM・runtime/Mixer/npmは変更なし。JS API/Mode/Analyzerは未接続。
+詳細は[atari_pokey_core_01.md](atari_pokey_core_01.md)とJSON。SDK原本/本体記録は未commit。
+次はSDKの新versionをrelease/importし、JS raw/Synth APIとPlaygroundへ接続する。
+今回のlocal検証ZIPは既存manifest0.1.4の開発物。公開tag/release/npm/本体固定snapshot更新は行っていない。
+
 ### WonderSwan汎用Worklet・Examples・npm0.2.30 — 2026-10-27
 
 `createSoundChip('wonderswan', {execution:'worklet'})`と`WonderSwanWorkletTransport`を追加。
