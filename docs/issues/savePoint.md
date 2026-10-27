@@ -7,6 +7,15 @@ Last updated: 2026-10-28
 この節が現在の作業状態。末尾まで残している旧記録には、現在と異なる構成・未実装扱い・次の作業案が含まれる。
 再開時はこの節と実際の各リポジトリの状態を先に確認する。
 
+### CD-ROM² tab名を短縮 — 2026-10-28
+
+ユーザー指定に合わせ表示名を`HuC6280`／`MSM5205`／`CD-DA`へ統一。
+HuC6280のmode別上書きを外し、MSM5205のtab文字列を短縮。説明本文・音声処理は維持。
+page cacheは`cdrom2-tab-labels-1`。ZIPを再作成しTauri frontend／source ZIPを更新。
+`release/hello_ymfm_wasm_cdrom2-tab-labels-dev_itch_playground.zip`。
+frontend ZIP SHA256 `568006eeb2d758b0e11b96dbf1422136088e29e4135f5a8750fdc07fa4088b63`。
+未commit／未push。直下の検証記録とBrowser画像は短縮前の表示名に対する履歴。
+
 ### CD-ROM² sourceタブ追加完了 — 2026-10-28
 
 新modeへHuC6280 PSG／MSM5205 ADPCM／CD-DAの3タブ。既存HuC音色編集は維持。

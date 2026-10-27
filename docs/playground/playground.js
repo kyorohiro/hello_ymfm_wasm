@@ -2053,7 +2053,6 @@ cdrom2AudioPanels=createPlaygroundCdrom2AudioPanels({
   readState:kind=>runtime.getSystemAudioState(kind),
   onError:error=>setStatus(`CD-ROM² audio: ${error.message}`),
 });
-if(selectedMode.pcEngineCd)document.getElementById('huc6280Tab').textContent='HuC6280 PSG';
 const pageLifecycle = installPlaygroundPageLifecycle({
   target: window,
   getRuntime: () => runtime,
