@@ -13,8 +13,8 @@
       "size": 55
     },
     "CHANGELOG.md": {
-      "sha256": "b9846fcd168ac34ad2faa50cecead807cf11ee354729c03c4e838e3408035e7f",
-      "size": 23414
+      "sha256": "b5d81247680906323a1e25586a7ef9d215ee76e3f1dc687e78b43c93202a7aa5",
+      "size": 23552
     },
     "CMakeLists.txt": {
       "sha256": "3a48d4e6b84631ce0c68994b7a5d6ab37353fb7d0489f1182b25f8721e2ed802",
@@ -33,8 +33,8 @@
       "size": 6858
     },
     "README.md": {
-      "sha256": "27854c987234626382fdcd60f219b032b62843c1b941052b87de95b9a167d67e",
-      "size": 30831
+      "sha256": "e3c494cbfdb8a5d9a03e1bef0939e7a45874b1772915ceb025a10b54ed40ed65",
+      "size": 30833
     },
     "catalog/chips.json": {
       "sha256": "1bd019f743011675a6ccb5e8b8ff0878bc28cac4546d4ba5a42bb2dfa76ab9d2",
@@ -57,16 +57,16 @@
       "size": 52400
     },
     "docs/releases.md": {
-      "sha256": "b4b6e3cafa18a1319409c12bb64eca380f51a66f050c39d60bed1dd7f7d592a1",
-      "size": 23197
+      "sha256": "90e000f488e9bf847afb783457f65ccd49c19bd3c6a56e7a3970123c3ae841ed",
+      "size": 23185
     },
     "docs/research.md": {
       "sha256": "a7a491f75a30d0bb57639d245fe2744b82b703076486e792ddbd090cd3bc672c",
       "size": 12695
     },
     "docs/verification.md": {
-      "sha256": "ddef77e89703ac6bb68d6c99d903d98eb97929453f585513f7644434ae7b6dc5",
-      "size": 103628
+      "sha256": "5973ab2808d2a7e45ce0059d146c2640b999583f8b88dbd60846357374518fe1",
+      "size": 104748
     },
     "native/CMakeLists.txt": {
       "sha256": "1487e3c746ded49431c8a4ae793d341c660e0d41de7213739f1b98c630a5e50d",
@@ -837,8 +837,8 @@
       "size": 285
     },
     "tests/README.md": {
-      "sha256": "78a31b65cddc51fcbc9383cc7c32ec4c8dd75682d06516122b4ec2b0c81faf08",
-      "size": 22786
+      "sha256": "ede0407989c463210456947818b82bf7137f2ec1f84f3e9864bb9295c7399541",
+      "size": 23084
     },
     "tests/application_audio_wasm_smoke.mjs": {
       "sha256": "9063317a58c84ad5dc29a11ce89922810bef6c30b9569834fad1187236a2122c",

@@ -61,6 +61,7 @@ entry points, rather than every internal Worker or Worklet module.
 | PCM to PS1 SPU ADPCM | `tetorica-fm2612/ps1_adpcm_encoder.js` | `encodePs1Adpcm` |
 | PS1 Sample Editor conversion / waveform comparison | `tetorica-fm2612/playground_sample_ps1.js` | `renderPs1Sample`, `renderPs1SampleComparison` |
 | Isolated offline PS1 sample audition | `tetorica-fm2612/playground_sample_ps1_preview.js` | `renderPs1SamplePreview` with an injected PS1 WASM factory |
+| Game Boy sample comparison / isolated audition | `tetorica-fm2612/playground_sample_gameboy_preview.js` | `renderGameboySampleComparison`, `renderGameboySamplePreview` with an injected Game Boy WASM factory |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
@@ -132,18 +133,17 @@ continue to use the explicit encoder/upload API described below.
 explicit loop positions and JSON-safe reconstruction metrics. It does not
 resample or normalize; declare tuning when uploading the encoded sample.
 See the [PCM conversion guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_adpcm_encoder.md).
-The source-tree package build also includes `playground_sample_ps1.js` for
+Since `0.2.33`, the package includes `playground_sample_ps1.js` for
 non-destructive 44.1 kHz mono conversion and bounded raw-decoded comparisons,
 and `playground_sample_ps1_preview.js` for an isolated actual-SPU root-note
 preview. The preview requires an injected generated factory, opens no audio
-device and releases its private core after rendering. These helpers are part
-of the current package candidate; their presence here does not announce a new
-npm release. See the [Sample Editor workflow and RAM limits](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_sample_editor.md).
+device and releases its private core after rendering. See the
+[Sample Editor workflow and RAM limits](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_sample_editor.md).
 The package-root chip factory remains separate. In a compatible Tauri host,
 Playground supports PS1 Native playback through the same fixed SDK C++ core,
 including Main/Worker, 24-voice audition, PCM/ADSR/reverb editing and additional
-independent SPUs. Web Audio remains the default. The source-tree build pins SDK
-0.1.6 as an unpublished local candidate; this does not announce an SDK release.
+independent SPUs. Web Audio remains the default. The package pins the published
+SDK 0.1.6 source release, including its source archive and manifest hashes.
 Upstream linear interpolation, approximate ADSR and preset reverb are retained;
 hardware-exact sound or game soundtrack compatibility is not claimed.
 
@@ -1326,15 +1326,15 @@ FM/PSG/PCM mixing, stop/reset and close/restart. Playwright is a development
 dependency; it is not required by users of the sound-chip runtime.
 
 The build is staged in `dist/fm2612/`; packing produces
-`tetorica-fm2612-0.2.32.tgz`. To install a local build in another project:
+`tetorica-fm2612-0.2.33.tgz`. To install a local build in another project:
 
 ```sh
-npm install /absolute/path/to/tetorica-fm2612-0.2.32.tgz
+npm install /absolute/path/to/tetorica-fm2612-0.2.33.tgz
 ```
 
-The current source-tree build pins `tetorica-soundchip-native` SDK **0.1.6** as
-an unpublished local candidate, including the PS1 SPU instrument. The pin retains
-the archive hash, base commit and changed paths; no SDK 0.1.6 release is implied.
+The build pins the published `tetorica-soundchip-native` SDK **0.1.6** source
+release, including the PS1 SPU instrument. The pin retains the exact tagged
+source commit, archive hash and manifest hash.
 The SDK provides 29 chip WASM recipes, 2 separate application-audio recipes
 (CD-DA and MSM5205), and the standalone PS1 SPU instrument recipe. Bundled source receipts preserve its source commit, archive
 and manifest hashes; standalone recipes rebuild without checking out the SDK.
@@ -1354,6 +1354,23 @@ instrument/sample ROMs are not included.
 
 ## Release notes
 
+`0.2.33` adds the experimental **PS1 SPU instrument**: a standalone 24-voice
+44.1 kHz core, tuned sample Synth, host-rate resampler, named ADSR/reverb
+parameters, PCM-to-ADPCM encoding and isolated sample conversion/preview.
+The bundled Playground runtime supports primary and independent SPUs,
+Main/Worker control, sample instruments and compatible Tauri Native hosts.
+Complete BSD source, upstream notices and standalone rebuild recipes follow
+the published fixed SDK 0.1.6 release. The package-root `createSoundChip()`
+factory remains separate from the Playground PS1 API.
+
+This release also adds pure PCM-to-SNES-BRR and Neo Geo ADPCM-A encoders,
+Game Boy sample comparison and isolated actual-core preview, and extends the
+optional calibrated Mixer preset from 22 to 25 sources with PS1, WonderSwan
+and POKEY. Explicit saved Mixer values keep their precedence; raw core PCM
+and endpoint gains retain their existing behavior. PS1 interpolation, ADSR and
+reverb remain approximate, and no hardware-accuracy or audio-thread allocation
+guarantee is claimed.
+
 `0.2.32` adds **CD-DA and PC Engine MSM5205 ADPCM** application-audio APIs,
 shared C/WASM renderers, sample encoding, browser AudioWorklet endpoints and
 offline WAV mixing on a common output-frame clock. The bundled Playground
@@ -1371,7 +1388,7 @@ timeline client transfers small owned chunks and validates them across audio
 quanta, with atomic commit and cancellation on Stop, owner/session replacement
 and disposal. That npm release used a hash-pinned SDK 0.1.5 source candidate
 with local archive/base-commit provenance. The current source tree uses the
-SDK 0.1.6 local candidate described above.
+published SDK 0.1.6 release described above.
 
 `0.2.30` connects **WonderSwan to the public Direct and AudioWorklet factory**,
 with the shared Mixer, typed raw API and `WonderSwanWorkletTransport` for Synth

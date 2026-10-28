@@ -8,7 +8,7 @@ The collection includes the required core sources, component licenses, local mod
 
 Commercial projects can select cores under **BSD-3-Clause, MIT, and Apache-2.0**. The default YM2612 backend uses BSD-3-Clause **ymfm**. Optional **Nuked-OPN2 and SNES/SPC** components retain their **LGPL** terms, including the applicable distribution and relinking requirements. Select the components you need and follow their licenses; [LICENSES.md](LICENSES.md) maps the sources and terms.
 
-**SDK 0.1.6 candidate** adds the standalone PlayStation SPU instrument alongside POKEY and the C11 CD-DA/MSM5205 modules. Sources, licenses, CMake target and a WASM recipe are included. The matching version tag runs all Native and selected WASM checks before publication through the [release workflow](docs/releases.md). Local candidate packaging does not create a published release or update existing consumer pins.
+**SDK 0.1.6** adds the standalone PlayStation SPU instrument alongside POKEY and the C11 CD-DA/MSM5205 modules. Sources, licenses, CMake target and a WASM recipe are included. The matching version tag runs all five Native and six selected WASM checks before publication through the [release workflow](docs/releases.md). Consumers explicitly adopt the published source archive and its checksum to update their SDK pins.
 
 **Application audio:** the original C11 CD-DA PCM device and MSM5205/PC Engine ADPCM module have Native targets and standalone WASM recipes. They are separate from the 24 chip IDs. Consumers explicitly choose when to update their pinned SDK sources.
 

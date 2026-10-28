@@ -1,0 +1,1126 @@
+{
+  "schemaVersion": 1,
+  "dateJst": "2026-10-29",
+  "recordedAtUtc": "2026-10-28T22:48:56.193615+00:00",
+  "scope": "Formal SDK 0.1.6 publication and main/Tauri source adoption; npm publication completed separately",
+  "status": "sdk-published-main-and-tauri-adoption-verified",
+  "passed": true,
+  "sdk": {
+    "pin": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.6",
+      "sourceCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+      "archiveName": "tetorica-soundchip-native-0.1.6-sources.zip",
+      "archiveSha256": "2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17",
+      "manifestSha256": "e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb",
+      "fileCount": 455
+    },
+    "releaseURL": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.6",
+    "tag": "v0.1.6",
+    "releaseCommitPushedViaTag": true,
+    "draft": false,
+    "prerelease": false,
+    "publishedAtUtc": "2026-10-28T22:27:29Z",
+    "assets": [
+      {
+        "name": "SHA256SUMS",
+        "size": 110,
+        "digest": "sha256:1493cddf847946845c13baa18e4aeb82822f0994269bd67c8449b06e311819ce",
+        "browser_download_url": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/download/v0.1.6/SHA256SUMS"
+      },
+      {
+        "name": "tetorica-soundchip-native-0.1.6-sources.zip",
+        "size": 1246902,
+        "digest": "sha256:2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17",
+        "browser_download_url": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/download/v0.1.6/tetorica-soundchip-native-0.1.6-sources.zip"
+      }
+    ],
+    "publicVerification": {
+      "passed": true,
+      "releaseURL": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.6",
+      "publishedAt": "2026-10-28T22:27:29Z",
+      "archiveSHA256": "2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17",
+      "archiveBytes": 1246902,
+      "checksumSHA256": "1493cddf847946845c13baa18e4aeb82822f0994269bd67c8449b06e311819ce",
+      "manifestSHA256": "e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb",
+      "archiveMembers": 455,
+      "payloadFiles": 454,
+      "githubAssetDigestsVerified": true,
+      "zipCRCVerified": true,
+      "allManifestHashesVerified": true,
+      "byteIdenticalToLocalPrep": true
+    },
+    "sourceArchivePayloadFiles": 454,
+    "sourceArchiveMembers": 455,
+    "pinLocations": [
+      {
+        "path": "third_party/soundchip-sdk.json",
+        "field": "$",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "docs/generated/ps1_spu_build.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/src-tauri/soundchip-sdk.json",
+        "field": "$",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "docs/sources/MSM5205.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "docs/sources/CDDA.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "docs/sources/POKEY-SDK.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "docs/sources/PS1-SPU.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "docs/sources/PS1-SPU.json",
+        "field": "$.build.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "docs/sources/sdk/soundchip-sdk.json",
+        "field": "$",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "dist/fm2612/sources/MSM5205.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "dist/fm2612/sources/CDDA.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "dist/fm2612/sources/POKEY-SDK.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "dist/fm2612/sources/PS1-SPU.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "dist/fm2612/sources/PS1-SPU.json",
+        "field": "$.build.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "dist/fm2612/sources/sdk/soundchip-sdk.json",
+        "field": "$",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/dist/sources/MSM5205.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/dist/sources/CDDA.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/dist/sources/POKEY-SDK.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/dist/sources/PS1-SPU.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/dist/sources/PS1-SPU.json",
+        "field": "$.build.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/dist/sources/sdk/soundchip-sdk.json",
+        "field": "$",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "dist/fm2612/generated/ps1_spu_build.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      },
+      {
+        "path": "w/tetorica-fm2612-playground-tauri/dist/generated/ps1_spu_build.json",
+        "field": "$.sdk",
+        "matchesFormalPin": true,
+        "localCandidatePresent": false
+      }
+    ]
+  },
+  "buildCatalog": {
+    "chipRecipes": 29,
+    "applicationAudioRecipes": 2,
+    "instrumentRecipes": 1,
+    "totalBuilds": 32,
+    "totalOutputs": 63,
+    "applicationAudioIds": [
+      "cdda",
+      "msm5205"
+    ],
+    "instrumentIds": [
+      "ps1_spu"
+    ]
+  },
+  "main": {
+    "runtimePreservation": {
+      "snapshotEvidence": {
+        "path": "/private/tmp/sdk-016-consumer-before.json",
+        "bytes": 14191,
+        "sha256": "6c4299e894cac61760fb3028bd6db0f691184b5bcc9c4d4a9abd114647a5e2c1"
+      },
+      "filesCompared": 77,
+      "matchingFiles": 77,
+      "changedFiles": [],
+      "records": {
+        "docs/generated/ay8910_wasm.js": {
+          "bytes": 12113,
+          "sha256": "f0e92cac093e3487eec2090fae73182967109620f23921d2d09b36f9a2e8e29b",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ay8910_wasm.wasm": {
+          "bytes": 13549,
+          "sha256": "06ed0deda001d75c56fb2ef1d1b80cc0b967e994606fe27895fcd19d5a1f1689",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/cdda_wasm.js": {
+          "bytes": 304,
+          "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/cdda_wasm.wasm": {
+          "bytes": 2257,
+          "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/gameboy_apu_wasm.js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/gameboy_apu_wasm.wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/huc6280_wasm.js": {
+          "bytes": 13612,
+          "sha256": "81d317f4aac899c00c9a720ab72946c72dde155f9688cbed22b45cb3fb77804f",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/huc6280_wasm.wasm": {
+          "bytes": 8935,
+          "sha256": "7df1e220f9e20eae024cc2035884326abece729f1c0bdb1a4a50022dc5a92073",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/k051649_wasm.js": {
+          "bytes": 11133,
+          "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/k051649_wasm.wasm": {
+          "bytes": 9399,
+          "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/msfa.wasm": {
+          "bytes": 32084,
+          "sha256": "f5de761e82ea303420fb3aac79a0a59dd053773b81453b955254dd13aac77d6f",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/msm5205_wasm.js": {
+          "bytes": 317,
+          "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/msm5205_wasm.wasm": {
+          "bytes": 3590,
+          "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/nesapu_wasm.js": {
+          "bytes": 16041,
+          "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/nesapu_wasm.wasm": {
+          "bytes": 30410,
+          "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/nuked_opn2_wasm.js": {
+          "bytes": 32804,
+          "sha256": "cff4c49f6db3f3aebd8f990d1e80efd6d686ab296bc1706734dc6d9d1fbd581a",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/nuked_opn2_wasm.wasm": {
+          "bytes": 21071,
+          "sha256": "de4eb53660a8fd98230509efe038c4b75dcfd7dc57424a25a5be3db277a468c1",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/okim6258_wasm.js": {
+          "bytes": 14797,
+          "sha256": "298f2d595de21e57f35d5c7f2897a35a586d0c728e4a9d7e3979147898f34e1b",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/okim6258_wasm.wasm": {
+          "bytes": 20173,
+          "sha256": "85362bc631b48f75ba7b30376d1b45dce58f26adca388084a3e4e4b49535897d",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/pokey_wasm.js": {
+          "bytes": 15128,
+          "sha256": "56468dcef725958b0efed8f454f0495bf348916d519920352dd8f658377d738d",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/pokey_wasm.wasm": {
+          "bytes": 18676,
+          "sha256": "99871b375b6022435684c902bfffeda386e026332c3e12f7bc8dfcaddc9a6f22",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ps1_spu_wasm.js": {
+          "bytes": 16551,
+          "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ps1_spu_wasm.wasm": {
+          "bytes": 44899,
+          "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/pwm32x_wasm.js": {
+          "bytes": 12398,
+          "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/pwm32x_wasm.wasm": {
+          "bytes": 10636,
+          "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/rf5c164_wasm.js": {
+          "bytes": 35162,
+          "sha256": "f699dde7bb5115516c9ab36156bac7e9e775babe478af10fcf90cc5e3088ad58",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/rf5c164_wasm.wasm": {
+          "bytes": 27583,
+          "sha256": "ea8111862c69e5441a594720979c3adbfa134b1946e21b097f2dc3395bd1d818",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/segapcm_wasm.js": {
+          "bytes": 12513,
+          "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/segapcm_wasm.wasm": {
+          "bytes": 13966,
+          "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/segapsg_wasm.js": {
+          "bytes": 33978,
+          "sha256": "527819d4972f11b21311b487c035107b45e18468937297dddb7dc1592b42e1c7",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/segapsg_wasm.wasm": {
+          "bytes": 27286,
+          "sha256": "c991ed0bd54da10810aeda4008d16832790408d7bbf8a8a0959b3ab4a26a3305",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/spc_wasm.js": {
+          "bytes": 41458,
+          "sha256": "13106eb82513dac0b3d3e4983b9cb1843eedcdf698ec385a5a91cf9d1d27b699",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/spc_wasm.wasm": {
+          "bytes": 63074,
+          "sha256": "9a8f6facab15990346cc712e8b14bf316c2b7fcc1260f9ccbea49efea39df408",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/wonderswan_wasm.js": {
+          "bytes": 11356,
+          "sha256": "6d050c35ce7ad65b2b570b18cdb4b573faf661b0be5380765220b7748b190899",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/wonderswan_wasm.wasm": {
+          "bytes": 10321,
+          "sha256": "b8ca79e5e562738790e6f6042660d713a555de55e40347064114fe45c36604ab",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/y8950_wasm.js": {
+          "bytes": 15461,
+          "sha256": "3e5899771862432c9cb1a50c2398c2481583867d922c8c854fba0da4fdbcea77",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/y8950_wasm.wasm": {
+          "bytes": 22425,
+          "sha256": "1bd6013ab824ea16abb73d88735b39973998d6f81ee8d15feb9c1392f229b3e9",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2151_wasm.js": {
+          "bytes": 15584,
+          "sha256": "af5a868e22086724acc0ccf14b19fe37485e8117f2364ded1103d76667189304",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2151_wasm.wasm": {
+          "bytes": 31322,
+          "sha256": "35b36f8a680832b432e30283a76d9c05e875548589f69c60d1cee6805fec7b26",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2203_wasm.js": {
+          "bytes": 35153,
+          "sha256": "4de4515e4c1e19773474d419d503c8e70aec5e68604687791398e81ce074629e",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2203_wasm.wasm": {
+          "bytes": 45306,
+          "sha256": "4d18e9f69696c4df418c228ed82bd4f59033291ec9a5abc418cbb9553fd3dd13",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2413_wasm.js": {
+          "bytes": 32911,
+          "sha256": "23f0a240fe07578398bf216838dcb03d483023648b1b145ef2b2a1474a75f803",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2413_wasm.wasm": {
+          "bytes": 33469,
+          "sha256": "16a99c279a12eb6e82ebc63a3472d6b63028397110c5793283417fcf69bd8c04",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2608_wasm.js": {
+          "bytes": 36356,
+          "sha256": "845724abfd06ce50a58aecb39f4483d47407814261b145003a1f1f445e72c20a",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2608_wasm.wasm": {
+          "bytes": 53893,
+          "sha256": "ab6be6d3fbcd49aeabff4f0cefa74ba31df8f310b5e44d3337853f18b488682f",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2610b_wasm.js": {
+          "bytes": 36296,
+          "sha256": "230add52aad7a1456eec19622a0c8ae4a36f2dfd41e6980e56606a3dd1172879",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2610b_wasm.wasm": {
+          "bytes": 51172,
+          "sha256": "73b29d6c98cc93b7b929f6ee8fe355e0725527c61847a5a53229d0b7f0ddf316",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2612_wasm.js": {
+          "bytes": 34902,
+          "sha256": "f32abf7d979325d195d9fcf89c12bd69911db854576685e642cc0a73a46a4667",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym2612_wasm.wasm": {
+          "bytes": 40357,
+          "sha256": "3ac5ce16924386956d23522bdc56c8e52fa67f7d15869bd616017d755993e633",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym3438_wasm.js": {
+          "bytes": 11466,
+          "sha256": "023cf6770e2cd0b9983f7a6793d55cc21c2de47750a19458567b6ccb11c3f81e",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym3438_wasm.wasm": {
+          "bytes": 18778,
+          "sha256": "a6c49e22d9b5ff703a7f4da6df877e067dd494dc3e4354987e23151297b1d984",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym3526_wasm.js": {
+          "bytes": 14274,
+          "sha256": "61314defb66968fd0eaf9c9e17fa0bec98ddbcfc0c059d60b2c5dff3cc38597d",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym3526_wasm.wasm": {
+          "bytes": 18894,
+          "sha256": "c01b3a79ad3b4a9551b994fe20e7e6e3c31529fd691eb4bdcea012756899cd11",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym3812_wasm.js": {
+          "bytes": 14274,
+          "sha256": "fe75bb678997af35f47d8c7954d972fc20d6c02598364038c2de023076dd1b2d",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ym3812_wasm.wasm": {
+          "bytes": 19058,
+          "sha256": "9cdc20e017564341bd7c84c59f2ef7eb0f798c698f369c8fbb81f18efc61a5e6",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf262_wasm.js": {
+          "bytes": 14274,
+          "sha256": "f3da0aa0d81d430ad12e27743c91af7dbf7d1b2cf71a423f042ccd6d13242cf7",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf262_wasm.wasm": {
+          "bytes": 21377,
+          "sha256": "70cabb8f15d9fbb45a3d62bed1c0a8653cc772306f3b4f0f7656edbe5ce81716",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf276_wasm.js": {
+          "bytes": 11466,
+          "sha256": "76bef5969998cf45fe3d1452592b5bc74f9f1c363740a9b011f8d5462ddd096c",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf276_wasm.wasm": {
+          "bytes": 18813,
+          "sha256": "c5c06bc94d0dec355c9acea7c408bb85c82b169666fdc47cc9bc7f0f6033bc01",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf278b_wasm.js": {
+          "bytes": 15707,
+          "sha256": "90bdbac9c20f5afd286e26033118a7d71d548307638b0caf417bbebb06447d48",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf278b_wasm.wasm": {
+          "bytes": 26827,
+          "sha256": "6bfd3214793073de8b54230fbacb9f67ddf64010c8052c3d026135ffb077ce30",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf288_wasm.js": {
+          "bytes": 11466,
+          "sha256": "9e98de8c8649cce49f8a8dcb12bbd0679f0f591a0d1c0c16a1c4c82ce263dd86",
+          "matchesBeforeAdoption": true
+        },
+        "docs/generated/ymf288_wasm.wasm": {
+          "bytes": 23819,
+          "sha256": "34b4211983b0af5bc7479809d949693164b34e2a94e01db1a77abe545d6f4f23",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/cdda_wasm.js": {
+          "bytes": 304,
+          "sha256": "ad258a483c7c4dcca811d1ec0dec26fa1d1e4ff77035585ff52005d8762ccd0f",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/cdda_wasm.wasm": {
+          "bytes": 2257,
+          "sha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/gameboy_apu_wasm.js": {
+          "bytes": 11497,
+          "sha256": "bd5d7500c4a3c99763ac7cd27263e73c060f04df3b85167a0fed19f9dad5c4e5",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/gameboy_apu_wasm.wasm": {
+          "bytes": 13782,
+          "sha256": "ae2bccd3ed8f0c776fc8be198fa9fddebeb18db5654b9160eeef239c9a3faabd",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/k051649_wasm.js": {
+          "bytes": 11133,
+          "sha256": "57d445ef13022fd9c1522c7547cf0ab9b11f312e6cad704fce13ccdee7e056e7",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/k051649_wasm.wasm": {
+          "bytes": 9399,
+          "sha256": "837df7a31733a58dc9ed5409a5b9fc70e1bf8893b03b4af35ce86cbfcc7a5d5c",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/msm5205_wasm.js": {
+          "bytes": 317,
+          "sha256": "8322a71a5a475f00cea516a7df6665522bd437c685f14a56cda77b5544b2a950",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/msm5205_wasm.wasm": {
+          "bytes": 3590,
+          "sha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/nesapu_wasm.js": {
+          "bytes": 16041,
+          "sha256": "6bafd0913fd0834514b450396204cef9835a1c3e8c927c5a51f0951c98103a2b",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/nesapu_wasm.wasm": {
+          "bytes": 30410,
+          "sha256": "24d41bb34d313831ac39a24c6f07e795ee3599240686c7573feacec32f3a2c3e",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/pwm32x_wasm.js": {
+          "bytes": 12398,
+          "sha256": "024d18f49a8612aa14f8d4d34fe8f4971ba02eaa8226804ec5633e9210a0e643",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/pwm32x_wasm.wasm": {
+          "bytes": 10636,
+          "sha256": "d14e221fa2ac3e71305057a92dc3af2572aae469db35467ee06bcd011fb04f0c",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/segapcm_wasm.js": {
+          "bytes": 12513,
+          "sha256": "2bfd3948d3aa2d1219c92c88648dab5149b9fa742a412bd15e23b69909faf5c5",
+          "matchesBeforeAdoption": true
+        },
+        "web/generated/segapcm_wasm.wasm": {
+          "bytes": 13966,
+          "sha256": "e54bc16d69965c1180c465fb0ab554a94849538311b786e1f121cd28d7b17a9f",
+          "matchesBeforeAdoption": true
+        }
+      }
+    },
+    "ps1BuildReceiptRegeneratedFromFormalSdk": true,
+    "sourceBundleClosure": {
+      "ps1": {
+        "sdkInputs": 24,
+        "bundleFiles": 28
+      },
+      "cdda": {
+        "sdkInputs": 6,
+        "bundleFiles": 8
+      },
+      "msm5205": {
+        "sdkInputs": 6,
+        "bundleFiles": 8
+      }
+    },
+    "standaloneSourceRebuilds": {
+      "ps1": {
+        "passed": true,
+        "sourceInputs": 24,
+        "bundleFiles": 28,
+        "fixedSdkArtifact": true,
+        "sdkVersion": "0.1.6",
+        "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+        "rebuilt": {
+          "output": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/ps1-sdk-source-rebuild-bWk7TH",
+          "descriptorAndWasmExact": true
+        }
+      },
+      "applicationAudio": {
+        "passed": true,
+        "stage": "/Users/kyorohiro/development8/wfm/hello_ymfm/dist/fm2612",
+        "sdkVersion": "0.1.6",
+        "sourceCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+        "results": [
+          {
+            "id": "cdda",
+            "sdkInputs": 6,
+            "bundleFiles": 8,
+            "wasmSha256": "2fdb290dd11d0a1d97f9db6b9ca883643393b4d8866114f7cb3812f9dfbb4afc",
+            "rebuilt": {
+              "directory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/application-audio-source-rebuild-YoJbKS/cdda",
+              "descriptorAndWasmExact": true,
+              "c11": true,
+              "cpp14": true
+            }
+          },
+          {
+            "id": "msm5205",
+            "sdkInputs": 6,
+            "bundleFiles": 8,
+            "wasmSha256": "a170139ab351511a68bb105c52775415846b9fa78a7a9ce9a797a768816479d9",
+            "rebuilt": {
+              "directory": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/application-audio-source-rebuild-YoJbKS/msm5205",
+              "descriptorAndWasmExact": true,
+              "c11": true,
+              "cpp14": true
+            }
+          }
+        ]
+      }
+    },
+    "regressionTests": {
+      "node": {
+        "passed": 116,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "SDK inventory, receipt, runner and build/source routing regressions"
+      },
+      "python": {
+        "command": "python3 -m unittest discover -s test -p 'test_*sdk*.py' -v",
+        "passed": 142,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "playgroundArchives": [
+      {
+        "path": "release/hello_ymfm_wasm_dev_itch_playground.zip",
+        "bytes": 37009456,
+        "sha256": "3f1ae1dcb640b6d6f6f0a9d39b3fac4392e81eb1df782234216d6bd3428cab36",
+        "entries": 1187,
+        "files": 1066,
+        "zipCRCVerified": true,
+        "excludedImportMetadata": [
+          "samples/.DS_Store"
+        ]
+      },
+      {
+        "path": "release/hello_ymfm_wasm_dev_itch_playground_for_run.zip",
+        "bytes": 37398287,
+        "sha256": "9c3f59378c7829061ecd76020cafff55e3bf8ce5a05660419295cec0524cb3f1",
+        "entries": 931,
+        "files": 931,
+        "zipCRCVerified": true,
+        "excludedImportMetadata": [
+          "samples/.DS_Store"
+        ]
+      }
+    ]
+  },
+  "historicalCandidateCiEquivalence": {
+    "runId": 40778420584,
+    "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40778420584",
+    "evidence": {
+      "path": "/private/tmp/sdk-016-ci-source-equivalence.json",
+      "bytes": 376218,
+      "sha256": "cac2955bb8fef5b5824f6acbccb08380cf684dcc0b67339b288bf6d008a62c5b"
+    },
+    "artifact": {
+      "path": "/private/tmp/wasm-sdk-40778420584.zip",
+      "bytes": 4294453,
+      "sha256": "f387b49bb0e0542e1f4f74851738076e4c0d356029a3001c2ebc78e835d5b340"
+    },
+    "artifactCrcVerified": true,
+    "summary": {
+      "member": "summary.json",
+      "bytes": 1329292,
+      "sha256": "a449a36d578ac403e6edd3d48b42a0df58eaefabe5654830ea5ce5004b0e63c5",
+      "equalsSeparatelyExtractedSummary": true,
+      "ciPassed": true,
+      "repositoryInputsUnchangedAtCi": true,
+      "candidateBuildCount": 32,
+      "candidateOutputCount": 63,
+      "totalExactChipComparisons": 40474,
+      "applicationAudioPassed": true,
+      "ps1Report": {
+        "passed": true,
+        "artifact": "ps1_spu",
+        "sampleRate": 44100,
+        "voices": 24,
+        "ramBytes": 524288,
+        "renderedFrames": 311605,
+        "checks": [
+          "fixed-rate-C-ABI-register-RAM-and-render-guards",
+          "24-voices-high-key-bank-ADSR-release-and-stereo",
+          "exact-block-partition-and-independent-instance-state",
+          "preset-reverb-tail-reset-and-retained-sample-RAM",
+          "actual-Native-WASM-24-voice-ADSR-and-reverb-parity"
+        ],
+        "nativeParity": {
+          "passed": true,
+          "interleavedSamples": 98828,
+          "maxAbsoluteError": 0,
+          "tolerance": 1e-06
+        }
+      }
+    },
+    "sourceEquivalence": {
+      "sourceRecordCount": 608,
+      "matchingSourceRecords": 608,
+      "uniqueBuildSourcePaths": 192,
+      "matchingUniqueSourcePaths": 192,
+      "allFingerprintsVerified": true,
+      "groups": [
+        {
+          "group": "artifacts",
+          "builds": 29,
+          "sourceRecordCount": 589,
+          "sourceRecordMatches": 589,
+          "uniqueSourcePaths": 175,
+          "outputs": 57,
+          "currentOutputMatches": 57
+        },
+        {
+          "group": "applicationAudio",
+          "builds": 2,
+          "sourceRecordCount": 8,
+          "sourceRecordMatches": 8,
+          "uniqueSourcePaths": 8,
+          "outputs": 4,
+          "currentOutputMatches": 4
+        },
+        {
+          "group": "instruments",
+          "builds": 1,
+          "sourceRecordCount": 11,
+          "sourceRecordMatches": 11,
+          "uniqueSourcePaths": 11,
+          "outputs": 2,
+          "currentOutputMatches": 2
+        }
+      ]
+    },
+    "outputEquivalence": {
+      "outputCount": 63,
+      "matchingArtifactHashes": 63,
+      "matchingCiReferenceOutputs": 63,
+      "matchingCurrentDocsGeneratedOutputs": 63
+    },
+    "containedHashClosure": {
+      "jsonReportsScanned": 30,
+      "uniqueMembersVerified": 182,
+      "pathHashRecordsVerified": 184,
+      "matchingPathHashRecords": 184,
+      "totalReferences": 254,
+      "byPrefix": {
+        "logs": 38,
+        "reports": 29,
+        "rebuilt": 57,
+        "reference": 57,
+        "ps1-native": 1
+      },
+      "notContainedPathsCount": 2594,
+      "notContainedPathScope": "Repository/checker/source paths and relative paths not stored as standalone artifact members are excluded from this contained-file check."
+    },
+    "currentCheckerEquivalence": {
+      "count": 30,
+      "matching": 30
+    },
+    "candidateArchiveVsFormalSnapshot": {
+      "candidateArchive": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/soundchip-sdk-0.1.6-candidate/tetorica-soundchip-native-0.1.6-sources.zip",
+        "bytes": 1246563,
+        "sha256": "3c7c2a9cdfcb0316162f6365aef89f0c9fd92140ae4828599cd613255d153952"
+      },
+      "candidateArchiveMatchesCiSdkPin": true,
+      "files": 455,
+      "unchangedFiles": 449,
+      "changedFiles": [
+        {
+          "path": "CHANGELOG.md",
+          "candidateSha256": "b9846fcd168ac34ad2faa50cecead807cf11ee354729c03c4e838e3408035e7f",
+          "formalSha256": "b5d81247680906323a1e25586a7ef9d215ee76e3f1dc687e78b43c93202a7aa5",
+          "candidateBytes": 23414,
+          "formalBytes": 23552,
+          "equal": false
+        },
+        {
+          "path": "README.md",
+          "candidateSha256": "27854c987234626382fdcd60f219b032b62843c1b941052b87de95b9a167d67e",
+          "formalSha256": "e3c494cbfdb8a5d9a03e1bef0939e7a45874b1772915ceb025a10b54ed40ed65",
+          "candidateBytes": 30831,
+          "formalBytes": 30833,
+          "equal": false
+        },
+        {
+          "path": "RELEASE-MANIFEST.json",
+          "candidateSha256": "7495c878275149c3dfd55a4a3482c2ad5bb1739ca200dca60b39b735ede99c87",
+          "formalSha256": "e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb",
+          "candidateBytes": 68945,
+          "formalBytes": 68945,
+          "equal": false
+        },
+        {
+          "path": "docs/releases.md",
+          "candidateSha256": "b4b6e3cafa18a1319409c12bb64eca380f51a66f050c39d60bed1dd7f7d592a1",
+          "formalSha256": "90e000f488e9bf847afb783457f65ccd49c19bd3c6a56e7a3970123c3ae841ed",
+          "candidateBytes": 23197,
+          "formalBytes": 23185,
+          "equal": false
+        },
+        {
+          "path": "docs/verification.md",
+          "candidateSha256": "ddef77e89703ac6bb68d6c99d903d98eb97929453f585513f7644434ae7b6dc5",
+          "formalSha256": "5973ab2808d2a7e45ce0059d146c2640b999583f8b88dbd60846357374518fe1",
+          "candidateBytes": 103628,
+          "formalBytes": 104748,
+          "equal": false
+        },
+        {
+          "path": "tests/README.md",
+          "candidateSha256": "78a31b65cddc51fcbc9383cc7c32ec4c8dd75682d06516122b4ec2b0c81faf08",
+          "formalSha256": "ede0407989c463210456947818b82bf7137f2ec1f84f3e9864bb9295c7399541",
+          "candidateBytes": 22786,
+          "formalBytes": 23084,
+          "equal": false
+        }
+      ],
+      "changedBuildInputs": [],
+      "manifestIsMetadata": "RELEASE-MANIFEST.json",
+      "formalSnapshotFileCount": 455
+    },
+    "limits": [
+      "The CI job compiled the earlier local SDK candidate; this audit does not claim CI compiled the published SDK source archive.",
+      "Current formal SDK has different release/documentation metadata. Source equality here covers every recorded build source and complete candidate archive payload comparison.",
+      "Exact output identity and archived CI reports support unchanged core behavior; this audit executes no browser, audio device, compiler or new PCM comparison."
+    ],
+    "passed": true
+  },
+  "tauri": {
+    "frontend": {
+      "archive": "hello_ymfm_wasm_dev_itch_playground.zip",
+      "sha256": "3f1ae1dcb640b6d6f6f0a9d39b3fac4392e81eb1df782234216d6bd3428cab36",
+      "version": "sha256-3f1ae1dcb640"
+    },
+    "frontendFiles": 1065,
+    "excludedArchiveMetadata": [
+      "samples/.DS_Store"
+    ],
+    "nativeAndFrontendFormalPinsEqual": true,
+    "unchangedGeneratedChipFiles": 50,
+    "nativeCoreSourceDiffs": [],
+    "generatedChipOutputDiffs": [],
+    "frontendPolicyChanges": [
+      "Existing main-repository PS1/WonderSwan/POKEY calibrated Mixer policies",
+      "Two UI cache version tokens"
+    ],
+    "tests": {
+      "pythonPassed": 31,
+      "nodePassed": 31,
+      "rustPassed": 757,
+      "rustFailed": 0,
+      "rustIgnored": 2,
+      "rustFilteredOut": 38,
+      "rustIgnoredNames": [
+        "native_genesis::monitor::tests::monitor_microbenchmark",
+        "native_genesis::tests::native_device_silent_smoke"
+      ],
+      "command": "cargo test --locked --manifest-path src-tauri/Cargo.toml native_genesis"
+    },
+    "offlineSnapshotChecks": 24,
+    "sourceBundle": {
+      "status": "passed",
+      "archive": "native-source-bundle/application-sources.zip",
+      "sha256": "6030f1d16dc58480aa6841043c95b12c754a3e206c024a72127b38527ced3234",
+      "files": 2085,
+      "applicationVersion": "0.91.1",
+      "frontendArchiveSha256": "3f1ae1dcb640b6d6f6f0a9d39b3fac4392e81eb1df782234216d6bd3428cab36"
+    },
+    "deviceOpened": false,
+    "networkUsed": false
+  },
+  "evidence": {
+    "json": [
+      {
+        "path": "/private/tmp/sdk-016-published/public-verification.json",
+        "bytes": 631,
+        "sha256": "5a5d0bb94c37c68784b445b911b3caa2e4b8646337362ba59d00b8b307b8e706"
+      },
+      {
+        "path": "/private/tmp/sdk-016-published/github-release.json",
+        "bytes": 5532,
+        "sha256": "abce968943397e1838b911a3d64e53fd7d5a4e791aa380adcff86e0e88f7f9ec"
+      },
+      {
+        "path": "/private/tmp/sdk-016-consumer-before.json",
+        "bytes": 14191,
+        "sha256": "6c4299e894cac61760fb3028bd6db0f691184b5bcc9c4d4a9abd114647a5e2c1"
+      },
+      {
+        "path": "/private/tmp/sdk-016-ci-source-equivalence.json",
+        "bytes": 376218,
+        "sha256": "cac2955bb8fef5b5824f6acbccb08380cf684dcc0b67339b288bf6d008a62c5b"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-import-audit.json",
+        "bytes": 9524,
+        "sha256": "d7451a8ecf0a181913f906b6bc6621772bd9f14e4e0f1e5088b71c0afe04f0bf"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-sources-check.json",
+        "bytes": 4723,
+        "sha256": "ac7b38ca22edd670618042252f9fff07da2d269951bf70ec7df6ce5c89f85de4"
+      }
+    ],
+    "logs": [
+      {
+        "path": "/private/tmp/sdk-016-node.log",
+        "bytes": 8949,
+        "sha256": "6375778e2f653dd32595ca3ed2773511e76d36e19eb1c088b6528c3f3391c93f"
+      },
+      {
+        "path": "/private/tmp/sdk-016-python.log",
+        "bytes": 26651,
+        "sha256": "9a109fca5f4e81a43faf7a936558c7409c653f3b72b191d0b1e5fba372d2b740"
+      },
+      {
+        "path": "/private/tmp/sdk-016-ps1-build-approved.log",
+        "bytes": 245,
+        "sha256": "3cc29bc40f4495c6de887a26c89ea56e619543a2881946910d553acd9d8fe08f"
+      },
+      {
+        "path": "/private/tmp/sdk-016-source-ps1.log",
+        "bytes": 287,
+        "sha256": "a10f02131acc2137bb01d91d7494518de5a0136fd237520084c25f5b268a6338"
+      },
+      {
+        "path": "/private/tmp/sdk-016-source-audio.log",
+        "bytes": 994,
+        "sha256": "681f1a42f6df610defa9005a459f40f46603438201b2786fd08f851344378436"
+      },
+      {
+        "path": "/private/tmp/sdk-016-playground-package.log",
+        "bytes": 142483,
+        "sha256": "0aec3052e87943d4485bb5555ab32f97d533156ab91cc8bc2699ce0712509f86"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-npm-test.log",
+        "bytes": 4877,
+        "sha256": "4ac1551ee8237c7bba6686c688969339de48144d666b5163468440afbd72112d"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-cargo-test.log",
+        "bytes": 88267,
+        "sha256": "df70c4a3016b081ac830827710865d47cff2e592ad9e4b77f7544d127ec6185b"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-source-prepare.log",
+        "bytes": 121,
+        "sha256": "636a66fc753a79c08e97804f341e02e4f85e5d19c19335c0f91ef6920935e4c4"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-sources-check.log",
+        "bytes": 1438,
+        "sha256": "20aedcfd76efadb3c8a86b1ecd1ce73f33f29df8ee9afe42e97261cdca0e2664"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-frontend-check.log",
+        "bytes": 52,
+        "sha256": "025b490b0700b7b17b4acac3762d9cab0d698cd61a836582d8cc923fdd766a22"
+      },
+      {
+        "path": "/private/tmp/sdk-016-tauri-sdk-check.log",
+        "bytes": 127,
+        "sha256": "7a1b931295398da0deff1a66eb532160a23ffaa63bb8da2e4ac1d213ac3b8315"
+      }
+    ],
+    "preservedHistoricalReports": [
+      {
+        "path": "docs/issues/ps1_sdk_native_01.md",
+        "bytes": 13574,
+        "sha256": "77a1f5773e9917603a3390afbaf483e157504047cbbcf503ef97db3c60c7a7dd"
+      },
+      {
+        "path": "docs/issues/ps1_sdk_native_01.json",
+        "bytes": 17581,
+        "sha256": "83800a063660e44114fb952ec9b8f4fff987a5358582b46ddd03c9f066ac958d"
+      },
+      {
+        "path": "docs/issues/ps1_remote_ci_01.md",
+        "bytes": 19480,
+        "sha256": "461285f1a0584d469adf37cc509ba26967a72e8a2c206028cb8fa28df16cbbd1"
+      },
+      {
+        "path": "docs/issues/ps1_remote_ci_01.json",
+        "bytes": 38615,
+        "sha256": "90262ca4f326445851ac0a9e2d72ffa9f8d8845252f9624395f3034b93e9f06c"
+      },
+      {
+        "path": "docs/issues/ps1_chip_levels_01.json",
+        "bytes": 544003,
+        "sha256": "0bc38fd52a6f9de0658e085c016f8e8214e28960355b25a754da659bbab10d1c"
+      },
+      {
+        "path": "docs/issues/wonderswan_chip_levels_01.json",
+        "bytes": 488571,
+        "sha256": "71d86d014e359c01f4158beefa06301036c5c9eda39215e5b907d569381fdcd0"
+      },
+      {
+        "path": "docs/issues/pokey_chip_levels_01.json",
+        "bytes": 1060623,
+        "sha256": "5920ffb3ceb407b7db68cfdbf70bb1632fc6d2af54e9b66f35d92184fc4dee4b"
+      },
+      {
+        "path": "docs/issues/playground_chip_levels_01.json",
+        "bytes": 248714,
+        "sha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+      }
+    ],
+    "sandboxAttemptLogsPreserved": [
+      {
+        "path": "/private/tmp/sdk-016-ps1-build.log",
+        "bytes": 1807,
+        "sha256": "e07bccd497d71500a212a2fe0344b98e9af5cf49058f3a5bda639fdb00373184"
+      },
+      {
+        "path": "/private/tmp/sdk-016-source-ps1.sandbox.log",
+        "bytes": 2437,
+        "sha256": "ec2725916d4a56f8eeb492b2782453f59fbf323fa2d35d74d7e07b6bcd155513"
+      },
+      {
+        "path": "/private/tmp/sdk-016-source-audio.sandbox.log",
+        "bytes": 2483,
+        "sha256": "d2d0255000fd7beceb6dd9c15b97d8f2720329d99cf67d2e6832e0b2032c6069"
+      }
+    ],
+    "sandboxAttemptReason": "Initial Emscripten writes to its installed symbol-list cache lock were denied; approved reruns completed successfully. Initial attempt logs remain unchanged."
+  },
+  "repositoryStateAtRecord": [
+    {
+      "path": ".",
+      "head": "1abd009bae02c323676d7e4551e047b62dd2757c",
+      "workingTreeHasUncommittedChanges": true
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri",
+      "head": "997ce79ccde9979dd2695efd17556cf3734576b8",
+      "workingTreeHasUncommittedChanges": true
+    },
+    {
+      "path": "w/tetorica-soundchip-native",
+      "head": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+      "workingTreeHasUncommittedChanges": false
+    }
+  ],
+  "publicationScope": {
+    "sdkReleasePublished": true,
+    "mainAdoptionChangesCommitted": false,
+    "tauriAdoptionChangesCommitted": false,
+    "desktopReleasePublished": false,
+    "itchUploadPerformed": false,
+    "hardwareListeningPerformed": false,
+    "npm": {
+      "package": "tetorica-fm2612",
+      "version": "0.2.33",
+      "statusAtRecord": "published",
+      "publishedByThisRecord": false,
+      "publicationURL": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33",
+      "separatePublicationRecord": "docs/issues/npm_ps1_mixer_release_01.md"
+    }
+  },
+  "limits": [
+    "The historical aggregate CI built the earlier local candidate, not the published source ZIP; the full recorded source/output equivalence audit supplies the relationship.",
+    "Main/Tauri adoption changes were uncommitted at record time. This record publishes no Desktop or itch distribution.",
+    "This record performs no new browser, compiler, audio-device or hardware-listening test; it references completed evidence.",
+    "npm 0.2.33 publication completed successfully; its tarball, registry integrity and publication evidence are documented in the separate npm release record."
+  ]
+}

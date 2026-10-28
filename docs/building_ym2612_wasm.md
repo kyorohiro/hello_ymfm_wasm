@@ -5,9 +5,10 @@ The builds listed below use the complete local SDK source release at
 build recipes, provenance and component licenses. No SDK checkout, submodule,
 download or synchronized edit of another repository is required.
 
-## Verify all 28 builds
+## Verify all 32 builds
 
-With Node.js 22 or later, Python 3, Emscripten, `sh` and Perl installed, run:
+With Node.js 22 or later, Python 3, Emscripten, CMake/CTest, a native C/C++
+compiler, `sh` and Perl installed, run:
 
 ```sh
 npm run test:wasm:sdk
@@ -17,15 +18,18 @@ node scripts/check_wasm_sdk.mjs
 
 This invokes the SDK's existing `build-wasm.sh all` in a fresh directory outside
 the checkout. It does not rebuild in `docs/generated/` or update runtime copies.
-The command requires exactly 28 receipts and 55 outputs: 27 generated JS/WASM
-pairs and DX7's standalone `msfa.wasm`. It verifies each receipt's source list,
+The command requires exactly 32 receipts and 63 outputs: 29 chip recipes,
+two application-audio recipes and the PS1 SPU instrument recipe produce 31
+JS/WASM pairs and DX7's standalone `msfa.wasm`. It verifies each receipt's source list,
 source fingerprint and actual pinned source bytes, output sizes/hashes, WASM
 imports/exports and the three deployed DX7 copies. Missing, duplicate or extra
 artifacts fail validation before generated JavaScript is imported.
 
-After building, all 28 per-core checkers compare real PCM and API
+After building, all 29 per-core checkers compare real PCM and API
 behavior against snapshots of the committed `docs/generated/` builds. The
-runner rechecks the reference, candidate and repository inputs afterward.
+application-audio and PS1 checks also compare deployed output bytes and build
+native fixtures for Native/WASM PCM parity. The runner rechecks the reference,
+candidate and repository inputs afterward.
 The DX7 checker needs only checked-in SDK/runtime inputs; a separate DX7 source
 checkout is not required. Receipt validation is mandatory in the aggregate
 command; some older individual comparison tools also accept receipt-less builds.
@@ -44,7 +48,7 @@ pass a new path whose parent already exists:
 npm run test:wasm:sdk -- --work-dir /tmp/tetorica-wasm-check
 ```
 
-For comparison of an already built complete SDK output, skip compilation with:
+For comparison of an already built complete SDK output, skip WASM compilation with:
 
 ```sh
 node scripts/check_wasm_sdk.mjs \
@@ -64,17 +68,18 @@ checkout tests, then the same full command, and retains diagnostics for seven
 days even on failure. This is separate from the recording-compiler build-route
 tests already run by the VGM workflow.
 
-These checks exercise synchronous Node/WASM generation. Existing mixed-engine
+These checks exercise synchronous Node/WASM generation and the standalone
+application-audio/PS1 Native fixtures. Existing mixed-engine
 fixtures use committed partner-chip binaries and replace one core at a time;
 they are not a simultaneous test of all rebuilt cores in a browser. DX7 counts
 mono output frames, while the other reports retain their own stereo frame
 counters. The runner totals comparisons without combining those frame units.
-It does not build npm/itch.io archives, run Native/Tauri, open an audio device,
+It does not build npm/itch.io archives, run Tauri, open an audio device,
 dispatch remote CI or publish anything.
 
 ## Build
 
-| Chip(s) | Build script | Output module basename |
+| Chip or module | Build script | Output module basename |
 | --- | --- | --- |
 | YM2612 (ymfm) | `scripts/build_ym2612_wasm.sh` | `ym2612_wasm` |
 | YM2203 | `scripts/build_ym2203_wasm.sh` | `ym2203_wasm` |
@@ -96,6 +101,7 @@ dispatch remote CI or publish anything.
 | NES APU / FDS | `scripts/build_nesapu_wasm.sh` | `nesapu_wasm` |
 | SNES SPC700 / S-DSP | `scripts/build_spc_wasm.sh` | `spc_wasm` |
 | WonderSwan | `scripts/build_wonderswan_wasm.sh` | `wonderswan_wasm` |
+| POKEY | `scripts/build_pokey_wasm.sh` | `pokey_wasm` |
 | Sega PCM (315-5218) | `scripts/build_segapcm_wasm.sh` | `segapcm_wasm` |
 | K051649 (SCC) | `scripts/build_k051649_wasm.sh` | `k051649_wasm` |
 | YM3438 | `scripts/build_ym3438_wasm.sh` | `ym3438_wasm` |
@@ -104,6 +110,9 @@ dispatch remote CI or publish anything.
 | YMF278B | `scripts/build_ymf278b_wasm.sh` | `ymf278b_wasm` |
 | YM2612 (Nuked OPN2) | `scripts/build_nuked_opn2_wasm.sh` | `nuked_opn2_wasm` |
 | DX7 / MSFA | `scripts/build_dx7_wasm.sh` | `msfa` (standalone WASM) |
+| CD-DA application audio | `scripts/build_cdda_wasm.sh` | `cdda_wasm` |
+| MSM5205 application audio | `scripts/build_msm5205_wasm.sh` | `msm5205_wasm` |
+| PS1 SPU instrument | `scripts/build_ps1_spu_wasm.sh` | `ps1_spu_wasm` |
 
 Install Emscripten and Python 3, then run:
 
@@ -129,6 +138,7 @@ sh scripts/build_gameboy_apu_wasm.sh
 sh scripts/build_nesapu_wasm.sh
 sh scripts/build_spc_wasm.sh
 sh scripts/build_wonderswan_wasm.sh
+sh scripts/build_pokey_wasm.sh
 sh scripts/build_segapcm_wasm.sh
 sh scripts/build_k051649_wasm.sh
 sh scripts/build_ym3438_wasm.sh
@@ -137,15 +147,20 @@ sh scripts/build_ymf288_wasm.sh
 sh scripts/build_ymf278b_wasm.sh
 sh scripts/build_nuked_opn2_wasm.sh
 sh scripts/build_dx7_wasm.sh
+sh scripts/build_cdda_wasm.sh
+sh scripts/build_msm5205_wasm.sh
+sh scripts/build_ps1_spu_wasm.sh
 ```
 
-Each build verifies the snapshot before invoking the SDK's original chip
-recipe. The 27 ES-module recipes produce a `.js` / `.wasm` pair under
+Each build verifies the snapshot before invoking the SDK's original module
+recipe. The 31 paired recipes produce a `.js` / `.wasm` pair under
 `docs/generated/`. DX7 produces only the standalone `msfa.wasm`, with no
 generated JS loader. Its default build also copies that same output to
 `web/msfa_dx7/wasm/msfa.wasm` and `docs/js/msfa_dx7/wasm/msfa.wasm`, retaining
-the existing runtime URLs. All 28 build receipts share `docs/generated/build-info.json`.
+the existing runtime URLs. All 32 build receipts share `docs/generated/build-info.json`.
 WonderSwan uses the same central receipt; its earlier standalone receipt is no longer generated.
+The PS1 wrapper also writes `docs/generated/ps1_spu_build.json` with the complete
+fixed SDK pin, authenticated PS1 source/build inputs and output hashes for source-bundle export.
 The YM2203, YM2610B, YM2151, OKIM6258, SPC and Sega PCM recipes retain their generated-glue whitespace cleanup using Perl.
 With Node.js available, the SDK also writes
 `docs/generated/build-info.json` with compiler version, source hashes and
@@ -154,6 +169,10 @@ These are build records; consumers retain the existing
 `Ym2612`, `Ym2203`, `Ym2608`, `Ym2610B`, `Ym2151`, `Oki6258AudioEngine`, `Ym2413`, `Ym3526`, `Ym3812`, `Ymf262`, `Y8950`, `Ay8910`, `SegaPSG`, `Rf5c164`, `PWM32X`, `Huc6280AudioEngine`, `GameboyApu`, `NesApuWasm`, `SpcCore`, `SnesDspCore`, `WonderSwan`, `SegaPcm`, `K051649`, `Ym3438`, `Ymf276`, `Ymf288` and `Ymf278b` APIs.
 DX7 retains the separate `msfa_dx7/src/index.js` `createDX7()` API and its JS
 Worklet/Playground adapters; this does not add DX7 to the generic chip factory.
+CD-DA and MSM5205 remain application-audio modules. PS1 SPU is a separate
+instrument category with a fixed 44,100 Hz C ABI, 24 voices and 512 KiB RAM;
+see [the PS1 guide](ps1_spu.md) for `Ps1Spu`, sample instruments and Playground
+Browser/Native APIs. The package-root `createSoundChip()` factory does not expose PS1.
 For the shared YM2610/B module, `Ym2610B.create({variant: false, ...})`
 selects YM2610 (four FM channels); the default `variant: true` selects YM2610B (six).
 For the shared OPM/OPP module, `Ym2151.create({variant: 'ym2164', ...})`
@@ -345,20 +364,22 @@ unchanged. There is no register/status API, native snapshot API or Emscripten
 
 ## Fixed source and updates
 
-`third_party/soundchip-sdk.json` records SDK `0.1.4`, source commit
-`6f8b872b6f35f5df619b2468d58da57037c96e07`, archive SHA-256, release-manifest
-SHA-256 and the complete 395-file snapshot from the
-[official release](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.4). This is the same source release
+`third_party/soundchip-sdk.json` records SDK `0.1.6`, source commit
+`ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6`, archive SHA-256, release-manifest
+SHA-256 and the complete 455-file snapshot from the
+[official release](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.6). This is the same source release
 used by Playground Tauri. Per-component terms remain in the SDK's `LICENSES.md`
-and `vendor/` notices; these twenty-four wrappers, ymfm inputs and the MAME-derived
-OKIM6258, AY, RF5C164, PWM, HuC6280, Game Boy, Sega PCM, K051649 and WonderSwan adaptations retain BSD-3-Clause.
+and `vendor/` notices; the BSD wrappers, ymfm inputs and MAME-derived
+OKIM6258, AY, RF5C164, PWM, HuC6280, Game Boy, Sega PCM, K051649, WonderSwan
+and PS1 SPU adaptations retain BSD-3-Clause. POKEY and the separate CD-DA/MSM5205
+application-audio modules also retain their component BSD notices and provenance.
 NES/FDS retains its Apache-2.0 JSNES and MIT FDS licenses, authors and provenance;
-these terms are separate from the twenty-four BSD-3-Clause module recipes.
+these terms apply to that component.
 SNES SPC700/S-DSP retains snes_spc's LGPL-2.1-or-later terms and complete
 corresponding modified source; its license is not applied to other chip cores.
 The optional Nuked OPN2 module separately retains LGPL-2.1-or-later core terms,
 complete modified source and provenance. The original Tetorica wrapper/recipe
-BSD notice is included separately; the 24 BSD module recipes remain distinct.
+BSD notice is included separately.
 DX7 separately retains Apache-2.0 for the MSFA core and Tetorica adapter, with
 the existing package LICENSE, COPYING, THIRD_PARTY_NOTICES and upstream revision.
 The original Tetorica Sega PSG core is separate in `vendor/tetorica_sega_psg/`,
@@ -627,7 +648,8 @@ The checkers open no audio device. Binary hashes
 can differ with compiler versions or embedded assertion paths; runtime
 comparison is separate from binary identity.
 
-All 28 module recipes now use the fixed SDK: 27 ES-module pairs and one DX7
-standalone WASM. Older application-local `src/`, `wasm/` and per-core
+All 32 recipes use the fixed SDK: 29 chip recipes, two application-audio
+recipes and one PS1 SPU instrument recipe, producing 31 JS/WASM pairs and one
+DX7 standalone WASM. Older application-local `src/`, `wasm/` and per-core
 `third_party/` copies remain available for reference; builds use the pinned
 SDK snapshot. An external DX7 source checkout is optional.

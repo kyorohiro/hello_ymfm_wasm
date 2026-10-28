@@ -193,7 +193,8 @@ sample. The output prefix is optional; without it, files are written beside
 the script. Existing output files with the same names are overwritten.
 
 `docs/generated/ps1_spu_build.json` records the exact source, recipe and output
-hashes and the fixed SDK pin, including unpublished local-candidate provenance.
+hashes and the fixed SDK release pin, including its source commit, archive hash
+and release-manifest hash.
 The build verifies the complete fixed snapshot before compilation. Native hosts
 compile the four C++17 units listed in [the core README](../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/README.md)
 and include [ps1_spu.h](../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/ps1_spu.h).

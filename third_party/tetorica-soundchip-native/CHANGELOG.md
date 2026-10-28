@@ -1,11 +1,11 @@
 # Changelog
 
-## 0.1.6 — PlayStation SPU instrument (candidate)
+## 0.1.6 — PlayStation SPU instrument
 
 - Collect the existing BSD-3-Clause standalone MAME-derived SPU adaptation and pristine upstream sources, preserving all imported bytes, notices and SHA-256 provenance. No MAME framework, BIOS, game files or downloads are needed.
 - Add `tetorica::ps1_spu`, `<tetorica/ps1_spu.h>` and the unchanged synchronous `ps1_spu_*` C ABI: 24 ADPCM voices, fixed 44,100 Hz stereo, private 512 KiB RAM, pitch, ADSR and preset reverb. Catalog this instrument separately; the 24 generic chip IDs, 29 chip WASM recipes and two application-audio APIs are unchanged. The aggregate selector now has 32 recipes.
 - Add an original-waveform Native fixture, a three-second stereo WAV host, real WASM ABI/Native parity checks, release audit regressions and a sixth WASM CI job. Complete builds provide 24 libraries, 30 CTest entries from 29 fixtures and 22 WAV examples.
-- Local 0.1.6 packaging is an unpublished candidate. It does not tag, publish or change any consuming application automatically.
+- Publish sources through the matching `v0.1.6` tag after all five Native and six WASM validation jobs succeed, including PS1 SPU Native/WASM parity. Consumers explicitly adopt the new published source archive; existing releases and consumer pins retain their original contents.
 
 ## 0.1.5 — POKEY, CD-DA and MSM5205
 

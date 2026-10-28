@@ -1,5 +1,13 @@
 # Verification record
 
+## SDK 0.1.6 main CI — 2026-10-28
+
+[Verify SDK run 40660652196](https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40660652196) completed successfully for `main` commit `100e0408f6fda7569e0cdbc967b4646eb083a0e9`.
+
+- All five Native jobs passed: Linux x86_64/ARM64, Windows x86_64 and macOS ARM64/x86_64. Each independently packaged and extracted the source archive, built all 24 libraries, passed all 30 CTest entries, audited 22 offline WAV examples and ran the JavaScript reference checks.
+- All six Ubuntu WASM jobs passed: YM2612, WonderSwan, POKEY, CD-DA, MSM5205 and PS1 SPU. Each built its selected output with Emscripten 6.0.6, audited the matching archives and synchronous ABI, then rebuilt and checked the output from independently extracted sources. The POKEY, application-audio and PS1 jobs also passed their configured Native/WASM parity checks.
+- The publication job was skipped because this was a branch push. A matching `v0.1.6` tag runs the complete validation again before GitHub Release publication. The earlier local candidate records below retain their original dates and scope.
+
 ## SDK 0.1.6 PlayStation SPU candidate — 2026-10-28
 
 This is an unpublished local candidate. SDK metadata and CMake identify 0.1.6; no tag, push, remote CI run or release is claimed. Consumers record the candidate source archive hash, base commit and changed paths explicitly. Historical records below retain their original dates and scope.
