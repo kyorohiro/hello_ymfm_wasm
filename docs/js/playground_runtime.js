@@ -3,13 +3,13 @@ import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
 import {createSnesAudio} from './playground_snes_audio.js?v=ps1-mode-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
 import {createPs1Audio} from './playground_ps1_audio.js?v=ps1-pcm-waveform-1';
-import {createPs1Client} from './playground_ps1.js?v=ps1-pcm-waveform-1';
+import {createPs1Client} from './playground_ps1.js?v=ps1-native-1';
 import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
 import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
 import {encodePs1Adpcm} from './ps1_adpcm_encoder.js?v=ps1-adpcm-encoder-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=ps1-pcm-waveform-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=ps1-mode-1';
-import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pokey-import-1';
+import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=ps1-native-1';
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=ps1-mode-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
@@ -39,7 +39,7 @@ import {createSampleInstrument as createSampleInstrumentFactory} from './playgro
 import {createGameboyAudio} from './playground_gameboy_audio.js?v=ps1-mode-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=ps1-pcm-waveform-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=ps1-native-1';
 import {createHuc6280Audio} from './playground_huc6280_audio.js?v=ps1-mode-1';
 import {createCddaAudio} from './cdda_audio.js?v=cdda-pcm-1';
 import {createNativeCdda} from './cdda_native.js?v=cdda-pcm-1';
@@ -69,7 +69,7 @@ import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
 } from "./megasynth.js?v=ps1-mode-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=ps1-mode-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=ps1-native-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -272,7 +272,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=ps1-pcm-waveform-1",
+      "./playground_logic_worker.js?v=ps1-native-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -906,7 +906,7 @@ export function createPlaygroundRuntime(
     pendingPcmIds.add(mixerId);
     let device;
     try {device = nativeExtra
-      ? await (name==='pokey'?megaDrive.createExtraPokey({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,...options}):name==='spc'?megaDrive.createExtraSpc({id:mixerId,signal:creationSignal}):name==='snes'?megaDrive.createExtraSnes({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='pwm'?megaDrive.createExtraPwm({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='dx7'?megaDrive.createExtraDx7({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='wonderswan'?megaDrive.createExtraWonderSwan({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,...options}):name==='huc6280'?megaDrive.createExtraHuc6280({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='nes'?megaDrive.createExtraNes({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,...options}):name==='gameboy'?megaDrive.createExtraGameboy({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='okim6258'?megaDrive.createExtraOkim6258({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='rf5c164'?megaDrive.createExtraRf5c164({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):['ym3526','ym3812','y8950','ymf262'].includes(name)?megaDrive.createExtraOpl(name,{id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ay8910'?megaDrive.createExtraAy8910({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2413'?megaDrive.createExtraYm2413({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2151'?megaDrive.createExtraYm2151({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2610b'?megaDrive.createExtraYm2610B({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2610'?megaDrive.createExtraYm2610({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2608'?megaDrive.createExtraYm2608({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2203'?megaDrive.createExtraYm2203({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2612'?megaDrive.createExtraYm2612({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,engine:options.engine}):megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}))
+      ? await (name==='ps1'?megaDrive.createExtraPs1({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='pokey'?megaDrive.createExtraPokey({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,...options}):name==='spc'?megaDrive.createExtraSpc({id:mixerId,signal:creationSignal}):name==='snes'?megaDrive.createExtraSnes({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='pwm'?megaDrive.createExtraPwm({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='dx7'?megaDrive.createExtraDx7({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='wonderswan'?megaDrive.createExtraWonderSwan({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,...options}):name==='huc6280'?megaDrive.createExtraHuc6280({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='nes'?megaDrive.createExtraNes({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,...options}):name==='gameboy'?megaDrive.createExtraGameboy({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='okim6258'?megaDrive.createExtraOkim6258({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='rf5c164'?megaDrive.createExtraRf5c164({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):['ym3526','ym3812','y8950','ymf262'].includes(name)?megaDrive.createExtraOpl(name,{id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ay8910'?megaDrive.createExtraAy8910({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2413'?megaDrive.createExtraYm2413({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2151'?megaDrive.createExtraYm2151({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2610b'?megaDrive.createExtraYm2610B({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2610'?megaDrive.createExtraYm2610({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2608'?megaDrive.createExtraYm2608({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2203'?megaDrive.createExtraYm2203({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}):name==='ym2612'?megaDrive.createExtraYm2612({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal,engine:options.engine}):megaDrive.createExtraSegaPsg({id:mixerId,bridge:nativeWorkerBridge,signal:creationSignal}))
       : await createAudio(megaDrive.audioContext, megaDrive.audio.masterInputNode);}
     catch (error) {pendingPcmIds.delete(mixerId); reservation?.release(); throw error;}
     if(token !== currentRunToken){pendingPcmIds.delete(mixerId);reservation?.release();device.dispose();throw new Error('Run stopped');}
@@ -2965,8 +2965,8 @@ export function createPlaygroundRuntime(
           emitStatus(`Native Worker failed: ${error.message}`); emitRuntimeState('Error');
           terminateLogicWorker(); stopAllAudio();
         }});
-        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,huc6280Port,wonderswanPort,ym2151Port,okim6258Port,segapsgPort,ym2413Port,ay8910Port,ym3526Port,ym3812Port,ymf262Port,y8950Port} = nativeWorkerBridge;
-        const consolePorts={wonderswan:wonderswanPort,gameboy:gameboyPort,snes:snesPort,huc6280:huc6280Port,ym2151:ym2151Port,okim6258:okim6258Port,segapsg:segapsgPort,ym2413:ym2413Port,ay8910:ay8910Port,ym3526:ym3526Port,ym3812:ym3812Port,ymf262:ymf262Port,y8950:y8950Port};
+        const {chipPort,fxPort,pcmPort,pwmPort,dx7Port,nesPort,gameboyPort,snesPort,ps1Port,huc6280Port,wonderswanPort,ym2151Port,okim6258Port,segapsgPort,ym2413Port,ay8910Port,ym3526Port,ym3812Port,ymf262Port,y8950Port} = nativeWorkerBridge;
+        const consolePorts={wonderswan:wonderswanPort,gameboy:gameboyPort,snes:snesPort,ps1:ps1Port,huc6280:huc6280Port,ym2151:ym2151Port,okim6258:okim6258Port,segapsg:segapsgPort,ym2413:ym2413Port,ay8910:ay8910Port,ym3526:ym3526Port,ym3812:ym3812Port,ymf262:ymf262Port,y8950:y8950Port};
         const consolePort=endpoint=>nativeWorkerBridge.primaryPorts?.[endpoint.globalName]??consolePorts[endpoint.name];
         const consoleEndpoints=(megaDrive.primaryEndpoints??[]).filter(endpoint=>consolePort(endpoint));
         if (consoleEndpoints.length) {

@@ -47,6 +47,8 @@ REQUIRED_NATIVE_EXAMPLES = {"tetorica_genesis_wav": "Genesis", "tetorica_master_
                             "tetorica_dx7_wav": "DX7", "tetorica_snes_wav": "SNES", "tetorica_spc_wav": "SPC", "tetorica_nuked_genesis_wav": "Nuked Genesis", "tetorica_wonderswan_wav": "WonderSwan", "tetorica_pokey_wav": "Dual POKEY"}
 REQUIRED_NATIVE_FIXTURES |= frozenset(("tetorica_cdda_fixture", "tetorica_msm5205_fixture", "tetorica_pce_cd_fixture"))
 REQUIRED_NATIVE_EXAMPLES["tetorica_pcengine_cd_wav"] = "PC Engine CD-ROM2"
+REQUIRED_NATIVE_FIXTURES |= frozenset(("tetorica_ps1_spu_fixture",))
+REQUIRED_NATIVE_EXAMPLES["tetorica_ps1_spu_wav"] = "PlayStation SPU"
 REQUIRED_NATIVE_EXECUTABLES = REQUIRED_NATIVE_FIXTURES | frozenset(REQUIRED_NATIVE_EXAMPLES)
 REQUIRED_UPSTREAM_REFERENCES = frozenset((
     "libvgm-msm5205-upstream", "libvgm-okim6295-upstream", "mame-okim6295-upstream",
@@ -260,6 +262,30 @@ def audit_application_audio(root, catalog, inventory, native):
                 f"{identifier}: application audio catalogs differ")
 
 
+def audit_instruments(root, catalog, inventory, native):
+    sources, devices, entries = (document.get("instruments", []) for document in (inventory, native, catalog))
+    if not (sources or devices or entries):
+        # Keep audit compatibility with earlier source releases and fixtures.
+        version = read_json(root / "sdk.json").get("version", "0.0.0")
+        require(tuple(int(part) for part in version.split("-")[0].split(".")) < (0, 1, 6), "PS1 instrument inventory is missing")
+        return
+    for label, records in (("source", sources), ("native", devices), ("catalog", entries)):
+        require([item.get("id") for item in records] == ["ps1_spu"], f"Standalone instrument {label} inventory changed")
+    record, device, entry = sources[0], devices[0], entries[0]
+    require(record.get("role") == "instrument" and record.get("chipIds") == [] and record.get("format") == "emscripten-es-module", "PS1 must remain a separate instrument API")
+    hashes = {item["path"] for component in inventory["components"] for item in component.get("files", [])}
+    for key in ("sourceFiles", "licenseFiles"):
+        check_references(root, "ps1_spu", key, record.get(key))
+        require(set(record[key]) <= hashes, f"PS1 {key} lacks imported hash provenance")
+    for key in ("sourceFiles", "licenseFiles", "buildFiles"):
+        check_references(root, "ps1_spu", key, device.get(key))
+    check_references(root, "ps1_spu", "buildScript", [record.get("buildScript")])
+    check_references(root, "ps1_spu", "buildFiles", record.get("buildFiles"))
+    require(device.get("target") == "tetorica_native_ps1_spu" and device.get("cmakeAlias") == "tetorica::ps1_spu" and device.get("publicHeader") == "native/include/tetorica/ps1_spu.h", "PS1 Native target/header mismatch")
+    check_references(root, "ps1_spu", "publicHeader", [device.get("publicHeader")])
+    require(entry.get("native") == device and entry.get("wasm", {}).get("artifacts") == [{key: record[key] for key in ("id", "format", "buildScript")}], "PS1 instrument catalogs differ")
+
+
 def audit_catalog(root):
     catalog = read_json(root / "catalog/chips.json")
     require(catalog.get("schemaVersion") == 1, "Unsupported chip catalog schema")
@@ -309,6 +335,7 @@ def audit_catalog(root):
         check_references(root, chip["id"], "sourceFiles", chip.get("sourceFiles"))
         require(chip.get("status") in ("source-only", "verified"), f"Unknown Native status: {chip['id']}")
     audit_application_audio(root, catalog, inventory, native)
+    audit_instruments(root, catalog, inventory, native)
     provenance = read_json(root / "native/reference/SOURCES.json")
     require(provenance.get("schemaVersion") == 1 and provenance.get("entries"), "Missing Native source provenance")
     for item in provenance["entries"]:
@@ -355,13 +382,13 @@ def audit_wasm(root, manifest, source_root, source_archive, inventory):
             "WASM release companion source archive differs from the audited source ZIP")
     selected = manifest.get("artifacts")
     require(isinstance(selected, list) and selected and len(selected) == len(set(selected))
-            and set(selected) <= REQUIRED_ARTIFACTS | REQUIRED_APPLICATION_AUDIO, "Invalid released WASM artifact list")
+            and set(selected) <= REQUIRED_ARTIFACTS | REQUIRED_APPLICATION_AUDIO | frozenset(("ps1_spu",)), "Invalid released WASM artifact list")
     info = read_json(root / "wasm/build-info.json")
     require(info.get("schemaVersion") == 1 and {record["id"] for record in info.get("artifacts", [])} == set(selected),
             "WASM build provenance differs from the released artifacts")
     expected_outputs = set()
     for record in info["artifacts"]:
-        recipe = next(item for item in [*inventory["artifacts"], *inventory.get("applicationAudio", [])] if item["id"] == record["id"])
+        recipe = next(item for item in [*inventory["artifacts"], *inventory.get("applicationAudio", []), *inventory.get("instruments", [])] if item["id"] == record["id"])
         expected_sources = set(recipe["sourceFiles"] + recipe.get("buildFiles", [recipe["buildScript"]]))
         require({item["path"] for item in record["sourceFiles"]} == expected_sources,
                 f"{record['id']}: build provenance omitted a source/build input")
@@ -514,13 +541,14 @@ def audit_native_file_api(root, build, configuration="Release"):
 def audit_example_wav(path, label):
     require(path.is_file(), f"{label} example did not write its WAV: {path}")
     frames, peaks = 0, [0, 0]
+    rate = 44100 if label == "PlayStation SPU" else 48000
     try:
         with wave.open(str(path), "rb") as audio:
             require(audio.getnchannels() == 2 and audio.getsampwidth() == 2
-                    and audio.getframerate() == 48000 and audio.getcomptype() == "NONE",
-                    f"{label} example must produce uncompressed PCM16 stereo at 48000 Hz")
+                    and audio.getframerate() == rate and audio.getcomptype() == "NONE",
+                    f"{label} example must produce uncompressed PCM16 stereo at {rate} Hz")
             expected = audio.getnframes()
-            require(expected >= 48000, f"{label} example WAV must contain at least one second")
+            require(expected >= rate, f"{label} example WAV must contain at least one second")
             while data := audio.readframes(4096):
                 require(len(data) % 4 == 0, f"{label} example WAV has a truncated stereo payload")
                 for left, right in struct.iter_unpack("<hh", data):
@@ -532,7 +560,7 @@ def audit_example_wav(path, label):
         raise AuditError(f"Invalid {label} example WAV: {error}") from error
     require(all(peak > 0 for peak in peaks), f"{label} example WAV must have nonzero PCM in both channels")
     require(max(peaks) < 32767, f"{label} example WAV reaches clipped PCM16 full scale")
-    return {"sampleRate": 48000, "channels": 2, "bitsPerSample": 16,
+    return {"sampleRate": rate, "channels": 2, "bitsPerSample": 16,
             "frames": frames, "channelPeaks": [peak / 32768 for peak in peaks]}
 
 
@@ -582,6 +610,17 @@ def build_pokey_fixture(root, build, environment):
     return fixtures
 
 
+def build_ps1_fixture(root, build, environment):
+    """Build only the instrument fixture from the audited extracted snapshot."""
+    root, build = root.resolve(), build.resolve()
+    fixtures = prepare_native_build(root, build, environment)
+    fixture = fixtures["tetorica_ps1_spu_fixture"]
+    command(["cmake", "--build", build, "--config", "Release", "--target", "tetorica_ps1_spu_fixture", "--parallel", "2"], root, environment)
+    require(fixture.is_file(), f"PS1 parity fixture was not built: {fixture}")
+    command([fixture, "--self-test"], root, environment)
+    return fixtures
+
+
 def check_pokey_parity(root, fixtures, wasm, environment):
     fixture = fixtures["tetorica_pokey_fixture"]
     require(fixture.is_file(), f"POKEY parity fixture was not built: {fixture}")
@@ -606,6 +645,7 @@ def main():
     parser.add_argument("--javascript-smoke", action="store_true", help="Run the two JavaScript reference smokes with Node.js 22+, even with --audit-only")
     parser.add_argument("--build-wasm", metavar="ARTIFACT", help="Also rebuild one WASM artifact using installed Emscripten")
     parser.add_argument("--pokey-native-parity", action="store_true", help="Even with --audit-only, build the extracted POKEY fixture and compare supplied/rebuilt POKEY WASM")
+    parser.add_argument("--ps1-native-parity", action="store_true", help="Build the extracted SPU fixture and compare supplied/rebuilt PS1 instrument WASM")
     parser.add_argument("--application-audio-parity", action="store_true", help="Compare selected CD-DA/MSM5205 WASM with C/C++ cores from the extracted source; requires a local C/C++ compiler")
     args = parser.parse_args()
     work = (args.work_dir or Path(tempfile.mkdtemp(prefix="tetorica SDK standalone "))).resolve()
@@ -621,6 +661,9 @@ def main():
         wasm_manifest = audit_manifest(wasm, "wasm")
         require(wasm_manifest["version"] == manifest["version"], "Source and WASM versions differ")
         audit_wasm(wasm, wasm_manifest, root, args.source_zip.resolve(), inventory)
+    if getattr(args, "ps1_native_parity", False):
+        require((args.wasm_zip and "ps1_spu" in wasm_manifest["artifacts"]) or args.build_wasm in ("ps1_spu", "all"),
+                "--ps1-native-parity needs supplied or rebuilt PS1 SPU WASM")
     if args.application_audio_parity:
         supplied_audio = args.wasm_zip and set(wasm_manifest["artifacts"]) & REQUIRED_APPLICATION_AUDIO
         require(supplied_audio or args.build_wasm in REQUIRED_APPLICATION_AUDIO | {"all"},
@@ -636,14 +679,18 @@ def main():
         require((args.wasm_zip and "pokey" in wasm_manifest["artifacts"]) or args.build_wasm in ("pokey", "all"),
                 "--pokey-native-parity needs supplied or rebuilt POKEY WASM")
         fixtures = build_pokey_fixture(root, work / "native-build", environment)
+    if getattr(args, "ps1_native_parity", False) and fixtures is None:
+        fixtures = build_ps1_fixture(root, work / "native-build", environment)
     if not args.audit_only or args.javascript_smoke:
         require(shutil.which("node"), "JavaScript reference smoke requires Node.js 22+")
         command(["node", root / "tests/javascript_reference_smoke.mjs", root / "reference/javascript"], root, environment)
-    if args.wasm_zip and (not args.audit_only or args.wasm_smoke or args.pokey_native_parity or args.application_audio_parity):
+    if args.wasm_zip and (not args.audit_only or args.wasm_smoke or args.pokey_native_parity or args.application_audio_parity or getattr(args, "ps1_native_parity", False)):
         require(shutil.which("node"), "WASM ABI smoke requires Node.js")
         selected = set(wasm_manifest["artifacts"])
-        if "ym2612" in selected or not selected.intersection({"wonderswan", "pokey", "cdda", "msm5205"}):
+        if "ym2612" in selected or not selected.intersection({"wonderswan", "pokey", "cdda", "msm5205", "ps1_spu"}):
             command(["node", root / "tests/wasm_smoke.mjs", wasm / "wasm"], root, environment)
+        if "ps1_spu" in selected:
+            command(["node", root / "tests/ps1_spu_wasm_smoke.mjs", wasm / "wasm", *([fixtures["tetorica_ps1_spu_fixture"]] if fixtures else [])], root, environment)
         if "wonderswan" in selected:
             command(["node", root / "tests/wonderswan_wasm_smoke.mjs", wasm / "wasm"], root, environment)
         if "pokey" in selected:
@@ -657,6 +704,8 @@ def main():
         require(any((work / "rebuilt-wasm").rglob("*.wasm")), "WASM build produced no WASM artifact")
         if args.build_wasm in ("ym2612", "all"):
             command(["node", root / "tests/wasm_smoke.mjs", work / "rebuilt-wasm"], root, environment)
+        if args.build_wasm in ("ps1_spu", "all"):
+            command(["node", root / "tests/ps1_spu_wasm_smoke.mjs", work / "rebuilt-wasm", *([fixtures["tetorica_ps1_spu_fixture"]] if fixtures else [])], root, environment)
         if args.build_wasm in ("wonderswan", "all"):
             command(["node", root / "tests/wonderswan_wasm_smoke.mjs", work / "rebuilt-wasm"], root, environment)
         if args.build_wasm in ("pokey", "all"):
@@ -664,7 +713,7 @@ def main():
             if fixtures:
                 check_pokey_parity(root, fixtures, work / "rebuilt-wasm", environment)
         check_application_audio(root, work / "rebuilt-wasm", REQUIRED_APPLICATION_AUDIO if args.build_wasm == "all" else [args.build_wasm], environment, args.application_audio_parity)
-    print(f"PASS: {len(catalog['chips'])} chips, {len(inventory['artifacts'])} chip WASM recipes, {len(catalog.get('applicationAudio', []))} application-audio modules and {len(catalog['javascriptReferences'])} JavaScript references; standalone release at {root}")
+    print(f"PASS: {len(catalog['chips'])} chips, {len(inventory['artifacts'])} chip WASM recipes, {len(catalog.get('applicationAudio', []))} application-audio modules, {len(catalog.get('instruments', []))} instruments and {len(catalog['javascriptReferences'])} JavaScript references; standalone release at {root}")
 
 
 if __name__ == "__main__":

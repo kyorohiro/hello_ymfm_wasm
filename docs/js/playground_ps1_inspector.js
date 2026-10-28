@@ -8,7 +8,7 @@ function retriggerOption(value={}){
 }
 /** Applied instrument state and identity-safe manual channel leases. Reads do not render. */
 export class Ps1VoiceInspector {
-  /** @param {import('./ps1synth.js?v=audio-stability-2').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions} [options] */
+  /** @param {import('./ps1synth.js?v=audio-stability-2').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js?v=pokey-mode-1').NativeVoiceInspectorOptions & {onResourcesChanged?:()=>void}} [options] */
   constructor(synth,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{},onResourcesChanged=()=>{}}={}){
     this.synth=synth;this.sampleRate=sampleRate;this.dispatch=dispatch??(command=>synth[command.method](...(command.args??[])));this.beginAudition=beginAudition;this.endAudition=endAudition;this.onResourcesChanged=onResourcesChanged;this.auditions=new Map();
   }

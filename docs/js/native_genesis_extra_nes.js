@@ -4,7 +4,7 @@ import {NesVoiceInspector} from './playground_native_voice_inspector.js?v=ps1-mo
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-voice-editor-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-mode-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 export const EXTRA_NES_CLOCK_HELD_ERROR='Release the manually held additional NES voices before changing the clock';
 export const EXTRA_NES_ADMISSION_ERRORS=Object.freeze(['Native additional NES upload batch exceeds 64 KiB','Native additional NES pending uploads exceed 1 MiB across the shared rack','Native NES pending command limit reached (8 MiB)']);

@@ -4,12 +4,12 @@
     {
       "id": "ay8910",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "8ab6bcd1c4a51d56781be02d242d66ea457e7c0ed9f693f7860efa0fdee734ec",
+      "sourceFingerprint": "2fda65d83bdc06ac0836193ae414889c3a0b3686ec4fa41a693e216239a76865",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ay8910_wasm.sh",
@@ -18,8 +18,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-ay8910/ay8910.cpp",
@@ -112,12 +112,12 @@
     {
       "id": "dx7",
       "format": "standalone-wasm",
-      "sourceFingerprint": "01daaa8b63cc70c09abbf0900978be055020170f34b11e40ff8599970b5f3e45",
+      "sourceFingerprint": "5f2b865d23286ecb84fd29c4c3e17eb2b1b06afff5770c436191bd04406cea9e",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_dx7_wasm.sh",
@@ -126,8 +126,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/msfa/aligned_buf.h",
@@ -306,12 +306,12 @@
     {
       "id": "gameboy_apu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "0bd7f05aa031b226b921c580d6765bbe9c9a2a94da42fc4bbea78f767bcdc046",
+      "sourceFingerprint": "a0493b3086293bbc398aedc0a17c3141c45fb0a68eeef01c75a1f9adc2fb66d4",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_gameboy_apu_wasm.sh",
@@ -320,8 +320,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-gameboy/gameboy_apu.cpp",
@@ -370,12 +370,12 @@
     {
       "id": "huc6280",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "ce71cba3fbf7724f77450deb7a3d463b6675f7473bfa4eefd3fa7e65ae6a89a9",
+      "sourceFingerprint": "e7a4fabc8100d72e72b6a52186af91c584f424dbeaec3ddc08add63f576b5522",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_huc6280_wasm.sh",
@@ -384,8 +384,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-huc6280/huc6280.cpp",
@@ -434,12 +434,12 @@
     {
       "id": "k051649",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "aed5fbe9f74f0a788516ad2b7247fca74595968de4ad2be009c344a6d0b597c0",
+      "sourceFingerprint": "e5c658f27f2318366eccfbd7e9913e900181433b9dd2697c154b1be4d3269578",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_k051649_wasm.sh",
@@ -448,8 +448,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-k051649/k051649.cpp",
@@ -542,12 +542,12 @@
     {
       "id": "nesapu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "4b7873004b20002e89eddda4b4429f96ce8cf678c0074b098f44670f2c521894",
+      "sourceFingerprint": "1ab8006583e6f83af309616a66c516d6c0f7ba258fd20d6b61f7988d92bd432c",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_nesapu_wasm.sh",
@@ -556,8 +556,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica-nes/nes_core.cpp",
@@ -596,12 +596,12 @@
     {
       "id": "nuked_opn2",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "c12c59dea2ab2abca9fca61bdaed4afa787c2f92a3aec90a57a6ecd2f124eaea",
+      "sourceFingerprint": "383c81701a2f4e6717ec2887baca6f558c9f19ba08d9324788fdce27f4a492b3",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_nuked_opn2_wasm.sh",
@@ -610,8 +610,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/nuked-opn2/ym3438.c",
@@ -650,12 +650,12 @@
     {
       "id": "okim6258",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "74ee88d8a6d8e257794824b9bdec9e0bb56a73fcb1f361c49ac20cbfb0af6fc1",
+      "sourceFingerprint": "046fcc82075a367a0975def8799b43a10a8897df9b57e1bfcab382c1c7419782",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_okim6258_wasm.sh",
@@ -664,8 +664,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-okim6258/okim6258.cpp",
@@ -714,12 +714,12 @@
     {
       "id": "pokey",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "039824eb6da165ed2ac24a714dc9a8a0e51755ebbbe8df018f38446e172a9852",
+      "sourceFingerprint": "2aace08229a81d338b59ddd0ee49f9cf80f0922b008c422833804b232d7382d7",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_pokey_wasm.sh",
@@ -728,8 +728,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/libvgm-pokey/pokey.cpp",
@@ -771,14 +771,93 @@
       "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
     },
     {
-      "id": "pwm32x",
+      "id": "ps1_spu",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "92c0f3691d56a347bd33e818399e973f8c019b0c566d3c36a5e56c4365b1440e",
+      "sourceFingerprint": "64a6a347777fa30e40ad1c1cb2078e12771a668ae0f2f25ad21ac40d2b244e41",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
+        },
+        {
+          "path": "scripts/build_ps1_spu_wasm.sh",
+          "sha256": "729f37f3c7224dd00b666b686a384498a8956df51d6c65b38afc0bb2a7e65704",
+          "size": 1291
+        },
+        {
+          "path": "scripts/record_wasm_build.mjs",
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
+        },
+        {
+          "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
+          "sha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a",
+          "size": 3353
+        },
+        {
+          "path": "vendor/mame-ps1-spu/ps1_spu.h",
+          "sha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e",
+          "size": 1558
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spu.cpp",
+          "sha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b",
+          "size": 67256
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spu.h",
+          "sha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828",
+          "size": 8376
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spu_tables.cpp",
+          "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab",
+          "size": 21649
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spureverb.cpp",
+          "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4",
+          "size": 6365
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spureverb.h",
+          "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67",
+          "size": 1594
+        },
+        {
+          "path": "vendor/mame-ps1-spu/standalone_support.h",
+          "sha256": "2bf135e3269170c36055c2eadc7ce94a40211313bf5c508cb36dc9b86889016f",
+          "size": 272
+        }
+      ],
+      "outputs": [
+        {
+          "path": "ps1_spu_wasm.js",
+          "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a",
+          "size": 16551
+        },
+        {
+          "path": "ps1_spu_wasm.wasm",
+          "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6",
+          "size": 44899
+        }
+      ],
+      "compiler": {
+        "command": "em++",
+        "version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.6-git\nCopyright (C) 2026 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+      },
+      "verification": "compiled from the included source snapshot; runtime smoke is reported separately"
+    },
+    {
+      "id": "pwm32x",
+      "format": "emscripten-es-module",
+      "sourceFingerprint": "6e58c2a8ba9ce77e5cc32762b80ae02349c06c87ff18d1a691319b37e8df2b0f",
+      "sourceFiles": [
+        {
+          "path": "scripts/build-wasm.sh",
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_pwm32x_wasm.sh",
@@ -787,8 +866,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-32x-pwm/upstream/mega32x.cpp",
@@ -832,12 +911,12 @@
     {
       "id": "rf5c164",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "09b49984688b7221b552b9997dcd66ee01d941e7d8f7e2d112247a214ee3dc25",
+      "sourceFingerprint": "8f99a3be59e9074a183eb57019559d9451f5d5e891b0d96351f58337402a5fef",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_rf5c164_wasm.sh",
@@ -846,8 +925,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-rf5c164/rf5c164.cpp",
@@ -891,12 +970,12 @@
     {
       "id": "segapcm",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "b2fca2d0ab6c87b67fd66481a7a5804a67f8f092215f4111dd3534092727bcde",
+      "sourceFingerprint": "f8a267d8aa09358802da0a281f61a312b37e6b4f9c427f4e6b43221bb3b7d47f",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_segapcm_wasm.sh",
@@ -905,8 +984,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-segapcm/segapcm.cpp",
@@ -955,12 +1034,12 @@
     {
       "id": "segapsg",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "3e9f1890245967d847a6a8fd0d47b53510a92649e2c9f598a98d85ebc8e35922",
+      "sourceFingerprint": "7ccfc933e499bb90a7011f025ca32b6b29b1577c5978b3df41f08da9f9f977ab",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_segapsg_wasm.sh",
@@ -969,8 +1048,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -1014,12 +1093,12 @@
     {
       "id": "spc",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "2c83821fe2dc122981fe17a42ce6931311d1687dda60efc9e302641a627d8ce0",
+      "sourceFingerprint": "2be0310197bbdb040c073c2d104078d3d34dfa1e32ab6038d5a06fd071f68c16",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_spc_wasm.sh",
@@ -1028,8 +1107,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/snes-spc/snes_spc/SNES_SPC.cpp",
@@ -1143,12 +1222,12 @@
     {
       "id": "wonderswan",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "5b54cdeb39d09a10e18b8f93c679e545965c7a27ff8ca490da86758d821a05e0",
+      "sourceFingerprint": "1e3ed8f5aecf366e91f4baab86d8e15011dcacb1eab0903fdf270bc6b7ba0527",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_wonderswan_wasm.sh",
@@ -1157,8 +1236,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/mame-wonderswan/upstream/wswansound.cpp",
@@ -1207,12 +1286,12 @@
     {
       "id": "y8950",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "fd7e7bc3805c5ee7ae66f9b6d02ce97974fda35ca46b3bc57f76878f5482a677",
+      "sourceFingerprint": "405d9cfdef8389740eaefd8d2b0a00dcef3e0c6a487a139fdf38c0be4a6d3719",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_y8950_wasm.sh",
@@ -1221,8 +1300,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -1386,12 +1465,12 @@
     {
       "id": "ym2151",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "7ab006c35b931cbe3a6988171c48c489dc72ca199383aea0474885f15e0e0c4d",
+      "sourceFingerprint": "b381818d94b39d51eed18ab763f7ed2286314c4d37a1c08c2aa8432dd58150bd",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym2151_wasm.sh",
@@ -1400,8 +1479,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -1565,12 +1644,12 @@
     {
       "id": "ym2203",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "c03df2f073d7a971353c013b1ca91c8038c86fe0a2350548d7b5f4d77e5a4dbd",
+      "sourceFingerprint": "3c88134782b867b5825f83c50e6a4c88b850a261c2b6a3a083a3aa7e96ac4165",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym2203_wasm.sh",
@@ -1579,8 +1658,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -1744,12 +1823,12 @@
     {
       "id": "ym2413",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "a13178e4b52bc03781e40fb5c2d06444e884567743a91bc793df1bc0dd957b22",
+      "sourceFingerprint": "c11916bda7f38e76fd025ee09104c4e7b2900473adf39f06485d00ee1c696513",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym2413_wasm.sh",
@@ -1758,8 +1837,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -1923,12 +2002,12 @@
     {
       "id": "ym2608",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "f1ba5090c3ab73d74282a1c57959fec14297eea462bc4ef6d464b3e36af4e566",
+      "sourceFingerprint": "def6f2952087d9c70f56f5478a07bd1c92a53b653e026609bdce120e73b00fad",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym2608_wasm.sh",
@@ -1937,8 +2016,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -2102,12 +2181,12 @@
     {
       "id": "ym2610b",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "ec68d380c1fa1f036855d00c44e05ee1137771c2e5b6881ab15175a3c1ba29c5",
+      "sourceFingerprint": "b5575acac4335db07d90481ce45b741d33d405d23c2c12329d7ee4349004db7a",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym2610b_wasm.sh",
@@ -2116,8 +2195,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -2281,12 +2360,12 @@
     {
       "id": "ym2612",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "54d927a6a0a8a92c0efc5fc856bd1ba73bfb35e8f2030a27d61052277c52f389",
+      "sourceFingerprint": "dbffca9e18df1ce0c257fcfbadf5b95b208905684813f8d13ee3d5cf1951ad87",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym2612_wasm.sh",
@@ -2295,8 +2374,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -2460,12 +2539,12 @@
     {
       "id": "ym3438",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "09505c3a044c26394fba2851ae6739253c52deaefeb910ee24884b516112043e",
+      "sourceFingerprint": "0a408be6f4b2010d2bbf93b0f050f6cc94908bf120a93b00ea1aba6f7a7cf725",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_opn_variant_wasm.sh",
@@ -2479,8 +2558,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -2644,12 +2723,12 @@
     {
       "id": "ym3526",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "a770cf132620d25f586e61297ba768d1534745d87df368ae2b94a5e57e57e662",
+      "sourceFingerprint": "1b99fec47c5268dcef26586fb4473fabe71a7a2d201371d98bc316343b4734dd",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym3526_wasm.sh",
@@ -2658,8 +2737,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -2823,12 +2902,12 @@
     {
       "id": "ym3812",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "635177f930e6ffa880aec926e12f70b7a91d563901b35cb5d6c0922a87d63be8",
+      "sourceFingerprint": "017df30ee78c161b5b52a1a006086ffb314ab0d430bf1cf52c65f94911a1cd93",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ym3812_wasm.sh",
@@ -2837,8 +2916,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -3002,12 +3081,12 @@
     {
       "id": "ymf262",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "955c2b66878de2cc9565170a64dbf47a57d02cc748795506f6eb1ff28bf475cd",
+      "sourceFingerprint": "51e76bb29459d3b519683ea029edb12f8360aa6633e184d2d06c0f821c10f19c",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ymf262_wasm.sh",
@@ -3016,8 +3095,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -3181,12 +3260,12 @@
     {
       "id": "ymf276",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "257febf5e1d6427274f5b10942ba8c7da65b1a0950b502bebe9333300399cbdf",
+      "sourceFingerprint": "6825c921d6a09b8b55ca8ab2e53155b47c7049fc64637333b14929be65e80dc7",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_opn_variant_wasm.sh",
@@ -3200,8 +3279,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -3365,12 +3444,12 @@
     {
       "id": "ymf278b",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "ff8a7fbe07de278b784b40e71b4d676e32ade03ad50ccdda5deb1c206d1c8c2f",
+      "sourceFingerprint": "a0565f91bd6a01c424ed4cc462d16e52369b24a8575912d5a134c13bc569c19d",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_ymf278b_wasm.sh",
@@ -3379,8 +3458,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",
@@ -3544,12 +3623,12 @@
     {
       "id": "ymf288",
       "format": "emscripten-es-module",
-      "sourceFingerprint": "55ea3c477122d22d328eb76b620a47060e4b09664c49af47c192e989f392c287",
+      "sourceFingerprint": "5afa6eb0c885a15c2bec6898ea793e4cadf2cca9d651bbd18490a00ae291be4a",
       "sourceFiles": [
         {
           "path": "scripts/build-wasm.sh",
-          "sha256": "4e864735a68f7ce1bd648b44432100a91b3c44f582314c14f5132ec5ab44f275",
-          "size": 1683
+          "sha256": "1a3f9947836c9d88e949ad564be6bcd18bd713b5f4317ed45720070270b9f034",
+          "size": 1691
         },
         {
           "path": "scripts/build_opn_variant_wasm.sh",
@@ -3563,8 +3642,8 @@
         },
         {
           "path": "scripts/record_wasm_build.mjs",
-          "sha256": "4fd0495c27ec77a4c801a4447fb09c12e780b9d15eb1d90d5b962ce697267883",
-          "size": 1975
+          "sha256": "8728a4b3f31e78db4410ab38d36bff72bfd5cd7bbd9c6f6fdb7dad1d53fe0dbf",
+          "size": 2006
         },
         {
           "path": "vendor/tetorica_sega_psg/segapsg.cpp",

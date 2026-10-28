@@ -78,7 +78,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        artifact: [ym2612, wonderswan, pokey, cdda, msm5205]
+        artifact: [ym2612, wonderswan, pokey, cdda, msm5205, ps1_spu]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -112,6 +112,8 @@ jobs:
               '--work-dir', str(pathlib.Path(os.environ['RUNNER_TEMP']) / 'SDK WASM isolation'),
               '--audit-only', '--javascript-smoke', '--wasm-smoke', '--build-wasm', '${{ matrix.artifact }}',
           ]
+          if '${{ matrix.artifact }}' == 'ps1_spu':
+              verification.append('--ps1-native-parity')
           if '${{ matrix.artifact }}' == 'pokey':
               verification.append('--pokey-native-parity')
           if '${{ matrix.artifact }}' in ('cdda', 'msm5205'):

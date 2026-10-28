@@ -3,7 +3,7 @@ import {Huc6280VoiceInspector} from './playground_huc6280_inspector.js?v=ps1-mod
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-voice-editor-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-mode-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 export const EXTRA_HUC6280_CLOCK_HELD_ERROR='Release the manually held additional HuC6280 voices before changing the clock';
 const matrix=(value,rows,columns,max,label)=>{if(!Array.isArray(value)||value.length!==rows)throw new Error(`Native additional HuC6280 returned invalid ${label}`);for(const row of value)nativeSnapshotArray(row,columns,max,label);};

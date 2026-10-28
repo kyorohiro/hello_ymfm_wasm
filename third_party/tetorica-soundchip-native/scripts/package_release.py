@@ -48,7 +48,7 @@ def write_archive(path, prefix, kind, payload, meta, extra=None):
 
 def wasm_payload(directory, source_zip, source, inventory):
     receipt = read_json(local_path(directory, "build-info.json"))
-    known = {a["id"]: a for a in [*inventory["artifacts"], *inventory.get("applicationAudio", [])]}
+    known = {a["id"]: a for a in [*inventory["artifacts"], *inventory.get("applicationAudio", []), *inventory.get("instruments", [])]}
     if receipt.get("schemaVersion") != 1 or not receipt.get("artifacts"):
         raise ValueError("WASM build-info.json must describe at least one compiled artifact")
     payload = {"wasm/build-info.json": (directory / "build-info.json").read_bytes()}

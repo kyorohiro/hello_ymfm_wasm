@@ -46,7 +46,7 @@ jobs:
         run: node --test web/adpcm_a_sample.test.mjs web/ym2610bsynth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/adpcm-a-core-tests.log"
       - name: Test experimental PS1 SPU with actual native and WASM cores
         run: |
-          node --test web/ps1_spu.test.mjs web/ps1synth.test.mjs web/ps1_resampler.test.mjs web/playground_ps1.test.mjs web/playground_ps1_worklet.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-core-tests.log"
+          node --test web/ps1_spu.test.mjs web/ps1synth.test.mjs web/ps1_resampler.test.mjs web/playground_ps1.test.mjs web/playground_ps1_worklet.test.mjs web/native_genesis_ps1.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-core-tests.log"
           node examples/nodejs/main_ps1_spu.js "$RUNNER_TEMP/itch-web/ps1-spu" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-example.log"
       - name: Test PCM to SPU ADPCM with the actual native and WASM decoders
         run: |

@@ -1,7 +1,7 @@
 # Native sources
 
 This directory contains existing chip-level C++/C ABI wrappers as bootstrap
-references, the SDK's raw WonderSwan/POKEY C++ targets, and the CD-DA/MSM5205 C11 modules, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
+references, the SDK's raw WonderSwan/POKEY C++ targets, the standalone PlayStation SPU instrument, and the CD-DA/MSM5205 C11 modules, without Rust, Tauri, CPAL, the application scheduler, Mixer, FX,
 QuickJS, UI, or audio-device code. Existing applications still use their current
 sources. Collecting them here does not yet switch those consumers to this SDK.
 
@@ -33,7 +33,7 @@ Requirements for the complete build: CMake 3.20 or newer, a C++17 compiler and a
 
 The independently buildable Native components are **ymfm YM2612, YM2151,
 YM2413, YM2203, YM2608 and YM2610/YM2610B, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback, WonderSwan, POKEY and YM3526/YM3812/YMF262/Y8950**.
-These 24 chip IDs and the alternative Nuked YM2612 engine use 21 static libraries. Separate CD-DA and MSM5205 application-audio modules bring the total to 23 libraries and 28 aliases/public headers. YM2610/YM2610B share a library, as do four OPL-family chips; constructors explicitly select the per-handle variant/kind. Generic OPL and the alternative Nuked engine add aliases without adding chip IDs:
+These 24 chip IDs and the alternative Nuked YM2612 engine use 21 static libraries. Separate CD-DA and MSM5205 application-audio modules bring the subtotal to 23 libraries and 28 aliases/public headers. The separate PlayStation SPU instrument adds one target/header, for 24 libraries and 29 aliases/public headers. YM2610/YM2610B share a library, as do four OPL-family chips; constructors explicitly select the per-handle variant/kind. Generic OPL and the alternative Nuked engine add aliases without adding chip IDs:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -107,7 +107,7 @@ clock/divider guards, pan, repeat, retained Stop/reset and observation.
 The RF5C164 fixture covers both profiles, eight voices, sign-magnitude PCM,
 loop markers, RAM/bank access, clock conversion, reset retention and the
 additional profile's immediate source cancellation and observation.
-The full suite supplies 29 CTest entries from 28 fixture executables, with assertions enabled in Release builds. The SNES executable supplies two entries. Three fixtures cover CD-DA, MSM5205 and their combined HuC6280 host.
+The full suite supplies 30 CTest entries from 29 fixture executables, with assertions enabled in Release builds. The SNES executable supplies two entries. Three fixtures cover CD-DA, MSM5205 and their combined HuC6280 host.
 The three OPL-family fixtures exercise primary controls/PCM, additional source
 ownership/held output, and Y8950 writable-page memory separately. The shared OPL
 library covers four selected chip kinds; each handle constructs only one kind.
@@ -1832,3 +1832,30 @@ Both modules return 1 on success and 0 for invalid input, with rejected operatio
 The C state is caller-owned and contains a borrowed source pointer, so it is not a portable serialized checkpoint. Read fields only while rendering and controls are excluded. Prepare storage on control, publish it through the host's own synchronized handoff, and retire it only after the callback can no longer use it. The cores contain no allocation/free, locking, host callbacks or lifetime queue. A shared render clock and host scheduling are required when mixing these devices with HuC6280; sample encoding, file decoding, WAV/track manifests, fades, mixing gains and device output remain host work.
 
 `tetorica_pcengine_cd_wav [output.wav]` demonstrates this boundary using original generated data. Its default file is `pcengine-cd.wav`: three seconds of 48 kHz stereo PCM16, with HuC6280, ADPCM and CD-DA solo sections, then their sum and a silent tail. The example applies one explicit master scalar; it establishes no SDK-wide loudness preset or hardware analog balance.
+
+## Embed the PlayStation SPU instrument
+
+Link `tetorica::ps1_spu` and include `<tetorica/ps1_spu.h>` from this source SDK. The public header forwards the original C-compatible declarations without duplicating them. CMake compiles only `ps1_spu.cpp`, `spu.cpp`, `spu_tables.cpp` and `spureverb.cpp` under `vendor/mame-ps1-spu/`, with private exception/integer/FP settings matching the reference build. No MAME headers or libraries are needed.
+
+```cpp
+#include <tetorica/ps1_spu.h>
+void* spu = ps1_spu_create();
+// Every write/transfer/render returns 1 on success, 0 on invalid input.
+// Upload authored PSX ADPCM above the capture region (0x1000 bytes),
+// configure the voice/sample/loop addresses and enable master output.
+// Sample RAM upload copies immediately; the input buffer is not borrowed.
+ps1_spu_write(spu, 0x180, 0x3fff); // Master L
+ps1_spu_write(spu, 0x182, 0x3fff); // Master R
+ps1_spu_write(spu, 0x1aa, 0xc000); // Enable + unmute
+float left[128], right[128];
+ps1_spu_render(spu, left, right, 128); // Fixed 44100 Hz; cold voices are silent.
+ps1_spu_destroy(spu);
+```
+
+For a complete audible example using self-authored ADPCM, build and run `tetorica_ps1_spu_wav output.wav`; it writes three seconds of **44,100 Hz** stereo PCM16 without opening an audio device. Its waveform/ADSR/Room reverb setup is in `examples/ps1_spu_pattern.hpp`. Unlike the older examples, this file uses the core's source rate directly rather than converting it to 48 kHz.
+
+Register addresses are even byte offsets `0..0x3fe` from `0x1f801c00`. Start/repeat registers count eight-byte units, with even values required for 16-byte packets. `ps1_spu_sample_rate()` reports 44100. Reads are synchronous; invalid handle/offset returns `0xffffffff`. Render accepts up to 1,048,576 frames into nonoverlapping planar float arrays. Null arrays are allowed only for zero frames. The first `0x1000` RAM bytes are capture buffers overwritten during rendering.
+
+Each independent handle must have serialized access. RAM uploads can invalidate/rebuild decoded sample caches; creating/destroying handles, uploading or replacing samples and first-use decoding are control/preparation work. This port does **not** promise allocation-free arbitrary playback/control paths. Hosts decide how to schedule/cache these operations and connect to their devices. `reset(spu, 0)` clears voices, registers, queues and effects while retaining RAM; `reset(spu, 1)` also clears RAM. No host Stop, mixer, source ownership queue, resampler, portable save state, CPU/PSF player or external CD audio input is supplied.
+
+See the [component guide](../vendor/mame-ps1-spu/README.md) for upstream adaptations, envelope/preset approximation and unsupported register modes. Retain the [component BSD-3-Clause license](../vendor/mame-ps1-spu/LICENSE) and original authorship in source and binary redistributions.

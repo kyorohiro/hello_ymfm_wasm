@@ -8,8 +8,10 @@ at **44,100 Hz**. It does not open an audio device or resample its output.
 The Browser Playground now has experimental **PlayStation (PS1)** mode with
 `spu`, 24 physical Keyboard targets and an SPU voice tab. An original sample is
 assigned to every voice when audio is prepared; no game files are needed.
-Main and Worker playback share the same AudioWorklet core. The Native audio
-backend and fixed soundchip SDK adoption are future work. For normalized mono
+Web Audio Main and Worker playback share the same AudioWorklet core. In the
+Tauri app, **Audio engine → Native (experimental)** uses the same fixed SDK
+C++ core directly, including 24-voice Keyboard audition, PCM/ADSR/reverb editing
+and independent additional SPUs. Web Audio remains the default. For normalized mono
 PCM, [encodePs1Adpcm](ps1_adpcm_encoder.md) produces the required ADPCM packets.
 The package-root low-level `createSoundChip()` factory is a separate API.
 
@@ -94,7 +96,7 @@ spu.keyOff(23);
 ```
 
 `spu` and `pg.spu` borrow the primary SPU. Playground `useSoundChip('ps1')`
-borrows it in PS1 mode; `createSoundChip('ps1')` creates an independent Browser
+borrows it in PS1 mode; `createSoundChip('ps1')` creates an independent Browser or Native
 instance. The primary lifetime belongs to the mode. Each independent instance
 has its own 512 KiB sample RAM and 24 voices and is released on Stop.
 
@@ -170,9 +172,10 @@ sample. The output prefix is optional; without it, files are written beside
 the script. Existing output files with the same names are overwritten.
 
 `docs/generated/ps1_spu_build.json` records the exact source, recipe and output
-hashes. The build rejects sources changed during compilation. Native hosts
-compile the four C++17 units listed in [the core README](../native/ps1/README.md)
-and include [ps1_spu.h](../native/ps1/ps1_spu.h).
+hashes and the fixed SDK pin, including unpublished local-candidate provenance.
+The build verifies the complete fixed snapshot before compilation. Native hosts
+compile the four C++17 units listed in [the core README](../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/README.md)
+and include [ps1_spu.h](../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/ps1_spu.h).
 
 ## JavaScript interface
 
@@ -264,5 +267,5 @@ CPU/DMA/IRQ timing, PSF playback and external XA/CD audio input are not exposed.
 The individually BSD-3-Clause-licensed SPU files by pSXAuthor and R. Belmont are
 pinned at MAME revision `a64a5d6602b19f67e091a4491f0c851a9dacf79d`.
 Pristine upstream files, hashes, notices and adaptation details are retained in
-[native/ps1](../native/ps1/README.md). Binary distributions include their license
+[fixed SDK PS1 sources](../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/README.md). Binary distributions include their license
 and the full standalone source/build recipe.

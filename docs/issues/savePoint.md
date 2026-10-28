@@ -1,3 +1,16 @@
+## 2026-10-28 — PS1をSDK 0.1.6候補へ集約、Tauri Native実装・offline検証完了、Chromium clock課題を保持
+
+- SDK原本`w/tetorica-soundchip-native`に`vendor/mame-ps1-spu/`を追加。本体の旧`native/ps1/`全17filesをbyteを変えず移し、BSD attribution／MAME原本5files／revision／hash／改変説明を保持。`tetorica::ps1_spu`＋C header＋既存同期C ABIを提供。24 generic chip IDs／29 chip artifacts／2 application-audioに、別categoryのPS1 instrumentを加えた32ビルド。
+- SDK **0.1.6は未公開local candidate**。base`3bb8d9ceffa50ad183d1ab856e031fe649425bca`、source ZIP SHA256 **`3c7c2a9cdfcb0316162f6365aef89f0c9fd92140ae4828599cd613255d153952`**、454payload＋manifest。本体／Tauriは同じ候補をpinし、`localCandidate`にbase／changedPathsを保存。候補原本は凍結済み、`/private/tmp/ps1-sdk-candidate-final/`に成果物とmetadata。本体`release/soundchip-sdk-0.1.6-candidate/`にも同じsource ZIP／metadata／SHA256SUMSを永続保持。
+- SDK source audit324records／Python101件／独立展開Native24libs・51executables・30CTests／22WAVs・JavaScript参照10checksが成功。最終source＋WASM ZIPからのPS1再ビルドも成功。実WASM311,605frames、Native比較98,828interleaved samples最大差0。core／Mixer gainの変更なし。
+- 本体buildは固定SDKへ委譲し、配布`sources/native/ps1/`はSDKから生成する。最終**32ビルド／63出力／40,474 exact chip comparisons**とapplication-audio／PS1 Native parityが全成功、`repositoryInputsUnchanged:true`。reportは`/private/tmp/ps1-sdk-all-parity-final/summary.json`。初回`ps1-sdk-all-parity/`は並行編集の検出で失敗したため採用せず、凍結後のfresh runで成功を確認した。
+- Tauri primary／additional PS1 Nativeと既存UI／Keyboard／PS1 clientの接続を実装。Browser既定は維持。固定SDK実core29件／Native JS関連162件（新PS1 13件）／Rust793件（PS1 12件、既存ignored4件）／関連Python31件・Node31件成功。最初のread前のStopで初期24声の割当を消してしまう問題を修正し、受理済みassignment／RAMを保持する。
+- 最終isolated npmは1,004files／1,097asset refs／28WASM engines／15renderers・NodeNext／Bundler／Browser型が成功。配布sourceの`--build`も生成JS／WASM全byte一致（`/private/tmp/ps1-native-sdk-source-rebuild-proof.json`）。4ZIP CRC成功、Run ZIP931files／SHA256`ab83876a942add3ab6a91ff7ab53e333dcc943134642ae151721235c0f6556e2`。
+- Tauri frontend同期1,065files、frontend ZIP SHA256`67079670926b976ec84d92e330ff796c93bbd975bcf0f1a4672bfcf7563a878a`。対応source ZIP2,085files／SHA256`c02901cc47ace5ee8ff0aa5ae34bb9dc1a01fb70f153645bcbbef73d4d2e56f3`、24source pins成功。device／network未使用。
+- Browser coreはWindow／DedicatedWorker×Chromium／WebKitの4条件成功（AudioContextなし）。voice UIはsource本体／実Run ZIP×WebKit Main／Worker4条件成功、同一checker hash／配信287・215assets照合。Chromium Mainは本体・ZIPとも完走。一方、Chromium Workerは本体・ZIPとも追加SPU dispose後のsilent clock checkでframeGaps1、別実行でMain currentFrame -128を観測し未解決。PCMfinite／exact zeroとclock連続性を区別し、assertionを緩めず失敗を保持。**全8 UI条件中6成功・2失敗、全8条件PASSとは扱わない**。
+- SDK／PS1 Native実装とoffline検証は完了。残りはChromium clock連続性の原因追跡、Tauri GUI物理実聴／remote OS CI。reportsは`/private/tmp/ps1-sdk-core-browser.json`／`ps1-sdk-browser-source-webkit.json`／`ps1-sdk-browser-zip-webkit.json`、失敗の両full-job logsも保持。runtime versioner変更0と3repo diffcheckが成功。coreは最初のKON／render等でallocationが起こり得て、無条件のzero-allocation保証はしない。
+- 未commit／未push／未公開。npm0.2.32のまま、itch upload・SDK tag／GitHub Releaseなし。PS1 Mixerは未測定unity1.0、CPU／PSF／CD-XA等は対象外。詳細／再開点：[ps1_sdk_native_01.md](ps1_sdk_native_01.md)／[JSON](ps1_sdk_native_01.json)。以下は各時点の履歴。
+
 ## 2026-10-28 — PS1 SPUタブにCH別PCM波形描画を追加
 
 - SPU → Voice選択 → Sine／Triangle／Saw／Squareを選び、波形を直接dragまたはindex／値で編集。112点のsigned PCMをMain準備側で64byteのloop ADPCMへ自動変換し、Sustain play／Keyboardで試奏。ADSR・pitch・左右volume・reverbを保持し、自分の試奏だけ任意で再発音する。

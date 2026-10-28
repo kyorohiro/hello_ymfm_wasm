@@ -139,8 +139,11 @@ preview. The preview requires an injected generated factory, opens no audio
 device and releases its private core after rendering. These helpers are part
 of the current package candidate; their presence here does not announce a new
 npm release. See the [Sample Editor workflow and RAM limits](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_sample_editor.md).
-The package-root chip factory remains separate, and the Native Playground
-audio adapter is future work. The core is separate from the fixed sound-chip SDK.
+The package-root chip factory remains separate. In a compatible Tauri host,
+Playground supports PS1 Native playback through the same fixed SDK C++ core,
+including Main/Worker, 24-voice audition, PCM/ADSR/reverb editing and additional
+independent SPUs. Web Audio remains the default. The source-tree build pins SDK
+0.1.6 as an unpublished local candidate; this does not announce an SDK release.
 Upstream linear interpolation, approximate ADSR and preset reverb are retained;
 hardware-exact sound or game soundtrack compatibility is not claimed.
 
@@ -705,7 +708,7 @@ applied to dual POKEY.
 
 The package includes the adaptation, exact BSD-labeled upstream `pokey.c`,
 notices and standalone recipe in `sources/POKEY.md` and
-`licenses/libvgm-pokey/`. These inputs come from the fixed SDK 0.1.5;
+`licenses/libvgm-pokey/`. These inputs come from the pinned sound-chip SDK;
 `sources/POKEY-SDK.json` retains its source archive hash and commit provenance.
 No Atari CPU, ROM,
 full machine emulation or external sample is included.
@@ -1311,9 +1314,11 @@ The build is staged in `dist/fm2612/`; packing produces
 npm install /absolute/path/to/tetorica-fm2612-0.2.32.tgz
 ```
 
-Current source bundles use published `tetorica-soundchip-native` SDK **0.1.5**.
-The SDK provides 29 chip WASM recipes and 2 separate application-audio recipes
-(CD-DA and MSM5205). Bundled source receipts preserve its source commit, archive
+The current source-tree build pins `tetorica-soundchip-native` SDK **0.1.6** as
+an unpublished local candidate, including the PS1 SPU instrument. The pin retains
+the archive hash, base commit and changed paths; no SDK 0.1.6 release is implied.
+The SDK provides 29 chip WASM recipes, 2 separate application-audio recipes
+(CD-DA and MSM5205), and the standalone PS1 SPU instrument recipe. Bundled source receipts preserve its source commit, archive
 and manifest hashes; standalone recipes rebuild without checking out the SDK.
 
 The existing `tetorica-vgm` CLI package is built separately. This first package
@@ -1347,8 +1352,8 @@ instances and a self-contained BSD source bundle. The bundled Playground
 timeline client transfers small owned chunks and validates them across audio
 quanta, with atomic commit and cancellation on Stop, owner/session replacement
 and disposal. That npm release used a hash-pinned SDK 0.1.5 source candidate
-with local archive/base-commit provenance. Current source bundles use the
-published SDK 0.1.5 release described above.
+with local archive/base-commit provenance. The current source tree uses the
+SDK 0.1.6 local candidate described above.
 
 `0.2.30` connects **WonderSwan to the public Direct and AudioWorklet factory**,
 with the shared Mixer, typed raw API and `WonderSwanWorkletTransport` for Synth

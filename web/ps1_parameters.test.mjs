@@ -28,7 +28,7 @@ test('PS1 envelope validation rejects unknown fields, coercion and out-of-range 
 });
 
 test('all exposed PS1 reverb tables match the pinned BSD core and omit ineffective modes',async()=>{
-  const source=await readFile(new URL('../native/ps1/upstream/spu_tables.cpp',import.meta.url),'utf8');
+  const source=await readFile(new URL('../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/upstream/spu_tables.cpp',import.meta.url),'utf8');
   const upstream=new Map([...source.matchAll(/"([^"]+)"\s*,\s*\{([^}]+)\}/g)].map(m=>[m[1],m[2].match(/0x[0-9a-f]+/gi).map(x=>parseInt(x,16))]));
   assert.deepEqual(PS1_REVERB_PRESETS.map(p=>p.id),['off','room','studio-small','studio-medium','studio-large','hall','space-echo','half-echo']);
   assert.ok(Object.isFrozen(PS1_REVERB_PRESETS));

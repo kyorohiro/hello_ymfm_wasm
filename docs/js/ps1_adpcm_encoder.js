@@ -2,7 +2,7 @@
 // Copyright (c) 2026, kyorohiro.
 /** Browser / Worker / Node: bounded mono PCM to PlayStation SPU ADPCM.
  * This original encoder uses the arithmetic of the pinned BSD-3-Clause
- * decoder in native/ps1/spu.cpp (pSXAuthor and R. Belmont; see its notices).
+ * decoder in third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/spu.cpp (pSXAuthor and R. Belmont; see its notices).
  * It does not resample, normalize, infer tuning, or apply SPU interpolation,
  * envelopes, volume, or effects. This module has no audio or core side effects.
  */

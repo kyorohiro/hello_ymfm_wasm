@@ -34,10 +34,15 @@ def main():
               "licenseFiles": entry["licenseFiles"], "native": native_audio[entry["id"]],
               "wasm": {"status": "build-recipes-included", "artifacts": [{key: entry[key] for key in ("id", "format", "buildScript")}]}}
              for entry in inventory.get("applicationAudio", [])]
+    instruments = [{"id": entry["id"], "role": "instrument", "kind": entry["kind"],
+                    "sourceFiles": entry["sourceFiles"], "licenseFiles": entry["licenseFiles"],
+                    "native": next(device for device in read_json(ROOT / "catalog/native_inventory.json").get("instruments", []) if device["id"] == entry["id"]),
+                    "wasm": {"status": "build-recipes-included", "artifacts": [{key: entry[key] for key in ("id", "format", "buildScript")}]}}
+                   for entry in inventory.get("instruments", [])]
     data = {"schemaVersion": 1, "stage": "bootstrap", "chips": chips, "additionalArtifacts": additional,
             "javascriptReferences": javascript,
             "upstreamReferences": upstream,
-            "applicationAudio": audio,
+            "applicationAudio": audio, "instruments": instruments,
             "differencesDocument": "docs/chip-differences.md",
             "notes": ["Source collection covers these 24 SDK chip IDs; each Native verificationScope records its supported API and tested configurations. POKEY is a standalone SDK addition, not an application-mode integration.",
                       "A WASM recipe is not a claim of runtime verification; release build-info and tests report the verified scope.",

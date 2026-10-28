@@ -1872,6 +1872,116 @@
           "amendmentNote": "SDK-relative build paths/default output and EMCC selection only; C synthesis and WASM ABI unchanged."
         }
       ]
+    },
+    {
+      "id": "mame-ps1-spu",
+      "sourceFiles": [
+        "vendor/mame-ps1-spu/ps1_spu.cpp",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h",
+        "vendor/mame-ps1-spu/spu_tables.cpp",
+        "vendor/mame-ps1-spu/spureverb.cpp",
+        "vendor/mame-ps1-spu/spureverb.h",
+        "vendor/mame-ps1-spu/standalone_support.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-ps1-spu/LICENSE"
+      ],
+      "upstream": [
+        "https://github.com/mamedev/mame/tree/a64a5d6602b19f67e091a4491f0c851a9dacf79d/src/devices/sound",
+        "https://github.com/kyorohiro/hello_ymfm_wasm"
+      ],
+      "sourceVersion": [
+        "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d; adapted instrument snapshot from application commit 069a2cb8211aa0159b71da5f7c806a30a4d32929; per-file hashes are authoritative"
+      ],
+      "files": [
+        {
+          "path": "vendor/mame-ps1-spu/LICENSE",
+          "originPath": "native/ps1/LICENSE",
+          "sha256": "53226467f8f025aa2bf11c9297ed61ff146071edf2c6a4459fe4f8600455252b"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/README.md",
+          "originPath": "native/ps1/README.md",
+          "sha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/ps1_spu.cpp",
+          "originPath": "native/ps1/ps1_spu.cpp",
+          "sha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/ps1_spu.h",
+          "originPath": "native/ps1/ps1_spu.h",
+          "sha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spu.cpp",
+          "originPath": "native/ps1/spu.cpp",
+          "sha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spu.h",
+          "originPath": "native/ps1/spu.h",
+          "sha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spu_tables.cpp",
+          "originPath": "native/ps1/spu_tables.cpp",
+          "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spureverb.cpp",
+          "originPath": "native/ps1/spureverb.cpp",
+          "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/spureverb.h",
+          "originPath": "native/ps1/spureverb.h",
+          "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/standalone_support.h",
+          "originPath": "native/ps1/standalone_support.h",
+          "sha256": "2bf135e3269170c36055c2eadc7ce94a40211313bf5c508cb36dc9b86889016f"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/upstream/REVISION",
+          "originPath": "native/ps1/upstream/REVISION",
+          "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/upstream/SHA256SUMS",
+          "originPath": "native/ps1/upstream/SHA256SUMS",
+          "sha256": "0bb50b92e0e5d59590ab7863e2178ca714f50da3dbed7a17ff9083d4945e1737"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/upstream/spu.cpp",
+          "originPath": "native/ps1/upstream/spu.cpp",
+          "sha256": "1bdb46de6ab7dae77a94846812b4d69f1e5168fc9a95de8a661a861afa3f0e23"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/upstream/spu.h",
+          "originPath": "native/ps1/upstream/spu.h",
+          "sha256": "2ce1a71da66ffeba76f8197a1ee1833188571b7e57315aec9297296af9d5a95b"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/upstream/spu_tables.cpp",
+          "originPath": "native/ps1/upstream/spu_tables.cpp",
+          "sha256": "fbb2222beb8a5bc1a71ecaf67f827c6f4c013ac7d525dcf3752bc3e51a1a51c4"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/upstream/spureverb.cpp",
+          "originPath": "native/ps1/upstream/spureverb.cpp",
+          "sha256": "3d8dec58c67e8606618367a8d9850cbf3c60f10a71b3636cbf2f7e0850b1d01a"
+        },
+        {
+          "path": "vendor/mame-ps1-spu/upstream/spureverb.h",
+          "originPath": "native/ps1/upstream/spureverb.h",
+          "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
+        }
+      ]
     }
   ],
   "artifacts": [
@@ -3504,6 +3614,37 @@
       "provenanceStatus": "source recipe collected; compiled/runtime verification is recorded separately",
       "memoryBytes": 131072,
       "hostImports": 0
+    }
+  ],
+  "instruments": [
+    {
+      "id": "ps1_spu",
+      "role": "instrument",
+      "kind": "PlayStation SPU standalone instrument",
+      "chipIds": [],
+      "format": "emscripten-es-module",
+      "buildScript": "scripts/build_ps1_spu_wasm.sh",
+      "buildFiles": [
+        "scripts/build_ps1_spu_wasm.sh",
+        "scripts/build-wasm.sh",
+        "scripts/record_wasm_build.mjs"
+      ],
+      "sourceFiles": [
+        "vendor/mame-ps1-spu/ps1_spu.cpp",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h",
+        "vendor/mame-ps1-spu/spu_tables.cpp",
+        "vendor/mame-ps1-spu/spureverb.cpp",
+        "vendor/mame-ps1-spu/spureverb.h",
+        "vendor/mame-ps1-spu/standalone_support.h"
+      ],
+      "licenseFiles": [
+        "vendor/mame-ps1-spu/LICENSE"
+      ],
+      "notes": [
+        "Fixed 44100 Hz; 24 voices; 512 KiB RAM; ps1_spu_* C ABI; distinct from the generic sound-chip factory. CPU, BIOS, PSF and XA/CD streaming are not included."
+      ]
     }
   ]
 }

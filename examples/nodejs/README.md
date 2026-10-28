@@ -29,7 +29,7 @@ Native／WASM共通の実験的MAME派生コアで、現時点では低レベル
 PlaygroundのPS1 mode／Synth／汎用PCM encoderは次段階。
 補間・ADSR・reverbは元実装の近似を含む。仕様・利用例は
 [PS1 SPU guide](../../docs/ps1_spu.md)、由来とライセンスは
-[native/ps1](../../native/ps1/README.md) を参照。
+[固定SDKのPlayStation SPU](../../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/README.md) を参照。
 
 ## SNES PCM → BRR → WAV
 

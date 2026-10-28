@@ -6,7 +6,7 @@ import path from 'node:path';
 const root=fileURLToPath(new URL('../',import.meta.url)),[id,out]=process.argv.slice(2);
 const digest=data=>createHash('sha256').update(data).digest('hex');
 const inventory=JSON.parse(await readFile(path.join(root,'catalog/source_inventory.json'),'utf8'));
-const artifact=[...inventory.artifacts,...(inventory.applicationAudio??[])].find(entry=>entry.id===id);if(!artifact)throw new Error('Unknown WASM artifact: '+id);
+const artifact=[...inventory.artifacts,...(inventory.applicationAudio??[]),...(inventory.instruments??[])].find(entry=>entry.id===id);if(!artifact)throw new Error('Unknown WASM artifact: '+id);
 const names=artifact.format==='standalone-wasm'?['msfa.wasm']:[id+'_wasm.js',id+'_wasm.wasm'];
 const sourceFiles=[];
 for(const name of [...new Set([...artifact.sourceFiles,...(artifact.buildFiles??[artifact.buildScript])])].sort()){const bytes=await readFile(path.join(root,name));sourceFiles.push({path:name,sha256:digest(bytes),size:bytes.length});}

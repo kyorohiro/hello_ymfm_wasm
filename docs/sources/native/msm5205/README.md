@@ -1,6 +1,6 @@
 # MSM5205 standalone source
 
-This BSD-3-Clause component and its WASM bridge come from fixed tetorica-soundchip-native 0.1.5. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for terms and origin. The SDK's original source and bridge bytes are unchanged; only the standalone recipe's source/include paths are relocated.
+This BSD-3-Clause component and its WASM bridge come from fixed tetorica-soundchip-native 0.1.6. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for terms and origin. The SDK's original source and bridge bytes are unchanged; only the standalone recipe's source/include paths are relocated.
 
 The C11 core retains separate raw ADPCM/register/FIFO and PC Engine packed-RAM playback modes. Source storage is immutable and caller-owned until replacement or destruction. PC Engine RAM is limited to 64 KiB, decodes the high nibble first and addresses offsets/lengths in nibbles. Rate 0–15 selects clock / (48 * (16 - rate)). Controls and rendering share one audio clock; mute preserves decoder progression. Native hosts compile native/msm5205/msm5205_pcm.c and include msm5205_pcm.h. The fixed-memory WASM holds 64 KiB source RAM and at most 128 planar stereo frames per call. The Analyzer JavaScript decoder remains a separate behavioral reference; sample encoding, files, scheduling and mixing belong to the host.
 

@@ -26,7 +26,7 @@ async function references(t) {
   if(probe.error?.code==='ENOENT'){t.skip('C++ compiler unavailable; actual native decoder and SPU comparison not run');return null;}
   assert.equal(probe.status,0,probe.stderr||probe.error?.message);
   const temp=await mkdtemp(join(tmpdir(),'tetorica-ps1-encoder-core-'));t.after(()=>rm(temp,{recursive:true,force:true}));
-  const directory=join(root,'native/ps1'),common=['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+directory];
+  const directory=join(root,'third_party/tetorica-soundchip-native/vendor/mame-ps1-spu'),common=['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+directory];
   const raw=join(temp,'decode'),core=join(temp,'spu');
   for(const [binary,helper,sources] of [
     [raw,'ps1_adpcm_decode_reference.cpp',['spu_tables.cpp','spureverb.cpp']],

@@ -359,13 +359,23 @@ const ps1WaveFiles=new Set(['ps1_waveform.js','ps1synth.js','playground_ps1.js',
   'playground_chip_inspector.js','playground_chip_tabs.js','playground_native_primary.js',
   'playground_runtime.js','playground_logic_worker.js','playground.js',
   'playground_sample_ps1_preview.js','playground_sample_instrument.js','playground_sample_editor_worker.js','playground_audio_input.js']);
-const revisionFor=name=>ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+// Native PS1 transport and the endpoint routing must be refreshed together.
+const ps1NativeFiles=new Set(['native_genesis_ps1.js','native_genesis_extra_ps1.js',
+  'native_genesis_synth.js','native_genesis_extra_chip.js','native_genesis_worker.js',
+  'playground_ps1.js','playground_runtime.js','playground_audio_engine.js','playground.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(ps1NativeFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>ps1NativeFiles.has(match[1]))){ps1NativeFiles.add(name);propagated=true;}
+}}while(propagated);
+const revisionFor=name=>ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
   ...ps1ModeFiles,
   ...ps1EncoderFiles,
   ...ps1SampleFiles,
   ...ps1VoiceFiles,
   ...ps1WaveFiles,
+  ...ps1NativeFiles,
   ...cddaFiles, ...pcEngineCdFiles, ...cdrom2PanelFiles,
   ...megaCdCddaFiles,
   ...gameboySampleFiles,

@@ -6,7 +6,7 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as delay} from 'node:timers/promises';
 import test from 'node:test';
-import {checkWasmSdk, parseWasmSdkArguments, runWasmSdkCommand} from '../scripts/check_wasm_sdk.mjs';
+import {checkWasmSdk, parseWasmSdkArguments, runWasmSdkCommand, compareWasmSdkAbi, validatePs1SpuSdkReport} from '../scripts/check_wasm_sdk.mjs';
 import {WASM_SDK_ARTIFACT_IDS,loadWasmSdkInventory} from '../scripts/wasm_sdk_inventory.mjs';
 
 const root=await realpath(resolve(dirname(fileURLToPath(import.meta.url)),'..'));
@@ -44,6 +44,8 @@ test('WASM SDK command help performs no build or comparison',()=>{
   const result=spawnSync(process.execPath,[script,'--help'],{encoding:'utf8',timeout:10000});
   assert.ifError(result.error);assert.equal(result.status,0,result.stderr);
   assert.match(result.stdout,/Usage:/);assert.match(result.stdout,/all 29 cores/);
+  assert.match(result.stdout,/2 application-audio modules and 1 SPU instrument \(32 builds total\)/);
+  assert.match(result.stdout,/CMake >=3\.20, CTest and C11\/C\+\+17/);
   assert.doesNotMatch(result.stdout,/WASM SDK validation:|Comparing \d|Building all/);
 });
 
@@ -173,4 +175,34 @@ test('a malformed reference emits a failed summary with all 29 cores not compare
   assert(summary.completedAt);assert.deepEqual(await readdir(join(work,'reports')),[]);
   await absent(join(work,'rebuilt'));await absent(join(work,'reference'));
   assert.equal(await readFile(join(reference,'build-info.json'),'utf8'),JSON.stringify({schemaVersion:1,artifacts:[]})+'\n');
+});
+
+
+test('SPU instrument exports and imports are included in ABI comparison',()=>{
+  const sound={id:'ym2612',wasm:{exports:[{name:'chip',kind:'function'}],imports:[]}};
+  const spu={id:'ps1_spu',wasm:{exports:[{name:'ps1_spu_render',kind:'function'}],imports:[{module:'env',name:'invoke_ii',kind:'function'}]}};
+  const reference={artifacts:[sound],applicationAudio:[],instruments:[spu]};
+  const candidate=structuredClone(reference);compareWasmSdkAbi(reference,candidate);
+  candidate.instruments[0].wasm.exports[0].name='wrong_render';
+  assert.throws(()=>compareWasmSdkAbi(reference,candidate),/ps1_spu: WASM export ABI changed/);
+  candidate.instruments=structuredClone(reference.instruments);candidate.instruments[0].wasm.imports=[];
+  assert.throws(()=>compareWasmSdkAbi(reference,candidate),/ps1_spu: WASM import ABI changed/);
+  candidate.instruments=[];assert.throws(()=>compareWasmSdkAbi(reference,candidate));
+  compareWasmSdkAbi({artifacts:[sound],applicationAudio:[]},{artifacts:[sound],applicationAudio:[]});
+});
+
+test('SPU report requires real voice, envelope, FX, isolation and Native PCM checks',()=>{
+  const report={passed:true,artifact:'ps1_spu',sampleRate:44100,voices:24,ramBytes:524288,renderedFrames:311605,
+    checks:['fixed-rate-C-ABI-register-RAM-and-render-guards','24-voices-high-key-bank-ADSR-release-and-stereo',
+      'exact-block-partition-and-independent-instance-state','preset-reverb-tail-reset-and-retained-sample-RAM',
+      'actual-Native-WASM-24-voice-ADSR-and-reverb-parity'],
+    nativeParity:{passed:true,interleavedSamples:98828,maxAbsoluteError:0,tolerance:1e-6}};
+  assert.equal(validatePs1SpuSdkReport(report),report);
+  for(const mutation of [r=>r.passed=false,r=>r.sampleRate=48000,r=>r.voices=8,r=>r.ramBytes=65536,
+    r=>r.renderedFrames=0,r=>r.checks.pop(),r=>delete r.nativeParity,r=>r.nativeParity.passed=false,
+    r=>r.nativeParity.interleavedSamples=0,r=>r.nativeParity.maxAbsoluteError=NaN,
+    r=>r.nativeParity.maxAbsoluteError=1e-3,r=>r.nativeParity.maxAbsoluteError=-1,
+    r=>r.nativeParity.tolerance=1e-2]){
+    const invalid=structuredClone(report);mutation(invalid);assert.throws(()=>validatePs1SpuSdkReport(invalid));
+  }
 });

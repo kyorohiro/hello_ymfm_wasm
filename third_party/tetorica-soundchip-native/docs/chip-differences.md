@@ -2,6 +2,14 @@
 
 This document describes the initial source snapshot inspected on 2026-10-24 and the subsequent component additions recorded below. The **reference Web implementation** is the Browser / WASM side of `hello_ymfm`; the **reference Native implementation** is the Tauri project `tetorica-fm2612-playground-tauri`. Upstream chip projects, those applications and this distributable SDK are separate layers.
 
+## PlayStation SPU instrument added in 0.1.6
+
+`vendor/mame-ps1-spu/` is a byte-identical import of the reference application's `native/ps1/`, including its [detailed adaptation record](../vendor/mame-ps1-spu/README.md), [license](../vendor/mame-ps1-spu/LICENSE) and pristine `upstream/` files. The SDK relocates these files without changing sound arithmetic. Its CMake target compiles the same four C++17 translation units, and its WASM recipe retains the original compiler flags, memory settings and exported function list. Public forwarding, tests, cataloging and build configuration are SDK additions.
+
+The synchronous C interface is the same in Native and WASM: `ps1_spu_create/destroy/reset/sample_rate/write/read/load_ram/read_ram/render`. It owns 512 KiB of RAM per independent handle and produces planar 44,100 Hz float PCM. Callers serialize access, encode PCM to PSX ADPCM, allocate sample ranges above the first `0x1000` capture bytes, schedule writes, mix and resample to an audio device themselves. Reset with `clear_ram=0` retains bytes while clearing voices/effects; the host restores any desired presets and gates.
+
+This is an experimental CPU-free instrument, with the retained upstream linear interpolation, envelope-rate approximations and preset-based reverb. ADSR edits latch at key-on; pitch and fixed gain update active voices. Volume sweeps and nonstandard RAM-control modes are rejected. CPU/DMA/IRQ, BIOS, PSF playback and external XA/CD audio are outside this target. The `instruments` inventory is separate from generic chip IDs and application-audio transports. No hardware accuracy or full-game playback claim is implied by source availability.
+
 ## Comparison layers
 
 1. **Upstream → Tetorica:** existing standalone adaptations, observation, muting, live edits and other changes. A core may already differ from its upstream source.

@@ -1,5 +1,17 @@
 # Verification record
 
+## SDK 0.1.6 PlayStation SPU candidate — 2026-10-28
+
+This is an unpublished local candidate. SDK metadata and CMake identify 0.1.6; no tag, push, remote CI run or release is claimed. Consumers record the candidate source archive hash, base commit and changed paths explicitly. Historical records below retain their original dates and scope.
+
+- All 17 files imported from the reference application's `native/ps1/` are byte-identical under `vendor/mame-ps1-spu/`. This includes all adapted C++/headers, the BSD-3-Clause license and the five pristine MAME sources, immutable revision and SHA-256 list. The source audit covers **324 snapshot records**, the unchanged **24 generic chip IDs / 29 chip WASM recipes / two application-audio modules / two JavaScript references**, and one separate `ps1_spu` instrument. The aggregate selector now exposes **32 recipes**.
+- The C++17 target `tetorica::ps1_spu` and C-compatible `<tetorica/ps1_spu.h>` expose the original synchronous `ps1_spu_*` ABI. An independently extracted source archive built all **24 static libraries** and **51 executables**, then passed **30/30 CTest entries** from 29 fixture executables. All **22 offline WAV examples** passed finite/nonzero/unclipped PCM16 stereo audits: the original PS1 waveform/melody has 132,300 frames at 44,100 Hz; the earlier 21 examples retain 144,000 frames at 48 kHz. Both JavaScript references retain their 10 passing smoke checks.
+- The SPU fixture checks register/RAM/render guards, all 24 voices, high key-mask bank, fixed stereo gain, ADSR release, Room reverb tail, reset/RAM retention, exact block partitions and independent instances. It does not claim allocation-free arbitrary sample/cache activity, hardware-exact interpolation/envelopes/reverb, CPU/PSF playback or CD streaming.
+- Emscripten **6.0.6** rebuilt the descriptor and WASM **byte-identically** to the reference application's generated outputs. The actual WASM smoke rendered **311,605 frames**. In the tested dry and Room-reverb 24-voice scenarios, **98,828 interleaved Native/WASM samples matched exactly**, maximum absolute error **0** (acceptance tolerance 1e-6). This establishes agreement between these model builds, not analog or hardware equivalence. No human listening test was performed.
+- All **101 Python release/audit regression tests** passed. Instrument-specific cases reject missing/duplicate/stale catalogs, generic-chip claims, wrong aliases/headers, absent/changed provenance and parity requests without a selected SPU artifact. Release CMake File API tests require the SPU fixture/example in single- and multi-configuration layouts, including Windows `.exe` paths. `actionlint` and `git diff --check` passed.
+- CI is configured for the existing five Native platforms and a sixth WASM job for `ps1_spu`; that job compiles and compares supplied and source-isolated rebuilt SPU outputs with `--ps1-native-parity`. These configured jobs have not been run remotely as part of this local candidate work.
+
+
 ## Unreleased CD-DA and MSM5205 aggregation — 2026-10-28
 
 This is local SDK source aggregation and validation, with the existing 0.1.5 candidate metadata retained. No SDK version tag, remote CI run, published archive or consuming application's fixed SDK pin is changed by this work. Historical records below retain their original dates and scope.

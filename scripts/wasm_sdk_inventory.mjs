@@ -18,6 +18,8 @@ const MANIFEST = 'RELEASE-MANIFEST.json';
 // Application-audio modules remain separate from sound-chip IDs. Historical
 // SDK snapshots may lack them; new snapshots pin their complete build inputs.
 export const WASM_SDK_APPLICATION_AUDIO_IDS = Object.freeze(['cdda', 'msm5205']);
+// CPU-free instrument cores are separate from the generic chip factory IDs.
+export const WASM_SDK_INSTRUMENT_IDS = Object.freeze(['ps1_spu']);
 const APPLICATION_AUDIO = WASM_SDK_APPLICATION_AUDIO_IDS;
 const inventories = new WeakMap();
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -149,7 +151,7 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
   const ids = catalog.artifacts.map(artifact => artifact?.id).sort();
   requireValue(same(ids, WASM_SDK_ARTIFACT_IDS), `SDK artifact IDs differ from the supported ${WASM_SDK_ARTIFACT_IDS.length} builds`);
   const expectedSources = new Map();
-  const normalizeArtifact = (artifact, applicationAudio = false) => {
+  const normalizeArtifact = (artifact, applicationAudio = false, instrument = false) => {
     const {id} = artifact;
     requireValue(artifact.format === (applicationAudio ? 'standalone-audio-wasm' : id === 'dx7' ? 'standalone-wasm' : 'emscripten-es-module'),
       `Unexpected artifact format: ${id}`);
@@ -159,6 +161,18 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
     requireValue(builds.includes(artifact.buildScript) && (applicationAudio || (builds.includes('scripts/build-wasm.sh')
       && builds.includes('scripts/record_wasm_build.mjs'))), `Incomplete build files: ${id}`);
     const licenses = stringPaths(artifact.licenseFiles, `${id} license files`);
+    if (instrument) {
+      requireValue(id === 'ps1_spu' && artifact.role === 'instrument'
+        && artifact.kind === 'PlayStation SPU standalone instrument' && same(artifact.chipIds, []),
+      `Invalid standalone instrument metadata: ${id}`);
+      requireValue(licenses.includes('vendor/mame-ps1-spu/LICENSE')
+        && same(sources.toSorted(), ['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp',
+          'spureverb.cpp','spureverb.h','standalone_support.h'].map(name=>'vendor/mame-ps1-spu/'+name).sort())
+        && ['README.md','upstream/REVISION','upstream/SHA256SUMS','upstream/spu.cpp','upstream/spu.h',
+          'upstream/spu_tables.cpp','upstream/spureverb.cpp','upstream/spureverb.h']
+          .every(name=>manifest.files['vendor/mame-ps1-spu/'+name])
+        && licenses.every(name => manifest.files[name]), `Incomplete instrument sources/licenses: ${id}`);
+    }
     if (applicationAudio) {
       requireValue(artifact.role === 'application-audio' && artifact.kind === (id === 'cdda' ? 'pcm-device' : 'adpcm-device')
         && same(artifact.chipIds, []) && artifact.memoryBytes === 131072 && artifact.hostImports === 0,
@@ -177,8 +191,8 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
     const outputs = id === 'dx7' ? ['msfa.wasm'] : [`${id}_wasm.js`, `${id}_wasm.wasm`];
     // POKEY is the first SDK-owned addition, rather than a binary imported
     // from the application. Its freshly built outputs are pinned by receipts.
-    const importedCount = id === 'pokey' || applicationAudio ? 0 : outputs.length;
-    requireValue((applicationAudio && artifact.importedFiles === undefined)
+    const importedCount = id === 'pokey' || applicationAudio || instrument ? 0 : outputs.length;
+    requireValue(((applicationAudio || instrument) && artifact.importedFiles === undefined)
       || (Array.isArray(artifact.importedFiles) && artifact.importedFiles.length === importedCount),
       `Invalid imported output list: ${id}`);
     for (let index = 0; index < importedCount; index++) {
@@ -196,8 +210,13 @@ export async function loadWasmSdkInventory({root = DEFAULT_ROOT} = {}) {
   'SDK application audio IDs must contain cdda and msm5205 exactly once');
   const applicationAudio = (catalog.applicationAudio ?? []).map(artifact => normalizeArtifact(artifact, true))
     .sort((a, b) => a.id.localeCompare(b.id));
-  const builds = [...artifacts, ...applicationAudio].sort((a, b) => a.id.localeCompare(b.id));
-  const result = freeze({root, sdkRoot, pin, artifacts, applicationAudio, builds});
+  requireValue(catalog.instruments === undefined || (Array.isArray(catalog.instruments)
+    && same(catalog.instruments.map(artifact => artifact?.id).sort(), WASM_SDK_INSTRUMENT_IDS)),
+  'SDK instruments must contain ps1_spu exactly once');
+  const instruments = (catalog.instruments ?? []).map(artifact => normalizeArtifact(artifact, false, true))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const builds = [...artifacts, ...applicationAudio, ...instruments].sort((a, b) => a.id.localeCompare(b.id));
+  const result = freeze({root, sdkRoot, pin, artifacts, applicationAudio, instruments, builds});
   inventories.set(result, expectedSources);
   return result;
 }
@@ -260,6 +279,7 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
     'WASM output directory has missing or extra JS/WASM files');
   const sourceCache = new Map();
   const artifacts = [];
+  const instruments = [];
   for (const artifact of builds) {
     const record = receipt.artifacts.find(record => record.id === artifact.id);
     requireValue(record.format === artifact.format, `Receipt format mismatch: ${artifact.id}`);
@@ -317,6 +337,9 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
           `WASM output has no WonderSwan ABI: ${output.path}`);
         if (artifact.id === 'pokey') requireValue(exports.some(entry => entry.name === 'pokey_generate' && entry.kind === 'function'),
           `WASM output has no POKEY ABI: ${output.path}`);
+        if (artifact.id === 'ps1_spu') requireValue(['create','destroy','reset','sample_rate','write','read','load_ram','read_ram','render']
+          .every(suffix => exports.some(entry => entry.name === `ps1_spu_${suffix}` && entry.kind === 'function')),
+          `WASM output has no PS1 SPU ABI: ${output.path}`);
         if (artifact.id === 'dx7') requireValue(imports.length === 0, 'Standalone DX7 WASM must not have imports');
         if (artifact.format === 'standalone-audio-wasm') {
           requireValue(imports.length === 0 && ['init', 'input', 'left', 'right', 'prepare', 'play', 'stop',
@@ -336,7 +359,8 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
     }
     const validated = {id: artifact.id, format: record.format, sourceFingerprint: record.sourceFingerprint,
       sourceFiles: record.sourceFiles, outputs: record.outputs, compiler: record.compiler, wasm};
-    if (artifact.format === 'standalone-audio-wasm') applicationAudio.push(validated);
+    if (artifact.id === 'ps1_spu') instruments.push(validated);
+    else if (artifact.format === 'standalone-audio-wasm') applicationAudio.push(validated);
     else artifacts.push(validated);
   }
   return {schemaVersion: 1, directory: absolute, artifactCount: artifacts.length,
@@ -344,5 +368,6 @@ export async function verifyWasmBuildDirectory({root = DEFAULT_ROOT, directory, 
     buildCount: builds.length, buildOutputCount: expectedOutputs.length + applicationOutputs.length, verifiedSourceCount: verifySources ? sourceCache.size : 0,
     sourcesVerified: verifySources, artifacts, applicationAudioCount: applicationAudio.length,
     applicationAudioOutputCount: applicationAudio.reduce((count, artifact) => count + artifact.outputs.length, 0),
-    sdkApplicationAudioCount: inventory.applicationAudio.length, applicationAudio};
+    sdkApplicationAudioCount: inventory.applicationAudio.length, applicationAudio,
+    instruments, instrumentCount: instruments.length, instrumentOutputCount: instruments.reduce((sum, item) => sum + item.outputs.length, 0)};
 }

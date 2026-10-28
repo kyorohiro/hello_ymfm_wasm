@@ -4,7 +4,7 @@ import {GameboyVoiceInspector} from './playground_native_voice_inspector.js?v=ps
 import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-voice-editor-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNativeVoiceContext,nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-mode-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 export const EXTRA_GAMEBOY_CLOCK_HELD_ERROR='Release the manually held additional Game Boy voices before changing the clock';
 const TRIGGERS=[4,9,14,19],DACS=[2,7,10,17];

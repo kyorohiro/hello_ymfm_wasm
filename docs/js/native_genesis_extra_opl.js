@@ -5,7 +5,7 @@ import {nativeVoiceChannel} from './playground_performance_processor.js?v=ps1-vo
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {nativeInteger as integer,nativeSnapshotArray} from './native_genesis_voice_endpoint.js?v=ps1-mode-1';
 import {createNativeExtraRegisterVoice} from './native_genesis_extra_register_voice.js?v=ps1-mode-1';
-import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=pokey-mode-1';
+import {createNativeGenesisExtraChip} from './native_genesis_extra_chip.js?v=ps1-native-1';
 
 export const EXTRA_OPL_CHIPS=Object.freeze(['ym3526','ym3812','y8950','ymf262']);
 export const extraOplClockHeldError=kind=>`Release the manually held additional ${kind.toUpperCase()} voices before changing the clock`;

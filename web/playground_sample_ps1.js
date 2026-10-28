@@ -13,7 +13,7 @@ const DISPLAY_POINTS = 256;
 const FILTERS = [[0, 0], [60, 0], [115, -52], [98, -55], [122, -60]];
 
 /** Raw packet reconstruction, before SPU pitch interpolation, ADSR and mixing.
- * Arithmetic follows the pinned BSD decoder in native/ps1/spu.cpp. Encoder
+ * Arithmetic follows the pinned BSD decoder in third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/spu.cpp. Encoder
  * packets never depend on signed-short overflow, but retain its wrap semantics.
  */
 function decodePackets(adpcm) {

@@ -1,49 +1,48 @@
 #!/bin/sh
-# Experimental standalone SPU foundation; not part of the fixed SDK snapshot yet.
+# Build the shared SPU from the verified, self-contained SDK source snapshot.
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+SDK_DIR="$ROOT_DIR/third_party/tetorica-soundchip-native"
 OUT_DIR="${1:-$ROOT_DIR/docs/generated}"
+python3 "$ROOT_DIR/scripts/import_soundchip_sdk.py" --check
 mkdir -p "$OUT_DIR"
 OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
-INPUT_SNAPSHOT=$(mktemp "${TMPDIR:-/tmp}/ps1-spu-inputs.XXXXXX")
+INPUT_SNAPSHOT=$(mktemp "${TMPDIR:-/tmp}/ps1-spu-sdk-inputs.XXXXXX")
 trap 'rm -f "$INPUT_SNAPSHOT"' EXIT HUP INT TERM
 python3 - "$ROOT_DIR" "$INPUT_SNAPSHOT" <<'PY'
 import hashlib,json,sys
 from pathlib import Path
-root=Path(sys.argv[1])
-paths=[p for p in sorted((root/'native/ps1').rglob('*')) if p.is_file()]
-paths.append(root/'scripts/build_ps1_spu_wasm.sh')
-inputs={p.relative_to(root).as_posix():{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths}
-Path(sys.argv[2]).write_text(json.dumps(inputs,sort_keys=True))
-PY
-
-"${EMXX:-em++}" -std=c++17 -O2 -DNDEBUG -fwrapv -fno-strict-aliasing -ffp-contract=off -fexceptions \
-  -I"$ROOT_DIR/native/ps1" \
-  "$ROOT_DIR/native/ps1/ps1_spu.cpp" "$ROOT_DIR/native/ps1/spu.cpp" \
-  "$ROOT_DIR/native/ps1/spu_tables.cpp" "$ROOT_DIR/native/ps1/spureverb.cpp" \
-  -sMODULARIZE=1 -sEXPORT_ES6=1 -sENVIRONMENT=web,worker,node \
-  -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=33554432 -sMAXIMUM_MEMORY=268435456 \
-  -sSTACK_SIZE=1048576 -sFILESYSTEM=0 \
-  -sINCOMING_MODULE_JS_API='["wasmBinary","locateFile","instantiateWasm","print","printErr","onAbort","preRun","postRun","onRuntimeInitialized","setStatus","arguments","thisProgram","noExitRuntime","wasmMemory","onExit"]' \
-  -sEXPORTED_FUNCTIONS='["_ps1_spu_create","_ps1_spu_destroy","_ps1_spu_reset","_ps1_spu_sample_rate","_ps1_spu_write","_ps1_spu_read","_ps1_spu_load_ram","_ps1_spu_read_ram","_ps1_spu_render","_malloc","_free"]' \
-  -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPU8","HEAPF32"]' \
-  -o "$OUT_DIR/ps1_spu_wasm.js"
-
-python3 - "$ROOT_DIR" "$OUT_DIR" "$INPUT_SNAPSHOT" <<'PY'
-import hashlib,json,sys
-from pathlib import Path
-root=Path(sys.argv[1]);out=Path(sys.argv[2])
+root=Path(sys.argv[1]);sdk=root/'third_party/tetorica-soundchip-native'
 def entry(path):
     data=path.read_bytes()
     return {'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
-inputs={p.relative_to(root).as_posix():entry(p) for p in sorted((root/'native/ps1').rglob('*')) if p.is_file()}
-inputs['scripts/build_ps1_spu_wasm.sh']=entry(root/'scripts/build_ps1_spu_wasm.sh')
-if inputs != json.loads(Path(sys.argv[3]).read_text()):
-    raise SystemExit('PS1 SPU inputs changed during compilation; rebuild before using the output')
-report={'schemaVersion':1,'component':'experimental-ps1-spu',
-        'upstream':'MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d',
-        'fixedSdkArtifact':False,'sampleRate':44100,'voices':24,'ramBytes':524288,
-        'inputs':inputs,'outputs':{name:entry(out/name) for name in ['ps1_spu_wasm.js','ps1_spu_wasm.wasm']}}
+names=[p.relative_to(sdk).as_posix() for p in sorted((sdk/'vendor/mame-ps1-spu').rglob('*')) if p.is_file()]
+names+=['LICENSE','sdk.json','catalog/source_inventory.json','native/include/tetorica/ps1_spu.h','scripts/build_ps1_spu_wasm.sh','scripts/build-wasm.sh','scripts/record_wasm_build.mjs']
+pin=json.loads((root/'third_party/soundchip-sdk.json').read_text())
+manifest=sdk/'RELEASE-MANIFEST.json'
+if entry(manifest)['sha256']!=pin['manifestSha256']:raise SystemExit('PS1 SDK manifest hash mismatch')
+records=json.loads(manifest.read_text())['files']
+inputs={name:entry(sdk/name) for name in sorted(names)}
+for name,value in inputs.items():
+    expected=records.get(name)
+    if not expected or expected['size']!=value['bytes'] or expected['sha256']!=value['sha256']:raise SystemExit('PS1 SDK source mismatch: '+name)
+Path(sys.argv[2]).write_text(json.dumps({'sdk':pin,'inputs':inputs},sort_keys=True))
+PY
+sh "$SDK_DIR/scripts/build-wasm.sh" ps1_spu "$OUT_DIR"
+python3 - "$ROOT_DIR" "$OUT_DIR" "$INPUT_SNAPSHOT" <<'PY'
+import hashlib,json,sys
+from pathlib import Path
+root=Path(sys.argv[1]);out=Path(sys.argv[2]);sdk=root/'third_party/tetorica-soundchip-native'
+snapshot=json.loads(Path(sys.argv[3]).read_text())
+def entry(path):
+    data=path.read_bytes()
+    return {'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
+if snapshot['sdk']!=json.loads((root/'third_party/soundchip-sdk.json').read_text()) or any(entry(sdk/name)!=value for name,value in snapshot['inputs'].items()):
+    raise SystemExit('PS1 SDK inputs changed during compilation; rebuild before using the output')
+report={'schemaVersion':1,'component':'ps1-spu','fixedSdkArtifact':True,
+        'upstream':'MAME '+(sdk/'vendor/mame-ps1-spu/upstream/REVISION').read_text().strip(),
+        'sampleRate':44100,'voices':24,'ramBytes':524288,**snapshot,
+        'outputs':{name:entry(out/name) for name in ['ps1_spu_wasm.js','ps1_spu_wasm.wasm']}}
 (out/'ps1_spu_build.json').write_text(json.dumps(report,indent=2)+'\n')
-print('Built experimental PS1 SPU WASM and source receipt: '+str(out))
+print('Built PS1 SPU WASM from fixed SDK '+snapshot['sdk']['version']+': '+str(out))
 PY

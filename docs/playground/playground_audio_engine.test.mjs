@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {PLAYGROUND_MODES} from './playground_mode.js';
 import {supportsPlaygroundAudioEngineMode,resolvePlaygroundAudioEngine} from './playground_audio_engine.js';
 
-test('Native supports the existing standard modes and keeps Atari ST and PS1 on Web Audio',()=>{
-  assert.equal(PLAYGROUND_MODES.filter(mode=>!['atari-st','ps1'].includes(mode.id)).length,25);
+test('Native supports the existing standard modes and keeps Atari ST on Web Audio',()=>{
+  assert.equal(PLAYGROUND_MODES.filter(mode=>mode.id!=='atari-st').length,26);
   for(const mode of PLAYGROUND_MODES){
-    const native=!['atari-st','ps1'].includes(mode.id);
+    const native=mode.id!=='atari-st';
     assert.equal(supportsPlaygroundAudioEngineMode('webaudio',mode.id),true,mode.id);
     assert.equal(supportsPlaygroundAudioEngineMode('native',mode.id),native,mode.id);
     assert.equal(resolvePlaygroundAudioEngine({search:'?audioEngine=native',desktop:true,modeId:mode.id}).engine,native?'native':'webaudio');
@@ -49,8 +49,10 @@ test('Web Audio remains the default and Native requires desktop selection for Nu
 });
 
 
-test('PS1 uses Web Audio and rejects a latent Native selection',()=>{
-  assert.equal(supportsPlaygroundAudioEngineMode('native','ps1'),false);
+test('PS1 uses Web Audio by default and supports explicit desktop Native',()=>{
+  assert.equal(supportsPlaygroundAudioEngineMode('native','ps1'),true);
   assert.deepEqual(resolvePlaygroundAudioEngine({search:'?mode=ps1&audioEngine=native',desktop:true,modeId:'ps1'}),
-    {requested:'native',engine:'webaudio',available:false});
+    {requested:'native',engine:'native',available:true});
+  assert.equal(resolvePlaygroundAudioEngine({desktop:true,modeId:'ps1'}).engine,'webaudio');
+  assert.equal(resolvePlaygroundAudioEngine({desktop:false,modeId:'ps1',search:'?audioEngine=native'}).engine,'webaudio');
 });

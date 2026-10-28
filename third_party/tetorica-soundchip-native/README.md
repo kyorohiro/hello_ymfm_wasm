@@ -8,7 +8,7 @@ The collection includes the required core sources, component licenses, local mod
 
 Commercial projects can select cores under **BSD-3-Clause, MIT, and Apache-2.0**. The default YM2612 backend uses BSD-3-Clause **ymfm**. Optional **Nuked-OPN2 and SNES/SPC** components retain their **LGPL** terms, including the applicable distribution and relinking requirements. Select the components you need and follow their licenses; [LICENSES.md](LICENSES.md) maps the sources and terms.
 
-**SDK 0.1.5** adds POKEY, independently owned dual-POKEY instances, and the C11 CD-DA/MSM5205 application-audio modules. The matching `v0.1.5` tag runs all Native and selected WASM checks before publishing through the [release workflow](docs/releases.md). The already published `v0.1.4` archive remains unchanged.
+**SDK 0.1.6 candidate** adds the standalone PlayStation SPU instrument alongside POKEY and the C11 CD-DA/MSM5205 modules. Sources, licenses, CMake target and a WASM recipe are included. The matching version tag runs all Native and selected WASM checks before publication through the [release workflow](docs/releases.md). Local candidate packaging does not create a published release or update existing consumer pins.
 
 **Application audio:** the original C11 CD-DA PCM device and MSM5205/PC Engine ADPCM module have Native targets and standalone WASM recipes. They are separate from the 24 chip IDs. Consumers explicitly choose when to update their pinned SDK sources.
 
@@ -26,6 +26,8 @@ Additional WASM recipes cover YM3438, YMF276, YMF288, YMF278B, Sega PCM, and K05
 
 [Tetorica Sega PSG](vendor/tetorica_sega_psg/README.md) is an original BSD-3-Clause implementation, maintained separately from upstream ymfm. Its component directory includes the license, source provenance and credit to Maxim and the contributors to [SMS Power! SN76489 documentation](https://www.smspower.org/Development/SN76489).
 
+A separate **PlayStation SPU instrument** uses the [BSD-3-Clause MAME-derived port](vendor/mame-ps1-spu/README.md): 24 ADPCM voices, stereo fixed volume, pitch, ADSR, noise/modulation and preset-based reverb, with 512 KiB private RAM and fixed 44,100 Hz output. Native and WASM expose the same synchronous `ps1_spu_*` C ABI. This is a CPU-free instrument, without BIOS, game assets, PSF playback or XA/CD streaming; it is cataloged under `instruments`, rather than the generic chip-factory IDs.
+
 Two application-audio modules complement those chips: [CD-DA stereo PCM playback](vendor/tetorica-cdda/README.md) and [MSM5205 raw decoding / PC Engine ADPCM RAM playback](vendor/tetorica-msm5205/README.md). Both use allocation-free C11 cores, public C headers and their original function names. CD-DA is a PCM device, and these modules do not add generic chip-factory IDs.
 
 The VGM Analyzer's **MSM5205 and OKIM6295 JavaScript references** remain unchanged. MSM5205 now also has the separate compiled module above; OKIM6295 remains reference-only. The separately pinned upstream C/C++ files under [libvgm-msm5205](vendor/libvgm-msm5205/) and [mame-okim6295](vendor/mame-okim6295/) remain provenance/reference material rather than compiled providers.
@@ -36,13 +38,14 @@ The upstream references include files explicitly marked BSD-3-Clause. libvgm sup
 | --- | --- |
 | Standalone native CMake targets | **YM2612, YM2151, YM2413, YM2203, YM2608, YM2610/YM2610B and YM3526/YM3812/YMF262/Y8950 using ymfm, plus Sega PSG, AY-3-8910, OKIM6258, RF5C164, Game Boy, HuC6280, NES with optional FDS, 32X PWM, MSFA DX7, SNES S-DSP, SPC700/S-DSP playback and WonderSwan, plus Atari POKEY**, with the alternative Nuked YM2612 engine: 24 chip IDs in 21 chip libraries, plus the two application-audio libraries, with offline test fixtures |
 | Application audio | `tetorica::cdda` and `tetorica::msm5205`; two C11 libraries with C/C++ callers and standalone WASM bridges |
-| WASM build recipes | 29 sound-chip artifacts plus 2 standalone application-audio pairs; the inventories and verification record identify completed builds |
+| Standalone instrument | `tetorica::ps1_spu`, `<tetorica/ps1_spu.h>` and the `ps1_spu_*` C ABI; the exact core used by the reference Web instrument |
+| WASM build recipes | 29 sound-chip artifacts, 2 standalone application-audio pairs and 1 standalone instrument pair (32 total); the inventories and verification record identify completed builds |
 | Initial compiled WASM archive | YM2612, with its matching source archive embedded |
 | JavaScript references | Unchanged MSM5205 and OKIM6295 ES modules; OKIM6295 has no compiled SDK integration |
 
 Source availability does not imply that every adapter is ready to link unchanged. The [chip differences](docs/chip-differences.md) document records required combinations and SDK amendments, including the applied Game Boy friend declaration for state observation and gate-only Stop. See the [machine-readable catalog](catalog/chips.json) and [verification record](docs/verification.md) for details.
 
-[Verify SDK](.github/workflows/verify-sdk.yml) runs on pushes, pull requests and manual dispatch. Its Native matrix is configured for Windows x64, Linux x64/ARM64 and macOS Intel/Apple Silicon. Each job builds 23 static libraries from an independently extracted source ZIP, runs 29 CTest entries from 28 fixture executables, renders 21 offline WAV examples and checks the JavaScript references. Separate Ubuntu WASM jobs select YM2612, WonderSwan, POKEY, CD-DA and MSM5205, audit their matching source archives and synchronous ABIs, and rebuild from extracted sources. See the [verification record](docs/verification.md) for completed runs; configuring a job does not establish an unrun platform result.
+[Verify SDK](.github/workflows/verify-sdk.yml) runs on pushes, pull requests and manual dispatch. Its Native matrix is configured for Windows x64, Linux x64/ARM64 and macOS Intel/Apple Silicon. Each job builds 24 static libraries from an independently extracted source ZIP, runs 30 CTest entries from 29 fixture executables, renders 22 offline WAV examples and checks the JavaScript references. Separate Ubuntu WASM jobs select YM2612, WonderSwan, POKEY, CD-DA, MSM5205 and PS1 SPU, audit their matching source archives and synchronous ABIs, and rebuild from extracted sources. See the [verification record](docs/verification.md) for completed runs; configuring a job does not establish an unrun platform result.
 
 ## Build the native libraries
 
@@ -78,13 +81,14 @@ target_link_libraries(your_application PRIVATE tetorica::ym2612)
 # For SPC700/S-DSP file playback, select tetorica::spc.
 # For raw WonderSwan headphone synthesis, select tetorica::wonderswan.
 # For one four-channel Atari POKEY, select tetorica::pokey; construct two for dual POKEY.
+# For the CPU-free PlayStation SPU instrument, select tetorica::ps1_spu.
 # For raw stereo CD-DA PCM16, select tetorica::cdda.
 # For MSM5205 raw decoding/PCE ADPCM RAM playback, select tetorica::msm5205.
 ```
 
 Include the matching `<tetorica/<chip>.hpp>` header and link its CMake alias. The [native guide](native/README.md) lists all targets and existing ABIs, including compatibility names `native_game_gear_*`, `native_extra_okim6258_*` and the two RF5C164 profiles. YM2610/YM2610B share one library and retain `native_ym2610b_*`; the constructor selects the immutable four/six-FM variant explicitly.
 
-The OPL family also shares one library: `tetorica::opl`, `tetorica::ym3526`, `tetorica::ym3812`, `tetorica::ymf262` and `tetorica::y8950` use `<tetorica/opl.hpp>` or the matching chip forwarder. **The alias/header does not select the chip.** Pass kind 0/1/2/3 to `native_opl_create()` or `native_extra_opl_create()` for YM3526/YM3812/YMF262/Y8950. Each handle constructs one selected core/profile. The chip targets provide 26 aliases/headers for 24 IDs in 21 static libraries. The separate CD-DA and MSM5205 modules bring the total to 28 aliases/headers and 23 libraries; their public C headers are `<tetorica/cdda.h>` and `<tetorica/msm5205.h>`.
+The OPL family also shares one library: `tetorica::opl`, `tetorica::ym3526`, `tetorica::ym3812`, `tetorica::ymf262` and `tetorica::y8950` use `<tetorica/opl.hpp>` or the matching chip forwarder. **The alias/header does not select the chip.** Pass kind 0/1/2/3 to `native_opl_create()` or `native_extra_opl_create()` for YM3526/YM3812/YMF262/Y8950. Each handle constructs one selected core/profile. The chip targets provide 26 aliases/headers for 24 IDs in 21 static libraries. The separate CD-DA and MSM5205 modules bring the total to 28 aliases/headers and 23 libraries; their public C headers are `<tetorica/cdda.h>` and `<tetorica/msm5205.h>`. The separate SPU instrument adds `<tetorica/ps1_spu.h>` / `tetorica::ps1_spu`, bringing the complete build to 24 libraries and 29 aliases/headers.
 
 The targets provide their chip-level FM, SSG/PSG, rhythm and sample controls independently. Encoded samples remain a host responsibility: OPNA owns fixed ROM/RAM, primary OPNB owns dense ROM banks, additional OPNB borrows immutable pages, OKIM6258 borrows sample bytes, RF5C164 owns 64 KiB PCM RAM, Y8950 borrows writable ADPCM RAM pages, and NES owns 64 KiB of copied DMC RAM. Follow the native guide's validation, synchronization and buffer/page lifetime contracts; no application scheduler or ownership queue is included.
 
@@ -237,8 +241,8 @@ To create and verify archives locally:
 python3 scripts/check_sdk.py
 python3 scripts/package_release.py --out-dir releases --wasm-dir build/verified-wasm
 python3 tests/check_standalone_release.py \
-  --source-zip releases/tetorica-soundchip-native-0.1.5-sources.zip \
-  --wasm-zip releases/tetorica-soundchip-native-0.1.5-wasm.zip
+  --source-zip releases/tetorica-soundchip-native-0.1.6-sources.zip \
+  --wasm-zip releases/tetorica-soundchip-native-0.1.6-wasm.zip
 ```
 
 The source ZIP includes sources, build recipes, licenses, provenance, and tests. The WASM ZIP includes compiled artifacts and the exact matching source ZIP. Both carry per-file SHA-256 manifests. Omit `--wasm-dir` to create only the source archive. See [release packaging and integration](docs/releases.md).

@@ -112,6 +112,16 @@ POKEY_INPUTS = {
     'vendor/libvgm-pokey/upstream/pokey.c',
     'vendor/libvgm-pokey/upstream/snapshot-manifest.json',
 }
+PS1_INPUTS = {
+    'scripts/build_ps1_spu_wasm.sh', 'tests/ps1_spu_wasm_smoke.mjs',
+    'native/include/tetorica/ps1_spu.h',
+    *('vendor/mame-ps1-spu/' + name for name in (
+        'ps1_spu.cpp', 'ps1_spu.h', 'spu.cpp', 'spu.h', 'spu_tables.cpp',
+        'spureverb.cpp', 'spureverb.h', 'standalone_support.h', 'LICENSE', 'README.md',
+        'upstream/spu.cpp', 'upstream/spu.h', 'upstream/spu_tables.cpp',
+        'upstream/spureverb.cpp', 'upstream/spureverb.h', 'upstream/REVISION',
+        'upstream/SHA256SUMS')),
+}
 APPLICATION_AUDIO_INPUTS = {
     name: {
         f'vendor/tetorica-{name}/{name}_pcm.c',
@@ -176,6 +186,8 @@ def manifest_records(raw):
     # Existing immutable snapshots must still verify before replacement. When
     # a release contains either application-audio module, require its complete
     # licensed source, standalone WASM bridge and self-contained checks.
+    if PS1_INPUTS & names:
+        require(PS1_INPUTS <= names, 'SDK PS1 SPU source release is incomplete')
     for audio, inputs in APPLICATION_AUDIO_INPUTS.items():
         module_paths = {name for name in inputs if name.startswith((
             f'vendor/tetorica-{audio}/', f'wasm/{audio}_',

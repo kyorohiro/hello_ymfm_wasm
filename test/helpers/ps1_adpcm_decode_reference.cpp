@@ -2,7 +2,7 @@
 // Copyright (c) 2026 kyorohiro
 // Test transport only. Decode with the actual pinned core's internal decoder;
 // do not keep a second implementation of PSX ADPCM arithmetic in the tests.
-#include "../../native/ps1/spu.cpp"
+#include "../../third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/spu.cpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>

@@ -2225,6 +2225,80 @@
     }
   ],
   "differencesDocument": "docs/chip-differences.md",
+  "instruments": [
+    {
+      "id": "ps1_spu",
+      "kind": "PlayStation SPU standalone instrument",
+      "licenseFiles": [
+        "vendor/mame-ps1-spu/LICENSE"
+      ],
+      "native": {
+        "buildFiles": [
+          "CMakeLists.txt",
+          "native/CMakeLists.txt"
+        ],
+        "cmakeAlias": "tetorica::ps1_spu",
+        "declaredFileLicenses": {
+          "native/include/tetorica/ps1_spu.h": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/ps1_spu.cpp": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/ps1_spu.h": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/spu.cpp": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/spu.h": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/spu_tables.cpp": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/spureverb.cpp": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/spureverb.h": "BSD-3-Clause",
+          "vendor/mame-ps1-spu/standalone_support.h": "BSD-3-Clause"
+        },
+        "id": "ps1_spu",
+        "licenseFiles": [
+          "vendor/mame-ps1-spu/LICENSE"
+        ],
+        "licenseStatus": "declared",
+        "publicHeader": "native/include/tetorica/ps1_spu.h",
+        "role": "instrument",
+        "sourceFiles": [
+          "native/include/tetorica/ps1_spu.h",
+          "vendor/mame-ps1-spu/ps1_spu.cpp",
+          "vendor/mame-ps1-spu/ps1_spu.h",
+          "vendor/mame-ps1-spu/spu.cpp",
+          "vendor/mame-ps1-spu/spu.h",
+          "vendor/mame-ps1-spu/spu_tables.cpp",
+          "vendor/mame-ps1-spu/spureverb.cpp",
+          "vendor/mame-ps1-spu/spureverb.h",
+          "vendor/mame-ps1-spu/standalone_support.h"
+        ],
+        "status": "verified",
+        "target": "tetorica_native_ps1_spu",
+        "tests": [
+          "native/tests/ps1_spu_fixture.cpp",
+          "native/examples/ps1_spu_wav.cpp",
+          "tests/ps1_spu_wasm_smoke.mjs"
+        ],
+        "verificationScope": "CPU-free 24-voice instrument; raw synchronous registers/RAM/render, original ADPCM waveforms, owned-handle isolation, block-partition invariance, key-on/off, ADSR and preset reverb. Fixed 44100 Hz. No volume sweeps, CPU/DMA/IRQ, PSF player, BIOS, XA/CD streaming or hardware-exact timing claim."
+      },
+      "role": "instrument",
+      "sourceFiles": [
+        "vendor/mame-ps1-spu/ps1_spu.cpp",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h",
+        "vendor/mame-ps1-spu/spu_tables.cpp",
+        "vendor/mame-ps1-spu/spureverb.cpp",
+        "vendor/mame-ps1-spu/spureverb.h",
+        "vendor/mame-ps1-spu/standalone_support.h"
+      ],
+      "wasm": {
+        "artifacts": [
+          {
+            "buildScript": "scripts/build_ps1_spu_wasm.sh",
+            "format": "emscripten-es-module",
+            "id": "ps1_spu"
+          }
+        ],
+        "status": "build-recipes-included"
+      }
+    }
+  ],
   "javascriptReferences": [
     {
       "entryPoint": "reference/javascript/msm5205audioengine.js",

@@ -5,8 +5,8 @@ The Python checker uses only the standard library. The complete Native build nee
 ```sh
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 tests/check_standalone_release.py \
-  --source-zip releases/tetorica-soundchip-native-0.1.5-sources.zip \
-  --wasm-zip releases/tetorica-soundchip-native-0.1.5-wasm.zip \
+  --source-zip releases/tetorica-soundchip-native-0.1.6-sources.zip \
+  --wasm-zip releases/tetorica-soundchip-native-0.1.6-wasm.zip \
   --work-dir build/standalone-check \
   --build-wasm ym2612
 ```
@@ -77,3 +77,19 @@ node tests/check_application_audio_core.mjs --wasm-dir build/application-audio -
 The Node ABI smoke validates descriptor exports, no host imports, fixed 128 KiB memory, bounded scratch and real PCM/control behavior. The core checker separately compiles the C11 cores and C++14 hosts, compares Native/WASM output at 44.1/48 kHz, and uses the unchanged Analyzer MSM5205 JavaScript reference as the raw-decoder oracle. The PCE RAM comparison feeds nibbles to that reference on the selected source clock, including all 16 rate register values. Source-archive checks repeat the selected build and smoke from independently extracted contents. These checks do not use an npm fallback or an adjacent application's implementation.
 
 `tetorica_pcengine_cd_wav [output.wav]` adds the 21st offline WAV host. It defaults to `pcengine-cd.wav` and renders exactly 144,000 stereo PCM16 frames at 48 kHz from original generated audio. Solo HuC6280, MSM5205 and CD-DA sections precede a three-source sum and silent final 200 ms. Source gains are unity; the explicit master scalar 0.5 is applied once. This is an example mix rather than a Mixer preset or analog calibration.
+
+## Standalone PlayStation SPU instrument
+
+`tetorica_ps1_spu_fixture` supplies `tetorica.ps1_spu.self_test`: C ABI guards, all 24 physical voices, original ADPCM, stereo gain, ADSR release, Room reverb tail, reset/RAM retention, instance isolation and exact block partitioning. The original waveform/WAV helper contains no ROM, BIOS or game audio. The WAV example writes its native **44,100 Hz** stereo PCM16; its archive audit checks that rate explicitly. The complete 0.1.6 build has 24 libraries, 30 CTest entries from 29 fixture executables and 22 offline WAV examples.
+
+```sh
+sh scripts/build-wasm.sh ps1_spu build/ps1-wasm
+node tests/ps1_spu_wasm_smoke.mjs build/ps1-wasm build/native/native/tetorica_ps1_spu_fixture
+python3 scripts/package_release.py --out-dir releases --wasm-dir build/ps1-wasm
+python3 tests/check_standalone_release.py \
+  --source-zip releases/tetorica-soundchip-native-0.1.6-sources.zip \
+  --wasm-zip releases/tetorica-soundchip-native-0.1.6-wasm.zip \
+  --audit-only --wasm-smoke --ps1-native-parity --build-wasm ps1_spu
+```
+
+For Windows or multi-configuration builds, pass the actual fixture executable path to the direct Node command; the archive checker discovers it through the CMake File API. The PS1 WASM CI job executes that archive workflow. `--ps1-native-parity` rejects requests without a supplied/rebuilt instrument artifact. Source regression tests also reject missing/duplicate/stale instrument inventories, generic-chip claims, wrong Native aliases/headers and missing or changed provenance.

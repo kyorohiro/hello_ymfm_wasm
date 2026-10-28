@@ -1,13 +1,13 @@
-# Experimental PlayStation SPU source and rebuilding
+# PlayStation SPU source and rebuilding
 
-The complete BSD-3-Clause standalone C++17 core, C API, original MAME source files, revision, hashes, attribution and documented changes are included in [native/ps1/](native/ps1/README.md). This local experimental instrument port is **not** a fixed tetorica-soundchip-native SDK artifact. The low-level core uses an explicit factory; the Browser Playground exposes it separately as the experimental PS1 mode.
+The complete BSD-3-Clause standalone C++17 SPU, C API, pristine upstream MAME sources, revision, checksums, attribution and documented changes are included in [native/ps1/](native/ps1/README.md). The source is taken from fixed tetorica-soundchip-native SDK 0.1.6. [PS1-SPU.json](PS1-SPU.json) retains the complete SDK pin, including whether it represents an unpublished local candidate, and hashes every distributed input. [sdk/RELEASE-MANIFEST.json](sdk/RELEASE-MANIFEST.json) is the genuine release manifest authenticated by that pin.
 
 From this sources directory, run:
 
 `sh scripts/build_ps1_spu_wasm.sh ../generated`
 
-Emscripten and Python 3 are required. No SDK checkout, importer, network, MAME framework, CPU, BIOS, ROM or game recording is required. The unchanged recipe produces ps1_spu_wasm.js, ps1_spu_wasm.wasm and its source/build receipt. Native hosts compile ps1_spu.cpp, spu.cpp, spu_tables.cpp and spureverb.cpp under native/ps1, and include ps1_spu.h.
+Emscripten is required. This self-contained recipe builds ps1_spu_wasm.js and ps1_spu_wasm.wasm without an SDK checkout, importer, network, MAME framework, CPU, BIOS, ROM or game recording. Only its five vendor/mame-ps1-spu paths are relocated to native/ps1. Compiler flags and exports are unchanged. The exact original recipe is retained in [sdk/scripts/build_ps1_spu_wasm.sh](sdk/scripts/build_ps1_spu_wasm.sh). The distributed generated/ps1_spu_build.json records the original SDK build; the standalone recipe does not rewrite that provenance record.
 
-The ES-module helper Ps1Spu requires an explicit generated module factory. It renders at 44,100 Hz into caller-owned stereo PCM, with 24 voices and 512 KiB RAM. Sample uploads expect already encoded 16-byte / 28-frame PSX ADPCM packets. Instrument tuning, voice allocation and audio-device output belong to the host. Upstream interpolation, ADSR and reverb approximations are retained; this is not a hardware-exact timing or soundtrack-compatibility claim.
+Native hosts compile ps1_spu.cpp, spu.cpp, spu_tables.cpp and spureverb.cpp under native/ps1, and include ps1_spu.h. The SDK forwarding header is retained unchanged in sdk/native/include/tetorica/ps1_spu.h for provenance; its original relative include expects the full SDK layout. Standalone consumers use native/ps1/ps1_spu.h directly. The C API renders 44,100 Hz into caller-owned stereo PCM, with 24 fixed voices and 512 KiB RAM. Samples use 16-byte / 28-frame PSX ADPCM packets. Tuning, voice allocation, output resampling and device output belong to the host.
 
-[PS1-SPU.json](PS1-SPU.json) preserves the exact local source/build receipt; generated/ps1_spu_build.json is also included beside the generated pair. Every core, upstream, notice and recipe byte is unchanged from the verified build inputs.
+Upstream interpolation, ADSR and reverb approximations are retained. This instrument API does not implement a PlayStation CPU, BIOS, PSF playback, XA/CD streaming or hardware-exact timing. The JavaScript Ps1Spu helper takes an explicit generated module factory and does not open an audio device.

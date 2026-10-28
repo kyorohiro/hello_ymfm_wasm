@@ -272,7 +272,7 @@ async function nativeReference(t) {
   if(probe.error?.code==='ENOENT'){t.skip('C++ compiler unavailable; independent native PS1 SPU comparison not run');return null;}
   assert.equal(probe.status,0,probe.stderr||probe.error?.message);
   const temp=await mkdtemp(join(tmpdir(),'tetorica-ps1-spu-test-'));t.after(()=>rm(temp,{recursive:true,force:true}));
-  const directory=join(root,'native/ps1'),binary=join(temp,'reference');
+  const directory=join(root,'third_party/tetorica-soundchip-native/vendor/mame-ps1-spu'),binary=join(temp,'reference');
   const sources=['ps1_spu.cpp','spu.cpp','spu_tables.cpp','spureverb.cpp'].map(name=>join(directory,name));
   const build=spawnSync(compiler,['-std=c++17','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off','-I'+directory,
     join(root,'test/helpers/ps1_spu_reference.cpp'),...sources,'-o',binary],{encoding:'utf8',maxBuffer:4*1024*1024});

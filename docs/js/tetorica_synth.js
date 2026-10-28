@@ -5,7 +5,7 @@
  * start() による実再生には Web Audio と WASM アセットが必要。
  */
 import { GameboyRuntimeSynth } from "./gameboy_runtime_synth.js?v=ps1-mode-1";
-import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=ps1-mode-1";
+import { NativeRuntimeSynth } from "./native_runtime_synth.js?v=ps1-native-1";
 import { MegaSynth } from "./megasynth.js?v=ps1-mode-1";
 import { YM2203RuntimeSynth } from "./ym2203synth.js?v=ps1-mode-1";
 import { YM2608RuntimeSynth } from "./ym2608synth.js?v=ps1-mode-1";

@@ -3,7 +3,8 @@
   "notes": [
     "Standalone chip libraries cover 24 public chip IDs, including Atari POKEY. Nuked is an alternative YM2612 engine, not an additional chip ID.",
     "Twenty-one chip static libraries are joined by two separate C11 application-audio libraries: CD-DA and MSM5205. These devices are not added to the generic chip-ID catalog.",
-    "Verification scopes describe tested APIs and configurations; local results do not claim remote platform CI or release publication."
+    "Verification scopes describe tested APIs and configurations; local results do not claim remote platform CI or release publication.",
+    "PlayStation SPU is a separate standalone instrument with ps1_spu_* C ABI; it is not a generic chip factory ID."
   ],
   "chips": [
     {
@@ -944,6 +945,52 @@
         "native/tests/pce_cd_fixture.cpp"
       ],
       "verificationScope": "Targeted local Release C11 tests and C++14 three-source co-link test passed. Full extracted archive and remote CI results are recorded separately."
+    }
+  ],
+  "instruments": [
+    {
+      "id": "ps1_spu",
+      "role": "instrument",
+      "status": "verified",
+      "target": "tetorica_native_ps1_spu",
+      "cmakeAlias": "tetorica::ps1_spu",
+      "publicHeader": "native/include/tetorica/ps1_spu.h",
+      "sourceFiles": [
+        "native/include/tetorica/ps1_spu.h",
+        "vendor/mame-ps1-spu/ps1_spu.cpp",
+        "vendor/mame-ps1-spu/ps1_spu.h",
+        "vendor/mame-ps1-spu/spu.cpp",
+        "vendor/mame-ps1-spu/spu.h",
+        "vendor/mame-ps1-spu/spu_tables.cpp",
+        "vendor/mame-ps1-spu/spureverb.cpp",
+        "vendor/mame-ps1-spu/spureverb.h",
+        "vendor/mame-ps1-spu/standalone_support.h"
+      ],
+      "buildFiles": [
+        "CMakeLists.txt",
+        "native/CMakeLists.txt"
+      ],
+      "licenseFiles": [
+        "vendor/mame-ps1-spu/LICENSE"
+      ],
+      "licenseStatus": "declared",
+      "declaredFileLicenses": {
+        "native/include/tetorica/ps1_spu.h": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/ps1_spu.cpp": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/ps1_spu.h": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/spu.cpp": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/spu.h": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/spu_tables.cpp": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/spureverb.cpp": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/spureverb.h": "BSD-3-Clause",
+        "vendor/mame-ps1-spu/standalone_support.h": "BSD-3-Clause"
+      },
+      "tests": [
+        "native/tests/ps1_spu_fixture.cpp",
+        "native/examples/ps1_spu_wav.cpp",
+        "tests/ps1_spu_wasm_smoke.mjs"
+      ],
+      "verificationScope": "CPU-free 24-voice instrument; raw synchronous registers/RAM/render, original ADPCM waveforms, owned-handle isolation, block-partition invariance, key-on/off, ADSR and preset reverb. Fixed 44100 Hz. No volume sweeps, CPU/DMA/IRQ, PSF player, BIOS, XA/CD streaming or hardware-exact timing claim."
     }
   ]
 }

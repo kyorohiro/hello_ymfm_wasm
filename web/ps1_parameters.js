@@ -2,7 +2,7 @@
 // Copyright (c) 2026 kyorohiro.
 // Reverb register tables: copyright pSXAuthor and R. Belmont, BSD-3-Clause.
 // Adapted from MAME src/devices/sound/spu_tables.cpp at
-// a64a5d6602b19f67e091a4491f0c851a9dacf79d. See native/ps1/LICENSE.
+// a64a5d6602b19f67e091a4491f0c851a9dacf79d. See third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/LICENSE.
 /** Named controls for the retained experimental PS1 envelope and reverb core.
  * Rates are raw table indexes: zero is fastest; high indexes can stop a stage.
  * These are not durations in milliseconds or a hardware timing model.

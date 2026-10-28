@@ -514,7 +514,34 @@ if(MSVC)
   target_compile_options(tetorica_native_pokey PRIVATE /EHsc)
 endif()
 
+# CPU-free standalone PlayStation SPU instrument. Keep the exact application
+# source snapshot and C ABI; no MAME framework, host audio API or generic factory.
+add_library(tetorica_native_ps1_spu STATIC
+  "${TETORICA_SDK_ROOT}/vendor/mame-ps1-spu/ps1_spu.cpp"
+  "${TETORICA_SDK_ROOT}/vendor/mame-ps1-spu/spu.cpp"
+  "${TETORICA_SDK_ROOT}/vendor/mame-ps1-spu/spu_tables.cpp"
+  "${TETORICA_SDK_ROOT}/vendor/mame-ps1-spu/spureverb.cpp"
+)
+add_library(tetorica::ps1_spu ALIAS tetorica_native_ps1_spu)
+target_compile_features(tetorica_native_ps1_spu PUBLIC cxx_std_17)
+target_include_directories(tetorica_native_ps1_spu PUBLIC "${CMAKE_CURRENT_LIST_DIR}/include")
+if(MSVC)
+  target_compile_options(tetorica_native_ps1_spu PRIVATE /EHsc)
+endif()
+foreach(flag IN ITEMS -fwrapv -fno-strict-aliasing -ffp-contract=off)
+  string(MAKE_C_IDENTIFIER "TETORICA_PS1_SUPPORTS_${flag}" supported_flag)
+  check_cxx_compiler_flag("${flag}" "${supported_flag}")
+  if(${supported_flag})
+    target_compile_options(tetorica_native_ps1_spu PRIVATE "${flag}")
+  endif()
+endforeach()
+
 if(TETORICA_NATIVE_BUILD_EXAMPLES)
+  add_executable(tetorica_ps1_spu_wav examples/ps1_spu_wav.cpp)
+  target_link_libraries(tetorica_ps1_spu_wav PRIVATE tetorica::ps1_spu)
+  if(MSVC)
+    target_compile_options(tetorica_ps1_spu_wav PRIVATE /EHsc)
+  endif()
   add_executable(tetorica_pcengine_cd_wav examples/pcengine_cd_wav.cpp)
   target_compile_features(tetorica_pcengine_cd_wav PRIVATE cxx_std_14)
   target_link_libraries(tetorica_pcengine_cd_wav PRIVATE
@@ -625,6 +652,14 @@ if(TETORICA_NATIVE_BUILD_EXAMPLES)
 endif()
 
 if(TETORICA_NATIVE_BUILD_TESTS)
+  add_executable(tetorica_ps1_spu_fixture tests/ps1_spu_fixture.cpp)
+  target_link_libraries(tetorica_ps1_spu_fixture PRIVATE tetorica::ps1_spu)
+  if(MSVC)
+    target_compile_options(tetorica_ps1_spu_fixture PRIVATE /UNDEBUG /EHsc)
+  else()
+    target_compile_options(tetorica_ps1_spu_fixture PRIVATE -UNDEBUG)
+  endif()
+  add_test(NAME tetorica.ps1_spu.self_test COMMAND tetorica_ps1_spu_fixture --self-test)
   add_executable(tetorica_cdda_fixture tests/cdda_fixture.c)
   target_link_libraries(tetorica_cdda_fixture PRIVATE tetorica::cdda)
   add_executable(tetorica_msm5205_fixture tests/msm5205_fixture.c)

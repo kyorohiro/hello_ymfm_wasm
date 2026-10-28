@@ -154,7 +154,7 @@ test('comparison reconstruction exactly matches the actual pinned native decoder
   assert.equal(probe.status, 0, probe.stderr || probe.error?.message);
   const root = fileURLToPath(new URL('../', import.meta.url));
   const temp = await mkdtemp(join(tmpdir(), 'ps1-sample-comparison-')); t.after(() => rm(temp, {recursive: true, force: true}));
-  const binary = join(temp, 'decoder'), directory = join(root, 'native/ps1');
+  const binary = join(temp, 'decoder'), directory = join(root, 'third_party/tetorica-soundchip-native/vendor/mame-ps1-spu');
   const built = spawnSync(compiler, ['-std=c++17', '-O2', '-fwrapv', '-fno-strict-aliasing', '-ffp-contract=off', '-I' + directory,
     join(root, 'test/helpers/ps1_adpcm_decode_reference.cpp'), join(directory, 'spu_tables.cpp'), join(directory, 'spureverb.cpp'), '-o', binary], {encoding: 'utf8'});
   assert.equal(built.status, 0, built.stderr || built.error?.message);

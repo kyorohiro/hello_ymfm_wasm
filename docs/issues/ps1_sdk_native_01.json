@@ -1,0 +1,490 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "implementation-complete-browser-clock-followup",
+  "mainBaseCommit": "069a2cb8211aa0159b71da5f7c806a30a4d32929",
+  "published": false,
+  "committed": false,
+  "pushed": false,
+  "sdk": {
+    "schemaVersion": 1,
+    "version": "0.1.6",
+    "status": "local-candidate",
+    "published": false,
+    "baseCommit": "3bb8d9ceffa50ad183d1ab856e031fe649425bca",
+    "changedPaths": [
+      ".github/workflows/verify-sdk.yml",
+      "CHANGELOG.md",
+      "CMakeLists.txt",
+      "LICENSES.md",
+      "README.md",
+      "catalog/chips.json",
+      "catalog/native_inventory.json",
+      "catalog/source_inventory.json",
+      "docs/chip-differences.md",
+      "docs/releases.md",
+      "docs/verification.md",
+      "native/CMakeLists.txt",
+      "native/README.md",
+      "native/examples/ps1_spu_pattern.hpp",
+      "native/examples/ps1_spu_wav.cpp",
+      "native/include/tetorica/ps1_spu.h",
+      "native/reference/SOURCES.json",
+      "native/tests/ps1_spu_fixture.cpp",
+      "scripts/build-wasm.sh",
+      "scripts/build_ps1_spu_wasm.sh",
+      "scripts/check_sdk.py",
+      "scripts/package_release.py",
+      "scripts/record_wasm_build.mjs",
+      "scripts/refresh_catalog.py",
+      "scripts/sdk_common.py",
+      "sdk.json",
+      "tests/README.md",
+      "tests/check_standalone_release.py",
+      "tests/ps1_spu_wasm_smoke.mjs",
+      "tests/test_ps1_instrument_release.py",
+      "tests/test_standalone_release.py",
+      "vendor/mame-ps1-spu/LICENSE",
+      "vendor/mame-ps1-spu/README.md",
+      "vendor/mame-ps1-spu/ps1_spu.cpp",
+      "vendor/mame-ps1-spu/ps1_spu.h",
+      "vendor/mame-ps1-spu/spu.cpp",
+      "vendor/mame-ps1-spu/spu.h",
+      "vendor/mame-ps1-spu/spu_tables.cpp",
+      "vendor/mame-ps1-spu/spureverb.cpp",
+      "vendor/mame-ps1-spu/spureverb.h",
+      "vendor/mame-ps1-spu/standalone_support.h",
+      "vendor/mame-ps1-spu/upstream/REVISION",
+      "vendor/mame-ps1-spu/upstream/SHA256SUMS",
+      "vendor/mame-ps1-spu/upstream/spu.cpp",
+      "vendor/mame-ps1-spu/upstream/spu.h",
+      "vendor/mame-ps1-spu/upstream/spu_tables.cpp",
+      "vendor/mame-ps1-spu/upstream/spureverb.cpp",
+      "vendor/mame-ps1-spu/upstream/spureverb.h"
+    ],
+    "checks": {
+      "sourceInventory": {
+        "chips": 24,
+        "chipWasmRecipes": 29,
+        "applicationAudio": 2,
+        "instruments": 1,
+        "snapshotRecords": 324
+      },
+      "pythonTests": 101,
+      "nativeCtest": 30,
+      "nativeLibraries": 24,
+      "nativeExamples": 22,
+      "actualWasmSmoke": {
+        "passed": true,
+        "artifact": "ps1_spu",
+        "sampleRate": 44100,
+        "voices": 24,
+        "ramBytes": 524288,
+        "renderedFrames": 311605,
+        "checks": [
+          "fixed-rate-C-ABI-register-RAM-and-render-guards",
+          "24-voices-high-key-bank-ADSR-release-and-stereo",
+          "exact-block-partition-and-independent-instance-state",
+          "preset-reverb-tail-reset-and-retained-sample-RAM",
+          "actual-Native-WASM-24-voice-ADSR-and-reverb-parity"
+        ],
+        "nativeParity": {
+          "passed": true,
+          "interleavedSamples": 98828,
+          "maxAbsoluteError": 0,
+          "tolerance": 1e-06
+        }
+      },
+      "finalExtractedArchive": {
+        "passed": true,
+        "logs": "/private/tmp/ps1-sdk-final-isolated.log",
+        "nativeFixture": true,
+        "suppliedAndRebuiltWasmSmoke": true,
+        "nativeParityMaximumAbsoluteError": 0,
+        "sourceArchiveMutated": false
+      }
+    },
+    "archives": {
+      "tetorica-soundchip-native-0.1.6-sources.zip": {
+        "path": "/private/tmp/ps1-sdk-candidate-final/tetorica-soundchip-native-0.1.6-sources.zip",
+        "sha256": "3c7c2a9cdfcb0316162f6365aef89f0c9fd92140ae4828599cd613255d153952",
+        "bytes": 1246563,
+        "manifestSha256": "7495c878275149c3dfd55a4a3482c2ad5bb1739ca200dca60b39b735ede99c87",
+        "payloadFiles": 454
+      },
+      "tetorica-soundchip-native-0.1.6-wasm.zip": {
+        "path": "/private/tmp/ps1-sdk-candidate-final/tetorica-soundchip-native-0.1.6-wasm.zip",
+        "sha256": "6a64169df8533f0e2ba01eb1be00c36c887299fa30dc3948098d6c3e7ec849e4",
+        "bytes": 1325172,
+        "manifestSha256": "bff1a9ea417a9ffa0634794d6fcbe41ef188b013bb11019fa0e19c661ecd58cd",
+        "payloadFiles": 45
+      }
+    },
+    "durableLocalCandidateDirectory": "release/soundchip-sdk-0.1.6-candidate/"
+  },
+  "completed": {
+    "mainImporterTests": 26,
+    "tauriImporterTests": 13,
+    "inventoryRunnerTests": 87,
+    "allWasmBuilds": 32,
+    "byteIdenticalDeployedOutputs": 63,
+    "coreDspChanged": false,
+    "mixerGainsChanged": false,
+    "fixedSdkMainActualCoreTests": 29,
+    "nativeJsRelatedTests": 162,
+    "nativeJsPs1Tests": 13,
+    "rustTestsPassed": 793,
+    "rustTestsExistingIgnored": 4,
+    "rustPs1Tests": 12,
+    "relatedPythonTests": 31,
+    "relatedNodeTests": 31,
+    "exactChipComparisons": 40474,
+    "repositoryInputsUnchanged": true,
+    "npm": {
+      "files": 1004,
+      "localModuleAssetRefs": 1097,
+      "wasmEngines": 28,
+      "rendererChecks": 15,
+      "compressedBytes": 1951829,
+      "unpackedBytes": 7405489,
+      "types": [
+        "NodeNext",
+        "Bundler",
+        "Browser-positive-and-negative"
+      ],
+      "published": false
+    },
+    "standaloneSourceRebuild": {
+      "schemaVersion": 1,
+      "passed": true,
+      "command": "node scripts/check_ps1_source_bundle.mjs /private/tmp/ps1-fixed-sdk-source-stage --build",
+      "sourceStage": "/private/tmp/ps1-fixed-sdk-source-stage",
+      "rebuilt": {
+        "output": "/var/folders/tr/1qllqs5x60z9x9df3134dnd00000gn/T/ps1-sdk-source-rebuild-k3YYAt",
+        "descriptorAndWasmExact": true
+      },
+      "outputs": [
+        {
+          "path": "ps1_spu_wasm.js",
+          "bytes": 16551,
+          "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a",
+          "stagedEqualsRebuilt": true,
+          "repositoryEqualsRebuilt": true
+        },
+        {
+          "path": "ps1_spu_wasm.wasm",
+          "bytes": 44899,
+          "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6",
+          "stagedEqualsRebuilt": true,
+          "repositoryEqualsRebuilt": true
+        }
+      ],
+      "verification": "Existing compiler outputs compared read-only; no compiler rerun for this receipt. Original --build tool completed exit 0 and reported descriptorAndWasmExact:true."
+    },
+    "packages": [
+      {
+        "name": "hello_ymfm_wasm_dev_itch_playground.zip",
+        "files": 1066,
+        "bytes": 37012026,
+        "sha256": "67079670926b976ec84d92e330ff796c93bbd975bcf0f1a4672bfcf7563a878a",
+        "crc": true
+      },
+      {
+        "name": "hello_ymfm_wasm_dev_itch_playground_for_run.zip",
+        "files": 931,
+        "bytes": 37403090,
+        "sha256": "ab83876a942add3ab6a91ff7ab53e333dcc943134642ae151721235c0f6556e2",
+        "crc": true
+      },
+      {
+        "name": "hello_ymfm_wasm_dev_itch_synth.zip",
+        "files": 203,
+        "bytes": 778783,
+        "sha256": "2568a977d3735e8200e9dff8a88c002297c20fa43f592d8fc43c263f9d3ad8b6",
+        "crc": true
+      },
+      {
+        "name": "hello_ymfm_wasm_dev_itch_vgm_analyzer.zip",
+        "files": 421,
+        "bytes": 1900544,
+        "sha256": "8b72de1d16be63edf86c447a571f9813b25824e39257aafa511a93424fe862e6",
+        "crc": true
+      }
+    ],
+    "tauriSources": {
+      "schemaVersion": 1,
+      "deviceOpened": false,
+      "networkUsed": false,
+      "platform": "darwin",
+      "snapshots": [
+        {
+          "script": "sync_native_cdda.py",
+          "status": "passed",
+          "summary": "Native cdda SDK 0.1.6: verified fixed release (4 C/header/license/provenance files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_dx7.py",
+          "status": "passed",
+          "summary": "Native DX7 snapshot verified (32 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_game_gear.py",
+          "status": "passed",
+          "summary": "Native Game Gear snapshot verified (7 files, 3 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_gameboy.py",
+          "status": "passed",
+          "summary": "Native Game Boy source verified (5 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis.py",
+          "status": "passed",
+          "summary": "Native Genesis snapshot verified (16 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_fx.py",
+          "status": "passed",
+          "summary": "Native FX snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_livefx.py",
+          "status": "passed",
+          "summary": "Native LiveFX snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_genesis_noise.py",
+          "status": "passed",
+          "summary": "Native noise snapshot: verified",
+          "error": ""
+        },
+        {
+          "script": "sync_native_huc6280.py",
+          "status": "passed",
+          "summary": "Native HuC6280 verified (6 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_master_system.py",
+          "status": "passed",
+          "summary": "Native Master System snapshot verified (12 files, 9 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_megacd.py",
+          "status": "passed",
+          "summary": "Native RF5C164 snapshot verified (6 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msm5205.py",
+          "status": "passed",
+          "summary": "Native msm5205 SDK 0.1.6: verified fixed release (4 C/header/license/provenance files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msx.py",
+          "status": "passed",
+          "summary": "Native MSX snapshot verified (10 files, 5 shared OPLL sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_msx_audio.py",
+          "status": "passed",
+          "summary": "Native MSX Audio snapshot verified (7 files, 6 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_nes.py",
+          "status": "passed",
+          "summary": "Native NES verified (15 pinned reference files, 2 C++ mirrors)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_nuked.py",
+          "status": "passed",
+          "summary": "Native Nuked snapshot verified (9 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_opl.py",
+          "status": "passed",
+          "summary": "Native DOS OPL snapshot verified (11 files, 4 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_pwm.py",
+          "status": "passed",
+          "summary": "Native PWM source verified (3 files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_snes.py",
+          "status": "passed",
+          "summary": "Native SNES verified (34 exact source files)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_x68000.py",
+          "status": "passed",
+          "summary": "Native X68000 snapshot verified (11 files, 5 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2203.py",
+          "status": "passed",
+          "summary": "Native YM2203 snapshot verified (9 files, 9 shared sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2608.py",
+          "status": "passed",
+          "summary": "Native YM2608 snapshot verified (4 files, 11 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "sync_native_ym2610b.py",
+          "status": "passed",
+          "summary": "Native YM2610B snapshot verified (3 files, 11 shared ymfm sources)",
+          "error": ""
+        },
+        {
+          "script": "import_soundchip_sdk.py",
+          "status": "passed",
+          "summary": "SDK 0.1.6 (unpublished local candidate; sourceCommit is its base): 455 pinned files verified offline (archive SHA256 3c7c2a9cdfcb0316162f6365aef89f0c9fd92140ae4828599cd613255d153952)",
+          "error": ""
+        }
+      ],
+      "sourceBundle": {
+        "status": "passed",
+        "archive": "native-source-bundle/application-sources.zip",
+        "sha256": "c02901cc47ace5ee8ff0aa5ae34bb9dc1a01fb70f153645bcbbef73d4d2e56f3",
+        "files": 2085,
+        "applicationVersion": "0.91.1",
+        "frontendArchiveSha256": "67079670926b976ec84d92e330ff796c93bbd975bcf0f1a4672bfcf7563a878a"
+      },
+      "status": "passed",
+      "elapsedSeconds": 1.44
+    },
+    "runtimeVersionerChanges": 0,
+    "diffCheckRepositories": [
+      "main",
+      "sdk",
+      "tauri"
+    ]
+  },
+  "pending": [
+    "Investigate Chromium Worker clock continuity after additional SPU disposal in source and Run ZIP; retain strict assertion and earlier Main -128 frame mismatch evidence",
+    "Tauri GUI physical listening",
+    "Remote OS CI including Windows/Linux"
+  ],
+  "limits": {
+    "hardwareExactClaim": false,
+    "physicalListeningPerformed": false,
+    "psfCpuCdStreamingIncluded": false,
+    "ps1MixerUnmeasuredVolume": 1.0,
+    "allocation": "First KON/render and sample cache paths may allocate; no unconditional zero-allocation guarantee."
+  },
+  "reports": {
+    "finalAllWasmParity": "/private/tmp/ps1-sdk-all-parity-final/summary.json",
+    "allWasmRebuiltDirectory": "/private/tmp/ps1-sdk-all-rebuilt",
+    "fixedSdkCoreTests": "/private/tmp/ps1-fixed-sdk-main-core-tests.log",
+    "nativeJsTests": "/private/tmp/ps1-native-js-tests.log",
+    "standaloneSourceClosure": "/private/tmp/ps1-native-sdk-source-proof.json",
+    "standaloneSourceRebuild": "/private/tmp/ps1-native-sdk-source-rebuild-proof.json",
+    "npmCheck": "/private/tmp/ps1-sdk-npm-check.log",
+    "packages": "/private/tmp/ps1-sdk-package-check.json",
+    "tauriSourcePins": "/private/tmp/ps1-tauri-native-sources-check.json",
+    "browserSource": "/private/tmp/ps1-sdk-browser-source-webkit.json",
+    "browserZip": "/private/tmp/ps1-sdk-browser-zip-webkit.json",
+    "failedFullBrowserSourceLog": "/private/tmp/ps1-sdk-browser-source.log",
+    "failedFullBrowserZipLog": "/private/tmp/ps1-sdk-browser-zip.log"
+  },
+  "supersededValidation": {
+    "report": "/private/tmp/ps1-sdk-all-parity/summary.json",
+    "passed": false,
+    "reason": "Native adapter input changed during initial validation; replaced by fresh frozen-input final run"
+  },
+  "browser": {
+    "core": {
+      "report": "/private/tmp/ps1-sdk-core-browser.json",
+      "passed": true,
+      "routes": 4,
+      "audioContextCreated": false,
+      "physicalAudio": false,
+      "sampleComparisonsPerRoute": 32776,
+      "maximumDifference": 0
+    },
+    "sourceWebkit": {
+      "report": "/private/tmp/ps1-sdk-browser-source-webkit.json",
+      "passed": true,
+      "routes": [
+        "main",
+        "worker"
+      ],
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "checkerSha256": "1bd6c3c254629ad0c3462f7408480de3625f54d50c203a458837e3c6fe199cd4",
+      "servedAssets": 287
+    },
+    "sourceChromium": {
+      "passed": false,
+      "quietMainPassed": true,
+      "workerFailure": {
+        "location": "silent() clock-continuity assertion",
+        "frameGaps": 1,
+        "pcmFinite": true,
+        "pcmExactZero": true,
+        "stage": "after additional SPU disposal"
+      },
+      "earlierMainClockMismatchFrames": -128,
+      "rootCauseKnown": false,
+      "assertionWeakened": false,
+      "fullJobReportCreated": false,
+      "log": "/private/tmp/ps1-sdk-browser-source.log"
+    },
+    "runZip": {
+      "webkit": {
+        "report": "/private/tmp/ps1-sdk-browser-zip-webkit.json",
+        "passed": true,
+        "routes": [
+          "main",
+          "worker"
+        ],
+        "physicalOutputMuted": true,
+        "listeningPerformed": false,
+        "checkerSha256": "1bd6c3c254629ad0c3462f7408480de3625f54d50c203a458837e3c6fe199cd4",
+        "servedAssets": 215
+      },
+      "chromium": {
+        "mainPassed": true,
+        "workerPassed": false,
+        "workerFailure": {
+          "stage": "after additional SPU disposal",
+          "location": "silent() clock-continuity assertion",
+          "frameGaps": 1,
+          "pcmFinite": true,
+          "pcmExactZero": true
+        },
+        "rootCauseKnown": false,
+        "assertionWeakened": false,
+        "fullJobReportCreated": false,
+        "log": "/private/tmp/ps1-sdk-browser-zip.log"
+      }
+    },
+    "fullUiSuitePassed": false,
+    "uiUniqueConditions": {
+      "attempted": 8,
+      "passed": 6,
+      "failed": 2
+    }
+  },
+  "implementationComplete": true
+}

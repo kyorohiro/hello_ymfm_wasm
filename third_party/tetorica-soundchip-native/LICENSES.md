@@ -44,6 +44,8 @@ by Maxim and research contributors. The shared serialization helper
 `vendor/ymfm/chip_state.h` is also original Tetorica code under [LICENSE](LICENSE);
 its historical location does not assign Aaron Giles authorship to that helper.
 
+[PlayStation SPU](vendor/mame-ps1-spu/README.md) retains the explicit **BSD-3-Clause** declarations by pSXAuthor and R. Belmont, with Tetorica's standalone adaptation also under BSD-3-Clause. The component includes all five pristine MAME source files at the recorded immutable commit, their original hash list and the exact adapted build inputs. Only this device is included; MAME's framework and unrelated devices are not linked. The `instruments` catalog section maps its sources, license and Native/WASM interfaces.
+
 [WonderSwan](vendor/mame-wonderswan/README.md) uses a standalone adaptation of
 Wilbert Pol's MAME sound device under the component's
 [BSD-3-Clause license](vendor/mame-wonderswan/LICENSE). The pinned upstream

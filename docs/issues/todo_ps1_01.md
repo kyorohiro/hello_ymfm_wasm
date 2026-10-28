@@ -2,7 +2,9 @@
 
 The first milestone is a CPU-free, experimental SPU instrument core shared by
 Native and WASM. It uses the individually BSD-3-Clause-licensed MAME SPU files,
-with their attribution and pristine pinned sources retained in `native/ps1/`.
+with their attribution and pristine pinned sources retained in the fixed SDK at
+`third_party/tetorica-soundchip-native/vendor/mame-ps1-spu/`. The independently
+distributed source bundle retains its public `sources/native/ps1/` layout.
 No BIOS, game audio, console CPU or MAME framework is required.
 
 ## Completed foundation
@@ -36,15 +38,20 @@ Source and the actual Run ZIP pass Chromium / WebKit × Main / Worker (8 routes)
 - [x] Add Sample Editor conversion, before/after comparison, actual SPU preview and saved Keyboard instruments.
 - [x] Add live SPU-tab sound design: named ADSR, owned-note retrigger, sustained audition and shared reverb with per-voice sends.
 - [x] Add direct per-voice PCM-cycle drawing with bounded reusable ADPCM slots and portable voice code.
-- [ ] Integrate the source and build recipe into a new soundchip SDK version.
-- [ ] Add a Tauri Native audio adapter. PS1 currently selects Web Audio only.
+- [x] Integrate the source and build recipe into SDK 0.1.6 (unpublished, hash-pinned local candidate).
+- [x] Implement the Tauri Native audio adapter for primary and additional PS1 instruments. Rust, package and offline parity verification passed. Browser core and WebKit source/Run ZIP checks passed; Chromium Worker clock continuity remains a separate unresolved follow-up. GUI listening and remote OS CI remain pending.
 
 The Browser adapter renders through AudioWorklet and batches only the native
 frames needed for the current scheduled segment. Buffers are reused and the
-SPU tab adds no periodic reads. Decoded sample caches can still allocate in the
-core; there is no real-time allocation guarantee. Sample Editor conversion runs
+SPU tab adds no periodic reads. Decoded sample caches can allocate on the first KON/render and other cache
+paths; allocations are not restricted to preparation work. There is no
+unconditional zero-allocation or real-time guarantee. Sample Editor conversion runs
 in its preparation Worker; its preview uses a private SPU instance. It adds no
-periodic live-chip reads. The SDK and Native adapter remain separate milestones.
+periodic live-chip reads. The SDK and Native adapter implementation is recorded in
+[ps1_sdk_native_01.md](ps1_sdk_native_01.md) / [JSON](ps1_sdk_native_01.json).
+That record lists completed implementation checks and the unresolved Chromium
+clock-continuity follow-up. Do not treat the complete Browser UI matrix as passed. Browser
+audio remains the default; Native output is explicitly selected in Tauri.
 
 PCM conversion results: [ps1_adpcm_encoder_01.md](ps1_adpcm_encoder_01.md) /
 [JSON](ps1_adpcm_encoder_01.json).
@@ -67,15 +74,17 @@ for its 112-frame cycle; copied code recreates the instrument in a fresh bank.
 The pinned MAME implementation uses linear interpolation, floating envelope-rate
 approximations and preset-based approximate reverb. This is not a claim of
 hardware-exact sound or game soundtrack compatibility. ADSR changes apply on the
-next key-on. Initial use is self-authored ADPCM instruments with reverb disabled.
+next key-on. The supported use is self-authored ADPCM instruments; the live editor also exposes the retained preset-based reverb.
 
 The public adapter supports standard 512 KiB RAM mapping, 16-byte-aligned ADPCM
 packet addresses and fixed volumes. Unsupported RAM mappings and volume sweeps
 are rejected. CPU/DMA/IRQ timing, PSF playback, CD-XA and external CD audio are
 outside this milestone. BRR, ADPCM-A and SPU ADPCM are different formats.
 
-The fixed SDK and Tauri Native backend are unchanged. PS1 has an explicitly
-unmeasured unity Mixer profile; existing gains are unchanged. The C++ core and
-its WASM binary are unchanged from the completed foundation. The build recipe
-and generated JS loader now support injected WASM bytes in AudioWorklet.
-Publication is a separate task.
+The fixed SDK now includes the unchanged PS1 core through an explicit 0.1.6
+local-candidate pin, and the Tauri Native adapter implementation/offline tests
+are complete. Chromium clock continuity, GUI/human listening and remote OS CI
+are tracked separately. PS1 still has an
+explicitly unmeasured unity Mixer profile; existing gains and Browser binary
+outputs are unchanged. The WASM loader supports injected bytes in AudioWorklet.
+No SDK tag or package publication was performed; publication is a separate task.

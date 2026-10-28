@@ -621,6 +621,15 @@
       "originSha256": "77b0c0e879f5f86d4f05019f563ffb3585f67cba046ceb8fecb001e827f4fe1b",
       "sha256": "7eaeb7f798a34de7b366b577d6646556f5c99f43675bc31e96c69dd023ca2673",
       "adaptation": "Include the public SDK header before compatibility aliases; preserve the original PCM/status/IRQ event CLI and Native self-tests. Add synchronous raw ABI sample-rate, zero-length generation, one-frame/block continuity, zero envelope outputs, reset/read equivalence and C/C++ allocation/free auditing. The test-only wrapper is instrumented separately; production provider/wrapper bytes remain unchanged."
+    },
+    {
+      "file": "native/tests/ps1_spu_fixture.cpp",
+      "originRepository": "hello_ymfm_wasm",
+      "origin": "test/helpers/ps1_spu_reference.cpp",
+      "originCommit": "069a2cb8211aa0159b71da5f7c806a30a4d32929",
+      "originSha256": "35f5e40e329fbef18fc6c07896dfedabe00e9a0cfccf536b71af964b82acd69f",
+      "sha256": "42a8bf738097db6dbc96169ffcafd8897b580c85c16b4b78ed3e5a677e799e5c",
+      "adaptation": "Use SDK public header; retain binary command transport unchanged; accept CTest --self-test alias and add original-waveform 24-voice/ADSR/reverb/isolation/partition checks."
     }
   ]
 }

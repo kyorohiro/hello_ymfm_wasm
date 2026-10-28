@@ -10,7 +10,7 @@ for(const file of [
   'js/pokey.js','js/pokeysynth.js','js/pokeyaudioengine.js','js/playground_pokey.js',
   'pokey_vgm_import.js','playground_pokey_voice_panel.js','js/pokey_timeline.js','js/pokey_timeline_upload.js','js/pokey_timeline_builder.js',
   'js/playground_pokey_audio.js','js/playground_pokey_worklet.js','js/playground_pokey_inspector.js',
-  'js/native_genesis_pokey.js','js/native_genesis_extra_pokey.js',
+  'js/native_genesis_pokey.js','js/native_genesis_extra_pokey.js','js/native_genesis_ps1.js','js/native_genesis_extra_ps1.js',
   'generated/pokey_wasm.js','generated/pokey_wasm.wasm',
   'licenses/libvgm-pokey/LICENSE','licenses/libvgm-pokey/README.md',
   'sources/POKEY.md','sources/POKEY-SDK.json','sources/scripts/build_pokey_wasm.sh',
