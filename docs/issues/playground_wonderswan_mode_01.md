@@ -51,6 +51,11 @@ raw PCMの差は0で、定常区間は従来の平均値減算とサンプル単
 Mixerの新規初期値は明示的な **1.0**。WonderSwanはまだ共通の音量校正を行っていないため、
 policyの`unmeasuredKinds`に記録し、既存の測定済み音源・倍率・校正inventoryは変更しない。
 
+2026-10-29追記：上記はMode追加時点の方針。
+System built-inと任意のnpm calibrated presetへ単音の測定値を反映する作業は
+[WonderSwanのMixer基準音量](wonderswan_chip_levels_01.md)に記録する。
+既存の保存値、raw PCM、初期コードのハードウェア音量`9/9`は維持する。
+
 ## 検証
 
 - 実WASMの高級API、RAM／レジスター、Main／Workerの共有gate、手動試聴、clock予約・取消、Stop、state handoff、初期化中close、processor異常からの再起動を確認。

@@ -398,7 +398,7 @@ function assertDeeplyFrozen(value) {
   for (const child of Object.values(value)) assertDeeplyFrozen(child);
 }
 assertDeeplyFrozen(SOUNDCHIP_MIXER_PRESETS);
-assert.equal(calibratedPreset.factoryDefaults.kinds.length, 23);
+assert.equal(calibratedPreset.factoryDefaults.kinds.length, 24);
 assert.equal(Object.hasOwn(calibratedPreset, 'factoryEntries'), false, 'npm calibration uses measured kinds, not Playground primary IDs');
 assert.throws(() => {calibratedPreset.factoryDefaults.kinds[0].volume = 2;}, TypeError);
 assert.deepEqual(soundChipMixDefaults('gameboy'), {volume:0.28, pan:0, muted:false});
@@ -441,6 +441,18 @@ for (let index = 0; index < 3; index++) ps1Mixer.restoreState(ps1Saved, ps1Defau
 assert.deepEqual(ps1Applied, {ps1:0.7, 'ps1:2':0.9}, 'Saved PS1 volumes replace calibration absolutely');
 for (let index = 0; index < 3; index++) ps1Mixer.restoreState({version:1, entries:[]}, {version:1, kinds:[]});
 assert.deepEqual(ps1Applied, {ps1:ps1Factor, 'ps1:2':ps1Factor}, 'System restores PS1 calibration without multiplying it again');
+const wsFactor=calibratedPreset.factoryDefaults.kinds.find(kind=>kind.name==='wonderswan')?.volume;
+assert(Number.isFinite(wsFactor)&&wsFactor>0&&wsFactor<=2);
+const wsMixer=new SoundChipMixer(calibratedPreset),wsApplied={};
+for(const id of ['wonderswan','ws:2'])wsMixer.register(id,'wonderswan',settings=>{wsApplied[id]=settings.volume;});
+assert.deepEqual(wsApplied,{wonderswan:wsFactor,'ws:2':wsFactor});
+assert.deepEqual(soundChipMixDefaults('wonderswan'),{volume:1,pan:0,muted:false});
+wsMixer.setKindDefault('wonderswan',{volume:.6});wsMixer.set('ws:2',{volume:.8});
+const wsSaved=wsMixer.exportState(),wsDefaults=wsMixer.exportDefaults();
+for(let i=0;i<3;i++)wsMixer.restoreState(wsSaved,wsDefaults);
+assert.deepEqual(wsApplied,{wonderswan:.6,'ws:2':.8});
+wsMixer.restoreState({version:1,entries:[]},{version:1,kinds:[]});
+assert.deepEqual(wsApplied,{wonderswan:wsFactor,'ws:2':wsFactor});
 const chip = await createSoundChip('ym2612');
 let rawChip;
 try {

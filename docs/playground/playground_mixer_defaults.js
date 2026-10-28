@@ -23,7 +23,6 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
   "measuredEngineRoutes": 1,
   "measuredPrimaryRoutes": 28,
   "unmeasuredKinds": [
-    "wonderswan",
     "pokey"
   ],
   "extensions": {
@@ -35,6 +34,22 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
       "referenceAmplitude": 0.1494140625,
       "codecHeadroom": 0.875,
       "measuredPs1Captures": 48,
+      "measuredAnchorCaptures": 8,
+      "canonical": {
+        "engine": "chromium",
+        "sampleRate": 48000,
+        "execution": "main"
+      },
+      "baselineSha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    },
+    "wonderswan": {
+      "version": 1,
+      "gainUnits": "source",
+      "referenceFrequencyHz": 440,
+      "targetAmplitude": 0.12881777435541153,
+      "referenceAmplitude": 0.1494140625,
+      "codecHeadroom": 1,
+      "measuredWonderSwanCaptures": 48,
       "measuredAnchorCaptures": 8,
       "canonical": {
         "engine": "chromium",
@@ -145,7 +160,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "wonderswan",
-      "volume": 1
+      "volume": 1.172528
     },
     {
       "name": "pokey",
@@ -568,7 +583,7 @@ const factoryModes = freeze({
         "id": "wonderswan",
         "name": "wonderswan",
         "settings": {
-          "volume": 1
+          "volume": 1.172528
         }
       }
     ]

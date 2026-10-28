@@ -1,0 +1,82 @@
+/** Freshness for calibration evidence, with two narrowly scoped UI cache aliases.
+ * Measurement reports retain every original raw source hash. A separately pinned
+ * receipt allows only the version value of the known generated-policy import and
+ * its page entry point to change. It cannot authorize a changed DSP, path, query,
+ * import body, or any other byte in either UI file.
+ */
+import {createHash} from 'node:crypto';
+
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const digest=value=>typeof value==='string'&&/^[0-9a-f]{64}$/.test(value);
+const fail=message=>{throw new Error('Invalid Mixer calibration source receipt: '+message);};
+const specs=Object.freeze({
+  'playground/playground.js':{
+    name:'playground-generated-mixer-import-v1',module:'playground_mixer_defaults.js',
+    pattern:/^import \{createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims\} from '\.\/playground_mixer_defaults\.js\?v=([A-Za-z0-9._+-]+)';$/gm,
+  },
+  'playground/index.html':{
+    name:'playground-page-entry-import-v1',module:'playground.js',
+    pattern:/^      import\('\.\/playground\.js\?v=([A-Za-z0-9._+-]+)'\)\.catch\(error => window\.__playgroundStartup\.fail\(error\)\);$/gm,
+  },
+});
+export const MIXER_CALIBRATION_UI_CACHE_PATHS=Object.freeze(Object.keys(specs));
+
+/** Stable object identity of a receipt; consumers must pin this outside it. */
+export const mixerCalibrationReceiptObjectSha256=receipt=>sha(JSON.stringify(receipt));
+
+/** Return the SHA of the original bytes except for one precise cache-token value.
+ * This rejects alternate paths, additional query keys, duplicate references and
+ * unsupported import spellings rather than attempting general JS normalization.
+ */
+export function mixerCalibrationUiCanonicalSha256(path,bytes){
+  if(!Object.hasOwn(specs,path))fail('unsupported UI cache path: '+path);const spec=specs[path];
+  const source=Buffer.from(bytes),text=source.toString('utf8');
+  if(!Buffer.from(text).equals(source))fail('invalid UTF-8 UI asset: '+path);
+  if(text.split(spec.module).length!==2)fail('exactly one target module reference required: '+path);
+  const matches=[...text.matchAll(new RegExp(spec.pattern.source,spec.pattern.flags))];
+  if(matches.length!==1)fail('exact known single-version import required: '+path);
+  const match=matches[0],tokenOffset=match.index+match[0].indexOf('?v=')+3;
+  return sha(text.slice(0,tokenOffset)+'<cache-version>'+text.slice(tokenOffset+match[1].length));
+}
+
+/** Create a receipt only from bytes still matching both original report records.
+ * This is provenance preparation, never remeasurement or replacement of report
+ * hashes. The resulting object is immutable evidence once its SHA is pinned.
+ */
+export function createMixerCalibrationUiReceipt({reportPath,reportBytes,sources}){
+  const report=JSON.parse(Buffer.from(reportBytes).toString('utf8'));
+  if(report.passed!==true||report.verify!==false||!report.sources)fail('successful original measurement required');
+  const records={};
+  for(const path of MIXER_CALIBRATION_UI_CACHE_PATHS){
+    const record=report.sources[path],bytes=sources?.[path];
+    if(!record||bytes===undefined||!Number.isSafeInteger(record.bytes)||record.bytes<=0||!digest(record.sha256)||
+      Buffer.byteLength(bytes)!==record.bytes||sha(bytes)!==record.sha256)fail('original UI asset no longer matches measurement: '+path);
+    records[path]={bytes:record.bytes,sha256:record.sha256,normalizer:specs[path].name,canonicalSha256:mixerCalibrationUiCanonicalSha256(path,bytes)};
+  }
+  return {schemaVersion:1,scope:'ui-import-cache-token-only',
+    report:{path:reportPath,sha256:sha(reportBytes),objectSha256:sha(JSON.stringify(report))},sources:records};
+}
+
+/** Assert freshness of one served source. Exact original bytes need no receipt.
+ * For a cache-only alias, receiptObjectSha256 must be a trusted constant stored
+ * outside the receipt; reportSha256 is the SHA of the untouched report file.
+ * Returns 'raw' or 'ui-cache-token' to make the accepted evidence explicit.
+ */
+export function assertMixerCalibrationSourceFreshness({path,bytes,record,report,reportSha256,receipt,receiptObjectSha256}){
+  if(record&&Buffer.byteLength(bytes)===record.bytes&&sha(bytes)===record.sha256)return 'raw';
+  const stale=()=>{throw new Error('served DSP/WASM source changed; remeasure: docs/'+path);};
+  if(!Object.hasOwn(specs,path)||receipt===undefined)return stale();
+  if(!digest(receiptObjectSha256)||mixerCalibrationReceiptObjectSha256(receipt)!==receiptObjectSha256)fail('receipt does not match its independently pinned SHA');
+  if(receipt.schemaVersion!==1||receipt.scope!=='ui-import-cache-token-only'||!receipt.report||
+    !digest(reportSha256)||receipt.report.sha256!==reportSha256||receipt.report.objectSha256!==sha(JSON.stringify(report))||
+    typeof receipt.report.path!=='string'||!receipt.report.path||
+    !receipt.sources||Array.isArray(receipt.sources)||Object.keys(receipt.sources).length!==2||
+    MIXER_CALIBRATION_UI_CACHE_PATHS.some(name=>!Object.hasOwn(receipt.sources,name)))fail('receipt report identity or scope mismatch');
+  for(const name of MIXER_CALIBRATION_UI_CACHE_PATHS){
+    const original=report?.sources?.[name],entry=receipt.sources[name];
+    if(!original||!entry||entry.bytes!==original.bytes||entry.sha256!==original.sha256||entry.normalizer!==specs[name].name||!digest(entry.canonicalSha256))fail('receipt original asset record mismatch: '+name);
+  }
+  if(record?.bytes!==receipt.sources[path].bytes||record?.sha256!==receipt.sources[path].sha256)fail('source record detached from original receipt: '+path);
+  if(mixerCalibrationUiCanonicalSha256(path,bytes)!==receipt.sources[path].canonicalSha256)return stale();
+  return 'ui-cache-token';
+}

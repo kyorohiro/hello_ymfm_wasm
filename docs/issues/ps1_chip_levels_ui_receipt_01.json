@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "scope": "ui-import-cache-token-only",
+  "report": {
+    "path": "docs/issues/ps1_chip_levels_01.json",
+    "sha256": "0bc38fd52a6f9de0658e085c016f8e8214e28960355b25a754da659bbab10d1c",
+    "objectSha256": "029914aaaf6c0d4b33e9510f1095d5119437603e50010eb3e066b39eb5ace2bf"
+  },
+  "sources": {
+    "playground/playground.js": {
+      "bytes": 124838,
+      "sha256": "8190f272595d6586f190169b1cd3d36f2f7b98aeb6b6444e08cb0208289ae751",
+      "normalizer": "playground-generated-mixer-import-v1",
+      "canonicalSha256": "cd203c81314d6d591cd8b35dc49f82292be217f0d2b2583996781ee901293221"
+    },
+    "playground/index.html": {
+      "bytes": 131493,
+      "sha256": "ddfec64bb6979ce4d06d4c55e927db93bbf2b28ca525c10cd73b3f46adecfb49",
+      "normalizer": "playground-page-entry-import-v1",
+      "canonicalSha256": "5468b2f13a1a1f5fdd360551fa5f041342ecc294a9f2ba69f6d9e3fb3361f172"
+    }
+  }
+}

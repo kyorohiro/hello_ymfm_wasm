@@ -1,3 +1,11 @@
+## 2026-10-29 — WonderSwanのMixer基準を実測、System／任意npm presetは24種類へ
+
+- WonderSwanの主音源／追加音源を**`1.0 → 1.172528`**へ変更（約17.25%増）。32点4bitの自作sine、CH0 volume15/15、全DAC範囲を用いるためheadroom1。既存speaker境界のDC除去後を測り、raw DAC／音声core／通常の9/9音色／endpointの別倍率.25を変更しない。153測定とPS1 .128832を含む既存倍率・共通目標値を保持。保存値は絶対優先、試す場合はMixerのSystemを選ぶ。
+- Chromium／WebKit × 44.1／48 kHz × Main／Worker × primary／extra × 220／440／880 Hzの48 WS＋8 FM対照が成功。反映後も同じ全条件を新規測定し、peak最大相対誤差6.50e-8、RMS .061%未満。各112 captures／6,200,320 frames、独立pilot連続／Stop exact zero／今回clock異常0。rawは292配信資産＋5 script/reportのSHAを保持。Native／WASMは12条件・1,338,528比較で差0、実speaker Worklet VMの552,600 framesも既存DC補正のみを確認した。
+- 既存PS1測定のraw SHAと全出典を保持し、UIの2つの既知importのcache version値だけに独立receiptを追加。作成時に元asset bytes／SHAの一致を確認し、receipt自身のobject SHAを別にpinした。コード、path、追加query、重複import、DSP／transport／WASMの変更は引き続き拒否。型importのcache queryを除いてpublic presetのweb／docs mirrorは一致。
+- 関連Node296件、generated checks、installed npm 1,004 files／1,097 refs／28 engines／385 declarations／NodeNext・Bundler・Browser型が成功。初回のfixture CLI1件のflag不足は修正して全件再実行、npm cache EPERMは権限付き再実行で解決し所有権変更なし。Playground両ZIP CRC成功。実Run ZIPは37,403,523 bytes／931 files、SHA256`f8a961be4e04a0ca85a6c992b044482cfa0c8af56d1ce9dcf2c3c0cb76b3e302`。この実ZIPでChromium／WebKit Main／Worker4条件、起動／VFS・Shell／実PCM／Stop・Rerunが成功。実聴は行っていない。
+- 詳細：[wonderswan_chip_levels_01.md](wonderswan_chip_levels_01.md)、raw／verify／offline／ZIP JSON。itch web CIへ新基準・出典・cache receiptの試験と全条件のWS再測定を追加。未commit／未push／未公開、npm0.2.32／SDK0.1.6 local candidate据え置き。次はSystem実聴とcommit／push後のremote CI確認、残る未測定POKEY（単体／2台）の基準測定。以下は各時点の履歴。
+
 ## 2026-10-29 — PS1のMixer基準を実測し、System／任意npm presetへ反映
 
 - PS1の未測定unity `1.0`を、主音源・追加音源とも**`0.128832`**へ変更。既存153測定／他音源の倍率／共通目標値は保持。public calibratedは既存22＋PS1の23種類。汎用Mixerのunity、raw PCM、core／WASM／初期サンプル、明示的な保存値は変更しない。試す場合はMixerでSystemを選ぶ。独立Sample Editor previewはraw gain 1を維持する。

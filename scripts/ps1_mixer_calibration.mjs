@@ -8,10 +8,12 @@ import {resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildPs1CalibrationReference} from './soundchip_calibration_ps1.mjs';
 import {buildFmCalibrationReference} from './soundchip_calibration_fm.mjs';
+import {assertMixerCalibrationSourceFreshness,MIXER_CALIBRATION_UI_CACHE_PATHS} from './mixer_calibration_sources.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 export const PS1_CALIBRATION_BASELINE_PATH='docs/issues/playground_chip_levels_01.json';
 export const PS1_CALIBRATION_BASELINE_SHA256='9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234';
+export const PS1_CALIBRATION_UI_RECEIPT_OBJECT_SHA256='46ba6a66a9c52b04e52be601cc3e4719f95a228715cde27913a107e585738eb9';
 const BASELINE_OBJECT_SHA256='50eff6f2cdcd77ab4d41fa43b0afe4a9e4a5d02f5dee06dc67467e3bbeb17c48';
 const TARGET=0.12881777435541153,REFERENCE=0.1494140625,HEADROOM=.875;
 const ENGINES=['chromium','webkit'],RATES=[44100,48000],EXECUTIONS=['main','worker'],ROLES=['primary','extra'],FREQUENCIES=[220,440,880];
@@ -150,7 +152,9 @@ export function validatePs1MixerCalibration(historical,report){
 }
 
 /** Check every raw script/runtime/WASM hash before a generator writes output.
- * All paths are repository-relative; generated Mixer policies are excluded.
+ * The untouched report retains all original raw hashes. Only two exact UI
+ * import version values may use the independently pinned cache-token receipt;
+ * executable changes and every DSP/transport/WASM source still require capture.
  */
 export async function validatePs1MixerCalibrationSources({reportPath,ps1Report}){
   const bytes=await readFile(reportPath);
@@ -160,9 +164,15 @@ export async function validatePs1MixerCalibrationSources({reportPath,ps1Report})
     const absolute=resolve(root,path);if(!absolute.startsWith(resolve(root)+sep))fail('script path escapes repository');
     if(sha(await readFile(absolute))!==hash)fail('script source changed; remeasure: '+path);
   }
+  let uiReceipt,measuredReportSha256;
   for(const [path,record]of Object.entries(ps1Report.sources)){
     const bytes=await readFile(resolve(root,'docs',path));
-    if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)fail('served DSP/WASM source changed; remeasure: docs/'+path);
+    if((bytes.length!==record.bytes||sha(bytes)!==record.sha256)&&MIXER_CALIBRATION_UI_CACHE_PATHS.includes(path)&&uiReceipt===undefined){
+      uiReceipt=JSON.parse(await readFile(resolve(root,'docs/issues/ps1_chip_levels_ui_receipt_01.json'),'utf8'));
+      measuredReportSha256=sha(await readFile(resolve(root,'docs/issues/ps1_chip_levels_01.json')));
+    }
+    assertMixerCalibrationSourceFreshness({path,bytes,record,report:ps1Report,reportSha256:measuredReportSha256,
+      receipt:uiReceipt,receiptObjectSha256:PS1_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});
   }
   return result;
 }

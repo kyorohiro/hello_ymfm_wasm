@@ -10,6 +10,7 @@ const stage = join(root, 'dist/fm2612');
 await generateSoundChipMixerPresets({
   reportPath:join(root, 'docs/issues/playground_chip_levels_01.json'),
   ps1ReportPath:join(root, 'docs/issues/ps1_chip_levels_01.json'),
+  wonderswanReportPath:join(root, 'docs/issues/wonderswan_chip_levels_01.json'),
   outPath:join(root, 'web/soundchip_mixer_presets.js'),check:true,
 });
 // Only this generated package directory is replaced; the CLI distribution stays intact.

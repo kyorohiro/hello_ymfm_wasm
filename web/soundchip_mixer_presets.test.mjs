@@ -25,15 +25,18 @@ test('calibrated export combines measured kinds and shared listening levels with
   assert.deepEqual(SOUNDCHIP_MIXER_LISTENING_LEVELS,listeningLevels);
   const ps1 = preset.factoryDefaults.kinds.find(record => record.name === 'ps1');
   assert.ok(Number.isFinite(ps1?.volume) && ps1.volume > 0 && ps1.volume <= 2, 'PS1 has a measured Mixer fallback');
+  const wonderswan = preset.factoryDefaults.kinds.find(record => record.name === 'wonderswan');
+  assert.ok(Number.isFinite(wonderswan?.volume) && wonderswan.volume > 0 && wonderswan.volume <= 2, 'WonderSwan has a measured Mixer fallback');
   const factoryDefaults = {version: 1, kinds: measured.factoryDefaults.kinds.map(record =>
     ({...record, ...(Object.hasOwn(listeningLevels, record.name) ? {volume: listeningLevels[record.name]} : {})}))};
   factoryDefaults.kinds.push({...ps1});
+  factoryDefaults.kinds.push({...wonderswan});
   assert.deepEqual(preset, {gainUnits:'source',factoryDefaults, factoryEngines: measured.factoryEngines});
-  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set([...PLAYGROUND_CALIBRATION_KINDS, 'ps1']));
-  assert.equal(preset.factoryDefaults.kinds.length, 23);
+  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set([...PLAYGROUND_CALIBRATION_KINDS, 'ps1', 'wonderswan']));
+  assert.equal(preset.factoryDefaults.kinds.length, 24);
   assert.deepEqual(preset.factoryEngines.engines, [{name: 'ym2612', engine: 'nuked', volume: 0.493869}]);
   assert.equal(Object.hasOwn(preset, 'factoryEntries'), false);
-  const changed = preset.factoryDefaults.kinds.filter(record => record.name !== 'ps1' && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
+  const changed = preset.factoryDefaults.kinds.filter(record => !['ps1','wonderswan'].includes(record.name) && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
   assert.deepEqual(new Set(changed.map(record => record.name)), new Set(Object.keys(listeningLevels)));
   for (const record of changed) assert.ok(record.volume < measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
 });
@@ -175,6 +178,22 @@ test('explicit common and per-ID levels replace the reduced PSG-family fallbacks
     mixer.restoreState(state([]), kinds([])); assert.deepEqual(applied.at(-1), [volume, volume]);
     assert.equal(soundChipMixDefaults(name).volume, name==='gameboy'?.28:1, name + ' generic legacy default is retained');
   }
+});
+
+test('WonderSwan source calibration applies once and authored gains remain absolute', () => {
+  const volume=preset.factoryDefaults.kinds.find(record=>record.name==='wonderswan').volume;
+  const mixer=new SoundChipMixer(preset),applied={};
+  for(const id of ['wonderswan','ws:2'])mixer.register(id,'wonderswan',settings=>{applied[id]=chipMixGains(settings);});
+  assert.deepEqual(applied,{wonderswan:[volume,volume],'ws:2':[volume,volume]});
+  assert.deepEqual(mixer.exportState(),state([]));
+  assert.deepEqual(soundChipMixDefaults('wonderswan'),{volume:1,pan:0,muted:false});
+  mixer.setKindDefault('wonderswan',{volume:.6});mixer.set('ws:2',{volume:.8});
+  const saved=mixer.exportState(),defaults=mixer.exportDefaults();
+  for(let i=0;i<3;i++)mixer.restoreState(saved,defaults);
+  assert.deepEqual(applied,{wonderswan:[.6,.6],'ws:2':[.8,.8]});
+  assert.equal(new SoundChipMixer(preset).getKindDefault('wonderswan').volume,volume);
+  for(let i=0;i<3;i++)mixer.restoreState(state([]),kinds([]));
+  assert.deepEqual(applied,{wonderswan:[volume,volume],'ws:2':[volume,volume]});
 });
 
 test('unmeasured chip names and engines retain existing fallbacks rather than borrowing another calibration', () => {

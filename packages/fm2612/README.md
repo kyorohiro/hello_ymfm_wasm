@@ -366,8 +366,12 @@ await transport.start();
 ```
 
 `mixer.set(chip.id, {volume:0.5, pan:-0.5})` adjusts the output independently
-from hardware channel volumes. The WonderSwan source default remains `1.0`;
-the endpoint's separate output `gain` defaults to `0.25`, as for other chips.
+from hardware channel volumes. The generic WonderSwan source default is `1.0`;
+the optional `SOUNDCHIP_MIXER_PRESETS.calibrated` instead uses a measured
+single-voice fallback, also used by Playground System. Explicit common and
+per-ID settings replace this fallback absolutely. The endpoint's separate
+output `gain` defaults to `0.25`, as for other chips, and is not absorbed into
+the calibrated source value.
 The speaker path uses the existing tick-aligned waveform/Voice midpoint
 correction from Playground and Analyzer. Direct raw PCM is unchanged.
 
@@ -538,7 +542,7 @@ for synchronous rendering, as used by the Analyzer.
 ### Optional calibrated preset
 
 `SOUNDCHIP_MIXER_PRESETS.calibrated` combines measured output levels with a
-fixed listening balance for 23 calibrated sources, including the standalone
+fixed listening balance for 24 calibrated sources, including WonderSwan and the standalone
 PS1 instrument. Select it when constructing the
 mixer, then pass that mixer to a browser Worklet endpoint:
 
@@ -613,7 +617,7 @@ support and endpoint options still apply.
 These constants compare a fixed single voice at known levels. They do not
 analyze playing audio or perform automatic normalization, compression, or
 limiting. Timbre and polyphony still affect loudness and headroom. Sources
-outside the 23 calibrated kinds keep their legacy defaults. The preset supplies
+outside the 24 calibrated kinds keep their legacy defaults. The preset supplies
 standalone chip defaults rather than every machine-specific route or mode
 preset. MegaSynth's built-in Genesis FM/PSG sources also support its source
 units; separate endpoint and master gains still apply.

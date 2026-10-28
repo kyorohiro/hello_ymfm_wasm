@@ -8,10 +8,13 @@ import {fileURLToPath} from 'node:url';
 import {buildSoundChipMixerPresets,generateSoundChipMixerPresets,renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
 import {createPs1MixerCalibrationFixture} from '../test/helpers/ps1_mixer_calibration_fixture.mjs';
 import {validatePs1MixerCalibration} from './ps1_mixer_calibration.mjs';
+import {createWonderSwanMixerCalibrationFixture} from '../test/helpers/wonderswan_mixer_calibration_fixture.mjs';
+import {validateWonderSwanMixerCalibration} from './wonderswan_mixer_calibration.mjs';
 
 const baselineUrl = new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url);
 const psgUrl = new URL('../docs/issues/soundchip_psg_levels_04.json',import.meta.url);
 const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_chip_levels_01.json',import.meta.url));
+const wonderswanReportPath=fileURLToPath(new URL('../docs/issues/wonderswan_chip_levels_01.json',import.meta.url));
 
 test('the npm preset reproduces from the shared measured baseline; checks reject edited output without overwriting it',async t=>{
   const directory = await mkdtemp(join(tmpdir(),'soundchip-presets-'));
@@ -20,14 +23,14 @@ test('the npm preset reproduces from the shared measured baseline; checks reject
   const source = await readFile(baselineUrl,'utf8');
   await writeFile(reportPath,source);
   await writeFile(psgReportPath,await readFile(psgUrl,'utf8'));
-  await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,outPath});
+  await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,wonderswanReportPath,outPath});
   const generated = await readFile(outPath,'utf8');
   assert.equal(generated,await readFile(new URL('../web/soundchip_mixer_presets.js',import.meta.url),'utf8'));
-  await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,outPath,check:true});
+  await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,wonderswanReportPath,outPath,check:true});
   const changed = generated.replace('"volume": 0.280286','"volume": 0.56');
   assert.notEqual(changed,generated,'fixture changes the measured RF5C164 fallback');
   await writeFile(outPath,changed);
-  await assert.rejects(generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,outPath,check:true}),/stale/);
+  await assert.rejects(generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,wonderswanReportPath,outPath,check:true}),/stale/);
   assert.equal(await readFile(outPath,'utf8'),changed,'check never repairs an unreviewed change');
   const script = fileURLToPath(new URL('./generate_soundchip_mixer_presets.mjs',import.meta.url));
   const result = spawnSync(process.execPath,[script,`--report=${reportPath}`,`--psg-report=${psgReportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
@@ -62,16 +65,16 @@ test('PS1 preset generation validates source provenance before writing and suppo
   const valid=renderSoundChipMixerPresets(historical,psg,ps1Report);
   assert.equal(await readFile(outPath,'utf8'),valid);await generateSoundChipMixerPresets({...options,check:true});
   const script=fileURLToPath(new URL('./generate_soundchip_mixer_presets.mjs',import.meta.url));
-  let result=spawnSync(process.execPath,[script,`--report=${reportPath}`,`--ps1-report=${extensionPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  let result=spawnSync(process.execPath,[script,'--no-wonderswan',`--report=${reportPath}`,`--ps1-report=${extensionPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   result=spawnSync(process.execPath,[script,`--ps1-report=${extensionPath}`,'--no-ps1',`--out=${outPath}`],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/cannot be combined/);
   for(const change of [report=>{report.passed=false;},report=>{report.rows.pop();},report=>{report.calibration.targetAmplitude*=.9;},report=>{report.sources[Object.keys(report.sources)[0]].sha256='0'.repeat(64);}]) {
     const invalid=structuredClone(ps1Report);change(invalid);await writeFile(extensionPath,JSON.stringify(invalid));
-    await assert.rejects(generateSoundChipMixerPresets(options),/PS1/i);
+    await assert.rejects(generateSoundChipMixerPresets(options),/PS1|Mixer calibration source receipt/i);
     assert.equal(await readFile(outPath,'utf8'),valid,'a rejected extension leaves the prior artifact untouched');
   }
-  result=spawnSync(process.execPath,[script,`--report=${reportPath}`,'--no-ps1',`--out=${outPath}`],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,`--report=${reportPath}`,'--no-ps1','--no-wonderswan',`--out=${outPath}`],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   assert.equal(await readFile(outPath,'utf8'),renderSoundChipMixerPresets(historical,psg));
 });
@@ -148,4 +151,42 @@ test('missing or changed source hashes fail before replacing an otherwise valid 
   invalid.sources={};await writeFile(psgReportPath,JSON.stringify(invalid));
   await assert.rejects(generateSoundChipMixerPresets({reportPath,psgReportPath,outPath}),/Missing.*source hashes/);
   assert.equal(await readFile(outPath,'utf8'),valid);
+});
+
+test('WonderSwan extends only its optional npm kind while PS1 and all existing gains remain exact',async()=>{
+  const {historical,wsReport}=await createWonderSwanMixerCalibrationFixture(),{ps1Report}=await createPs1MixerCalibrationFixture();
+  const psg=JSON.parse(await readFile(psgUrl,'utf8')),before=structuredClone({historical,wsReport,ps1Report,psg});
+  const legacy=buildSoundChipMixerPresets(historical,psg),ps1=buildSoundChipMixerPresets(historical,psg,ps1Report);
+  const combined=buildSoundChipMixerPresets(historical,psg,ps1Report,wsReport),ws=validateWonderSwanMixerCalibration(historical,wsReport);
+  const wsOnly=buildSoundChipMixerPresets(historical,psg,undefined,wsReport);
+  assert.equal(legacy.calibrated.factoryDefaults.kinds.length,22);assert.equal(ps1.calibrated.factoryDefaults.kinds.length,23);
+  assert.equal(wsOnly.calibrated.factoryDefaults.kinds.length,23);assert.equal(combined.calibrated.factoryDefaults.kinds.length,24);
+  assert.deepEqual(combined.calibrated.factoryDefaults.kinds.filter(entry=>entry.name!=='wonderswan'),ps1.calibrated.factoryDefaults.kinds);
+  assert.deepEqual(wsOnly.calibrated.factoryDefaults.kinds.filter(entry=>entry.name!=='wonderswan'),legacy.calibrated.factoryDefaults.kinds);
+  assert.deepEqual(combined.calibrated.factoryDefaults.kinds.at(-1),{name:'wonderswan',volume:ws.extraVolume});
+  assert.deepEqual(combined.calibrated.factoryEngines,legacy.calibrated.factoryEngines);
+  assert.equal(Object.hasOwn(combined.calibrated,'factoryEntries'),false);
+  assert.deepEqual({historical,wsReport,ps1Report,psg},before);
+  for(const invalid of [null,{...wsReport,passed:false},{...wsReport,verify:true}])assert.throws(()=>buildSoundChipMixerPresets(historical,psg,ps1Report,invalid),/WonderSwan/i);
+});
+
+test('WonderSwan npm generation checks full measurement and source identity before writing and has independent CLI controls',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'soundchip-presets-wonderswan-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const reportPath=join(directory,'historical.json'),extensionPath=join(directory,'wonderswan.json'),outPath=join(directory,'presets.js');
+  const {historical,wsReport}=await createWonderSwanMixerCalibrationFixture(),psg=JSON.parse(await readFile(psgUrl,'utf8'));
+  await writeFile(reportPath,await readFile(baselineUrl));await writeFile(extensionPath,JSON.stringify(wsReport));
+  const options={reportPath,wonderswanReportPath:extensionPath,outPath};
+  await generateSoundChipMixerPresets(options);
+  const valid=renderSoundChipMixerPresets(historical,psg,undefined,wsReport);
+  assert.equal(await readFile(outPath,'utf8'),valid);await generateSoundChipMixerPresets({...options,check:true});
+  const script=fileURLToPath(new URL('./generate_soundchip_mixer_presets.mjs',import.meta.url));
+  let result=spawnSync(process.execPath,[script,'--no-ps1',`--report=${reportPath}`,`--wonderswan-report=${extensionPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  assert.equal(result.status,0,result.stderr);
+  result=spawnSync(process.execPath,[script,'--no-ps1',`--wonderswan-report=${extensionPath}`,'--no-wonderswan',`--out=${outPath}`],{encoding:'utf8'});
+  assert.notEqual(result.status,0);assert.match(result.stderr,/cannot be combined/);
+  for(const change of [report=>{report.passed=false;},report=>{report.rows.pop();},report=>{report.calibration.targetAmplitude*=.9;},report=>{report.sources[Object.keys(report.sources)[0]].sha256='0'.repeat(64);}]){
+    const invalid=structuredClone(wsReport);change(invalid);await writeFile(extensionPath,JSON.stringify(invalid));
+    await assert.rejects(generateSoundChipMixerPresets(options),/WonderSwan/i);
+    assert.equal(await readFile(outPath,'utf8'),valid,'rejected measurement leaves the previous public artifact intact');
+  }
 });
