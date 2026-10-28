@@ -398,7 +398,7 @@ function assertDeeplyFrozen(value) {
   for (const child of Object.values(value)) assertDeeplyFrozen(child);
 }
 assertDeeplyFrozen(SOUNDCHIP_MIXER_PRESETS);
-assert.equal(calibratedPreset.factoryDefaults.kinds.length, 22);
+assert.equal(calibratedPreset.factoryDefaults.kinds.length, 23);
 assert.equal(Object.hasOwn(calibratedPreset, 'factoryEntries'), false, 'npm calibration uses measured kinds, not Playground primary IDs');
 assert.throws(() => {calibratedPreset.factoryDefaults.kinds[0].volume = 2;}, TypeError);
 assert.deepEqual(soundChipMixDefaults('gameboy'), {volume:0.28, pan:0, muted:false});
@@ -425,6 +425,22 @@ for (let index = 0; index < 3; index++) calibratedMixer.restoreState(savedMixer,
 assert.equal(applied.pcm, 0.9, 'Authored volume replaces calibration without applying another RF5C164 trim');
 assert.deepEqual(calibratedMixer.getKindDefault('segapcm'), {volume:1, pan:0}, 'Unmeasured chips retain generic defaults');
 assert.equal(new SoundChipMixer(calibratedPreset).getKindDefault('rf5c164').volume, 0.280286, 'Consumer changes do not mutate the shared preset');
+const ps1Factor = calibratedPreset.factoryDefaults.kinds.find(kind => kind.name === 'ps1')?.volume;
+assert(Number.isFinite(ps1Factor) && ps1Factor > 0 && ps1Factor <= 2, 'The standalone PS1 instrument has a calibrated Mixer fallback');
+assert.deepEqual(new SoundChipMixer().getKindDefault('ps1'), {volume:1, pan:0}, 'PS1 generic defaults remain unity');
+assert.deepEqual(soundChipMixDefaults('ps1'), {volume:1, pan:0, muted:false});
+const ps1Mixer = new SoundChipMixer(calibratedPreset), ps1Applied = {};
+for (const id of ['ps1', 'ps1:2']) ps1Mixer.register(id, 'ps1', settings => {ps1Applied[id] = settings.volume;});
+assert.deepEqual(ps1Applied, {ps1:ps1Factor, 'ps1:2':ps1Factor}, 'PS1 applies one calibrated multiplier per instrument');
+assert.deepEqual(ps1Mixer.exportState(), {version:1, entries:[]});
+assert.deepEqual(ps1Mixer.exportDefaults(), {version:1, kinds:[]});
+ps1Mixer.setKindDefault('ps1', {volume:0.7});
+ps1Mixer.set('ps1:2', {volume:0.9});
+const ps1Saved = ps1Mixer.exportState(), ps1Defaults = ps1Mixer.exportDefaults();
+for (let index = 0; index < 3; index++) ps1Mixer.restoreState(ps1Saved, ps1Defaults);
+assert.deepEqual(ps1Applied, {ps1:0.7, 'ps1:2':0.9}, 'Saved PS1 volumes replace calibration absolutely');
+for (let index = 0; index < 3; index++) ps1Mixer.restoreState({version:1, entries:[]}, {version:1, kinds:[]});
+assert.deepEqual(ps1Applied, {ps1:ps1Factor, 'ps1:2':ps1Factor}, 'System restores PS1 calibration without multiplying it again');
 const chip = await createSoundChip('ym2612');
 let rawChip;
 try {

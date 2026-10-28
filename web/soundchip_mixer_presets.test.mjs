@@ -23,14 +23,17 @@ test('calibrated export combines measured kinds and shared listening levels with
   assert.equal(rootPresets, SOUNDCHIP_MIXER_PRESETS);
   assert.deepEqual(Object.keys(SOUNDCHIP_MIXER_PRESETS), ['calibrated']);
   assert.deepEqual(SOUNDCHIP_MIXER_LISTENING_LEVELS,listeningLevels);
+  const ps1 = preset.factoryDefaults.kinds.find(record => record.name === 'ps1');
+  assert.ok(Number.isFinite(ps1?.volume) && ps1.volume > 0 && ps1.volume <= 2, 'PS1 has a measured Mixer fallback');
   const factoryDefaults = {version: 1, kinds: measured.factoryDefaults.kinds.map(record =>
     ({...record, ...(Object.hasOwn(listeningLevels, record.name) ? {volume: listeningLevels[record.name]} : {})}))};
+  factoryDefaults.kinds.push({...ps1});
   assert.deepEqual(preset, {gainUnits:'source',factoryDefaults, factoryEngines: measured.factoryEngines});
-  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set(PLAYGROUND_CALIBRATION_KINDS));
-  assert.equal(preset.factoryDefaults.kinds.length, 22);
+  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set([...PLAYGROUND_CALIBRATION_KINDS, 'ps1']));
+  assert.equal(preset.factoryDefaults.kinds.length, 23);
   assert.deepEqual(preset.factoryEngines.engines, [{name: 'ym2612', engine: 'nuked', volume: 0.493869}]);
   assert.equal(Object.hasOwn(preset, 'factoryEntries'), false);
-  const changed = preset.factoryDefaults.kinds.filter(record => record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
+  const changed = preset.factoryDefaults.kinds.filter(record => record.name !== 'ps1' && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
   assert.deepEqual(new Set(changed.map(record => record.name)), new Set(Object.keys(listeningLevels)));
   for (const record of changed) assert.ok(record.volume < measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
 });
@@ -126,6 +129,35 @@ test('RF5C164 calibration is applied once for every instance and authored values
   mixer.restoreState(state([]), kinds([]));
   assert.deepEqual(applied.rf5c164, [0.280286, 0.280286]);
   assert.deepEqual(applied['rf5c164:33'], [0.280286, 0.280286]);
+});
+
+test('PS1 calibration applies once per independent instrument and saved absolute levels survive repeated restore', () => {
+  const volume = preset.factoryDefaults.kinds.find(record => record.name === 'ps1').volume;
+  const mixer = new SoundChipMixer(preset), applied = {};
+  for (const id of ['ps1', 'ps1:2']) {
+    mixer.register(id, 'ps1', settings => {applied[id] = chipMixGains(settings);});
+    assert.deepEqual(applied[id], [volume, volume], 'one source multiplier per instrument');
+  }
+  assert.deepEqual(mixer.exportDefaults(), kinds([]));
+  assert.deepEqual(mixer.exportState(), state([]), 'factory values are not saved as authored adjustments');
+  assert.deepEqual(soundChipMixDefaults('ps1'), {volume:1, pan:0, muted:false});
+  assert.deepEqual(new SoundChipMixer().getKindDefault('ps1'), {volume:1, pan:0}, 'generic consumers keep unity');
+
+  mixer.setKindDefault('ps1', {volume:0.7});
+  assert.deepEqual(applied, {ps1:[0.7, 0.7], 'ps1:2':[0.7, 0.7]}, 'common levels replace calibration');
+  mixer.set('ps1:2', {volume:0.9});
+  const saved = mixer.exportState(), defaults = mixer.exportDefaults();
+  for (let index = 0; index < 3; index++) mixer.restoreState(saved, defaults);
+  assert.deepEqual(applied, {ps1:[0.7, 0.7], 'ps1:2':[0.9, 0.9]}, 'per-ID levels replace common and factory levels without accumulated trim');
+  assert.deepEqual(saved, state([{id:'ps1:2', name:'ps1', settings:{volume:0.9}}]));
+  assert.deepEqual(defaults, kinds([{name:'ps1', volume:0.7}]));
+  assert.equal(new SoundChipMixer(preset).getKindDefault('ps1').volume, volume, 'other mixers retain the shared fallback');
+  mixer.reset('ps1:2');
+  assert.deepEqual(applied['ps1:2'], [0.7, 0.7], 'resetting a strip retains authored common settings');
+  for (let index = 0; index < 3; index++) mixer.restoreState(state([]), kinds([]));
+  assert.deepEqual(applied, {ps1:[volume, volume], 'ps1:2':[volume, volume]}, 'empty System settings restore each factory fallback once');
+  assert.deepEqual(mixer.exportState(), state([]));
+  assert.deepEqual(mixer.exportDefaults(), kinds([]));
 });
 
 test('explicit common and per-ID levels replace the reduced PSG-family fallbacks without accumulating trim', () => {

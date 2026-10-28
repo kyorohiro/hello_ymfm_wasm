@@ -147,6 +147,15 @@ independent SPUs. Web Audio remains the default. The source-tree build pins SDK
 Upstream linear interpolation, approximate ADSR and preset reverb are retained;
 hardware-exact sound or game soundtrack compatibility is not claimed.
 
+The optional `SOUNDCHIP_MIXER_PRESETS.calibrated` supplies a measured `ps1`
+source-volume fallback. Playground's System preset uses this calibration for
+primary and additional SPUs. Standalone hosts can register their instrument
+as kind `ps1` with a `SoundChipMixer` using that preset and apply the callback's
+settings to their output stage or `PCMChipMixer`. The host still owns its audio
+connection and output gain;
+`Ps1Spu.generateStereo()` remains raw PCM. This Mixer policy does not add PS1
+to the package-root `createSoundChip()` factory or change saved Mixer values.
+
 See the [standalone guide and original-sample Example](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_spu.md).
 The package includes complete BSD-3-Clause source, pristine upstream snapshots,
 attribution, build hashes and a standalone recipe in `sources/native/ps1/` and
@@ -529,7 +538,8 @@ for synchronous rendering, as used by the Analyzer.
 ### Optional calibrated preset
 
 `SOUNDCHIP_MIXER_PRESETS.calibrated` combines measured output levels with a
-fixed listening balance for the 22 calibrated chip kinds. Select it when constructing the
+fixed listening balance for 23 calibrated sources, including the standalone
+PS1 instrument. Select it when constructing the
 mixer, then pass that mixer to a browser Worklet endpoint:
 
 ```js
@@ -602,8 +612,8 @@ support and endpoint options still apply.
 
 These constants compare a fixed single voice at known levels. They do not
 analyze playing audio or perform automatic normalization, compression, or
-limiting. Timbre and polyphony still affect loudness and headroom. Chip kinds
-outside the 22 measured kinds keep their legacy defaults. The preset supplies
+limiting. Timbre and polyphony still affect loudness and headroom. Sources
+outside the 23 calibrated kinds keep their legacy defaults. The preset supplies
 standalone chip defaults rather than every machine-specific route or mode
 preset. MegaSynth's built-in Genesis FM/PSG sources also support its source
 units; separate endpoint and master gains still apply.
