@@ -2015,6 +2015,7 @@
             <button id="rf5c164Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="rf5c164Panel" hidden>RF5C164</button>
             <button id="pwmTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="pwmPanel" hidden>32X PWM</button>
             <button id="gameboyTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="gameboyPanel" hidden>Game Boy</button>
+            <button id="ps1Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ps1Panel" hidden>SPU</button>
             <button id="snesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="snesPanel" hidden>SNES</button>
             <button id="nesTab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="nesPanel" hidden>NES + FDS</button>
             <button id="ym2151Tab" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="ym2151Panel" hidden>YM2151</button>
@@ -2194,6 +2195,7 @@
             </ul>
             <p data-native-helper="nes" hidden><code>nes.pulse</code>, <code>nes.triangle</code>, <code>nes.noise</code>, <code>nes.dmc</code> and <code>nes.fds</code> control the primary NES + FDS. Use <code>nes.pulse.noteOn(0, "C4")</code>, <code>await beat(0.5)</code>, then <code>nes.pulse.keyOff(0)</code>.</p>
             <p data-native-helper="nes" hidden>Open the <strong>NES + FDS</strong> tab for voice settings and FDS waveform editing. <strong>Prepare audio</strong> works without Run; <strong>Hold to play</strong> previews the selected channel and <strong>Use Keyboard</strong> connects the Guitar. DMC requires a loaded sample.</p>
+            <p data-native-helper="ps1" hidden>PlayStation SPU has 24 sample voices and 512 KiB RAM. An original waveform is ready for Keyboard after <strong>Prepare audio</strong>. Use <code>spu.noteOn(0, "C4")</code> / <code>spu.keyOff(0)</code>. Open <strong>SPU</strong> to choose a sample, voice, stereo gain and envelope. Experimental Web Audio mode.</p>
             <p data-native-helper="snes" hidden><code>snes.loadBRR(bytes, {rootNote:"C4", loopStartSamples:0})</code> prepares a BRR instrument. Assign it with <code>snes.setPreset(0, {sample:tone})</code>, then use <code>snes.noteOn(0, "C4")</code> / <code>snes.keyOff(0)</code>. Channels are <code>0..7</code>.</p>
             <p data-native-helper="x68000" hidden><code>opm</code> controls the eight YM2151 FM channels. <code>adpcm</code> controls the OKIM6258: <code>await adpcm.loadSample({channels:[pcm], sampleRate:15625})</code>, then <code>adpcm.play()</code> / <code>adpcm.stop()</code>.</p>
             <p data-native-helper="x68000" hidden>Open <strong>OKIM6258</strong> for the loaded ADPCM sample, decoded waveform, divider and stereo routing. Load an audio file from the Cassette, then use <strong>Hold to play</strong> or <strong>Use Keyboard</strong> to trigger it. Every Keyboard key plays the same sample at the selected rate.</p>
@@ -2441,6 +2443,7 @@
           <section id="rf5c164Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="rf5c164Tab" hidden></section>
           <section id="pwmPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="pwmTab" hidden></section>
           <section id="gameboyPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="gameboyTab" hidden></section>
+          <section id="ps1Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ps1Tab" hidden></section>
           <section id="snesPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="snesTab" hidden></section>
           <section id="nesPanel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="nesTab" hidden></section>
           <section id="ym2151Panel" class="tab-panel chip-editor-panel" role="tabpanel" aria-labelledby="ym2151Tab" hidden></section>
@@ -2511,7 +2514,7 @@
       })();
     </script>
     <script type="module">
-      import('./playground.js?v=adpcm-a-encoder-1').catch(error => window.__playgroundStartup.fail(error));
+      import('./playground.js?v=ps1-mode-1').catch(error => window.__playgroundStartup.fail(error));
     </script>
   </body>
 </html>

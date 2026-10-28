@@ -53,7 +53,9 @@ test('listening policy covers PSG and wavetable primaries and extras while retai
   expected.factoryDefaults.kinds.push({name:'pokey',volume:1});
   expected.factoryModes.pokey={version:1,entries:[{id:'pokey',name:'pokey',settings:{volume:1}}]};
   expected.factoryModes['pokey-dual']={version:1,entries:[{id:'pokey',name:'pokey',settings:{volume:1}},{id:'pokey:2',name:'pokey',settings:{volume:1}}]};
-  expected.calibration.unmeasuredKinds=['wonderswan','pokey'];
+  expected.factoryDefaults.kinds.push({name:'ps1',volume:1});
+  expected.factoryModes.ps1={version:1,entries:[{id:'ps1',name:'ps1',settings:{volume:1}}]};
+  expected.calibration.unmeasuredKinds=['wonderswan','pokey','ps1'];
   assert.deepEqual(policy,expected);
   assert.deepEqual(report,before);
 });

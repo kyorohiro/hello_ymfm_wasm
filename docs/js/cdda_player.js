@@ -47,8 +47,11 @@ export function createCddaPlayer(adapter,{readFile,signal,getMix}={}) {
       if(sourceFrame>selected.frames)throw new RangeError('CD-DA position is outside the track');
       return adapter.command({type:'play',sourceFrame},options);
     });},
+    /** @param {{at?:number}} [options] */
     pause:options=>serial(()=>adapter.command({type:'pause'},options)),
+    /** @param {{at?:number}} [options] */
     resume:options=>serial(()=>adapter.command({type:'resume'},options)),
+    /** @param {{at?:number}} [options] */
     stop(options){
       const token=++generation;operations.abort(cancelled());operations=new AbortController();tail=Promise.resolve();
       check(token);return adapter.command({type:'stop'},options);

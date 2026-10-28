@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import {PLAYGROUND_MODES, getPlaygroundMode, resolvePlaygroundMode,
   createModeSynthOptions, createPlaygroundModeUrl, isSimplePlaygroundLayout} from './playground_mode.js';
 import {MODE_STARTERS} from './playground_mode_examples.js';
+import {createPlaygroundSoundChipMixer} from './playground_mixer_defaults.js';
+
+test('every selectable mode can create its Mixer policy before audio preparation',()=>{
+  for(const mode of PLAYGROUND_MODES)assert.doesNotThrow(()=>createPlaygroundSoundChipMixer(mode.id),mode.id);
+});
 
 function assertWorkletUrl(actual, name) {
   const url = new URL(actual);
@@ -22,7 +27,7 @@ test('modes select native chips, clocks and console expansions', () => {
     ['neogeo-b','ym2610b',8000000,false],
     ['wonderswan','wonderswan',3072000,false],
     ['gameboy','gameboy',4194304,false],
-    ['nes','nes',1789773,false],['snes','snes',1024000,false],
+    ['nes','nes',1789773,false],['ps1','ps1',undefined,false],['snes','snes',1024000,false],
     ['x68000','x68000',4000000,false],['pc-engine','huc6280',3579545,false],['pc-engine-cd','huc6280',3579545,false],
     ['game-gear','segapsg',3579545,false],['master-system','segapsg',3579545,false],['atari-st','ay8910',2000000,false],['pokey','pokey',1789790,false],['pokey-dual','pokey',1789773,false],['msx','msx',1789773,false],['msx-audio','msx-audio',1789773,false],
     ['dx7','dx7',undefined,false],
@@ -36,6 +41,12 @@ test('modes select native chips, clocks and console expansions', () => {
     assert.equal(options.megaCD, mode.megaCD ?? mode.full);
     assert.equal(options.mega32X, mode.mega32X ?? mode.full);
     assert.equal(Boolean(options.segaPsgWasmUrl), mode.chip === 'ym2612');
+    if (mode.chip === 'ps1') {
+      assert.equal(mode.fmChannels,0); assert.deepEqual(mode.chipTabs,['ps1']);
+      assertWorkletUrl(options.workletUrl,'ps1');
+      assert.equal(options.wasmUrl,'https://example.com/app/generated/ps1_spu_wasm.wasm');
+      assert.equal(options.clock,undefined); continue;
+    }
     if (mode.chip === 'pokey') {
       assert.equal(mode.fmChannels,0);
       assert.deepEqual(mode.chipTabs,['pokey'],'POKEY modes expose the applied voice editor');
@@ -168,7 +179,7 @@ test('mode voice editors load the new processors after a cached website upgrade'
   for (const [id, filename] of [['gameboy','playground_gameboy_worklet.js'], ['nes','playground_nes_worklet.js'], ['x68000','playground_ym2151_worklet.js'], ['pc-engine','playground_huc6280_worklet.js'], ['neogeo-b','ym2610b-worklet.js'], ['wonderswan','playground_wonderswan_worklet.js'], ['pokey','playground_pokey_worklet.js'], ['pokey-dual','playground_pokey_worklet.js']]) {
     const url = new URL(createModeSynthOptions(getPlaygroundMode(id), new URL('https://example.com/custom-audio/')).workletUrl);
     assert.equal(url.pathname, `/custom-audio/${filename}`);
-    assert.equal(url.searchParams.get('v'), id.startsWith('pokey')?'pokey-voice-1':'pokey-prepare-1', `${id} cannot reuse its cached shared control transport`);
+    assert.equal(url.searchParams.get('v'), 'ps1-mode-1', `${id} cannot reuse its cached shared control transport`);
   }
 });
 

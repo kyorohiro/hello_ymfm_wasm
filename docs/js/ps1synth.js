@@ -1,0 +1,179 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, kyorohiro.
+/** Experimental CPU-free PlayStation SPU instruments. Samples are already encoded
+ * SPU ADPCM, not SNES BRR, Yamaha ADPCM, PCM or a PSF/game soundtrack.
+ */
+import {noteToHz} from './soundchip_pitch.js';
+import {PS1_SPU_SAMPLE_RATE, PS1_SPU_RAM_BYTES} from './ps1_spu.js?v=ps1-mode-1';
+export const PS1_CHANNEL_COUNT = 24;
+const RAM_START = 0x1000; // Hardware capture buffers occupy the first 4 KiB.
+const integer = (value,min,max,name) => {
+  if (!Number.isSafeInteger(value) || value<min || value>max) throw new RangeError(`${name} must be an integer from ${min} to ${max}`);
+  return value;
+};
+const channel = value => integer(value,0,23,'channel');
+const positive = (value,name) => {
+  if (!Number.isFinite(value) || value<=0) throw new RangeError(`${name} must be positive finite Hz`);
+  return value;
+};
+const object = (value,name) => {
+  if (!value || typeof value!=='object' || Array.isArray(value)) throw new TypeError(`${name} must be an object`);
+};
+const defaultVoice = () => ({sample:null,volumeLeft:0.75,volumeRight:0.75,adsr1:0x000f,adsr2:0,pitch:0x1000});
+const volumeRegister = value => Math.round(value*0x3fff)&0x7fff;
+/** @typedef {({rootNote:string|number,baseFrequencyHz?:never}|{baseFrequencyHz:number,rootNote?:never}) & {loopStartSamples?:number}} Ps1ADPCMOptions */
+/** Validate complete 16-byte / 28-frame SPU ADPCM packets and explicit tuning.
+ * Predictors 0..4 and shifts 0..12 are accepted. END must be the final packet.
+ * Looped data requires a packet-aligned loopStartSamples; any encoded LOOP START
+ * marker must agree with it. The returned bytes are an owned copy.
+ * @param {ArrayBuffer|ArrayBufferView} input @param {Ps1ADPCMOptions} options
+ * @returns {{adpcm:Uint8Array,rootNote:string|number|null,rootFrequencyHz:number,basePitch:number,loop:boolean,loopStartSamples:number|null,decodedFrames:number}}
+ */
+export function preparePs1ADPCM(input,options) {
+  object(options,'SPU ADPCM options');
+  if (Reflect.ownKeys(options).some(key=>!['rootNote','baseFrequencyHz','loopStartSamples'].includes(key))) throw new TypeError('Unknown SPU ADPCM option');
+  const {rootNote,baseFrequencyHz,loopStartSamples}=options;
+  if ((rootNote===undefined)===(baseFrequencyHz===undefined)) throw new TypeError('Supply exactly one rootNote or baseFrequencyHz for SPU ADPCM tuning');
+  const rootFrequencyHz=rootNote===undefined?positive(baseFrequencyHz,'baseFrequencyHz'):noteToHz(rootNote);
+  if (!(input instanceof ArrayBuffer) && !ArrayBuffer.isView(input)) throw new TypeError('SPU ADPCM data must be an ArrayBuffer or typed array');
+  if (!input.byteLength || input.byteLength%16) throw new RangeError('SPU ADPCM requires complete 16-byte packets');
+  if (input.byteLength>PS1_SPU_RAM_BYTES-RAM_START) throw new RangeError('SPU ADPCM exceeds available sample RAM');
+  const adpcm=input instanceof ArrayBuffer?new Uint8Array(input.slice(0)):new Uint8Array(input.buffer,input.byteOffset,input.byteLength).slice();
+  let marker=null;
+  const blocks=adpcm.length/16,decodedFrames=blocks*28;
+  for (let block=0;block<blocks;block++) {
+    const header=adpcm[block*16],flags=adpcm[block*16+1];
+    if ((header>>4)>4 || (header&15)>12) throw new RangeError('SPU ADPCM predictor must be 0..4 and shift 0..12');
+    if (flags&~7) throw new RangeError('Unsupported SPU ADPCM packet flags');
+    if (!!(flags&1)!==(block===blocks-1)) throw new RangeError('SPU ADPCM requires END only on its final packet');
+    if (flags&4) {
+      if (marker!==null) throw new RangeError('SPU ADPCM has multiple LOOP START markers');
+      marker=block*28;
+    }
+  }
+  const loop=!!(adpcm[adpcm.length-15]&2);
+  if (loop && loopStartSamples===undefined) throw new TypeError('Looped SPU ADPCM requires explicit loopStartSamples');
+  if (!loop && (loopStartSamples!==undefined || marker!==null)) throw new TypeError('SPU ADPCM loop metadata requires LOOP on the END packet');
+  const loopStart=loop?integer(loopStartSamples,0,decodedFrames-1,'loopStartSamples'):null;
+  if (loopStart!==null && loopStart%28) throw new RangeError('SPU ADPCM loopStartSamples must be on a 28-sample packet boundary');
+  if (marker!==null && marker!==loopStart) throw new RangeError('SPU ADPCM LOOP START marker disagrees with loopStartSamples');
+  return {adpcm,rootNote:rootNote??null,rootFrequencyHz,basePitch:0x1000,loop,loopStartSamples:loopStart,decodedFrames};
+}
+/** A small original filter-0 sine loop, authored as SPU packets (no game assets).
+ * 112 source frames per cycle at pitch 4096, so its fundamental is 44100/112 Hz.
+ */
+export function createPs1InitSample() {
+  const adpcm=new Uint8Array(64);
+  for (let block=0;block<4;block++) {
+    adpcm[block*16]=4; // Filter 0, shift 4.
+    adpcm[block*16+1]=block===3?3:block===0?6:0;
+    for (let pair=0;pair<14;pair++) {
+      const index=block*28+pair*2;
+      const nibble=frame=>Math.round(7*Math.sin(2*Math.PI*frame/112))&15;
+      adpcm[block*16+2+pair]=nibble(index)|(nibble(index+1)<<4);
+    }
+  }
+  return {adpcm,baseFrequencyHz:PS1_SPU_SAMPLE_RATE/112,loopStartSamples:0};
+}
+/** @typedef {{id:number,startAddress:number,repeatAddress:number,byteLength:number,decodedFrames:number,
+ * rootNote:string|number|null,rootFrequencyHz:number,basePitch:number,loop:boolean,loopStartSamples:number|null}} Ps1Sample */
+/** @typedef {{sample?:number|Ps1Sample,volumeLeft?:number,volumeRight?:number,adsr1?:number,adsr2?:number,pitch?:number}} Ps1Preset */
+/** @typedef {{sample:number|null,volumeLeft:number,volumeRight:number,adsr1:number,adsr2:number,pitch:number}} Ps1VoiceState */
+/** Fixed physical voices 0..23 over Ps1Spu. Uploads grow from byte address 0x1000
+ * with 16-byte alignment; reset({clearRam:true}) starts a new bank. There is no
+ * compaction, voice allocator, automatic gain normalization or PCM encoder.
+ * Direct core edits bypass this class's bookkeeping and RAM reservations.
+ */
+export class Ps1Synth {
+  /** @param {{core:import('./ps1_spu.js?v=audio-stability-2').Ps1Spu}} options */
+  constructor({core}) {
+    if (!core || !['reset','write','read','loadRam','readRam','renderInto','dispose'].every(key=>typeof core[key]==='function')) throw new TypeError('Ps1Synth requires Ps1Spu');
+    this.core=core; this.sampleRate=PS1_SPU_SAMPLE_RATE; this.channelCount=PS1_CHANNEL_COUNT;
+    /** @type {Ps1Sample[]} */ this.samples=[];
+    /** @type {Uint8Array[]} */ this.sampleBytes=[];
+    /** @type {Ps1VoiceState[]} */ this.channels=[];
+    /** @type {boolean[]} */ this.gates=[];
+    this.nextAddress=RAM_START; this.disposed=false;
+    this.reset();
+  }
+  _open(){if(this.disposed)throw new Error('PS1 synth is disposed');}
+  _enable(){this.core.write(0x180,0x3fff);this.core.write(0x182,0x3fff);this.core.write(0x1aa,0xc000);}
+  /** Reset voice presets and gates. Samples/IDs are retained unless clearRam is
+   * true, which clears RAM, descriptors and the upload allocator together.
+   * @param {{clearRam?:boolean}} [options] */
+  reset(options={}) {
+    this._open();object(options,'PS1 reset options');
+    if (Reflect.ownKeys(options).some(key=>key!=='clearRam')) throw new TypeError('Unknown PS1 reset option');
+    const {clearRam=false}=options;if(typeof clearRam!=='boolean')throw new TypeError('clearRam must be boolean');
+    this.core.reset({clearRam});
+    if(clearRam){this.samples=[];this.sampleBytes=[];this.nextAddress=RAM_START;}
+    this.channels=Array.from({length:24},defaultVoice);this.gates=Array(24).fill(false);
+    this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);
+  }
+  /** Upload a complete, validated SPU ADPCM instrument; declared tuning is the
+   * fundamental at hardware PITCH 4096 (one source frame per output frame).
+   * @param {ArrayBuffer|ArrayBufferView} input @param {Ps1ADPCMOptions} options
+   * @returns {Ps1Sample} */
+  loadADPCM(input,options) {
+    this._open();const p=preparePs1ADPCM(input,options);
+    if(this.nextAddress+p.adpcm.length>PS1_SPU_RAM_BYTES)throw new RangeError('PS1 sample RAM is full; reset with clearRam:true for a new bank');
+    const startAddress=this.nextAddress,repeatAddress=startAddress+(p.loopStartSamples??0)/28*16;
+    const sample={id:this.samples.length,startAddress,repeatAddress,byteLength:p.adpcm.length,decodedFrames:p.decodedFrames,
+      rootNote:p.rootNote,rootFrequencyHz:p.rootFrequencyHz,basePitch:p.basePitch,loop:p.loop,loopStartSamples:p.loopStartSamples};
+    this.core.loadRam(p.adpcm,startAddress);this.samples.push(sample);this.sampleBytes.push(p.adpcm);this.nextAddress+=p.adpcm.length;
+    return {...sample};
+  }
+  _preset(ch,preset) {
+    this._open();channel(ch);object(preset,'PS1 preset');
+    if(Reflect.ownKeys(preset).some(key=>!['sample','volumeLeft','volumeRight','adsr1','adsr2','pitch'].includes(key)))throw new TypeError('Unknown PS1 preset parameter');
+    const p={...this.channels[ch]};
+    if(preset.sample!==undefined){const id=typeof preset.sample==='object'?preset.sample?.id:preset.sample;p.sample=integer(id,0,this.samples.length-1,'sample');}
+    for(const key of ['volumeLeft','volumeRight'])if(preset[key]!==undefined){const v=preset[key];if(!Number.isFinite(v)||v< -1||v>1)throw new RangeError(`${key} must be finite from -1 to 1`);p[key]=v;}
+    for(const key of ['adsr1','adsr2'])if(preset[key]!==undefined)p[key]=integer(preset[key],0,65535,key);
+    if(preset.pitch!==undefined)p.pitch=integer(preset.pitch,0,0x3fff,'pitch');
+    return p;
+  }
+  _writeChannel(ch,p) {
+    const b=ch*16,sample=this.samples[p.sample];
+    for(const [offset,value] of [[0,volumeRegister(p.volumeLeft)],[2,volumeRegister(p.volumeRight)],[4,p.pitch],[6,sample?sample.startAddress>>3:RAM_START>>3],[8,p.adsr1],[10,p.adsr2],[14,sample?sample.repeatAddress>>3:RAM_START>>3]])this.core.write(b+offset,value);
+  }
+  /** Partial voice preset. Fixed signed volumes use -1..1; ADSR1/2 are raw 16-bit
+   * registers. ADSR edits affect the next key-on in this experimental core.
+   * @param {number} ch @param {Ps1Preset} preset */
+  setPreset(ch,preset){const p=this._preset(ch,preset);this._writeChannel(ch,p);this.channels[ch]=p;}
+  /** @param {number} ch @param {Ps1Preset} params */
+  setChannel(ch,params){this.setPreset(ch,params);}
+  /** @param {number} ch @returns {Ps1VoiceState} */
+  getPreset(ch){this._open();channel(ch);return {...this.channels[ch]};}
+  /** Raw hardware pitch 0..16383. Zero holds the current sample position.
+   * @param {number} ch @param {number} pitch */
+  setPitch(ch,pitch){this._open();channel(ch);integer(pitch,0,0x3fff,'pitch');this.core.write(ch*16+4,pitch);this.channels[ch].pitch=pitch;}
+  /** @param {number} ch @param {number} hz */
+  setFrequency(ch,hz){this._open();channel(ch);positive(hz,'frequency');const sample=this.samples[this.channels[ch].sample];if(!sample)throw new Error('Assign an SPU ADPCM sample before setting musical pitch');const pitch=Math.round(sample.basePitch*hz/sample.rootFrequencyHz);if(pitch<1||pitch>0x3fff)throw new RangeError('Frequency is outside the PS1 SPU PITCH range');this.setPitch(ch,pitch);}
+  /** @param {number} ch @param {string|number} note */
+  setNote(ch,note){this.setFrequency(ch,noteToHz(note));}
+  /** @param {number} ch */
+  keyOn(ch){this._open();channel(ch);if(!this.samples[this.channels[ch].sample])throw new Error('Assign an SPU ADPCM sample before keyOn');this.core.write(0x188+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=true;}
+  /** Release via the programmed ADSR release register, without changing others.
+   * @param {number} ch */
+  keyOff(ch){this._open();channel(ch);this.core.write(0x18c+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=false;}
+  /** @param {number} ch @param {string|number} [note] */
+  noteOn(ch,note){if(note!==undefined)this.setNote(ch,note);this.keyOn(ch);}
+  /** @param {number} ch */
+  noteOff(ch){this.keyOff(ch);}
+  allNotesOff(){this._open();this.core.write(0x18c,0xffff);this.core.write(0x18e,0xff);this.gates.fill(false);}
+  /** Immediate silence for transport Stop: clear decoder/envelopes/reverb while
+   * preserving RAM, sample IDs, tuning and all programmed voice presets.
+   * This also resets the core's native frame counter.
+   */
+  stopVoices(){this._open();this.core.reset({clearRam:false});this.gates.fill(false);this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);}
+  /** Serializable metadata and requested key gates; ENVX/END reflect the core.
+   * Sample byte payloads are available through snapshot(). */
+  getState(){this._open();return {sampleRate:this.sampleRate,channelCount:this.channelCount,nextAddress:this.nextAddress,nativeFrames:this.core.nativeFrames??0,
+    samples:this.samples.map(s=>({...s})),channels:this.channels.map((p,ch)=>({...p,gate:this.gates[ch],envelope:this.core.read(ch*16+12),ended:!!(this.core.read(0x19c+(ch>=16?2:0))&(1<<(ch%16)))}))};}
+  /** Explicit, potentially large copy of RAM/registers for inspection. */
+  snapshot(){this._open();const registers=new Uint16Array(512);for(let at=0;at<512;at++)registers[at]=this.core.read(at*2);return {...this.getState(),ram:this.core.readRam(),registers};}
+  /** @param {Float32Array} left @param {Float32Array} right @param {number} [frames] @param {number} [offset] */
+  renderInto(left,right,frames=Math.min(left.length,right.length),offset=0){this._open();this.core.renderInto(left,right,frames,offset);}
+  dispose(){if(!this.disposed){this.disposed=true;this.core.dispose();}}
+}

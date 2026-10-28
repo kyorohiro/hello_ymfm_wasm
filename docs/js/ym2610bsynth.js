@@ -213,7 +213,7 @@ export class YM2610BRuntimeSynth extends OPNRuntimeSynth {
   constructor(options = {}) {
     super(options, {
       chip: "ym2610b", chipName: "YM2610B", fmChannels: 6, portCount: 2,
-      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js?v=pokey-prepare-1",
+      processorName: "ym2610b-processor", workletUrl: "./ym2610b-worklet.js?v=ps1-mode-1",
       wasmUrl: "../generated/ym2610b_wasm.wasm", FMSynth: YM2610BSynth,
     });
   }

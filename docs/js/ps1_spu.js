@@ -45,8 +45,8 @@ export class Ps1Spu {
   }
 
   /** Initialize an experimental standalone SPU with 512 KiB RAM and 24 voices.
-   * @param {{moduleFactory:import('./soundchip.js').WasmModuleFactory,
-   *   moduleOptions?:import('./soundchip.js').WasmModuleOptions}} options
+   * @param {{moduleFactory:import('./soundchip.js?v=pokey-prepare-1').WasmModuleFactory,
+   *   moduleOptions?:import('./soundchip.js?v=pokey-prepare-1').WasmModuleOptions}} options
    * @returns {Promise<Ps1Spu>}
    */
   static async create({moduleFactory, moduleOptions}) {

@@ -334,8 +334,18 @@ const brrEncoderFiles=new Set(['snes_brr_encoder.js','playground_runtime.js',
 const adpcmAEncoderFiles=new Set(['adpcm_a_sample.js','playground_runtime.js',
   'playground_logic_worker.js','playground.js','playground_examples.js',
   'playground_mode_examples.js','playground_monaco.js','playground_monaco_definitions.js']);
-const revisionFor=name=>adpcmAEncoderFiles.has(name)?'adpcm-a-encoder-1':brrEncoderFiles.has(name)?'snes-brr-encoder-1':gameboySampleFiles.has(name)?'gameboy-sample-preview-1':megaCdCddaFiles.has(name)?'mega-cd-cdda-1':cdrom2PanelFiles.has(name)?'cdrom2-panels-1':pcEngineCdFiles.has(name)?'pcengine-cd-1':cddaFiles.has(name)?'cdda-pcm-1':pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const ps1ModeFiles=new Set(['ps1_spu.js','ps1synth.js','ps1_resampler.js','playground_ps1.js','playground_ps1_audio.js','playground_ps1_worklet.js','playground_ps1_inspector.js',
+  'native_runtime_synth.js','tetorica_synth.js','playground_runtime.js','playground_logic_worker.js','playground_native_primary.js','playground_soundchips.js','playground_performance_processor.js','playground_performance_sender.js','playground_performance_notes.js','playground_chip_inspector.js','playground_keyboard_channels.js',
+  'playground.js','playground_ui.js','playground_workbench.js','playground_operator_keyboard.js','playground_monaco_completion.js','playground_mixer_defaults.js','playground_mode.js','playground_examples.js','playground_mode_examples.js','playground_mode_keyboard.js','playground_chip_tabs.js','playground_ps1_voice_panel.js','playground_declarations.js']);
+do {propagated=false;for(const {name,source}of sources){
+  if(ps1ModeFiles.has(name))continue;
+  const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
+  if(imports.some(match=>ps1ModeFiles.has(match[1]))){ps1ModeFiles.add(name);propagated=true;}
+}}while(propagated);
+const previousRevisionFor=name=>adpcmAEncoderFiles.has(name)?'adpcm-a-encoder-1':brrEncoderFiles.has(name)?'snes-brr-encoder-1':gameboySampleFiles.has(name)?'gameboy-sample-preview-1':megaCdCddaFiles.has(name)?'mega-cd-cdda-1':cdrom2PanelFiles.has(name)?'cdrom2-panels-1':pcEngineCdFiles.has(name)?'pcengine-cd-1':cddaFiles.has(name)?'cdda-pcm-1':pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+const revisionFor=name=>ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
+  ...ps1ModeFiles,
   ...cddaFiles, ...pcEngineCdFiles, ...cdrom2PanelFiles,
   ...megaCdCddaFiles,
   ...gameboySampleFiles,
@@ -395,7 +405,20 @@ let changed=0;
 for(const currentDirectory of [directory,join(directory,'../playground')])for(const name of await readdir(currentDirectory)){
   if(!name.endsWith('.js')&&!name.endsWith('.html'))continue;
   const path=join(currentDirectory,name),source=await readFile(path,'utf8');
-  const next=source.replace(currentDirectory===directory?references:pageReferences,(_match,quote,path)=>quote+path+'?v='+revisionFor(path.split('/').at(-1))+quote)
+  // Type-only JSDoc imports do not fetch runtime modules. Keep their existing
+  // revision policy so a new machine cannot invalidate measured renderer bytes
+  // merely by changing a comment. Runtime dependencies still receive PS1's revision.
+  const pattern=currentDirectory===directory?references:pageReferences;
+  const rewrite=(text,revision)=>text.replace(pattern,(_match,quote,path)=>quote+path+'?v='+revision(path.split('/').at(-1))+quote);
+  let cursor=0,versioned='';
+  for(const comment of source.matchAll(/\/\*[\s\S]*?\*\//g)){
+    versioned+=rewrite(source.slice(cursor,comment.index),revisionFor)+rewrite(comment[0],previousRevisionFor);
+    cursor=comment.index+comment[0].length;
+  }
+  versioned+=rewrite(source.slice(cursor),revisionFor);
+  const next=versioned
+    .replace(/(['"])((?:\.\.?\/)+generated\/ps1_spu_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
+      (_match,quote,path)=>quote+path+'?v=ps1-mode-1'+quote)
     .replace(/(['"])((?:(?:\.\.?\/)+generated\/)?segapsg_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,
       (_match,quote,path)=>quote+path+'?v='+segaVersion+quote)
     .replace(/(['"])((?:\.\.?\/)+generated\/spc_wasm\.(?:js|wasm))(?:\?[^'"\s]*)?\1/g,

@@ -1,6 +1,6 @@
 import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave, sampleNormalizationGainDb,
   estimateSamplePitch, encodeSampleWav} from '../js/playground_sample_edit.js?v=audio-numeric-bindings-1';
-import {renderGameboySampleComparison, renderGameboySamplePreview} from '../js/playground_sample_gameboy_preview.js';
+import {renderGameboySampleComparison, renderGameboySamplePreview} from '../js/playground_sample_gameboy_preview.js?v=gameboy-sample-preview-1';
 
 let audio = null;
 self.onmessage = async ({data}) => {

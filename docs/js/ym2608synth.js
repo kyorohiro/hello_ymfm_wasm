@@ -290,7 +290,7 @@ export class YM2608RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 6,
       portCount: 2,
       processorName: "ym2608-processor",
-      workletUrl: "./ym2608-worklet.js?v=pokey-prepare-1",
+      workletUrl: "./ym2608-worklet.js?v=ps1-mode-1",
       wasmUrl: "../generated/ym2608_wasm.wasm",
       FMSynth: YM2608Synth,
       rhythmRomUrl: new URL('./tetorica_ym2608_adpcm_rom.bin', import.meta.url),

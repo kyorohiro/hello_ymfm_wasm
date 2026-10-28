@@ -22,6 +22,7 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
   if(kind==='segapsg')return native(['Tone 1','Tone 2','Tone 3','Noise']);
   if(kind==='gameboy')return native(['Pulse 1','Pulse 2','Wave','Noise']);
   if(kind==='nes')return native(['Pulse 1','Pulse 2','Triangle','Noise','DMC',...(fdsEnabled?['FDS']:[])]);
+  if(kind==='ps1')return numbered('',24,'ADPCM voice');
   if(kind==='snes')return numbered('',8,'Voice');
   if(kind==='ym2151')return numbered('',8,'FM');
   if(kind==='ym2413'){const rhythm=rhythmEnabled??!!((registers?.[0x0e]??0)&32);return [...numbered('',rhythm?6:9,'FM'),...(rhythm?['Bass drum','Snare','Tom','Cymbal','Hi-hat'].map((label,index)=>({id:`rhythm:${index}`,label:`Rhythm: ${label}`})):[])];}
@@ -41,6 +42,7 @@ export function keyboardChannels(kind,{fds=true,fdsEnabled=fds,model,registers,r
  * pitched voice for noise generators or streaming sample FIFOs.
  * @param {string} kind @param {string} [channel] */
 export function keyboardChannelHint(kind,channel='0') {
+  if(kind==='ps1')return 'Plays the selected physical SPU voice with its assigned ADPCM sample, tuning and envelope. A built-in original waveform is ready after Prepare audio.';
   if(kind==='pokey')return 'Plays the selected physical POKEY channel using its current distortion and volume. Joined pairs use the upper channel; shared clock and filter settings affect the chip.';
   if(kind==='ay8910')return 'Uses this channel’s tone/noise mixer and volume or shared envelope. Noise and envelope settings are shared by all three channels.';
   if(kind==='pwm')return 'PWM plays a timed sample stream and has no independent pitched Keyboard channel.';

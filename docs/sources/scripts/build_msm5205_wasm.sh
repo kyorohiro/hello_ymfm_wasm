@@ -1,9 +1,14 @@
 #!/bin/sh
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2026, kyorohiro
 set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-OUT_DIR="${1:-$ROOT_DIR/web/generated}"
+cd "$ROOT_DIR"
+OUT_DIR="${1:-$ROOT_DIR/dist/wasm}"
 mkdir -p "$OUT_DIR"
-emcc "$ROOT_DIR/native/msm5205/msm5205_pcm.c" "$ROOT_DIR/native/msm5205/msm5205_wasm.c" \
+OUT_DIR=$(CDPATH= cd -- "$OUT_DIR" && pwd)
+"${EMCC:-emcc}" "$ROOT_DIR/native/msm5205/msm5205_pcm.c" "$ROOT_DIR/native/msm5205/msm5205_wasm.c" \
+  -I"$ROOT_DIR/native/msm5205" \
   -std=c11 -O2 -ffp-contract=off -sSTANDALONE_WASM=1 \
   -sALLOW_MEMORY_GROWTH=0 -sINITIAL_MEMORY=131072 -sSTACK_SIZE=16384 \
   --no-entry -Wl,--export-memory \

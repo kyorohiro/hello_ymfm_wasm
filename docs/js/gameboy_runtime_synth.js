@@ -18,7 +18,7 @@ const MAX_MASTER_VOLUME = 3.8;
 export class GameboyRuntimeSynth {
   /** @param {GameboyRuntimeSynthOptions|undefined} options */
   constructor(options = {}) {
-    const config = {chip:'gameboy', fmChannels:0, workletUrl:new URL('./playground_gameboy_worklet.js?v=pokey-prepare-1',import.meta.url),
+    const config = {chip:'gameboy', fmChannels:0, workletUrl:new URL('./playground_gameboy_worklet.js?v=ps1-mode-1',import.meta.url),
       wasmUrl:new URL('../generated/gameboy_apu_wasm.wasm',import.meta.url), processorName:'tetorica-gameboy', chipName:'Game Boy'};
     this.chip = config.chip;
     this.capabilities = Object.freeze({

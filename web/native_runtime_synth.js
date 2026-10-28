@@ -8,6 +8,8 @@ import {createNesAudio} from './playground_nes_audio.js';
 import {createNesClient} from './playground_nes.js';
 import {createSnesAudio} from './playground_snes_audio.js';
 import {createSnesClient} from './playground_snes.js';
+import {createPs1Audio} from './playground_ps1_audio.js';
+import {createPs1Client} from './playground_ps1.js';
 import {createYm2151Audio} from './playground_ym2151_audio.js';
 import {createYm2151Client} from './playground_ym2151.js';
 import {createOki6258Audio} from './playground_okim6258_audio.js';
@@ -25,10 +27,10 @@ import {createOplClient, OPL_CHIPS} from './playground_opl.js';
 import {createDx7Audio} from './playground_dx7_audio.js';
 import {createDx7Client} from './playground_dx7.js';
 
-const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'x68000', 'huc6280', 'pokey', 'wonderswan', 'segapsg', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'msx', 'msx-audio']);
+const PRIMARY_CHIPS = Object.freeze(['nes', 'snes', 'ps1', 'x68000', 'huc6280', 'pokey', 'wonderswan', 'segapsg', 'dx7', 'ym3526', 'ym3812', 'y8950', 'ymf262', 'ym2413', 'ay8910', 'msx', 'msx-audio']);
 
 /** @typedef {Pick<import('./megasynth.js').MegaSynthOptions,'audioContext'|'outputNode'|'sampleOutputNode'|'masterVolume'|'mixer'> & {
- * chip?:'nes'|'snes'|'x68000'|'huc6280'|'pokey'|'wonderswan'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number, stereoEnabled?:boolean, fds?:boolean,
+ * chip?:'nes'|'snes'|'ps1'|'x68000'|'huc6280'|'pokey'|'wonderswan'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio', ym2413?:boolean, clock?:number, stereoEnabled?:boolean, fds?:boolean,
  * type?:0|16, flags?:number, dualPokey?:boolean, mixerId?:string,
  * wasmUrl?:string|URL, workletUrl?:string|URL, fetch?:typeof globalThis.fetch,
  * ayOptions?:{fetch?:typeof globalThis.fetch,wasmUrl?:string|URL,workletUrl?:string|URL},
@@ -61,10 +63,11 @@ export class NativeRuntimeSynth {
     this.node = null;
     this.fm = null;
     this.psg = null;
-    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>,psg?:ReturnType<typeof createSegaPsgClient>,dx7?:ReturnType<typeof createDx7Client>,opl?:ReturnType<typeof createOplClient>,opll?:ReturnType<typeof createYm2413Client>,ay?:ReturnType<typeof createAy8910Client>,pokey?:ReturnType<typeof createPokeyClient>,pokey2?:ReturnType<typeof createPokeyClient>}} */
+    /** @type {{nes?:ReturnType<typeof createNesClient>,snes?:ReturnType<typeof createSnesClient>,spu?:ReturnType<typeof createPs1Client>,opm?:ReturnType<typeof createYm2151Client>,adpcm?:ReturnType<typeof createOki6258Client>,pce?:ReturnType<typeof createHuc6280Client>,psg?:ReturnType<typeof createSegaPsgClient>,dx7?:ReturnType<typeof createDx7Client>,opl?:ReturnType<typeof createOplClient>,opll?:ReturnType<typeof createYm2413Client>,ay?:ReturnType<typeof createAy8910Client>,pokey?:ReturnType<typeof createPokeyClient>,pokey2?:ReturnType<typeof createPokeyClient>}} */
     this.primaryApis = {};
     /** @type {ReturnType<typeof createNesClient>|null} */ this.nes = null;
     /** @type {ReturnType<typeof createSnesClient>|null} */ this.snes = null;
+    /** @type {ReturnType<typeof createPs1Client>|null} */ this.spu = null;
     /** @type {ReturnType<typeof createYm2151Client>|null} */ this.opm = null;
     /** @type {ReturnType<typeof createOki6258Client>|null} */ this.adpcm = null;
     /** @type {ReturnType<typeof createHuc6280Client>|null} */ this.pce = null;
@@ -143,10 +146,11 @@ export class NativeRuntimeSynth {
 
   /** Stop voices while keeping uploaded samples, patches, waveforms and clocks. */
   stopAllNative() {
-    const {nes, snes, opm, adpcm, pce, ws, psg, dx7, opl, opll, ay, pokey, pokey2} = this.primaryApis;
+    const {nes, snes, spu, opm, adpcm, pce, ws, psg, dx7, opl, opll, ay, pokey, pokey2} = this.primaryApis;
     const pending=[],track=result=>{if(result?.then)pending.push(Promise.resolve(result));};
     if (nes?._stopVoices) track(nes._stopVoices());
     else if (nes) for (let channel = 0; channel < 6; channel++) nes.keyOff(channel);
+    if(spu)track(spu._stopVoices());
     if (snes?._stopVoices) track(snes._stopVoices());
     else if (snes) {
       try { snes.allNotesOff(); }
@@ -241,6 +245,8 @@ export class NativeRuntimeSynth {
       await this.#addAy({...options,type:options.type??0,flags:options.flags??1},signal);
     }else if (this.chip === 'nes') {
       await this.#addPrimary('nes', 'nes', createNesAudio, device => createNesClient(device.port, {clock:device.clock, fdsEnabled:true}), {...options, fds:true}, signal);
+    } else if (this.chip === 'ps1') {
+      await this.#addPrimary('ps1','spu',createPs1Audio,device=>createPs1Client(device.port,device),{...options,onError:()=>{if(this.initializationController?.signal!==signal||signal.aborted)return;this.#releasePrimaries();this.readyPromise=null;this.state='error';}},signal);
     } else if (this.chip === 'snes') {
       await this.#addPrimary('snes', 'snes', createSnesAudio, device => createSnesClient(device.port, device), options, signal);
     } else if (this.chip === 'segapsg') {

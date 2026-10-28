@@ -23,7 +23,7 @@ function immediate(command, kind) {
       'sample-writes', 'sample-dac-bank'].includes(command.type);
   }
   if (kind === 'fx') return command.op === 'sample' && command.action === 'load';
-  return timelineUploadMethods.has(command.method)||['stopTimeline', 'getTimelineState', 'loadBRR', 'readDsp', 'snapshot', 'loadSysex', 'memory', 'rom', 'loadMemory', 'prepareTimeline', 'getState',
+  return timelineUploadMethods.has(command.method)||['stopTimeline', 'getTimelineState', 'loadBRR', 'loadADPCM', 'readDsp', 'snapshot', 'loadSysex', 'memory', 'rom', 'loadMemory', 'prepareTimeline', 'getState',
     'getPreset', 'read', 'status', 'getIrq'].includes(command.method);
 }
 

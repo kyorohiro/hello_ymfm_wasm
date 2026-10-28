@@ -5,9 +5,65 @@ Browser, Worker and Node. The same C++ sources expose a C interface for Native
 hosts. Each instance owns 24 voices and 512 KiB of RAM and renders stereo PCM
 at **44,100 Hz**. It does not open an audio device or resample its output.
 
-This is the first foundation milestone. A Playground PS1 mode, Synth/transport,
-Keyboard integration, PCM encoder and Tauri adapter are subsequent work. This
-component is not yet part of the fixed soundchip SDK or `createSoundChip()`.
+The Browser Playground now has experimental **PlayStation (PS1)** mode with
+`spu`, 24 physical Keyboard targets and an SPU voice tab. An original sample is
+assigned to every voice when audio is prepared; no game files are needed.
+Main and Worker playback share the same AudioWorklet core. The Native audio
+backend, general PCM encoder and fixed soundchip SDK adoption are future work.
+The package-root low-level `createSoundChip()` factory is a separate API.
+
+## Playground and instrument API
+
+Select **PlayStation (PS1)** from Mode. **Prepare audio** makes Keyboard usable
+without Run. The SPU tab selects voices 1–24 and edits their sample, left/right
+volume, pitch and raw ADSR words. Use Hold to play, Play 1 second or the shared
+Guitar/PC Keyboard to hear the selected voice. Snapshots update on entry,
+Refresh and edits; this tab adds no periodic audio-state polling.
+
+The mode's original default sample has ID 0:
+
+```js
+spu.setPreset(23, {sample:0, volumeLeft:0.7, volumeRight:0.4, adsr2:8});
+spu.noteOn(23, 'A4');
+await beat(1);
+spu.keyOff(23);
+```
+
+`spu` and `pg.spu` borrow the primary SPU. Playground `useSoundChip('ps1')`
+borrows it in PS1 mode; `createSoundChip('ps1')` creates an independent Browser
+instance. The primary lifetime belongs to the mode. Each independent instance
+has its own 512 KiB sample RAM and 24 voices and is released on Stop.
+
+`loadADPCM(bytes, {rootNote:'C4'})` uploads complete SPU packets with explicit
+tuning and returns a sample descriptor. Use exactly one of `rootNote` and
+`baseFrequencyHz`. For a loop, supply `loopStartSamples` at a 28-frame packet
+boundary with matching packet flags. The helper validates predictor, shift,
+packet length, final END, loop markers and available RAM before writing.
+Uploads do not resample PCM or encode WAV. The two bundled examples demonstrate
+independent stereo voices and an original hand-authored triangle ADPCM sample.
+
+`setPreset` / `setChannel` accept sample ID or descriptor, signed normalized
+`volumeLeft` / `volumeRight` in `[-1,1]`, raw `adsr1` / `adsr2` words and pitch.
+`setFrequency` and `setNote` use the sample's tuning. `getState`, `getPreset` and
+`snapshot` are asynchronous on the Playground client. `reset({clearRam:false})`
+retains samples and resets voice settings; `clearRam:true` discards the bank.
+Stop clears the running decoder/envelopes for immediate silence while retaining
+samples and presets. A host reset also clears resampler history.
+
+On the Playground client, `reset()` is immediate preparation rather than a
+scheduled note event. It clears prior queued notes; subsequent voice commands
+retain their normal Worker lead. If an upload was already in flight, its promise
+rejects with `AbortError` after reset. Its sample remains available when RAM is
+retained; `clearRam:true` discards it. Bank IDs stay consistent for later uploads.
+
+For direct Node/Browser rendering, construct `new Ps1Synth({core:spuCore})`
+from `ps1synth.js`, upload `createPs1InitSample().adpcm`, assign it and render
+through the Synth or a `Ps1Resampler(synth, outputRate)`. Synth operations are
+synchronous when directly attached to the core; the Playground client uses
+ordered messages. The resampler reuses buffers, preserves phase between quanta,
+and batches only the frames needed for the current segment. Output at 44.1 kHz
+uses direct blocks with no resampling. No Mixer compensation is applied by the
+Synth or starter.
 
 ## Build and run
 
@@ -107,9 +163,9 @@ produce cycle-accurate envelopes through these approximations.
 Standard RAM mapping and fixed volume are supported; unsupported RAM layouts,
 volume sweeps and unaligned packet addresses are rejected.
 
-This milestone is offline-first. Decoded sample caches may be allocated during
-rendering; there is no real-time allocation guarantee. A future audio adapter
-must handle scheduling, sample-rate conversion and bounded callback work.
+The underlying core may allocate decoded sample caches during rendering; there
+is no real-time allocation guarantee. The Browser adapter handles scheduling
+and sample-rate conversion with reused buffers.
 CPU/DMA/IRQ timing, PSF playback and external XA/CD audio input are not exposed.
 
 The individually BSD-3-Clause-licensed SPU files by pSXAuthor and R. Belmont are

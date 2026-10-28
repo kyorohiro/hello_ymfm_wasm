@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "origin": "Fixed tetorica-soundchip-native application-audio module",
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.5",
+    "sourceCommit": "3bb8d9ceffa50ad183d1ab856e031fe649425bca",
+    "archiveName": "tetorica-soundchip-native-0.1.5-published-sources.zip",
+    "archiveSha256": "e37be75316a35a4159d8760afa9e4b86a9a4b8d4d24f674cc15e3e5e52c44309",
+    "manifestSha256": "e2b5703a2bbf44323d5331b522aa167fa091fcb13ceadebe14d021efe3aa07e7",
+    "fileCount": 431
+  },
+  "inputs": [
+    {
+      "path": "vendor/tetorica-cdda/cdda_pcm.c",
+      "size": 5021,
+      "sha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb"
+    },
+    {
+      "path": "vendor/tetorica-cdda/cdda_pcm.h",
+      "size": 2890,
+      "sha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6"
+    },
+    {
+      "path": "vendor/tetorica-cdda/LICENSE",
+      "size": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "vendor/tetorica-cdda/NOTICE.md",
+      "size": 791,
+      "sha256": "32dd325f1ede34b3da8c72a7a2fd65d25fe4c645051788057e9c37d669ae634c"
+    },
+    {
+      "path": "wasm/cdda_wasm.c",
+      "size": 1954,
+      "sha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012"
+    },
+    {
+      "path": "scripts/build_cdda_wasm.sh",
+      "size": 1555,
+      "sha256": "21ddd64e21865427b32d2d6faa43a0f79c3dd967839a8bc5b4090ee3bf3ad39f"
+    }
+  ],
+  "files": [
+    {
+      "path": "native/cdda/cdda_pcm.c",
+      "bytes": 5021,
+      "sha256": "30a039d4ad991b36f1a3e72191a05dd71159139254fe6e59fa53dbeaf0a91ccb"
+    },
+    {
+      "path": "native/cdda/cdda_pcm.h",
+      "bytes": 2890,
+      "sha256": "8e2c6c7f5aa517acdda18897ae980d2afd3d6cbde088d331c6cbcf0eea9a8cc6"
+    },
+    {
+      "path": "native/cdda/LICENSE",
+      "bytes": 1517,
+      "sha256": "d49c2f05a09d2d648c05a5af92240a5dc4059830bc29afbb8919c6d1ba76bf91"
+    },
+    {
+      "path": "native/cdda/NOTICE.md",
+      "bytes": 791,
+      "sha256": "32dd325f1ede34b3da8c72a7a2fd65d25fe4c645051788057e9c37d669ae634c"
+    },
+    {
+      "path": "native/cdda/cdda_wasm.c",
+      "bytes": 1954,
+      "sha256": "4c5fd81fcfd6d3785b44f939fdb14c71344d1e8b80c9668bf0cee7fc693fc012"
+    },
+    {
+      "path": "scripts/build_cdda_wasm.sh",
+      "bytes": 1544,
+      "sha256": "d602e36728f23c9a6ce674b02cde29a2b2c098e65366cea0083b8d3d6428e19b"
+    },
+    {
+      "path": "native/cdda/README.md",
+      "bytes": 1564,
+      "sha256": "98b73b270284fa6c8b841d7d0eba10740b8ad9f13aba274a846bdc9eea583911"
+    },
+    {
+      "path": "CDDA.md",
+      "bytes": 1099,
+      "sha256": "931f44a936d9544b91d8b362bb67b9a9dde9bd986ce02278e205bf3e973da2f9"
+    }
+  ],
+  "modifications": [
+    "Only source/include paths in scripts/build_cdda_wasm.sh relocate vendor/tetorica-cdda and wasm/cdda_wasm.c to native/cdda. Core, header, bridge, license and notice bytes are unchanged. Bundle README/guide and this receipt are generated."
+  ]
+}

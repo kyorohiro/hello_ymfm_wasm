@@ -117,7 +117,7 @@ export function createPlaygroundUi(
       button: operatorTabButton,
       panel: operatorPanel,
     },
-    ...['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'msm5205', 'cdda', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].map(name => ({name, button: options[`${name}Tab`], panel: options[`${name}Panel`]})),
+    ...['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'ym2151', 'okim6258', 'huc6280', 'msm5205', 'cdda', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910'].map(name => ({name, button: options[`${name}Tab`], panel: options[`${name}Panel`]})),
     {
       name: "keyboard",
       button: keyboardTab,
@@ -130,7 +130,7 @@ export function createPlaygroundUi(
     },
   ];
 
-  const chipTabNames = new Set(['operator', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'msm5205', 'cdda', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
+  const chipTabNames = new Set(['operator', 'segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'ym2151', 'okim6258', 'huc6280', 'msm5205', 'cdda', 'wonderswan', 'pokey', 'dx7', 'ym3812', 'ym3526', 'y8950', 'ymf262', 'ym2413', 'ay8910']);
   const auditionTabNames = new Set([...chipTabNames].filter(name => !['pwm','msm5205','cdda'].includes(name)));
   const visibleChipTabs = new Set(options.chipTabs ?? chipTabNames);
   for (const tab of bottomTabs) {

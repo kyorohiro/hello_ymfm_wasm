@@ -62,7 +62,7 @@ export class YM2203RuntimeSynth extends OPNRuntimeSynth {
       fmChannels: 3,
       portCount: 1,
       processorName: "ym2203-processor",
-      workletUrl: "./ym2203-worklet.js?v=pokey-prepare-1",
+      workletUrl: "./ym2203-worklet.js?v=ps1-mode-1",
       wasmUrl: "../generated/ym2203_wasm.wasm",
       FMSynth: YM2203Synth,
     });

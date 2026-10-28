@@ -1,4 +1,4 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=pokey-mode-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {createOpnAuditionGuard} from './playground_audition_guard.js?v=audio-numeric-bindings-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
@@ -10,7 +10,7 @@ import nukedFactory from '../generated/nuked_opn2_wasm.js';
 import {validateYm2612Engine} from './playground_soundchip_options.js?v=pokey-mode-1';
 import ym2203Factory from '../generated/ym2203_wasm.js';
 import ym2610Factory from '../generated/ym2610b_wasm.js';
-import {createProcessorPerformance} from './playground_performance_processor.js?v=pokey-mode-1';
+import {createProcessorPerformance} from './playground_performance_processor.js?v=ps1-mode-1';
 
 /** One independent WASM chip per processor; shares only the AudioContext clock. */
 class Processor extends AudioWorkletProcessor {

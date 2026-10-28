@@ -655,7 +655,7 @@ type FMApi = PlaygroundChipClock & {
 };
 
 /** The selected mode's primary FM chip; independent chips retain their own API. */
-type PlaygroundNativeSelectedChip = 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'pc-engine-cd' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
+type PlaygroundNativeSelectedChip = 'ps1' | 'pokey' | 'pokey-dual' | 'wonderswan' | 'gameboy' | 'nes' | 'snes' | 'x68000' | 'huc6280' | 'pc-engine-cd' | 'game-gear' | 'master-system' | 'dx7' | 'msx' | 'msx-audio' | 'atari-st' | PlaygroundOplChip;
 type PlaygroundGenesisSelectedChip = 'ym2612' | 'mega-cd';
 type PlaygroundSelectedFmChannel = TetoricaSelectedChip extends PlaygroundNativeSelectedChip ? never
   : TetoricaSelectedChip extends 'ym2203' ? 0 | 1 | 2
@@ -689,6 +689,7 @@ type PlaygroundSelectedFm = {
   gameboy: never;
   nes: never;
   snes: never;
+  ps1: never;
   x68000: never;
   huc6280: never;
   'pc-engine-cd': never;
@@ -710,6 +711,8 @@ declare const gameboy: PlaygroundPrimaryGameboy;
 declare const nes: PlaygroundPrimaryNes;
 /** Primary CPU-free SNES S-DSP. */
 declare const snes: PlaygroundPrimarySnes;
+/** Primary experimental CPU-free PlayStation SPU; raw SPU ADPCM instruments. */
+declare const spu: PlaygroundPrimaryPs1;
 /** Primary X68000 YM2151 OPM. */
 declare const opm: PlaygroundPrimaryOpm;
 /** Primary PC Engine six-channel wavetable PSG. */
@@ -1252,6 +1255,7 @@ type PlaygroundSelectedNativeAPI = TetoricaSelectedChip extends 'pokey' ? {pokey
   : TetoricaSelectedChip extends 'msx-audio' ? {ay:PlaygroundPrimaryAy8910;opll:PlaygroundPrimaryYm2413;opl:PlaygroundPrimaryOpl<'y8950'>;OPL_PRESETS:PlaygroundOplPresets<'y8950'>;OPLL_INSTRUMENTS:readonly string[];OPLL_USER_PRESETS:Readonly<Record<'sine'|'bell',PlaygroundYm2413UserPatch>>}
   : TetoricaSelectedChip extends 'nes' ? {nes: PlaygroundPrimaryNes}
   : TetoricaSelectedChip extends 'snes' ? {snes: PlaygroundPrimarySnes}
+  : TetoricaSelectedChip extends 'ps1' ? {spu: PlaygroundPrimaryPs1}
   : TetoricaSelectedChip extends 'x68000' ? {opm: PlaygroundPrimaryOpm; adpcm: PlaygroundPrimaryOki6258}
   : TetoricaSelectedChip extends 'huc6280' ? {pce: PlaygroundPrimaryHuc6280}
   : TetoricaSelectedChip extends 'pc-engine-cd' ? {pce:PlaygroundPrimaryHuc6280;adpcm:PlaygroundMsm5205API}
@@ -1854,6 +1858,58 @@ interface PlaygroundSnes {
   snapshot():Promise<{ram:Uint8Array; dsp:Uint8Array; nativeFrames:number}>;
   dispose():void;
 }
+/** Fixed physical SPU voices; no automatic MIDI channel allocator. */
+type PlaygroundPs1Channel = 0|1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|23;
+type PlaygroundPs1ADPCMOptions = ({rootNote:string|number;baseFrequencyHz?:never}|{baseFrequencyHz:number;rootNote?:never}) & {
+  /** Source sample index on a 28-frame packet boundary; required for loops. */
+  loopStartSamples?:number;
+};
+interface PlaygroundPs1Sample {
+  id:number;startAddress:number;repeatAddress:number;byteLength:number;decodedFrames:number;
+  rootNote:string|number|null;rootFrequencyHz:number;basePitch:number;loop:boolean;loopStartSamples:number|null;
+}
+interface PlaygroundPs1VoiceState {
+  sample:number|null;volumeLeft:number;volumeRight:number;adsr1:number;adsr2:number;pitch:number;
+}
+type PlaygroundPs1Preset = Partial<Omit<PlaygroundPs1VoiceState,'sample'>> & {sample?:number|PlaygroundPs1Sample};
+interface PlaygroundPs1State {
+  /** Native source rate; the client sampleRate is the AudioContext output rate. */
+  sampleRate:44100;channelCount:24;nextAddress:number;nativeFrames:number;
+  samples:PlaygroundPs1Sample[];
+  channels:Array<PlaygroundPs1VoiceState & {gate:boolean;envelope:number;ended:boolean}>;
+}
+/** Experimental MAME-derived SPU instrument, available through Web Audio only.
+ * 24 physical voices, 512 KiB RAM. This is not a PSF player or a full PS1.
+ * Samples are raw PS1 SPU ADPCM, not PCM/WAV, BRR or Yamaha ADPCM.
+ */
+interface PlaygroundPs1 {
+  readonly sampleRate:number;
+  readonly nativeSampleRate:44100;
+  readonly channelCount:24;
+  loadADPCM(bytes:ArrayBuffer|ArrayBufferView,options:PlaygroundPs1ADPCMOptions):Promise<PlaygroundPs1Sample>;
+  /** Signed normalized volumes -1..1; ADSR1/2 are raw 16-bit SPU registers.
+   * ADSR edits take effect on the next key-on in the current core. */
+  setPreset(channel:PlaygroundPs1Channel,preset:PlaygroundPs1Preset):void;
+  setChannel(channel:PlaygroundPs1Channel,params:PlaygroundPs1Preset):void;
+  getPreset(channel:PlaygroundPs1Channel):Promise<PlaygroundPs1VoiceState>;
+  /** Raw PITCH 0..16383; 4096 advances one source frame per native output frame. */
+  setPitch(channel:PlaygroundPs1Channel,pitch:number):void;
+  setFrequency(channel:PlaygroundPs1Channel,hz:number):void;
+  setNote(channel:PlaygroundPs1Channel,note:string|number):void;
+  keyOn(channel:PlaygroundPs1Channel):void;
+  keyOff(channel:PlaygroundPs1Channel):void;
+  noteOn(channel:PlaygroundPs1Channel,note?:string|number):void;
+  noteOff(channel:PlaygroundPs1Channel):void;
+  allNotesOff():void;
+  /** Reset voice presets/gates. clearRam:true also clears sample IDs and RAM. */
+  reset(options?:{clearRam?:boolean}):void;
+  getState():Promise<PlaygroundPs1State>;
+  /** Inspection copy, not a resumable emulation checkpoint. */
+  snapshot():Promise<PlaygroundPs1State & {ram:Uint8Array;registers:Uint16Array}>;
+  dispose():void;
+}
+type PlaygroundPrimaryPs1 = Omit<PlaygroundPs1,'dispose'> & {readonly id:string};
+
 interface PlaygroundSpcState {
   ready:boolean; loaded:boolean; playing:boolean; paused:boolean; muteMask:number;
   /** Elapsed media seconds from the loaded SPC snapshot, independent of BPM. */
@@ -1939,6 +1995,7 @@ type PlaygroundSoundChipMap = {
   pwm: PlaygroundPWM32X;
   dx7: TetoricaSelectedChip extends 'dx7' ? PlaygroundPrimaryDx7 : PlaygroundDx7;
   snes: TetoricaSelectedChip extends 'snes' ? PlaygroundPrimarySnes : PlaygroundSnes;
+  ps1: TetoricaSelectedChip extends 'ps1' ? PlaygroundPrimaryPs1 : PlaygroundPs1;
   spc: PlaygroundSpc;
   wonderswan: TetoricaSelectedChip extends 'wonderswan' ? PlaygroundPrimaryWonderSwan : PlaygroundWonderSwan;
   huc6280: TetoricaSelectedChip extends 'huc6280'|'pc-engine-cd' ? PlaygroundPrimaryHuc6280 : PlaygroundHuc6280;
@@ -1951,7 +2008,7 @@ type PlaygroundSoundChipMap = {
   ay8910: TetoricaSelectedChip extends 'msx'|'msx-audio'|'atari-st' ? PlaygroundPrimaryAy8910 : PlaygroundAy8910;
 };
 type PlaygroundUseSoundChipOptions = { [key: string]: never };
-type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc'
+type PlaygroundSoundChipClient<Name extends keyof PlaygroundSoundChipMap> = Name extends 'dx7' | 'snes' | 'spc' | 'ps1'
   ? PlaygroundSoundChipMap[Name] & {readonly id: string}
   : PlaygroundSoundChipMap[Name] & PlaygroundChipClock & {readonly id: string};
 /** Borrow the mode's primary instrument when names match; otherwise reuse an
@@ -1964,6 +2021,8 @@ declare function createSoundChip(name: 'dx7', options?: PlaygroundCreateSoundChi
 /** Independent CPU-free S-DSP with separate RAM and eight physical voices.
  * Native also supports BRR instruments and captured timelines within the shared 16-instance / 64 MiB budget. */
 declare function createSoundChip(name:'snes', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSnes & {readonly id:string}>;
+/** Browser-only independent CPU-free PlayStation SPU; fixed 44.1-kHz source. */
+declare function createSoundChip(name:'ps1', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundPs1 & {readonly id:string}>;
 /** Independent SPC file player; use 'snes' for BRR instrument programming.
  * Native supports SPC700 playback, seek, snapshots and DSP events within the shared 16-instance / 64 MiB budget. */
 declare function createSoundChip(name:'spc', options?:PlaygroundCreateSoundChipOptions):Promise<PlaygroundSpc & {readonly id:string}>;

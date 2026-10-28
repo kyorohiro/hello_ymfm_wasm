@@ -55,7 +55,8 @@ entry points, rather than every internal Worker or Worklet module.
 | Select a primary runtime synth | `tetorica-fm2612/tetorica_synth.js` | `createTetoricaSynth`, `TETORICA_CHIPS` |
 | DX7 inside browser Playground scripts | `tetorica-fm2612/playground_runtime.js` | Script globals `useSoundChip('dx7')`, `createSoundChip('dx7')` |
 | SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
-| Experimental PlayStation SPU, standalone | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
+| Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
+| PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
@@ -103,8 +104,12 @@ generated pair together and use the factory's default asset URL.
 The synchronous API provides `write()`, `read()`, `loadRam()`, `readRam()`,
 `renderInto()`, `generateStereo()`, `reset()` and `dispose()`. Output is always
 44,100 Hz; samples must already be encoded as PSX ADPCM. No audio device starts
-automatically. This experimental port has no common Synth API, Playground mode,
-or `createSoundChip()` name and is separate from the fixed sound-chip SDK.
+automatically. `Ps1Synth` (`ps1synth.js`) adds tuned ADPCM instruments and 24 physical voices.
+`Ps1Resampler` (`ps1_resampler.js`) converts fixed-rate PCM to the host rate.
+The Browser Playground offers PS1 mode, the `spu` primary API, Keyboard and an
+SPU voice editor; its script API also supports `createSoundChip('ps1')`.
+The package-root chip factory remains separate, and the Native Playground
+audio adapter is future work. The core is separate from the fixed sound-chip SDK.
 Upstream linear interpolation, approximate ADSR and preset reverb are retained;
 hardware-exact sound or game soundtrack compatibility is not claimed.
 

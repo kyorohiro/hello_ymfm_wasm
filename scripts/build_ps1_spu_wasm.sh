@@ -24,6 +24,7 @@ PY
   -sMODULARIZE=1 -sEXPORT_ES6=1 -sENVIRONMENT=web,worker,node \
   -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=33554432 -sMAXIMUM_MEMORY=268435456 \
   -sSTACK_SIZE=1048576 -sFILESYSTEM=0 \
+  -sINCOMING_MODULE_JS_API='["wasmBinary","locateFile","instantiateWasm","print","printErr","onAbort","preRun","postRun","onRuntimeInitialized","setStatus","arguments","thisProgram","noExitRuntime","wasmMemory","onExit"]' \
   -sEXPORTED_FUNCTIONS='["_ps1_spu_create","_ps1_spu_destroy","_ps1_spu_reset","_ps1_spu_sample_rate","_ps1_spu_write","_ps1_spu_read","_ps1_spu_load_ram","_ps1_spu_read_ram","_ps1_spu_render","_malloc","_free"]' \
   -sEXPORTED_RUNTIME_METHODS='["cwrap","HEAPU8","HEAPF32"]' \
   -o "$OUT_DIR/ps1_spu_wasm.js"

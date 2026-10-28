@@ -25,6 +25,12 @@ msm5205_worklet.js
 msm5205_native.js
 spc.js
 ps1_spu.js
+ps1synth.js
+ps1_resampler.js
+playground_ps1.js
+playground_ps1_audio.js
+playground_ps1_worklet.js
+playground_ps1_inspector.js
 spc_trace.js
 spc_events.js
 spc_performance.js
@@ -460,6 +466,8 @@ perl -0pi -e 's#\./generated/#../generated/#g' \
 # Runtime defaults resolve from the Playground page in the website layout.
 # Preserve existing parent paths when synchronizing an unrelated chip change.
 perl -0pi -e 's#(?<!\.)\./generated/#../generated/#g' "${DOCS_JS_DIR}/playground_runtime.js"
+node "${ROOT_DIR}/scripts/copy_ps1_sources.mjs" "${ROOT_DIR}/docs"
+perl -0pi -e 's#\./generated/#../generated/#g' "${DOCS_JS_DIR}/playground_ps1_audio.js" "${DOCS_JS_DIR}/playground_ps1_worklet.js"
 node "${ROOT_DIR}/scripts/version_playground_runtime.mjs"
 node "${ROOT_DIR}/scripts/version_vgm_analyzer_runtime.mjs"
 

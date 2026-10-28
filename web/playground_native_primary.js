@@ -3,6 +3,7 @@ import {createAy8910Client} from './playground_ay8910.js';
 import {createPWM32XClient} from './pwm32x_playback.js';
 import {createNesClient} from './playground_nes.js';
 import {createSnesClient} from './playground_snes.js';
+import {createPs1Client} from './playground_ps1.js';
 import {createYm2151Client} from './playground_ym2151.js';
 import {createHuc6280Client} from './playground_huc6280.js';
 import {createWonderSwanClient} from './playground_wonderswan.js';
@@ -61,6 +62,7 @@ export function createNativePrimaryClient(name, port, options = {}, lifecycle = 
   const client = name==='pokey'?createPokeyClient(port,options,lifecycle):name==='pwm'?createPWM32XClient(port,{native:true},lifecycle):name==='ay8910'?createAy8910Client(port,options,lifecycle):name==='ym2413'?createYm2413Client(port,options,lifecycle):OPL_CHIPS.includes(name) ? createOplClient(port, {...options,chip:name},lifecycle)
     : name === 'nes' ? createNesClient(port, options,lifecycle)
     : name === 'gameboy' ? createGameboyClient(port,options,lifecycle)
+    : name === 'ps1' ? createPs1Client(port,options,lifecycle)
     : name === 'snes' ? createSnesClient(port, options,lifecycle)
     : name === 'ym2151' ? createYm2151Client(port)
     : name === 'segapsg' ? createSegaPsgClient(port, options)
@@ -81,7 +83,7 @@ export function createNativeWorkerApis(connections, performance, observe, lifecy
   const raw = new Map(), apis = {};
   for (const connection of connections) {
     const port = performance.port(connection.port, 'independent');
-    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','pokey','y8950'].includes(connection.name)?lifecycle:{});
+    const client = createNativePrimaryClient(connection.name, port, connection, ['wonderswan','pokey','y8950','ps1'].includes(connection.name)?lifecycle:{});
     raw.set(connection.globalName, client);
     let queued = false;
     const changed = () => {

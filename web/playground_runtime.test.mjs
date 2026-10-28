@@ -2029,3 +2029,10 @@ for(const allocation of ['createSoundChip','useSoundChip'])test(`Main ${allocati
   assert.equal(commands.length,before);assert.deepEqual(adminMessages,[],'listing the additional POKEY sends no audio or inspector requests');
   await runtime.finalize();assert.equal(disposed,true);
 });
+
+test('Main PS1 primary exposes spu and pg.spu, borrows useSoundChip and releases retiring 24th-voice owners',async t=>{
+  const {Ps1Synth,createPs1InitSample}=await import('./ps1synth.js'),{createPs1Client}=await import('./playground_ps1.js');
+  const {runtime,megaDrive}=setup(t,{chip:'ps1',fmChannels:0,psg:false,dac:false});const synth=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});const{adpcm,...metadata}=createPs1InitSample(),sample=synth.loadADPCM(adpcm,metadata);for(let ch=0;ch<24;ch++)synth.setPreset(ch,{sample});
+  const port={start(){},close(){},postMessage({method,args=[],id}){if(method==='dispose')return;const value=synth[method](...args);if(id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id,value}}));}},client=createPs1Client(port,{state:synth.getState()});t.after(()=>client.dispose());megaDrive.fm=null;megaDrive.spu=client;megaDrive.primaryEndpoints=[{name:'ps1',globalName:'spu',client}];megaDrive.stopAllNative=()=>client._stopVoices();
+  await runtime.playSource(`if(spu!==pg.spu||await useSoundChip('ps1')!==spu)throw Error('Wrong sharedSPU');if(typeof fm!=='undefined'||typeof play!=='undefined')throw Error('UnexpectedOPN');const prepared=await livePrepare('spu',({spu})=>spu);if(prepared!==spu)throw Error('MissingpreparedSPU');liveLoop('old',async()=>{spu.noteOn(23,60);await sleep(60);});context.stopOld=()=>stopLoop('old');`);await until(()=>synth.gates[23]);runtime.context.stopOld();assert.equal(synth.gates[23],false);await runtime.stop();assert.equal(synth.samples.length,1);assert.equal(synth.channels[23].sample,0);
+});

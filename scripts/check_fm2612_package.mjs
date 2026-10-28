@@ -19,7 +19,7 @@ try {
   for (const file of ['snes_brr_encoder.js','snes_brr_encoder.d.ts']) {
     assert.ok(packedPaths.has(file), `BRR encoder payload missing ${file}`);
   }
-  for(const file of ['ps1_spu.js','ps1_spu.d.ts','generated/ps1_spu_wasm.js','generated/ps1_spu_wasm.wasm','generated/ps1_spu_build.json',
+  for(const file of ['ps1_spu.js','ps1_spu.d.ts',...['ps1synth','ps1_resampler','playground_ps1','playground_ps1_audio','playground_ps1_worklet','playground_ps1_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),'generated/ps1_spu_wasm.js','generated/ps1_spu_wasm.wasm','generated/ps1_spu_build.json',
     'licenses/mame-ps1-spu/LICENSE','licenses/mame-ps1-spu/README.md','sources/PS1-SPU.md','sources/PS1-SPU.json',
     'sources/scripts/build_ps1_spu_wasm.sh',...['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h',
       'standalone_support.h','LICENSE','README.md',...['spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h','REVISION','SHA256SUMS'].map(name=>'upstream/'+name)].map(name=>'sources/native/ps1/'+name)]) {
@@ -98,6 +98,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Ps1Spu,PS1_SPU_SAMPLE_RATE,PS1_SPU_RAM_BYTES} from 'tetorica-fm2612/ps1_spu.js';
 import {Ps1Spu as extensionless} from 'tetorica-fm2612/ps1_spu';
+import {Ps1Synth,createPs1InitSample} from 'tetorica-fm2612/ps1synth.js';
+import {Ps1Resampler} from 'tetorica-fm2612/ps1_resampler.js';
 import moduleFactory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 assert.equal(Ps1Spu,extensionless);assert.equal(PS1_SPU_SAMPLE_RATE,44100);assert.equal(PS1_SPU_RAM_BYTES,524288);
@@ -111,8 +113,24 @@ try{
  assert(chip.generateStereo(4096).left.slice(-128).every(value=>value===0));
  chip.reset();assert.equal(chip.nativeFrames,0);assert.deepEqual(chip.readRam(0x2000,bytes.length),bytes);
 }finally{chip.dispose();}
+const instrument=new Ps1Synth({core:await Ps1Spu.create({moduleFactory,moduleOptions:{wasmBinary}})});
+try{
+ const {adpcm,...options}=createPs1InitSample(),sample=instrument.loadADPCM(adpcm,options);
+ assert.equal(sample.startAddress,0x1000);assert.equal(sample.decodedFrames,112);assert.equal(instrument.channelCount,24);
+ instrument.setPreset(23,{sample,volumeLeft:.7,volumeRight:-.7});instrument.noteOn(23,'A4');
+ const resampler=new Ps1Resampler(instrument,48000),left=new Float32Array(8192),right=new Float32Array(8192);
+ for(let offset=0;offset<8192;offset+=128)resampler.render(left,right,128,offset);
+ assert(left.every(Number.isFinite)&&left.some(value=>Math.abs(value)>.01));
+ assert(left.every((value,index)=>Math.abs(value+right[index])<1/16384),'installed PS1 signed stereo must invert phase');
+ const preset=instrument.getPreset(23);instrument.stopVoices();resampler.reset();resampler.render(left,right);
+ assert(left.every(value=>value===0)&&right.every(value=>value===0),'installed Stop must discard held PCM');
+ assert.deepEqual(instrument.getPreset(23),preset);assert.equal(instrument.getState().samples.length,1);
+ instrument.keyOn(23);resampler.render(left,right);assert(left.some(value=>Math.abs(value)>.01),'installed sample must retrigger after Stop');
+ instrument.reset({clearRam:true});assert.equal(instrument.getState().samples.length,0);
+}finally{instrument.dispose();instrument.dispose();}
+assert.throws(()=>instrument.getState(),/disposed/);
 assert.equal(typeof globalThis.AudioContext,'undefined');
-console.log('Installed experimental PS1 SPU verified: both exports, explicit WASM assets, original ADPCM stereo, release, RAM retention and reset.');
+console.log('Installed experimental PS1 SPU/Synth/resampler verified: both exports, explicit WASM assets, original ADPCM stereo, 24th voice, release, Stop/retrigger, RAM retention, reset and disposal.');
 `);
   execFileSync(process.execPath,[join(consumer,'ps1-spu-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'adpcm-a-check.mjs'),`

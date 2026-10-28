@@ -24,7 +24,8 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
   "measuredPrimaryRoutes": 28,
   "unmeasuredKinds": [
     "wonderswan",
-    "pokey"
+    "pokey",
+    "ps1"
   ]
 });
 export const PLAYGROUND_MIXER_LISTENING_LEVELS = freeze({
@@ -131,6 +132,10 @@ const factoryDefaults = freeze({
     },
     {
       "name": "pokey",
+      "volume": 1
+    },
+    {
+      "name": "ps1",
       "volume": 1
     }
   ]
@@ -576,6 +581,18 @@ const factoryModes = freeze({
       {
         "id": "pokey:2",
         "name": "pokey",
+        "settings": {
+          "volume": 1
+        }
+      }
+    ]
+  },
+  "ps1": {
+    "version": 1,
+    "entries": [
+      {
+        "id": "ps1",
+        "name": "ps1",
         "settings": {
           "volume": 1
         }

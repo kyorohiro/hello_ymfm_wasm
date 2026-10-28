@@ -151,7 +151,9 @@ export function buildPlaygroundMixerPolicy(report) {
   profile.factoryDefaults.kinds.push({name:'pokey',volume:1});
   profile.factoryModes.pokey={version:1,entries:[{id:'pokey',name:'pokey',settings:{volume:1}}]};
   profile.factoryModes['pokey-dual']={version:1,entries:[{id:'pokey',name:'pokey',settings:{volume:1}},{id:'pokey:2',name:'pokey',settings:{volume:1}}]};
-  profile.calibration.unmeasuredKinds=['wonderswan','pokey'];
+  profile.factoryDefaults.kinds.push({name:'ps1',volume:1});
+  profile.factoryModes.ps1={version:1,entries:[{id:'ps1',name:'ps1',settings:{volume:1}}]};
+  profile.calibration.unmeasuredKinds=['wonderswan','pokey','ps1'];
   return profile;
 }
 

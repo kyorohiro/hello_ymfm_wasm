@@ -1,6 +1,48 @@
 {
   "schemaVersion": 1,
-  "origin": "Tetorica application module (not a published fixed SDK release)",
+  "origin": "Fixed tetorica-soundchip-native application-audio module",
+  "sdk": {
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.5",
+    "sourceCommit": "3bb8d9ceffa50ad183d1ab856e031fe649425bca",
+    "archiveName": "tetorica-soundchip-native-0.1.5-published-sources.zip",
+    "archiveSha256": "e37be75316a35a4159d8760afa9e4b86a9a4b8d4d24f674cc15e3e5e52c44309",
+    "manifestSha256": "e2b5703a2bbf44323d5331b522aa167fa091fcb13ceadebe14d021efe3aa07e7",
+    "fileCount": 431
+  },
+  "inputs": [
+    {
+      "path": "vendor/tetorica-msm5205/msm5205_pcm.c",
+      "size": 6720,
+      "sha256": "2554a3c98f3d4de6886e61bbd805451247214c38f18069a97f2796dbbbd9f5be"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/msm5205_pcm.h",
+      "size": 3618,
+      "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/LICENSE",
+      "size": 1617,
+      "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
+    },
+    {
+      "path": "vendor/tetorica-msm5205/NOTICE.md",
+      "size": 2064,
+      "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
+    },
+    {
+      "path": "wasm/msm5205_wasm.c",
+      "size": 2191,
+      "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471"
+    },
+    {
+      "path": "scripts/build_msm5205_wasm.sh",
+      "size": 1397,
+      "sha256": "2712749f182d50a1c57f0615b3dc47bf6a8e1c6b2e1de9e37ca879ce623b8ca1"
+    }
+  ],
   "files": [
     {
       "path": "native/msm5205/msm5205_pcm.c",
@@ -13,11 +55,6 @@
       "sha256": "aa80487e6bc5b6c79f08ba45dbbf4e475e65dcc7c7c1399de354d743211fbee9"
     },
     {
-      "path": "native/msm5205/msm5205_wasm.c",
-      "bytes": 2191,
-      "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471"
-    },
-    {
       "path": "native/msm5205/LICENSE",
       "bytes": 1617,
       "sha256": "38607b04a502faeb382f075f8cf3c83eb5e0232b97fd5ec24f76a30875765a5a"
@@ -28,14 +65,27 @@
       "sha256": "cc7402a07f59994df098e77cfaec3ba406e54d62c5427530501f5529da9af85d"
     },
     {
-      "path": "native/msm5205/README.md",
-      "bytes": 3295,
-      "sha256": "1ecc63a9dc1c12afffdba8ad413f55e2242bca5f407ba24f631b81b0bf1572f5"
+      "path": "native/msm5205/msm5205_wasm.c",
+      "bytes": 2191,
+      "sha256": "75afbd7939954446aed0f0c3af64c0364443949eefaf2b63faad37947a09e471"
     },
     {
       "path": "scripts/build_msm5205_wasm.sh",
-      "bytes": 1219,
-      "sha256": "395c4c8dc612ba4bb3ebace1d17452c35b0727367f14014a59bf55cb76eb9621"
+      "bytes": 1389,
+      "sha256": "4cb6ec51694be47135afab8b694514f955343bbe58a45e983d87bb133cf414db"
+    },
+    {
+      "path": "native/msm5205/README.md",
+      "bytes": 1704,
+      "sha256": "a9c1c396bc16c232a940accff2ad38e8a2e4b3e8217c299f0eba8d923f9d5d7b"
+    },
+    {
+      "path": "MSM5205.md",
+      "bytes": 1115,
+      "sha256": "1d0d80262929f5b9a5c039fd5323468c85f406722d49d0ee38b78fd06df8768a"
     }
+  ],
+  "modifications": [
+    "Only source/include paths in scripts/build_msm5205_wasm.sh relocate vendor/tetorica-msm5205 and wasm/msm5205_wasm.c to native/msm5205. Core, header, bridge, license and notice bytes are unchanged. Bundle README/guide and this receipt are generated."
   ]
 }

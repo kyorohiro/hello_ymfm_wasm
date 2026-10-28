@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as immediate} from 'node:timers/promises';
 import {SnesSynth} from './snessynth.js';
+import {Ps1Synth,createPs1InitSample} from './ps1synth.js';
 import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js';
 
 // Browser audio helpers capture fetch when imported. Route that captured
@@ -42,6 +43,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
       this.context = audioContext; this.name = name; this.options = options; this.messages = []; this.connections = [];
       this.loadedMemory = null;
       this.validation = name.includes('snes') ? new SnesSynth({core:{reset(){},loadRam(){},writeDsp(){},dispose(){}}}) : null;
+      if(name.includes('ps1')){this.validation=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});const{adpcm,...metadata}=createPs1InitSample(),sample=this.validation.loadADPCM(adpcm,metadata);for(let ch=0;ch<24;ch++)this.validation.setPreset(ch,{sample});}
       this.port = {closed:false, close:() => { this.port.closed = true; this.remote?.close(); }, postMessage:data => {
         this.messages.push(data);
         if (data.port) {
@@ -53,7 +55,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
       if (stage === 'ready' && (name.includes(target)||options.processorOptions.chip===target)) { reached = true; gate.promise.then(() => this.ready()); }
       else queueMicrotask(() => this.ready());
     }
-    ready() { this.port.onmessage?.({data:{ready:true,sampleRate:48000,internalSampleRate:44100,voices:[{index:0,name:'INIT SINE'}],selectedVoice:0}}); }
+    ready() { this.port.onmessage?.({data:{ready:true,sampleRate:48000,internalSampleRate:44100,voices:[{index:0,name:'INIT SINE'}],selectedVoice:0,...(this.name.includes('ps1')?{state:this.validation.getState()}:{})}}); }
     receive(data, port) {
       this.messages.push(data);
       if (data.method === 'dispose') { port.close(); return; }
@@ -74,7 +76,7 @@ function harness(t, chip, {stage = '', target = chip === 'x68000' ? 'okim6258' :
   return {synth, context, nodes, fetches, moduleLoads, gate, reached:() => reached, contextCloses:() => contextCloses};
 }
 
-for (const chip of ['nes','snes','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
+for (const chip of ['nes','snes','ps1','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} primary is lazy, starts once, routes only native devices, and restarts`, async t => {
   const device = harness(t, chip); const {synth,nodes} = device;
   assert.equal(nodes.length, 0); assert.equal(device.fetches.length, 0); assert.equal(device.moduleLoads.length, 0);
   assert.equal(synth.fm, null); assert.equal(synth.psg, null); assert.equal(synth.isReady(), false);
@@ -178,7 +180,7 @@ test('NES Worker handoff adopts FDS and pulse configuration without resetting th
   assert(!messages.some(data => data.method === 'reset'));
 });
 
-for (const chip of ['nes','snes','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
+for (const chip of ['nes','snes','ps1','huc6280','wonderswan','x68000','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910']) test(`${chip} close during ${chip === 'x68000' ? 'second device' : 'device'} initialization aborts and permits restart`, async t => {
   const {synth,nodes,gate,reached} = harness(t,chip,{stage:'ready'});
   const canceled = assert.rejects(synth.start(),{name:'AbortError'});
   await until(reached); if (chip === 'x68000') assert.equal(synth.primaryEndpoints.length,1,'OPM ready before second device');
@@ -368,4 +370,12 @@ for(const mode of ['msx','msx-audio'])test(`${mode} keeps the original AY-3-8910
 });
 for(const target of ['ay8910','ym2413'])for(const stage of ['fetch','module','ready'])test(`MSX close during ${target} ${stage} releases its two-device setup and restarts without Y8950`,async t=>{
   const {synth,nodes,gate,reached}=harness(t,'msx',{target,stage});const canceled=assert.rejects(synth.start(),{name:'AbortError'});await until(reached);assert.equal(synth.primaryEndpoints.length,['ay8910','ym2413'].indexOf(target));await synth.close();await canceled;gate.resolve();assert(nodes.every(node=>node.port.closed&&!node.connections.length));await synth.start();assert.equal(synth.primaryEndpoints.length,2);assert(synth.ay&&synth.opll);assert.equal(synth.opl,null);
+});
+
+test('PS1 primary handoff retains authored24voice bank and Stop awaits the remote silence fence',async t=>{
+ const {synth,nodes}=harness(t,'ps1');await synth.start();assert.equal(synth.primaryApis.spu,synth.spu);assert.equal(synth.spu._getState().samples.length,1);assert.equal(synth.spu._getState().channels.length,24);synth.spu.noteOn(23,60);const state=await synth.spu.getState(),channel=new MessageChannel(),posts=[];channel.port1.onmessage=({data})=>posts.push(data);channel.port1.start();const worker=createNativePrimaryClient('ps1',channel.port2,{sampleRate:48000,state});t.after(()=>{worker.dispose();channel.port1.close();});await immediate();assert.equal(posts.length,0,'statehandoffcannotresetorreplayRAM');assert.equal(worker._getState().channels[23].sample,0);await synth.stopAllNative();assert.equal(nodes[0].validation.gates[23],false);assert(nodes[0].messages.some(m=>m.method==='stopVoices'&&m.id!==undefined));assert.equal((await synth.spu.getState()).channels[23].pitch,state.channels[23].pitch);worker.noteOn(23,67);await immediate();assert.equal(posts.at(-1).method,'noteOn');
+});
+
+test('PS1 fatal processor failure releases its route/client and permits restart with a fresh bank',async t=>{
+ const{nodes,synth}=harness(t,'ps1');await synth.start();const old=synth.spu,pending=old.snapshot();nodes[0].onprocessorerror();await pending.catch(()=>{});assert.equal(synth.isReady(),false);assert.equal(synth.state,'error');assert.equal(synth.primaryEndpoints.length,0);assert.throws(()=>old.keyOff(0),/disposed/);assert.equal(synth.mixer.list().filter(row=>row.connected).length,0);await synth.start();assert.equal(synth.isReady(),true);assert.notEqual(synth.spu,old);assert.equal(synth.spu._getState().samples.length,1);
 });

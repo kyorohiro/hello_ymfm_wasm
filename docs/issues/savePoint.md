@@ -1,3 +1,16 @@
+## 2026-10-28 — PS1 Browser Mode／Synth／Keyboardを追加
+
+- experimental **PlayStation (PS1)** Mode。`spu`／`pg.spu`、独立した`createSoundChip('ps1')`／`useSoundChip('ps1')`をBrowserへ接続。24 physical voices／512KiB RAM／44.1kHz。初期音色を全24声へ準備、index.js＋自作Example2本、Mixer指定なし。
+- `Ps1Synth`でADPCM packet／loop／tuning／RAMを検証し、signed stereo volume・pitch・raw ADSR・key-on/offを操作。`Ps1Resampler`は44.1／48／96kHz等へ位相を保持して必要分だけbatch変換。44.1kHzは直接render、出力quantumごとのscratch再生成なし。
+- SPUタブから声・sample・pitch・左右volume・ADSRを編集し、Hold／1秒試奏／右下Keyboardを使用。共通Guitar／PC／pointer KeyboardでChip／CH24まで選択。表示中の無操作・非表示ともInspector定期要求0件。Mode選択だけではAudioContextを生成しない。
+- 実WorkletでのWASM byte注入をbuild recipeへ明示し、URL／fetchなしのloader起動を検証。Resetは即時の準備barrierとし、後続Worker命令やuploadを消さない。pending uploadのdefault resetはAbortErrorを維持しつつ保持RAMのIDを同期、clearRamは旧bankを破棄。Stopはbank／presetを保持して即時無音。
+- 実core／Synth／resampler／client／Worklet48件成功・skip0。関連client／Worklet／runtime／追加生成150件（48件と重複あり）、UI・mode・全mode型も成功。isolated npm installed tarball981files／378宣言／1,077asset参照／既存28WASM engineが成功。同梱source18inputsだけの再buildでJS／WASM／receiptがbyte一致。
+- Chromium153／WebKit26.6 × Main／Worker × source本体／実Run ZIPの**8条件成功**。初期code各2回、両Example、CH24／floating Keyboard、Reset競合後440Hz、追加SPUの独立破棄、error recovery、Mode往復、Stop後exact zeroを検証。1600／390px表示確認、物理出力mute、実聴／Tauri GUI未確認。
+- 既存C++ core／WASM binary／固定SDK／Tauri Native／既存gainは変更なし。生成JS loader／recipeとruntime接続は更新。PS1 Mixerは**未測定unity1.0**を登録。cacheは`ps1-mode-1`、既存Analyzerの測定hash guardは変更なしで成功。
+- 既定3package command成功。Run ZIP `release/hello_ymfm_wasm_ps1-mode-dev_itch_playground_for_run.zip`、916entries、SHA256 `28f8220eacb04ac9e7a22c58893ad3b993d0a8635e2933a8b5a36a43a060827c`。fullは同prefixの_for_runなし。両ZIPのCRC／path／全stage bytes一致を確認、actionlint成功。新CIを追加したがremote未実行。
+- **未commit／未push／未公開**、version変更・SDK／Tauri取込・tag・npm／itch公開なし。前段階はユーザーcommit `3421bb5a`に含まれる。次はPCM→SPU ADPCM encoder、Sample Editor、SDK集約、Tauri Native adapter。精度は実験段階のlinear補間／近似ADSR／reverbを維持、hardware-exact／real-time allocation保証なし。
+- 詳細：[ps1_mode_01.md](ps1_mode_01.md)／[JSON](ps1_mode_01.json)、作業計画：[todo_ps1_01.md](todo_ps1_01.md)、公開guide：[../ps1_spu.md](../ps1_spu.md)。下記は各時点の履歴。
+
 ## 2026-10-28 — PS1 SPUのNative／WASM基盤を追加
 
 - `native/ps1/`へ実MAME SPUをCPUなしで単体化。24声／512KiB RAM／44.1kHz stereo。C register／RAM／PCM API、`web/ps1_spu.js`とdocs mirror、共有WASMビルド＋18input／2output hash receipt。上流5filesをpin・原本・BSD attributionと共に収録。

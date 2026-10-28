@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {Ps1Synth,createPs1InitSample} from './ps1synth.js';
 // Capture a local byte provider before the audio modules bind fetch. No network/audio device.
 const originalFetch=globalThis.fetch;
 globalThis.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});
@@ -14,15 +15,17 @@ function setup(t, selectedChip='ym2612') {
  globalThis.window={addEventListener(){},removeEventListener(){},setTimeout};
  globalThis.AudioWorkletNode=class {
   constructor(context,name){
+   if(name==='tetorica-playground-ps1'){this.ps1=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});const{adpcm,...metadata}=createPs1InitSample(),sample=this.ps1.loadADPCM(adpcm,metadata);for(let ch=0;ch<24;ch++)this.ps1.setPreset(ch,{sample});}
    this.name=name;this.messages=[];this.rpcMessages=[];this.disconnects=0;
    this.port={postMessage:message=>{this.messages.push(message);if(message.port){this.remote=message.port;message.port.onmessage=({data})=>{
     this.rpcMessages.push(data);
     if(data.method==='dispose')message.port.close();
+    else if(this.ps1){const value=this.ps1[data.method](...data.args);if(data.id!==undefined)message.port.postMessage({id:data.id,value});}
     else if(name==='tetorica-spc'&&data.id!==undefined)message.port.postMessage({id:data.id,value:{ready:true,loaded:true,playing:data.method==='play'}});
    };message.port.start();}},close(){}};
    nodes.push(this);if(!delay)queueMicrotask(()=>this.ready());
   }
-  ready(){this.port.onmessage({data:this.name==='tetorica-spc'?{type:'ready',sampleRate:44100}:{ready:true}});}
+  ready(){this.port.onmessage?.({data:this.name==='tetorica-spc'?{type:'ready',sampleRate:44100}:{ready:true,...(this.ps1?{state:this.ps1.getState()}:{})}});}
   connect(){} disconnect(){this.disconnects++;this.remote?.close();}
  };
  const media=()=>({stop(){},stopAll(){},pause(){},list:()=>[],unload(){}});
@@ -31,7 +34,7 @@ function setup(t, selectedChip='ym2612') {
  t.after(()=>{runtime.stop();Object.assign(globalThis,saved);});
  return {runtime,megaDrive,nodes,setDelay:value=>{delay=value;}};
 }
-for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2610b','ym2612','segapsg','ym2151','pwm','nes','dx7','snes','spc'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
+for(const chip of ['rf5c164','ym2608','gameboy','ym2203','ym2610','ym2610b','ym2612','segapsg','ym2151','pwm','nes','dx7','snes','spc','ps1'])test(`Main managed ${chip} creates once, reuses on Run and recreates after Stop`,async t=>{
  const {runtime,nodes}=setup(t,chip==='ym2612'?'ym2203':'ym2612');
  const source=`const [a,b]=await Promise.all([useSoundChip('${chip}'),useSoundChip('${chip}')]);
  if(a!==b || (context.pcm && a!==context.pcm))throw Error('identity');context.pcm=a;
@@ -82,7 +85,7 @@ for (const name of ['ym2612','ym2203','ym2610','ym2610b','segapsg','ym2151','dx7
  runtime.stop();assert.ok(nodes.every(n=>n.disconnects===1));assert.equal(Object.keys(runtime.context).length,0);
 });
 
-for (const name of ['ym2612','ym2203','ym2610','ym2610b','segapsg','ym2151','nes','dx7','snes','spc']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
+for (const name of ['ym2612','ym2203','ym2610','ym2610b','segapsg','ym2151','nes','dx7','snes','spc','ps1']) test(`Main Stop during ${name} creation disposes the late node`, async t => {
  const {runtime,nodes,setDelay}=setup(t);setDelay(true);
  const state=runtime.context;
  const running=runtime.playSource(`await createSoundChip('${name}');context.completed=true;`);
@@ -154,4 +157,12 @@ test('Worker same-ID recreation waits for audible retirement without blocking ot
  request(4,'pcm.create',['segapsg',{id}]);request(5,'getTiming');await waitResponse(5);
  runtime.stop();const stopped=await waitResponse(4);assert.match(stopped.error,/Run stopped/);assert.equal(nodes.length,2,'a late reconnect cannot reopen audio after Stop');
  first.value.port.close();second.value.port.close();
+});
+
+test('Main shared additional PS1 retains independent loop ownership when a newer loop replaces its voice',async t=>{
+ const{runtime,nodes}=setup(t);await runtime.playSource(`const spu=await useSoundChip('ps1');liveLoop('old',async()=>{spu.noteOn(23,60);await sleep(60);});liveLoop('new',async()=>{spu.noteOn(23,67);await sleep(60);});context.stopOld=()=>stopLoop('old');context.stopNew=()=>stopLoop('new');`);for(let n=0;n<100&&nodes[0].rpcMessages.filter(m=>m.method==='noteOn').length<2;n++)await tick();assert.equal(nodes[0].ps1.gates[23],true);runtime.context.stopOld();await tick();assert.equal(nodes[0].ps1.gates[23],true,'retiring oldloop cannot release replacement');runtime.context.stopNew();await tick();assert.equal(nodes[0].ps1.gates[23],false);
+});
+
+test('Main additional PS1 fatal processor failure evicts its cached endpoint for a fresh lookup',async t=>{
+ const{runtime,nodes}=setup(t);await runtime.playSource(`context.before=await useSoundChip('ps1');`);const before=runtime.context.before;nodes[0].onprocessorerror();assert.equal(nodes[0].disconnects,1);assert.throws(()=>before.keyOff(0),/disposed/);await runtime.playSource(`context.after=await useSoundChip('ps1');`);assert.equal(nodes.length,2);assert.notEqual(before,runtime.context.after);
 });

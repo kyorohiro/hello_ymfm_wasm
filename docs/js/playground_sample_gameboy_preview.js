@@ -1,7 +1,7 @@
 /** Browser / Worker / Node: owned comparison data and isolated offline Game Boy PCM. */
-import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave} from './playground_sample_edit.js';
-import {GameboyApu} from './gameboyapu.js';
-import {GameboyDirectTransport, GameboySynth} from './gameboysynth.js';
+import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave} from './playground_sample_edit.js?v=audio-numeric-bindings-1';
+import {GameboyApu} from './gameboyapu.js?v=audio-stability-2';
+import {GameboyDirectTransport, GameboySynth} from './gameboysynth.js?v=audio-stability-2';
 import {SOUNDCHIP_MIXER_LISTENING_LEVELS} from './soundchip_mixer_presets.js';
 
 const DISPLAY_POINTS = 256;

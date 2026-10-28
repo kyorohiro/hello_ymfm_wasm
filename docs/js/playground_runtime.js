@@ -1,56 +1,58 @@
 import {createSpcAudio} from './playground_spc_audio.js?v=spc-events-1';
 import {createSpcClient} from './playground_spc.js?v=y8950-adpcm-ui-1';
-import {createSnesAudio} from './playground_snes_audio.js?v=pokey-prepare-1';
+import {createSnesAudio} from './playground_snes_audio.js?v=ps1-mode-1';
 import {createSnesClient} from './playground_snes.js?v=y8950-adpcm-ui-1';
+import {createPs1Audio} from './playground_ps1_audio.js?v=ps1-mode-1';
+import {createPs1Client} from './playground_ps1.js?v=ps1-mode-1';
 import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
 import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
-import {createChipInspector} from './playground_chip_inspector.js?v=pokey-voice-1';
-import {createPerformanceHost} from './playground_performance_host.js?v=pokey-prepare-1';
+import {createChipInspector} from './playground_chip_inspector.js?v=ps1-mode-1';
+import {createPerformanceHost} from './playground_performance_host.js?v=ps1-mode-1';
 import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pokey-import-1';
-import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=pokey-prepare-1';
+import {DEFAULT_WORKER_LOOKAHEAD_SECONDS, validateWorkerLookahead} from './playground_performance_sender.js?v=ps1-mode-1';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {attachChipClock, CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
-import {createNesAudio} from './playground_nes_audio.js?v=pokey-prepare-1';
+import {createNesAudio} from './playground_nes_audio.js?v=ps1-mode-1';
 import {createNesClient} from './playground_nes.js?v=pokey-prepare-1';
-import {createDx7Audio} from './playground_dx7_audio.js?v=pokey-prepare-1';
+import {createDx7Audio} from './playground_dx7_audio.js?v=ps1-mode-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
-import {createPWM32XAudio} from './playground_pwm_audio.js?v=pokey-prepare-1';
+import {createPWM32XAudio} from './playground_pwm_audio.js?v=ps1-mode-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-prepare-1';
-import {createYm2151Audio} from './playground_ym2151_audio.js?v=pokey-prepare-1';
-import {createAy8910Audio} from './playground_ay8910_audio.js?v=pokey-prepare-1';
-import {createYm2413Audio} from './playground_ym2413_audio.js?v=pokey-prepare-1';
-import {createOplAudio} from './playground_opl_audio.js?v=pokey-prepare-1';
+import {createYm2151Audio} from './playground_ym2151_audio.js?v=ps1-mode-1';
+import {createAy8910Audio} from './playground_ay8910_audio.js?v=ps1-mode-1';
+import {createYm2413Audio} from './playground_ym2413_audio.js?v=ps1-mode-1';
+import {createOplAudio} from './playground_opl_audio.js?v=ps1-mode-1';
 import {OPL_CHIPS} from './playground_opl.js?v=pokey-prepare-1';
 import {YM2413_INSTRUMENTS as OPLL_INSTRUMENTS,YM2413_USER_PRESETS as OPLL_USER_PRESETS} from './ym2413synth.js?v=pokey-mode-1';
 import {OPL_PRESETS} from './opl_synth.js?v=audio-numeric-bindings-1';
 import {createYm2151Client} from './playground_ym2151.js?v=pokey-prepare-1';
-import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=pokey-prepare-1';
+import {createSegaPsgAudio} from './playground_segapsg_audio.js?v=ps1-mode-1';
 import {createSegaPsgClient} from './playground_segapsg.js?v=pokey-prepare-1';
 import {createLoopAsyncTasks} from './playground_async_tasks.js';
-import {createOpnAudio} from './playground_opn_audio.js?v=pokey-prepare-1';
-import {createOpnClient} from './playground_opn.js?v=pokey-prepare-1';
-import {createSoundChipRegistry} from './playground_soundchips.js?v=pokey-mode-1';
+import {createOpnAudio} from './playground_opn_audio.js?v=ps1-mode-1';
+import {createOpnClient} from './playground_opn.js?v=ps1-mode-1';
+import {createSoundChipRegistry} from './playground_soundchips.js?v=ps1-mode-1';
 import {validateSoundChipOptions} from './playground_soundchip_options.js?v=pokey-mode-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
 import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
-import {createGameboyAudio} from './playground_gameboy_audio.js?v=pokey-prepare-1';
+import {createGameboyAudio} from './playground_gameboy_audio.js?v=ps1-mode-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
-import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=pokey-prepare-1';
-import {createHuc6280Audio} from './playground_huc6280_audio.js?v=pokey-prepare-1';
+import {borrowNativeApi, createNativePrimaryClient} from './playground_native_primary.js?v=ps1-mode-1';
+import {createHuc6280Audio} from './playground_huc6280_audio.js?v=ps1-mode-1';
 import {createCddaAudio} from './cdda_audio.js?v=cdda-pcm-1';
 import {createNativeCdda} from './cdda_native.js?v=cdda-pcm-1';
 import {createCddaPlayer} from './cdda_player.js?v=cdda-pcm-1';
 import {createMsm5205Audio} from './msm5205_audio.js?v=pcengine-cd-1';
 import {createNativeMsm5205} from './msm5205_native.js?v=pcengine-cd-1';
 import {createMsm5205Player} from './msm5205_player.js?v=pcengine-cd-1';
-import {createPokeyAudio} from './playground_pokey_audio.js?v=pokey-voice-1';
-import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=pokey-prepare-1';
-import {createOki6258Audio} from './playground_okim6258_audio.js?v=pokey-prepare-1';
-import {createYm2608Audio} from './playground_ym2608_audio.js?v=pokey-prepare-1';
-import {createYm2608Client} from './playground_ym2608.js?v=pokey-prepare-1';
+import {createPokeyAudio} from './playground_pokey_audio.js?v=ps1-mode-1';
+import {createWonderSwanAudio} from './playground_wonderswan_audio.js?v=ps1-mode-1';
+import {createOki6258Audio} from './playground_okim6258_audio.js?v=ps1-mode-1';
+import {createYm2608Audio} from './playground_ym2608_audio.js?v=ps1-mode-1';
+import {createYm2608Client} from './playground_ym2608.js?v=ps1-mode-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=pokey-prepare-1';
-import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=pokey-prepare-1';
+import {createRf5c164Audio} from './playground_rf5c164_audio.js?v=ps1-mode-1';
 import {samplePCM} from './native_sample.js?v=audio-stability-2';
 import {formatLogArgs} from './playground_log.js';
 import {createLiveFxLifecycle} from './native_fx.js?v=live-fx-definitions-1';
@@ -65,8 +67,8 @@ import {parseMidiFile} from './midi_file.js?v=audio-numeric-bindings-1';
 import { createAudioScheduler } from "./playground_audio_scheduler.js";
 import {
   FM_PRESETS,
-} from "./megasynth.js?v=pokey-prepare-1";
-import { createTetoricaSynth } from "./tetorica_synth.js?v=pokey-voice-1";
+} from "./megasynth.js?v=ps1-mode-1";
+import { createTetoricaSynth } from "./tetorica_synth.js?v=ps1-mode-1";
 import { createPlaygroundClock, createSecondsTimeline } from "./playground_clock.js?v=spc-song-timing-1";
 import { capturePlaygroundNativeIpc, executeWithPlaygroundGuards } from "./playground_execution.js";
 import { createPlaygroundLive } from "./playground_live.js?v=y8950-adpcm-ui-1";
@@ -104,7 +106,7 @@ const SCALE_INTERVALS = {
 };
 
 /**
- * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'x68000'|'huc6280'|'pokey'|'wonderswan'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio'} PlaygroundChip
+ * @typedef {'ym2612'|'ym2203'|'ym2608'|'ym2610'|'ym2610b'|'gameboy'|'nes'|'snes'|'ps1'|'x68000'|'huc6280'|'pokey'|'wonderswan'|'segapsg'|'dx7'|'ym3526'|'ym3812'|'y8950'|'ymf262'|'ym2413'|'ay8910'|'msx'|'msx-audio'} PlaygroundChip
  * @typedef {{id:string,midi:number,velocity?:number}} PlaygroundKeyboardEvent
  * @typedef {{name:string,noteOn:(event:PlaygroundKeyboardEvent)=>unknown,
  * noteOff:(event:PlaygroundKeyboardEvent)=>unknown,allNotesOff:()=>unknown}} PlaygroundKeyboardTarget
@@ -172,11 +174,11 @@ export function createPlaygroundRuntime(
       workletUrl:
         options.audioWorkletUrl ??
         options.workletUrl ??
-        (['nes','snes','x68000','huc6280','pokey','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=pokey-prepare-1', import.meta.url).href
-          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=pokey-prepare-1'
-          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=pokey-prepare-1'
+        (['nes','snes','ps1','x68000','huc6280','pokey','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(options.chip) ? undefined : options.chip === 'gameboy' ? new URL('./playground_gameboy_worklet.js?v=ps1-mode-1', import.meta.url).href
+          : options.chip === 'ym2203' ? './ym2203-worklet.js?v=ps1-mode-1'
+          : options.chip === 'ym2608' ? './ym2608-worklet.js?v=ps1-mode-1'
           : ['ym2610','ym2610b'].includes(options.chip)
-            ? "./ym2610b-worklet.js?v=pokey-prepare-1" : "./ym2612-worklet.js?v=pokey-prepare-1"),
+            ? "./ym2610b-worklet.js?v=ps1-mode-1" : "./ym2612-worklet.js?v=ps1-mode-1"),
       ym2612WasmUrl:
         options.ym2612WasmUrl ??
         "../generated/ym2612_wasm.wasm",
@@ -219,7 +221,7 @@ export function createPlaygroundRuntime(
   const primarySectionNames = capabilities.chip === 'ym2203' ? ['ssg']
     : capabilities.chip === 'ym2608' ? ['ssg','rhythm','adpcm']
     : ['ym2610','ym2610b'].includes(capabilities.chip) ? ['ssg','adpcmA','adpcmB'] : [];
-  const nativePrimary = ['nes','snes','x68000','huc6280','pokey','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
+  const nativePrimary = ['nes','snes','ps1','x68000','huc6280','pokey','wonderswan','segapsg','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910','msx','msx-audio'].includes(capabilities.chip)
     || capabilities.chip === 'gameboy' && capabilities.backend === 'native-genesis';
   const hasOpn = !nativePrimary && capabilities.chip !== 'gameboy';
   const sourceMap =
@@ -269,7 +271,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=adpcm-a-encoder-1",
+      "./playground_logic_worker.js?v=ps1-mode-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -427,7 +429,7 @@ export function createPlaygroundRuntime(
     const entries=[];
     if(hasOpn&&megaDrive.node?.port)entries.push({id:capabilities.chip,kind:capabilities.chip,label:`${capabilities.chip.toUpperCase()} (primary)`,port:megaDrive.node.port});
     if(capabilities.chip==='gameboy'&&megaDrive.gameboy&&megaDrive.node?.port)entries.push({id:'gameboy',kind:'gameboy',label:'Game Boy (primary)',port:megaDrive.node.port});
-    const nativeLabels={snes:'SNES (primary)',nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)',wonderswan:'WonderSwan (primary)',pokey:'POKEY 1 (primary)',dx7:'DX7 (primary)',ym3526:'YM3526 (primary)',ym3812:'YM3812 (primary)',y8950:'Y8950 FM (primary)',ymf262:'YMF262 (primary)',ym2413:'YM2413 OPLL (primary)',ay8910:'AY-3-8910 (primary)'};
+    const nativeLabels={ps1:'PS1 SPU (primary)',snes:'SNES (primary)',nes:'NES + FDS (primary)',ym2151:'YM2151 (primary)',okim6258:'OKIM6258 (primary)',huc6280:'HuC6280 (primary)',wonderswan:'WonderSwan (primary)',pokey:'POKEY 1 (primary)',dx7:'DX7 (primary)',ym3526:'YM3526 (primary)',ym3812:'YM3812 (primary)',y8950:'Y8950 FM (primary)',ymf262:'YMF262 (primary)',ym2413:'YM2413 OPLL (primary)',ay8910:'AY-3-8910 (primary)'};
     for(const endpoint of megaDrive.primaryEndpoints??[])if(nativeLabels[endpoint.name]&&endpoint.client&&endpoint.node?.port)entries.push({id:endpoint.id??endpoint.name,kind:endpoint.name,label:endpoint.name==='pokey'?(endpoint.globalName==='pokey2'?'POKEY 2 (primary)':'POKEY 1 (primary)'):endpoint.name==='ay8910'&&endpoint.type===0x10?'YM2149 (primary)':nativeLabels[endpoint.name],port:endpoint.node.port,...(endpoint.name==='nes'?{fdsEnabled:true}:{})});
     if(megaDrive.psg&&megaDrive.node?.port)entries.push({id:'segapsg',kind:'segapsg',label:'Sega PSG (primary)',port:megaDrive.node.port});
     if(megaDrive.pcm&&megaDrive.pcmDevice?.node?.port)entries.push({id:'rf5c164',kind:'rf5c164',label:'RF5C164 (primary)',port:megaDrive.pcmDevice.node.port});
@@ -551,6 +553,21 @@ export function createPlaygroundRuntime(
       isStopped:scope=>scope?.token!==currentRunToken||scope.loop?.stopped,
     });
   }
+  function ownPs1Main(raw) {
+    const owners=new Map();
+    raw._before=({method,args})=>{
+      if(currentLoopContext?.stopped)return false;
+      if(['keyOff','noteOff'].includes(method)&&currentLoopContext&&owners.has(args[0])&&owners.get(args[0])!==voiceOwner(currentLoopContext))return false;
+      return true;
+    };
+    raw._observe=({method,args})=>{
+      if(['keyOn','noteOn'].includes(method))owners.set(args[0],voiceOwner(currentLoopContext));
+      else if(['keyOff','noteOff'].includes(method))owners.delete(args[0]);
+      else if(['allNotesOff','reset'].includes(method))owners.clear();
+    };
+    raw._setLifecycle({captureContext:()=>({token:currentRunToken,loop:currentLoopContext}),restoreContext:scope=>{currentLoopContext=scope?.loop??null;},isStopped:scope=>scope?.token!==currentRunToken||scope.loop?.stopped});
+    return {releaseOwner(owner){for(const[ch,held]of owners)if(held===owner){owners.delete(ch);const previous=currentLoopContext;currentLoopContext=null;try{raw.keyOff(ch);}finally{currentLoopContext=previous;}}}};
+  }
   function wonderSwanExtraApi(raw) {
     return new Proxy(Object.create(null), {get(_target,key) {
       const value = Reflect.get(raw,key,raw);
@@ -598,7 +615,7 @@ export function createPlaygroundRuntime(
       return null;
     }
     device.releaseOwner=owner=>{
-      if(['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc'].includes(device.chipName)){const group=mainGroups.get(owner);if(group!==undefined)raw._cancelMainOwner(group);return;}
+      if(['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc','ps1'].includes(device.chipName)){const group=mainGroups.get(owner);if(group!==undefined)raw._cancelMainOwner(group);return;}
       const otherSource=key=>owners.has(key)&&owners.get(key)!==owner;
       for(const [key,held]of owners)if(held===owner){
         owners.delete(key);
@@ -622,9 +639,9 @@ export function createPlaygroundRuntime(
           // Keyboard release may still finish its awaited bookkeeping afterward.
           if(loop?.keyboardCleanup&&device.ready===false)return Promise.resolve();
           const change=event(key,args,path);if(loop?.stopped)return;
-          if(!['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc'].includes(device.chipName)&&change&&!change.allOff&&!change.ssgOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
-          const result=['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc'].includes(device.chipName)?raw._withMainOwner(groupFor(voiceOwner(loop)),()=>value.apply(object,args)):value.apply(object,args);
-          if(['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc'].includes(device.chipName)){
+          if(!['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc','ps1'].includes(device.chipName)&&change&&!change.allOff&&!change.ssgOff&&!change.on&&loop&&owners.has(change.key)&&owners.get(change.key)!==voiceOwner(loop))return;
+          const result=['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc','ps1'].includes(device.chipName)?raw._withMainOwner(groupFor(voiceOwner(loop)),()=>value.apply(object,args)):value.apply(object,args);
+          if(['ym2203','ym2608','ym2610','ym2610b','ym2151','ym2413','ay8910','ym3526','ym3812','y8950','ymf262','rf5c164','okim6258','gameboy','nes','huc6280','pokey','wonderswan','dx7','pwm','snes','spc','ps1'].includes(device.chipName)){
             if(change?.modeRegister!==undefined)raw._modeRegister=change.modeRegister;
             if(result?.then)return result.then(value=>resumeNativeExtraCaller(loop,()=>value),error=>resumeNativeExtraCaller(loop,()=>{throw error;}));
             return result;
@@ -746,7 +763,7 @@ export function createPlaygroundRuntime(
         if(events.some(event=>!event.on&&loop&&nativeOwners.has(name+':'+event.key)&&nativeOwners.get(name+':'+event.key).owner!==voiceOwner(loop)))return false;
         for(const event of events){const key=name+':'+event.key;if(event.on)nativeOwners.set(key,{name,key:event.key,owner:voiceOwner(loop)});else nativeOwners.delete(key);}
         return true;
-      },name==='ws'&&capabilities.backend==='native-genesis'||name==='opl'&&raw.chip==='y8950'?(result)=>{
+      },name==='spu'||name==='ws'&&capabilities.backend==='native-genesis'||name==='opl'&&raw.chip==='y8950'?(result)=>{
         const loop=currentLoopContext,token=currentRunToken;
         return result.then(value=>resumeNativeExtraCaller(loop,()=>value,token),error=>resumeNativeExtraCaller(loop,()=>{throw error;},token));
       }:undefined));
@@ -870,7 +887,7 @@ export function createPlaygroundRuntime(
     }
     validateSoundChipOptions(name, options);
     options = {...options};
-    if(!['ym2612', 'ym2203', 'ym2610', 'ym2610b', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7', 'snes', 'spc', 'huc6280', 'pokey', 'wonderswan', 'okim6258', 'ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
+    if(!['ym2612', 'ym2203', 'ym2610', 'ym2610b', 'rf5c164', 'ym2608', 'gameboy', 'segapsg', 'ym2151', 'pwm', 'nes', 'dx7', 'snes', 'spc', 'ps1', 'huc6280', 'pokey', 'wonderswan', 'okim6258', 'ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name)) throw new Error('Unsupported Playground sound chip: ' + name);
     // A Worker can retire a logical source at its future lookahead position,
     // then immediately request that same cached source again. Reconnect only
     // after the old endpoint is actually released, never into a different chip.
@@ -883,7 +900,7 @@ export function createPlaygroundRuntime(
     if (mixerId === undefined) do {mixerId = `${name}:${++pcmSequence}`;} while (occupied(mixerId));
     if (typeof mixerId !== 'string' || !mixerId.trim()) throw new TypeError('Mixer id must be a nonempty string');
     if (occupied(mixerId)) {reservation?.release(); throw new Error(`Mixer id is already connected: ${mixerId}`);}
-    const createAudio = name==='pokey'?(context,destination)=>createPokeyAudio(context,destination,{...options,signal:creationSignal}):name==='ay8910'?createAy8910Audio:name==='ym2413'?createYm2413Audio:OPL_CHIPS.includes(name) ? (context,destination) => createOplAudio(context,destination,{chip:name}) : name === 'wonderswan' ? createWonderSwanAudio : name === 'huc6280' ? createHuc6280Audio : name === 'okim6258' ? createOki6258Audio : name === 'spc' ? createSpcAudio : name === 'snes' ? createSnesAudio : name === 'dx7' ? createDx7Audio : name === 'nes' ? (context, destination) => createNesAudio(context, destination, options) : name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name, options) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
+    const createAudio = name==='ps1'?(context,destination)=>createPs1Audio(context,destination,{signal:creationSignal,onError:()=>device?.dispose()}):name==='pokey'?(context,destination)=>createPokeyAudio(context,destination,{...options,signal:creationSignal}):name==='ay8910'?createAy8910Audio:name==='ym2413'?createYm2413Audio:OPL_CHIPS.includes(name) ? (context,destination) => createOplAudio(context,destination,{chip:name}) : name === 'wonderswan' ? createWonderSwanAudio : name === 'huc6280' ? createHuc6280Audio : name === 'okim6258' ? createOki6258Audio : name === 'spc' ? createSpcAudio : name === 'snes' ? createSnesAudio : name === 'dx7' ? createDx7Audio : name === 'nes' ? (context, destination) => createNesAudio(context, destination, options) : name === 'pwm' ? createPWM32XAudio : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? (context, destination) => createOpnAudio(context, destination, name, options) : name === 'ym2151' ? createYm2151Audio : name === 'segapsg' ? createSegaPsgAudio : name === 'gameboy' ? createGameboyAudio : name === 'ym2608' ? createYm2608Audio : createRf5c164Audio;
     pendingPcmIds.add(mixerId);
     let device;
     try {device = nativeExtra
@@ -1810,7 +1827,7 @@ export function createPlaygroundRuntime(
     }
 
     if(command==='pcm.create'){
-      const worker=logicWorker,token=currentRunToken,pending=supportsNativeExtra(args[0])?{worker,performance,controller:new AbortController()}:null;let device;
+      const worker=logicWorker,token=currentRunToken,pending=(supportsNativeExtra(args[0])||args[0]==='ps1')?{worker,performance,controller:new AbortController()}:null;let device;
       if(pending)pendingNativeExtraCreations.add(pending);
       try{
         device=await openPcm(args[0],token,args[1],pending?.controller.signal);
@@ -1819,7 +1836,7 @@ export function createPlaygroundRuntime(
         await awaitNativeCreation(performanceHost.attach(device.node?.port),pending);
         pending?.controller.signal.throwIfAborted();
         if(worker!==logicWorker||token!==currentRunToken||!pcmDevices.has(device)||!performanceHost.clock&&playbackState!=='running')throw new Error('Run stopped');
-        return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,engine:device.engine,state:device.client?._getState?.(),clock:device.clock,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};
+        return {port:device.port,id:device.mixerId,instance:device.instanceToken,native:device.native,engine:device.engine,state:device.client?._getState?.()??device.state,clock:device.clock,stereoEnabled:device.stereoEnabled,fdsEnabled:device.fdsEnabled,sampleRate:device.sampleRate,internalSampleRate:device.internalSampleRate,voices:device.voices,selectedVoice:device.selectedVoice};
       }catch(error){if(device)performanceHost.detach(device.node?.port);device?.dispose();throw error;}
       finally{if(pending)pendingNativeExtraCreations.delete(pending);}
     }
@@ -2449,7 +2466,7 @@ export function createPlaygroundRuntime(
         evaluationState.musicalBinding=keyboardBinding(name,handlers);
       }},
       useSoundChip: async (name, options) => {
-        const ownsMainScope=supportsNativeExtra(name)&&capabilities.chip!==name&&!megaDrive.primaryEndpoints?.some(endpoint=>endpoint.name===name),callerLoop=currentLoopContext;
+        const ownsMainScope=(supportsNativeExtra(name)||name==='ps1')&&capabilities.chip!==name&&!megaDrive.primaryEndpoints?.some(endpoint=>endpoint.name===name),callerLoop=currentLoopContext;
         const check = () => { if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError'); };
         check();
         const chip = await soundChips.use(name, options, chipName => {
@@ -2473,7 +2490,7 @@ export function createPlaygroundRuntime(
         return chip;
       },
       createSoundChip: async (name, options = {}) => {
-        const ownsMainScope=supportsNativeExtra(name),callerLoop=currentLoopContext;
+        const ownsMainScope=supportsNativeExtra(name)||name==='ps1',callerLoop=currentLoopContext;
         const pending=ownsMainScope?{loop:callerLoop,controller:new AbortController()}:null;
         if(pending)pendingNativeExtraCreations.add(pending);let device;
         try{device=await openPcm(name,runToken,options,pending?.controller.signal);}finally{if(pending)pendingNativeExtraCreations.delete(pending);}
@@ -2482,7 +2499,7 @@ export function createPlaygroundRuntime(
           getOwner:()=>spcOwner(currentLoopContext,currentRunToken), captureContext:()=>currentLoopContext,
           restoreContext:loop=>{currentLoopContext=loop;},
           invokeEvent:(callback,event)=>executeUserCallback(()=>callback(event)),isStopped:loop=>runToken!==currentRunToken||loop?.stopped,
-        }) : device.client ?? (['pokey','wonderswan','huc6280','okim6258','gameboy','nes','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,device.port,device) : name === 'snes' ? createSnesClient(device.port, device) : name === 'dx7' ? createDx7Client(device.port, device) : name === 'nes' ? createNesClient(device.port, device) : name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? createOpnClient(name, device.port, device) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port,device) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm));
+        }) : device.client ?? (['ps1','pokey','wonderswan','huc6280','okim6258','gameboy','nes','dx7','ym3526','ym3812','y8950','ymf262','ym2413','ay8910'].includes(name) ? createNativePrimaryClient(name,device.port,device) : name === 'snes' ? createSnesClient(device.port, device) : name === 'dx7' ? createDx7Client(device.port, device) : name === 'nes' ? createNesClient(device.port, device) : name === 'pwm' ? createPWM32XClient(device.port) : ['ym2612', 'ym2203', 'ym2610', 'ym2610b'].includes(name) ? createOpnClient(name, device.port, device) : name === 'ym2151' ? createYm2151Client(device.port) : name === 'segapsg' ? createSegaPsgClient(device.port,device) : name === 'gameboy' ? createGameboyClient(device.port) : name === 'ym2608' ? createYm2608Client(device.port) : createRf5c164Client(device.port,decodePcm));
         if(!device.native)client._setAdpcmLifecycle?.({
           captureContext:()=>({token:currentRunToken,loop:currentLoopContext}),
           checkCurrent(scope){if(scope?scope.token!==currentRunToken||scope.loop?.stopped:currentLoopContext?.stopped)throw new DOMException('Run stopped','AbortError');},
@@ -2491,6 +2508,7 @@ export function createPlaygroundRuntime(
         });
         device.client=client;
         if(name==='pokey'&&!device.native)setPokeyTimelineLifecycle(client);
+        if(name==='ps1'&&!device.native)device.releaseOwner=ownPs1Main(client).releaseOwner;
         if (name === 'wonderswan' && !device.native) device.releaseOwner=ownWonderSwanMain(client).releaseOwner;
         if(name==='pokey'&&!device.native)device.releaseOwner=ownPokeyMain(client).releaseOwner;
         if(name==='spc'&&device.native)device.releaseOwner=owner=>client._cancelContext(owner);

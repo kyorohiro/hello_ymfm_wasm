@@ -1,3 +1,4 @@
+import {createPlaygroundPs1VoicePanel} from './playground_ps1_voice_panel.js?v=ps1-mode-1';
 import {createPlaygroundWonderSwanVoicePanel} from './playground_wonderswan_voice_panel.js?v=wonderswan-pcm-timeline-1';
 import {createPlaygroundPokeyVoicePanel} from './playground_pokey_voice_panel.js?v=pokey-voice-1';
 import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=audio-numeric-bindings-1';
@@ -38,8 +39,8 @@ export function pwmRoutingControl(control, side, route) {
 
 const AUDIO_FILE = /\.(?:wav|wave|aif|aiff|mp3|ogg|flac|m4a|aac|webm)$/i;
 const OPL_KINDS = ['ym3812', 'ym3526', 'y8950', 'ymf262'];
-const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym2413', 'ay8910', ...OPL_KINDS];
-const nativePanels = {pokey:createPlaygroundPokeyVoicePanel,wonderswan:createPlaygroundWonderSwanVoicePanel,gameboy:createPlaygroundGameboyVoicePanel,nes:createPlaygroundNesVoicePanel,snes:createPlaygroundSnesVoicePanel,ym2151:createPlaygroundYm2151VoicePanel,okim6258:createPlaygroundOki6258VoicePanel,huc6280:createPlaygroundHuc6280VoicePanel,dx7:createPlaygroundDx7VoicePanel,ym2413:createPlaygroundYm2413VoicePanel,ay8910:createPlaygroundAy8910VoicePanel};
+const KINDS = ['segapsg', 'rf5c164', 'pwm', 'gameboy', 'nes', 'snes', 'ps1', 'ym2151', 'okim6258', 'huc6280', 'wonderswan', 'pokey', 'dx7', 'ym2413', 'ay8910', ...OPL_KINDS];
+const nativePanels = {ps1:createPlaygroundPs1VoicePanel,pokey:createPlaygroundPokeyVoicePanel,wonderswan:createPlaygroundWonderSwanVoicePanel,gameboy:createPlaygroundGameboyVoicePanel,nes:createPlaygroundNesVoicePanel,snes:createPlaygroundSnesVoicePanel,ym2151:createPlaygroundYm2151VoicePanel,okim6258:createPlaygroundOki6258VoicePanel,huc6280:createPlaygroundHuc6280VoicePanel,dx7:createPlaygroundDx7VoicePanel,ym2413:createPlaygroundYm2413VoicePanel,ay8910:createPlaygroundAy8910VoicePanel};
 for (const kind of OPL_KINDS) nativePanels[kind] = options => createPlaygroundOplVoicePanel({...options,kind});
 const finiteText = (value, digits = 0) => Number.isFinite(value) ? Number(value.toFixed(digits)).toString() : '—';
 const hex = value => Number.isInteger(value) ? `0x${value.toString(16).toUpperCase().padStart(4, '0')}` : '—';
@@ -213,7 +214,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
         });
         editor.voicePanel = factory({root:editor.body,invoke,listFiles,readFile,loadSample,openSampleEditor:editSample,
           ...(editor.kind==='pokey'?{apiName:Object.hasOwn(voiceApiNames,id)?voiceApiNames[id]:null,instanceId:id}:{}),
-          onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
+          onSelectedChannelChange:publishAuditionTarget,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
           if (target) {
             if (keyboardEditor && keyboardEditor !== editor) keyboardEditor.voicePanel?.setKeyboardActive?.(false);
             keyboardEditor = editor; onKeyboardTargetChange(target);
@@ -480,7 +481,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
   function schedule() {
     cancelTimer();
     const editor=editors.get(visible);
-    if(editor?.additional&&eventDriven.has(visible))return;
+    if(visible==='ps1'||editor?.additional&&eventDriven.has(visible))return;
     if (!disposed && visible && !doc.hidden) timer = setTimeout(() => { timer = null; refresh(); }, pollMs);
   }
   async function refresh() {

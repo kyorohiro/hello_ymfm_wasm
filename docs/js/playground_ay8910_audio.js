@@ -17,7 +17,7 @@ export async function createAy8910Audio(context, destination, options = {}) {
   // loading assets or allocating a node; clock edits only retime this core.
   validateAy8910({clock, sampleRate:context?.sampleRate, type, flags});
   if (!context?.audioWorklet || context.state === 'closed') throw new Error('AY8910 requires an open AudioContext with AudioWorklet');
-  const workletUrl = String(options.workletUrl ?? new URL('./playground_ay8910_worklet.js?v=pokey-prepare-1', import.meta.url));
+  const workletUrl = String(options.workletUrl ?? new URL('./playground_ay8910_worklet.js?v=ps1-mode-1', import.meta.url));
   let cache = modules.get(context); if (!cache) modules.set(context, cache = new Map());
   let module = cache.get(workletUrl);
   if (!module) { module = context.audioWorklet.addModule(workletUrl); cache.set(workletUrl, module); module.catch(() => cache.delete(workletUrl)); }

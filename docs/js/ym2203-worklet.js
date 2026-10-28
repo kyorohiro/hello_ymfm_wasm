@@ -1,4 +1,4 @@
-import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=pokey-mode-1';
+import {OpnKeyboardInspector} from './playground_opn_inspector.js?v=ps1-mode-1';
 import {receiveChipInspector} from './playground_chip_inspector_state.js?v=pokey-prepare-1';
 import {validateChipClock} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createPerformanceQueue, createPerformanceChipOwnership} from './playground_performance_queue.js';

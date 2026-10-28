@@ -1,4 +1,4 @@
-import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=pokey-mode-1';
+import {keyboardChannels,keyboardChannelHint} from '../js/playground_keyboard_channels.js?v=ps1-mode-1';
 
 /** The mode's primary instrument is playable before a script binds Keyboard.
  * Resolve its admin endpoint after audio preparation; never create a second chip.
@@ -8,6 +8,7 @@ const TARGETS = {
   pokey: ['pokey', 'POKEY 1 · CH1'],
   gameboy: ['gameboy', 'Game Boy · Pulse 1'],
   nes: ['nes', 'NES + FDS · Pulse 1'],
+  ps1: ['ps1', 'PS1 SPU · Voice 1'],
   snes: ['snes', 'SNES · Voice 1'],
   x68000: ['ym2151', 'YM2151 · CH1'],
   huc6280: ['huc6280', 'HuC6280 · CH1'],

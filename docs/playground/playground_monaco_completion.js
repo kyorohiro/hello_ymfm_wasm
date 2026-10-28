@@ -1,6 +1,6 @@
 import {
   FM_PRESETS,
-} from "../js/megasynth.js?v=pokey-prepare-1";
+} from "../js/megasynth.js?v=ps1-mode-1";
 
 const SCALE_NAMES = [
   "major",
@@ -272,7 +272,7 @@ const FM_COMPLETION_CAPABILITIES = {
   ym2608: {channels: [0, 1, 2, 3, 4, 5], dac: false, pan: true, lfo: true},
   ym2610: {channels: [1, 2, 4, 5], dac: false, pan: true, lfo: true},
   ym2610b: {channels: [0, 1, 2, 3, 4, 5], dac: false, pan: true, lfo: true},
-  ...Object.fromEntries(['pokey','pokey-dual','wonderswan','gameboy','nes','snes','x68000','huc6280','pc-engine-cd','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','ym2413','msx','msx-audio','ay8910','atari-st'].map(chip => [chip,{channels:[],dac:false,pan:false,lfo:false}])),
+  ...Object.fromEntries(['pokey','pokey-dual','wonderswan','gameboy','nes','snes','ps1','x68000','huc6280','pc-engine-cd','game-gear','master-system','dx7','ym3526','ym3812','y8950','ymf262','ym2413','msx','msx-audio','ay8910','atari-st'].map(chip => [chip,{channels:[],dac:false,pan:false,lfo:false}])),
 };
 
 function fmCompletionCapabilities(chip) {

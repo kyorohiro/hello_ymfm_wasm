@@ -76,14 +76,14 @@
       "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
     },
     "scripts/build_ps1_spu_wasm.sh": {
-      "bytes": 2681,
-      "sha256": "fc643e9baf981ec0faf5a3565a56f50fb1fadca4db22b4085a1fdfd749e2b222"
+      "bytes": 2905,
+      "sha256": "988d1c9f1e57a78d184d05ff2f121f4a14c67410ae307f5423e37239b39a33be"
     }
   },
   "outputs": {
     "ps1_spu_wasm.js": {
-      "bytes": 16576,
-      "sha256": "6b3449e0c0e6520c2027c45178392463a58ebd27b30cfa7f0fd23a2b36b14e94"
+      "bytes": 16551,
+      "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a"
     },
     "ps1_spu_wasm.wasm": {
       "bytes": 44899,

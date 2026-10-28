@@ -312,3 +312,30 @@ pokeyA.node.connect(new AudioContext().destination);
 pokeyA.setChannelMuted(0,1);
 // @ts-expect-error Render lengths are numeric.
 pokeyA.generateStereo('128');
+
+import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from 'tetorica-fm2612/ps1synth.js';
+import {Ps1Resampler} from 'tetorica-fm2612/ps1_resampler.js';
+import {createPs1Client} from 'tetorica-fm2612/playground_ps1.js';
+const ps1InstrumentCore=await Ps1Spu.create({moduleFactory:ps1Factory});
+const ps1Instrument=new Ps1Synth({core:ps1InstrumentCore});
+const {adpcm:ps1Packets,...ps1SampleOptions}=createPs1InitSample();
+const ps1Sample=ps1Instrument.loadADPCM(ps1Packets,ps1SampleOptions);
+ps1Sample.decodedFrames.toFixed();ps1Sample.repeatAddress.toFixed();
+preparePs1ADPCM(ps1Packets,{rootNote:'A4',loopStartSamples:0}).rootFrequencyHz.toFixed();
+ps1Instrument.setPreset(23,{sample:ps1Sample,volumeLeft:0.6,volumeRight:-0.6,adsr1:15,adsr2:8});
+ps1Instrument.noteOn(23,'A4');ps1Instrument.stopVoices();
+new Ps1Resampler(ps1Instrument,48000).render(new Float32Array(128),new Float32Array(128));
+const ps1Client=createPs1Client(new MessageChannel().port1);
+const ps1Uploaded=await ps1Client.loadADPCM(ps1Packets,ps1SampleOptions);
+ps1Client.setPreset(23,{sample:ps1Uploaded});(await ps1Client.getPreset(23)).pitch.toFixed();
+ps1Client.reset({clearRam:false});ps1Client.dispose();
+// @ts-expect-error Encoded SPU samples require explicit musical tuning.
+ps1Instrument.loadADPCM(ps1Packets,{});
+// @ts-expect-error Tuning declarations are mutually exclusive.
+preparePs1ADPCM(ps1Packets,{rootNote:69,baseFrequencyHz:440});
+// @ts-expect-error Voice volumes are normalized numbers, not strings.
+ps1Instrument.setPreset(0,{volumeLeft:'0.5'});
+// @ts-expect-error Destination PCM is Float32.
+new Ps1Resampler(ps1Instrument,48000).render(new Int16Array(128),new Int16Array(128));
+// @ts-expect-error Fixed-rate SPU has no programmable chip clock.
+ps1Instrument.setClock(44100);

@@ -28,7 +28,7 @@ function fixture(inspector, options = {}) {
     fire(name) { for (const callback of listeners.get(name) ?? []) callback(); },
     listenerCount(name) { return listeners.get(name)?.size ?? 0; },
   };
-  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','snes','ym2151','okim6258','wonderswan','pokey','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
+  const roots = Object.fromEntries(['segapsg', 'rf5c164', 'pwm','gameboy','nes','snes','ps1','ym2151','okim6258','wonderswan','pokey','huc6280','ym3812','ym3526','y8950','ymf262','ym2413','ay8910'].map(kind => [kind, new Element(doc, 'div')]));
   const tabs = createPlaygroundChipTabs({roots, getInspector: () => inspector, pollMs: 100000, ...options});
   return {doc, roots, tabs};
 }
@@ -430,4 +430,24 @@ test('same-ID POKEY connection replacement fences stale controls, held targets a
     const count=calls.length;oldTarget.noteOff({id:'same'});assert.equal(calls.length,count);nextTarget.noteOff({id:'same'});await flush();assert.deepEqual(calls.at(-1),{token:2,args:['pokey:2','auditionOff',[0,newPress]]});
     nextVolume.value='9';await nextVolume.fire('change');assert.deepEqual(calls.at(-1),{token:2,args:['pokey:2','setVolume',[0,9]]});
   }finally{tabs.dispose();}
+});
+
+
+test('PS1 has 24 applied voices, normalized edits and identity-safe audition without periodic reads',async t=>{
+  let reads=0;const calls=[],selections=[];
+  const state={kind:'ps1',samples:[{id:0,byteLength:64,decodedFrames:112,startAddress:4096,rootFrequencyHz:393.75,basePitch:4096,loop:true}],
+    channels:Array.from({length:24},()=>({sample:0,pitch:4096,volumeLeft:.75,volumeRight:.75,adsr1:15,adsr2:8,gate:false}))};
+  const inspector={list:()=>[{id:'ps1',kind:'ps1'}],read:async()=>{reads++;return structuredClone(state);},invoke:async(...args)=>{calls.push(args);}};
+  const {roots,tabs}=fixture(inspector,{pollMs:5,onAuditionTargetChange:value=>selections.push(value)});t.after(()=>tabs.dispose());
+  tabs.setVisible('ps1');await flush();await flush();assert.equal(reads,1);assert.deepEqual(calls,[]);
+  await new Promise(resolve=>setTimeout(resolve,25));assert.equal(reads,1,'PS1 snapshots only read on entry, refresh or an edit');
+  const root=roots.ps1;assert.equal(walk(root).filter(n=>n.dataset.chipChannel!==undefined).length,24);
+  const ch23=walk(root).find(n=>n.dataset.chipAction==='ps1-channel-23');await ch23.fire('click');
+  assert.equal(selections.at(-1).channel,23,'operator Keyboard follows the selected physical voice immediately');
+  const volume=control(root,'ps1-volume-left');volume.value='0.42';await volume.fire('change');
+  assert.deepEqual(calls.at(-1),['ps1','setPreset',[23,{volumeLeft:.42}]]);
+  volume.value='1.01';await volume.fire('change');assert.equal(calls.filter(c=>c[1]==='setPreset').length,1);
+  const hold=walk(root).find(n=>n.dataset.chipAction==='ps1-hold');await hold.fire('pointerdown',{button:0,pointerId:1});
+  const on=calls.at(-1);assert.equal(on[1],'auditionOn');assert.equal(on[2][0],23);
+  tabs.setVisible(null);await flush();assert.deepEqual(calls.at(-1),['ps1','auditionOff',[23,on[2][2]]]);
 });

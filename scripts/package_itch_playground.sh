@@ -41,6 +41,7 @@ playground_chip_tabs.css
 playground_gameboy_voice_panel.js
 playground_nes_voice_panel.js
 playground_snes_voice_panel.js
+playground_ps1_voice_panel.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js
@@ -112,6 +113,7 @@ tetorica-playground-ym2612.d.ts
 tetorica-playground-gameboy.d.ts
 tetorica-playground-nes.d.ts
 tetorica-playground-snes.d.ts
+tetorica-playground-ps1.d.ts
 tetorica-playground-x68000.d.ts
 tetorica-playground-huc6280.d.ts
 tetorica-playground-pc-engine-cd.d.ts
@@ -159,6 +161,13 @@ snes_brr_encoder.js
 wav.js
 spc_resampler.js
 snessynth.js
+ps1_spu.js
+ps1synth.js
+ps1_resampler.js
+playground_ps1.js
+playground_ps1_audio.js
+playground_ps1_worklet.js
+playground_ps1_inspector.js
 playground_snes.js
 playground_snes_audio.js
 playground_snes_worklet.js
@@ -448,6 +457,8 @@ y8950_wasm.js
 y8950_wasm.wasm
 ymf262_wasm.js
 ymf262_wasm.wasm
+ps1_spu_wasm.js
+ps1_spu_wasm.wasm
 spc_wasm.js
 spc_wasm.wasm
 ym2151_wasm.js
@@ -634,9 +645,11 @@ node "${ROOT_DIR}/scripts/copy_nuked_sources.mjs" "${STAGE_DIR}"
 DX7_VERSION=$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")).version' "${DOCS_JS_DIR}/msfa_dx7/package.json")
 node "${ROOT_DIR}/scripts/copy_segapsg_sources.mjs" "${STAGE_DIR}"
 node "${ROOT_DIR}/scripts/copy_pokey_sources.mjs" "${STAGE_DIR}"
+node "${ROOT_DIR}/scripts/copy_ps1_sources.mjs" "${STAGE_DIR}"
 
 cat > "${STAGE_DIR}/THIRD_PARTY_LICENSES.txt" <<EOF
 Sega PSG: original Tetorica implementation, BSD-3-Clause. See licenses/tetorica_sega_psg/ and sources/SegaPSG.md. Hardware reference: SMS Power! SN76489 documentation by Maxim and contributors.
+PlayStation SPU: MAME adaptation, BSD-3-Clause. See licenses/mame-ps1-spu/ and sources/PS1-SPU.md for full source, provenance and rebuilding.
 SNES S-DSP: snes_spc, LGPL-2.1-or-later. See licenses/snes-spc and sources/SNES-SPC.md for source and rebuilding.
 Nuked OPN2: LGPL-2.1-or-later. See licenses/nuked-opn2/ and sources/Nuked-OPN2.md for corresponding source and rebuilding.
 JavaScript import parser: es-module-lexer 3.0.3, MIT. See vendor/es-module-lexer-LICENSE.
