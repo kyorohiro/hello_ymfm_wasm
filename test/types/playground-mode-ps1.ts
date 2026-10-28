@@ -1,6 +1,18 @@
 /// <reference path="../../docs/playground/tetorica-playground-ps1.d.ts" />
 /// <reference path="../../docs/playground/tetorica-playground-globals.d.ts" />
 async function checkPs1ModeTypes() {
+  const savedAudio=await inputAudio({asset:'/samples/sampler.sample.json',edit:false,target:'ps1'});
+  if(savedAudio){
+    savedAudio.alignment?.applied.startFrame.toFixed();
+    savedAudio.adpcm?.byteLength.toFixed();
+    const sampler=await createSampleInstrument(savedAudio,{target:'ps1',volume:192});
+    keyboard.bind('ps1-sampler',sampler);
+    await sampler.noteOn({id:'press',midi:69,velocity:127});
+    await sampler.noteOff({id:'press',midi:69,velocity:127});
+    await sampler.allNotesOff();
+  }
+  // @ts-expect-error Only supported editor targets may be requested.
+  inputAudio({target:'psf'});
   const encoded = encodePs1Adpcm(new Float32Array(112), {loopStartSamples:0, maxBytes:64});
   encoded.metrics.snrDb?.toFixed(); encoded.paddingFrames.toFixed();
   const encodedSample = await spu.loadADPCM(encoded.adpcm, {baseFrequencyHz:44100/112,loopStartSamples:encoded.loopStartSamples!});

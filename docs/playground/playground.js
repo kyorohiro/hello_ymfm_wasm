@@ -38,7 +38,7 @@ import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addV
 import {exportWonderSwanVgm} from './wonderswan_vgm_import.js?v=wonderswan-import-3';
 import {exportPokeyVgm} from './pokey_vgm_import.js?v=pokey-import-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=gameboy-sample-preview-1';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=ps1-sample-editor-1';
 import {createNativeSampleEditorAudio} from '../js/playground_native_sample_editor.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=audio-numeric-bindings-1';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
@@ -65,7 +65,7 @@ import {
 import {createPlaygroundExtraFmEditor} from './playground_extra_fm_editor.js?v=y8950-adpcm-ui-1';
 import { createPlaygroundOperatorKeyboard } from "./playground_operator_keyboard.js?v=ps1-mode-1";
 import { CHIP_CLOCKS } from "../js/playground_chip_clock.js?v=pokey-prepare-1";
-import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=ps1-adpcm-encoder-1";
+import { DEFAULT_CODE, EXAMPLES, EXAMPLE_FILES, MODE_DEFAULT_CODES, MODE_DEFAULT_HISTORY, MODE_EXAMPLE_FILES } from "./playground_examples.js?v=ps1-sample-editor-1";
 import { initializePlaygroundMonaco } from "./playground_monaco.js?v=ps1-adpcm-encoder-1";
 import {
   decodeBase64Bytes,
@@ -97,7 +97,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=ps1-adpcm-encoder-1";
+} from "../js/playground_runtime.js?v=ps1-sample-editor-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=ps1-mode-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
@@ -1872,7 +1872,7 @@ const sampleAssets = createPlaygroundSampleAssets({
 const nativeSampleEditorAudio=useNativeGenesis?createNativeSampleEditorAudio(megaDrive):null;
 const sampleInputProvider = createPlaygroundAudioInput({
   recordingSeconds: 60,
-  defaultTarget: selectedChip === 'gameboy' ? 'gameboy-wave'
+  defaultTarget: selectedChip === 'ps1' ? 'ps1' : selectedChip === 'gameboy' ? 'gameboy-wave'
     : ['ym2608','ym2610','ym2610b'].includes(selectedChip) ? 'adpcm-b' : 'rf5c164',
   getAudioContext: () => {
     if (!megaDrive.audioContext) throw new Error('Start Playground audio before choosing a sample.');

@@ -2,6 +2,7 @@
 import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave} from './playground_sample_edit.js';
 import {encodeAdpcmB} from './adpcm_b_sample.js';
 import {captureKeyboardCallback} from './playground_keyboard.js';
+import {renderPs1Sample} from './playground_sample_ps1.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function eventNote(event) {
@@ -12,9 +13,10 @@ function eventNote(event) {
 }
 
 /** FIFO per physical voice; retirement invalidates old callbacks before posting silence. */
-function instrumentVoices(name, count, controls, silence, capture) {
-  const voices = Array.from({length: count}, (_, channel) => ({channel, owner: null, queue: Promise.resolve()}));
+function instrumentVoices(name, count, controls, silence, capture, shared) {
+  const voices = shared?.voices ?? Array.from({length: count}, (_, channel) => ({channel, owner: null, queue: Promise.resolve()}));
   const held = new Map();
+  const instrument = {};
   let generation = 0, age = 0;
   const api = {
     name,
@@ -23,11 +25,11 @@ function instrumentVoices(name, count, controls, silence, capture) {
       if (!event.velocity) return api.noteOff(event);
       if (held.has(event.id)) return;
       const voice = voices.find(voice => !voice.owner) ?? voices.reduce((a, b) => a.owner.age < b.owner.age ? a : b);
-      if (voice.owner) held.delete(voice.owner.event.id);
-      const owner = {event, age: ++age, generation};
-      voice.owner = owner;
+      voice.owner?.retire();
+      const owner = {event, age: shared ? ++shared.age : ++age, generation, instrument, retire: () => held.delete(event.id)};
+      voice.owner = voice.lease = owner;
       held.set(event.id, {voice, owner});
-      const owns = () => generation === owner.generation && voice.owner === owner;
+      const owns = () => generation === owner.generation && voice.owner === owner && voice.lease === owner;
       const invoke = capture(command => command());
       voice.queue = voice.queue.catch(() => {}).then(capture(async () => {
         if (!owns()) return;
@@ -48,19 +50,65 @@ function instrumentVoices(name, count, controls, silence, capture) {
       const token = generation;
       const invoke = capture(command => command());
       pressed.voice.queue = pressed.voice.queue.catch(() => {}).then(capture(() => {
-        if (token === generation) return invoke(() => silence(pressed.voice.channel));
+        if (token === generation && pressed.voice.lease === pressed.owner) {
+          pressed.voice.lease = null;
+          return invoke(() => silence(pressed.voice.channel));
+        }
       }));
       await pressed.voice.queue;
     },
     allNotesOff() {
       generation++;
       held.clear();
-      for (const voice of voices) {voice.owner = null; voice.queue = Promise.resolve();}
+      const retiring = shared ? voices.filter(voice => voice.lease?.instrument === instrument) : voices;
+      for (const voice of retiring) {voice.owner = voice.lease = null; voice.queue = Promise.resolve();}
       // Do not await a retired queue: its delayed off could mute a newer Run.
-      return Promise.all(voices.map(voice => silence(voice.channel))).then(() => {});
+      return Promise.all(retiring.map(voice => silence(voice.channel))).then(() => {});
     },
   };
   return api;
+}
+
+// Shared only by sample instruments that borrow the same SPU API. A replacement
+// instrument cannot be silenced by an earlier instrument's queued release.
+const ps1VoicePools = new WeakMap();
+function ps1VoicePool(spu) {
+  let pool = ps1VoicePools.get(spu);
+  if (!pool) {
+    pool = {age: 0, voices: Array.from({length: 24}, (_, channel) => ({channel, owner: null, lease: null, queue: Promise.resolve()}))};
+    ps1VoicePools.set(spu, pool);
+  }
+  return pool;
+}
+
+/** Repeated Run/Stop retains SPU RAM. Reuse only a descriptor whose tuning,
+ * loop and actual current RAM bytes match; IDs or a former upload alone are
+ * insufficient after reset({clearRam:true}) or direct low-level RAM edits.
+ * Inspector reads happen once during preparation, never during a note/render.
+ */
+async function ps1Sample(spu, selected) {
+  const matches = sample => sample && Number.isSafeInteger(sample.id) && sample.id >= 0 &&
+    Number.isSafeInteger(sample.startAddress) && sample.startAddress >= 0x1000 && sample.startAddress % 16 === 0 &&
+    sample.byteLength === selected.adpcm.length && sample.decodedFrames === selected.frames &&
+    sample.basePitch === 4096 && sample.rootFrequencyHz === selected.baseFrequencyHz &&
+    sample.loop === selected.loopEnabled && sample.loopStartSamples === (selected.loopEnabled ? selected.loopStartFrame : null) &&
+    sample.repeatAddress === sample.startAddress + (selected.loopEnabled ? selected.loopStartFrame / 28 * 16 : 0);
+  if (typeof spu.getState === 'function' && typeof spu.snapshot === 'function') {
+    const state = await spu.getState();
+    if (Array.isArray(state?.samples) && state.samples.some(matches)) {
+      const snapshot = await spu.snapshot();
+      const ram = snapshot?.ram instanceof Uint8Array ? snapshot.ram :
+        snapshot?.ram instanceof ArrayBuffer ? new Uint8Array(snapshot.ram) : null;
+      if (ram && Array.isArray(snapshot.samples)) {
+        for (const [index, sample] of snapshot.samples.entries()) {
+          if (!matches(sample) || sample.id !== index || sample.startAddress + sample.byteLength > ram.length) continue;
+          if (selected.adpcm.every((byte, offset) => ram[sample.startAddress + offset] === byte)) return {...sample};
+        }
+      }
+    }
+  }
+  return spu.loadADPCM(selected.adpcm, {baseFrequencyHz: selected.baseFrequencyHz,
+    ...(selected.loopEnabled ? {loopStartSamples: selected.loopStartFrame} : {})});
 }
 
 function metadata(audio) {
@@ -70,16 +118,34 @@ function metadata(audio) {
 }
 
 /**
- * audio is already edited PCM; target adapters never silently crop or resample it.
- * @param {{pg?: any, audio?: any, chip?: string, target?: 'auto' | 'rf5c164' | 'gameboy-wave' | 'adpcm-b', volume?: number}} [options]
+ * audio is already edited PCM. Device-specific conversion is explicit: PS1 uses
+ * native 44.1 kHz mono and 28-frame loop packets; Game Boy uses one 32-point cycle.
+ * @param {{pg?: any, audio?: any, chip?: string, target?: 'auto' | 'rf5c164' | 'gameboy-wave' | 'adpcm-b' | 'ps1', volume?: number}} [options]
  */
 export async function createSampleInstrument({pg, audio, chip = 'ym2612', target = audio?.target ?? 'auto', volume} = {}) {
   if (!pg || !audio) throw new TypeError('createSampleInstrument requires pg and decoded audio');
   const {rootMidi, tuneCents} = metadata(audio);
   if (volume !== undefined && (!Number.isInteger(volume) || volume < 0 || volume > 255)) throw new RangeError('Sample volume must be an integer 0..255');
-  if (target === 'auto') target = chip === 'gameboy' ? 'gameboy-wave' : ['ym2608', 'ym2610', 'ym2610b'].includes(chip) ? 'adpcm-b' : 'rf5c164';
+  if (target === 'auto') target = chip === 'ps1' ? 'ps1' : chip === 'gameboy' ? 'gameboy-wave' : ['ym2608', 'ym2610', 'ym2610b'].includes(chip) ? 'adpcm-b' : 'rf5c164';
   const ratio = midi => 2 ** (((midi - rootMidi) * 100 - tuneCents) / 1200);
   const capture = callback => captureKeyboardCallback(pg, callback);
+  if (target === 'ps1') {
+    // Re-encode the edited PCM instead of trusting an optional stale/foreign
+    // `audio.adpcm` field. Gain, fades and crop have already been applied upstream.
+    const selected = renderPs1Sample(audio, {rootMidi, tuneCents,
+      loopEnabled: audio.loopEnabled, loopStartFrame: audio.loopStartFrame, loopEndFrame: audio.loopEndFrame});
+    const spu = chip === 'ps1' && pg.spu ? pg.spu : await pg.useSoundChip('ps1');
+    const sample = await ps1Sample(spu, selected);
+    const level = volume === undefined ? .75 : volume / 255;
+    return instrumentVoices('PS1 SPU sampler (24 voices)', 24, (channel, event) => {
+      const gain = level * event.velocity / 127;
+      return [
+        () => spu.setPreset(channel, {sample: sample.id, volumeLeft: gain, volumeRight: gain, adsr1: 0x000f, adsr2: 8}),
+        () => spu.setFrequency(channel, 440 * 2 ** ((event.midi - 69) / 12)),
+        () => spu.keyOn(channel),
+      ];
+    }, channel => spu.keyOff(channel), capture, ps1VoicePool(spu));
+  }
   if (target === 'rf5c164') {
     const frames = normalizeSampleEdit(audio).endFrame;
     const end = audio.loopEnabled ? audio.loopEndFrame ?? frames : frames;

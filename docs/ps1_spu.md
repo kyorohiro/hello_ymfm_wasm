@@ -40,9 +40,11 @@ tuning and returns a sample descriptor. Use exactly one of `rootNote` and
 `baseFrequencyHz`. For a loop, supply `loopStartSamples` at a 28-frame packet
 boundary with matching packet flags. The helper validates predictor, shift,
 packet length, final END, loop markers and available RAM before writing.
-Uploads do not resample PCM or encode WAV. The three bundled examples demonstrate
-independent stereo voices, an original hand-authored triangle ADPCM sample and
-PCM conversion with `encodePs1Adpcm`.
+Uploads do not resample PCM or encode WAV. The four bundled examples demonstrate
+independent stereo voices, an original hand-authored triangle ADPCM sample,
+PCM conversion with `encodePs1Adpcm`, and a saved Sample Editor instrument
+played from Keyboard. The [PS1 Sample Editor guide](ps1_sample_editor.md) covers
+file/microphone input, drawing, loop alignment, actual SPU preview and saving.
 
 `setPreset` / `setChannel` accept sample ID or descriptor, signed normalized
 `volumeLeft` / `volumeRight` in `[-1,1]`, raw `adsr1` / `adsr2` words and pitch.

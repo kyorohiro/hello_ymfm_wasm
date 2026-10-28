@@ -10,7 +10,8 @@ dialog.sample-editor {width:min(880px,calc(100vw - 24px));max-width:calc(100vw -
 .sample-editor input[type=file] {max-width:300px;}
 .sample-editor canvas {width:100%;height:220px;display:block;background:#182327;border:1px solid #899793;border-radius:8px;touch-action:none;cursor:crosshair;box-sizing:border-box;}
 .sample-editor .sample-scroll {width:100%;margin-left:0;margin-right:0;}
-.sample-editor .sample-gameboy {border:1px solid #899793;border-radius:8px;padding:10px;margin:12px 0;}
+.sample-editor .sample-gameboy,.sample-editor .sample-ps1 {border:1px solid #899793;border-radius:8px;padding:10px;margin:12px 0;}
+.sample-editor .sample-ps1 p {overflow-wrap:anywhere;}
 .sample-editor .sample-cycle-comparison {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
 .sample-editor .sample-cycle-comparison figure {margin:0;min-width:0;}
 .sample-editor .sample-cycle-comparison figcaption {font-size:.82rem;margin-bottom:6px;line-height:1.4;}

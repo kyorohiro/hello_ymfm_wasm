@@ -345,10 +345,15 @@ do {propagated=false;for(const {name,source}of sources){
 const previousRevisionFor=name=>adpcmAEncoderFiles.has(name)?'adpcm-a-encoder-1':brrEncoderFiles.has(name)?'snes-brr-encoder-1':gameboySampleFiles.has(name)?'gameboy-sample-preview-1':megaCdCddaFiles.has(name)?'mega-cd-cdda-1':cdrom2PanelFiles.has(name)?'cdrom2-panels-1':pcEngineCdFiles.has(name)?'pcengine-cd-1':cddaFiles.has(name)?'cdda-pcm-1':pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const ps1EncoderFiles=new Set(['ps1_adpcm_encoder.js','playground_runtime.js','playground_logic_worker.js',
   'playground.js','playground_examples.js','playground_mode_examples.js','playground_monaco.js','playground_monaco_definitions.js']);
-const revisionFor=name=>ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+const ps1SampleFiles=new Set(['playground_sample_ps1.js','playground_sample_ps1_preview.js',
+  'playground_sample_instrument.js','playground_runtime.js','playground_logic_worker.js',
+  'playground.js','playground_audio_input.js','playground_sample_editor_worker.js','playground_sample_editor.css',
+  'playground_examples.js','playground_mode_examples.js']);
+const revisionFor=name=>ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
   ...ps1ModeFiles,
   ...ps1EncoderFiles,
+  ...ps1SampleFiles,
   ...cddaFiles, ...pcEngineCdFiles, ...cdrom2PanelFiles,
   ...megaCdCddaFiles,
   ...gameboySampleFiles,

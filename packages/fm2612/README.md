@@ -58,6 +58,8 @@ entry points, rather than every internal Worker or Worklet module.
 | Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
 | PCM to PS1 SPU ADPCM | `tetorica-fm2612/ps1_adpcm_encoder.js` | `encodePs1Adpcm` |
+| PS1 Sample Editor conversion / waveform comparison | `tetorica-fm2612/playground_sample_ps1.js` | `renderPs1Sample`, `renderPs1SampleComparison` |
+| Isolated offline PS1 sample audition | `tetorica-fm2612/playground_sample_ps1_preview.js` | `renderPs1SamplePreview` with an injected PS1 WASM factory |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
@@ -113,6 +115,13 @@ SPU voice editor; its script API also supports `createSoundChip('ps1')`.
 explicit loop positions and JSON-safe reconstruction metrics. It does not
 resample or normalize; declare tuning when uploading the encoded sample.
 See the [PCM conversion guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_adpcm_encoder.md).
+The source-tree package build also includes `playground_sample_ps1.js` for
+non-destructive 44.1 kHz mono conversion and bounded raw-decoded comparisons,
+and `playground_sample_ps1_preview.js` for an isolated actual-SPU root-note
+preview. The preview requires an injected generated factory, opens no audio
+device and releases its private core after rendering. These helpers are part
+of the current package candidate; their presence here does not announce a new
+npm release. See the [Sample Editor workflow and RAM limits](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_sample_editor.md).
 The package-root chip factory remains separate, and the Native Playground
 audio adapter is future work. The core is separate from the fixed sound-chip SDK.
 Upstream linear interpolation, approximate ADSR and preset reverb are retained;

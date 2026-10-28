@@ -1,3 +1,15 @@
+## 2026-10-28 — PS1 Sample Editor／保存楽器のKeyboard演奏を追加
+
+- PS1 modeのMenu → Sample Editorで、音声file／マイク録音／描画から楽器を作成可能。44.1kHz monoへ変換し、元WAV＋source-relative編集JSONを保存。`examples/ps1/ps1-sampler.js`をRunしてGuitar／PC／pointer Keyboardで演奏する。PS1の実行Example一覧へPCM encoderとsamplerを登録し、計4本にした。
+- 比較／試奏／楽器が同じ変換を使用。変換前／raw ADPCM再構成後の波形・byte数・RMS／最大誤差・SNRを表示。loopはnative28frame境界の内側へ揃え、指定／適用範囲・切り落とす末尾を明示。intro保持、one-shotはzero PCM padding、元録音・編集markerは保持。保存のみでも不正loopを拒否する。
+- 実SPUの独立WASM instanceでroot noteを0.85秒試奏しfinally解放。root／cents補正をKeyboardと共通化。gain／crop／fadeを二重適用しない。変換は準備Workerで行い、比較応答を集約、編集／停止／close後の古い再生を防止。常時pollingやAudioWorklet上のencoder処理は追加なし。
+- 選択範囲全体がRAM予算を超える場合はresample前に拒否し、大量の一時PCM生成を防止。live uploadは実空き容量も検査。同一sampleはfresh metadata＋実RAM全byteの一致で再利用し、hot Run／Stop後Runでもbankは1→2のまま。24声のleaseを共有し、古い楽器のcleanupが新しい声を止めない。
+- 音声69件・runtime等297件・最終catalog13件（前groupと12件重複）・mode/project31件と全mode型が成功、skip0。共通Sample EditorとGame Boyの既存Browser回帰も成功。最終source本体／実Run ZIP × Chromium／WebKit × Main／Workerの8条件成功。同一checker hashで実録音API・保存再表示・音程・24声・exact RAM・連続quanta・Stop後exact zeroを確認。物理出力mute、実マイク／人の実聴は未実施。
+- isolated npm最終987files／381宣言／1,085asset参照／28WASM engine／15rendererが成功。新helperとinstrumentのweb／npm原本はbyte一致。Browser mirrorはversion付きimport／asset pathを使うため、別途配信byteを検証（source289files、ZIP217files）。version0.2.32のまま未公開。
+- 標準3package command、4ZIPのCRC／path／stage全byte一致、Analyzer測定hash guard、actionlint、runtime versioner冪等性が成功。Run ZIPは`release/hello_ymfm_wasm_ps1-sample-editor-dev_itch_playground_for_run.zip`、921entries、SHA256 `9ca8460faff07d48aebf01e3c8d9531eddd6e23c15990dc89675fbe7aa84c4fd`。fullは同prefixの_for_runなし。cache `ps1-sample-editor-1`。CIへunit／packaged Browser試験を追加、remote未実行。
+- C++ core／WASM／receipt／既存renderer／Mixer gain／固定SDK／Tauri Nativeは変更なし。**未commit／未push／未公開**、tag・SDK／Tauri取込・npm／itch uploadなし。前段階encoderはユーザーcommit `94b62d45`に含まれる。次はPS1のSDK集約とTauri Native adapter。
+- 詳細：[ps1_sample_editor_01.md](ps1_sample_editor_01.md)／[JSON](ps1_sample_editor_01.json)、公開guide：[../ps1_sample_editor.md](../ps1_sample_editor.md)、計画：[todo_ps1_01.md](todo_ps1_01.md)。以下は各時点の履歴。
+
 ## 2026-10-28 — PCM → PS1 SPU ADPCM encoderを追加
 
 - 純JSの`encodePs1Adpcm()`／`pg.encodePs1Adpcm`とnpm subpathを追加。有限mono Float32 PCMから16byte／28frame packetsへ変換。28frame境界のloop、one-shot zero padding、容量制限、所有されたbytesとJSON保存可能な誤差を返す。再sample／音量補正／pitch推定なし、tuningはloadADPCMで明示。default520,192bytesは空Synth用、既存bankの容量はcaller管理。

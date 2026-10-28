@@ -22,6 +22,9 @@ try {
   for (const file of ['ps1_adpcm_encoder.js','ps1_adpcm_encoder.d.ts']) {
     assert.ok(packedPaths.has(file), `SPU ADPCM encoder payload missing ${file}`);
   }
+  for (const file of ['playground_sample_ps1.js','playground_sample_ps1.d.ts','playground_sample_ps1_preview.js','playground_sample_ps1_preview.d.ts']) {
+    assert.ok(packedPaths.has(file), `PS1 sample conversion/preview payload missing ${file}`);
+  }
   for(const file of ['ps1_spu.js','ps1_spu.d.ts',...['ps1synth','ps1_resampler','playground_ps1','playground_ps1_audio','playground_ps1_worklet','playground_ps1_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),'generated/ps1_spu_wasm.js','generated/ps1_spu_wasm.wasm','generated/ps1_spu_build.json',
     'licenses/mame-ps1-spu/LICENSE','licenses/mame-ps1-spu/README.md','sources/PS1-SPU.md','sources/PS1-SPU.json',
     'sources/scripts/build_ps1_spu_wasm.sh',...['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h',
@@ -169,6 +172,44 @@ try{
 console.log('Installed SPU ADPCM encoder verified: both exports, PCM conversion, looping CH24 signed stereo, one-shot END, Stop and retrigger.');
 `);
   execFileSync(process.execPath,[join(consumer,'ps1-adpcm-check.mjs')],{cwd:consumer,stdio:'inherit'});
+  await writeFile(join(consumer,'ps1-sample-editor-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {renderPs1Sample,renderPs1SampleComparison} from 'tetorica-fm2612/playground_sample_ps1.js';
+import {renderPs1Sample as extensionless} from 'tetorica-fm2612/playground_sample_ps1';
+import {renderPs1SamplePreview} from 'tetorica-fm2612/playground_sample_ps1_preview.js';
+import {createSampleInstrument} from 'tetorica-fm2612/playground_sample_instrument.js';
+import {Ps1Spu} from 'tetorica-fm2612/ps1_spu.js';
+import {Ps1Synth} from 'tetorica-fm2612/ps1synth.js';
+import factory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
+assert.equal(renderPs1Sample,extensionless);
+const source={sampleRate:48000,channels:[Float32Array.from({length:4800},(_,i)=>.3*Math.sin(2*Math.PI*440*i/48000))]};
+const settings={rootMidi:69,loopEnabled:true,startFrame:480,endFrame:4320,loopStartFrame:590,loopEndFrame:4100};
+const edited=renderPs1Sample(source,settings),comparison=renderPs1SampleComparison(source,settings);
+assert.equal(edited.sampleRate,44100);assert.equal(edited.loopStartFrame%28,0);assert.equal(edited.loopEndFrame%28,0);
+assert(comparison.sourceDisplay.length<=256&&comparison.decodedDisplay.length<=256);
+assert(edited.adpcm.byteLength>0&&edited.metrics.snrDb>20);assert.equal(source.channels[0].length,4800);
+const moduleOptions={wasmBinary:await readFile(new URL('./node_modules/tetorica-fm2612/generated/ps1_spu_wasm.wasm',import.meta.url))};
+const preview=await renderPs1SamplePreview(source,settings,{moduleFactory:factory,moduleOptions});
+assert(preview.channels.every(ch=>ch.every(Number.isFinite)));assert(preview.channels[0].some(v=>Math.abs(v)>.001));
+assert.equal(preview.channels[0][0],0);assert.equal(preview.channels[0].at(-1),0);
+assert.equal(moduleOptions.HEAPU8,undefined,'preview must not turn caller options into its module');
+const core=await Ps1Spu.create({moduleFactory:factory,moduleOptions:{...moduleOptions}}),spu=new Ps1Synth({core});
+try{
+ const pg={spu},instrument=await createSampleInstrument({pg,audio:edited,chip:'ps1'});
+ const count=spu.getState().samples.length;assert.equal(count,1);
+ const again=await createSampleInstrument({pg,audio:edited,chip:'ps1'});
+ assert.equal(spu.getState().samples.length,count,'recreating an identical saved instrument reuses its exact bank bytes');
+ const desc=spu.getState().samples[0];assert.deepEqual(core.readRam(desc.startAddress,desc.byteLength),edited.adpcm);
+ await instrument.noteOn({id:'root',midi:69,velocity:127});
+ const left=new Float32Array(4096),right=new Float32Array(4096);spu.renderInto(left,right);
+ assert(left.every(Number.isFinite)&&left.some(v=>Math.abs(v)>.001));
+ await again.allNotesOff();spu.renderInto(left,right);assert(left.some(v=>Math.abs(v)>.001),'another unused instrument cannot stop held sample voices');
+ await instrument.allNotesOff();spu.renderInto(left,right);spu.renderInto(left,right);assert(left.every(v=>v===0)&&right.every(v=>v===0));
+}finally{spu.dispose();}
+console.log('Installed PS1 Sample Editor helpers verified: fixed-rate conversion, comparison, private preview, exact RAM, instrument reuse and owner-safe Keyboard release.');
+`);
+  execFileSync(process.execPath,[join(consumer,'ps1-sample-editor-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'adpcm-a-check.mjs'),`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';

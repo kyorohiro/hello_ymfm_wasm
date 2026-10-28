@@ -1271,7 +1271,16 @@ type PlaygroundAPI = TetoricaSelectedChip extends PlaygroundNativeSelectedChip
 declare var pg: PlaygroundAPI;
 
 /** Decoded audio chosen from a local file or recorded from the microphone. */
-type PlaygroundSampleTarget = 'rf5c164' | 'adpcm-b' | 'gameboy-wave';
+type PlaygroundSampleTarget = 'rf5c164' | 'adpcm-b' | 'gameboy-wave' | 'ps1';
+interface PlaygroundPs1SampleAlignment {
+  blockFrames:28;
+  changed:boolean;
+  /** Converted, crop-relative 44.1-kHz frame positions before packet alignment. */
+  requested:{startFrame:number;endFrame:number};
+  /** Applied inward packet boundaries. The original source edits are retained. */
+  applied:{startFrame:number;endFrame:number};
+  discardedTailFrames:number;
+}
 interface PlaygroundSampleAudio {
   sampleRate: number;
   channels: Float32Array[];
@@ -1283,6 +1292,15 @@ interface PlaygroundSampleAudio {
   target?: PlaygroundSampleTarget;
   /** Game Boy wave RAM: one user-selected cycle rendered to 32 four-bit samples. */
   waveform?: Uint8Array | number[];
+  /** PS1 conversion data; instrument creation always recomputes from PCM. */
+  adpcm?:Uint8Array;
+  baseFrequencyHz?:number;
+  metrics?:PlaygroundPs1AdpcmEncodeResult['metrics'];
+  alignment?:PlaygroundPs1SampleAlignment;
+  sourceFrames?:number;
+  frames?:number;
+  paddingFrames?:number;
+  blockCount?:number;
   assetPath?: string;
 }
 interface PlaygroundAudioInput extends PlaygroundSampleAudio {
@@ -1292,7 +1310,7 @@ interface PlaygroundAudioInput extends PlaygroundSampleAudio {
 /** Open the sample editor. asset defaults to /samples/sampler.sample.json;
  * edit:false reuses a saved asset without opening the editor. Cancel returns
  * null; Stop aborts. Original audio and neutral edit settings remain separate. */
-declare function inputAudio(options?: {title?: string; asset?: string; edit?: boolean}): Promise<PlaygroundAudioInput | null>;
+declare function inputAudio(options?: {title?: string; asset?: string; edit?: boolean; target?: PlaygroundSampleTarget}): Promise<PlaygroundAudioInput | null>;
 
 interface PlaygroundMusicalNoteEvent {
   /** Unique press identity; use it for release ownership, since pitches may repeat. */
@@ -1321,7 +1339,8 @@ interface PlaygroundSampleInstrument extends PlaygroundKeyboardHandlers {
   allNotesOff(): Promise<void>;
 }
 /** Create an adapter for already edited PCM. The chosen chip keeps its hardware
- * memory/voice limits; the adapter does not silently crop or resample audio.
+ * memory/voice limits. PS1 uses the editor's fixed-44.1-kHz conversion and shown
+ * 28-frame inward loop alignment; other adapters retain their documented formats.
  * Pass the result to keyboard.bind() during source evaluation. */
 declare function createSampleInstrument(audio: PlaygroundSampleAudio, options?: {
   target?: 'auto' | PlaygroundSampleTarget;

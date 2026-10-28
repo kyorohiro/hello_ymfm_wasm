@@ -33,18 +33,24 @@ Source and the actual Run ZIP pass Chromium / WebKit × Main / Worker (8 routes)
 ## Following milestones
 
 - [x] Add PCM → SPU ADPCM conversion with explicit loop and tuning metadata.
-- [ ] Add Sample Editor conversion and instrument saving.
+- [x] Add Sample Editor conversion, before/after comparison, actual SPU preview and saved Keyboard instruments.
 - [ ] Integrate the source and build recipe into a new soundchip SDK version.
 - [ ] Add a Tauri Native audio adapter. PS1 currently selects Web Audio only.
 
 The Browser adapter renders through AudioWorklet and batches only the native
 frames needed for the current scheduled segment. Buffers are reused and the
 SPU tab adds no periodic reads. Decoded sample caches can still allocate in the
-core; there is no real-time allocation guarantee. Sample Editor conversion and
-instrument saving remain separate milestones.
+core; there is no real-time allocation guarantee. Sample Editor conversion runs
+in its preparation Worker; its preview uses a private SPU instance. It adds no
+periodic live-chip reads. The SDK and Native adapter remain separate milestones.
 
 PCM conversion results: [ps1_adpcm_encoder_01.md](ps1_adpcm_encoder_01.md) /
 [JSON](ps1_adpcm_encoder_01.json).
+
+Sample Editor results: [ps1_sample_editor_01.md](ps1_sample_editor_01.md) /
+[JSON](ps1_sample_editor_01.json). Public workflow:
+[PS1 Sample Editor](../ps1_sample_editor.md). The PS1 mode now lists four
+examples, including the PCM encoder and saved-sample Keyboard instrument.
 
 ## Accuracy and supported subset
 

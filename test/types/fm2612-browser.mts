@@ -151,6 +151,18 @@ ps1.sampleRate=48000;
 import {SpcRuntimeSynth} from 'tetorica-fm2612/spc_audio.js';
 import {SpcCore, SnesDspCore} from 'tetorica-fm2612/spc.js';
 import {SnesSynth} from 'tetorica-fm2612/snessynth.js';
+import {renderPs1Sample,renderPs1SampleComparison} from 'tetorica-fm2612/playground_sample_ps1.js';
+import {renderPs1SamplePreview} from 'tetorica-fm2612/playground_sample_ps1_preview.js';
+import {createSampleInstrument} from 'tetorica-fm2612/playground_sample_instrument.js';
+const ps1Edited=renderPs1Sample({channels:[new Float32Array(112)],sampleRate:44100},{rootMidi:69,loopEnabled:true});
+ps1Edited.adpcm.byteLength.toFixed();ps1Edited.alignment.applied.startFrame.toFixed();
+renderPs1SampleComparison({channels:[new Float32Array(112)],sampleRate:44100}).decodedDisplay.byteLength.toFixed();
+renderPs1SamplePreview({channels:[new Float32Array(112)],sampleRate:44100},{},{moduleFactory:async()=>({})});
+createSampleInstrument({pg:{},audio:ps1Edited,chip:'ps1',target:'ps1',volume:192});
+// @ts-expect-error Preview needs an actual factory instead of a textual identifier.
+renderPs1SamplePreview(ps1Edited,{}, {moduleFactory:'ps1'});
+// @ts-expect-error Only supported instrument targets may be selected.
+createSampleInstrument({pg:{},audio:ps1Edited,target:'psf'});
 import {encodePs1Adpcm,DEFAULT_PS1_ADPCM_MAX_BYTES} from 'tetorica-fm2612/ps1_adpcm_encoder.js';
 const encodedPs1 = encodePs1Adpcm(new Float32Array(112), {loopStartSamples:0, maxBytes:64});
 encodedPs1.adpcm.byteLength.toFixed(); encodedPs1.blockCount.toFixed();

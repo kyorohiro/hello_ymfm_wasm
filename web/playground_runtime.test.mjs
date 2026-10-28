@@ -511,10 +511,11 @@ test('Main shared sample factory retains queued input leases and rejects a retir
 
 test('Main audio input forwards saved asset options without bypassing strict option validation',async t=>{
   const requests=[];const {runtime}=setup(t,undefined,{inputAudio:options=>{requests.push(options);return Promise.resolve(null);}});
-  await runtime.playSource(`await inputAudio({title:'Restore',asset:'/instruments/voice.sample.json',edit:false});`);
-  assert.deepEqual(requests,[{title:'Restore',asset:'/instruments/voice.sample.json',edit:false}]);
+  await runtime.playSource(`await inputAudio({title:'Restore',asset:'/instruments/voice.sample.json',edit:false,target:'ps1'});`);
+  assert.deepEqual(requests,[{title:'Restore',asset:'/instruments/voice.sample.json',edit:false,target:'ps1'}]);
   await assert.rejects(runtime.playSource(`await inputAudio({asset:4});`),/inputAudio supports/);
   await assert.rejects(runtime.playSource(`await inputAudio({edit:'no'});`),/inputAudio supports/);
+  await assert.rejects(runtime.playSource(`await inputAudio({target:'psf'});`),/inputAudio supports/);
 });
 
 test('primary Game Boy exposes shared initialized controls without FM shortcuts and survives Stop', async t => {

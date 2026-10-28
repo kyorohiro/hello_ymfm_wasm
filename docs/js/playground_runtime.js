@@ -35,7 +35,7 @@ import {createOpnClient} from './playground_opn.js?v=ps1-mode-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=ps1-mode-1';
 import {validateSoundChipOptions} from './playground_soundchip_options.js?v=pokey-mode-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
-import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=audio-numeric-bindings-1';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=ps1-sample-editor-1';
 import {createGameboyAudio} from './playground_gameboy_audio.js?v=ps1-mode-1';
 import {createPrimaryGameboyApi} from './playground_gameboy.js?v=pokey-prepare-1';
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
@@ -148,7 +148,7 @@ const SCALE_INTERVALS = {
  *   onMegaDriveEvent?: ((event: object) => void) | null,
  *   onAuditionReset?: (() => void) | null,
  *   onKeyboardTargetChange?: ((target:PlaygroundKeyboardTarget|null) => void) | null,
- *   inputAudio?: ((options: {title?:string,asset?:string,edit?:boolean}, context: {signal:AbortSignal}) => Promise<null|{name:string,source:'file'|'microphone',sampleRate:number,channels:Float32Array[]}>) | null,
+ *   inputAudio?: ((options: {title?:string,asset?:string,edit?:boolean,target?:'rf5c164'|'adpcm-b'|'gameboy-wave'|'ps1'}, context: {signal:AbortSignal}) => Promise<null|{name:string,source:'file'|'microphone',sampleRate:number,channels:Float32Array[]}>) | null,
  *   pcEngineCd?: boolean,
  *   readCddaFile?: (path:string)=>Promise<Uint8Array|ArrayBuffer>,
  * }} [options]
@@ -272,7 +272,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=ps1-adpcm-encoder-1",
+      "./playground_logic_worker.js?v=ps1-sample-editor-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -383,10 +383,11 @@ export function createPlaygroundRuntime(
   }
   async function inputAudio(inputOptions = {}, runToken = currentRunToken) {
     if (!inputOptions || typeof inputOptions !== 'object' || Array.isArray(inputOptions) ||
-        Reflect.ownKeys(inputOptions).some(key => !['title','asset','edit'].includes(key)) ||
+        Reflect.ownKeys(inputOptions).some(key => !['title','asset','edit','target'].includes(key)) ||
         inputOptions.title !== undefined && typeof inputOptions.title !== 'string' ||
         inputOptions.asset !== undefined && typeof inputOptions.asset !== 'string' ||
-        inputOptions.edit !== undefined && typeof inputOptions.edit !== 'boolean') throw new TypeError('inputAudio supports {title?: string, asset?: string, edit?: boolean}');
+        inputOptions.edit !== undefined && typeof inputOptions.edit !== 'boolean' ||
+        inputOptions.target !== undefined && !['rf5c164','adpcm-b','gameboy-wave','ps1'].includes(inputOptions.target)) throw new TypeError('inputAudio supports {title?: string, asset?: string, edit?: boolean, target?: SampleTarget}');
     if (runToken !== currentRunToken) throw new DOMException('Run stopped', 'AbortError');
     if (typeof options.inputAudio !== 'function') throw new Error('Audio input is unavailable in this host');
     const controller = new AbortController();

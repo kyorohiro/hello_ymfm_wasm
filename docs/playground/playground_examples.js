@@ -578,6 +578,11 @@ export const EXAMPLE_FILES = [
     "data": "// Original mono PCM → PlayStation SPU ADPCM. No sample files needed.\n// Encoding preserves source indices; it does not resample, normalize or tune.\nconst ps1 = await useSoundChip('ps1');\nconst tone = await livePrepare('ps1-pcm-adpcm', async () => {\n  // Four 28-frame packets make one cycle: 44100 / 112 Hz at PITCH=4096.\n  const period = 112;\n  const pcm = Float32Array.from({length:period}, (_, i) =>\n    0.65 * Math.sin(2 * Math.PI * i / period));\n  // Loop start and looping PCM length must be aligned to 28 source frames.\n  const loopStartSamples = 0;\n  const encoded = encodePs1Adpcm(pcm, {loopStartSamples});\n  log(`PCM ${encoded.sourceFrames} frames → SPU ADPCM ${encoded.adpcm.length} bytes; ` +\n    `raw reconstruction SNR ${encoded.metrics.snrDb?.toFixed(1) ?? 'exact'} dB`);\n  // ADPCM stores no root note. Declare its frequency at hardware PITCH=4096.\n  return ps1.loadADPCM(encoded.adpcm, {\n    baseFrequencyHz:44100 / period,\n    loopStartSamples,\n  });\n});\nps1.setPreset(0, {sample:tone, volumeLeft:0.65, volumeRight:0.55, adsr2:8});\nsetBpm(120);\n\nliveLoop('ps1-pcm-melody', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'C5', 'G4', 'E4']) {\n    ps1.noteOn(0, note);\n    await beat(0.4);\n    ps1.keyOff(0);\n    await beat(0.1);\n  }\n});\n"
   },
   {
+    "path": "/examples/ps1/ps1-sampler.js",
+    "name": "ps1-sampler",
+    "data": "// Edit /samples/sampler.sample.json in Sample Editor, then Run → Keyboard.\n// ファイル／マイク／描いた波形をPS1の楽器にして、Guitar／PCキーで演奏します。\n// PS1 conversion uses mono 44,100 Hz and shows applied 28-frame loop boundaries.\nconst audio = await inputAudio({\n  asset:'/samples/sampler.sample.json', edit:false, target:'ps1',\n});\nif (audio) {\n  keyboard.bind('ps1-sampler', await createSampleInstrument(audio, {target:'ps1'}));\n  log('PS1 sampler ready: open Keyboard to play. Edit the saved sample to change its loop or root note.');\n}\n"
+  },
+  {
     "path": "/examples/ps1/ps1-stereo-voices.js",
     "name": "ps1-stereo-voices",
     "data": "// Two physical SPU voices share the original sample, with independent stereo gains.\nsetBpm(120);\nspu.setPreset(0, {sample:0, volumeLeft:0.9, volumeRight:0.25, adsr2:9});\nspu.setPreset(23, {sample:0, volumeLeft:0.25, volumeRight:0.9, adsr2:9});\nliveLoop('ps1-stereo', async () => {\n  for (const note of ['C4', 'E4', 'G4', 'C5']) {\n    spu.noteOn(0, note);\n    spu.noteOn(23, 'C3');\n    await beat(0.8);\n    spu.keyOff(0); spu.keyOff(23);\n    await beat(0.2);\n  }\n});\n"
@@ -747,8 +752,7 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/dx7/dx7-keyboard.js",
     "/examples/dx7/dx7-live-parameters.js",
     "/examples/dx7/dx7-object-preset.js",
-    "/examples/snes/snes-brr-melody.js",
-    "/examples/ps1/ps1-pcm-adpcm.js"
+    "/examples/snes/snes-brr-melody.js"
   ],
   "mega-cd": [
     "/examples/mega-cd/megacd-four-sources.js",
@@ -809,7 +813,9 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
   ],
   "ps1": [
     "/examples/ps1/ps1-stereo-voices.js",
-    "/examples/ps1/ps1-adpcm-wave.js"
+    "/examples/ps1/ps1-adpcm-wave.js",
+    "/examples/ps1/ps1-pcm-adpcm.js",
+    "/examples/ps1/ps1-sampler.js"
   ],
   "snes": [
     "/examples/snes/snes-mode-brr.js",
@@ -947,7 +953,6 @@ export const MODE_EXAMPLE_FILES = Object.fromEntries(Object.entries({
     "/examples/dx7/dx7-keyboard.js",
     "/examples/dx7/dx7-live-parameters.js",
     "/examples/dx7/dx7-object-preset.js",
-    "/examples/snes/snes-brr-melody.js",
-    "/examples/ps1/ps1-pcm-adpcm.js"
+    "/examples/snes/snes-brr-melody.js"
   ]
 }).map(([id, paths]) => [id, paths.map(path => exampleByPath.get(path))]));

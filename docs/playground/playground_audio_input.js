@@ -9,7 +9,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
   decodeAudio,playPreview,
   mediaDevices = globalThis.navigator?.mediaDevices, Recorder = globalThis.MediaRecorder,
   recordingSeconds = 60, defaultTarget = 'rf5c164', loadAsset, saveAsset,
-  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=gameboy-sample-preview-1', import.meta.url), {type:'module'})} = {}) {
+  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=ps1-sample-editor-1', import.meta.url), {type:'module'})} = {}) {
   let active = false,stopCurrentPreview=()=>{};
   const inputAudio=function(options = {}, {signal} = {}) {
     signal?.throwIfAborted();
@@ -18,7 +18,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         options.asset !== undefined && typeof options.asset !== 'string' ||
         options.edit !== undefined && typeof options.edit !== 'boolean' ||
         options.saveOnly !== undefined && typeof options.saveOnly !== 'boolean' ||
-        options.target !== undefined && !['rf5c164','adpcm-b','gameboy-wave'].includes(options.target)) return Promise.reject(new TypeError('Expected {title?, asset?, edit?, saveOnly?, target?}.'));
+        options.target !== undefined && !['rf5c164','adpcm-b','gameboy-wave','ps1'].includes(options.target)) return Promise.reject(new TypeError('Expected {title?, asset?, edit?, saveOnly?, target?}.'));
     if (active) return Promise.reject(new Error('A Sample Editor is already open.'));
     active = true;
     return new Promise((resolve,reject) => {
@@ -29,8 +29,8 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         <div class="sample-row"><label>Audio file <input data-audio-file type="file" accept="audio/*,.wav,.aif,.aiff,.flac,.mp3,.ogg,.m4a,.webm"></label>
           <button type="button" data-audio-action="record">Record microphone</button><button type="button" data-audio-action="stop" hidden>Finish recording</button>
           <button type="button" data-action="new-wave">Draw a cycle</button></div>
-        <div class="sample-row"><label>Instrument <select data-field="target"><option value="rf5c164">RF5C164 · 8 voices</option><option value="adpcm-b">ADPCM-B · 1 voice</option><option value="gameboy-wave">Game Boy · 32-point wave</option></select></label>
-          <label>Rate <select data-field="rate"><option>8000</option><option>12000</option><option selected>16000</option><option>22050</option><option>32000</option></select> Hz</label>
+        <div class="sample-row"><label>Instrument <select data-field="target"><option value="rf5c164">RF5C164 · 8 voices</option><option value="adpcm-b">ADPCM-B · 1 voice</option><option value="gameboy-wave">Game Boy · 32-point wave</option><option value="ps1">PS1 SPU · 24 voices</option></select></label>
+          <label>Rate <select data-field="rate"><option>8000</option><option>12000</option><option selected>16000</option><option>22050</option><option>32000</option><option value="44100" data-ps1-rate hidden>44100</option></select> Hz</label>
           <label>Tool <select data-field="tool"><option value="select">Select</option><option value="draw">Draw samples</option></select></label></div>
         <canvas data-wave width="800" height="220" aria-label="Sample waveform; drag to select start and end"></canvas>
         <input class="sample-scroll" data-field="scroll" type="range" min="0" max="1000" value="0" aria-label="Waveform scroll">
@@ -44,6 +44,16 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           <p class="sample-help" data-gameboy-status aria-live="polite">Choose audio or draw a cycle to see the conversion.</p>
           <details><summary>Wave RAM values (0–15)</summary><output data-gameboy-values aria-label="Game Boy wave RAM values"></output></details>
           <div class="sample-row"><button type="button" data-action="preview-gameboy" disabled>Preview Game Boy</button><button type="button" data-action="silence-gameboy">Stop preview</button><span class="sample-help">One voice · 0.85 seconds at the root note. Use one cycle for a pitched sound.</span></div>
+        </section>
+        <section class="sample-ps1" data-ps1-conversion hidden aria-label="PS1 SPU ADPCM conversion">
+          <div class="sample-cycle-comparison">
+            <figure><figcaption>Edited mono selection · 44,100 Hz</figcaption><canvas data-ps1-source width="380" height="150" aria-label="Edited mono selection before PS1 ADPCM conversion"></canvas></figure>
+            <figure><figcaption>PS1 ADPCM · decoded waveform</figcaption><canvas data-ps1-decoded width="380" height="150" aria-label="PS1 ADPCM decoded waveform"></canvas></figure>
+          </div>
+          <p class="sample-help" data-ps1-status aria-live="polite">Choose audio or draw a cycle to see the conversion.</p>
+          <p class="sample-help" data-ps1-metrics></p>
+          <p class="sample-help" data-ps1-alignment></p>
+          <div class="sample-row"><button type="button" data-action="preview-ps1" disabled>Preview PS1 SPU</button><button type="button" data-action="silence-ps1">Stop preview</button><span class="sample-help">Actual SPU output · one voice · 0.85 seconds at the root note.</span></div>
         </section>
         <div class="sample-fields">
           <label>Start (seconds)<input data-field="startFrame" type="number" min="0" step="0.001"></label>
@@ -61,7 +71,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         <p class="sample-help" data-pitch>No pitch estimate. Root note can always be set by hand.</p>
         <div class="sample-row"><button type="button" data-action="preview-original">Preview original selection</button><button type="button" data-action="preview">Preview edits</button><button type="button" data-action="silence">Stop preview</button></div>
         <p class="sample-status" data-audio-input-status role="status"></p>
-        <p class="sample-help">Keep the full recording; only the selected region is converted. Game Boy uses one cycle. Draw samples after zooming in.</p>
+        <p class="sample-help">Keep the full recording; only the selected region is converted. Game Boy uses one cycle. PS1 uses 44,100 Hz mono and aligns loops inward to 28-sample blocks. Draw samples after zooming in.</p>
         <div class="sample-row sample-footer"><label class="sample-save"><input data-field="save" type="checkbox" checked>Save in Cassette <input data-field="asset" aria-label="Sample asset path" value="/samples/sampler.sample.json"></label>
           <button type="button" data-audio-action="cancel">Cancel</button><button type="button" data-audio-action="use" disabled>Use audio</button></div>`;
       dialog.querySelector('h2').textContent = options.title || 'Sample Editor';
@@ -72,6 +82,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       if (options.saveOnly) use.textContent = 'Save sample';
       const canvas = dialog.querySelector('[data-wave]'), status = dialog.querySelector('[data-audio-input-status]');
       const gameboySection = dialog.querySelector('[data-gameboy-conversion]'), gameboyStatus = dialog.querySelector('[data-gameboy-status]'), gameboyValues = dialog.querySelector('[data-gameboy-values]');
+      const ps1Section = dialog.querySelector('[data-ps1-conversion]'), ps1Status = dialog.querySelector('[data-ps1-status]'), ps1Metrics = dialog.querySelector('[data-ps1-metrics]'), ps1Alignment = dialog.querySelector('[data-ps1-alignment]');
       for (let midi = 0; midi < 128; midi++) {const option = doc.createElement('option'); option.value = midi; option.textContent = `${noteName(midi)} (${midi})`; field('rootMidi').append(option);}
       const targetMode = options.target ?? defaultTarget;
       field('target').value = targetMode; field('asset').value = options.asset || '/samples/sampler.sample.json';
@@ -80,6 +91,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       let stream = null, recorder = null, timer = null, recording = false, preview = null, previewController = null, previewSequence = 0, worker = null, sequence = 0;
       let viewport = [0,1], peaks = null, scheduledDraw = null, drag = null, undo = [], redo = [];
       let gameboyComparison = null, gameboyComparing = null, gameboyFailure = null, gameboyDisplay = '';
+      let ps1Comparison = null, ps1Comparing = null, ps1Failure = null, ps1Display = '', variableRate = field('rate').value;
       const pending = new Map();
       const say = (text,error = false) => {status.textContent = text; status.dataset.error = String(error);};
       const job = (command,data = {}) => {
@@ -130,9 +142,14 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           field('save').disabled = !saveAsset || options.saveOnly;
           action('undo').disabled = !undo.length; action('redo').disabled = !redo.length;
           action('apply-pitch').disabled = !detected?.hz;
-          field('rate').disabled = field('target').value === 'gameboy-wave';
+          const target = field('target').value, ps1Rate = dialog.querySelector('[data-ps1-rate]');
+          ps1Rate.hidden = target !== 'ps1';
+          if (target === 'ps1') {if (field('rate').value !== '44100') variableRate = field('rate').value; field('rate').value = '44100';}
+          else if (field('rate').value === '44100') field('rate').value = variableRate;
+          field('rate').disabled = ['gameboy-wave','ps1'].includes(target);
         }
         syncGameboyComparison();
+        syncPs1Comparison();
       };
       const lock = () => {busy = true; controls();};
       const idle = () => {busy = false; controls(); record.hidden = false; stop.hidden = true; queueDraw();};
@@ -148,7 +165,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         field('scroll').value = Math.round(viewport[0]/maximum*1000); field('scroll').disabled = span >= audio.channels[0].length;
         queueDraw();
       };
-      function queueDraw() {if (scheduledDraw === null && !done) scheduledDraw = doc.defaultView.requestAnimationFrame(() => {scheduledDraw = null; draw(); refreshGameboyComparison();});}
+      function queueDraw() {if (scheduledDraw === null && !done) scheduledDraw = doc.defaultView.requestAnimationFrame(() => {scheduledDraw = null; draw(); refreshGameboyComparison(); refreshPs1Comparison();});}
       function drawCycle(target,samples,quantized = false) {
         const ctx = target.getContext('2d'), width = target.width, height = target.height, top = 12, span = height-24;
         ctx.fillStyle = '#182327'; ctx.fillRect(0,0,width,height);
@@ -192,6 +209,48 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           if (!done && token === generation) gameboyFailure = {generation:token,message:error.message};
         }).finally(() => {gameboyComparing = null;if (!done) queueDraw();});
       }
+      function syncPs1Comparison() {
+        const enabled = field('target').value === 'ps1', ready = ps1Comparison?.generation === generation;
+        ps1Section.hidden = !enabled;
+        action('preview-ps1').disabled = busy || !enabled || !audio || !ready;
+        if (!enabled) return;
+        const state = !audio ? 'empty' : ready ? `ready:${generation}` : ps1Failure?.generation === generation ? `error:${generation}` : `pending:${generation}`;
+        if (ps1Display === state) return;
+        ps1Display = state;
+        const value = ready ? ps1Comparison.value : null;
+        drawCycle(dialog.querySelector('[data-ps1-source]'),value?.sourceDisplay);
+        drawCycle(dialog.querySelector('[data-ps1-decoded]'),value?.decodedDisplay);
+        ps1Status.textContent = !audio ? 'Choose audio or draw a cycle to see the conversion.'
+          : value ? 'The decoded waveform uses the same ADPCM data as Preview PS1 SPU and the saved instrument. SPU preview also applies the voice envelope and output path.'
+          : ps1Failure?.generation === generation ? ps1Failure.message : 'Updating PS1 ADPCM…';
+        ps1Status.dataset.error = String(Boolean(!ready && ps1Failure?.generation === generation));
+        ps1Metrics.textContent = '';
+        ps1Alignment.textContent = '';
+        if (!value) return;
+        const {metrics,alignment} = value, number = amount => amount.toLocaleString('en-US');
+        const error = amount => amount === 0 ? '0' : amount.toPrecision(4);
+        const snr = metrics.exact ? 'exact' : Number.isFinite(metrics.snrDb) ? `${metrics.snrDb.toFixed(1)} dB` : 'not defined for silence';
+        ps1Metrics.textContent = `${number(value.byteLength)} bytes · ${number(value.sourceFrameCount)} source frames → ${number(value.decodedFrameCount)} decoded frames (${number(value.paddingFrames)} padding) · raw decode RMS error ${error(metrics.rmsError)} · max error ${error(metrics.maxError)} · SNR ${snr}.`;
+        if (value.loopEnabled) {
+          const range = item => `[${number(item.startFrame)}, ${number(item.endFrame)})`;
+          const seconds = item => `[${(item.startFrame/44100).toFixed(6)}, ${(item.endFrame/44100).toFixed(6)}) s`;
+          ps1Alignment.textContent = `Loop in the resampled selection: requested ${range(alignment.requested)} ${seconds(alignment.requested)} → applied ${range(alignment.applied)} ${seconds(alignment.applied)}. ${alignment.changed ? 'Aligned inward' : 'Already aligned'} to 28-sample blocks; ${number(alignment.discardedTailFrames)} frames after the applied loop end omitted. Original recording and edit markers are preserved.`;
+        } else ps1Alignment.textContent = `One-shot · ${number(value.paddingFrames)} zero-padding frames complete the final 28-sample block. Original recording and edit markers are preserved.`;
+      }
+      function refreshPs1Comparison() {
+        syncPs1Comparison();
+        if (done || busy || drag || !audio || !edit || field('target').value !== 'ps1'
+          || ps1Comparing || ps1Comparison?.generation === generation || ps1Failure?.generation === generation) return;
+        const token = generation, settings = copy(edit);
+        // Keep one conversion in flight. Edits during it are coalesced; stale
+        // data never repaints the current selection or enables its preview.
+        ps1Comparing = Promise.resolve().then(() => job('ps1-comparison',{settings})).then(value => {
+          if (done || token !== generation || field('target').value !== 'ps1') return;
+          ps1Comparison = {generation:token,value}; ps1Failure = null;
+        }).catch(error => {
+          if (!done && token === generation) ps1Failure = {generation:token,message:error.message};
+        }).finally(() => {ps1Comparing = null;if (!done) queueDraw();});
+      }
       function draw() {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         ctx.fillStyle = '#182327'; ctx.fillRect(0,0,width,height); ctx.strokeStyle = '#526269'; ctx.beginPath(); ctx.moveTo(0,height/2); ctx.lineTo(width,height/2); ctx.stroke();
@@ -222,7 +281,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       async function installAudio(next,name,kind,settings,token = generation) {
         if (!next.channels?.length || next.channels.length > 2 || !next.channels[0].length || next.channels[0].length/next.sampleRate > 300) throw new Error('Choose mono/stereo audio up to five minutes long.');
         audio = next; sourceName = name; sourceKind = kind; detected = null; undo = []; redo = [];
-        const targets = ['rf5c164','adpcm-b','gameboy-wave'];
+        const targets = ['rf5c164','adpcm-b','gameboy-wave','ps1'];
         conversionTargets = Object.fromEntries(Object.entries(settings?.conversionTargets ?? {}).filter(([mode,target]) => targets.includes(mode) && targets.includes(target)));
         field('target').value = options.target ?? conversionTargets[targetMode] ?? targetMode;
         if (settings?.outputSampleRate && Array.from(field('rate').options).some(option => Number(option.value) === settings.outputSampleRate)) field('rate').value = settings.outputSampleRate;
@@ -266,7 +325,9 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       async function useAudio(persist = true) {
         const token = generation; lock(); stopPreview(); say(options.saveOnly ? 'Saving sample…' : 'Preparing instrument…');
         try {
-          const rendered = await prepared(options.saveOnly ? 'original' : field('target').value); if (done || token !== generation) return; let assetPath = options.asset;
+          // PS1 must pass packet/loop/RAM validation even when this dialog is
+          // opened only to save an asset. The saved source and edits stay raw.
+          const rendered = await prepared(options.saveOnly && field('target').value !== 'ps1' ? 'original' : field('target').value); if (done || token !== generation) return; let assetPath = options.asset;
           if (persist && field('save').checked && saveAsset) {const wav = await job('encode'); if (done || token !== generation) return; const saved = await saveAsset({path:field('asset').value,wav,settings:{...copy(edit),outputSampleRate:Number(field('rate').value),conversionTargets:{...conversionTargets,[targetMode]:field('target').value}},name:sourceName,source:sourceKind},{signal}); if (done || token !== generation) return; assetPath = saved?.assetPath ?? saved?.path ?? field('asset').value;}
           finish({...rendered,name:sourceName,source:sourceKind,assetPath});
         } catch(error) {if (!done && token === generation) {idle(); if (!dialog.open) dialog.showModal(); say(error.message,true);}}
@@ -304,10 +365,10 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         const token = ++generation; releaseCapture(); stopPreview(); lock(); const size = 256, rootMidi = 60, sampleRate = Math.round(440*2**((rootMidi-69)/12)*size), samples = Float32Array.from({length:size},(_,i) => .7*Math.sin(2*Math.PI*i/size));
         try {await installAudio({channels:[samples],sampleRate},'Drawn cycle','file',{rootMidi,loopEnabled:true},token); if (!done && token === generation) {field('tool').value = 'draw'; say('Draw a cycle in the waveform, then Use audio to play it with Guitar.');}} catch(error) {if (!done) failed(error);}
       });
-      for (const [name,original] of [['preview-original',true],['preview',false],['preview-gameboy',false]]) action(name).addEventListener('click',async () => {
+      for (const [name,original] of [['preview-original',true],['preview',false],['preview-gameboy',false],['preview-ps1',false]]) action(name).addEventListener('click',async () => {
         if (!edit) return; const token = generation; stopPreview(); const previewToken = previewSequence,controller=previewController=new AbortController(); say('Preparing preview…');
-        const gameboy = name === 'preview-gameboy';
-        try {const rendered = gameboy ? await job('gameboy-preview',{settings:copy(edit)}) : await prepared('original',original ? {...edit,gainDb:0,fadeInSeconds:0,fadeOutSeconds:0,drawPoints:[],drawStrokes:[]} : edit,!original); if (done || token !== generation || previewToken !== previewSequence) return;
+        const gameboy = name === 'preview-gameboy', ps1 = name === 'preview-ps1';
+        try {const rendered = gameboy || ps1 ? await job(gameboy ? 'gameboy-preview' : 'ps1-preview',{settings:copy(edit)}) : await prepared('original',original ? {...edit,gainDb:0,fadeInSeconds:0,fadeOutSeconds:0,drawPoints:[],drawStrokes:[]} : edit,!original); if (done || token !== generation || previewToken !== previewSequence) return;
           if(playPreview){const current=await playPreview(rendered,{signal:controller.signal});if(done||token!==generation||previewToken!==previewSequence){await current.stop();return;}preview=current;}
           else {
           const context = await getAudioContext(); if (done || token !== generation || previewToken !== previewSequence) return;
@@ -319,11 +380,12 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           if (!node.loop && buffer.duration > .01) {gain.gain.setValueAtTime(1,context.currentTime+buffer.duration-.005);gain.gain.linearRampToValueAtTime(0,context.currentTime+buffer.duration);}
           node.onended = () => {node.disconnect(); gain.disconnect(); if (preview === current) preview = null;}; node.start();
           }
-          say(`${gameboy ? `Game Boy preview · ${noteName(edit.rootMidi)} · source peak` : 'Preview · peak'} ${rendered.peakBeforeClip.toFixed(3)} · ${rendered.clippedSamples} clipped samples. ${options.saveOnly ? 'Run a sampler example to play it with Keyboard.' : 'Use audio, then play the selected chip from Keyboard.'}`);
+          say(`${gameboy || ps1 ? `${gameboy ? 'Game Boy' : 'PS1 SPU'} preview · ${noteName(edit.rootMidi)} · source peak` : 'Preview · peak'} ${rendered.peakBeforeClip.toFixed(3)} · ${rendered.clippedSamples} clipped samples. ${options.saveOnly ? 'Run a sampler example to play it with Keyboard.' : 'Use audio, then play the selected chip from Keyboard.'}`);
         } catch(error) {if (!done&&token===generation&&previewToken===previewSequence) say(error.message,true);}
       });
       action('silence').addEventListener('click',stopPreview);
       action('silence-gameboy').addEventListener('click',stopPreview);
+      action('silence-ps1').addEventListener('click',stopPreview);
       const position = event => {const rect = canvas.getBoundingClientRect(); return {frame:Math.max(0,Math.min(audio.channels[0].length,Math.round(viewport[0]+(event.clientX-rect.left)/rect.width*(viewport[1]-viewport[0])))),value:Math.max(-1,Math.min(1,(.5-(event.clientY-rect.top)/rect.height)*2))};};
       canvas.addEventListener('pointerdown',event => {
         if (!edit || busy) return; event.preventDefault(); stopPreview(); const point = position(event);

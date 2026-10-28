@@ -1,0 +1,3943 @@
+{
+  "schemaVersion": 1,
+  "task": "ps1-sample-editor",
+  "date": "2026-10-28",
+  "baseCommit": "94b62d45596776f8543de616e9fe31b995b21309",
+  "status": "implemented and locally verified; unpublished",
+  "implementation": {
+    "target": "ps1",
+    "nativeSampleRate": 44100,
+    "channels": 1,
+    "packetFrames": 28,
+    "packetBytes": 16,
+    "maximumEmptyBankBytes": 520192,
+    "comparisonPointsMaximum": 256,
+    "previewSeconds": 0.85,
+    "previewVoiceLevel": 0.75,
+    "previewOutputGain": 1,
+    "sharedPhysicalVoices": 24,
+    "loopAlignment": "inward; intro retained, post-loop tail omitted",
+    "oneShotPadding": "encoded zero PCM to complete packet",
+    "preservedAssets": "original decoded Float32 WAV and source-relative edit JSON",
+    "wholeSelectionBudgetCheckedBeforeResampling": true,
+    "exactRamReuseCheckedDuringPreparation": true,
+    "pollingAdded": false,
+    "sampleConverterOnAudioThread": false
+  },
+  "unitTests": [
+    {
+      "group": "audio conversion, real-core preview, deployed editor Worker, instruments, shared edits and Game Boy preview",
+      "passed": 69,
+      "skipped": 0,
+      "log": "/private/tmp/ps1-sample-editor-unit.log"
+    },
+    {
+      "group": "runtime Main/Worker, examples, declarations and assets before final example allowlist regression",
+      "passed": 297,
+      "skipped": 0,
+      "log": "/private/tmp/ps1-sample-editor-runtime.log"
+    },
+    {
+      "group": "final example catalog after PS1 runnable-example regression",
+      "passed": 13,
+      "skipped": 0,
+      "log": "/private/tmp/ps1-sample-editor-catalog-final.log",
+      "overlapWithPrevious": 12
+    },
+    {
+      "group": "mode, project and starter handling",
+      "passed": 31,
+      "skipped": 0,
+      "log": "/private/tmp/ps1-sample-editor-mode-project.log"
+    }
+  ],
+  "types": {
+    "allPlaygroundModes": "pass",
+    "installedNodeNextBundlerBrowserPositiveNegative": "pass"
+  },
+  "browser": {
+    "source": {
+      "passed": true,
+      "routes": 4,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "sourceFilesVerified": 289,
+      "rawReport": "/private/tmp/ps1-sample-editor-source.json",
+      "rawReportSha256": "b6b9b83909f655a1b42dbb6f5b78bcc9894fd61828b804c638fd8c2861645cff",
+      "checkerSha256": "72937a2caf51c3779cd8746b5d93f8970c8d77181920a0f2b2c79696208c2154",
+      "example": {
+        "path": "/playground/examples/ps1/ps1-sampler.js",
+        "bytes": 581,
+        "sha256": "9a36cb6286f89c6dd678eb184d4d640cb96ea4d250d935d9f065efa3bd2c0b85"
+      },
+      "archive": null,
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 18522,
+            "bytes": 10592,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.013172260807627095,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43979796152440953,
+              "snrDb": 30.471857820206164,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 101888,
+              "lastFrame": 118144,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32867544502681634,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.9359298990087
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32867544502681634,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.9359298990087
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [
+            {
+              "path": "/private/tmp/ps1-sample-editor-ui/chromium-ps1-sample-desktop.png",
+              "label": "desktop",
+              "viewport": 1440,
+              "document": 1440,
+              "dialogWidth": 880,
+              "dialogScroll": 878,
+              "dialogClient": 878
+            },
+            {
+              "path": "/private/tmp/ps1-sample-editor-ui/chromium-ps1-sample-mobile.png",
+              "label": "mobile",
+              "viewport": 390,
+              "document": 390,
+              "dialogWidth": 366,
+              "dialogScroll": 364,
+              "dialogClient": 364
+            }
+          ],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 183296,
+              "lastFrame": 199552,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 208896,
+              "lastFrame": 225152,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 245504,
+              "lastFrame": 261760,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                },
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 270592,
+              "lastFrame": 286848,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.2063492549580408,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75974674355686
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.2063492549580408,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75974674355686
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 323072,
+              "lastFrame": 339328,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.2063492549580408,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75974674355686
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.2063492549580408,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75974674355686
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 347904,
+              "lastFrame": 364160,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                },
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 306944,
+            "lastFrame": 310912,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.26666675914417615
+                    ],
+                    [
+                      111,
+                      0.23333324085582385
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007398611136488894,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3493439376777273,
+              "snrDb": 33.48206018610609,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 443904,
+            "lastFrame": 460160,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.368381142616272,
+                "rms": 0.25917083900677784,
+                "nonFinite": 0,
+                "nonZero": 16379,
+                "hz": 259.93731195380997
+              },
+              {
+                "peak": 0.368381142616272,
+                "rms": 0.25917083900677784,
+                "nonFinite": 0,
+                "nonZero": 16379,
+                "hz": 259.93731195380997
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 471552,
+            "lastFrame": 475520,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 21168,
+            "bytes": 12096,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.013172260807627095,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43979796152440953,
+              "snrDb": 30.471857820206164,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 96000,
+              "lastFrame": 112256,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3283718865876461,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93215156069454
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3283718865876461,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93215156069454
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 172544,
+              "lastFrame": 188800,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                },
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 198656,
+              "lastFrame": 214912,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 235520,
+              "lastFrame": 251776,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.20634950326366194,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76081712420225
+                },
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.20634950326366194,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76081712420225
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 261632,
+              "lastFrame": 277888,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634959133634562,
+                  "nonFinite": 0,
+                  "nonZero": 16359,
+                  "hz": 194.76767863155257
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634959133634562,
+                  "nonFinite": 0,
+                  "nonZero": 16359,
+                  "hz": 194.76767863155257
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 314880,
+              "lastFrame": 331136,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20634966745758454,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75920429549828
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20634966745758454,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75920429549828
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 339968,
+              "lastFrame": 356224,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 298752,
+            "lastFrame": 302720,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.26666675914417615
+                    ],
+                    [
+                      111,
+                      0.23333324085582385
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007398611136488894,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3493439376777273,
+              "snrDb": 33.48206018610609,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 434688,
+            "lastFrame": 450944,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.25915053486824036,
+                "rms": 0.18115748997008285,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.93742123044825
+              },
+              {
+                "peak": 0.25915053486824036,
+                "rms": 0.18115748997008285,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.93742123044825
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 462592,
+            "lastFrame": 466560,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 20727,
+            "bytes": 11856,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.01318026446155844,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43987018451767335,
+              "snrDb": 30.4680080195512,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 98304,
+              "lastFrame": 114560,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3282557400172768,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93507817461045
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3282557400172768,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93507817461045
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [
+            {
+              "path": "/private/tmp/ps1-sample-editor-ui/webkit-ps1-sample-desktop.png",
+              "label": "desktop",
+              "viewport": 1440,
+              "document": 1440,
+              "dialogWidth": 880,
+              "dialogScroll": 878,
+              "dialogClient": 878
+            },
+            {
+              "path": "/private/tmp/ps1-sample-editor-ui/webkit-ps1-sample-mobile.png",
+              "label": "mobile",
+              "viewport": 390,
+              "document": 390,
+              "dialogWidth": 366,
+              "dialogScroll": 364,
+              "dialogClient": 364
+            }
+          ],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 176512,
+              "lastFrame": 192768,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 202624,
+              "lastFrame": 218880,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                },
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 239360,
+              "lastFrame": 255616,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 265984,
+              "lastFrame": 282240,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                },
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 319488,
+              "lastFrame": 335744,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20633606371361954,
+                  "nonFinite": 0,
+                  "nonZero": 16360,
+                  "hz": 194.75968177261768
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20633606371361954,
+                  "nonFinite": 0,
+                  "nonZero": 16360,
+                  "hz": 194.75968177261768
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 345728,
+              "lastFrame": 361984,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20633606371361954,
+                  "nonFinite": 0,
+                  "nonZero": 16360,
+                  "hz": 194.75968177261768
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20633606371361954,
+                  "nonFinite": 0,
+                  "nonZero": 16360,
+                  "hz": 194.75968177261768
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 303232,
+            "lastFrame": 307200,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.2727272727272727
+                    ],
+                    [
+                      111,
+                      0.23636363636363633
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007403617191874331,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3494013055712089,
+              "snrDb": 33.47761136415635,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 443520,
+            "lastFrame": 459776,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.3681568503379822,
+                "rms": 0.25899010363112623,
+                "nonFinite": 0,
+                "nonZero": 16381,
+                "hz": 259.9373588828285
+              },
+              {
+                "peak": 0.3681568503379822,
+                "rms": 0.25899010363112623,
+                "nonFinite": 0,
+                "nonZero": 16381,
+                "hz": 259.9373588828285
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 472832,
+            "lastFrame": 476800,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 20727,
+            "bytes": 11856,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.01318026446155844,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43987018451767335,
+              "snrDb": 30.4680080195512,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 90624,
+              "lastFrame": 106880,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3282557400172768,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93507817461045
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3282557400172768,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93507817461045
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 176768,
+              "lastFrame": 193024,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20556071709476498,
+                  "nonFinite": 0,
+                  "nonZero": 16228,
+                  "hz": 194.76329403302205
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20556071709476498,
+                  "nonFinite": 0,
+                  "nonZero": 16228,
+                  "hz": 194.76329403302205
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 202752,
+              "lastFrame": 219008,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 239744,
+              "lastFrame": 256000,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634132115377418,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75960012031643
+                },
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634132115377418,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75960012031643
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 266240,
+              "lastFrame": 282496,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20633606371361954,
+                  "nonFinite": 0,
+                  "nonZero": 16360,
+                  "hz": 194.75968177261768
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20633606371361954,
+                  "nonFinite": 0,
+                  "nonZero": 16360,
+                  "hz": 194.75968177261768
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 319744,
+              "lastFrame": 336000,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 345088,
+              "lastFrame": 361344,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 303616,
+            "lastFrame": 307584,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.2727272727272727
+                    ],
+                    [
+                      111,
+                      0.23636363636363633
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007403617191874331,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3494013055712089,
+              "snrDb": 33.47761136415635,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 442240,
+            "lastFrame": 458496,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.06353066861629486,
+                "rms": 0.03256397315975668,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.9356352434528
+              },
+              {
+                "peak": 0.06353066861629486,
+                "rms": 0.03256397315975668,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.9356352434528
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 470912,
+            "lastFrame": 474880,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        }
+      ],
+      "selectedSourceHashes": {
+        "generated/ps1_spu_wasm.js": {
+          "bytes": 16551,
+          "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a"
+        },
+        "generated/ps1_spu_wasm.wasm": {
+          "bytes": 44899,
+          "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6"
+        },
+        "js/playground_native_sample_editor.js": {
+          "bytes": 2990,
+          "sha256": "f9be69de8907b55394f52f7e7b651e62cf2735275777484a79764c0d8274d935"
+        },
+        "js/playground_ps1_audio.js": {
+          "bytes": 3651,
+          "sha256": "a9d25286bdf83335e490ac172d4c91e7379ebfcd2180d8175240ba13c60e1d1b"
+        },
+        "js/playground_ps1_inspector.js": {
+          "bytes": 3215,
+          "sha256": "674019cfe075d380913172986c7f8d9e106b38c2a8fed747de2889d2829939a0"
+        },
+        "js/playground_ps1_worklet.js": {
+          "bytes": 6270,
+          "sha256": "ca4a3fb70947415dfb7d544b1643ff568fceb31cde764f8cb67d80552c71c9ac"
+        },
+        "js/playground_ps1.js": {
+          "bytes": 6322,
+          "sha256": "1f5e0205332516b5fb74b11d6c5f14d3695dc27dc66f5c876452edfe2cf56db3"
+        },
+        "js/playground_runtime.js": {
+          "bytes": 156401,
+          "sha256": "6a9391742eb9393e6e362786152f71a1b0999ca82f5b731fce65ceac126651e7"
+        },
+        "js/playground_sample_instrument.js": {
+          "bytes": 12164,
+          "sha256": "559a996f34458dd6d8de6329c20b18af5db55195492cddd2d08b10462c1577d3"
+        },
+        "js/playground_sample_ps1_preview.js": {
+          "bytes": 3321,
+          "sha256": "c22962ceb78220fc0029a25e165c926c853a01fab994841b8dc13b33f77c3463"
+        },
+        "js/playground_sample_ps1.js": {
+          "bytes": 6795,
+          "sha256": "4d447bed2a8818f604f2e535e10a31ef33a2b8a8046f6a9f7fc49f65278b8241"
+        },
+        "js/ps1_adpcm_encoder.js": {
+          "bytes": 8033,
+          "sha256": "c8bd45d184b164e4e56113139a496f7657751e997f9e82e76d9d32e1eee94456"
+        },
+        "js/ps1_resampler.js": {
+          "bytes": 4241,
+          "sha256": "b9143ecd0231f9119cb5d7e5c635a2d4b09e4ff708ea5213cca9a16803afa4e6"
+        },
+        "js/ps1_spu.js": {
+          "bytes": 9486,
+          "sha256": "d948c27aa77ac03bb91d29cc379b26af504406e9cbd8b5ef905a7bcc235ecfff"
+        },
+        "js/ps1synth.js": {
+          "bytes": 13401,
+          "sha256": "2ed1b641e116c6deca479b9a0cb71ffcaf2f130a288a090d918aab1bb21b3792"
+        },
+        "playground/playground_examples.js": {
+          "bytes": 211668,
+          "sha256": "6839a95b45e514b150e5a3a6b53ce5ea70d81d2650ed8b4fcb1077ffab057abc"
+        },
+        "playground/playground_opna_sample_editor.js": {
+          "bytes": 5835,
+          "sha256": "9f12ca50d4b7016ebb6a0bb01efe7d39a7636a9857ddc8275b5aa86254c2d0dc"
+        },
+        "playground/playground_opnb_sample_editor.js": {
+          "bytes": 6277,
+          "sha256": "9110eb3e64e1b3610e7bc943c49f7f2a777acc79758a78283247113bdf6ad955"
+        },
+        "playground/playground_ps1_voice_panel.js": {
+          "bytes": 9651,
+          "sha256": "269cd8276f249799957f337d8fb9c629eeecf8fd33d731d155e7ef4d67c4a646"
+        },
+        "playground/playground_sample_editor_worker.js": {
+          "bytes": 4100,
+          "sha256": "6d7d1feeb6839b763ce8aeac0e768bc54850ab1869aa552416072b9135060313"
+        },
+        "playground/playground_sample_editor.css": {
+          "bytes": 2842,
+          "sha256": "b54bdc4a580718f5c826ed0021db9d030b013d838724d0e6b1e14dcd8ca2f639"
+        },
+        "playground/tetorica-playground-globals.d.ts": {
+          "bytes": 127202,
+          "sha256": "07167ac6f6376ce5069f50aa0bf181f78de38d1285536d476bcf6907ecaebaf6"
+        },
+        "playground/tetorica-playground-ps1.d.ts": {
+          "bytes": 118,
+          "sha256": "60828b8abd70ded073a88488da1e0bbed1514b86aeb31cdd0b941993886d2492"
+        }
+      }
+    },
+    "runZip": {
+      "passed": true,
+      "routes": 4,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "sourceFilesVerified": 217,
+      "rawReport": "/private/tmp/ps1-sample-editor-run-zip.json",
+      "rawReportSha256": "22712ef7d4e4c25c0936535ba6ffdc6b9417a47690717579cb1546c37547a471",
+      "checkerSha256": "72937a2caf51c3779cd8746b5d93f8970c8d77181920a0f2b2c79696208c2154",
+      "example": {
+        "path": "/examples/ps1/ps1-sampler.js",
+        "bytes": 581,
+        "sha256": "9a36cb6286f89c6dd678eb184d4d640cb96ea4d250d935d9f065efa3bd2c0b85"
+      },
+      "archive": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_ps1-sample-editor-dev_itch_playground_for_run.zip",
+        "bytes": 37264821,
+        "sha256": "9ca8460faff07d48aebf01e3c8d9531eddd6e23c15990dc89675fbe7aa84c4fd"
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 21168,
+            "bytes": 12096,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.013172260807627095,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43979796152440953,
+              "snrDb": 30.471857820206164,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 98048,
+              "lastFrame": 114304,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32867544502645524,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93592989901646
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32867544502645524,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93592989901646
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 175360,
+              "lastFrame": 191616,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.20634950326366194,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76081712420225
+                },
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.20634950326366194,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76081712420225
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 200960,
+              "lastFrame": 217216,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634916036222894,
+                  "nonFinite": 0,
+                  "nonZero": 16358,
+                  "hz": 194.75766393328223
+                },
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634916036222894,
+                  "nonFinite": 0,
+                  "nonZero": 16358,
+                  "hz": 194.75766393328223
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 237568,
+              "lastFrame": 253824,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20634966745758454,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75920429549828
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20634966745758454,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75920429549828
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 263168,
+              "lastFrame": 279424,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20634966745758454,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75920429549828
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20634966745758454,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75920429549828
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 315136,
+              "lastFrame": 331392,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.2063492549580408,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75974674355686
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.2063492549580408,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75974674355686
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 339968,
+              "lastFrame": 356224,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20635017004862585,
+                  "nonFinite": 0,
+                  "nonZero": 16358,
+                  "hz": 194.75688956276403
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20635017004862585,
+                  "nonFinite": 0,
+                  "nonZero": 16358,
+                  "hz": 194.75688956276403
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 299008,
+            "lastFrame": 302976,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.26666675914417615
+                    ],
+                    [
+                      111,
+                      0.23333324085582385
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007398611136488894,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3493439376777273,
+              "snrDb": 33.48206018610609,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 434432,
+            "lastFrame": 450688,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.294836163520813,
+                "rms": 0.20346576775153416,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.9317496190924
+              },
+              {
+                "peak": 0.294836163520813,
+                "rms": 0.20346576775153416,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.9317496190924
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 462080,
+            "lastFrame": 466048,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 21168,
+            "bytes": 12096,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.013172260807627095,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43979796152440953,
+              "snrDb": 30.471857820206164,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 99328,
+              "lastFrame": 115584,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32867544502645524,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93592989901646
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32867544502645524,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93592989901646
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 179712,
+              "lastFrame": 195968,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20478193456168794,
+                  "nonFinite": 0,
+                  "nonZero": 16100,
+                  "hz": 194.75958228165337
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20478193456168794,
+                  "nonFinite": 0,
+                  "nonZero": 16100,
+                  "hz": 194.75958228165337
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 204544,
+              "lastFrame": 220800,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                },
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634886179168874,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75970395077516
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 239616,
+              "lastFrame": 255872,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 265216,
+              "lastFrame": 281472,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 318208,
+              "lastFrame": 334464,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634878796088182,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76026161799567
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 343296,
+              "lastFrame": 359552,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20635017004862585,
+                  "nonFinite": 0,
+                  "nonZero": 16358,
+                  "hz": 194.75688956276403
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.20635017004862585,
+                  "nonFinite": 0,
+                  "nonZero": 16358,
+                  "hz": 194.75688956276403
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 302592,
+            "lastFrame": 306560,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.26666675914417615
+                    ],
+                    [
+                      111,
+                      0.23333324085582385
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007398611136488894,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3493439376777273,
+              "snrDb": 33.48206018610609,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 442368,
+            "lastFrame": 458624,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.2601029872894287,
+                "rms": 0.18260309169457845,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.93653277840923
+              },
+              {
+                "peak": 0.2601029872894287,
+                "rms": 0.18260309169457845,
+                "nonFinite": 0,
+                "nonZero": 16384,
+                "hz": 259.93653277840923
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 470784,
+            "lastFrame": 474752,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 21389,
+            "bytes": 12224,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.01318026446155844,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43987018451767335,
+              "snrDb": 30.4680080195512,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 90752,
+              "lastFrame": 107008,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3282557400172768,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93507817461045
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.3282557400172768,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.93507817461045
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 170624,
+              "lastFrame": 186880,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 195712,
+              "lastFrame": 211968,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                },
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 234368,
+              "lastFrame": 250624,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 259840,
+              "lastFrame": 276096,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 310272,
+              "lastFrame": 326528,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634132115377418,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75960012031643
+                },
+                {
+                  "peak": 0.2934974730014801,
+                  "rms": 0.20634132115377418,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75960012031643
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 336256,
+              "lastFrame": 352512,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 295552,
+            "lastFrame": 299520,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.2727272727272727
+                    ],
+                    [
+                      111,
+                      0.23636363636363633
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007403617191874331,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3494013055712089,
+              "snrDb": 33.47761136415635,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 433280,
+            "lastFrame": 449536,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.368381142616272,
+                "rms": 0.2589125035758205,
+                "nonFinite": 0,
+                "nonZero": 16381,
+                "hz": 259.935070608714
+              },
+              {
+                "peak": 0.368381142616272,
+                "rms": 0.2589125035758205,
+                "nonFinite": 0,
+                "nonZero": 16381,
+                "hz": 259.935070608714
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 461056,
+            "lastFrame": 465024,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "defaultPs1": true,
+          "fixedRate": 44100,
+          "variableRateRestored": true,
+          "fileInput": true,
+          "microphone": {
+            "generatedMediaStream": true,
+            "realMediaRecorder": true,
+            "recordedFrames": 20837,
+            "bytes": 11920,
+            "tracksReleased": true
+          },
+          "drawnEdits": true,
+          "invalidLoopSaveRejected": true,
+          "noPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "hiddenNoPolling": {
+            "durationMs": 280,
+            "requests": 0
+          },
+          "comparison": {
+            "bytes": 96,
+            "metrics": {
+              "rmsError": 0.01318026446155844,
+              "maxError": 0.08962661027908325,
+              "signalRms": 0.43987018451767335,
+              "snrDb": 30.4680080195512,
+              "errorFrames": 168,
+              "exact": false
+            },
+            "alignment": {
+              "blockFrames": 28,
+              "changed": true,
+              "requested": {
+                "startFrame": 0,
+                "endFrame": 169
+              },
+              "applied": {
+                "startFrame": 0,
+                "endFrame": 168
+              },
+              "discardedTailFrames": 1
+            }
+          },
+          "played": {
+            "source": {
+              "peak": 0.4709490239620209,
+              "finite": true,
+              "frames": 37485,
+              "rate": 44100,
+              "loop": false
+            },
+            "pcm": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 92032,
+              "lastFrame": 108288,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32863785984695343,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.92929639438535
+                },
+                {
+                  "peak": 0.4708998501300812,
+                  "rms": 0.32863785984695343,
+                  "nonFinite": 0,
+                  "nonZero": 16384,
+                  "hz": 259.92929639438535
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "views": [],
+          "staleEditCancelled": true,
+          "closedPreviewCancelled": true,
+          "saveReopen": true,
+          "exactSamplerExample": true,
+          "input": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 175232,
+              "lastFrame": 191488,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                },
+                {
+                  "peak": 0.2934955656528473,
+                  "rms": 0.2063419540438962,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7608854513276
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 201088,
+              "lastFrame": 217344,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                },
+                {
+                  "peak": 0.29348260164260864,
+                  "rms": 0.20634111731258614,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.76028475558522
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "hotInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 238720,
+              "lastFrame": 254976,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                },
+                {
+                  "peak": 0.2934933006763458,
+                  "rms": 0.206341947999351,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.7591496425966
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 264064,
+              "lastFrame": 280320,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "secondInput": {
+            "target": "instrument:script",
+            "letter": "1",
+            "midi": 55,
+            "expectedHz": 195.99771799087463,
+            "pc": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 316288,
+              "lastFrame": 332544,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                }
+              ],
+              "physicalOutputMuted": true
+            },
+            "pointer": {
+              "sampleRate": 48000,
+              "frames": 16384,
+              "frameGaps": 0,
+              "firstFrame": 341888,
+              "lastFrame": 358144,
+              "quantumFrames": [
+                128
+              ],
+              "channels": [
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                },
+                {
+                  "peak": 0.29348185658454895,
+                  "rms": 0.20634148148586706,
+                  "nonFinite": 0,
+                  "nonZero": 16356,
+                  "hz": 194.75971766855346
+                }
+              ],
+              "physicalOutputMuted": true
+            }
+          },
+          "sampleReuse": {
+            "samplesBefore": 1,
+            "samplesAfter": 2,
+            "hotRerun": true,
+            "freshStopRun": true
+          },
+          "exampleStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 301696,
+            "lastFrame": 305664,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probe": {
+            "manifest": {
+              "format": "tetorica-sample-v1",
+              "sourcePath": "/samples/sampler.wav",
+              "settings": {
+                "startFrame": 0,
+                "endFrame": 256,
+                "gainDb": -3,
+                "fadeInSeconds": 0,
+                "fadeOutSeconds": 0,
+                "rootMidi": 60,
+                "tuneCents": 17,
+                "loopEnabled": true,
+                "loopStartFrame": 0,
+                "loopEndFrame": 256,
+                "drawPoints": [],
+                "drawStrokes": [
+                  [
+                    [
+                      102,
+                      0.30000000000000004
+                    ],
+                    [
+                      107,
+                      0.2727272727272727
+                    ],
+                    [
+                      111,
+                      0.23636363636363633
+                    ],
+                    [
+                      115,
+                      0.19999999999999996
+                    ]
+                  ]
+                ],
+                "outputSampleRate": 44100,
+                "conversionTargets": {
+                  "ps1": "ps1"
+                }
+              },
+              "name": "Drawn cycle",
+              "source": "file"
+            },
+            "microphoneSource": "microphone",
+            "sourceBytes": 1082,
+            "sourceRate": 66976,
+            "sourceFrames": 256,
+            "bytes": 96,
+            "loopStart": 0,
+            "loopEnd": 168,
+            "rootMidi": 60,
+            "tuneCents": 17,
+            "active": 24,
+            "ramMatches": true,
+            "metrics": {
+              "rmsError": 0.007403617191874331,
+              "maxError": 0.028957277536392212,
+              "signalRms": 0.3494013055712089,
+              "snrDb": 33.47761136415635,
+              "errorFrames": 168,
+              "exact": false
+            }
+          },
+          "polyphony": {
+            "sampleRate": 48000,
+            "frames": 16384,
+            "frameGaps": 0,
+            "firstFrame": 438528,
+            "lastFrame": 454784,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0.06175617873668671,
+                "rms": 0.03409256882978715,
+                "nonFinite": 0,
+                "nonZero": 16383,
+                "hz": 262.92407459165076
+              },
+              {
+                "peak": 0.06175617873668671,
+                "rms": 0.03409256882978715,
+                "nonFinite": 0,
+                "nonZero": 16383,
+                "hz": 262.92407459165076
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "probeStop": {
+            "sampleRate": 48000,
+            "frames": 4096,
+            "frameGaps": 0,
+            "firstFrame": 467200,
+            "lastFrame": 471168,
+            "quantumFrames": [
+              128
+            ],
+            "channels": [
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              },
+              {
+                "peak": 0,
+                "rms": 0,
+                "nonFinite": 0,
+                "nonZero": 0,
+                "hz": 0
+              }
+            ],
+            "physicalOutputMuted": true
+          },
+          "worklets": [
+            "tetorica-playground-ps1",
+            "tetorica-native-fx",
+            "ps1-sample-editor-capture"
+          ],
+          "physicalOutputMuted": true
+        }
+      ],
+      "selectedSourceHashes": {
+        "generated/ps1_spu_wasm.js": {
+          "bytes": 16551,
+          "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a"
+        },
+        "generated/ps1_spu_wasm.wasm": {
+          "bytes": 44899,
+          "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6"
+        },
+        "js/playground_native_sample_editor.js": {
+          "bytes": 2990,
+          "sha256": "f9be69de8907b55394f52f7e7b651e62cf2735275777484a79764c0d8274d935"
+        },
+        "js/playground_ps1_audio.js": {
+          "bytes": 3651,
+          "sha256": "a9d25286bdf83335e490ac172d4c91e7379ebfcd2180d8175240ba13c60e1d1b"
+        },
+        "js/playground_ps1_inspector.js": {
+          "bytes": 3215,
+          "sha256": "674019cfe075d380913172986c7f8d9e106b38c2a8fed747de2889d2829939a0"
+        },
+        "js/playground_ps1_worklet.js": {
+          "bytes": 6270,
+          "sha256": "ca4a3fb70947415dfb7d544b1643ff568fceb31cde764f8cb67d80552c71c9ac"
+        },
+        "js/playground_ps1.js": {
+          "bytes": 6322,
+          "sha256": "1f5e0205332516b5fb74b11d6c5f14d3695dc27dc66f5c876452edfe2cf56db3"
+        },
+        "js/playground_runtime.js": {
+          "bytes": 156401,
+          "sha256": "6a9391742eb9393e6e362786152f71a1b0999ca82f5b731fce65ceac126651e7"
+        },
+        "js/playground_sample_instrument.js": {
+          "bytes": 12164,
+          "sha256": "559a996f34458dd6d8de6329c20b18af5db55195492cddd2d08b10462c1577d3"
+        },
+        "js/playground_sample_ps1_preview.js": {
+          "bytes": 3321,
+          "sha256": "c22962ceb78220fc0029a25e165c926c853a01fab994841b8dc13b33f77c3463"
+        },
+        "js/playground_sample_ps1.js": {
+          "bytes": 6795,
+          "sha256": "4d447bed2a8818f604f2e535e10a31ef33a2b8a8046f6a9f7fc49f65278b8241"
+        },
+        "js/ps1_adpcm_encoder.js": {
+          "bytes": 8033,
+          "sha256": "c8bd45d184b164e4e56113139a496f7657751e997f9e82e76d9d32e1eee94456"
+        },
+        "js/ps1_resampler.js": {
+          "bytes": 4241,
+          "sha256": "b9143ecd0231f9119cb5d7e5c635a2d4b09e4ff708ea5213cca9a16803afa4e6"
+        },
+        "js/ps1_spu.js": {
+          "bytes": 9486,
+          "sha256": "d948c27aa77ac03bb91d29cc379b26af504406e9cbd8b5ef905a7bcc235ecfff"
+        },
+        "js/ps1synth.js": {
+          "bytes": 13401,
+          "sha256": "2ed1b641e116c6deca479b9a0cb71ffcaf2f130a288a090d918aab1bb21b3792"
+        },
+        "playground_sample_editor_worker.js": {
+          "bytes": 4094,
+          "sha256": "ad445132743c33c4261df0312279fb4ddfeba00f13c0d0237ee97c07b9753d05"
+        },
+        "playground_sample_editor.css": {
+          "bytes": 2842,
+          "sha256": "b54bdc4a580718f5c826ed0021db9d030b013d838724d0e6b1e14dcd8ca2f639"
+        },
+        "tetorica-playground-globals.d.ts": {
+          "bytes": 127202,
+          "sha256": "07167ac6f6376ce5069f50aa0bf181f78de38d1285536d476bcf6907ecaebaf6"
+        },
+        "tetorica-playground-ps1.d.ts": {
+          "bytes": 118,
+          "sha256": "60828b8abd70ded073a88488da1e0bbed1514b86aeb31cdd0b941993886d2492"
+        }
+      }
+    }
+  },
+  "regressions": {
+    "sharedSampleEditor": {
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "passed": true,
+      "physicalMicrophoneUsed": false,
+      "log": "/private/tmp/ps1-sample-editor-shared-browser.log"
+    },
+    "gameBoySampleEditor": {
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "hosts": [
+        "fixture",
+        "full Playground",
+        "actual Run ZIP"
+      ],
+      "passed": true,
+      "report": "/private/tmp/ps1-sample-editor-gameboy-browser.json"
+    },
+    "testFixtureNote": "The final generated microphone input reuses the public primary AudioContext; an earlier extra-context fixture had a transient timing assertion failure. Final eight routes retain strict zero-gap checks."
+  },
+  "npm": {
+    "version": "0.2.32",
+    "published": false,
+    "isolatedTarballInstalled": true,
+    "files": 987,
+    "compressedBytes": 1883225,
+    "unpackedBytes": 7039576,
+    "jsdocDeclarations": 381,
+    "assetReferences": 1085,
+    "runtimeModules": 331,
+    "wasmEngines": 28,
+    "rendererChecks": 15,
+    "newSampleHelperAndInstrumentSourceInstalledByteEquality": true,
+    "docsMirrorNote": "Browser mirrors use cache-versioned imports and relocated generated-asset URLs. The package runtime also relocates assets; both payloads were separately exercised.",
+    "passed": true,
+    "log": "/private/tmp/ps1-sample-editor-final-npm.log"
+  },
+  "archives": [
+    {
+      "path": "release/hello_ymfm_wasm_ps1-sample-editor-dev_itch_synth.zip",
+      "stage": "release/itch_synth_ps1-sample-editor-dev",
+      "entries": 231,
+      "files": 203,
+      "directories": 28,
+      "bytes": 778748,
+      "expandedBytes": 2364061,
+      "sha256": "96efa3d1c1e721b1ce80588fca935eca2f6ed18f3f3dfc002166f67e3a355f20",
+      "crc": "pass",
+      "stageByteEquality": "all files",
+      "pathSafety": "pass",
+      "browserPlayable": true
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ps1-sample-editor-dev_itch_vgm_analyzer.zip",
+      "stage": "release/itch_vgm_analyzer_ps1-sample-editor-dev",
+      "entries": 463,
+      "files": 421,
+      "directories": 42,
+      "bytes": 1900031,
+      "expandedBytes": 5749614,
+      "sha256": "46f1398ac52c7f900e3d3825f8c597379e3cb322ee9d5257b7d2f438186b1db3",
+      "crc": "pass",
+      "stageByteEquality": "all files",
+      "pathSafety": "pass",
+      "browserPlayable": true
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ps1-sample-editor-dev_itch_playground.zip",
+      "stage": "release/itch_playground_ps1-sample-editor-dev",
+      "entries": 1168,
+      "files": 1053,
+      "directories": 115,
+      "bytes": 36931193,
+      "expandedBytes": 43022956,
+      "sha256": "b461644039609857dfca0c1c2815d47c907b236ac7a58737d2c1fb8f52fb8f13",
+      "crc": "pass",
+      "stageByteEquality": "all files",
+      "pathSafety": "pass",
+      "browserPlayable": false
+    },
+    {
+      "path": "release/hello_ymfm_wasm_ps1-sample-editor-dev_itch_playground_for_run.zip",
+      "stage": "release/itch_playground_ps1-sample-editor-dev_for_run",
+      "entries": 921,
+      "files": 921,
+      "directories": 0,
+      "bytes": 37264821,
+      "expandedBytes": 42671932,
+      "sha256": "9ca8460faff07d48aebf01e3c8d9531eddd6e23c15990dc89675fbe7aa84c4fd",
+      "crc": "pass",
+      "stageByteEquality": "all files",
+      "pathSafety": "pass",
+      "browserPlayable": true
+    }
+  ],
+  "packagingCommands": {
+    "synth": "passed",
+    "vgmAnalyzer": "passed",
+    "playground": "passed"
+  },
+  "checks": {
+    "diffWhitespace": "pass",
+    "actionlint": "pass",
+    "analyzerMixerCalibrationGuard": "8 levels pass",
+    "runtimeVersionerIdempotence": "0 modules changed",
+    "cacheRevision": "ps1-sample-editor-1",
+    "visualQa": [
+      "desktop",
+      "390px narrow dialog"
+    ]
+  },
+  "sourceHashes": {
+    "web/playground_sample_ps1.js": {
+      "bytes": 6746,
+      "sha256": "ec01747e553949789a45a28b047f27fadd2a1e7630d6a49666fefccb66efdea9"
+    },
+    "web/playground_sample_ps1_preview.js": {
+      "bytes": 3273,
+      "sha256": "9319caf24eb4088333f88eaf6a9a6ed4e22244f14f7bb1b8982c59fe874fb75f"
+    },
+    "web/playground_sample_instrument.js": {
+      "bytes": 12088,
+      "sha256": "dc6a16a829f730647a2dacc41dee9271235c125867dcbb31584cfe56b061aa1a"
+    },
+    "web/playground_runtime.js": {
+      "bytes": 155399,
+      "sha256": "b55c1c7d54879f06c64eb60f560053749c1c49da59ff3ad096f51d52c4a396e5"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124822,
+      "sha256": "11b277739bbfce9337321231987ce568779af597f985d1ec16fd89da9c1aa2e2"
+    },
+    "docs/playground/playground_audio_input.js": {
+      "bytes": 44108,
+      "sha256": "145cd6c65af53ec41d0aef18bb3b7eae0fd0413cb15c22a7b41e197bcc1892c6"
+    },
+    "docs/playground/playground_sample_editor_worker.js": {
+      "bytes": 4100,
+      "sha256": "6d7d1feeb6839b763ce8aeac0e768bc54850ab1869aa552416072b9135060313"
+    },
+    "docs/playground/playground_sample_editor.css": {
+      "bytes": 2842,
+      "sha256": "b54bdc4a580718f5c826ed0021db9d030b013d838724d0e6b1e14dcd8ca2f639"
+    },
+    "docs/playground/playground_mode_examples.js": {
+      "bytes": 5394,
+      "sha256": "f9f83bac377f31df9155be194d9772291537242b2eec2949da50569de07451ef"
+    },
+    "docs/playground/playground_examples.js": {
+      "bytes": 211668,
+      "sha256": "6839a95b45e514b150e5a3a6b53ce5ea70d81d2650ed8b4fcb1077ffab057abc"
+    },
+    "docs/playground/examples/ps1/ps1-sampler.js": {
+      "bytes": 581,
+      "sha256": "9a36cb6286f89c6dd678eb184d4d640cb96ea4d250d935d9f065efa3bd2c0b85"
+    },
+    "docs/playground/tetorica-playground-globals.d.ts": {
+      "bytes": 127202,
+      "sha256": "07167ac6f6376ce5069f50aa0bf181f78de38d1285536d476bcf6907ecaebaf6"
+    },
+    "scripts/check_ps1_sample_editor_browser.cjs": {
+      "bytes": 35546,
+      "sha256": "72937a2caf51c3779cd8746b5d93f8970c8d77181920a0f2b2c79696208c2154"
+    },
+    "docs/generated/ps1_spu_wasm.js": {
+      "bytes": 16551,
+      "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a"
+    },
+    "docs/generated/ps1_spu_wasm.wasm": {
+      "bytes": 44899,
+      "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6"
+    },
+    "docs/generated/ps1_spu_build.json": {
+      "bytes": 3161,
+      "sha256": "3f4609fd50ee658227e8594548dd14119e2eec07bc318aa0fb9c9ee744a2c84a"
+    }
+  },
+  "invariants": {
+    "cppCoreUnchanged": true,
+    "wasmAndBuildReceiptUnchanged": true,
+    "existingRendererBytesUnchanged": true,
+    "mixerGainsUnchanged": true,
+    "fixedSdkUnchanged": true,
+    "tauriNativeUnchanged": true
+  },
+  "remaining": [
+    "SDK source/build recipe adoption",
+    "Tauri Native PS1 adapter",
+    "Human listening and hardware comparison"
+  ],
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "npm": false,
+    "sdk": false,
+    "tauriImport": false,
+    "itchUpload": false,
+    "remoteCiRun": false
+  }
+}

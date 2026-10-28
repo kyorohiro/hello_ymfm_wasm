@@ -81,4 +81,6 @@ node examples/nodejs/main_ps1_adpcm.js /tmp/ps1-adpcm
 This writes `.loop.adpcm`, `.hit.adpcm`, `.json` and a stereo `.wav`; existing
 files at the same prefix are overwritten. It does not play through an audio
 device. Native and WASM decoder tests compare reconstructed PCM and actual
-SPU output. Sample Editor conversion and instrument saving are subsequent work.
+SPU output. The [PS1 Sample Editor](ps1_sample_editor.md) adds file/microphone
+input, drawing, fixed-rate conversion, visible packet alignment, actual SPU
+preview and reusable source/edit assets for Keyboard instruments.

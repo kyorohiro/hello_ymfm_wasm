@@ -1189,8 +1189,8 @@ test('Worker Stop waits for primary PCM releases before acknowledging Stop and s
 test('Worker audio input requests use the host decoder and preserve null cancellation and PCM',async()=>{
  const worker=createWorkerHarness();
  try {
-  await worker.send({type:'run',sourceCode:`console.log('input',await pg.inputAudio({title:'Sampler'}));`});
-  const first=worker.messages.find(m=>m.command==='audio.input');assert(first);assert.equal(first.args[0].title,'Sampler');
+  await worker.send({type:'run',sourceCode:`console.log('input',await pg.inputAudio({title:'Sampler',target:'ps1'}));`});
+  const first=worker.messages.find(m=>m.command==='audio.input');assert(first);assert.equal(first.args[0].title,'Sampler');assert.equal(first.args[0].target,'ps1');
   await worker.send({type:'response',id:first.id,value:null});
   await waitFor(()=>worker.messages.some(m=>m.type==='complete'));
   assert.equal(worker.messages.find(m=>m.command==='log').args[1],null);

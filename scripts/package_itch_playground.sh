@@ -387,6 +387,8 @@ native_genesis_monitor.js
 playground_keyboard.js
 playground_sample_edit.js
 playground_sample_gameboy_preview.js
+playground_sample_ps1.js
+playground_sample_ps1_preview.js
 soundchip_mixer_presets.js
 playground_sample_instrument.js
 playground_soundchips.js
