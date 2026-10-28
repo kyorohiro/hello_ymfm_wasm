@@ -1,3 +1,15 @@
+## 2026-10-28 — PCM → PS1 SPU ADPCM encoderを追加
+
+- 純JSの`encodePs1Adpcm()`／`pg.encodePs1Adpcm`とnpm subpathを追加。有限mono Float32 PCMから16byte／28frame packetsへ変換。28frame境界のloop、one-shot zero padding、容量制限、所有されたbytesとJSON保存可能な誤差を返す。再sample／音量補正／pitch推定なし、tuningはloadADPCMで明示。default520,192bytesは空Synth用、既存bankの容量はcaller管理。
+- 予測filter0–4／shift0–12からgreedy最小誤差を選択。signed16bit overflowを使う候補は除外。先頭／loop先頭filter0で履歴依存を除去。変換はMain／logicWorkerの準備処理だけ、AudioWorkletやInspector定期pollingは追加なし。
+- `examples/ps1/ps1-pcm-adpcm.js`を追加してPS1 Example計3本。自作PCMをlivePrepareで一度uploadし、演奏中のRunでは再利用。Mixer指定なし。Node `main_ps1_adpcm.js`はloop＋one-shot ADPCM／tuning・metrics JSON／実SPU WAVを出力。preview `/private/tmp/ps1-adpcm.wav` は44.1kHz／2秒／peak0.500519／最後200ms exact zero。
+- Encoder7＋実core4＋Synth7＋rawSPU15、Main／Worker260、catalog／declaration／Monaco43、全mode型が成功。実Native decoderの誤差と完全一致、28frame一packet／末尾packetだけのloopも64周期完全一致。CH24／440Hz／signed stereo／END／Stop・再発音、Native／WASMのPCM・RAM・register全byte一致を確認。skip0。
+- ソース本体／実Run ZIP × Chromium153／WebKit26.6 × Main／Workerの8条件成功。exact Example各2回、演奏中Runの追加upload0、8不正入力、CH24、Stop後無音、error recovery。物理出力mute、実聴／hardware比較は未実施。
+- isolated npm983files／379宣言／1,079asset参照／既存28WASM engine／15renderer・consumer型が成功。version0.2.32のまま未公開。web／docs／npm encoder同byte。標準3package commandとAnalyzerの既存測定hash guard、actionlintも成功。
+- Run ZIP `release/hello_ymfm_wasm_ps1-adpcm-encoder-dev_itch_playground_for_run.zip`、918entries、SHA256 `3860c93c7153a8bbd46ff3b9bb41ef8ded8fcb48972ab8ecc874f4dbd3e37540`。fullは同prefixの_for_runなし。両ZIPのCRC／path／全stage bytes一致を確認。cache `ps1-adpcm-encoder-1`、CIへcore／Node／packaged Browser試験を追加。
+- C++ core／WASM／既存再生経路／Mixer gain／固定SDK／Tauri Nativeは変更なし。**未commit／未push／未公開**、tag・version変更・SDK／Tauri取込・remoteCIなし。前段階のPS1 Modeはユーザーcommit `baf12fc1`に含まれる。次はSample Editor変換・楽器保存、SDK集約、Tauri Native adapter。
+- 詳細：[ps1_adpcm_encoder_01.md](ps1_adpcm_encoder_01.md)／[JSON](ps1_adpcm_encoder_01.json)、公開guide：[../ps1_adpcm_encoder.md](../ps1_adpcm_encoder.md)、計画：[todo_ps1_01.md](todo_ps1_01.md)。以下は各時点の履歴。
+
 ## 2026-10-28 — PS1 Browser Mode／Synth／Keyboardを追加
 
 - experimental **PlayStation (PS1)** Mode。`spu`／`pg.spu`、独立した`createSoundChip('ps1')`／`useSoundChip('ps1')`をBrowserへ接続。24 physical voices／512KiB RAM／44.1kHz。初期音色を全24声へ準備、index.js＋自作Example2本、Mixer指定なし。

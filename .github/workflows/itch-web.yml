@@ -48,6 +48,10 @@ jobs:
         run: |
           node --test web/ps1_spu.test.mjs web/ps1synth.test.mjs web/ps1_resampler.test.mjs web/playground_ps1.test.mjs web/playground_ps1_worklet.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-core-tests.log"
           node examples/nodejs/main_ps1_spu.js "$RUNNER_TEMP/itch-web/ps1-spu" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-example.log"
+      - name: Test PCM to SPU ADPCM with the actual native and WASM decoders
+        run: |
+          node --test web/ps1_adpcm_encoder.test.mjs web/ps1_adpcm_encoder_core.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-core-tests.log"
+          node examples/nodejs/main_ps1_adpcm.js "$RUNNER_TEMP/itch-web/ps1-adpcm" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-example.log"
       - name: Test standalone PS1 SPU in browser and worker
         run: node scripts/check_ps1_spu_browser.cjs --out "$RUNNER_TEMP/itch-web/ps1-spu-browser.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-browser.log"
       # Keep the same default commands and ZIP names used for manual releases.
@@ -94,6 +98,12 @@ jobs:
             --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
             --out="$RUNNER_TEMP/itch-web/ps1-mode-browser.json" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mode-browser.log"
+      - name: Test PCM to SPU ADPCM in the packaged Playground
+        run: |
+          node scripts/check_ps1_adpcm_encoder_browser.cjs \
+            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
+            --out="$RUNNER_TEMP/itch-web/ps1-adpcm-browser.json" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-browser.log"
       - name: Test encoded ADPCM-A in both packaged Neo Geo modes
         run: |
           node scripts/check_adpcm_a_encoder_browser.cjs --webkit \

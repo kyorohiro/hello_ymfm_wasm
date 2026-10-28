@@ -1,6 +1,17 @@
 /// <reference path="../../docs/playground/tetorica-playground-ps1.d.ts" />
 /// <reference path="../../docs/playground/tetorica-playground-globals.d.ts" />
 async function checkPs1ModeTypes() {
+  const encoded = encodePs1Adpcm(new Float32Array(112), {loopStartSamples:0, maxBytes:64});
+  encoded.metrics.snrDb?.toFixed(); encoded.paddingFrames.toFixed();
+  const encodedSample = await spu.loadADPCM(encoded.adpcm, {baseFrequencyHz:44100/112,loopStartSamples:encoded.loopStartSamples!});
+  pg.encodePs1Adpcm(new Float32Array(1)).metrics.exact.valueOf();
+  spu.setPreset(23,{sample:encodedSample});
+  // @ts-expect-error Encoder requires normalized Float32 PCM, not encoded bytes.
+  encodePs1Adpcm(new Uint8Array(28));
+  // @ts-expect-error Loop positions are source sample indexes.
+  pg.encodePs1Adpcm(new Float32Array(28), {loop:true});
+  // @ts-expect-error The encoder does not perform resampling.
+  encodePs1Adpcm(new Float32Array(28), {sampleRate:44100});
   const packetBytes = new Uint8Array(64);
   const sample = await spu.loadADPCM(packetBytes, {baseFrequencyHz:44100/112,loopStartSamples:0});
   sample.startAddress.toFixed(); sample.repeatAddress.toFixed(); sample.decodedFrames.toFixed();

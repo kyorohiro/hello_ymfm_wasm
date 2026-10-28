@@ -19,6 +19,7 @@ import {createSnesClient} from './playground_snes.js';
 import {SnesSynth} from './snessynth.js';
 import {encodeBrr} from './snes_brr_encoder.js';
 import {encodeAdpcmA} from './adpcm_a_sample.js';
+import {encodePs1Adpcm} from './ps1_adpcm_encoder.js';
 import {WonderSwanSynth} from './wonderswansynth.js';
 import {PokeySynth} from './pokeysynth.js';
 import {createRf5c164Client, createRf5c164Control} from './playground_rf5c164.js';
@@ -93,6 +94,21 @@ for (const chip of ['ym2610','snes']) test(`Main ${chip} exposes a pure ADPCM-A 
   assert.deepEqual(runtime.context.globalA,expected);assert.deepEqual(runtime.context.pgA,expected);
   await assert.rejects(runtime.playSource(`encodeAdpcmA(new Float32Array(16),{loop:true});`),/option/i);
   await assert.rejects(runtime.playSource(`pg.encodeAdpcmA(new Float32Array(16),{maxBytes:255});`),/maxBytes/);
+});
+
+for (const chip of ['ym2612','ps1']) test(`Main ${chip} exposes one pure SPU ADPCM encoder globally and through pg`, async t => {
+  const {runtime,megaDrive}=setup(t,{chip,fmChannels:chip==='ps1'?0:6,psg:chip!=='ps1',dac:chip!=='ps1'});
+  megaDrive.stopAllNative=()=>{};
+  await runtime.playSource(`
+    if(encodePs1Adpcm!==pg.encodePs1Adpcm)throw Error('Separate SPU ADPCM encoders');
+    const pcm=Float32Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112));
+    context.globalSpu=encodePs1Adpcm(pcm,{loopStartSamples:0});
+    context.pgSpu=pg.encodePs1Adpcm(pcm,{loopStartSamples:0});
+  `);
+  const expected=encodePs1Adpcm(Float32Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112)),{loopStartSamples:0});
+  assert.deepEqual(runtime.context.globalSpu,expected);assert.deepEqual(runtime.context.pgSpu,expected);
+  await assert.rejects(runtime.playSource(`encodePs1Adpcm(new Float32Array(28),{loopStartSamples:1});`),/align/i);
+  await assert.rejects(runtime.playSource(`pg.encodePs1Adpcm(new Float32Array(28),{maxBytes:15});`),/maxBytes/);
 });
 
 // Inject a deterministic audio endpoint into the real runtime, keeping its

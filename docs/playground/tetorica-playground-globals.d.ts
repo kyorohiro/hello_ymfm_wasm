@@ -1169,6 +1169,7 @@ type PlaygroundAPIBase = {
   createSampleInstrument: typeof createSampleInstrument;
   encodeBrr: typeof encodeBrr;
   encodeAdpcmA: typeof encodeAdpcmA;
+  encodePs1Adpcm: typeof encodePs1Adpcm;
   midi: PlaygroundMidi;
   /** Primary FM API for the selected mode. */
   fm: PlaygroundSelectedFm;
@@ -1739,6 +1740,29 @@ interface PlaygroundAdpcmAEncodeResult {
  * Returns 256-byte-aligned data; caller allocates ROM ranges. Run during preparation.
  */
 declare function encodeAdpcmA(pcm:Float32Array, options?:PlaygroundAdpcmAEncodeOptions):PlaygroundAdpcmAEncodeResult;
+interface PlaygroundPs1AdpcmEncodeOptions {
+  /** Null/omitted for one-shots. Loop start and source length must be multiples of 28. */
+  loopStartSamples?:number | null;
+  /** Encoded byte budget, 16..524288; default 520192 fits an otherwise empty Ps1Synth. */
+  maxBytes?:number;
+}
+interface PlaygroundPs1AdpcmEncodeResult {
+  adpcm:Uint8Array;
+  sourceFrames:number;
+  /** Decoded length including one-shot zero padding to complete 28-frame packets. */
+  frames:number;
+  paddingFrames:number;
+  blockCount:number;
+  loopStartSamples:number | null;
+  /** Raw SPU ADPCM reconstruction errors before interpolation/envelopes; padding excluded. */
+  metrics:{rmsError:number; maxError:number; signalRms:number; errorFrames:number;
+    snrDb:number | null; exact:boolean};
+}
+/** Pure lossy mono PCM → PS1 SPU ADPCM. Finite Float32 samples in [-1,1].
+ * No resampling, gain normalization or tuning inference. Declare the root note/frequency
+ * when passing the result to spu.loadADPCM. Run during preparation, before liveLoop.
+ */
+declare function encodePs1Adpcm(pcm:Float32Array, options?:PlaygroundPs1AdpcmEncodeOptions):PlaygroundPs1AdpcmEncodeResult;
 interface PlaygroundBrrEncodeOptions {
   /** Null/omitted for one-shots. Loop start and source length must be multiples of 16. */
   loopStartSamples?:number | null;

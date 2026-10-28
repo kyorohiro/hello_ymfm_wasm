@@ -57,6 +57,7 @@ entry points, rather than every internal Worker or Worklet module.
 | SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
 | Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
+| PCM to PS1 SPU ADPCM | `tetorica-fm2612/ps1_adpcm_encoder.js` | `encodePs1Adpcm` |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
@@ -108,6 +109,10 @@ automatically. `Ps1Synth` (`ps1synth.js`) adds tuned ADPCM instruments and 24 ph
 `Ps1Resampler` (`ps1_resampler.js`) converts fixed-rate PCM to the host rate.
 The Browser Playground offers PS1 mode, the `spu` primary API, Keyboard and an
 SPU voice editor; its script API also supports `createSoundChip('ps1')`.
+`encodePs1Adpcm` converts normalized mono Float32 PCM into SPU packets with
+explicit loop positions and JSON-safe reconstruction metrics. It does not
+resample or normalize; declare tuning when uploading the encoded sample.
+See the [PCM conversion guide](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_adpcm_encoder.md).
 The package-root chip factory remains separate, and the Native Playground
 audio adapter is future work. The core is separate from the fixed sound-chip SDK.
 Upstream linear interpolation, approximate ADSR and preset reverb are retained;

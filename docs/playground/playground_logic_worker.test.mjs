@@ -6,6 +6,7 @@ import {OPL_CHIPS} from '../../web/playground_opl.js';
 import {createSnesClient} from '../../web/playground_snes.js';
 import {encodeBrr} from '../../web/snes_brr_encoder.js';
 import {encodeAdpcmA} from '../../web/adpcm_a_sample.js';
+import {encodePs1Adpcm} from '../../web/ps1_adpcm_encoder.js';
 import {borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient} from '../../web/playground_native_primary.js';
 import {createPerformanceSender} from '../../web/playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from '../../web/soundchip_pitch.js';
@@ -48,7 +49,7 @@ function createWorkerHarness(overrides = {}) {
   const messages = [];
   const context = {
     // Imported encoders use instanceof; share their PCM constructor with the VM.
-    encodeBrr, encodeAdpcmA, Float32Array,
+    encodeBrr, encodeAdpcmA, encodePs1Adpcm, Float32Array,
     validateSoundChipOptions, createPerformanceSender, createNativeNoiseOwnership, createNativeGenesisFX, serializeLogError, OPL_PRESETS, OPL_CHIPS, OPLL_INSTRUMENTS, OPLL_USER_PRESETS,
     createMusicalKeyboard,createKeyboardApiGuard,keyboardBinding,registerKeyboardScope,createSampleInstrumentFactory,
     borrowNativeApi,createNativeWorkerApis,createNativePrimaryClient,
@@ -188,6 +189,26 @@ for (const chip of ['ym2610','snes']) test(`Worker ${chip} exposes a pure ADPCM-
     `,0,{capabilities:{chip,fmChannels:chip==='snes'?0:4,psg:false,dac:false}});
     const result=f.logs().find(args=>args[0]==='adpcm-a-result');
     const expected=encodeAdpcmA(Float32Array.from({length:257},(_,i)=>.4*Math.sin(2*Math.PI*i/32)));
+    assert.ok(result);assert.deepEqual(result[1],expected);assert.deepEqual(result[2],expected);
+    assert(!f.worker.messages.some(message=>message.command==='pcm.create'||message.command==='pcm.decode'));
+  } finally {await f.stop();}
+});
+
+for (const chip of ['ym2612','ps1']) test(`Worker ${chip} converts SPU ADPCM locally through both public entry points`, async () => {
+  const f=createTimedWorkerHarness();
+  try {
+    await f.run(`
+      if(encodePs1Adpcm!==pg.encodePs1Adpcm)throw Error('Separate SPU ADPCM encoders');
+      const pcm=Float32Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112));
+      console.log('spu-adpcm-result',encodePs1Adpcm(pcm,{loopStartSamples:0}),pg.encodePs1Adpcm(pcm,{loopStartSamples:0}));
+      let rejected=0;
+      for(const call of [()=>encodePs1Adpcm(pcm,{loopStartSamples:1}),()=>pg.encodePs1Adpcm(pcm,{maxBytes:15})]){
+        try{call();}catch{rejected++;}
+      }
+      if(rejected!==2)throw Error('Invalid SPU ADPCM options accepted');
+    `,0,{capabilities:{chip,fmChannels:chip==='ps1'?0:6,psg:chip!=='ps1',dac:chip!=='ps1'}});
+    const result=f.logs().find(args=>args[0]==='spu-adpcm-result');
+    const expected=encodePs1Adpcm(Float32Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112)),{loopStartSamples:0});
     assert.ok(result);assert.deepEqual(result[1],expected);assert.deepEqual(result[2],expected);
     assert(!f.worker.messages.some(message=>message.command==='pcm.create'||message.command==='pcm.decode'));
   } finally {await f.stop();}

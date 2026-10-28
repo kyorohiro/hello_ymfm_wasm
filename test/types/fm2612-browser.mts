@@ -151,6 +151,16 @@ ps1.sampleRate=48000;
 import {SpcRuntimeSynth} from 'tetorica-fm2612/spc_audio.js';
 import {SpcCore, SnesDspCore} from 'tetorica-fm2612/spc.js';
 import {SnesSynth} from 'tetorica-fm2612/snessynth.js';
+import {encodePs1Adpcm,DEFAULT_PS1_ADPCM_MAX_BYTES} from 'tetorica-fm2612/ps1_adpcm_encoder.js';
+const encodedPs1 = encodePs1Adpcm(new Float32Array(112), {loopStartSamples:0, maxBytes:64});
+encodedPs1.adpcm.byteLength.toFixed(); encodedPs1.blockCount.toFixed();
+encodedPs1.metrics.snrDb?.toFixed(); DEFAULT_PS1_ADPCM_MAX_BYTES.toFixed();
+// @ts-expect-error Mono normalized Float32 PCM is required.
+encodePs1Adpcm(new Int16Array(28));
+// @ts-expect-error Tuning belongs to the instrument upload rather than this codec.
+encodePs1Adpcm(new Float32Array(28), {rootNote:'C4'});
+// @ts-expect-error The encoder does not resample.
+encodePs1Adpcm(new Float32Array(28), {sampleRate:44100});
 import {encodeAdpcmA} from 'tetorica-fm2612/adpcm_a_sample.js';
 const encodedA=encodeAdpcmA(new Float32Array(512),{maxBytes:256});
 encodedA.bytes.byteLength.toFixed();encodedA.paddingFrames.toFixed();encodedA.metrics.snrDb?.toFixed();

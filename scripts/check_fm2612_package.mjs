@@ -19,6 +19,9 @@ try {
   for (const file of ['snes_brr_encoder.js','snes_brr_encoder.d.ts']) {
     assert.ok(packedPaths.has(file), `BRR encoder payload missing ${file}`);
   }
+  for (const file of ['ps1_adpcm_encoder.js','ps1_adpcm_encoder.d.ts']) {
+    assert.ok(packedPaths.has(file), `SPU ADPCM encoder payload missing ${file}`);
+  }
   for(const file of ['ps1_spu.js','ps1_spu.d.ts',...['ps1synth','ps1_resampler','playground_ps1','playground_ps1_audio','playground_ps1_worklet','playground_ps1_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),'generated/ps1_spu_wasm.js','generated/ps1_spu_wasm.wasm','generated/ps1_spu_build.json',
     'licenses/mame-ps1-spu/LICENSE','licenses/mame-ps1-spu/README.md','sources/PS1-SPU.md','sources/PS1-SPU.json',
     'sources/scripts/build_ps1_spu_wasm.sh',...['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h',
@@ -133,6 +136,39 @@ assert.equal(typeof globalThis.AudioContext,'undefined');
 console.log('Installed experimental PS1 SPU/Synth/resampler verified: both exports, explicit WASM assets, original ADPCM stereo, 24th voice, release, Stop/retrigger, RAM retention, reset and disposal.');
 `);
   execFileSync(process.execPath,[join(consumer,'ps1-spu-check.mjs')],{cwd:consumer,stdio:'inherit'});
+  await writeFile(join(consumer,'ps1-adpcm-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {encodePs1Adpcm,DEFAULT_PS1_ADPCM_MAX_BYTES} from 'tetorica-fm2612/ps1_adpcm_encoder.js';
+import {encodePs1Adpcm as extensionless} from 'tetorica-fm2612/ps1_adpcm_encoder';
+import {Ps1Spu} from 'tetorica-fm2612/ps1_spu.js';
+import {Ps1Synth} from 'tetorica-fm2612/ps1synth.js';
+import factory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
+assert.equal(encodePs1Adpcm,extensionless);assert.equal(DEFAULT_PS1_ADPCM_MAX_BYTES,520192);
+const pcm=Float32Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112));
+const encoded=encodePs1Adpcm(pcm,{loopStartSamples:0});
+assert.equal(encoded.adpcm.length,64);assert.equal(encoded.paddingFrames,0);
+assert(encoded.metrics.snrDb>20);assert.equal(encoded.adpcm.at(-15)&3,3);
+const core=await Ps1Spu.create({moduleFactory:factory,moduleOptions:{wasmBinary:
+ await readFile(new URL('./node_modules/tetorica-fm2612/generated/ps1_spu_wasm.wasm',import.meta.url))}});
+const synth=new Ps1Synth({core});
+try{
+ const sample=synth.loadADPCM(encoded.adpcm,{baseFrequencyHz:44100/pcm.length,loopStartSamples:0});
+ synth.setPreset(23,{sample,volumeLeft:.6,volumeRight:-.6});synth.noteOn(23,'A4');
+ const left=new Float32Array(4096),right=new Float32Array(4096);synth.renderInto(left,right);
+ assert(left.every(Number.isFinite)&&left.some(v=>Math.abs(v)>.01));
+ assert(left.every((v,i)=>Math.abs(v+right[i])<1/16384));
+ synth.stopVoices();synth.renderInto(left,right);assert(left.every(v=>v===0)&&right.every(v=>v===0));
+ const oneShot=encodePs1Adpcm(Float32Array.from({length:141},(_,i)=>.3*Math.sin(i*.17)*(1-i/141)));
+ assert.equal(oneShot.paddingFrames,27);assert.equal(oneShot.adpcm.at(-15),1);
+ const once=synth.loadADPCM(oneShot.adpcm,{rootNote:69});synth.setPreset(0,{sample:once});synth.keyOn(0);
+ synth.renderInto(left,right);assert(left.some(v=>Math.abs(v)>.001));assert(left.slice(-128).every(v=>v===0));
+ synth.keyOn(0);synth.renderInto(left,right);assert(left.some(v=>Math.abs(v)>.001));
+ assert.throws(()=>encodePs1Adpcm(new Float32Array(28),{loopStartSamples:1}),/align/i);
+}finally{synth.dispose();}
+console.log('Installed SPU ADPCM encoder verified: both exports, PCM conversion, looping CH24 signed stereo, one-shot END, Stop and retrigger.');
+`);
+  execFileSync(process.execPath,[join(consumer,'ps1-adpcm-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'adpcm-a-check.mjs'),`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';

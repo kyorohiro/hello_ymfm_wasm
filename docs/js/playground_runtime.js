@@ -6,6 +6,7 @@ import {createPs1Audio} from './playground_ps1_audio.js?v=ps1-mode-1';
 import {createPs1Client} from './playground_ps1.js?v=ps1-mode-1';
 import {encodeBrr} from './snes_brr_encoder.js?v=snes-brr-encoder-1';
 import {encodeAdpcmA} from './adpcm_a_sample.js?v=adpcm-a-encoder-1';
+import {encodePs1Adpcm} from './ps1_adpcm_encoder.js?v=ps1-adpcm-encoder-1';
 import {createChipInspector} from './playground_chip_inspector.js?v=ps1-mode-1';
 import {createPerformanceHost} from './playground_performance_host.js?v=ps1-mode-1';
 import {createNativeGenesisWorkerBridge} from './native_genesis_worker.js?v=pokey-import-1';
@@ -271,7 +272,7 @@ export function createPlaygroundRuntime(
     options.execution ?? "main";
   const defaultLogicWorkerUrl =
     new URL(
-      "./playground_logic_worker.js?v=ps1-mode-1",
+      "./playground_logic_worker.js?v=ps1-adpcm-encoder-1",
       import.meta.url
     );
   const logicWorkerUrl =
@@ -2456,6 +2457,7 @@ export function createPlaygroundRuntime(
     const pg = {
       encodeBrr,
       encodeAdpcmA,
+      encodePs1Adpcm,
       mixer: megaDrive.mixer,
       trackAsync: promise => loopTasks.track(promise),
       inputAudio: inputOptions => inputAudio(inputOptions, runToken),
@@ -2685,6 +2687,7 @@ export function createPlaygroundRuntime(
         pg,
         encodeBrr: pg.encodeBrr,
         encodeAdpcmA: pg.encodeAdpcmA,
+        encodePs1Adpcm: pg.encodePs1Adpcm,
         mixer: pg.mixer,
         createSoundChip: pg.createSoundChip,
         useSoundChip: pg.useSoundChip,

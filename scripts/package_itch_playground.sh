@@ -158,6 +158,7 @@ playground_spc_audio.js
 spc_file.js
 snes_brr.js
 snes_brr_encoder.js
+ps1_adpcm_encoder.js
 wav.js
 spc_resampler.js
 snessynth.js

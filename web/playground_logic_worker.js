@@ -2,6 +2,7 @@ import {createSpcClient} from './playground_spc.js';
 import {createSnesClient} from './playground_snes.js';
 import {encodeBrr} from './snes_brr_encoder.js';
 import {encodeAdpcmA} from './adpcm_a_sample.js';
+import {encodePs1Adpcm} from './ps1_adpcm_encoder.js';
 import {createPerformanceSender} from './playground_performance_sender.js';
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js';
@@ -744,6 +745,7 @@ function createRun(sourceCode, presets, scaleIntervals, capabilities = {}, timin
   const globals = {
     encodeBrr,
     encodeAdpcmA,
+    encodePs1Adpcm,
     trackAsync: promise => loopTasks.track(promise),
     createSampleInstrument: (audio,options={}) => createSampleInstrumentFactory({pg:globals,audio,chip:capabilities.chip,...options}),
     keyboard: {bind(name,handlers) {

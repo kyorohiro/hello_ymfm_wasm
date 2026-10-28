@@ -9,7 +9,8 @@ The Browser Playground now has experimental **PlayStation (PS1)** mode with
 `spu`, 24 physical Keyboard targets and an SPU voice tab. An original sample is
 assigned to every voice when audio is prepared; no game files are needed.
 Main and Worker playback share the same AudioWorklet core. The Native audio
-backend, general PCM encoder and fixed soundchip SDK adoption are future work.
+backend and fixed soundchip SDK adoption are future work. For normalized mono
+PCM, [encodePs1Adpcm](ps1_adpcm_encoder.md) produces the required ADPCM packets.
 The package-root low-level `createSoundChip()` factory is a separate API.
 
 ## Playground and instrument API
@@ -39,8 +40,9 @@ tuning and returns a sample descriptor. Use exactly one of `rootNote` and
 `baseFrequencyHz`. For a loop, supply `loopStartSamples` at a 28-frame packet
 boundary with matching packet flags. The helper validates predictor, shift,
 packet length, final END, loop markers and available RAM before writing.
-Uploads do not resample PCM or encode WAV. The two bundled examples demonstrate
-independent stereo voices and an original hand-authored triangle ADPCM sample.
+Uploads do not resample PCM or encode WAV. The three bundled examples demonstrate
+independent stereo voices, an original hand-authored triangle ADPCM sample and
+PCM conversion with `encodePs1Adpcm`.
 
 `setPreset` / `setChannel` accept sample ID or descriptor, signed normalized
 `volumeLeft` / `volumeRight` in `[-1,1]`, raw `adsr1` / `adsr2` words and pitch.

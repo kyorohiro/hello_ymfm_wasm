@@ -38,6 +38,7 @@ spc_pitch.js
 spc_file.js
 snes_brr.js
 snes_brr_encoder.js
+ps1_adpcm_encoder.js
 spc_audio.js
 spc-worklet.js
 spc_resampler.js
