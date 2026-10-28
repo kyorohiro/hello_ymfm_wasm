@@ -1,0 +1,549 @@
+{
+  "date": "2026-10-28",
+  "task": "itch-web-release-ci",
+  "baseCommit": "8608b0ef2051d5904b5d7db576a63980b24e3a9e",
+  "changesUncommittedDuringValidation": true,
+  "localEnvironment": {
+    "platform": "macOS",
+    "node": "v26.12.0"
+  },
+  "workflow": {
+    "path": ".github/workflows/itch-web.yml",
+    "events": [
+      "push",
+      "pull_request",
+      "workflow_dispatch"
+    ],
+    "runner": "ubuntu-24.04",
+    "node": "22",
+    "python": "3.12",
+    "remoteExecuted": false,
+    "releasePublication": "manual"
+  },
+  "inputs": {
+    ".github/workflows/itch-web.yml": {
+      "bytes": 4505,
+      "sha256": "2a67ff85a4f1575c0fa3d98b4b944a806da440171e13a1da5baa768e7359bd34"
+    },
+    "scripts/check_itch_release_archives.mjs": {
+      "bytes": 19166,
+      "sha256": "d4fb9551c5e9f2e5870f30f4522d3d69e01b7375ac2060bcf288bceb307961fa"
+    },
+    "scripts/check_itch_release_archives.test.mjs": {
+      "bytes": 12846,
+      "sha256": "fce8d4106b070a1f94a5adc5db433c29932456601286e911775f23519d6a0f9c"
+    },
+    "scripts/check_itch_synth_browser.cjs": {
+      "bytes": 12075,
+      "sha256": "7f124f347e8b1daeb20eaa214c1c79fcd9fc8ad1e46a58055e8f0d9b318cd116"
+    }
+  },
+  "packaging": {
+    "commands": [
+      "sh scripts/package_itch_synth.sh",
+      "sh scripts/package_itch_vgm_analyzer.sh",
+      "sh scripts/package_itch_playground.sh"
+    ],
+    "allExitCodes": 0,
+    "logs": {
+      "/private/tmp/itch-ci-synth-package.log": {
+        "bytes": 12421,
+        "sha256": "528b6502f44077be0fc9b3416d38ce53b2b31c273ad51c976d0f41de616fa5a7"
+      },
+      "/private/tmp/itch-ci-analyzer-package.log": {
+        "bytes": 23825,
+        "sha256": "e3a97543e3d4f8375e26bab7e337a95e0ebdf157b7f1dbf729078e0c271fc53c"
+      },
+      "/private/tmp/itch-ci-playground-package.log": {
+        "bytes": 135006,
+        "sha256": "e35b96688ad7dc6636c586e96981f13a2d5c41af6cd6fea610095534bc74b302"
+      }
+    }
+  },
+  "tests": {
+    "command": "node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs",
+    "passed": 29,
+    "failed": 0,
+    "archiveRegressions": 19,
+    "prepareAndBundleRegressions": 10
+  },
+  "archives": {
+    "command": "node scripts/check_itch_release_archives.mjs --release=release --out=release/itch-web-release.json --checksums=release/SHA256SUMS",
+    "passed": true,
+    "checksumVerification": "shasum -a 256 -c SHA256SUMS: all four OK",
+    "manifest": {
+      "bytes": 465328,
+      "sha256": "19348f2b1a13ff7080aa8865789304350a2d21ca14e5372cc85132aafeecbd92"
+    },
+    "checksums": {
+      "bytes": 429,
+      "sha256": "f6986e220366398cea2af17fc180fd2b1d0df19cfafe7261a626045b1569e6d2"
+    },
+    "artifacts": [
+      {
+        "id": "synth",
+        "archive": "hello_ymfm_wasm_dev_itch_synth.zip",
+        "browserPlayable": true,
+        "downloadOnly": false,
+        "bytes": 778603,
+        "sha256": "22c31e0fd3523d11a8dd1f74fae70d07787905ad4d11af5cabd8da778be99abf",
+        "zip": {
+          "crcVerified": true,
+          "stageBytesVerified": true,
+          "entries": 231,
+          "files": 203,
+          "directories": 28,
+          "expandedBytes": 2363581
+        }
+      },
+      {
+        "id": "vgm-analyzer",
+        "archive": "hello_ymfm_wasm_dev_itch_vgm_analyzer.zip",
+        "browserPlayable": true,
+        "downloadOnly": false,
+        "bytes": 1899882,
+        "sha256": "030ff9f466cbad677215eb1454fa384a2ce006288933286d1d5f73859458dba1",
+        "zip": {
+          "crcVerified": true,
+          "stageBytesVerified": true,
+          "entries": 463,
+          "files": 421,
+          "directories": 42,
+          "expandedBytes": 5749143
+        }
+      },
+      {
+        "id": "playground-full",
+        "archive": "hello_ymfm_wasm_dev_itch_playground.zip",
+        "browserPlayable": false,
+        "downloadOnly": true,
+        "bytes": 36785410,
+        "sha256": "ece4dcf0ef5a3ab4e3e95a1bc229c4fc783226867b5fd38df72d1f70aa1c7d56",
+        "zip": {
+          "crcVerified": true,
+          "stageBytesVerified": true,
+          "entries": 1115,
+          "files": 1005,
+          "directories": 110,
+          "expandedBytes": 42579148
+        }
+      },
+      {
+        "id": "playground-run",
+        "archive": "hello_ymfm_wasm_dev_itch_playground_for_run.zip",
+        "browserPlayable": true,
+        "downloadOnly": false,
+        "bytes": 37106028,
+        "sha256": "a00e95ebf5c3a1676b92161cd73f2b35efb04f4d82856e21d297b7befc29edf8",
+        "zip": {
+          "crcVerified": true,
+          "stageBytesVerified": true,
+          "entries": 888,
+          "files": 888,
+          "directories": 0,
+          "expandedBytes": 42380650
+        }
+      }
+    ],
+    "playgroundRun": {
+      "entry": {
+        "path": "playground.js",
+        "bytes": 810885,
+        "sha256": "fd06b08e56439e3968aba1b790bf0c7354c40ee815d0ac64e1194fe311d00aa7",
+        "importURL": "./playground.js?v=run-bundle-fd06b08e56439e39"
+      },
+      "originalUI": {
+        "path": "sources/browser-bundle-inputs.zip",
+        "files": 77,
+        "bytes": 355976,
+        "sha256": "69a88600b0824dba1c74a2f3f261eeb622ad57aa4ae94fd27a6f3ef6b076e0dd"
+      },
+      "correspondingSource": {
+        "path": "sources/corresponding-source.zip",
+        "files": 91,
+        "compilationFiles": 50,
+        "bytes": 212383,
+        "sha256": "f67aebf2ea7a25ea98af30dde1dbb33b5a4710d4f37eec12426b4813735eaae8"
+      },
+      "removedRootModules": 71,
+      "unalteredFiles": 872,
+      "preservedNotices": 47
+    }
+  },
+  "browserChecks": {
+    "synth": {
+      "report": "/private/tmp/itch-web-ci-local/synth-browser.json",
+      "bytes": 13527,
+      "sha256": "b9344d6cd83d744f86a09acc80ee59153c4a4b1ff068e59199d8beff043d7b3b",
+      "passed": true,
+      "servedFiles": 76,
+      "physicalOutputMuted": true,
+      "repositoryFallback": false,
+      "privateProductionHooks": false,
+      "cases": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "held": {
+            "frames": 11264,
+            "sampleRate": 53267,
+            "peak": 0.086517333984375,
+            "rms": 0.0600756586027055
+          },
+          "released": {
+            "frames": 11264,
+            "sampleRate": 53267,
+            "peak": 0,
+            "rms": 0
+          },
+          "replayed": {
+            "frames": 11264,
+            "sampleRate": 53267,
+            "peak": 0.086517333984375,
+            "rms": 0.06005451234310105
+          },
+          "passed": true,
+          "errors": [],
+          "failed": [],
+          "bad": [],
+          "consoleErrors": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "held": {
+            "frames": 11264,
+            "sampleRate": 53267,
+            "peak": 0.086517333984375,
+            "rms": 0.05970073898664126
+          },
+          "released": {
+            "frames": 11264,
+            "sampleRate": 53267,
+            "peak": 0,
+            "rms": 0
+          },
+          "replayed": {
+            "frames": 11264,
+            "sampleRate": 53267,
+            "peak": 0.086517333984375,
+            "rms": 0.06005451234310105
+          },
+          "passed": true,
+          "errors": [],
+          "failed": [],
+          "bad": [],
+          "consoleErrors": []
+        }
+      ]
+    },
+    "vgmAnalyzer": {
+      "command": "node scripts/check_analyzer_mixer_browser.cjs --root=release/itch_vgm_analyzer_dev",
+      "exitCode": 0,
+      "source": "Root tool stdout: both browser results passed",
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "checksPerBrowser": 12,
+      "physicalOutputMuted": true,
+      "opnaFmDefaultRatio": 1.0335688717281764,
+      "opnaSsgDefaultRatio": 1.0335699456218297,
+      "fmAndSsgMutePeak": 0
+    },
+    "playground": {
+      "report": "/private/tmp/itch-web-ci-local/playground-browser.json",
+      "bytes": 120624,
+      "sha256": "80970fd20a1abbdb7b4cde78d286989c8a4826b4b10ed14e10430f343dbf11e3",
+      "passed": true,
+      "servedFiles": 236,
+      "physicalOutputMuted": true,
+      "repositoryFallback": false,
+      "privateProductionHooks": false,
+      "cases": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "genesis",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 5.077,
+          "playingPeak": 0.12051837146282196,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.12051837146282196,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "genesis",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 5.914,
+          "playingPeak": 0.12151291966438293,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.12151291966438293,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "mega-cd",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 15.16,
+          "playingPeak": 0.10011497139930725,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.0983467623591423,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "mega-cd",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 15.712,
+          "playingPeak": 0.1091856062412262,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.09906082600355148,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "gameboy",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 3.768,
+          "playingPeak": 0.04500000178813934,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.04500000178813934,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "gameboy",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 4.933,
+          "playingPeak": 0.04500000178813934,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.04500000178813934,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "nes",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 3.748,
+          "playingPeak": 0.06017584353685379,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.0601823553442955,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "nes",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 4.92,
+          "playingPeak": 0.06018180027604103,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.060167741030454636,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "wonderswan",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 3.754,
+          "playingPeak": 0.07354736328125,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.07354736328125,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "mode": "wonderswan",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 4.935,
+          "playingPeak": 0.07354736328125,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.07354736328125,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "genesis",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 5.123,
+          "playingPeak": 0.12051837146282196,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.12051837146282196,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "genesis",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 6.358,
+          "playingPeak": 0.12151291966438293,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.12002109736204147,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "mega-cd",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 15.323,
+          "playingPeak": 0.10687895119190216,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.10113430768251419,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "mega-cd",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 16.135,
+          "playingPeak": 0.10424976795911789,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.09139004349708557,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "gameboy",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 4.098,
+          "playingPeak": 0.04500000178813934,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.04500000178813934,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "gameboy",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 5.385,
+          "playingPeak": 0.04500000178813934,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.04500000178813934,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "nes",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 4.147,
+          "playingPeak": 0.0601825937628746,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.06018156558275223,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "nes",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 5.393,
+          "playingPeak": 0.06018180027604103,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.06018237769603729,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "wonderswan",
+          "execution": "main",
+          "path": "/",
+          "passed": true,
+          "seconds": 4.152,
+          "playingPeak": 0.07354736328125,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.07354736328125,
+          "finalStopPeak": 0
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "mode": "wonderswan",
+          "execution": "worker",
+          "path": "/html/9876543/playground",
+          "passed": true,
+          "seconds": 5.34,
+          "playingPeak": 0.07354736328125,
+          "stoppedPeak": 0,
+          "rerunPeak": 0.07354736328125,
+          "finalStopPeak": 0
+        }
+      ]
+    }
+  },
+  "workflowLint": {
+    "passed": true,
+    "tool": "actionlint",
+    "version": "1.7.12",
+    "download": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_darwin_arm64.tar.gz",
+    "archiveSHA256": "aba9ced2dee8d27fecca3dc7feb1a7f9a52caefa1eb46f3271ea66b6e0e6953f",
+    "upstreamChecksumVerified": true,
+    "workflow": ".github/workflows/itch-web.yml",
+    "workflowSHA256": "2a67ff85a4f1575c0fa3d98b4b944a806da440171e13a1da5baa768e7359bd34",
+    "diagnostics": []
+  },
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "tagged": false,
+    "githubReleaseUploaded": false,
+    "itchUploaded": false,
+    "npmPublished": false,
+    "sdkUpdated": false,
+    "tauriImported": false
+  },
+  "next": "Commit and push, then inspect the first itch web release ZIPs run on GitHub; download and extract itch-web-release-zips for manual Release attachments."
+}

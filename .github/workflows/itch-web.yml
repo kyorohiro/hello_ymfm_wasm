@@ -1,0 +1,93 @@
+name: itch web release ZIPs
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# Build downloadable artifacts only. GitHub Releases and itch publication remain manual.
+permissions:
+  contents: read
+
+concurrency:
+  group: itch-web-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  itch-web:
+    name: Package and verify the three web applications
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - name: Prepare diagnostic output
+        run: mkdir -p "$RUNNER_TEMP/itch-web/logs"
+      - name: Install locked build and browser dependencies
+        run: |
+          npm ci 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/npm-ci.log"
+          npx playwright install --with-deps chromium webkit 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playwright-install.log"
+      - name: Test Run ZIP preparation, UI bundling and release archive checks
+        run: node --test scripts/prepare_itch_playground_run.test.mjs scripts/bundle_itch_playground_run.test.mjs scripts/check_itch_release_archives.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/run-package-tests.log"
+      # Keep the same default commands and ZIP names used for manual releases.
+      - name: Package Synth
+        run: sh scripts/package_itch_synth.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-synth.log"
+      - name: Package VGM Analyzer
+        run: sh scripts/package_itch_vgm_analyzer.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-vgm-analyzer.log"
+      - name: Package Playground download and browser Run ZIPs
+        run: sh scripts/package_itch_playground.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-playground.log"
+      - name: Validate actual release ZIPs and write checksums
+        run: node scripts/check_itch_release_archives.mjs --release=release --out=release/itch-web-release.json --checksums=release/SHA256SUMS 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/release-archives.log"
+      - name: Test the packaged VGM Analyzer in Chromium and WebKit
+        run: node scripts/check_analyzer_mixer_browser.cjs --root=release/itch_vgm_analyzer_dev 2>&1 | tee "$RUNNER_TEMP/itch-web/analyzer-browser.log"
+      - name: Test the packaged Synth in Chromium and WebKit
+        run: |
+          node scripts/check_itch_synth_browser.cjs \
+            --zip=release/hello_ymfm_wasm_dev_itch_synth.zip \
+            --out="$RUNNER_TEMP/itch-web/synth-browser.json" \
+            --images="$RUNNER_TEMP/itch-web/synth-images" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/synth-browser.log"
+      - name: Test the packaged Playground in Chromium and WebKit
+        run: |
+          node scripts/check_itch_playground_bundle_browser.cjs \
+            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
+            --out="$RUNNER_TEMP/itch-web/playground-browser.json" \
+            --images="$RUNNER_TEMP/itch-web/images" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playground-browser.log"
+      # Download and extract this artifact container to obtain the unchanged
+      # individual ZIPs for manual GitHub Release attachments / itch uploads.
+      - name: Retain verified release ZIPs for manual publication
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: itch-web-release-zips
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            release/hello_ymfm_wasm_dev_itch_synth.zip
+            release/hello_ymfm_wasm_dev_itch_vgm_analyzer.zip
+            release/hello_ymfm_wasm_dev_itch_playground.zip
+            release/hello_ymfm_wasm_dev_itch_playground_for_run.zip
+            release/SHA256SUMS
+            release/itch-web-release.json
+      - name: Retain validation logs and browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: itch-web-validation
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/itch-web/
+            release/itch-web-release.json

@@ -1,3 +1,12 @@
+## 2026-10-28 — itch.io Web配布ZIPのCI追加完了
+
+- ユーザーの既定3コマンド（Synth／VGM Analyzer／Playground）をそのまま実行する`itch web release ZIPs` workflowを追加。push／PR／手動で起動し、成功時に4ZIP＋`SHA256SUMS`＋manifestを`itch-web-release-zips`へ14日保存。GitHub Releaseへの添付とitch.ioへのuploadは手動のまま。
+- ZIPのCRC／path／stage全byte一致／実行用3ZIPのhosting上限を検証。Playground fullは1115項目のdownload用、Runは888項目の実行用。Runの元UI77files／対応source91files／872未変更files／47noticesも照合。音声コード・WASM・Mixer・SDKは変更なし。
+- 29 targeted tests／実4ZIP／checksum／actionlint 1.7.12が成功。Chromium153・WebKit26.6でSynth各1、Analyzer各12checks、Playground全20条件（5mode×Main/Worker×2browser）が成功。実PCM・停止・再実行等を確認、物理出力mute。
+- 手順は[itch_web_release.md](../itch_web_release.md)。Actionsから取得した外側のartifactを展開し、その中の各アプリZIPをReleaseへ添付する。itch.ioのPlayground実行対象は`_for_run.zip`。
+- 前回bundle版はユーザーがcommit・itch.io動作確認済み。今回CI追加は**未commit／未push**、GitHub／Ubuntuでの新workflow実行はまだ。次はcommit・push後に初回CIを確認する。npm／SDK／Tauri取込／tag／公開操作なし。
+- 詳細：[itch_web_ci_01.md](itch_web_ci_01.md)／[JSON](itch_web_ci_01.json)。下の未upload等は各時点の履歴。
+
 ## 2026-10-28 — itch.io Run用UI bundle＋minify完了
 
 - `sh scripts/package_itch_playground.sh`はRun版だけroot UIをbundle＋minifyする。全展開ソース付きfullZIPとTauri取込形式は維持。canonical docs/webの音声コード・WASM・Mixer・SDKは変更なし。

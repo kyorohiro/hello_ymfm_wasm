@@ -142,6 +142,8 @@ npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 
 - [https://kyorohiro.itch.io](https://kyorohiro.itch.io)
 
+開発者向け：[Web版リリースZIPの生成・検証・取得手順](docs/itch_web_release.md)（英語）。
+
 ## ライセンスとクレジット
 
 特記がない限り、このリポジトリーでは、上流のymfmに由来する部分と本プロジェクトで追加した独自ファイルの両方にBSD 3-Clause Licenseを適用しています。同梱する第三者のコンポーネントと、その変更部分には、それぞれに適用されるライセンスを維持しています。

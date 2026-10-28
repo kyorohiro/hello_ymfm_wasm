@@ -231,6 +231,8 @@ npx tetorica-vgm export song.vgz --format sbi-zip --output voices.zip
 
 - [https://kyorohiro.itch.io](https://kyorohiro.itch.io)
 
+For maintainers: [build, verify, and download the web release ZIPs](docs/itch_web_release.md).
+
 ## Building WASM from the fixed SDK
 
 YM2612, YM2203, YM2608, YM2610/B, YM2151/YM2164, OKIM6258, YM2413,
