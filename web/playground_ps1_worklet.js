@@ -5,7 +5,7 @@ import {Ps1Resampler} from './ps1_resampler.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {Ps1VoiceInspector} from './playground_ps1_inspector.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
-const METHODS=new Set(['loadADPCM','setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','getPreset','snapshot','dispose']);
+const METHODS=new Set(['loadADPCM','setPreset','setChannel','setEnvelope','setReverb','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff','allNotesOff','reset','getState','getPreset','snapshot','dispose']);
 const RESOURCES=new Set(['loadADPCM','getState','getPreset','snapshot']);
 export class Ps1InstrumentProcessor extends AudioWorkletProcessor {
   constructor({processorOptions={}}={}){
@@ -24,7 +24,7 @@ export class Ps1InstrumentProcessor extends AudioWorkletProcessor {
       if(this.dead){core.dispose();return;}this.synth=new Ps1Synth({core});
       const {adpcm,...options}=createPs1InitSample(),sample=this.synth.loadADPCM(adpcm,options);this.validation.loadADPCM(adpcm,options);
       for(let ch=0;ch<24;ch++){this.synth.setPreset(ch,{sample});this.validation.setPreset(ch,{sample});}
-      this.inspector=new Ps1VoiceInspector(this.synth,{sampleRate,dispatch:(command,owner)=>this.performance.applyImmediate(command,this.port,{owner}),beginAudition:(ch,owner)=>this.performance.beginAudition(ch,owner),endAudition:(ch,owner)=>this.performance.endAudition(ch,owner)});
+      this.inspector=new Ps1VoiceInspector(this.synth,{sampleRate,dispatch:(command,owner,metadata)=>this.performance.applyImmediate(command,this.port,{...metadata,owner}),beginAudition:(ch,owner)=>this.performance.beginAudition(ch,owner),endAudition:(ch,owner)=>this.performance.endAudition(ch,owner)});
       this.resampler=new Ps1Resampler(this.synth,sampleRate);this.port.postMessage({ready:true,sampleRate,nativeSampleRate:44100,state:this.synth.getState()});
     }).catch(error=>this.fail(error));
   }

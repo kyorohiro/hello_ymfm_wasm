@@ -5,6 +5,7 @@
  */
 import {noteToHz} from './soundchip_pitch.js';
 import {PS1_SPU_SAMPLE_RATE, PS1_SPU_RAM_BYTES} from './ps1_spu.js';
+import {decodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from './ps1_parameters.js';
 export const PS1_CHANNEL_COUNT = 24;
 const RAM_START = 0x1000; // Hardware capture buffers occupy the first 4 KiB.
 const integer = (value,min,max,name) => {
@@ -19,7 +20,8 @@ const positive = (value,name) => {
 const object = (value,name) => {
   if (!value || typeof value!=='object' || Array.isArray(value)) throw new TypeError(`${name} must be an object`);
 };
-const defaultVoice = () => ({sample:null,volumeLeft:0.75,volumeRight:0.75,adsr1:0x000f,adsr2:0,pitch:0x1000});
+const defaultVoice = () => ({sample:null,volumeLeft:0.75,volumeRight:0.75,adsr1:0x000f,adsr2:0,pitch:0x1000,reverb:false});
+const defaultReverb = () => ({preset:'off',volumeLeft:0.25,volumeRight:0.25});
 const volumeRegister = value => Math.round(value*0x3fff)&0x7fff;
 /** @typedef {({rootNote:string|number,baseFrequencyHz?:never}|{baseFrequencyHz:number,rootNote?:never}) & {loopStartSamples?:number}} Ps1ADPCMOptions */
 /** Validate complete 16-byte / 28-frame SPU ADPCM packets and explicit tuning.
@@ -77,8 +79,9 @@ export function createPs1InitSample() {
 }
 /** @typedef {{id:number,startAddress:number,repeatAddress:number,byteLength:number,decodedFrames:number,
  * rootNote:string|number|null,rootFrequencyHz:number,basePitch:number,loop:boolean,loopStartSamples:number|null}} Ps1Sample */
-/** @typedef {{sample?:number|Ps1Sample,volumeLeft?:number,volumeRight?:number,adsr1?:number,adsr2?:number,pitch?:number}} Ps1Preset */
-/** @typedef {{sample:number|null,volumeLeft:number,volumeRight:number,adsr1:number,adsr2:number,pitch:number}} Ps1VoiceState */
+/** @typedef {{sample?:number|Ps1Sample,volumeLeft?:number,volumeRight?:number,adsr1?:number,adsr2?:number,pitch?:number,reverb?:boolean}} Ps1Preset */
+/** @typedef {{sample:number|null,volumeLeft:number,volumeRight:number,adsr1:number,adsr2:number,pitch:number,reverb:boolean}} Ps1VoiceState */
+/** @typedef {import('./ps1_parameters.js').Ps1Reverb} Ps1ReverbState */
 /** Fixed physical voices 0..23 over Ps1Spu. Uploads grow from byte address 0x1000
  * with 16-byte alignment; reset({clearRam:true}) starts a new bank. There is no
  * compaction, voice allocator, automatic gain normalization or PCM encoder.
@@ -93,6 +96,7 @@ export class Ps1Synth {
     /** @type {Uint8Array[]} */ this.sampleBytes=[];
     /** @type {Ps1VoiceState[]} */ this.channels=[];
     /** @type {boolean[]} */ this.gates=[];
+    /** @type {Ps1ReverbState} */ this.reverb=defaultReverb();
     this.nextAddress=RAM_START; this.disposed=false;
     this.reset();
   }
@@ -108,7 +112,8 @@ export class Ps1Synth {
     this.core.reset({clearRam});
     if(clearRam){this.samples=[];this.sampleBytes=[];this.nextAddress=RAM_START;}
     this.channels=Array.from({length:24},defaultVoice);this.gates=Array(24).fill(false);
-    this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);
+    this.reverb=defaultReverb();
+    this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);this._writeReverb(this.reverb);
   }
   /** Upload a complete, validated SPU ADPCM instrument; declared tuning is the
    * fundamental at hardware PITCH 4096 (one source frame per output frame).
@@ -125,17 +130,38 @@ export class Ps1Synth {
   }
   _preset(ch,preset) {
     this._open();channel(ch);object(preset,'PS1 preset');
-    if(Reflect.ownKeys(preset).some(key=>!['sample','volumeLeft','volumeRight','adsr1','adsr2','pitch'].includes(key)))throw new TypeError('Unknown PS1 preset parameter');
+    if(Reflect.ownKeys(preset).some(key=>!['sample','volumeLeft','volumeRight','adsr1','adsr2','pitch','reverb'].includes(key)))throw new TypeError('Unknown PS1 preset parameter');
     const p={...this.channels[ch]};
     if(preset.sample!==undefined){const id=typeof preset.sample==='object'?preset.sample?.id:preset.sample;p.sample=integer(id,0,this.samples.length-1,'sample');}
     for(const key of ['volumeLeft','volumeRight'])if(preset[key]!==undefined){const v=preset[key];if(!Number.isFinite(v)||v< -1||v>1)throw new RangeError(`${key} must be finite from -1 to 1`);p[key]=v;}
     for(const key of ['adsr1','adsr2'])if(preset[key]!==undefined)p[key]=integer(preset[key],0,65535,key);
     if(preset.pitch!==undefined)p.pitch=integer(preset.pitch,0,0x3fff,'pitch');
+    if(preset.reverb!==undefined){if(typeof preset.reverb!=='boolean')throw new TypeError('reverb must be boolean');p.reverb=preset.reverb;}
     return p;
   }
   _writeChannel(ch,p) {
     const b=ch*16,sample=this.samples[p.sample];
     for(const [offset,value] of [[0,volumeRegister(p.volumeLeft)],[2,volumeRegister(p.volumeRight)],[4,p.pitch],[6,sample?sample.startAddress>>3:RAM_START>>3],[8,p.adsr1],[10,p.adsr2],[14,sample?sample.repeatAddress>>3:RAM_START>>3]])this.core.write(b+offset,value);
+    this._writeReverbSend(ch,p.reverb);
+  }
+  _writeReverbSend(ch,enabled){const address=0x198+(ch>=16?2:0),bit=1<<(ch%16),current=this.core.read(address);this.core.write(address,enabled?current|bit:current&~bit);}
+  _reverb(settings){
+    this._open();object(settings,'PS1 reverb settings');
+    if(Reflect.ownKeys(settings).some(key=>!['preset','volumeLeft','volumeRight'].includes(key)))throw new TypeError('Unknown PS1 reverb parameter');
+    const next={...this.reverb};
+    if(settings.preset!==undefined){if(!PS1_REVERB_PRESETS.some(p=>p.id===settings.preset))throw new RangeError('Unsupported PS1 reverb preset');next.preset=settings.preset;}
+    for(const key of ['volumeLeft','volumeRight'])if(settings[key]!==undefined){const value=settings[key];if(!Number.isFinite(value)||value<0||value>1)throw new RangeError(`${key} must be finite from 0 to 1`);next[key]=value;}
+    return next;
+  }
+  _writeReverb(settings){
+    const preset=PS1_REVERB_PRESETS.find(p=>p.id===settings.preset);
+    for(let at=0;at<32;at++)this.core.write(0x1c0+at*2,preset.registers[at]);
+    const enabled=settings.preset!=='off';
+    this.core.write(0x184,enabled?Math.round(settings.volumeLeft*0x7fff):0);
+    this.core.write(0x186,enabled?Math.round(settings.volumeRight*0x7fff):0);
+    // Upstream does not gate its approximate reverb on SPUCNT bit 7. The exact
+    // all-zero Off configuration above is what disables its processing.
+    const control=this.core.read(0x1aa);this.core.write(0x1aa,enabled?control|0x80:control&~0x80);
   }
   /** Partial voice preset. Fixed signed volumes use -1..1; ADSR1/2 are raw 16-bit
    * registers. ADSR edits affect the next key-on in this experimental core.
@@ -143,6 +169,16 @@ export class Ps1Synth {
   setPreset(ch,preset){const p=this._preset(ch,preset);this._writeChannel(ch,p);this.channels[ch]=p;}
   /** @param {number} ch @param {Ps1Preset} params */
   setChannel(ch,params){this.setPreset(ch,params);}
+  /** Partial named ADSR controls. Rates are raw indexes (zero is fastest), and
+   * edits take effect at the next key-on without retriggering a held voice.
+   * @param {number} ch @param {Partial<import('./ps1_parameters.js').Ps1Envelope>} settings */
+  setEnvelope(ch,settings){this._open();channel(ch);const p=this.channels[ch];this.setPreset(ch,patchPs1Envelope(p.adsr1,p.adsr2,settings));}
+  /** One shared approximate reverb. Per-voice `reverb` selects the send; these
+   * independent return levels add wet sound to the unchanged dry sound.
+   * Off retains requested levels but bypasses processing. Existing tails clear
+   * only on Stop/reset, not on preset selection. Changes affect active voices.
+   * @param {Partial<Ps1ReverbState>} settings */
+  setReverb(settings){const next=this._reverb(settings);this._writeReverb(next);this.reverb=next;}
   /** @param {number} ch @returns {Ps1VoiceState} */
   getPreset(ch){this._open();channel(ch);return {...this.channels[ch]};}
   /** Raw hardware pitch 0..16383. Zero holds the current sample position.
@@ -153,7 +189,7 @@ export class Ps1Synth {
   /** @param {number} ch @param {string|number} note */
   setNote(ch,note){this.setFrequency(ch,noteToHz(note));}
   /** @param {number} ch */
-  keyOn(ch){this._open();channel(ch);if(!this.samples[this.channels[ch].sample])throw new Error('Assign an SPU ADPCM sample before keyOn');this.core.write(0x188+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=true;}
+  keyOn(ch){this._open();channel(ch);if(!this.samples[this.channels[ch].sample])throw new Error('Assign an SPU ADPCM sample before keyOn');/* The upstream one-shot END clears the applied send bit. Restore the requested preset before a new note. */this._writeReverbSend(ch,this.channels[ch].reverb);this.core.write(0x188+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=true;}
   /** Release via the programmed ADSR release register, without changing others.
    * @param {number} ch */
   keyOff(ch){this._open();channel(ch);this.core.write(0x18c+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=false;}
@@ -166,11 +202,11 @@ export class Ps1Synth {
    * preserving RAM, sample IDs, tuning and all programmed voice presets.
    * This also resets the core's native frame counter.
    */
-  stopVoices(){this._open();this.core.reset({clearRam:false});this.gates.fill(false);this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);}
+  stopVoices(){this._open();this.core.reset({clearRam:false});this.gates.fill(false);this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);this._writeReverb(this.reverb);}
   /** Serializable metadata and requested key gates; ENVX/END reflect the core.
    * Sample byte payloads are available through snapshot(). */
   getState(){this._open();return {sampleRate:this.sampleRate,channelCount:this.channelCount,nextAddress:this.nextAddress,nativeFrames:this.core.nativeFrames??0,
-    samples:this.samples.map(s=>({...s})),channels:this.channels.map((p,ch)=>({...p,gate:this.gates[ch],envelope:this.core.read(ch*16+12),ended:!!(this.core.read(0x19c+(ch>=16?2:0))&(1<<(ch%16)))}))};}
+    samples:this.samples.map(s=>({...s})),reverb:{...this.reverb},channels:this.channels.map((p,ch)=>({...p,envelopeParameters:decodePs1Envelope(p.adsr1,p.adsr2),gate:this.gates[ch],envelope:this.core.read(ch*16+12),ended:!!(this.core.read(0x19c+(ch>=16?2:0))&(1<<(ch%16)))}))};}
   /** Explicit, potentially large copy of RAM/registers for inspection. */
   snapshot(){this._open();const registers=new Uint16Array(512);for(let at=0;at<512;at++)registers[at]=this.core.read(at*2);return {...this.getState(),ram:this.core.readRam(),registers};}
   /** @param {Float32Array} left @param {Float32Array} right @param {number} [frames] @param {number} [offset] */

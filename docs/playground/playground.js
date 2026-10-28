@@ -6,7 +6,7 @@ import {installPlaygroundWorkbench} from './playground_workbench.js?v=ps1-mode-1
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=ps1-mode-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=ps1-mode-1';
+import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=ps1-voice-editor-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
@@ -38,7 +38,7 @@ import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addV
 import {exportWonderSwanVgm} from './wonderswan_vgm_import.js?v=wonderswan-import-3';
 import {exportPokeyVgm} from './pokey_vgm_import.js?v=pokey-import-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=ps1-sample-editor-1';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=ps1-voice-editor-1';
 import {createNativeSampleEditorAudio} from '../js/playground_native_sample_editor.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=audio-numeric-bindings-1';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';
@@ -97,7 +97,7 @@ import { exportYm2608VgmToPlaygroundJavaScript } from "../js/ym2608vgm.js?v=vgm-
 import { exportYm2610BVgmToPlaygroundJavaScript } from "../js/ym2610bvgm.js?v=vgm-frequency-order-2";
 import {
   createPlaygroundRuntime,
-} from "../js/playground_runtime.js?v=ps1-sample-editor-1";
+} from "../js/playground_runtime.js?v=ps1-voice-editor-1";
 import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sender.js?v=ps1-mode-1';
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";

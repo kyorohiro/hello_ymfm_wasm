@@ -1,0 +1,359 @@
+// PS1 Operators sound design through public UI, actual SPU AudioWorklet and Run ZIP.
+// Capture before a permanently zeroed destination; no physical audio is played.
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
+const path=require('node:path');
+const os=require('node:os');
+const http=require('node:http');
+const {execFileSync}=require('node:child_process');
+const {createHash}=require('node:crypto');
+const {chromium,webkit}=require('playwright');
+const config={host:null,zip:null,out:null,screenshots:null,engines:[]};
+const usage='Usage: node scripts/check_ps1_voice_editor_browser.cjs [--chromium-only | --webkit-only] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
+for(let i=2;i<process.argv.length;i++){
+  const arg=process.argv[i];
+  if(arg==='--help'){console.log(usage);process.exit(0);}
+  if(['--chromium-only','--webkit-only'].includes(arg)){config.engines.push(arg.slice(2,-5));continue;}
+  const match=arg.match(/^--(host|zip|out|screenshots)(?:=(.*))?$/);assert(match,usage);
+  const value=match[2]??process.argv[++i];assert(value&&!value.startsWith('--'),usage);config[match[1]]=path.resolve(value);
+}
+assert(!(config.host&&config.zip),'Choose --host or --zip');
+assert(config.engines.length<=1,'Choose one browser flag or neither for both');
+if(!config.engines.length)config.engines=['chromium','webkit'];
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex'),served=new Map();
+const root='#ps1Panel',control=name=>`${root} [data-chip-control="ps1-${name}"]`,action=name=>`${root} [data-chip-action="ps1-${name}"]`;
+const captureSource=`class Ps1Capture extends AudioWorkletProcessor {
+ constructor(){super();this.pending=null;this.port.onmessage=({data})=>{if(this.pending)throw Error('Concurrent SPU capture');this.pending={id:data.id,left:new Float32Array(data.frames),right:new Float32Array(data.frames),offset:0,firstFrame:null,lastFrame:null,frameGaps:0,gaps:[],quantumFrames:[]};};}
+ process(inputs,outputs){for(const channel of outputs[0])channel.fill(0);const p=this.pending;if(!p)return true;
+  if(p.firstFrame===null)p.firstFrame=currentFrame;if(currentFrame!==p.firstFrame+p.offset){p.frameGaps++;if(p.gaps.length<16)p.gaps.push({currentFrame,expected:p.firstFrame+p.offset,offset:p.offset});}p.lastFrame=currentFrame;
+  const quantum=outputs[0][0].length;if(!p.quantumFrames.includes(quantum))p.quantumFrames.push(quantum);
+  const count=Math.min(quantum,p.left.length-p.offset),input=inputs[0];for(let i=0;i<count;i++){p.left[p.offset+i]=input[0]?.[i]??0;p.right[p.offset+i]=input[1]?.[i]??input[0]?.[i]??0;}p.offset+=count;
+  if(p.offset===p.left.length){this.pending=null;this.port.postMessage(p,[p.left.buffer,p.right.buffer]);}return true;
+ }
+}registerProcessor('ps1-voice-editor-capture',Ps1Capture);`;
+
+async function selectHost(){
+  let temporary=null,archive=null,directory=config.host??path.resolve(__dirname,'../docs');
+  if(config.zip){
+    const bytes=await fs.readFile(config.zip);temporary=await fs.mkdtemp(path.join(os.tmpdir(),'ps1-playground-browser-'));directory=temporary;
+    const unpack=String.raw`import sys,zipfile
+from pathlib import Path
+root=Path(sys.argv[2]).resolve()
+with zipfile.ZipFile(sys.argv[1]) as z:
+ for entry in z.infolist():
+  if not (root/entry.filename).resolve().is_relative_to(root):raise ValueError('Unsafe ZIP member')
+ z.extractall(root)`;
+    execFileSync('python3',['-c',unpack,config.zip,directory],{stdio:'pipe'});archive={path:config.zip,bytes:bytes.length,sha256:hash(bytes)};
+  }
+  const candidates=[directory,path.join(directory,'docs')];
+  for(const entry of await fs.readdir(directory,{withFileTypes:true}))if(entry.isDirectory())candidates.push(path.join(directory,entry.name));
+  for(const candidate of new Set(candidates))for(const prefix of ['playground/','']){
+    try{
+      const entry='/'+prefix+'index.html',starter='/'+prefix+'defaults/ps1/index.js';
+      await fs.access(path.join(candidate,entry));const source=await fs.readFile(path.join(candidate,starter),'utf8');
+      const examples=await Promise.all(['ps1-stereo-voices.js','ps1-adpcm-wave.js'].map(async name=>{const entry='/'+prefix+'examples/ps1/'+name,source=await fs.readFile(path.join(candidate,entry),'utf8');return {path:entry,source};}));
+      return {directory:candidate,entry,starter,source,examples,temporary,archive};
+    }catch(error){if(error.code!=='ENOENT')throw error;}
+  }
+  if(temporary)await fs.rm(temporary,{recursive:true,force:true});
+  throw Error('Selected host must contain Playground index.html and defaults/ps1/index.js');
+}
+
+function instrumentation(){
+  const audit=window.__ps1Audit={contexts:[],workers:[],worklets:[],sinks:new Map(),processorErrors:[],commands:[],states:[],gains:[]};
+  const Context=window.AudioContext,OriginalWorker=window.Worker,Worklet=window.AudioWorkletNode;
+  const connect=AudioNode.prototype.connect,disconnect=AudioNode.prototype.disconnect,post=MessagePort.prototype.postMessage;
+  const labels=new WeakMap();audit.connect=connect;
+  const createGain=BaseAudioContext.prototype.createGain;BaseAudioContext.prototype.createGain=function(...args){const node=createGain.apply(this,args);audit.gains.push(node);return node;};
+  window.AudioContext=class extends Context{constructor(...args){super(...args);audit.contexts.push(this);}};
+  if(window.webkitAudioContext===Context)window.webkitAudioContext=window.AudioContext;
+  window.Worker=class extends OriginalWorker{constructor(url,...args){super(url,...args);audit.workers.push(String(url));}};
+  window.AudioWorkletNode=class extends Worklet{constructor(context,name,...args){
+    super(context,name,...args);const entry={name,state:null};audit.worklets.push(entry);labels.set(this.port,name);
+    this.addEventListener('processorerror',()=>audit.processorErrors.push(name));
+    if(name.includes('ps1'))this.port.addEventListener('message',({data})=>{
+      const state=data?.state??data?.value;if(Array.isArray(state?.channels)&&state.channels.length===24&&Array.isArray(state.samples)){entry.state=state;audit.states.push({name,state,time:performance.now()});}
+    });
+  }};
+  // Observe existing requests, never inject a read or instrument production JS.
+  MessagePort.prototype.postMessage=function(data,...args){
+    if(data&&typeof data==='object'&&!ArrayBuffer.isView(data)&&!Array.isArray(data)&&
+       (typeof data.method==='string'||data.type==='chip-inspector')){
+      audit.commands.push({name:labels.get(this)??null,type:data.type,action:data.action,method:data.method,
+        channel:typeof data.args?.[0]==='number'?data.args[0]:null,args:data.args?structuredClone(data.args):undefined,time:performance.now()});
+    }
+    return post.call(this,data,...args);
+  };
+  AudioNode.prototype.connect=function(destination,...args){
+    if(destination===this.context.destination){let sink=audit.sinks.get(this.context);
+      if(!sink){const sum=this.context.createGain(),gate=this.context.createGain();gate.gain.value=0;connect.call(sum,gate);connect.call(gate,destination);sink={sum,gate};audit.sinks.set(this.context,sink);}
+      connect.call(this,sink.sum,...args);return destination;
+    }return connect.call(this,destination,...args);
+  };
+  AudioNode.prototype.disconnect=function(...args){if(args[0]===this.context.destination&&audit.sinks.has(this.context))args[0]=audit.sinks.get(this.context).sum;return disconnect.apply(this,args);};
+}
+
+async function capture(page,frames=16384){return page.evaluate(async frames=>{
+  const audit=window.__ps1Audit,context=[...audit.contexts].reverse().find(value=>value.state!=='closed'&&audit.sinks.has(value));
+  if(!context)throw Error('No live Playground output graph');const sink=audit.sinks.get(context);
+  if(!sink.capture){
+    await context.audioWorklet.addModule('/__ps1_voice_capture.js');const node=new AudioWorkletNode(context,'ps1-voice-editor-capture',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});
+    audit.connect.call(sink.sum,node);audit.connect.call(node,sink.gate);sink.capture=node;sink.sequence=0;sink.pending=null;
+    node.port.onmessage=({data})=>{if(sink.pending?.id===data.id){const p=sink.pending;sink.pending=null;clearTimeout(p.timer);p.resolve(data);}};
+  }
+  const data=await new Promise((resolve,reject)=>{if(sink.pending)throw Error('Concurrent SPU capture');const id=++sink.sequence;
+    const timer=setTimeout(()=>{sink.pending=null;reject(Error('SPU output capture timed out'));},10000);sink.pending={id,resolve,timer};sink.capture.port.postMessage({id,frames});});
+  const channels=[data.left,data.right].map(values=>{let peak=0,energy=0,nonFinite=0,nonZero=0;const crossings=[];
+    const mean=values.reduce((sum,value)=>sum+value,0)/values.length;
+    for(let i=0;i<values.length;i++){const value=values[i];if(!Number.isFinite(value))nonFinite++;peak=Math.max(peak,Math.abs(value));energy+=(value-mean)**2;if(value!==0)nonZero++;if(i&&values[i-1]<mean&&value>=mean)crossings.push(i-1+(mean-values[i-1])/(value-values[i-1]));}
+    const blockRms=[];for(let at=0;at<values.length;at+=1024){let e=0;const end=Math.min(values.length,at+1024);for(let i=at;i<end;i++)e+=values[i]*values[i];blockRms.push(Math.sqrt(e/(end-at)));}return {peak,rms:Math.sqrt(energy/values.length),nonFinite,nonZero,blockRms,hz:crossings.length>2?(crossings.length-1)*context.sampleRate/(crossings.at(-1)-crossings[0]):0};});
+  if(sink.gate.gain.value!==0)throw Error('Physical output gate must remain zero');
+  return {sampleRate:context.sampleRate,frames:data.left.length,frameGaps:data.frameGaps,gaps:data.gaps,firstFrame:data.firstFrame,lastFrame:data.lastFrame,quantumFrames:data.quantumFrames,channels,physicalOutputMuted:true};
+},frames);}
+async function audible(page,label,hz){let pcm;for(let attempt=0;attempt<6;attempt++){
+  pcm=await capture(page);if(pcm.channels.every(ch=>!ch.nonFinite&&ch.rms>.0001&&ch.peak<1&&(hz===undefined||Math.abs(ch.hz-hz)<Math.max(2,hz*.015))))break;
+}assert(pcm.channels.every(ch=>!ch.nonFinite&&ch.rms>.0001&&ch.peak<1&&(hz===undefined||Math.abs(ch.hz-hz)<Math.max(2,hz*.015))),`${label}: ${JSON.stringify(pcm)}`);assert.equal(pcm.frameGaps,0,label+': continuous rendering quanta '+JSON.stringify(pcm));return pcm;}
+async function silent(page,label){let pcm;for(let attempt=0;attempt<8;attempt++){
+  pcm=await capture(page,4096);if(pcm.channels.every(ch=>!ch.nonFinite&&!ch.nonZero)){assert.equal(pcm.frameGaps,0);return pcm;}
+}throw Error(label+': expected exact zero SPU output: '+JSON.stringify(pcm));}
+async function ready(page){
+  await page.waitForFunction(()=>document.getElementById('startupNotice')?.hidden||document.getElementById('status')?.textContent==='Startup failed.');
+  assert.equal(await page.locator('#startupNotice').isVisible(),false,await page.locator('#startupMessage').textContent());await page.waitForFunction(()=>window.monaco?.editor?.getEditors().length===1);
+}
+async function setSource(page,source,execution){
+  await page.locator('#codeTab').click();await page.evaluate(({source,execution})=>{monaco.editor.getEditors()[0].setValue(source);document.getElementById('workerExecution').checked=execution==='worker';},{source,execution});
+}
+async function run(page,source,execution){await setSource(page,source,execution);await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);}
+async function stop(page,label){await page.locator('#stopButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);await capture(page,4096);return silent(page,label);}
+async function waitLog(page,marker){
+  await page.waitForFunction(marker=>document.getElementById('consoleOutput').textContent.includes(marker)||/^Error:|^Playback failed:/i.test(document.getElementById('status').textContent),marker);
+  const text=await page.locator('#consoleOutput').textContent();assert(text.includes(marker),'Runtime failed before '+marker+': '+text);return text;
+}
+async function readLog(page,marker){const text=await waitLog(page,marker);return JSON.parse(text.slice(text.lastIndexOf(marker)+marker.length).split('\n')[0]);}
+async function healthy(page,label){const state=await page.evaluate(()=>({status:document.getElementById('status').textContent,processors:__ps1Audit.processorErrors}));assert(!/^Error:|failed|error:/i.test(state.status),label+': '+state.status);assert.deepEqual(state.processors,[],label+': no AudioWorklet processor errors');}
+async function field(page,name,value){await page.locator(control(name)).evaluate((node,value)=>{if(node.type==='checkbox')node.checked=Boolean(value);else node.value=String(value);node.dispatchEvent(new Event('change',{bubbles:true}));node.blur();},value);}
+const instance=`${root} [data-chip-control="instance"]`;
+const settings=state=>state.channels.map(({sample,volumeLeft,volumeRight,adsr1,adsr2,reverb})=>({sample,volumeLeft,volumeRight,adsr1,adsr2,reverb}));
+const current=page=>page.evaluate(()=>__ps1Audit.states.at(-1)?.state);
+async function refresh(page){
+  const before=await page.evaluate(()=>__ps1Audit.states.length);
+  await page.locator(root).getByRole('button',{name:'Refresh',exact:true}).click();
+  await page.waitForFunction(before=>__ps1Audit.states.length>before,before);
+  return current(page);
+}
+async function applied(page,source,label){
+  await page.waitForFunction(source=>{
+    const state=__ps1Audit.states.at(-1)?.state;
+    return Boolean(state&&new Function('state',`return (${source})`)(state));
+  },source,{timeout:10000}).catch(error=>{throw Error(label+': '+error.message);});
+  return current(page);
+}
+const commandsSince=(page,from)=>page.evaluate(from=>__ps1Audit.commands.slice(from),from);
+async function startHold(page){
+  const button=page.locator(action('hold'));await button.scrollIntoViewIfNeeded();const box=await button.boundingBox();assert(box);
+  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
+}
+async function releaseOutside(page){await page.mouse.move(2,2);await page.mouse.up();}
+async function latch(page,label='Latched PS1 note',expectedHz=440){
+  await page.locator(action('sustain')).click();assert.equal(await page.locator(action('sustain')).getAttribute('aria-pressed'),'true');
+  return audible(page,label,expectedHz===false?undefined:expectedHz);
+}
+async function fastEnvelope(page){
+  for(const [key,value]of Object.entries({'attack-rate':0,'attack-exponential':false,'decay-rate':0,'sustain-level':15,'sustain-rate':0,'sustain-decrease':false,'sustain-exponential':false,'release-rate':0,'release-exponential':false}))await field(page,key,value);
+  await applied(page,'state.channels[23].adsr1===15&&(state.channels[23].adsr2&~0x2000)===0','Fast hold envelope');
+}
+async function checkEnvelope(page){
+  console.log('  Decoded ADSR, reserved bit and channel isolation');
+  const before=await refresh(page),untouched=settings(before).slice(0,23);
+  assert.equal(before.channels[23].adsr2&0x2000,0x2000,'Authored reserved ADSR2 bit 13 is present');
+  const changes=[['attack-rate','attackRate',33],['decay-rate','decayRate',7],['sustain-level','sustainLevel',10],['sustain-rate','sustainRate',88],['release-rate','releaseRate',12],['attack-exponential','attackExponential',true],['sustain-decrease','sustainDecrease',true],['sustain-exponential','sustainExponential',true],['release-exponential','releaseExponential',true]];
+  const expected={...before.channels[23].envelopeParameters},results=[];
+  for(const [controlName,key,value]of changes){
+    expected[key]=value;await field(page,controlName,value);
+    const state=await applied(page,`state.channels[23].envelopeParameters.${key}===${JSON.stringify(value)}`,'Applied '+key),voice=state.channels[23];
+    assert.deepEqual(voice.envelopeParameters,expected,'Only the selected envelope field changes');
+    const adsr1=(expected.attackExponential?0x8000:0)|(expected.attackRate<<8)|(expected.decayRate<<4)|expected.sustainLevel;
+    const adsr2=0x2000|(expected.sustainExponential?0x8000:0)|(expected.sustainDecrease?0x4000:0)|(expected.sustainRate<<6)|(expected.releaseExponential?0x20:0)|expected.releaseRate;
+    assert.equal(voice.adsr1,adsr1);assert.equal(voice.adsr2,adsr2,'Partial edits retain reserved ADSR2 bit 13');
+    assert.deepEqual(settings(state).slice(0,23),untouched,'ADSR edits preserve the other 23 voices');results.push({key,value,adsr1,adsr2});
+  }
+  const from=await page.evaluate(()=>__ps1Audit.commands.length),old=await current(page);
+  await field(page,'attack-rate',128);await page.waitForTimeout(80);
+  assert(await page.locator(control('attack-rate')).evaluate(node=>!node.validity.valid),'Out-of-range UI value is rejected');
+  assert(!(await commandsSince(page,from)).some(command=>command.type==='chip-inspector'&&command.action==='invoke'),'Invalid input sends no audio update');
+  assert.equal((await current(page)).channels[23].adsr1,old.channels[23].adsr1);
+  await field(page,'attack-rate',33);
+  await page.locator(root).getByText('Raw ADSR words and voice JavaScript',{exact:true}).click();
+  await field(page,'adsr1',0x822a);await applied(page,'state.channels[23].adsr1===0x822a','Advanced raw ADSR1');
+  assert.equal(await page.locator(control('attack-rate')).inputValue(),'2','Raw ADSR updates its decoded rate');assert(await page.locator(control('attack-exponential')).isChecked());
+  await field(page,'adsr2',0xe161);const raw=await applied(page,'state.channels[23].adsr2===0xe161','Advanced raw ADSR2');
+  assert.equal(raw.channels[23].envelopeParameters.sustainRate,5);assert.equal(raw.channels[23].envelopeParameters.releaseRate,1);
+  assert((await page.locator(`${root} [data-chip-output="ps1-code"]`).textContent()).includes('spu.setReverb('),'Generated voice JavaScript includes global reverb');
+  await page.locator(root).getByText('Raw ADSR words and voice JavaScript',{exact:true}).click();
+  await field(page,'retrigger',true);await fastEnvelope(page);
+  return {fields:results,reservedBit13Preserved:true,otherVoicesPreserved:true,invalidInputRejected:true,rawWordsUpdateDecodedControls:true};
+}
+async function checkRetrigger(page){
+  console.log('  Latched audition / live levels and owned ADSR retrigger');
+  await field(page,'reverb-send',false);await field(page,'reverb-preset','off');
+  await field(page,'volume-left',.2);await field(page,'volume-right',.2);await field(page,'audition-midi',69);await fastEnvelope(page);
+  const initial=await latch(page),from=await page.evaluate(()=>__ps1Audit.commands.length);
+  await field(page,'volume-left',.1);await applied(page,'state.channels[23].volumeLeft===.1','Live left gain');const lower=await audible(page,'Live lower left gain',440);
+  assert(lower.channels[0].rms<initial.channels[0].rms*.6&&lower.channels[0].rms>initial.channels[0].rms*.4,'Gain changes reach the sounding SPU voice');
+  assert(Math.abs(lower.channels[1].rms/initial.channels[1].rms-1)<.1,'Left edit preserves right volume');
+  await field(page,'volume-left',.2);await field(page,'retrigger',false);await field(page,'attack-rate',60);
+  await applied(page,'state.channels[23].envelopeParameters.attackRate===60','Queued next-note attack');
+  const deferred=await audible(page,'Retrigger disabled retains the held envelope',440);
+  assert(deferred.channels[0].rms>initial.channels[0].rms*.8,'With retrigger off, an ADSR edit does not restart the held voice');
+  await field(page,'retrigger',true);await field(page,'attack-rate',61);
+  await applied(page,'state.channels[23].envelopeParameters.attackRate===61','Owned held voice attack retrigger');
+  const restarted=await capture(page,8192);
+  assert(restarted.channels.every(channel=>!channel.nonFinite&&channel.rms>0&&channel.rms<initial.channels[0].rms*.45),'Retriggering the owned voice applies its two-second attack to actual PCM: '+JSON.stringify(restarted));assert.equal(restarted.frameGaps,0);
+  const commands=await commandsSince(page,from),envelopes=commands.filter(command=>command.method==='setEnvelope');
+  assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===60&&command.args[2]?.retrigger===false),'Deferred edit has explicit retrigger false');
+  assert(envelopes.some(command=>command.args[0]===23&&command.args[1].attackRate===61&&command.args[2]?.retrigger===true),'Owned audition edit requests explicit retrigger');
+  await fastEnvelope(page);await audible(page,'Fast envelope restored to the latched voice',440);
+  await page.locator(action('release')).click();assert.equal(await page.locator(action('sustain')).getAttribute('aria-pressed'),'false');const released=await silent(page,'Latched Release');
+  return {initial,lower,deferred,restarted,released,liveGain:true,ownedVoiceRetrigger:true};
+}
+async function checkReverb(page){
+  console.log('  Per-voice send and global SPU reverb / wet tails');
+  await fastEnvelope(page);await field(page,'volume-left',.2);await field(page,'volume-right',.2);
+  const options=await page.locator(control('reverb-preset')+' option').evaluateAll(nodes=>nodes.map(node=>node.value));
+  assert.deepEqual(options,['off','room','studio-small','studio-medium','studio-large','hall','space-echo','half-echo'],'All eight supported SPU reverb presets are exposed');
+  await field(page,'reverb-left',.75);await field(page,'reverb-right',.75);await field(page,'reverb-preset','room');await field(page,'reverb-send',false);
+  await applied(page,'state.reverb.preset==="room"&&state.reverb.volumeLeft===.75&&state.reverb.volumeRight===.75&&!state.channels[23].reverb','Global room / voice send off');
+  await latch(page,'Room preset with selected voice dry');await page.locator(action('release')).click();const dryTail=await silent(page,'A dry voice has no reverb tail');
+  const untouched=settings(await current(page)).slice(0,23);await field(page,'reverb-send',true);await applied(page,'state.channels[23].reverb','CH24 reverb send');
+  assert.deepEqual(settings(await current(page)).slice(0,23),untouched,'Reverb send changes preserve the other 23 voices');
+  const wet=await latch(page,'Selected voice feeds actual SPU room reverb',false);
+  // Let the room delay fill before releasing its fast dry envelope.
+  await capture(page,16384);await page.locator(action('release')).click();const wetTail=await capture(page,4096);
+  assert(wetTail.channels.every(channel=>!channel.nonFinite&&channel.rms>.00001&&channel.peak<1),'Room has actual nonzero finite wet PCM after dry key-off: '+JSON.stringify(wetTail));assert.equal(wetTail.frameGaps,0);
+  await field(page,'reverb-left',0);await field(page,'reverb-right',0);await applied(page,'state.reverb.volumeLeft===0&&state.reverb.volumeRight===0','Global return mute');
+  const mutedReturn=await silent(page,'Zero reverb return mutes the remaining wet tail');
+  await field(page,'reverb-left',.75);await field(page,'reverb-right',.5);await field(page,'reverb-preset','hall');
+  await applied(page,'state.reverb.preset==="hall"&&state.reverb.volumeLeft===.75&&state.reverb.volumeRight===.5&&state.channels[23].reverb','Preset edit retains return levels and voice send');
+  await latch(page,'Hall preset audition',false);await capture(page,16384);const beforeStop=await refresh(page),stopped=await stop(page,'Stop clears dry voices and wet tails');
+  await page.locator('#ps1Tab').click();const retained=await refresh(page);
+  assert.deepEqual(retained.reverb,beforeStop.reverb,'Stop retains chosen global reverb');assert.deepEqual(settings(retained),settings(beforeStop),'Stop retains voice/sample/envelope/send parameters');assert.deepEqual(retained.samples,beforeStop.samples,'Stop retains the sample bank');
+  await field(page,'reverb-preset','off');await field(page,'reverb-send',false);await fastEnvelope(page);
+  const afterStop=await latch(page,'Direct Sustain audition after normal transport Stop');await page.locator(action('release')).click();await silent(page,'Direct post-Stop Sustain release');
+  return {options,dryTail,wet,wetTail,mutedReturn,stopped,afterStop,stopRetainsParameters:true,directAuditionAfterStop:true};
+}
+async function checkKeyboardAndLifecycle(page){
+  console.log('  Operator Keyboard / pointer / channel change / hidden tab releases');
+  await field(page,'audition-midi',69);await fastEnvelope(page);await page.locator(action('keyboard')).click();
+  if(await page.locator('#bottomDock').evaluate(node=>!node.classList.contains('is-closed')&&node.getBoundingClientRect().height>1)){
+    const close=page.locator('#bottomDock .dock-close');if(await close.isVisible())await close.click();
+  }
+  await page.locator('#keyboardPanel').waitFor({state:'visible'});
+  assert(await page.locator('#keyboardPanel').evaluate(node=>node.classList.contains('is-floating-keyboard')),'Operators expose the shared floating Keyboard dialog');
+  await page.locator('#operatorKeyboardRoot button').filter({hasText:/^Guitar$/}).click();
+  const key=page.locator('#operatorKeyboardRoot .key').first(),letter=await key.getAttribute('data-key');assert(letter);
+  const from=await page.evaluate(()=>__ps1Audit.commands.length);await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.down(letter);
+  let pc;try{pc=await audible(page,'Floating Guitar PC key on selected CH24');}finally{await page.keyboard.up(letter);}await silent(page,'Operator PC key release');
+  assert((await commandsSince(page,from)).some(command=>command.method==='auditionOn'&&command.channel===23),'Operator PC key targets physical CH24');
+  // The compact floating dialog intentionally shows target / layout controls,
+  // not the large Guitar grid. Open the full Keyboard dock for pointer keys.
+  if(!await page.locator('#keyboardTab').isVisible())await page.locator('.dock-toggle').click();
+  await page.locator('#keyboardTab').click();await key.waitFor({state:'visible'});
+  const rect=await key.boundingBox();assert(rect);await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();let pointer;
+  try{pointer=await audible(page,'Floating Guitar pointer on CH24');}finally{await releaseOutside(page);}await silent(page,'Operator pointer release');
+  await page.locator('#ps1Tab').click();
+  await page.locator(action('sustain')).click();await audible(page,'Latched note before channel change');await page.locator(`${root} [data-chip-channel="22"]`).click();await silent(page,'Selecting a different voice releases the old latched voice');
+  await page.locator(`${root} [data-chip-channel="23"]`).click();await page.locator(action('sustain')).click();await audible(page,'Latched note before hidden tab');
+  await page.locator('#codeTab').click();await silent(page,'Hiding the Operators tab releases its latched note');
+  const hiddenAt=await page.evaluate(()=>__ps1Audit.commands.length);await page.waitForTimeout(450);
+  assert.deepEqual((await commandsSince(page,hiddenAt)).filter(command=>command.type==='chip-inspector'),[],'Hidden panel adds no inspector polling');
+  await page.locator('#ps1Tab').click();await refresh(page);const idleAt=await page.evaluate(()=>__ps1Audit.commands.length);await page.waitForTimeout(500);
+  const idle=(await commandsSince(page,idleAt)).filter(command=>command.type==='chip-inspector');assert.deepEqual(idle,[],'An idle visible panel never polls or writes audio');
+  await startHold(page);await audible(page,'Hold before window blur');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await silent(page,'Window blur releases panel Hold');await releaseOutside(page);
+  return {channel:23,pc,pointer,floatingKeyboard:true,hiddenInspectorRequests:0,idleInspectorRequests:0,channelChangeRelease:true,hideRelease:true,windowBlurRelease:true};
+}
+async function checkDisconnect(page,execution){
+  console.log('  Additional SPU disconnect releases its latched audition');
+  const marker='__PS1_EDITOR_EXTRA_DISPOSED__';
+  await run(page,`const extra=await createSoundChip('ps1',{id:'ps1:operators-disconnect'});
+log('__PS1_EDITOR_EXTRA_READY__');
+liveLoop('dispose-editor-target',async()=>{await sleep(4);await extra.dispose();log('${marker}');await sleep(60);});`,execution);
+  await waitLog(page,'__PS1_EDITOR_EXTRA_READY__');await page.locator('#ps1Tab').click();
+  await page.locator(instance).selectOption('ps1:operators-disconnect');await refresh(page);await page.locator(`${root} [data-chip-channel="23"]`).click();await field(page,'audition-midi',69);
+  const sounding=await latch(page,'Additional SPU target before disconnect');await waitLog(page,marker);const released=await silent(page,'Disconnected SPU cannot keep an audition sounding');
+  await page.waitForFunction(selector=>!Array.from(document.querySelector(selector)?.options??[]).some(option=>option.value==='ps1:operators-disconnect'),instance);
+  await stop(page,'Disconnect Stop');return {sounding,released,disposedTargetRemoved:true};
+}
+async function screenshots(page,name,execution){
+  if(!config.screenshots||execution!=='main')return [];
+  await fs.mkdir(config.screenshots,{recursive:true});await page.locator('#ps1Tab').click();const results=[];
+  for(const [label,width,height]of [['desktop',1600,1150],['mobile',390,844]]){
+    await page.setViewportSize({width,height});await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const size=await page.evaluate(()=>({viewport:innerWidth,document:document.documentElement.scrollWidth,panel:document.getElementById('ps1Panel').getBoundingClientRect().width}));
+    assert(size.document<=size.viewport+1,'SPU sound design fits the viewport: '+JSON.stringify(size));
+    const file=path.join(config.screenshots,`${name}-ps1-voice-${label}.png`);await page.screenshot({path:file,fullPage:true});results.push({label,path:file,...size});
+  }
+  await page.setViewportSize({width:1600,height:1150});return results;
+}
+async function runCase(browser,name,origin,host,execution){
+  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1600,height:1150}});await context.addInitScript(instrumentation);
+  const page=await context.newPage();page.setDefaultTimeout(40000);const errors=[],badResponses=[],consoleErrors=[];
+  page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});page.on('pageerror',error=>errors.push({message:error.message,stack:error.stack}));
+  page.on('response',response=>{if(response.status()>=400)badResponses.push({url:response.url(),status:response.status()});});
+  try{
+    console.log(`CHECK ${name}/${execution}: ${host.archive?'Run ZIP':'source'}`);
+    await page.goto(origin+host.entry+'?mode=ps1&no-sw=1',{waitUntil:'domcontentloaded'});await ready(page);
+    await page.locator('#ps1Tab').click();assert.equal(await page.evaluate(()=>__ps1Audit.contexts.length),0,'Opening Operators remains audio-lazy');
+    await page.locator(`${root} [data-chip-action="prepare"]`).click();await page.locator(control('attack-rate')).waitFor({state:'visible'});
+    assert.equal(await page.locator(`${root} [data-chip-channel]`).count(),24,'All 24 hardware voices can be selected');
+    // The muted authored CH2 continues changing independently while edits and
+    // auditions claim CH24. A real logic Worker is used for the Worker route.
+    const marker='__PS1_EDITOR_PROGRAM_READY__';
+    await run(page,`spu.setPreset(23,{sample:0,volumeLeft:.2,volumeRight:.2,adsr1:15,adsr2:0x2000});
+spu.setPreset(1,{sample:0,volumeLeft:0,volumeRight:0});
+liveLoop('other-voice',async()=>{spu.noteOn(1,'C3');await sleep(.2);spu.noteOn(1,'C5');await sleep(.2);});
+await sleep(1);log('${marker}');`,execution);await waitLog(page,marker);
+    if(execution==='worker')assert(await page.evaluate(()=>__ps1Audit.workers.some(url=>/\/playground_logic_worker\.js(?:\?|$)/.test(url))),'Actual logic Worker was used');
+    await page.locator('#ps1Tab').click();await page.locator(`${root} [data-chip-channel="23"]`).click();await field(page,'audition-midi',69);await refresh(page);
+    const envelope=await checkEnvelope(page),retrigger=await checkRetrigger(page);
+    const otherPitches=[];for(let i=0;i<6;i++){otherPitches.push((await refresh(page)).channels[1].pitch);await page.waitForTimeout(90);}
+    assert(new Set(otherPitches).size>1,'Muted CH2 keeps progressing while CH24 is edited and auditioned');
+    const reverb=await checkReverb(page),keyboard=await checkKeyboardAndLifecycle(page),images=await screenshots(page,name,execution),disconnect=await checkDisconnect(page,execution);
+    console.log('  Authored error / next audition recovery');
+    await run(page,"spu.setReverb({preset:'not-a-preset'});",execution);await page.waitForFunction(()=>document.getElementById('consoleOutput').textContent.includes('preset'));
+    await stop(page,'Authored error Stop');
+    await page.locator('#ps1Tab').click();await refresh(page);await page.locator(`${root} [data-chip-channel="23"]`).click();await field(page,'audition-midi',69);
+    const recovery=await latch(page,'Operators audition recovers after an authored API error');await stop(page,'Final Stop');await healthy(page,'Final state');
+    const audit=await page.evaluate(()=>({worklets:__ps1Audit.worklets.map(entry=>entry.name),workers:__ps1Audit.workers,processorErrors:__ps1Audit.processorErrors,physicalOutputMuted:[...__ps1Audit.sinks.values()].every(sink=>sink.gate.gain.value===0)}));
+    assert(audit.worklets.includes('tetorica-playground-ps1'),'Actual SPU Worklet is used');assert.deepEqual(audit.processorErrors,[]);assert(audit.physicalOutputMuted);
+    assert.deepEqual(errors,[],'No browser exceptions');assert.deepEqual(badResponses,[],'No missing runtime assets');
+    return {browser:name,version:browser.version(),execution,envelope,retrigger,otherVoiceProgress:{channel:1,pitches:otherPitches},reverb,keyboard,screenshots:images,disconnect,recovery,...audit};
+  }catch(error){
+    const state=await page.evaluate(()=>({status:document.getElementById('status')?.textContent,log:document.getElementById('consoleOutput')?.textContent,instance:document.querySelector('#ps1Panel [data-chip-control="instance"]')?.value,panel:document.getElementById('ps1Panel')?.textContent,contexts:__ps1Audit?.contexts.map(value=>({state:value.state,sampleRate:value.sampleRate})),gains:__ps1Audit?.gains.map(value=>({value:value.gain.value,contextState:value.context.state})),worklets:__ps1Audit?.worklets,commands:__ps1Audit?.commands.slice(-20)})).catch(()=>null);
+    throw Error(`${name}/${execution}: ${error.message}\n${JSON.stringify({state,errors,badResponses,consoleErrors})}`,{cause:error});
+  }finally{await context.close();}
+}
+
+(async()=>{
+  const host=await selectHost();let server;
+  try{
+    server=http.createServer(async(request,response)=>{
+      try{
+        const pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);if(pathname==='/favicon.ico'){response.writeHead(204).end();return;}
+        if(pathname==='/__ps1_voice_capture.js'){response.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'}).end(captureSource);return;}
+        let file=path.resolve(host.directory,'.'+pathname);assert(file===host.directory||file.startsWith(host.directory+path.sep),'Outside selected host');if((await fs.stat(file)).isDirectory())file=path.join(file,'index.html');
+        const bytes=await fs.readFile(file),name=path.relative(host.directory,file),sha256=hash(bytes);if(served.has(name))assert.equal(served.get(name).sha256,sha256,'Source changed during browser check: '+name);served.set(name,{bytes:bytes.length,sha256});
+        const mime={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.wasm':'application/wasm','.svg':'image/svg+xml','.png':'image/png','.woff':'font/woff','.woff2':'font/woff2'};
+        response.writeHead(200,{'Content-Type':mime[path.extname(file)]??'application/octet-stream','Cache-Control':'no-store'}).end(bytes);
+      }catch(error){response.writeHead(404).end(error.message);}
+    });
+    await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const results=[];
+    for(const name of config.engines){
+      const browser=await ({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--autoplay-policy=no-user-gesture-required']}:{})});
+      try{for(const execution of ['main','worker']){results.push(await runCase(browser,name,`http://127.0.0.1:${server.address().port}`,host,execution));console.log(`PASS ${name}/${execution}: live ADSR, CH24, Keyboard, SPU reverb, wet tail, Stop, disconnect and recovery; physical output muted.`);}}
+      finally{await browser.close();}
+    }
+    for(const [name,entry]of served)assert.equal(hash(await fs.readFile(path.join(host.directory,name))),entry.sha256,'Source remained frozen: '+name);
+    const report={schemaVersion:1,passed:true,physicalOutputMuted:true,listeningPerformed:false,publicUiOnly:true,repositoryFallback:false,host:host.directory,archive:host.archive,results,sources:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),checkerSha256:hash(await fs.readFile(__filename))};
+    if(config.out)await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log(`PS1 Operators browser check passed: ${results.length} routes${config.out?'; '+config.out:''}.`);
+  }finally{if(server)await new Promise(resolve=>server.close(resolve));if(host.temporary)await fs.rm(host.temporary,{recursive:true,force:true});}
+})().catch(error=>{console.error(error.stack??error);process.exitCode=1;});

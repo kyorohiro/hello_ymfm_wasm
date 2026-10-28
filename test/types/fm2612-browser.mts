@@ -338,6 +338,22 @@ pokeyA.generateStereo('128');
 import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from 'tetorica-fm2612/ps1synth.js';
 import {Ps1Resampler} from 'tetorica-fm2612/ps1_resampler.js';
 import {createPs1Client} from 'tetorica-fm2612/playground_ps1.js';
+import {decodePs1Envelope,encodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from 'tetorica-fm2612/ps1_parameters.js';
+import type {Ps1Envelope,Ps1Reverb} from 'tetorica-fm2612/ps1_parameters.js';
+const ps1Envelope:Ps1Envelope=decodePs1Envelope(15,0);
+ps1Envelope.attackRate.toFixed();ps1Envelope.attackExponential.valueOf();
+encodePs1Envelope({attackRate:24,sustainDecrease:true,releaseRate:12}).adsr1.toFixed();
+patchPs1Envelope(15,0x2000,{releaseExponential:true}).adsr2.toFixed();
+const ps1Reverb:Ps1Reverb={preset:'room',volumeLeft:.25,volumeRight:.25};
+PS1_REVERB_PRESETS[0]?.registers[0]?.toFixed();
+// @ts-expect-error Envelope modes are booleans.
+encodePs1Envelope({attackExponential:'linear'});
+// @ts-expect-error Named envelope rates are numeric.
+patchPs1Envelope(15,0,{releaseRate:'12'});
+// @ts-expect-error Reverb presets and their registers are immutable.
+PS1_REVERB_PRESETS[0]!.registers[0]=1;
+// @ts-expect-error Unsupported core reverb presets are excluded from the API.
+const ps1BadReverb:Ps1Reverb={preset:'delay',volumeLeft:1,volumeRight:1};
 const ps1InstrumentCore=await Ps1Spu.create({moduleFactory:ps1Factory});
 const ps1Instrument=new Ps1Synth({core:ps1InstrumentCore});
 const {adpcm:ps1Packets,...ps1SampleOptions}=createPs1InitSample();
@@ -346,10 +362,17 @@ ps1Sample.decodedFrames.toFixed();ps1Sample.repeatAddress.toFixed();
 preparePs1ADPCM(ps1Packets,{rootNote:'A4',loopStartSamples:0}).rootFrequencyHz.toFixed();
 ps1Instrument.setPreset(23,{sample:ps1Sample,volumeLeft:0.6,volumeRight:-0.6,adsr1:15,adsr2:8});
 ps1Instrument.noteOn(23,'A4');ps1Instrument.stopVoices();
+ps1Instrument.setEnvelope(23,{attackRate:25,sustainDecrease:true,releaseRate:13});
+ps1Instrument.setReverb(ps1Reverb);ps1Instrument.setPreset(23,{reverb:true});
+ps1Instrument.getState().channels[23]!.envelopeParameters.releaseRate.toFixed();
+ps1Instrument.getState().reverb.volumeLeft.toFixed();
 new Ps1Resampler(ps1Instrument,48000).render(new Float32Array(128),new Float32Array(128));
 const ps1Client=createPs1Client(new MessageChannel().port1);
 const ps1Uploaded=await ps1Client.loadADPCM(ps1Packets,ps1SampleOptions);
 ps1Client.setPreset(23,{sample:ps1Uploaded});(await ps1Client.getPreset(23)).pitch.toFixed();
+ps1Client.setEnvelope(23,{attackExponential:false,releaseRate:8});
+ps1Client.setReverb({preset:'hall',volumeRight:.4});ps1Client.setChannel(23,{reverb:false});
+(await ps1Client.getState()).reverb.volumeRight.toFixed();
 ps1Client.reset({clearRam:false});ps1Client.dispose();
 // @ts-expect-error Encoded SPU samples require explicit musical tuning.
 ps1Instrument.loadADPCM(ps1Packets,{});
@@ -361,3 +384,15 @@ ps1Instrument.setPreset(0,{volumeLeft:'0.5'});
 new Ps1Resampler(ps1Instrument,48000).render(new Int16Array(128),new Int16Array(128));
 // @ts-expect-error Fixed-rate SPU has no programmable chip clock.
 ps1Instrument.setClock(44100);
+// @ts-expect-error Synth ADSR modes retain boolean types.
+ps1Instrument.setEnvelope(0,{sustainDecrease:'down'});
+// @ts-expect-error Per-voice reverb sends are boolean.
+ps1Instrument.setPreset(0,{reverb:1});
+// @ts-expect-error Shared returns are normalized numeric levels.
+ps1Instrument.setReverb({volumeLeft:'0.5'});
+// @ts-expect-error Only effective core presets are exposed.
+ps1Client.setReverb({preset:'echo'});
+// @ts-expect-error Client envelope edits preserve numeric rate types.
+ps1Client.setEnvelope(0,{attackRate:'35'});
+// @ts-expect-error Reverb has no arbitrary parameter-register interface.
+ps1Client.setReverb({delay:100});

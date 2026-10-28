@@ -163,6 +163,7 @@ wav.js
 spc_resampler.js
 snessynth.js
 ps1_spu.js
+ps1_parameters.js
 ps1synth.js
 ps1_resampler.js
 playground_ps1.js
@@ -711,6 +712,7 @@ perl -0pi -e 's#"\./playground\.js"#"./playground.js"#g; s#\.\./js/#./js/#g; s#\
   "${STAGE_DIR}/playground_sample_editor_worker.js" \
   "${STAGE_DIR}/playground_mode.js" \
   "${STAGE_DIR}/playground_mode_keyboard.js" \
+  "${STAGE_DIR}/playground_ps1_voice_panel.js" \
   "${STAGE_DIR}/playground_opl_voice_panel.js" \
   "${STAGE_DIR}/playground_ym2413_voice_panel.js" \
   "${STAGE_DIR}/playground_ay8910_voice_panel.js" \

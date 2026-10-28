@@ -25,6 +25,9 @@ try {
   for (const file of ['playground_sample_ps1.js','playground_sample_ps1.d.ts','playground_sample_ps1_preview.js','playground_sample_ps1_preview.d.ts']) {
     assert.ok(packedPaths.has(file), `PS1 sample conversion/preview payload missing ${file}`);
   }
+  for(const file of ['ps1_parameters.js','ps1_parameters.d.ts']) {
+    assert.ok(packedPaths.has(file),`PS1 named envelope/reverb parameters payload missing ${file}`);
+  }
   for(const file of ['ps1_spu.js','ps1_spu.d.ts',...['ps1synth','ps1_resampler','playground_ps1','playground_ps1_audio','playground_ps1_worklet','playground_ps1_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),'generated/ps1_spu_wasm.js','generated/ps1_spu_wasm.wasm','generated/ps1_spu_build.json',
     'licenses/mame-ps1-spu/LICENSE','licenses/mame-ps1-spu/README.md','sources/PS1-SPU.md','sources/PS1-SPU.json',
     'sources/scripts/build_ps1_spu_wasm.sh',...['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h',
@@ -106,9 +109,15 @@ import {Ps1Spu,PS1_SPU_SAMPLE_RATE,PS1_SPU_RAM_BYTES} from 'tetorica-fm2612/ps1_
 import {Ps1Spu as extensionless} from 'tetorica-fm2612/ps1_spu';
 import {Ps1Synth,createPs1InitSample} from 'tetorica-fm2612/ps1synth.js';
 import {Ps1Resampler} from 'tetorica-fm2612/ps1_resampler.js';
+import {decodePs1Envelope,encodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from 'tetorica-fm2612/ps1_parameters.js';
+import {encodePs1Envelope as extensionlessEnvelope} from 'tetorica-fm2612/ps1_parameters';
+import {createPs1Client} from 'tetorica-fm2612/playground_ps1.js';
 import moduleFactory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 assert.equal(Ps1Spu,extensionless);assert.equal(PS1_SPU_SAMPLE_RATE,44100);assert.equal(PS1_SPU_RAM_BYTES,524288);
+assert.equal(encodePs1Envelope,extensionlessEnvelope);assert.equal(PS1_REVERB_PRESETS.length,8);
+assert.equal(decodePs1Envelope(15,0).sustainLevel,15);assert.equal(encodePs1Envelope({releaseRate:13}).adsr2,13);
+assert.deepEqual(patchPs1Envelope(15,0x2000,{releaseRate:8}),{adsr1:15,adsr2:0x2008});
 const wasmBinary=await readFile(runtimeAssetUrl('generated/ps1_spu_wasm.wasm'));
 const chip=await Ps1Spu.create({moduleFactory,moduleOptions:{wasmBinary}});
 try{
@@ -132,11 +141,39 @@ try{
  assert(left.every(value=>value===0)&&right.every(value=>value===0),'installed Stop must discard held PCM');
  assert.deepEqual(instrument.getPreset(23),preset);assert.equal(instrument.getState().samples.length,1);
  instrument.keyOn(23);resampler.render(left,right);assert(left.some(value=>Math.abs(value)>.01),'installed sample must retrigger after Stop');
+ instrument.stopVoices();
+ assert.deepEqual(instrument.getState().reverb,{preset:'off',volumeLeft:.25,volumeRight:.25});
+ assert.equal(instrument.getPreset(23).reverb,false,'new reverb API must not silently change the default sound');
+ const savedRam=instrument.core.readRam(),savedNext=instrument.nextAddress;
+ instrument.setPreset(23,{sample,volumeLeft:.2,volumeRight:.2,reverb:true});
+ instrument.setEnvelope(23,{attackRate:0,attackExponential:false,decayRate:0,sustainLevel:15,sustainRate:127,sustainDecrease:true,sustainExponential:false,releaseRate:0,releaseExponential:false});
+ instrument.setReverb({preset:'room',volumeLeft:0,volumeRight:.75});
+ assert.equal(instrument.getState().channels[23].envelopeParameters.releaseRate,0);
+ const controls=[],client=createPs1Client({postMessage(message){controls.push(message);},start(){},close(){}},{state:instrument.getState()});
+ try{
+  client.setEnvelope(23,{attackRate:35});client.setReverb({preset:'hall',volumeRight:.5});client.setPreset(23,{reverb:true});
+  assert.deepEqual(controls.map(message=>message.method),['setEnvelope','setReverb','setPreset']);
+  assert.throws(()=>client.setReverb({preset:'echo'}),/preset/);assert.throws(()=>client.setEnvelope(23,{attackRate:128}),/attackRate/);
+  assert.equal(controls.length,3,'invalid published client edits must not send commands');
+ }finally{client.dispose();}
+ instrument.keyOn(23);
+ const warmLeft=new Float32Array(4410),warmRight=new Float32Array(4410);instrument.renderInto(warmLeft,warmRight);
+ instrument.keyOff(23);
+ const tailLeft=new Float32Array(44100),tailRight=new Float32Array(44100);instrument.renderInto(tailLeft,tailRight);
+ assert(tailLeft.every(Number.isFinite)&&tailRight.every(Number.isFinite));
+ assert(tailLeft.subarray(1024).every(value=>value===0),'zero left return must preserve dry release to silence');
+ assert(tailRight.subarray(1024).some(value=>Math.abs(value)>.001),'installed real SPU must render a wet tail after key-off');
+ const reverbState=instrument.getState().reverb,reverbVoice=instrument.getPreset(23);
+ instrument.stopVoices();instrument.renderInto(tailLeft,tailRight);
+ assert(tailLeft.every(value=>value===0)&&tailRight.every(value=>value===0),'Stop must clear the installed reverb tail');
+ assert.deepEqual(instrument.getState().reverb,reverbState);assert.deepEqual(instrument.getPreset(23),reverbVoice);
+ assert.deepEqual(instrument.core.readRam(sample.startAddress,sample.byteLength),savedRam.subarray(sample.startAddress,sample.startAddress+sample.byteLength));assert.equal(instrument.nextAddress,savedNext);
  instrument.reset({clearRam:true});assert.equal(instrument.getState().samples.length,0);
+ assert.deepEqual(instrument.getState().reverb,{preset:'off',volumeLeft:.25,volumeRight:.25});assert(instrument.getState().channels.every(channel=>channel.reverb===false));
 }finally{instrument.dispose();instrument.dispose();}
 assert.throws(()=>instrument.getState(),/disposed/);
 assert.equal(typeof globalThis.AudioContext,'undefined');
-console.log('Installed experimental PS1 SPU/Synth/resampler verified: both exports, explicit WASM assets, original ADPCM stereo, 24th voice, release, Stop/retrigger, RAM retention, reset and disposal.');
+console.log('Installed experimental PS1 SPU/Synth/resampler verified: both exports, explicit WASM assets, original ADPCM stereo, 24th voice, named ADSR parameters, Client commands, real SPU wet tail, independent returns, defaults-safe Stop/retrigger, RAM retention, reset and disposal.');
 `);
   execFileSync(process.execPath,[join(consumer,'ps1-spu-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'ps1-adpcm-check.mjs'),`

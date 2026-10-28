@@ -34,6 +34,7 @@
 .chip-channel-list button[aria-pressed="true"] { outline: 2px solid var(--accent, #7bbcf7); outline-offset: 1px; }
 .chip-channel-list button[data-sounding="true"] { font-weight: 700; }
 .chip-sample-waveform { display: block; width: 100%; height: 150px; margin: 10px 0; background: #101820; border: 1px solid var(--line, #c4c6bd); border-radius: 4px; touch-action: none; cursor: crosshair; }
+.chip-sample-waveform[data-chip-control="ps1-envelope"] { cursor: default; touch-action: auto; }
 .chip-memory-ranges { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #52615e; font-size: 11px; }
 .chip-editor > .subtext { line-height: 1.5; }
 @media (max-width: 640px) { .chip-editor { padding: 8px; } .chip-fields { gap: 10px; } .chip-field { min-width: 90px; } .chip-field select { max-width: 240px; } }

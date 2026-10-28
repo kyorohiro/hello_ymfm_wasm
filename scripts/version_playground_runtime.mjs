@@ -349,11 +349,17 @@ const ps1SampleFiles=new Set(['playground_sample_ps1.js','playground_sample_ps1_
   'playground_sample_instrument.js','playground_runtime.js','playground_logic_worker.js',
   'playground.js','playground_audio_input.js','playground_sample_editor_worker.js','playground_sample_editor.css',
   'playground_examples.js','playground_mode_examples.js']);
-const revisionFor=name=>ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+const ps1VoiceFiles=new Set(['ps1_parameters.js','ps1synth.js','playground_ps1.js','playground_ps1_audio.js',
+  'playground_ps1_worklet.js','playground_ps1_inspector.js','playground_ps1_voice_panel.js',
+  'playground_chip_tabs.js','playground_chip_tabs.css','playground_performance_processor.js',
+  'playground_native_primary.js','playground_runtime.js','playground_logic_worker.js','playground.js',
+  'playground_sample_ps1_preview.js','playground_sample_editor_worker.js','playground_audio_input.js']);
+const revisionFor=name=>ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
   ...ps1ModeFiles,
   ...ps1EncoderFiles,
   ...ps1SampleFiles,
+  ...ps1VoiceFiles,
   ...cddaFiles, ...pcEngineCdFiles, ...cdrom2PanelFiles,
   ...megaCdCddaFiles,
   ...gameboySampleFiles,

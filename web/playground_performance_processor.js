@@ -123,8 +123,8 @@ export function nativeVoiceChannel(chip,{method,type,args=[],channel,psgRegister
     if(['allNotesOff','setStereo','clock'].includes(method)||type==='chip-clock')return 'all';
   }
   if(chip==='ps1'){
-    if(['setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff'].includes(method))return args[0];
-    if(['allNotesOff','stopVoices','reset'].includes(method))return 'all';
+    if(['setPreset','setChannel','setEnvelope','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff'].includes(method))return args[0];
+    if(['allNotesOff','stopVoices','reset','setReverb'].includes(method))return 'all';
   }
   if(chip==='snes'){
     if(['setPreset','setChannel','setPitch','setFrequency','setNote','keyOn','keyOff','noteOn','noteOff'].includes(method))return args[0];

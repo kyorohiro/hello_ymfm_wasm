@@ -2,7 +2,7 @@ import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave, sampleNormaliz
   estimateSamplePitch, encodeSampleWav} from '../js/playground_sample_edit.js?v=audio-numeric-bindings-1';
 import {renderGameboySampleComparison, renderGameboySamplePreview} from '../js/playground_sample_gameboy_preview.js?v=gameboy-sample-preview-1';
 import {renderPs1Sample, renderPs1SampleComparison} from '../js/playground_sample_ps1.js?v=ps1-sample-editor-1';
-import {renderPs1SamplePreview} from '../js/playground_sample_ps1_preview.js?v=ps1-sample-editor-1';
+import {renderPs1SamplePreview} from '../js/playground_sample_ps1_preview.js?v=ps1-voice-editor-1';
 
 // Conversion results may contain aliased typed-array views. Transfer each
 // backing buffer once; the Worker retains only the original source recording.

@@ -34,6 +34,7 @@ Source and the actual Run ZIP pass Chromium / WebKit × Main / Worker (8 routes)
 
 - [x] Add PCM → SPU ADPCM conversion with explicit loop and tuning metadata.
 - [x] Add Sample Editor conversion, before/after comparison, actual SPU preview and saved Keyboard instruments.
+- [x] Add live SPU-tab sound design: named ADSR, owned-note retrigger, sustained audition and shared reverb with per-voice sends.
 - [ ] Integrate the source and build recipe into a new soundchip SDK version.
 - [ ] Add a Tauri Native audio adapter. PS1 currently selects Web Audio only.
 
@@ -51,6 +52,10 @@ Sample Editor results: [ps1_sample_editor_01.md](ps1_sample_editor_01.md) /
 [JSON](ps1_sample_editor_01.json). Public workflow:
 [PS1 Sample Editor](../ps1_sample_editor.md). The PS1 mode now lists four
 examples, including the PCM encoder and saved-sample Keyboard instrument.
+
+Voice/effect editor results: [ps1_voice_editor_01.md](ps1_voice_editor_01.md) /
+[JSON](ps1_voice_editor_01.json). Rate controls represent the retained core's
+table indexes; envelope timing and reverb remain approximate.
 
 ## Accuracy and supported subset
 

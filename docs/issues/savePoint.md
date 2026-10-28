@@ -1,3 +1,15 @@
+## 2026-10-28 — PS1 SPUタブでのADSR／reverb音作りを追加
+
+- SPUタブで24声から選び、**Sustain play**で鳴らし続けながら音作りできる。Hold／1秒試奏／右下の共通Guitar・PC・pointer Keyboardも使用可能。名前付きADSR 9項目、模式図、raw words、左右volume／pitch／sample、設定JavaScriptのcopyを提供。
+- ADSRは既存coreがkey-on時に取り込むため、既定のretriggerはこのeditorが所有する試奏だけを再発音する。コード演奏や別声は再発音しない。ADSR2の予約bit13を保持。rateはraw indexで0が速く、高い値では停止／無限releaseになることを表示し、模式図を実測時間とは扱わない。
+- 声ごとのreverb sendと、SPU全体のRoom／Studio Small・Medium・Large／Hall／Space Echo／Half Echo／Off、左右returnを追加。既存coreの近似effectを操作し、C++／WASM変更やsample RAM予約なし。StopはRAM・音色・effect設定を保持して即時無音、ResetはOff／send無効。
+- 実BrowserでInspectorの`structuredClone`がAudioWorklet内にない問題を修正。validated scalar patchを明示copyする。Stop後の直接試奏は既存`prepareAudition()`を通して出力fadeを戻す。準備中のRelease／声・タブ切替／disconnectでは遅れて発音しない。定期pollingは追加なし。
+- focused 116件、Sample Editor等69件、Main／Worker runtime 260件、全mode型が成功、skip0。isolated npmは989files／382宣言／1,087asset参照／28WASM engine／15rendererとconsumer型が成功。version0.2.32のまま未公開。
+- source本体／実Run ZIP × Chromium153／WebKit26.6 × Main／Workerの8条件成功。同一checker hashでADSR、owned retrigger、別声の継続、実wet tail、左右return、Stop直後／コードerror後の直接Sustain、Keyboard、idle／hidden要求0、disconnectを検証。全captureのquanta連続・finite、配信286／214assetsを最終byte照合。物理出力mute、人の実聴／hardware比較は未実施。
+- 標準3package commandと4ZIPのCRC／path／stage全byte一致、Analyzer測定guard8基準、actionlint、runtime versioner変更0が成功。Run ZIPは`release/hello_ymfm_wasm_ps1-voice-editor-dev_itch_playground_for_run.zip`、922entries、SHA256 `e3a1d3c6627cdd8af49c17a86d18ab8a17da5654f22d1ad765e000b4fd65d7a0`。fullは同prefixの_for_runなし。cache `ps1-voice-editor-1`。CIにunit／実Run ZIP browser試験追加、remote未実行。
+- 今回は**未commit／未push／未公開**。前段階Sample Editorはユーザーcommit `e2cadeafb0e1b433d5870b83d62873749e8e9bfa`に含まれる。C++ core／WASM／receipt／Mixer gain／固定SDK／Tauri Nativeは変更なし。次はPS1のSDK集約とTauri Native adapter。tag・SDK／Tauri取込・npm／itch uploadなし。
+- 詳細：[ps1_voice_editor_01.md](ps1_voice_editor_01.md)／[JSON](ps1_voice_editor_01.json)、公開guide：[../ps1_spu.md](../ps1_spu.md)、計画：[todo_ps1_01.md](todo_ps1_01.md)。以下は各時点の履歴。
+
 ## 2026-10-28 — PS1 Sample Editor／保存楽器のKeyboard演奏を追加
 
 - PS1 modeのMenu → Sample Editorで、音声file／マイク録音／描画から楽器を作成可能。44.1kHz monoへ変換し、元WAV＋source-relative編集JSONを保存。`examples/ps1/ps1-sampler.js`をRunしてGuitar／PC／pointer Keyboardで演奏する。PS1の実行Example一覧へPCM encoderとsamplerを登録し、計4本にした。

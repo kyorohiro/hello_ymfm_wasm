@@ -64,6 +64,39 @@ test('PS1 manual voice allows append-only uploads and invalid inspector edits re
  i.invoke('setPitch',[0,before.pitch+1]);assert.equal(i.read().channels[0].pitch,before.pitch+1,'manual UI edits may change their leased voice');const{adpcm,...options}=createPs1InitSample(),sample=await p.client.loadADPCM(adpcm,options);assert.equal(sample.id,1);assert.equal(i.read().channels[0].active,true);assert(peak(p.render(512).left)>.001);
 });
 
+test('PS1 decoded ADSR edits retrigger only an explicitly owned audition and retain reserved bits',async t=>{
+ const p=await setup();t.after(()=>p.close());const i=p.processor.inspector;
+ p.client.noteOn(2,60);await p.client.getState();i.invoke('setPreset',[23,{adsr2:0x2000}]);i.invoke('auditionOn',[23,69,'held']);p.render(1024);
+ const full=i.read().channels[23].envelope;assert(full>30000);
+ i.invoke('setEnvelope',[23,{attackRate:110},{retrigger:false}]);p.render(128);assert.equal(i.read().channels[23].envelope,full,'register edit does not restart a held envelope by itself');
+ i.invoke('setEnvelope',[23,{attackRate:110,decayRate:4},{retrigger:true}]);p.render(128);const changed=i.read().channels[23];assert(changed.envelope<full/4);assert.equal(changed.adsr2&0x2000,0x2000);assert.equal(changed.envelopeParameters.decayRate,4);
+ const scriptEnvelope=i.read().channels[2].envelope;i.invoke('setEnvelope',[2,{attackRate:110},{retrigger:true}]);p.render(128);assert.equal(i.read().channels[2].envelope,scriptEnvelope,'an editor patch never restarts a code-owned note');
+ const before=i.read().channels[23];assert.throws(()=>i.invoke('setEnvelope',[23,{releaseRate:32},{retrigger:true}]),/releaseRate/);assert.throws(()=>i.invoke('setEnvelope',[23,{releaseRate:8},{retrigger:1}]),/retrigger/);assert.equal(i.read().channels[23].adsr2,before.adsr2);
+ i.invoke('auditionOn',[23,72,'new']);assert.equal(i.invoke('auditionOff',[23,'held']),false);assert.equal(i.read().channels[23].active,true);
+});
+
+test('PS1 inspector edits run in a Worklet without structuredClone and own scalar patches',async t=>{
+ const p=await setup();t.after(()=>p.close());const i=p.processor.inspector,clone=globalThis.structuredClone;
+ try{
+  globalThis.structuredClone=undefined;
+  const sample={...p.processor.synth.samples[0]},patch={sample,volumeLeft:.3,reverb:true};
+  i.invoke('setPreset',[23,patch]);patch.volumeLeft=.9;sample.id=999;
+  i.invoke('auditionOn',[23,69,'worklet']);i.invoke('setEnvelope',[23,{attackRate:35},{retrigger:true}]);i.invoke('setReverb',[{preset:'room',volumeLeft:.2}]);
+  i.invoke('setPitch',[23,4096]);const state=i.read();assert.equal(state.channels[23].sample,0);assert.equal(state.channels[23].volumeLeft,.3);assert.equal(state.channels[23].envelopeParameters.attackRate,35);assert.equal(state.reverb.preset,'room');assert(peak(p.render(8192).left)>0);
+ }finally{globalThis.structuredClone=clone;}
+});
+
+test('PS1 leased editor reverb is live, blocks competing script patches and Stop retains settings with no tail',async t=>{
+ const p=await setup();t.after(()=>p.close());const i=p.processor.inspector,port={postMessage(){}};
+ i.invoke('setPreset',[23,{reverb:true,volumeLeft:.3,volumeRight:.3}]);i.invoke('setReverb',[{preset:'room',volumeLeft:.5,volumeRight:.5}]);i.invoke('auditionOn',[23,69,'wet']);
+ assert(peak(p.render(24000).left)>.01);p.processor.receive({method:'setEnvelope',args:[23,{attackRate:120}]},port);p.processor.receive({method:'setReverb',args:[{preset:'off'}]},port);
+ assert.equal(i.read().channels[23].envelopeParameters.attackRate,0);assert.equal(i.read().reverb.preset,'room');
+ i.invoke('setReverb',[{volumeLeft:.4}]);assert.equal(i.read().reverb.volumeLeft,.4);assert.equal(i.read().channels[23].active,true);
+ i.invoke('auditionOff',[23,'wet']);p.render(4096);const tail=p.render(8192);assert(peak(tail.left)>.00001,'real SPU reverb survives voice release');
+ const before=i.read();await p.client._stopVoices();assert.equal(peak(p.render(12000).left),0);assert.deepEqual(i.read().reverb,before.reverb);assert.equal(i.read().channels[23].reverb,true);assert.deepEqual(i.read().samples,before.samples);
+ i.invoke('auditionOn',[23,69,'after']);assert(peak(p.render(8192).left)>.01);assert.equal(i.read().channels[2].reverb,false);assert.equal(i.invoke('auditionOff',[23,'wet']),false);
+});
+
 test('PS1 real WASM factory boots in an AudioWorklet-like realm without URL or network APIs',async()=>{
  const source=await readFile(new URL('../docs/generated/ps1_spu_wasm.js',import.meta.url),'utf8'),wasmBinary=await readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',import.meta.url));
  const scope=vm.createContext({console,WebAssembly});

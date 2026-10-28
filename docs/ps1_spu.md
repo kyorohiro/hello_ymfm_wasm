@@ -17,9 +17,47 @@ The package-root low-level `createSoundChip()` factory is a separate API.
 
 Select **PlayStation (PS1)** from Mode. **Prepare audio** makes Keyboard usable
 without Run. The SPU tab selects voices 1–24 and edits their sample, left/right
-volume, pitch and raw ADSR words. Use Hold to play, Play 1 second or the shared
-Guitar/PC Keyboard to hear the selected voice. Snapshots update on entry,
-Refresh and edits; this tab adds no periodic audio-state polling.
+volume, pitch, named ADSR controls and reverb. Use **Hold to play**, **Play 1
+second**, or **Use Keyboard** with the shared Guitar/PC Keyboard to hear the
+selected voice. **Sustain play** leaves a manual note held so both hands are
+free to edit controls. Its next click or **Release** starts the programmed
+release stage. Changing voice, hiding the tab or leaving the window also
+releases manual notes. Transport **Stop** immediately clears voices and reverb
+tails, including notes whose release rate would otherwise hold indefinitely.
+Snapshots update on entry, Refresh and edits; this tab adds no periodic
+audio-state polling.
+
+The ADSR section provides five rate/level controls and four mode switches:
+
+| Control | Accepted values |
+| --- | --- |
+| `attackRate` / `sustainRate` | Integer `0..127` |
+| `decayRate` / `sustainLevel` | Integer `0..15` |
+| `releaseRate` | Integer `0..31` |
+| `attackExponential` / `sustainExponential` / `releaseExponential` | Boolean |
+| `sustainDecrease` | Boolean; decrease toward zero, or increase toward full level |
+
+Rates are the experimental core's raw table indexes, not milliseconds: zero is
+fastest and higher codes slow or stop a stage. Sustain level is `(code + 1) / 16`.
+Release codes `27..31` hold indefinitely in this implementation. The envelope
+drawing is a schematic of the programmed stages, not a measured timing plot.
+
+ADSR registers are read at key-on. The enabled-by-default **Retrigger my held
+note after an ADSR edit** option restarts a note owned by this editor to make
+the change audible immediately. It does not restart a script-owned voice or
+another channel. Disable it to compare the current note with the next key-on.
+Pitch, fixed volume, reverb sends and reverb return levels affect held voices
+without retriggering. **Raw ADSR words and voice JavaScript** retains direct
+register editing and provides **Copy voice JavaScript** for use in a script.
+
+For reverb, enable **Selected voice uses reverb**, choose a **Shared reverb
+preset** and adjust the independent left/right **Shared return** levels. The
+seven supported effects are Room, Studio Small, Studio Medium, Studio Large,
+Hall, Space Echo and Half Echo. Each voice has its own send switch, while the
+preset and return levels belong to the whole SPU. Return levels add wet sound
+to the dry signal; they are not a dry/wet crossfade or Mixer gain. Off bypasses
+reverb while retaining the requested return levels for the next preset.
+Existing tails are cleared by Stop/reset, rather than by changing presets.
 
 The mode's original default sample has ID 0:
 
@@ -47,12 +85,33 @@ played from Keyboard. The [PS1 Sample Editor guide](ps1_sample_editor.md) covers
 file/microphone input, drawing, loop alignment, actual SPU preview and saving.
 
 `setPreset` / `setChannel` accept sample ID or descriptor, signed normalized
-`volumeLeft` / `volumeRight` in `[-1,1]`, raw `adsr1` / `adsr2` words and pitch.
+`volumeLeft` / `volumeRight` in `[-1,1]`, raw `adsr1` / `adsr2` words, pitch and
+a per-voice boolean `reverb` send. `setEnvelope(channel, partial)` changes named
+ADSR fields while preserving the other raw bits. It does not retrigger notes.
+`setReverb({preset, volumeLeft, volumeRight})` changes the shared effect; its
+return levels accept `0..1`. Both APIs accept partial updates. Defaults are
+`preset:'off'`, requested returns `0.25` on each side, and sends disabled.
+
+```js
+spu.setEnvelope(0, {
+  attackRate: 35, decayRate: 8, sustainLevel: 10,
+  sustainRate: 127, sustainDecrease: true, releaseRate: 13,
+});
+spu.setPreset(0, {reverb:true});
+spu.setReverb({preset:'room', volumeLeft:0.3, volumeRight:0.3});
+spu.noteOn(0, 'C4');
+```
+
+`ps1_parameters.js` exports `decodePs1Envelope`, `encodePs1Envelope`,
+`patchPs1Envelope` and the read-only `PS1_REVERB_PRESETS` list. `getState()`
+includes the shared `reverb` settings and each voice's `envelopeParameters`;
+its numeric `envelope` field remains the current ENVX register value.
 `setFrequency` and `setNote` use the sample's tuning. `getState`, `getPreset` and
 `snapshot` are asynchronous on the Playground client. `reset({clearRam:false})`
 retains samples and resets voice settings; `clearRam:true` discards the bank.
-Stop clears the running decoder/envelopes for immediate silence while retaining
-samples and presets. A host reset also clears resampler history.
+Stop clears the running decoder/envelopes and reverb tails for immediate silence
+while retaining samples, voice presets, sends and shared reverb settings. Reset
+restores Off and disables all sends. A host reset also clears resampler history.
 
 On the Playground client, `reset()` is immediate preparation rather than a
 scheduled note event. It clears prior queued notes; subsequent voice commands
@@ -164,6 +223,11 @@ apply at the next key-on; pitch and fixed volumes can update active voices.
 In this pinned implementation's rate tables, index zero is fastest; higher
 indexes are slower or stop. Hardware ADSR presets should not be assumed to
 produce cycle-accurate envelopes through these approximations.
+Reverb recognizes the pinned core's named register presets; arbitrary reverb
+register patterns do not synthesize new effect configurations. Its delays use
+private buffers in this approximation and do not reserve hardware reverb space
+from the sample RAM allocator. Upstream Echo and Delay entries have no effect
+configuration, so they are omitted from the named API and editor.
 Standard RAM mapping and fixed volume are supported; unsupported RAM layouts,
 volume sweeps and unaligned packet addresses are rejected.
 

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Ps1Spu} from './ps1_spu.js';
 import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from './ps1synth.js';
+import {PS1_REVERB_PRESETS} from './ps1_parameters.js';
 let sharedModule;
 async function create(t) {
   sharedModule??=Promise.all([import('../docs/generated/ps1_spu_wasm.js'),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',import.meta.url))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
@@ -98,4 +99,82 @@ test('non-looped SPU ADPCM stops at END and snapshots are independent owned copi
   const snapshot=synth.snapshot();assert.equal(snapshot.ram.length,512*1024);assert.equal(snapshot.registers.length,512);assert.equal(snapshot.channels[0].ended,true);
   snapshot.samples[0].startAddress=0;snapshot.channels[0].pitch=0;snapshot.ram.fill(0);assert.equal(synth.getState().samples[0].startAddress,0x1000);assert.equal(synth.getPreset(0).pitch,4096);
   synth.dispose();synth.dispose();assert.throws(()=>synth.keyOn(0),/disposed/);assert.throws(()=>synth.getState(),/disposed/);assert.throws(()=>synth.reset(),/disposed/);
+});
+
+test('named PS1 ADSR edits preserve raw bits, leave held envelopes alone, and apply at next key-on',async t=>{
+  const a=await create(t),b=await create(t);
+  for(const{synth}of[a,b]){const sample=load(synth);synth.setPreset(0,{sample,adsr2:0x2000});synth.keyOn(0);}
+  assert.deepEqual(render(a.synth,512),render(b.synth,512));
+  const frame=a.core.nativeFrames,ram=a.core.readRam(),other=a.synth.getPreset(1);
+  a.synth.setEnvelope(0,{attackRate:70,attackExponential:true,decayRate:8,sustainLevel:9,sustainRate:127,sustainDecrease:true,sustainExponential:true,releaseRate:14,releaseExponential:true});
+  assert.equal(a.core.read(8),0xc689);assert.equal(a.core.read(10),0xffee);
+  assert.equal(a.core.nativeFrames,frame);assert.deepEqual(a.core.readRam(),ram);assert.deepEqual(a.synth.getPreset(1),other);
+  const p=a.synth.getState().channels[0].envelopeParameters;
+  assert.equal(p.attackRate,70);assert.equal(p.releaseRate,14);assert.equal(p.sustainDecrease,true);
+  assert.deepEqual(render(a.synth,1024),render(b.synth,1024),'ADSR register edits do not retrigger or replace the active envelope');
+  a.synth.keyOn(0);b.synth.keyOn(0);render(a.synth,256);render(b.synth,256);
+  assert.ok(a.core.read(12)<b.core.read(12)/4,'next key-on uses the programmed slow attack');
+  const before=a.synth.getPreset(0),snapshot=a.synth.snapshot();
+  for(const value of [{attackRate:128},{releaseExponential:1},{unsupported:0}])assert.throws(()=>a.synth.setEnvelope(0,value));
+  assert.deepEqual(a.synth.getPreset(0),before);assert.deepEqual(a.synth.snapshot().registers,snapshot.registers);
+});
+
+test('PS1 named reverb changes validate atomically and do not modify samples, pitch or master gain',async t=>{
+  const{synth,core}=await create(t),sample=load(synth);synth.setPreset(0,{sample});synth.keyOn(0);render(synth,512);
+  const before=synth.snapshot(),state=synth.getState(),frame=core.nativeFrames;
+  for(const value of [null,[],{preset:'echo'},{preset:'delay'},{preset:'unknown'},{volumeLeft:-.1},{volumeRight:1.01},{volumeLeft:NaN},{volumeRight:'0.5'},{preset:'hall',volumeRight:Infinity},{wet:.5}])assert.throws(()=>synth.setReverb(value));
+  for(const value of [{reverb:1},{reverb:'true'},{reverb:true,pitch:16384}])assert.throws(()=>synth.setPreset(0,value));
+  assert.deepEqual(synth.snapshot().registers,before.registers);assert.deepEqual(synth.getState(),state);assert.equal(core.nativeFrames,frame);
+  assert.deepEqual(synth._reverb({preset:'room',volumeRight:.5}),{preset:'room',volumeLeft:.25,volumeRight:.5});
+  assert.deepEqual(synth.snapshot().registers,before.registers,'pure inspector validation has no side effects');
+  synth.setReverb({preset:'room',volumeLeft:.5,volumeRight:.75});
+  assert.deepEqual(synth.getState().reverb,{preset:'room',volumeLeft:.5,volumeRight:.75});
+  assert.equal(core.read(0x184),0x4000);assert.equal(core.read(0x186),0x5fff);assert.equal(core.read(0x1aa),0xc080);
+  assert.equal(core.read(0x180),before.registers[0x180/2]);assert.equal(core.read(0x182),before.registers[0x182/2]);
+  assert.equal(core.read(4),before.registers[2]);assert.equal(core.nativeFrames,frame);assert.deepEqual(core.readRam(),before.ram);
+  const owned=synth.getState();owned.reverb.preset='off';owned.channels[0].envelopeParameters.attackRate=127;
+  assert.equal(synth.getState().reverb.preset,'room');assert.equal(synth.getState().channels[0].envelopeParameters.attackRate,0);
+});
+
+test('reverb send edits preserve all other voices and are restored after a one-shot END',async t=>{
+  const{synth,core}=await create(t),{adpcm}=createPs1InitSample();adpcm[1]=0;adpcm[49]=1;
+  const sample=synth.loadADPCM(adpcm,{rootNote:60});
+  for(const ch of [0,15,16,23])synth.setPreset(ch,{sample,reverb:true});
+  assert.equal(core.read(0x198),0x8001);assert.equal(core.read(0x19a),0x81);
+  synth.setPreset(15,{reverb:false});assert.equal(core.read(0x198),1);assert.equal(core.read(0x19a),0x81);
+  synth.keyOn(0);render(synth,512);assert.equal(core.read(0x198)&1,0,'upstream one-shot completion clears applied send');
+  assert.equal(synth.getPreset(0).reverb,true,'the requested voice preset remains available for another note');
+  synth.keyOn(0);assert.equal(core.read(0x198)&1,1);assert.equal(core.read(0x19a),0x81);
+  synth.setPreset(16,{reverb:false});assert.equal(core.read(0x19a),0x80);
+});
+
+test('every exposed nonzero reverb preset produces finite audible tails through the actual WASM SPU',async t=>{
+  for(const preset of PS1_REVERB_PRESETS){
+    const{synth}=await create(t),sample=load(synth);
+    synth.setPreset(0,{sample,reverb:true,volumeLeft:.2,volumeRight:.2});synth.setReverb({preset:preset.id,volumeLeft:.75,volumeRight:.75});
+    synth.keyOn(0);render(synth,4410);synth.keyOff(0);const audio=render(synth,44100),tail=audio.left.subarray(1024);
+    if(preset.id==='off')assert.equal(peak(tail),0);
+    else assert.ok(peak(tail)>.001,`${preset.id} has an audible wet tail after the dry voice stops`);
+  }
+});
+
+test('reverb return levels and sends update held voices, Off restores dry PCM, and Stop clears tails but retains settings',async t=>{
+  const a=await create(t),b=await create(t);
+  for(const{synth}of[a,b]){const sample=load(synth);synth.setPreset(0,{sample,volumeLeft:.2,volumeRight:.2});synth.keyOn(0);}
+  a.synth.setPreset(0,{reverb:true});
+  assert.deepEqual(render(a.synth,2048),render(b.synth,2048),'Off is exact dry bypass even when a voice requests reverb');
+  a.synth.setReverb({preset:'room',volumeLeft:0,volumeRight:.75});
+  const wet=render(a.synth,8192),dry=render(b.synth,8192);
+  assert.deepEqual(wet.left,dry.left);assert.notDeepEqual(wet.right,dry.right,'return edits take effect without key-on');
+  assert.equal(a.synth.getState().channels[0].gate,true);
+  a.synth.keyOff(0);b.synth.keyOff(0);const tail=render(a.synth,8192);
+  assert.equal(peak(tail.left.subarray(1024)),0);assert.ok(peak(tail.right.subarray(1024))>.001);
+  const settings=a.synth.getState().reverb,preset=a.synth.getPreset(0),ram=a.core.readRam(),next=a.synth.nextAddress;
+  a.synth.stopVoices();assert.deepEqual(a.synth.getState().reverb,settings);assert.deepEqual(a.synth.getPreset(0),preset);
+  assert.deepEqual(a.core.readRam(),ram);assert.equal(a.synth.nextAddress,next);assert.equal(peak(render(a.synth,8192).right),0);
+  assert.equal(a.core.read(0x198),1);assert.equal(a.core.read(0x1c0),PS1_REVERB_PRESETS.find(p=>p.id==='room').registers[0]);
+  a.synth.keyOn(0);render(a.synth,4096);a.synth.setReverb({preset:'off'});
+  assert.equal(a.core.read(0x184),0);assert.equal(a.core.read(0x186),0);assert.deepEqual(a.synth.getState().reverb,{...settings,preset:'off'});
+  a.synth.reset();assert.deepEqual(a.synth.getState().reverb,{preset:'off',volumeLeft:.25,volumeRight:.25});
+  assert.ok(a.synth.getState().channels.every(ch=>ch.reverb===false));assert.equal(a.synth.getState().samples.length,1);
 });

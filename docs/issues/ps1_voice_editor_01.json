@@ -1,0 +1,1283 @@
+{
+  "schemaVersion": 1,
+  "task": "ps1-live-voice-and-reverb-editor",
+  "date": "2026-10-28",
+  "baseCommit": "e2cadeafb0e1b433d5870b83d62873749e8e9bfa",
+  "status": "implemented and locally verified; unpublished",
+  "implementation": {
+    "target": "PS1 Web Audio",
+    "physicalVoices": 24,
+    "namedEnvelopeFields": 9,
+    "rawAdsrWordsRetained": true,
+    "graph": "schematic; no elapsed-time claim",
+    "ownedHeldNoteRetrigger": true,
+    "sustainedManualAudition": true,
+    "reverb": "seven existing core approximations plus Off; one shared preset and independent positive L/R returns",
+    "perVoiceReverbSend": true,
+    "voiceCodeCopy": true,
+    "stopRetainsSamplesVoiceAndEffectSettings": true,
+    "resetRestoresReverbOff": true,
+    "prepareAuditionBeforeDirectSound": true,
+    "pollingAdded": false,
+    "audioWorkletStructuredCloneRequired": false,
+    "cacheRevision": "ps1-voice-editor-1"
+  },
+  "unitTests": [
+    {
+      "group": "parameters, actual Synth, panel, transport, Worklet, performance ownership and chip tabs",
+      "passed": 116,
+      "skipped": 0,
+      "log": "/private/tmp/ps1-voice-editor-unit.log",
+      "logSha256": "48b8304e6760264c98e4cac8eef82c7ab10961b19f70967b35f64ec4fa64b052"
+    },
+    {
+      "group": "PS1 Sample Editor, instruments and Game Boy/shared editor regressions",
+      "passed": 69,
+      "skipped": 0,
+      "log": "/private/tmp/ps1-voice-editor-sample-regression.log",
+      "logSha256": "7f5c2bd3affd6233ed0afe13c0c67231deae7cbcc1b8cefdb328521dab7d135e"
+    },
+    {
+      "group": "Main and Worker runtime regressions",
+      "passed": 260,
+      "skipped": 0,
+      "log": "/private/tmp/ps1-voice-editor-runtime-regression.log",
+      "logSha256": "0147a29152190da3498c7a4fb13616adaa95a9033c853677e01e18773c2f2773"
+    }
+  ],
+  "types": {
+    "allPlaygroundModes": "pass",
+    "installedNodeNextBundlerBrowserPositiveNegative": "pass"
+  },
+  "browser": {
+    "source": {
+      "passed": true,
+      "routes": 4,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "sourceFilesVerified": 286,
+      "rawReport": "/private/tmp/ps1-voice-editor-source.json",
+      "rawReportSha256": "b2268ba40f553034606036a5a17cf926c8878cea785c4ca24ad8a052eb5c56fa",
+      "checkerSha256": "62463dea00529b3ae4f31677b703df7740e3d18a49b3e54e44d60d1276c0e2c4",
+      "archive": null,
+      "selectedServedSources": {
+        "generated/ps1_spu_wasm.js": {
+          "bytes": 16551,
+          "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a"
+        },
+        "generated/ps1_spu_wasm.wasm": {
+          "bytes": 44899,
+          "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6"
+        },
+        "js/playground_ps1_inspector.js": {
+          "bytes": 4976,
+          "sha256": "1d67e77a020b38c7104450ec0938dd4694bd6c357b62331629f7689d91ddc0d4"
+        },
+        "js/playground_ps1_worklet.js": {
+          "bytes": 6341,
+          "sha256": "2de82b0652a3a732cb9515e4c48122bb89cade19ad83b803901b8fa247974206"
+        },
+        "js/playground_ps1.js": {
+          "bytes": 6942,
+          "sha256": "1385fef7084fd2f13f22c3d59668b17032febadb962a571730b7bf048c798458"
+        },
+        "js/ps1_parameters.js": {
+          "bytes": 6190,
+          "sha256": "28c5b27b8f45c1a553fe95149e695183caf2bae9d2a0faf2ee6d8c37cc84f2fc"
+        },
+        "js/ps1synth.js": {
+          "bytes": 16661,
+          "sha256": "25cffe1f6a03fa7a197298ec571b08cf4f6299b0215442f5902af424780498ba"
+        },
+        "playground/playground_chip_tabs.js": {
+          "bytes": 40901,
+          "sha256": "de78e7319959e07c3863d3b78ded987245c6b8fbea7251c0d01b435c9afa1cb1"
+        },
+        "playground/playground_ps1_voice_panel.js": {
+          "bytes": 21498,
+          "sha256": "7ad57be655f78d13e68f6ae622cfd0a6c4d7a44893791c1e2b6140307f4bdbe7"
+        },
+        "playground/playground.js": {
+          "bytes": 124828,
+          "sha256": "d684cdef69903a3cfa8df8741c27352f385a142abf51748020e1c330fef90cbc"
+        }
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              5443,
+              1361,
+              5443,
+              1361,
+              1361,
+              5443
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.9720142379,
+              439.9720142379
+            ],
+            "initialRms": [
+              0.0077337719,
+              0.0077337719
+            ],
+            "liveGainRms": [
+              0.0038637111,
+              0.0077309243
+            ],
+            "deferredEnvelopeRms": [
+              0.0077329767,
+              0.0077329767
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.000399317,
+              0.000399317
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0035021186,
+              0.002553174
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.0076716713,
+              0.0076716713
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.0077421898,
+            0.0077421898
+          ],
+          "keyboardPointerRms": [
+            0.007742221,
+            0.007742221
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0076716396,
+            0.0076716396
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-voice-editor-ui/chromium-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-voice-editor-ui/chromium-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            }
+          ]
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              5443,
+              1361,
+              1361,
+              5443,
+              1361,
+              5443
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.987564868,
+              439.987564868
+            ],
+            "initialRms": [
+              0.0077338774,
+              0.0077338774
+            ],
+            "liveGainRms": [
+              0.0038637316,
+              0.0077309656
+            ],
+            "deferredEnvelopeRms": [
+              0.0077376999,
+              0.0077376999
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.0004544384,
+              0.0004544384
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0034357713,
+              0.0024080621
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.0076716871,
+              0.0076716871
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.007742221,
+            0.007742221
+          ],
+          "keyboardPointerRms": [
+            0.007742102,
+            0.007742102
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0076716871,
+            0.0076716871
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              1361,
+              5443,
+              5443,
+              1361,
+              1361,
+              5443
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.9822969649,
+              439.9822969649
+            ],
+            "initialRms": [
+              0.0077326375,
+              0.0077326375
+            ],
+            "liveGainRms": [
+              0.0038669393,
+              0.0077373696
+            ],
+            "deferredEnvelopeRms": [
+              0.0077337523,
+              0.0077337523
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.0004449331,
+              0.0004449331
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0034615931,
+              0.0025028173
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.0077049299,
+              0.0077049299
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.007742221,
+            0.007742221
+          ],
+          "keyboardPointerRms": [
+            0.0077429661,
+            0.0077429661
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0077049006,
+            0.0077049006
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-voice-editor-ui/webkit-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-voice-editor-ui/webkit-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            }
+          ]
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              5443,
+              1361,
+              1361,
+              5443,
+              5443,
+              1361
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.988479515,
+              439.988479515
+            ],
+            "initialRms": [
+              0.0077324826,
+              0.0077324826
+            ],
+            "liveGainRms": [
+              0.003863635,
+              0.0077307628
+            ],
+            "deferredEnvelopeRms": [
+              0.0077315861,
+              0.0077315861
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.0004544344,
+              0.0004544344
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0034897876,
+              0.0025362542
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.0077010995,
+              0.0077010995
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.007742102,
+            0.007742102
+          ],
+          "keyboardPointerRms": [
+            0.0077420784,
+            0.0077420784
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0077048791,
+            0.0077048791
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": []
+        }
+      ]
+    },
+    "run-zip": {
+      "passed": true,
+      "routes": 4,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "sourceFilesVerified": 214,
+      "rawReport": "/private/tmp/ps1-voice-editor-run-zip.json",
+      "rawReportSha256": "1fd487036b18ce484ab2d66ceb49e1b87848ac4b0fbf5cb0e2fc503e4b8b7c93",
+      "checkerSha256": "62463dea00529b3ae4f31677b703df7740e3d18a49b3e54e44d60d1276c0e2c4",
+      "archive": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_ps1-voice-editor-dev_itch_playground_for_run.zip",
+        "bytes": 37275203,
+        "sha256": "e3a1d3c6627cdd8af49c17a86d18ab8a17da5654f22d1ad765e000b4fd65d7a0"
+      },
+      "selectedServedSources": {
+        "generated/ps1_spu_wasm.js": {
+          "bytes": 16551,
+          "sha256": "004e05f4f41bca695af9499c81cf5ce4b1c6fc94934618e56249c9de8e666f7a"
+        },
+        "generated/ps1_spu_wasm.wasm": {
+          "bytes": 44899,
+          "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6"
+        },
+        "js/playground_ps1_inspector.js": {
+          "bytes": 4976,
+          "sha256": "1d67e77a020b38c7104450ec0938dd4694bd6c357b62331629f7689d91ddc0d4"
+        },
+        "js/playground_ps1_worklet.js": {
+          "bytes": 6341,
+          "sha256": "2de82b0652a3a732cb9515e4c48122bb89cade19ad83b803901b8fa247974206"
+        },
+        "js/playground_ps1.js": {
+          "bytes": 6942,
+          "sha256": "1385fef7084fd2f13f22c3d59668b17032febadb962a571730b7bf048c798458"
+        },
+        "js/ps1_parameters.js": {
+          "bytes": 6190,
+          "sha256": "28c5b27b8f45c1a553fe95149e695183caf2bae9d2a0faf2ee6d8c37cc84f2fc"
+        },
+        "js/ps1synth.js": {
+          "bytes": 16661,
+          "sha256": "25cffe1f6a03fa7a197298ec571b08cf4f6299b0215442f5902af424780498ba"
+        },
+        "playground.js": {
+          "bytes": 842603,
+          "sha256": "0434b48a5b8d5b9f24ebf5ad764d70734e03875247af311eab339ca33df11160"
+        }
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              5443,
+              1361,
+              5443,
+              1361,
+              1361,
+              5443
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.9877153175,
+              439.9877153175
+            ],
+            "initialRms": [
+              0.0077313203,
+              0.0077313203
+            ],
+            "liveGainRms": [
+              0.0038655956,
+              0.0077346976
+            ],
+            "deferredEnvelopeRms": [
+              0.0077382107,
+              0.0077382107
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.0003993074,
+              0.0003993074
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0032889403,
+              0.0020579774
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.007724405,
+              0.007724405
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.007742221,
+            0.007742221
+          ],
+          "keyboardPointerRms": [
+            0.0077420784,
+            0.0077420784
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0076717122,
+            0.0076717122
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-voice-editor-zip-ui/chromium-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-voice-editor-zip-ui/chromium-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            }
+          ]
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              5443,
+              1361,
+              1361,
+              5443,
+              1361,
+              5443
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.9785325075,
+              439.9785325075
+            ],
+            "initialRms": [
+              0.0077334673,
+              0.0077334673
+            ],
+            "liveGainRms": [
+              0.0038636601,
+              0.0077308216
+            ],
+            "deferredEnvelopeRms": [
+              0.0077378925,
+              0.0077378925
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.0003993298,
+              0.0003993298
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0035035217,
+              0.0025545064
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.0077242187,
+              0.0077242187
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.0077421482,
+            0.0077421482
+          ],
+          "keyboardPointerRms": [
+            0.0077421898,
+            0.0077421898
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0077242187,
+            0.0077242187
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              5443,
+              1361,
+              5443,
+              5443,
+              1361,
+              1361
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.9822969649,
+              439.9822969649
+            ],
+            "initialRms": [
+              0.0077326375,
+              0.0077326375
+            ],
+            "liveGainRms": [
+              0.0038669393,
+              0.0077373696
+            ],
+            "deferredEnvelopeRms": [
+              0.0077317296,
+              0.0077317296
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.0004073069,
+              0.0004073069
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0033345283,
+              0.002135896
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.0077049299,
+              0.0077049299
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.007742221,
+            0.007742221
+          ],
+          "keyboardPointerRms": [
+            0.0077420784,
+            0.0077420784
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0077048791,
+            0.0077048791
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-voice-editor-zip-ui/webkit-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-voice-editor-zip-ui/webkit-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            }
+          ]
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "namedAdsrFieldsValidated": 9,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true,
+          "invalidInputRejected": true,
+          "rawWordsUpdateDecodedControls": true,
+          "otherVoiceProgress": {
+            "channel": 1,
+            "pitches": [
+              5443,
+              1361,
+              1361,
+              5443,
+              5443,
+              1361
+            ]
+          },
+          "audition": {
+            "dryFrequencyHz": [
+              439.9796787422,
+              439.9796787422
+            ],
+            "initialRms": [
+              0.007732341,
+              0.007732341
+            ],
+            "liveGainRms": [
+              0.0038670751,
+              0.0077376385
+            ],
+            "deferredEnvelopeRms": [
+              0.0077307169,
+              0.0077307169
+            ],
+            "ownedRetriggerSlowAttackRms": [
+              0.0004072957,
+              0.0004072957
+            ],
+            "releasedPeak": [
+              0,
+              0
+            ],
+            "ownedNoteRetrigger": true
+          },
+          "reverb": {
+            "presets": [
+              "off",
+              "room",
+              "studio-small",
+              "studio-medium",
+              "studio-large",
+              "hall",
+              "space-echo",
+              "half-echo"
+            ],
+            "dryTailPeak": [
+              0,
+              0
+            ],
+            "wetTailRms": [
+              0.0034997877,
+              0.0025248053
+            ],
+            "zeroReturnPeak": [
+              0,
+              0
+            ],
+            "stopPeak": [
+              0,
+              0
+            ],
+            "stopRetainsParameters": true,
+            "directAuditionAfterStop": true,
+            "directAfterStopRms": [
+              0.0077011622,
+              0.0077011622
+            ]
+          },
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "keyboardPcRms": [
+            0.0077421482,
+            0.0077421482
+          ],
+          "keyboardPointerRms": [
+            0.0077421898,
+            0.0077421898
+          ],
+          "disconnectReleasesAudition": true,
+          "immediateAuditionAfterAuthoredErrorRms": [
+            0.0077048383,
+            0.0077048383
+          ],
+          "captures": {
+            "segments": 16,
+            "frames": 180224,
+            "sampleRates": [
+              48000
+            ],
+            "quantumSizes": [
+              128
+            ],
+            "frameGaps": 0,
+            "nonFiniteSamples": 0
+          },
+          "processorErrors": [],
+          "physicalOutputMuted": true,
+          "screenshots": []
+        }
+      ]
+    }
+  },
+  "npm": {
+    "version": "0.2.32",
+    "files": 989,
+    "compressedBytes": 1888687,
+    "unpackedBytes": 7057904,
+    "declarations": 382,
+    "localAssetModuleReferences": 1087,
+    "wasmEngines": 28,
+    "rendererChecks": 15,
+    "installedNamedParametersAndActualSpuEffects": "pass",
+    "log": "/private/tmp/ps1-voice-editor-npm-check.log",
+    "logSha256": "b0b48b930c13d96cc6916d0d80dad5e7765eff7027a3ba14e7b9966b0e69ce1d",
+    "published": false
+  },
+  "packaging": {
+    "standardSynthAnalyzerPlaygroundCommands": "pass",
+    "archives": [
+      {
+        "path": "release/hello_ymfm_wasm_ps1-voice-editor-dev_itch_synth.zip",
+        "stage": "release/itch_synth_ps1-voice-editor-dev",
+        "entries": 231,
+        "files": 203,
+        "directories": 28,
+        "bytes": 778783,
+        "expandedBytes": 2364111,
+        "sha256": "244043829dd0b1c3ee463d244c750dfac888493c355a28c4fb775c6252af5d77",
+        "crc": "pass",
+        "stageByteEquality": "all files",
+        "pathSafety": "pass",
+        "browserPlayable": true
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ps1-voice-editor-dev_itch_vgm_analyzer.zip",
+        "stage": "release/itch_vgm_analyzer_ps1-voice-editor-dev",
+        "entries": 463,
+        "files": 421,
+        "directories": 42,
+        "bytes": 1900076,
+        "expandedBytes": 5749672,
+        "sha256": "59ac7e1b209fdc3871b0f6b8d6940b3ec3011e6b4cb06b307f30b917c5e445ed",
+        "crc": "pass",
+        "stageByteEquality": "all files",
+        "pathSafety": "pass",
+        "browserPlayable": true
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ps1-voice-editor-dev_itch_playground.zip",
+        "stage": "release/itch_playground_ps1-voice-editor-dev",
+        "entries": 1169,
+        "files": 1054,
+        "directories": 115,
+        "bytes": 36939417,
+        "expandedBytes": 43048303,
+        "sha256": "4dd47ac29980d56419d75e00297e0d5e105eb3b041942a6d6d5c704950a8129d",
+        "crc": "pass",
+        "stageByteEquality": "all files",
+        "pathSafety": "pass",
+        "browserPlayable": false
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ps1-voice-editor-dev_itch_playground_for_run.zip",
+        "stage": "release/itch_playground_ps1-voice-editor-dev_for_run",
+        "entries": 922,
+        "files": 922,
+        "directories": 0,
+        "bytes": 37275203,
+        "expandedBytes": 42695471,
+        "sha256": "e3a1d3c6627cdd8af49c17a86d18ab8a17da5654f22d1ad765e000b4fd65d7a0",
+        "crc": "pass",
+        "stageByteEquality": "all files",
+        "pathSafety": "pass",
+        "browserPlayable": true
+      }
+    ],
+    "crc": "pass",
+    "safePaths": "pass",
+    "stageBytes": "all files equal",
+    "itchRunEntryLimit": 1000,
+    "runArchiveEntries": 922
+  },
+  "checks": {
+    "analyzerCalibrationReferences": 8,
+    "analyzerCalibrationGuard": "pass",
+    "actionlint": "pass",
+    "runtimeVersionerChangedModules": 0,
+    "finalReadOnlyReview": "no actionable issues"
+  },
+  "unchanged": {
+    "cppCore": true,
+    "wasmBinariesAndReceipts": true,
+    "mixerGains": true,
+    "fixedSdk": true,
+    "tauriNative": true
+  },
+  "publication": {
+    "committed": false,
+    "pushed": false,
+    "tagged": false,
+    "npm": false,
+    "itch": false,
+    "remoteCiRun": false
+  },
+  "remaining": [
+    "Human listening / hardware comparison",
+    "PS1 SDK source and recipe adoption",
+    "Tauri Native audio adapter"
+  ]
+}

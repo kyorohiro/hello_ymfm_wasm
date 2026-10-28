@@ -1,4 +1,4 @@
-import {createPlaygroundPs1VoicePanel} from './playground_ps1_voice_panel.js?v=ps1-mode-1';
+import {createPlaygroundPs1VoicePanel} from './playground_ps1_voice_panel.js?v=ps1-voice-editor-1';
 import {createPlaygroundWonderSwanVoicePanel} from './playground_wonderswan_voice_panel.js?v=wonderswan-pcm-timeline-1';
 import {createPlaygroundPokeyVoicePanel} from './playground_pokey_voice_panel.js?v=pokey-voice-1';
 import {createPlaygroundDx7VoicePanel} from './playground_dx7_voice_panel.js?v=audio-numeric-bindings-1';
@@ -212,7 +212,7 @@ export function createPlaygroundChipTabs({roots, getInspector, listFiles = () =>
           if (!live()) throw new DOMException('Sound chip changed','AbortError');
           return value;
         });
-        editor.voicePanel = factory({root:editor.body,invoke,listFiles,readFile,loadSample,openSampleEditor:editSample,
+        editor.voicePanel = factory({root:editor.body,invoke,listFiles,readFile,loadSample,openSampleEditor:editSample,ensureAudioReady,
           ...(editor.kind==='pokey'?{apiName:Object.hasOwn(voiceApiNames,id)?voiceApiNames[id]:null,instanceId:id}:{}),
           onSelectedChannelChange:publishAuditionTarget,onError:e=>error(editor,e),onKeyboardTargetChange:target=>{
           if (target) {

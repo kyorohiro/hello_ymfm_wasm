@@ -1,5 +1,5 @@
 /** Ordered Browser/logic-Worker controls for the experimental PS1 SPU. */
-import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-mode-1';
+import {Ps1Synth,preparePs1ADPCM} from './ps1synth.js?v=ps1-voice-editor-1';
 const TIMEOUT_MS=15000;
 /** @param {MessagePort} port @param {{sampleRate?:number,state?:any}} [initial] */
 export function createPs1Client(port,initial={},lifecycle={}) {
@@ -17,7 +17,7 @@ export function createPs1Client(port,initial={},lifecycle={}) {
     sampleRate:initial.sampleRate??44100,nativeSampleRate:44100,channelCount:24,
     _getState(){return validation.getState();},
     _setLifecycle(options){lifecycle=options;},
-    _adoptState(state){if(!state)return;validation.samples=structuredClone(state.samples??[]);validation.channels=(state.channels??validation.channels).map(({sample,volumeLeft,volumeRight,adsr1,adsr2,pitch})=>({sample,volumeLeft,volumeRight,adsr1,adsr2,pitch}));validation.gates=state.channels?.map(ch=>!!ch.gate)??validation.gates;validation.nextAddress=state.nextAddress??0x1000;},
+    _adoptState(state){if(!state)return;validation.samples=structuredClone(state.samples??[]);validation.channels=(state.channels??validation.channels).map(({sample,volumeLeft,volumeRight,adsr1,adsr2,pitch,reverb=false})=>({sample,volumeLeft,volumeRight,adsr1,adsr2,pitch,reverb}));validation.gates=state.channels?.map(ch=>!!ch.gate)??validation.gates;validation.nextAddress=state.nextAddress??0x1000;if(state.reverb)validation.reverb=structuredClone(state.reverb);},
     _stopVoices(){return request('stopVoices').then(value=>{validation.gates.fill(false);return value;});},
     /** @param {ArrayBuffer|ArrayBufferView} input @param {import('./ps1synth.js?v=audio-stability-2').Ps1ADPCMOptions} options */
     async loadADPCM(input,options){assertOpen();const prepared=preparePs1ADPCM(input,options),bytes=prepared.adpcm,retained=bytes.slice(),saved=structuredClone(options),at=revision,bank=bankRevision;const sample=await request('loadADPCM',[bytes,saved],[bytes.buffer]);assertOpen();/* A default reset retains RAM, including this already-ordered upload. Keep its reservation even though the old continuation is cancelled. */if(bank===bankRevision)validation.loadADPCM(retained,saved);if(at!==revision)throw abort('PS1 SPU upload cancelled by reset');return sample;},
@@ -25,6 +25,12 @@ export function createPs1Client(port,initial={},lifecycle={}) {
     setPreset(ch,preset){control('setPreset',[ch,structuredClone(preset)]);},
     /** @param {number} ch @param {import('./ps1synth.js?v=audio-stability-2').Ps1Preset} preset */
     setChannel(ch,preset){control('setChannel',[ch,structuredClone(preset)]);},
+    /** Named ADSR register fields. Rates are table indexes, not milliseconds.
+     * @param {number} ch @param {Partial<import('./ps1_parameters.js?v=chip-tabs-2').Ps1Envelope>} envelope */
+    setEnvelope(ch,envelope){control('setEnvelope',[ch,structuredClone(envelope)]);},
+    /** Shared SPU reverb preset and positive return levels; voices opt in separately.
+     * @param {Partial<import('./ps1_parameters.js?v=chip-tabs-2').Ps1Reverb>} options */
+    setReverb(options){control('setReverb',[structuredClone(options)]);},
     /** @param {number} ch @param {number} pitch */ setPitch(ch,pitch){control('setPitch',[ch,pitch]);},
     /** @param {number} ch @param {number} hz */ setFrequency(ch,hz){control('setFrequency',[ch,hz]);},
     /** @param {number} ch @param {string|number} note */ setNote(ch,note){control('setNote',[ch,note]);},

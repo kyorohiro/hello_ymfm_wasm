@@ -57,6 +57,7 @@ entry points, rather than every internal Worker or Worklet module.
 | SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
 | Experimental PlayStation SPU, low level | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | PS1 tuned sample instruments / host PCM rate | `tetorica-fm2612/ps1synth.js`, `tetorica-fm2612/ps1_resampler.js` | `Ps1Synth`, `createPs1InitSample`, `Ps1Resampler` |
+| PS1 named ADSR / reverb parameters | `tetorica-fm2612/ps1_parameters.js` | `decodePs1Envelope`, `encodePs1Envelope`, `patchPs1Envelope`, `PS1_REVERB_PRESETS` |
 | PCM to PS1 SPU ADPCM | `tetorica-fm2612/ps1_adpcm_encoder.js` | `encodePs1Adpcm` |
 | PS1 Sample Editor conversion / waveform comparison | `tetorica-fm2612/playground_sample_ps1.js` | `renderPs1Sample`, `renderPs1SampleComparison` |
 | Isolated offline PS1 sample audition | `tetorica-fm2612/playground_sample_ps1_preview.js` | `renderPs1SamplePreview` with an injected PS1 WASM factory |
@@ -109,8 +110,20 @@ The synchronous API provides `write()`, `read()`, `loadRam()`, `readRam()`,
 44,100 Hz; samples must already be encoded as PSX ADPCM. No audio device starts
 automatically. `Ps1Synth` (`ps1synth.js`) adds tuned ADPCM instruments and 24 physical voices.
 `Ps1Resampler` (`ps1_resampler.js`) converts fixed-rate PCM to the host rate.
+`Ps1Synth.setEnvelope(channel, partial)` edits named ADSR rates, sustain level
+and exponential/direction modes. Rates are raw core table indexes, not
+millisecond durations; changes apply at the next key-on. `setPreset(channel,
+{reverb:true})` enables a voice's send and `setReverb({preset:'room',
+volumeLeft:0.3, volumeRight:0.3})` selects the shared approximate effect and its
+independent `0..1` return levels. The seven working presets are Room, Studio
+Small/Medium/Large, Hall, Space Echo and Half Echo, plus Off. Effects and return
+levels can change held notes. Stop clears tails while retaining samples and
+programmed settings; reset restores Off and disables sends. No Mixer gain is
+changed. `ps1_parameters.js` exports the read-only preset list and typed ADSR
+encoding/decoding/partial-patching helpers.
 The Browser Playground offers PS1 mode, the `spu` primary API, Keyboard and an
-SPU voice editor; its script API also supports `createSoundChip('ps1')`.
+SPU voice editor with sustained audition, named ADSR controls, shared reverb
+and per-voice sends; its script API also supports `createSoundChip('ps1')`.
 `encodePs1Adpcm` converts normalized mono Float32 PCM into SPU packets with
 explicit loop positions and JSON-safe reconstruction metrics. It does not
 resample or normalize; declare tuning when uploading the encoded sample.

@@ -29,6 +29,15 @@ async function checkPs1ModeTypes() {
   sample.startAddress.toFixed(); sample.repeatAddress.toFixed(); sample.decodedFrames.toFixed();
   spu.setPreset(23, {sample,volumeLeft:0.7,volumeRight:-0.7,adsr1:15,adsr2:8});
   spu.setChannel(0,{sample:sample.id});spu.setPitch(0,4096);spu.setFrequency(0,440);spu.setNote(0,'A4');
+  spu.setEnvelope(23,{attackRate:40,attackExponential:true,decayRate:4,sustainLevel:8,sustainRate:127,sustainDecrease:true,sustainExponential:false,releaseRate:8,releaseExponential:true});
+  spu.setPreset(23,{reverb:true});spu.setReverb({preset:'hall',volumeLeft:.25,volumeRight:.3});
+  (await spu.getState()).reverb.preset.toUpperCase();(await spu.getState()).channels[23].envelopeParameters.attackRate.toFixed();
+  // @ts-expect-error Only implemented named reverb approximations are exposed.
+  spu.setReverb({preset:'delay'});
+  // @ts-expect-error Per-voice reverb routing is boolean.
+  spu.setPreset(23,{reverb:1});
+  // @ts-expect-error ADSR fields use numeric table indexes, not seconds strings.
+  spu.setEnvelope(23,{attackRate:'100ms'});
   spu.keyOn(0);spu.keyOff(0);spu.noteOn(23,'C4');spu.noteOff(23);spu.allNotesOff();
   pg.spu.noteOn(0,60);await livePrepare('spu',async ({spu})=>{await spu.getState();});
   (await spu.getPreset(23)).adsr1.toFixed();(await spu.getState()).channels[23].envelope.toFixed();

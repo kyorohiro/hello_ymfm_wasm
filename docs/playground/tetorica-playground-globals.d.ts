@@ -1912,14 +1912,28 @@ interface PlaygroundPs1Sample {
   rootNote:string|number|null;rootFrequencyHz:number;basePitch:number;loop:boolean;loopStartSamples:number|null;
 }
 interface PlaygroundPs1VoiceState {
-  sample:number|null;volumeLeft:number;volumeRight:number;adsr1:number;adsr2:number;pitch:number;
+  sample:number|null;volumeLeft:number;volumeRight:number;adsr1:number;adsr2:number;pitch:number;reverb:boolean;
+}
+/** Raw envelope-table indexes: zero is fastest, higher values are slower or hold.
+ * These values are not durations in milliseconds. */
+interface PlaygroundPs1Envelope {
+  attackRate:number;attackExponential:boolean;decayRate:number;sustainLevel:number;
+  sustainRate:number;sustainDecrease:boolean;sustainExponential:boolean;
+  releaseRate:number;releaseExponential:boolean;
+}
+type PlaygroundPs1ReverbPreset = 'off'|'room'|'studio-small'|'studio-medium'|'studio-large'|'hall'|'space-echo'|'half-echo';
+interface PlaygroundPs1Reverb {
+  preset:PlaygroundPs1ReverbPreset;
+  /** Positive return gains 0..1. Shared by all voices routed to reverb. */
+  volumeLeft:number;volumeRight:number;
 }
 type PlaygroundPs1Preset = Partial<Omit<PlaygroundPs1VoiceState,'sample'>> & {sample?:number|PlaygroundPs1Sample};
 interface PlaygroundPs1State {
   /** Native source rate; the client sampleRate is the AudioContext output rate. */
   sampleRate:44100;channelCount:24;nextAddress:number;nativeFrames:number;
   samples:PlaygroundPs1Sample[];
-  channels:Array<PlaygroundPs1VoiceState & {gate:boolean;envelope:number;ended:boolean}>;
+  channels:Array<PlaygroundPs1VoiceState & {gate:boolean;envelope:number;envelopeParameters:PlaygroundPs1Envelope;ended:boolean}>;
+  reverb:PlaygroundPs1Reverb;
 }
 /** Experimental MAME-derived SPU instrument, available through Web Audio only.
  * 24 physical voices, 512 KiB RAM. This is not a PSF player or a full PS1.
@@ -1934,6 +1948,10 @@ interface PlaygroundPs1 {
    * ADSR edits take effect on the next key-on in the current core. */
   setPreset(channel:PlaygroundPs1Channel,preset:PlaygroundPs1Preset):void;
   setChannel(channel:PlaygroundPs1Channel,params:PlaygroundPs1Preset):void;
+  /** Partial decoded ADSR fields; takes effect on the next key-on. */
+  setEnvelope(channel:PlaygroundPs1Channel,envelope:Partial<PlaygroundPs1Envelope>):void;
+  /** Approximate named reverb presets; enable the voice's reverb flag separately. */
+  setReverb(options:Partial<PlaygroundPs1Reverb>):void;
   getPreset(channel:PlaygroundPs1Channel):Promise<PlaygroundPs1VoiceState>;
   /** Raw PITCH 0..16383; 4096 advances one source frame per native output frame. */
   setPitch(channel:PlaygroundPs1Channel,pitch:number):void;
