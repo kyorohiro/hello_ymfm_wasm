@@ -1,6 +1,6 @@
 # SDK 0.1.6 public release and application adoption
 
-2026-10-29 JST. **The SDK v0.1.6 release is published, and the actual public source ZIP has been adopted and verified in the main application and Playground Tauri.** The SDK release commit/tag is pushed. Main/Tauri adoption changes are uncommitted at this record time. npm [`tetorica-fm2612 0.2.33`](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33) is also published; its separate publication evidence is in [the npm release record](npm_ps1_mixer_release_01.md).
+2026-10-29 JST. **The SDK v0.1.6 release is published, and the actual public source ZIP has been adopted and verified in the main application and Playground Tauri.** The SDK release commit/tag is pushed. The user committed and pushed the main adoption as `9cb0ab772763c5f1583b76023b3461b657c8fb2d` and Tauri adoption as `6ac2f78d204c5055de0dc1f6576d05979e0397b2` (both titled `tetorica-fm2612 0.2.33`). Final release-record edits may remain uncommitted. npm [`tetorica-fm2612 0.2.33`](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33) is also published; its separate publication evidence is in [the npm release record](npm_ps1_mixer_release_01.md).
 
 ## Published source and fixed pins
 
@@ -62,4 +62,4 @@ Machine-readable results, raw evidence sizes/SHA-256 values, complete runtime pr
 
 [PS1 SDK/Native implementation](ps1_sdk_native_01.md), [prior remote CI](ps1_remote_ci_01.md) and the original calibration reports retain their historical statuses and bytes. This new record supersedes their unpublished-candidate status only for the formal release/adoption described here.
 
-No Desktop application release, itch upload or hardware listening was performed. Main/Tauri adoption changes were uncommitted when recorded. npm [`0.2.33`](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33) publication completed successfully, and registry version/latest match the verified tarball. Its tarball, registry integrity and publication result are documented separately in [npm_ps1_mixer_release_01.md](npm_ps1_mixer_release_01.md).
+No Desktop application release, itch upload or hardware listening was performed. The earlier validation snapshot preceded the user commits above; integration code is now committed and pushed. Later record edits may remain uncommitted. npm [`0.2.33`](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33) publication completed successfully: registry version/latest and the downloaded published tarball match the verified release archive. Its tarball, registry integrity and publication result are documented separately in [npm_ps1_mixer_release_01.md](npm_ps1_mixer_release_01.md).

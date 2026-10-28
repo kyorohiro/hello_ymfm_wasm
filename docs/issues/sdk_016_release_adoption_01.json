@@ -1084,7 +1084,37 @@
     ],
     "sandboxAttemptReason": "Initial Emscripten writes to its installed symbol-list cache lock were denied; approved reruns completed successfully. Initial attempt logs remain unchanged."
   },
-  "repositoryStateAtRecord": [
+  "publicationScope": {
+    "sdkReleasePublished": true,
+    "mainAdoptionChangesCommitted": true,
+    "tauriAdoptionChangesCommitted": true,
+    "desktopReleasePublished": false,
+    "itchUploadPerformed": false,
+    "hardwareListeningPerformed": false,
+    "npm": {
+      "package": "tetorica-fm2612",
+      "version": "0.2.33",
+      "statusAtRecord": "published",
+      "publishedByThisRecord": false,
+      "publicationURL": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33",
+      "separatePublicationRecord": "docs/issues/npm_ps1_mixer_release_01.md",
+      "publishedArchiveSha256": "e0225b57b3936cd449d9d93a42712b481a69d4551141f4e160e3807b474271b7",
+      "publishedArchiveBytesMatchVerifiedTarball": true
+    },
+    "integrationCommits": {
+      "main": "9cb0ab772763c5f1583b76023b3461b657c8fb2d",
+      "tauri": "6ac2f78d204c5055de0dc1f6576d05979e0397b2",
+      "title": "tetorica-fm2612 0.2.33",
+      "committedAndPushedBy": "user"
+    }
+  },
+  "limits": [
+    "The historical aggregate CI built the earlier local candidate, not the published source ZIP; the full recorded source/output equivalence audit supplies the relationship.",
+    "Main/Tauri integration was committed and pushed by the user after the validation snapshot. Later release-record edits may remain uncommitted. This record publishes no Desktop or itch distribution.",
+    "This record performs no new browser, compiler, audio-device or hardware-listening test; it references completed evidence.",
+    "npm 0.2.33 publication completed successfully; its tarball, registry integrity and publication evidence are documented in the separate npm release record."
+  ],
+  "repositoryStateAtValidation": [
     {
       "path": ".",
       "head": "1abd009bae02c323676d7e4551e047b62dd2757c",
@@ -1101,26 +1131,20 @@
       "workingTreeHasUncommittedChanges": false
     }
   ],
-  "publicationScope": {
-    "sdkReleasePublished": true,
-    "mainAdoptionChangesCommitted": false,
-    "tauriAdoptionChangesCommitted": false,
-    "desktopReleasePublished": false,
-    "itchUploadPerformed": false,
-    "hardwareListeningPerformed": false,
-    "npm": {
-      "package": "tetorica-fm2612",
-      "version": "0.2.33",
-      "statusAtRecord": "published",
-      "publishedByThisRecord": false,
-      "publicationURL": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33",
-      "separatePublicationRecord": "docs/issues/npm_ps1_mixer_release_01.md"
+  "repositoryStateAfterUserIntegration": [
+    {
+      "path": ".",
+      "head": "9cb0ab772763c5f1583b76023b3461b657c8fb2d",
+      "integrationCommittedBy": "user",
+      "integrationPushed": true,
+      "laterReleaseRecordEditsMayRemainUncommitted": true
+    },
+    {
+      "path": "w/tetorica-fm2612-playground-tauri",
+      "head": "6ac2f78d204c5055de0dc1f6576d05979e0397b2",
+      "integrationCommittedBy": "user",
+      "integrationPushed": true,
+      "laterReleaseRecordEditsMayRemainUncommitted": true
     }
-  },
-  "limits": [
-    "The historical aggregate CI built the earlier local candidate, not the published source ZIP; the full recorded source/output equivalence audit supplies the relationship.",
-    "Main/Tauri adoption changes were uncommitted at record time. This record publishes no Desktop or itch distribution.",
-    "This record performs no new browser, compiler, audio-device or hardware-listening test; it references completed evidence.",
-    "npm 0.2.33 publication completed successfully; its tarball, registry integrity and publication evidence are documented in the separate npm release record."
   ]
 }

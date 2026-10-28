@@ -1,9 +1,13 @@
 # PS1, sample encoders and calibrated Mixer npm release
 
-Status: **preparing `tetorica-fm2612 0.2.33`; not yet published**.
+Status: **published `tetorica-fm2612 0.2.33`, 2026-10-29**.
 
-The registry was checked on 2026-10-29: `tetorica-fm2612` and its `latest` tag
-were `0.2.32`, and `0.2.33` was unused. The baseline is the published 0.2.32
+Published package: [tetorica-fm2612 0.2.33](https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33).
+The registry's `latest` tag is `0.2.33`. Its downloaded tarball is byte-identical
+to the isolated-installation artifact verified before publication.
+
+Before publication, the registry was checked on 2026-10-29: `tetorica-fm2612`
+and its `latest` tag were `0.2.32`, and `0.2.33` was unused. The baseline is the published 0.2.32
 release recorded in [npm_cdrom2_release_01.md](npm_cdrom2_release_01.md) and
 repository commit `f3d87211`.
 
@@ -24,7 +28,7 @@ The release contains the accumulated changes since 0.2.32:
   source receipts, generated declarations and standalone rebuild recipes.
   CD-DA and MSM5205 remain separate application-audio APIs.
 
-The package version and npm README are prepared. The formal
+The package version and npm README are published. The formal
 [SDK v0.1.6 release](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.6)
 was published and its source archive adopted by both the main application and
 Tauri. The main application's `third_party/soundchip-sdk.json` records source
@@ -33,9 +37,8 @@ commit `ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6`, source ZIP SHA-256
 manifest SHA-256
 `e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb`
 and 455 files. This published source pin replaces the earlier local-candidate
-provenance. Final 0.2.33 tarball validation and npm publication have not yet
-been recorded here; previous implementation reports describe historical local
-validation.
+provenance. The final validation below applies to the published 0.2.33 artifact;
+previous implementation reports retain their historical scope.
 
 The post-adoption Python importer and build-routing regression suite passed:
 `python3 -m unittest discover -s test -p 'test_*sdk*.py' -v`, **142 tests**,
@@ -64,12 +67,39 @@ build input changed. This audit executed no compiler or audio check and does
 not relabel the historical CI run as a build of the official archive. Detailed
 evidence is `/private/tmp/sdk-016-ci-source-equivalence.json`.
 
-Final release evidence must identify the exact tarball and hashes, isolated
-installation and consumer types, actual WASM/core and relevant browser checks,
-source/license closure, and registry parity after publication. These results
-will be recorded in `npm_ps1_mixer_release_01.json` and this status updated
-after publication. Prior candidate counts and test results are historical and
-are not assertions about the final artifact.
+## Final published artifact
+
+- Tarball: `tetorica-fm2612-0.2.33.tgz`, **1,951,319 bytes** compressed,
+  **7,394,104 bytes** unpacked, **1,004 files**.
+- SHA-256: `e0225b57b3936cd449d9d93a42712b481a69d4551141f4e160e3807b474271b7`.
+- npm shasum: `bb15cff9d01281f65eb7edb3bc4a8719c7103410`.
+- Every payload file matches the tested isolated installation. Registry version,
+  `latest`, shasum and SHA-512 integrity match; the public registry download also
+  matches the verified tarball in every byte.
+- Installed-runtime checks passed: **1,097 local module/asset references**,
+  **28 WASM engines**, 15 renderer checks and **385 declarations**. Positive and
+  negative NodeNext/Bundler types and Browser types without Node ambient types
+  passed.
+- The installed package passed DX7 and HuC6280 Browser tests in Chromium/WebKit
+  and Main/Worker: **eight routes**, including real PCM, live controls, Mixer,
+  Keyboard and Stop/restart.
+- Independently extracted PS1 sources rebuilt the exact JS/WASM pair. CD-DA and
+  MSM5205 standalone descriptor/WASM rebuilds were exact, and their cores compiled
+  as C11 and C++14. No sibling checkout or SDK importer was needed for rebuilding.
+- Formal SDK adoption preserved all **77 deployed JS/WASM files**. Source
+  fingerprints and the historical PS1/WonderSwan/POKEY calibration guards passed.
+  The separate SDK Node suite passed **116 tests**, in addition to the Python
+  suite above.
+
+npm login and the additional web approval were completed by the account owner.
+An initial noninteractive publish attempt stopped with EOTP before publication;
+the interactive retry published the same verified tarball successfully.
+Authentication URLs and credentials are not stored in the release evidence.
+
+Exact metadata, registry integrity, validation log hashes and limits are recorded
+in [npm_ps1_mixer_release_01.json](npm_ps1_mixer_release_01.json). SDK and Tauri
+adoption are recorded separately in
+[sdk_016_release_adoption_01.md](sdk_016_release_adoption_01.md).
 
 Implementation evidence: [PS1 SDK/Native integration](ps1_sdk_native_01.md),
 [PS1 clock/PCM checks](ps1_audio_clock_01.md),

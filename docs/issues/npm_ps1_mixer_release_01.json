@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "status": "published",
+  "verifiedAtUtc": "2026-10-28T22:56:32.848457+00:00",
+  "package": {
+    "name": "tetorica-fm2612",
+    "version": "0.2.33",
+    "url": "https://www.npmjs.com/package/tetorica-fm2612/v/0.2.33",
+    "account": "kyorohiro",
+    "latest": "0.2.33"
+  },
+  "verifiedTarball": {
+    "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/tetorica-fm2612-0.2.33.tgz",
+    "name": "tetorica-fm2612",
+    "version": "0.2.33",
+    "bytes": 1951319,
+    "unpackedBytes": 7394104,
+    "files": 1004,
+    "sha256": "e0225b57b3936cd449d9d93a42712b481a69d4551141f4e160e3807b474271b7",
+    "shasum": "bb15cff9d01281f65eb7edb3bc4a8719c7103410",
+    "integrity": "sha512-Ve3tL47CXqi56sXhqaRXNa2IbdDstfm0byOdlhZLIs+pf3FTwEfoRAcnDQmiv2jfwDtZUQgl/q/vltg1/KCcHw==",
+    "installedAllPayloadBytesMatch": true,
+    "sdk": {
+      "schemaVersion": 1,
+      "name": "tetorica-soundchip-native",
+      "version": "0.1.6",
+      "sourceCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+      "archiveName": "tetorica-soundchip-native-0.1.6-sources.zip",
+      "archiveSha256": "2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17",
+      "manifestSha256": "e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb",
+      "fileCount": 455
+    }
+  },
+  "registry": {
+    "version": "0.2.33",
+    "dist": {
+      "shasum": "bb15cff9d01281f65eb7edb3bc4a8719c7103410",
+      "tarball": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.33.tgz",
+      "fileCount": 1004,
+      "integrity": "sha512-Ve3tL47CXqi56sXhqaRXNa2IbdDstfm0byOdlhZLIs+pf3FTwEfoRAcnDQmiv2jfwDtZUQgl/q/vltg1/KCcHw==",
+      "signatures": [
+        {
+          "sig": "MEQCID8rktyvpgSsrk3Gk1KkBaxlwzQglwTGxibjI5Yt41/sAiAxtrafrJnqoezXnjydWqwqAbx7Ka4eToO/vfhNwF+3JA==",
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+        },
+        {
+          "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+          "sig": "MEYCIQDeHFtxG58kV4ilbkUKg/8+H72uycTHuLko824KJgH9BQIhAK+KQoioxTSMRGJI7pc1MuuW+KZdR5HPg59eEL8YqOaL"
+        }
+      ],
+      "unpackedSize": 7394104
+    },
+    "dist-tags": {
+      "latest": "0.2.33"
+    }
+  },
+  "registryTarball": {
+    "url": "https://registry.npmjs.org/tetorica-fm2612/-/tetorica-fm2612-0.2.33.tgz",
+    "bytes": 1951319,
+    "sha256": "e0225b57b3936cd449d9d93a42712b481a69d4551141f4e160e3807b474271b7",
+    "byteIdenticalToVerifiedTarball": true
+  },
+  "sdk": {
+    "releaseURL": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.6",
+    "schemaVersion": 1,
+    "name": "tetorica-soundchip-native",
+    "version": "0.1.6",
+    "sourceCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+    "archiveName": "tetorica-soundchip-native-0.1.6-sources.zip",
+    "archiveSha256": "2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17",
+    "manifestSha256": "e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb",
+    "fileCount": 455,
+    "publicVerification": {
+      "passed": true,
+      "releaseURL": "https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.6",
+      "publishedAt": "2026-10-28T22:27:29Z",
+      "archiveSHA256": "2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17",
+      "archiveBytes": 1246902,
+      "checksumSHA256": "1493cddf847946845c13baa18e4aeb82822f0994269bd67c8449b06e311819ce",
+      "manifestSHA256": "e0a86268aaa3dbbb2bf0567bf2a11925bf8da785b846b58ea4b8f71d280adfeb",
+      "archiveMembers": 455,
+      "payloadFiles": 454,
+      "githubAssetDigestsVerified": true,
+      "zipCRCVerified": true,
+      "allManifestHashesVerified": true,
+      "byteIdenticalToLocalPrep": true
+    }
+  },
+  "validation": {
+    "installedAllPayloadBytesMatch": true,
+    "files": 1004,
+    "localModuleAndAssetReferences": 1097,
+    "loadedWasmEngines": 28,
+    "rendererChecks": 15,
+    "declarations": 385,
+    "typeModes": [
+      "NodeNext",
+      "Bundler",
+      "Browser without Node ambient types"
+    ],
+    "browser": {
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "dx7": {
+        "routes": 4,
+        "passed": true
+      },
+      "huc6280": {
+        "routes": 4,
+        "passed": true
+      }
+    },
+    "sourceBundles": {
+      "ps1": {
+        "sdkInputs": 24,
+        "files": 28,
+        "byteIdenticalStandaloneRebuild": true
+      },
+      "cdda": {
+        "sdkInputs": 6,
+        "files": 8,
+        "byteIdenticalStandaloneRebuild": true,
+        "c11AndCpp14": true
+      },
+      "msm5205": {
+        "sdkInputs": 6,
+        "files": 8,
+        "byteIdenticalStandaloneRebuild": true,
+        "c11AndCpp14": true
+      }
+    },
+    "sdkPythonTests": 142,
+    "sdkNodeTests": 116,
+    "runtimeJsWasmFilesUnchanged": 77,
+    "sourceEquivalenceEvidence": {
+      "path": "/private/tmp/sdk-016-ci-source-equivalence.json",
+      "sha256": "cac2955bb8fef5b5824f6acbccb08380cf684dcc0b67339b288bf6d008a62c5b",
+      "passed": true,
+      "sourceRecords": 608,
+      "uniqueSourcePaths": 192,
+      "outputs": 63,
+      "currentCheckers": 30
+    }
+  },
+  "logs": {
+    "package": {
+      "path": "/private/tmp/npm-0233-final-package.log",
+      "bytes": 10348,
+      "sha256": "2302426e16a60e6469f271c1ac58397402755e2e9126aa1ec7c61c9bb0874fb9"
+    },
+    "sdkPython": {
+      "path": "/private/tmp/sdk-016-python.log",
+      "bytes": 26651,
+      "sha256": "9a109fca5f4e81a43faf7a936558c7409c653f3b72b191d0b1e5fba372d2b740"
+    },
+    "sdkNode": {
+      "path": "/private/tmp/sdk-016-node.log",
+      "bytes": 8949,
+      "sha256": "6375778e2f653dd32595ca3ed2773511e76d36e19eb1c088b6528c3f3391c93f"
+    },
+    "ps1SourceRebuild": {
+      "path": "/private/tmp/sdk-016-source-ps1.log",
+      "bytes": 287,
+      "sha256": "a10f02131acc2137bb01d91d7494518de5a0136fd237520084c25f5b268a6338"
+    },
+    "applicationAudioSourceRebuild": {
+      "path": "/private/tmp/sdk-016-source-audio.log",
+      "bytes": 994,
+      "sha256": "681f1a42f6df610defa9005a459f40f46603438201b2786fd08f851344378436"
+    },
+    "tauriNpm": {
+      "path": "/private/tmp/sdk-016-tauri-npm-test.log",
+      "bytes": 4877,
+      "sha256": "4ac1551ee8237c7bba6686c688969339de48144d666b5163468440afbd72112d"
+    },
+    "tauriNative": {
+      "path": "/private/tmp/sdk-016-tauri-cargo-test.log",
+      "bytes": 88267,
+      "sha256": "df70c4a3016b081ac830827710865d47cff2e592ad9e4b77f7544d127ec6185b"
+    }
+  },
+  "publication": {
+    "verifiedTarballPublished": true,
+    "loginRequired": true,
+    "additionalWebApprovalRequired": true,
+    "initialNoninteractiveAttempt": "EOTP before publication; interactive retry succeeded"
+  },
+  "limits": [
+    "The earlier main-repository CI built the SDK local candidate. Its 192 build-input paths and63 outputs match the formal SDK; only five Markdown payload files and the manifest changed. The tagged SDK has its own successful Native/WASM release CI.",
+    "Browser checks use the installed npm tarball; package-root PS1 generic-factory support is not claimed.",
+    "Native physical-device deadlines, hardware accuracy and human listening are outside this release verification.",
+    "No itch.io or desktop application publication was performed. Integration changes were committed by the user; final release evidence updates remain separate."
+  ],
+  "consumerCommits": {
+    "main": "9cb0ab772763c5f1583b76023b3461b657c8fb2d",
+    "tauri": "6ac2f78d204c5055de0dc1f6576d05979e0397b2",
+    "integrationChangesCommittedByUser": true,
+    "finalEvidenceUpdatesCommitted": false
+  },
+  "ci": {
+    "mainPreflightCommit": "1abd009bae02c323676d7e4551e047b62dd2757c",
+    "mainPreflightAllFiveWorkflowsPassed": true,
+    "wasmRun": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40778420584",
+    "itchRun": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40778420717",
+    "sdkTaggedCommit": "ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6",
+    "sdkTagRun": "https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40779666941",
+    "sdkFiveNativeSixWasmAndPublisherPassed": true,
+    "limits": "Preflight main CI built the earlier local candidate. The formal SDK tag CI and source-equivalence audit are separate evidence; new consumer-commit CI is not implied by these results."
+  }
+}
