@@ -23,6 +23,16 @@ import {AY8910Synth,AY8910DirectTransport} from 'tetorica-fm2612/ay8910synth.js'
 import {WonderSwan} from 'tetorica-fm2612/wonderswan.js';
 import {WonderSwanSynth,WonderSwanDirectTransport} from 'tetorica-fm2612/wonderswansynth.js';
 import {WonderSwanWorkletTransport} from 'tetorica-fm2612/chip_worklet_transport.js';
+import {Ps1Spu} from 'tetorica-fm2612/ps1_spu.js';
+import ps1Factory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
+const experimentalSpu=await Ps1Spu.create({moduleFactory:ps1Factory,moduleOptions:{wasmBinary:new Uint8Array()}});
+const experimentalSpuPcm:{left:Float32Array;right:Float32Array}=experimentalSpu.generateStereo(128);
+experimentalSpu.write(0x180,0x3fff);experimentalSpu.reset({clearRam:false});experimentalSpu.dispose();
+void experimentalSpuPcm;
+// @ts-expect-error Raw register words are numeric.
+experimentalSpu.write(4,'4096');
+// @ts-expect-error Initialization requires its explicit module factory.
+await Ps1Spu.create();
 const calibratedOptions: SoundChipMixerOptions = mixerPresetsSubpath.calibrated;
 const calibratedMixer = new SoundChipMixer(SOUNDCHIP_MIXER_PRESETS.calibrated);
 new SoundChipMixer(calibratedOptions);

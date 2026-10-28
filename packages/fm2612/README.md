@@ -55,6 +55,7 @@ entry points, rather than every internal Worker or Worklet module.
 | Select a primary runtime synth | `tetorica-fm2612/tetorica_synth.js` | `createTetoricaSynth`, `TETORICA_CHIPS` |
 | DX7 inside browser Playground scripts | `tetorica-fm2612/playground_runtime.js` | Script globals `useSoundChip('dx7')`, `createSoundChip('dx7')` |
 | SNES S-DSP / SPC700 | `tetorica-fm2612/snessynth.js`, `tetorica-fm2612/spc.js` | CPU-free BRR instrument / SPC file PCM core |
+| Experimental PlayStation SPU, standalone | `tetorica-fm2612/ps1_spu.js` | `Ps1Spu`: explicit factory initialization, register/RAM access and 44.1 kHz stereo PCM |
 | Offline FM + native FX rendering | `tetorica-fm2612/megasynth_offline.js` | `createMegaSynthOffline` (experimental) |
 | Offline recording and looping | `tetorica-fm2612/megasynth_session.js` | `createMegaSynthSession` (experimental) |
 | Node synth with Worker audio output | `tetorica-fm2612/node` | `MegaSynthNode` (experimental) |
@@ -89,6 +90,29 @@ new note. The optional second argument to `hzToBlockFnum(hz, clock)` is the
 chip's input clock in Hz (default `7670454`), not the audio sample rate.
 `createPitchFromMidi(midi, {referenceMidi, referenceBlock, referenceFnum})`
 converts relative to a caller-selected MIDI/BLOCK/FNUM reference.
+
+### Experimental standalone PlayStation SPU
+
+`Ps1Spu` is a CPU-free MAME-derived instrument core with 24 voices and 512 KiB
+of private RAM. Import it from `tetorica-fm2612/ps1_spu.js` and pass the factory
+from `tetorica-fm2612/generated/ps1_spu_wasm.js` to `Ps1Spu.create()`. In Node,
+read the accompanying WASM through `runtimeAssetUrl('generated/ps1_spu_wasm.wasm')`
+and supply it as `moduleOptions: {wasmBinary}`. Browser hosts can serve the
+generated pair together and use the factory's default asset URL.
+
+The synchronous API provides `write()`, `read()`, `loadRam()`, `readRam()`,
+`renderInto()`, `generateStereo()`, `reset()` and `dispose()`. Output is always
+44,100 Hz; samples must already be encoded as PSX ADPCM. No audio device starts
+automatically. This experimental port has no common Synth API, Playground mode,
+or `createSoundChip()` name and is separate from the fixed sound-chip SDK.
+Upstream linear interpolation, approximate ADSR and preset reverb are retained;
+hardware-exact sound or game soundtrack compatibility is not claimed.
+
+See the [standalone guide and original-sample Example](https://github.com/kyorohiro/hello_ymfm_wasm/blob/main/docs/ps1_spu.md).
+The package includes complete BSD-3-Clause source, pristine upstream snapshots,
+attribution, build hashes and a standalone recipe in `sources/native/ps1/` and
+`sources/PS1-SPU.md`. Rebuilding needs Emscripten and Python 3, with no SDK or
+MAME checkout.
 
 ### Find signatures and options
 

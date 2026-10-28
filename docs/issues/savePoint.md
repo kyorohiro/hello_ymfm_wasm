@@ -1,3 +1,13 @@
+## 2026-10-28 — PS1 SPUのNative／WASM基盤を追加
+
+- `native/ps1/`へ実MAME SPUをCPUなしで単体化。24声／512KiB RAM／44.1kHz stereo。C register／RAM／PCM API、`web/ps1_spu.js`とdocs mirror、共有WASMビルド＋18input／2output hash receipt。上流5filesをpin・原本・BSD attributionと共に収録。
+- 15件の実コア試験が成功（skip0）。NativeとWASMのPCM／register／RAMが完全一致。loop cache参照、RAM末尾、pitch／PMON上限、voice0 PMON、pitch0補間境界を修正。Native sanitizerの10case＋256fixture×24声も成功。macOSのLSanは未対応でleak検証はしていない。
+- Chromium／WebKit×Window／DedicatedWorkerの4構成成功。実PCM、24声目、音程倍増、stereo、ownership、reset／RAM保持・clear／disposeを検証。AudioContext生成・物理再生なし。
+- Node自作Exampleはvoice0／23で3秒のWAV＋JSON＋2bankを生成。preview `/private/tmp/ps1-spu-foundation.wav`、peak約0.095636、非clip、最後1024frames exact zero。Mixer指定なし。実聴未実施。
+- full-runtime／npm stageへ単独source・recipe・noticeを同梱。stageのsourceだけでNative build成功。SDKなしでWASM再buildも行い配布JS／WASMとbyte一致。最終969filesのisolated npm pack／install、全28pair、372宣言、NodeNext／Bundler／Browser型検証も成功。
+- **低レベル基盤まで**。上流のlinear補間・float ADSR・preset reverbを保持する実験実装。real-time allocation保証なし。PS1 Mode／Synth／Keyboard／encoder／Tauri接続は次段階。固定SDK・既存mode／音声経路・Mixerは変更なし。未commit／未push／未公開、version変更なし。新CI追加済み、remote未実行。
+- 詳細：[ps1_spu_01.md](ps1_spu_01.md)／[JSON](ps1_spu_01.json)、次段階：[todo_ps1_01.md](todo_ps1_01.md)、公開guide：[../ps1_spu.md](../ps1_spu.md)。元作業はユーザーcommit `5a746b00`に含まれる。以下は各時点の履歴。
+
 ## 2026-10-28 — Neo Geo PCM → ADPCM-A変換API・6声Exampleを追加
 
 - `web/adpcm_a_sample.js`／docs mirrorに`encodeAdpcmA()`。Playground Main／Workerのglobal／`pg`、npm subpathで使用可能。mono Float32 PCMを16候補探索・実12bit wrap規則で変換。256byte境界までzero PCMを符号化し、元／padding後長さとJSON保存可能な誤差を返す。再sample／音量補正／pitch／hardware loopなし。既定上限0xfff00bytes、ROM配置はcaller管理。

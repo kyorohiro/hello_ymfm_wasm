@@ -4,6 +4,7 @@ import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 import {checkApplicationAudioSourceBundles} from './check_application_audio_source_bundles.mjs';
+import {checkPs1SourceBundle} from './check_ps1_source_bundle.mjs';
 const root=resolve(process.argv[2]);
 // These caller-provided ROMs must never be distributed, even through samples/.
 const excludedRoms = new Set(['ym2608_adpcm_rom.bin', 'yrw801.rom']);
@@ -23,6 +24,20 @@ const dir=manifest.layout==='js' ? join(root,'js') : root;
 if(manifest.applicationAudio){
   assert.deepEqual(manifest.applicationAudio,['cdda','msm5205'],'Application audio remains separate from generic chip IDs');
   await checkApplicationAudioSourceBundles(root);
+}
+if(manifest.experimentalStandalone?.includes('ps1-spu')) {
+  assert(!manifest.chips.includes('ps1-spu')&&!manifest.chips.includes('ps1_spu'),'Experimental SPU stays separate from generic SDK chip IDs');
+  await checkPs1SourceBundle(root);
+  const {Ps1Spu}=await import(pathToFileURL(join(dir,'ps1_spu.js')));
+  const {default:moduleFactory}=await import(pathToFileURL(join(root,'generated/ps1_spu_wasm.js')));
+  const chip=await Ps1Spu.create({moduleFactory,moduleOptions:{wasmBinary:readFileSync(join(root,'generated/ps1_spu_wasm.wasm'))}});
+  try {
+    chip.loadRam(new Uint8Array([4,7,...Array(14).fill(0x17)]),0x2000);
+    for(const [offset,value] of [[0x180,0x3fff],[0x182,0x3fff],[0x1aa,0xc000],[0,0x3fff],[2,0x3fff],[4,0x1000],[6,0x400],[8,15],[10,0],[14,0x400],[0x188,1]])chip.write(offset,value);
+    const pcm=chip.generateStereo(4096);assert(pcm.left.every(Number.isFinite));assert(pcm.left.some(value=>Math.abs(value)>.01));assert.deepEqual(pcm.left,pcm.right);
+    chip.write(0x18c,1);assert(chip.generateStereo(4096).left.slice(-128).every(value=>value===0));
+  } finally {chip.dispose();}
+  console.log('Staged experimental PS1 SPU verified: standalone original ADPCM playback, release, complete BSD source and matching build receipt.');
 }
 const {createSoundChip}=await import(pathToFileURL(join(dir,'soundchip.js')));
 const yamaha=manifest.chips.filter(n=>/^(ym|y8950$|ay8910$)/.test(n));

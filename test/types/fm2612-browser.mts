@@ -125,6 +125,29 @@ nes.pulse.noteOn(0, 'E4');
 nes.fds.setWave('sine');
 
 import {createSnesClient} from 'tetorica-fm2612/playground_snes.js';
+import {Ps1Spu,PS1_SPU_SAMPLE_RATE,PS1_SPU_RAM_BYTES} from 'tetorica-fm2612/ps1_spu.js';
+import {Ps1Spu as ExtensionlessPs1Spu} from 'tetorica-fm2612/ps1_spu';
+import ps1Factory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
+const ps1=await Ps1Spu.create({moduleFactory:ps1Factory});
+const samePs1:ExtensionlessPs1Spu=ps1;
+samePs1.sampleRate.toFixed();ps1.nativeFrames.toFixed();
+PS1_SPU_SAMPLE_RATE.toFixed();PS1_SPU_RAM_BYTES.toFixed();
+ps1.write(0x180,0x3fff);ps1.read(0x180).toFixed();
+ps1.loadRam(new Uint8Array(16),0x2000);ps1.readRam(0x2000,16).byteLength.toFixed();
+ps1.renderInto(new Float32Array(256),new Float32Array(256),128,64);
+ps1.generateStereo(128).left.byteLength.toFixed();ps1.reset({clearRam:true});ps1.dispose();
+// @ts-expect-error The standalone SPU requires its explicit generated factory.
+await Ps1Spu.create();
+// @ts-expect-error Register values are unsigned numeric words.
+ps1.write(0x180,'0x3fff');
+// @ts-expect-error Sample RAM uploads are bytes, not decoded float PCM.
+ps1.loadRam(new Float32Array(16),0x2000);
+// @ts-expect-error Stereo PCM output uses Float32 arrays.
+ps1.renderInto(new Int16Array(128),new Int16Array(128));
+// @ts-expect-error RAM reset is explicitly boolean.
+ps1.reset({clearRam:1});
+// @ts-expect-error Output sample rate is fixed and readonly.
+ps1.sampleRate=48000;
 import {SpcRuntimeSynth} from 'tetorica-fm2612/spc_audio.js';
 import {SpcCore, SnesDspCore} from 'tetorica-fm2612/spc.js';
 import {SnesSynth} from 'tetorica-fm2612/snessynth.js';

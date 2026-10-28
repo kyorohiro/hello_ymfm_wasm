@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "component": "experimental-ps1-spu",
+  "upstream": "MAME a64a5d6602b19f67e091a4491f0c851a9dacf79d",
+  "fixedSdkArtifact": false,
+  "sampleRate": 44100,
+  "voices": 24,
+  "ramBytes": 524288,
+  "inputs": {
+    "native/ps1/LICENSE": {
+      "bytes": 1592,
+      "sha256": "53226467f8f025aa2bf11c9297ed61ff146071edf2c6a4459fe4f8600455252b"
+    },
+    "native/ps1/README.md": {
+      "bytes": 6280,
+      "sha256": "646237d10d0bc047bb005f65fdc2306ed14b09d93505df520012db1127ca0ac6"
+    },
+    "native/ps1/ps1_spu.cpp": {
+      "bytes": 3353,
+      "sha256": "ac876ed7ef0131f0e596932e1b5c0777bf604f886f9234376e981a4f826b1b2a"
+    },
+    "native/ps1/ps1_spu.h": {
+      "bytes": 1558,
+      "sha256": "f1ae8b35b8aa81833b6a7b836b003cbdbb2c15346bf27a05488f398660ce868e"
+    },
+    "native/ps1/spu.cpp": {
+      "bytes": 67256,
+      "sha256": "e2bf1098e1a7c4809b32006f0ed4669788bd84e0755745013fcbe66cdd73bf7b"
+    },
+    "native/ps1/spu.h": {
+      "bytes": 8376,
+      "sha256": "79be48c1382f6db13ea3c87f0cc0942d2c3f52cdec5c5bd6b00af5dfc907c828"
+    },
+    "native/ps1/spu_tables.cpp": {
+      "bytes": 21649,
+      "sha256": "bf3a6762ad86286f375084d354c210d7af55d1b72ff8bdd759b53b05cc2897ab"
+    },
+    "native/ps1/spureverb.cpp": {
+      "bytes": 6365,
+      "sha256": "2b713d2fef9ba4bb206dac34888dd54714533f29ccdbe0e2ce58058631e34eb4"
+    },
+    "native/ps1/spureverb.h": {
+      "bytes": 1594,
+      "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
+    },
+    "native/ps1/standalone_support.h": {
+      "bytes": 272,
+      "sha256": "2bf135e3269170c36055c2eadc7ce94a40211313bf5c508cb36dc9b86889016f"
+    },
+    "native/ps1/upstream/REVISION": {
+      "bytes": 41,
+      "sha256": "e8689131dd3d25ca28cf5ea21326479589892a93b3bd40df28a54891f621254b"
+    },
+    "native/ps1/upstream/SHA256SUMS": {
+      "bytes": 385,
+      "sha256": "0bb50b92e0e5d59590ab7863e2178ca714f50da3dbed7a17ff9083d4945e1737"
+    },
+    "native/ps1/upstream/spu.cpp": {
+      "bytes": 67593,
+      "sha256": "1bdb46de6ab7dae77a94846812b4d69f1e5168fc9a95de8a661a861afa3f0e23"
+    },
+    "native/ps1/upstream/spu.h": {
+      "bytes": 8594,
+      "sha256": "2ce1a71da66ffeba76f8197a1ee1833188571b7e57315aec9297296af9d5a95b"
+    },
+    "native/ps1/upstream/spu_tables.cpp": {
+      "bytes": 21634,
+      "sha256": "fbb2222beb8a5bc1a71ecaf67f827c6f4c013ac7d525dcf3752bc3e51a1a51c4"
+    },
+    "native/ps1/upstream/spureverb.cpp": {
+      "bytes": 6354,
+      "sha256": "3d8dec58c67e8606618367a8d9850cbf3c60f10a71b3636cbf2f7e0850b1d01a"
+    },
+    "native/ps1/upstream/spureverb.h": {
+      "bytes": 1594,
+      "sha256": "b2bc469037ed9b03d8f166b84c0c9a810a3ca4169ca0e0b39a0bf0f1ab6a5f67"
+    },
+    "scripts/build_ps1_spu_wasm.sh": {
+      "bytes": 2681,
+      "sha256": "fc643e9baf981ec0faf5a3565a56f50fb1fadca4db22b4085a1fdfd749e2b222"
+    }
+  },
+  "outputs": {
+    "ps1_spu_wasm.js": {
+      "bytes": 16576,
+      "sha256": "6b3449e0c0e6520c2027c45178392463a58ebd27b30cfa7f0fd23a2b36b14e94"
+    },
+    "ps1_spu_wasm.wasm": {
+      "bytes": 44899,
+      "sha256": "ac5eff0c9c192730e247b79d67b1ac04bd80bf8f2a6324c2404a2b25b0102df6"
+    }
+  }
+}

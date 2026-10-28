@@ -25,6 +25,11 @@ await writeFile(config, JSON.stringify({compilerOptions: {
   types: ['node'], typeRoots: [join(root, 'node_modules/@types')],
 }, files}, null, 2));
 execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', config], {stdio: 'inherit'});
+// Emscripten's mutable Module object is inferred as Promise<{}>. Expose the
+// actual common memory/cwrap ABI required by the standalone SPU wrapper.
+await writeFile(join(stage,'generated/ps1_spu_wasm.d.ts'),
+  "import type {WasmModuleFactory} from '../soundchip.js';\n"+
+  'declare const moduleFactory: WasmModuleFactory;\nexport default moduleFactory;\n');
 // Runtime cache-busting URLs are valid in browsers; declaration imports use file paths.
 const emitted = [];
 async function declarations(directory) {

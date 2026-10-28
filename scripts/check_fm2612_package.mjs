@@ -19,6 +19,12 @@ try {
   for (const file of ['snes_brr_encoder.js','snes_brr_encoder.d.ts']) {
     assert.ok(packedPaths.has(file), `BRR encoder payload missing ${file}`);
   }
+  for(const file of ['ps1_spu.js','ps1_spu.d.ts','generated/ps1_spu_wasm.js','generated/ps1_spu_wasm.wasm','generated/ps1_spu_build.json',
+    'licenses/mame-ps1-spu/LICENSE','licenses/mame-ps1-spu/README.md','sources/PS1-SPU.md','sources/PS1-SPU.json',
+    'sources/scripts/build_ps1_spu_wasm.sh',...['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h',
+      'standalone_support.h','LICENSE','README.md',...['spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h','REVISION','SHA256SUMS'].map(name=>'upstream/'+name)].map(name=>'sources/native/ps1/'+name)]) {
+    assert.ok(packedPaths.has(file),'Experimental standalone PS1 SPU module/source/notice missing '+file);
+  }
   for (const file of ['soundchip_mixer.js', 'soundchip_mixer.d.ts', 'soundchip_mixer_presets.js', 'soundchip_mixer_presets.d.ts']) {
     assert.ok(packedPaths.has(file), `Optional Mixer calibration payload missing ${file}`);
   }
@@ -87,6 +93,28 @@ try {
     cwd: consumer, stdio: 'inherit',
   });
   const installed = join(consumer, 'node_modules/tetorica-fm2612');
+  await writeFile(join(consumer,'ps1-spu-check.mjs'),`
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {Ps1Spu,PS1_SPU_SAMPLE_RATE,PS1_SPU_RAM_BYTES} from 'tetorica-fm2612/ps1_spu.js';
+import {Ps1Spu as extensionless} from 'tetorica-fm2612/ps1_spu';
+import moduleFactory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
+import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
+assert.equal(Ps1Spu,extensionless);assert.equal(PS1_SPU_SAMPLE_RATE,44100);assert.equal(PS1_SPU_RAM_BYTES,524288);
+const wasmBinary=await readFile(runtimeAssetUrl('generated/ps1_spu_wasm.wasm'));
+const chip=await Ps1Spu.create({moduleFactory,moduleOptions:{wasmBinary}});
+try{
+ const bytes=new Uint8Array([4,7,...Array(14).fill(0x17)]);chip.loadRam(bytes,0x2000);
+ for(const [offset,value] of [[0x180,0x3fff],[0x182,0x3fff],[0x1aa,0xc000],[0,0x3fff],[2,0],[4,0x1000],[6,0x400],[8,15],[10,0],[14,0x400],[0x188,1]])chip.write(offset,value);
+ const audio=chip.generateStereo(4096);assert(audio.left.every(Number.isFinite));assert(audio.left.some(value=>Math.abs(value)>.01));assert(audio.right.every(value=>value===0));
+ assert.deepEqual(chip.readRam(0x2000,bytes.length),bytes);assert.equal(chip.nativeFrames,4096);chip.write(0x18c,1);
+ assert(chip.generateStereo(4096).left.slice(-128).every(value=>value===0));
+ chip.reset();assert.equal(chip.nativeFrames,0);assert.deepEqual(chip.readRam(0x2000,bytes.length),bytes);
+}finally{chip.dispose();}
+assert.equal(typeof globalThis.AudioContext,'undefined');
+console.log('Installed experimental PS1 SPU verified: both exports, explicit WASM assets, original ADPCM stereo, release, RAM retention and reset.');
+`);
+  execFileSync(process.execPath,[join(consumer,'ps1-spu-check.mjs')],{cwd:consumer,stdio:'inherit'});
   await writeFile(join(consumer,'adpcm-a-check.mjs'),`
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';

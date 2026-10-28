@@ -12,6 +12,25 @@ FM / PSG / PCM は、チップを生成 → `new XxxSynth({transport: new XxxDir
 既存の `createSegaPsgApi` / `createRf5c164Control` は互換窓口として同じSynthを利用する。
 RF5C164のPCM形式変換は `web/rf5c164_pcm.js`、通信は `web/playground_rf5c164.js` に分離している。
 
+## Experimental PS1 SPU → WAV
+
+```sh
+sh scripts/build_ps1_spu_wasm.sh
+node examples/nodejs/main_ps1_spu.js /tmp/ps1-spu
+```
+
+[main_ps1_spu.js](main_ps1_spu.js) は自作のループ波形とワンショット打楽器を
+SPU ADPCMとして直接生成し、実際の24声SPUのvoice 0／23で旋律を鳴らす。
+44.1 kHz・16 bitステレオの3秒WAV、JSON、2個のraw ADPCMを保存する。
+出力先省略時はスクリプトの隣に保存し、同名ファイルは上書きする。
+外部ROM・音声・AudioContextは不要。有限PCM・非clip・末尾無音も検査する。
+
+Native／WASM共通の実験的MAME派生コアで、現時点では低レベルAPIのみ。
+PlaygroundのPS1 mode／Synth／汎用PCM encoderは次段階。
+補間・ADSR・reverbは元実装の近似を含む。仕様・利用例は
+[PS1 SPU guide](../../docs/ps1_spu.md)、由来とライセンスは
+[native/ps1](../../native/ps1/README.md) を参照。
+
 ## SNES PCM → BRR → WAV
 
 ```sh

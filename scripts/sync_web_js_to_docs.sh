@@ -24,6 +24,7 @@ msm5205_audio.js
 msm5205_worklet.js
 msm5205_native.js
 spc.js
+ps1_spu.js
 spc_trace.js
 spc_events.js
 spc_performance.js

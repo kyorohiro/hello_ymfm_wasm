@@ -44,6 +44,12 @@ jobs:
         run: node --test web/snes_brr.test.mjs web/snes_brr_encoder.test.mjs web/snessynth.test.mjs web/spc.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/brr-core-tests.log"
       - name: Test PCM to ADPCM-A with native and WASM YM2610 variants
         run: node --test web/adpcm_a_sample.test.mjs web/ym2610bsynth.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/adpcm-a-core-tests.log"
+      - name: Test experimental PS1 SPU with actual native and WASM cores
+        run: |
+          node --test web/ps1_spu.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-core-tests.log"
+          node examples/nodejs/main_ps1_spu.js "$RUNNER_TEMP/itch-web/ps1-spu" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-example.log"
+      - name: Test standalone PS1 SPU in browser and worker
+        run: node scripts/check_ps1_spu_browser.cjs --out "$RUNNER_TEMP/itch-web/ps1-spu-browser.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-browser.log"
       # Keep the same default commands and ZIP names used for manual releases.
       - name: Package Synth
         run: sh scripts/package_itch_synth.sh 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/package-synth.log"
