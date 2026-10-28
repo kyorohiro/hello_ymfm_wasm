@@ -1,5 +1,23 @@
 # PS1 packaged Browser検証のremote CI確認
 
+## 2026-10-29 follow-up — 修正commitのremote確認が完了
+
+対象commitは`3c784c18ae1a8869b1b45178ee0ad42a9c6d76f9`。以下の2 workflowは共にattempt 1で成功し、downloadした成果物も検証した。このturnの変更は作業記録のみ。
+
+- [itch web release ZIPs — run 40751583440](https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40751583440)：全steps成功。汎用Playground新規20条件と、**PS1新規4 reports／16条件／594 captures／5,201,920 frames**が成功。今回は既存reportの再利用を含まない。pilot PCMは全て連続し、ModeのChromium WorkerとVoice editorのChromium Mainのclock異常各1 captureを診断へ保持した。
+- Sample EditorはChromium Main／Workerでsynthetic stream＋実MediaRecorderによる録音を検証。Linux WebKit Main／Workerはnativeの`getUserMedia`がある一方`MediaRecorder`がなく、disabled button・代替入力noticeを検証して`tested:false`を記録した。forced flagはfalse。**この2条件を録音成功には数えない**。実マイク・device permissionは使用していない。
+- [WASM SDK build and parity — run 40751583248](https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40751583248)：全32 builds側とCD-DA／PC Engine CD ADPCM側の両jobが成功。29 chip＋2 application audio＋1 PS1 instrument＝32 builds／63 outputs、192 source pathsを検証した。29 chipの独立比較40,474件、PS1 24 voice／311,605 framesの各検査も成功。PS1 Native／WASM比較98,828 interleaved samplesの最大差は0（許容1e-6）。snapshot 2,294 filesの記録追記前checkoutとのhash一致、2,394 metadata recordsと再buildした63 outputsのhash一致、repository input不変を確認した。unit128件・audio Node55件・Python3件も成功。
+
+release artifact `12845242194`とvalidation artifact `12844946681`の外側CRC、4つの配布ZIPの内側CRC・manifest全fileのbytes／SHA、`SHA256SUMS`、manifestのsourceCommit、両artifact内manifestのbyte一致を確認した。実Run ZIPは**37,401,619 bytes／930 entries・files**、SHA256 `e2bead8543381582c6f96233f0ed9c92afbddf9830a0e2ff177c57fdf968ae0f`。現checker／helperとこの実ZIPで集約を再実行し、remote集約と`archive.path`以外は完全一致した。旧runやローカルの別ZIPとは混ぜていない。
+
+主証拠は`/private/tmp/ps1-ci-40751583440-verified/artifact-verification.json`（SHA256 `b30f960cb8c89e7e60d0572d2e0c898b6a23c535b53d963c27f161f04fb84363`）と`/private/tmp/wasm-ci-40751583248-verified.json`（`690ddd3648228a2313cf3f8efd2c20224e95f0e8aa94922f18732ecc8874a478`）。actual artifact／report／logのIDとhashは[JSONのfollowUps](ps1_remote_ci_01.json)に追加した。
+
+同HEADのSBI `40751583147`、VGM `40751583058`、Pages build/deployment `40751582674`も全てattempt 1で成功。Pagesの自動deploymentは完了している。npm／itch.io／SDK tagの手動release操作は今回行っていない。
+
+旧ローカル録音decode失敗の原因は未確定のまま。今回の成功で過去の失敗原因を解決済みにはしない。Tauri GUI・人による実聴は未実施で、物理device deadlineや可聴ノイズ不存在を保証しない。製品runtime・Mixer値・npm versionはこのturnでは変更していない。
+
+## 以下は79d9ab時点の履歴（本文変更なし）
+
 2026-10-28。対象は`itch web release ZIPs`のUbuntu 24.04上での実行。製品runtime、音源コア、WASM、Mixer値、npm versionは変更していない。過去のローカル検証記録は[ps1_capture_migration_01.md](ps1_capture_migration_01.md)へ残し、remote成功へ読み替えない。
 
 ## 現在の状態

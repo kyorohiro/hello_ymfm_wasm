@@ -1,4 +1,427 @@
 {
+  "followUps": [
+    {
+      "dateJst": "2026-10-29",
+      "sourceCommit": "3c784c18ae1a8869b1b45178ee0ad42a9c6d76f9",
+      "status": "both-target-remote-workflows-passed-artifacts-verified",
+      "historicalFieldsBelowUnchanged": true,
+      "historyBaselineSha256": {
+        "markdown": "2cf848fd4b81fec0134fbd5597dad0c44e4f18ca7e4d73ddaf18a41c322f103f",
+        "json": "899ded5be0a5a64efa13857c442f767f60690789b51b19e5bd47d020d0da9d06"
+      },
+      "itch": {
+        "runId": 40751583440,
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40751583440",
+        "attempt": 1,
+        "jobId": 123039395893,
+        "conclusion": "success",
+        "allWorkflowStepsPassed": true,
+        "artifacts": [
+          {
+            "id": 12845242194,
+            "name": "itch-web-release-zips",
+            "localPath": "/private/tmp/ps1-ci-40751583440-release.zip",
+            "bytes": 77576934,
+            "sha256": "44060ec30acb4297703232ebc5342d45f6a50d4fb7df144f07641c208f930f3c"
+          },
+          {
+            "id": 12844946681,
+            "name": "itch-web-validation",
+            "localPath": "/private/tmp/ps1-ci-40751583440-validation.zip",
+            "bytes": 3665991,
+            "sha256": "7d05efa1e6a7cda77594ebfb383b087f704e2e78f02f8a471f745c9ed3af856d"
+          }
+        ],
+        "archiveValidation": {
+          "outerArchiveCrcPassed": true,
+          "allFourInnerArchiveCrcPassed": true,
+          "allManifestFileBytesAndHashesMatched": true,
+          "sha256SumsMatched": true,
+          "manifestSourceCommitMatched": true,
+          "releaseAndValidationManifestBytesIdentical": true,
+          "manifestSha256": "c8fab381619332d142906cdebebbb30e3a312a3710f687919064da15bc49a0bb",
+          "sha256SumsSha256": "c7430c22b0a70bf7cc2464c78e7066125d69f64028f543f9cdd82f138ac90561",
+          "archives": [
+            {
+              "name": "hello_ymfm_wasm_dev_itch_synth.zip",
+              "bytes": 778783,
+              "sha256": "0180be706c7e37fcca007420fd7fd303fa19b0ab51e4b37e563435c7bb0c3c30",
+              "entries": 231,
+              "files": 203,
+              "crcPassed": true,
+              "allManifestFileHashesMatched": true
+            },
+            {
+              "name": "hello_ymfm_wasm_dev_itch_vgm_analyzer.zip",
+              "bytes": 1900544,
+              "sha256": "ebbc0c4a4bd3b54c3308064df15f776e4a16d8fcca8737b7f518286d15ecd94b",
+              "entries": 463,
+              "files": 421,
+              "crcPassed": true,
+              "allManifestFileHashesMatched": true
+            },
+            {
+              "name": "hello_ymfm_wasm_dev_itch_playground.zip",
+              "bytes": 37010554,
+              "sha256": "4e682063361ded76b78cdd1939302a7494ef94b67a5b718ae19d4ad2e572d2cf",
+              "entries": 1186,
+              "files": 1065,
+              "crcPassed": true,
+              "allManifestFileHashesMatched": true
+            },
+            {
+              "name": "hello_ymfm_wasm_dev_itch_playground_for_run.zip",
+              "bytes": 37401619,
+              "sha256": "e2bead8543381582c6f96233f0ed9c92afbddf9830a0e2ff177c57fdf968ae0f",
+              "entries": 930,
+              "files": 930,
+              "crcPassed": true,
+              "allManifestFileHashesMatched": true
+            }
+          ],
+          "verification": {
+            "localPath": "/private/tmp/ps1-ci-40751583440-verified/artifact-verification.json",
+            "bytes": 5785,
+            "sha256": "b30f960cb8c89e7e60d0572d2e0c898b6a23c535b53d963c27f161f04fb84363"
+          }
+        },
+        "genericPlayground": {
+          "passed": true,
+          "freshRoutes": 20,
+          "repositoryFallback": false,
+          "physicalOutputMuted": true,
+          "archiveSha256Matched": true
+        },
+        "ps1": {
+          "passed": true,
+          "freshReports": 4,
+          "freshRoutes": 16,
+          "reusedReports": 0,
+          "captures": 594,
+          "frames": 5201920,
+          "continuityOracle": "independent-24-bit-pilot-PCM",
+          "pcmContinuous": true,
+          "clockContinuous": false,
+          "clockAnomalousCaptures": 2,
+          "physicalOutputMuted": true,
+          "listeningPerformed": false,
+          "archive": {
+            "bytes": 37401619,
+            "sha256": "e2bead8543381582c6f96233f0ed9c92afbddf9830a0e2ff177c57fdf968ae0f"
+          },
+          "reportSummaries": [
+            {
+              "file": "ps1-mode-browser.json",
+              "schemaVersion": 2,
+              "captures": 200,
+              "frames": 1753088,
+              "pcmContinuous": true,
+              "clockContinuous": false,
+              "checkerSha256": "9c6cebf339ddb06f4d0cc7bb85eddeef4043a2ba6dfe1ce6b464948292eadca7",
+              "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+              "clockAnomalousCaptures": 1
+            },
+            {
+              "file": "ps1-adpcm-browser.json",
+              "schemaVersion": 2,
+              "captures": 68,
+              "frames": 622592,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "checkerSha256": "ac1c69b66735e772669df36ab7618b65a582bb6b52a0c36b4b731a4567d388f4",
+              "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+              "clockAnomalousCaptures": 0
+            },
+            {
+              "file": "ps1-voice-editor-browser.json",
+              "schemaVersion": 3,
+              "captures": 208,
+              "frames": 1949696,
+              "pcmContinuous": true,
+              "clockContinuous": false,
+              "checkerSha256": "3e8ee501e3b213e50fbfa5a37bc9daef9313dc6e59a585d4814095c6e694f37c",
+              "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+              "clockAnomalousCaptures": 1
+            },
+            {
+              "file": "ps1-sample-editor-browser.json",
+              "schemaVersion": 2,
+              "captures": 118,
+              "frames": 876544,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "checkerSha256": "8ddedc25c161d157d4bf9a92477ddeb37c6c3d24a81e88f15b91b899f4cb6d02",
+              "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+              "clockAnomalousCaptures": 0
+            }
+          ],
+          "reportDigests": [
+            {
+              "name": "ps1-mode-browser.json",
+              "bytes": 327973,
+              "sha256": "d779de4424f271392d6bbb7508a118c9224b70ddf8bc73a9fbe31843c33debc0"
+            },
+            {
+              "name": "ps1-adpcm-browser.json",
+              "bytes": 176353,
+              "sha256": "28b2499e292ef875030ba4731c8b481cf1c4370e1df66c39ac7d76bfc75c62e3"
+            },
+            {
+              "name": "ps1-voice-editor-browser.json",
+              "bytes": 484305,
+              "sha256": "225f625690e6614490f62a9ff797848de556ea8c177a90d5a9162a42f742f3de"
+            },
+            {
+              "name": "ps1-sample-editor-browser.json",
+              "bytes": 123818,
+              "sha256": "492515f2f16f8a89b5edabdfe8c7b20a754256cf5540fa79f519b43c94705960"
+            },
+            {
+              "name": "ps1-capture-reports.json",
+              "bytes": 8531,
+              "sha256": "7f6c94775abc64dbbf91c9c88217e5d7e0883f373194c9841f699c2b145e1449"
+            },
+            {
+              "name": "playground-browser.json",
+              "bytes": 121881,
+              "sha256": "86b962ea12f19cfac6521b0fb4b425a5e2bd6be4157ed23116fae2320acfc79e"
+            }
+          ],
+          "clockDiagnostics": [
+            {
+              "report": "ps1-mode-browser.json",
+              "browser": "chromium",
+              "execution": "worker",
+              "frames": 16384,
+              "clock": {
+                "continuous": false,
+                "measurementValid": true,
+                "rowCount": 128,
+                "firstFrame": 706560,
+                "lastFrame": 722816,
+                "frames": 16384,
+                "gapCount": 1,
+                "gaps": [
+                  {
+                    "index": 33,
+                    "frame": 710656,
+                    "expectedFrame": 710784,
+                    "previousFrame": 710656,
+                    "offset": 4224,
+                    "quantum": 128,
+                    "ordinal": 5459
+                  }
+                ],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "pilotContinuous": true,
+              "pilotSampleGapCount": 0
+            },
+            {
+              "report": "ps1-voice-editor-browser.json",
+              "browser": "chromium",
+              "execution": "main",
+              "frames": 4096,
+              "clock": {
+                "continuous": false,
+                "measurementValid": true,
+                "rowCount": 32,
+                "firstFrame": 960128,
+                "lastFrame": 964096,
+                "frames": 4096,
+                "gapCount": 1,
+                "gaps": [
+                  {
+                    "index": 9,
+                    "frame": 961152,
+                    "expectedFrame": 961280,
+                    "previousFrame": 961152,
+                    "offset": 1152,
+                    "quantum": 128,
+                    "ordinal": 6393
+                  }
+                ],
+                "unstableReadCount": 0,
+                "unstableReads": [],
+                "malformedRowCount": 0,
+                "malformedRows": []
+              },
+              "pilotContinuous": true,
+              "pilotSampleGapCount": 0
+            }
+          ],
+          "microphone": {
+            "forcedUnavailable": false,
+            "recordingTestedRoutes": [
+              "chromium/main",
+              "chromium/worker"
+            ],
+            "recordingUnavailableRoutes": [
+              "webkit/main",
+              "webkit/worker"
+            ],
+            "recordingInput": "synthetic MediaStream with real MediaRecorder; no physical microphone",
+            "unavailableWebkitNativeCapabilities": {
+              "getUserMedia": true,
+              "mediaRecorder": false
+            },
+            "unavailableControlAndNoticeVerified": true,
+            "unavailableRoutesClaimedAsRecorded": false
+          },
+          "currentCheckerHelperAndActualZipReaggregationPassed": true,
+          "localReplayEqualsRemoteExceptArchivePath": true,
+          "localReplay": {
+            "localPath": "/private/tmp/ps1-ci-40751583440-verified/local-capture-replay.json",
+            "bytes": 8514,
+            "sha256": "39de92aceb7fee3ca3a76b7693886fdbe35627281651e23f6d7b6d4c96c0c384"
+          }
+        },
+        "jobLog": {
+          "localPath": "/private/tmp/ps1-ci-40751583440.log",
+          "bytes": 620576,
+          "sha256": "b003d89472a5ceb53290958c8962a91a779ed88e67afe367df33a6d8fbf86a6d"
+        }
+      },
+      "wasmSdk": {
+        "runId": 40751583248,
+        "url": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40751583248",
+        "attempt": 1,
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 123039394514,
+            "name": "All 32 fixed SDK WASM builds",
+            "conclusion": "success"
+          },
+          {
+            "id": 123039393901,
+            "name": "CD-DA and PC Engine CD ADPCM",
+            "conclusion": "success"
+          }
+        ],
+        "artifacts": [
+          {
+            "id": 12843857452,
+            "name": "wasm-sdk-validation",
+            "localPath": "/private/tmp/wasm-ci-40751583248-all32.zip",
+            "bytes": 4293591,
+            "sha256": "83039b77124cde8adac993ac8f0e46a93596c15786d9d4825a8802660e54e32d"
+          },
+          {
+            "id": 12844056427,
+            "name": "application-audio-validation",
+            "localPath": "/private/tmp/wasm-ci-40751583248-application-audio.zip",
+            "bytes": 947,
+            "sha256": "7675220de6fb8f06fb66e1b592e05a76f1b84ad77c8a9a26bb16dd573e0ba876"
+          }
+        ],
+        "counts": {
+          "artifactCount": 29,
+          "outputCount": 57,
+          "buildCount": 32,
+          "buildOutputCount": 63,
+          "applicationAudioCount": 2,
+          "applicationAudioOutputCount": 4,
+          "instrumentCount": 1,
+          "instrumentOutputCount": 2,
+          "verifiedSourceCount": 192,
+          "sourcesVerified": true
+        },
+        "independentChipReports": 29,
+        "exactChipComparisons": 40474,
+        "inputSnapshotFilesMatchedLocal": 2294,
+        "inputSnapshotComparedBeforeRecordOnlyEdits": true,
+        "metadataRecordsHashVerified": 2394,
+        "rebuiltOutputsHashVerified": 63,
+        "repositoryInputsUnchanged": true,
+        "ps1": {
+          "passed": true,
+          "artifact": "ps1_spu",
+          "sampleRate": 44100,
+          "voices": 24,
+          "ramBytes": 524288,
+          "renderedFrames": 311605,
+          "checks": [
+            "fixed-rate-C-ABI-register-RAM-and-render-guards",
+            "24-voices-high-key-bank-ADSR-release-and-stereo",
+            "exact-block-partition-and-independent-instance-state",
+            "preset-reverb-tail-reset-and-retained-sample-RAM",
+            "actual-Native-WASM-24-voice-ADSR-and-reverb-parity"
+          ],
+          "nativeParity": {
+            "passed": true,
+            "interleavedSamples": 98828,
+            "maxAbsoluteError": 0,
+            "tolerance": 1e-06
+          }
+        },
+        "tests": {
+          "all32UnitPassed": 128,
+          "applicationAudioNodePassed": 55,
+          "applicationAudioPythonPassed": 3
+        },
+        "verification": {
+          "localPath": "/private/tmp/wasm-ci-40751583248-verified.json",
+          "bytes": 1878,
+          "sha256": "690ddd3648228a2313cf3f8efd2c20224e95f0e8aa94922f18732ecc8874a478"
+        },
+        "jobLogs": [
+          {
+            "localPath": "/private/tmp/wasm-ci-40751583248-all32.log",
+            "bytes": 82678,
+            "sha256": "574d7e798e1af765edfab4c5291d6d958f97eaae058ee73d1778f03ef4623685"
+          },
+          {
+            "localPath": "/private/tmp/wasm-ci-40751583248-application-audio.log",
+            "bytes": 62095,
+            "sha256": "f6f21fa45a425602c9e94d44350810656f52ab3ebbede56b06408a63eb046186"
+          }
+        ],
+        "limits": [
+          "Exact synchronous Node/WASM PCM and API parity, not browser/AudioWorklet timing or physical listening.",
+          "Existing mixed-engine checks use committed partner-chip builds; each comparison replaces one core at a time.",
+          "DX7 frame counts are mono; other checker counters retain their original units and are not combined."
+        ]
+      },
+      "otherSameHeadRuns": [
+        {
+          "workflow": "SBI",
+          "runId": 40751583147,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "VGM",
+          "runId": 40751583058,
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Pages build and deployment",
+          "runId": 40751582674,
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ],
+      "invariants": {
+        "onlyRecordsChangedThisTurn": true,
+        "productRuntimeChanged": false,
+        "mixerGainChanged": false,
+        "npmVersionChanged": false,
+        "oldDecodeRootCauseResolved": false,
+        "tauriGuiVerified": false,
+        "listeningPerformed": false,
+        "manualNpmReleasePerformed": false,
+        "manualItchReleasePerformed": false,
+        "sdkTagReleasePerformed": false,
+        "automaticPagesDeploymentSucceeded": true,
+        "physicalDeadlineOrNoAudibleNoiseClaim": false
+      }
+    }
+  ],
   "schemaVersion": 1,
   "kind": "ps1-remote-ci-evidence",
   "recordedDate": "2026-10-28",

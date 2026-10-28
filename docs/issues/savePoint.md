@@ -1,3 +1,11 @@
+## 2026-10-29 — 修正commitのremote CI全5件成功、実配布ZIPとPS1集約を照合
+
+- 修正はユーザーcommit／push済み。対象`3c784c18ae1a8869b1b45178ee0ad42a9c6d76f9`のWASM SDK、itch web、VGM、SBI、Pagesの5 workflowsがattempt 1で全てsuccess。以前の`79d9...`の両remote失敗や最初のローカル録音decode失敗は、その時点の履歴として変更しない。
+- WASM run `40751583248`は両job成功。29 chip＋2 application audio＋1 PS1の32 builds／63 outputs、192 source closureを確認。40,474 chip比較は全差分0。PS1は24声／311,605 frames、実Nativeとの98,828 interleaved samplesも差分0。unit128、application-audio Node55／Python3成功。inputSnapshot2,294 filesと記録追記前checkoutのhash一致を検証し、`repositoryInputsUnchanged:true`。証跡は`/private/tmp/wasm-ci-40751583248-verified.json`等。
+- itch run `40751583440`は汎用Playground20条件、PS1の新規4 reports／16 routes／594 captures／5,201,920 framesと集約を含め全工程成功。clock異常2 capturesを保持しpilot PCMは連続。Sample EditorはChromiumの実MediaRecorderをsynthetic streamで2条件検証、Linux WebKitは実際にMediaRecorderがないため録音未検証・非対応UIとfile／描画／演奏等を2条件確認。強制非対応flagは使っていない。
+- 成功CIの4 ZIP実体を取得し、CRC、SHA256SUMS、manifestのcommit／全収録file hash、validation側manifestのbyte一致を照合した。実Run ZIPは37,401,619 bytes／930 entries・files、SHA256 `e2bead8543381582c6f96233f0ed9c92afbddf9830a0e2ff177c57fdf968ae0f`。現checker／helper SHAとこの実ZIPで集約を再実行し、remote結果とarchive path以外完全一致。今回の16 routesは全て新runの結果で、過去reportを流用していない。
+- 追記記録：[ps1_remote_ci_01.md](ps1_remote_ci_01.md)／[JSON](ps1_remote_ci_01.json)。このturnは作業記録のみ更新し未commit。SDK tag／npm公開／itch uploadは実施していない。Pagesの自動deploymentは上記CIで成功している。過去の録音decodeの原因未確定、Tauri GUI実操作・実聴は別の未確認事項。次候補はPS1のMixer基準音量測定（現在は未測定1.0）。以下は各時点の履歴。
+
 ## 2026-10-29 — remote CIの失敗を確認し、SDK件数と録音可用性の検証コードを修正
 
 - commit `79d9ababe8a565fca8c2a8d5519c647605cbe3a7`のitch CIを確認。同一commitのattempt 1はeditor起動待ちでtimeout、1回再実行したattempt 2は汎用Playground20条件とPS1 Mode／ADPCM／Voice計12条件を通過した。Sample EditorはChromium2条件がlog上成功後、Linux WebKitで録音非対応のdisabledボタンを押して失敗。集約へ未到達で、remote全体は失敗のまま保持する。
