@@ -1,3 +1,10 @@
+## 2026-10-28 — PS1の残り3 Browser checkerを独立PCM判定へ統一、ローカル24条件成功
+
+- Mode／PCM→ADPCM／Sample Editorへ既存24bit pilotを展開。実音声input0とpilot input1を分離し、物理出力mute。再試行を含む全captureでPCM連続性・測定row・長さ・clock集計を検査し、clock異常は別途保持。既存の音程／stereo／preview／editor／Keyboard／RAM／Stop等は維持。
+- source本体／実Run ZIP × 3 checker × Chromium／WebKit × Main／Workerの新規24条件が直列実行で成功。計771 captures／6,500,352 frames、pilot PCM連続。Mode ZIPのChromium Workerの1 captureにclock +128の差が残り127 rows不一致だが、16,384 pilot samplesの欠落・重複0。異常を破棄せず診断保持。共通helper18＋集約25＝43単体成功、syntax／diffcheck成功。
+- 既存voice8条件はchecker／helper／同一ZIPのhashを照合した前回reportの再利用で、今回再実行した24条件に含めない。実Run ZIPは37,403,090bytes／SHA256 `ab83876a942add3ab6a91ff7ab53e333dcc943134642ae151721235c0f6556e2`のまま。4 reportの実集約は16 routes／592 captures／5,193,728 framesで成功し、clock異常1 capture保持。集約の16 routesには再利用voice ZIP4条件を含む。CIへ現在のchecker／helper／ZIP hash・coverage・PCM・clock診断を検査する集約を接続したが、remote Actionsは未実行。
+- 製品runtime／C++／WASM／Mixer／固定SDK／Tauri／versionは変更なし。未commit／未push／未公開。次はユーザーcommit／push後のremote CI、Tauri GUI実操作／実聴。pilotは別入力の検査でSPU全frameやdevice deadlineを直接保証しない。詳細：[ps1_capture_migration_01.md](ps1_capture_migration_01.md)／[JSON](ps1_capture_migration_01.json)。以下は各時点の履歴。
+
 ## 2026-10-28 — PS1 Browserのclock不一致をPS1なしで再現、実PCMを独立検査する判定へ変更
 
 - 前段階SDK／NativeのBrowser失敗は履歴として保持。Chromiumのglobal `currentFrame`の重複と、収録PCMの欠落・重複を切り分けた。製品JS／C++／WASM、SDK／Tauri、Mixer gain、npm versionの変更なし。

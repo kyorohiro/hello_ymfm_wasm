@@ -8,6 +8,7 @@ const http=require('node:http');
 const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
+const {PROCESSOR_NAMES,processorSource,analyzePilotPcm,analyzeClockRows}=require('./audio_clock_audit.cjs');
 const config={host:null,zip:null,out:null,screenshots:null,engines:[],execution:null};
 const usage='Usage: node scripts/check_ps1_sample_editor_browser.cjs [--chromium-only | --webkit-only] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
 for(let i=2;i<process.argv.length;i++){
@@ -22,15 +23,7 @@ assert(!(config.host&&config.zip),'Choose --host or --zip');
 assert(config.engines.length<=1,'Choose one browser flag or neither for both');
 if(!config.engines.length)config.engines=['chromium','webkit'];
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),served=new Map();
-const captureSource=`class Ps1SampleCapture extends AudioWorkletProcessor {
- constructor(){super();this.pending=null;this.port.onmessage=({data})=>{if(this.pending)throw Error('Concurrent PS1 ADPCM capture');this.pending={id:data.id,left:new Float32Array(data.frames),right:new Float32Array(data.frames),offset:0,firstFrame:null,lastFrame:null,frameGaps:0,quantumFrames:[]};};}
- process(inputs,outputs){for(const channel of outputs[0])channel.fill(0);const p=this.pending;if(!p)return true;
-  if(p.firstFrame===null)p.firstFrame=currentFrame;if(currentFrame!==p.firstFrame+p.offset)p.frameGaps++;p.lastFrame=currentFrame;
-  const quantum=outputs[0][0].length;if(!p.quantumFrames.includes(quantum))p.quantumFrames.push(quantum);
-  const count=Math.min(quantum,p.left.length-p.offset),input=inputs[0];for(let i=0;i<count;i++){p.left[p.offset+i]=input[0]?.[i]??0;p.right[p.offset+i]=input[1]?.[i]??input[0]?.[i]??0;}p.offset+=count;
-  if(p.offset===p.left.length){this.pending=null;this.port.postMessage(p,[p.left.buffer,p.right.buffer]);}return true;
- }
-}registerProcessor('ps1-sample-editor-capture',Ps1SampleCapture);`;
+const captureSource=processorSource;
 
 async function selectHost(){
   let temporary=null,archive=null,directory=config.host??path.resolve(__dirname,'../docs');
@@ -56,7 +49,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   throw Error('Selected host must contain Playground index.html and examples/ps1/ps1-sampler.js');
 }
 function instrumentation(){
-  const audit=window.__ps1SampleAudit={contexts:[],workers:[],worklets:[],sinks:new Map(),processorErrors:[],snapshots:[],jobs:[],requests:[],starts:[],stops:0,held:[],holdCommand:null,microphoneTracks:[]};
+  const audit=window.__ps1SampleAudit={contexts:[],workers:[],worklets:[],sinks:new Map(),processorErrors:[],snapshots:[],jobs:[],requests:[],starts:[],stops:0,held:[],holdCommand:null,microphoneTracks:[],captures:[]};
   const Context=window.AudioContext,OriginalWorker=window.Worker,Worklet=window.AudioWorkletNode;
   const connect=AudioNode.prototype.connect,disconnect=AudioNode.prototype.disconnect;audit.connect=connect;
   window.AudioContext=class extends Context{constructor(...args){super(...args);audit.contexts.push(this);}};
@@ -106,26 +99,43 @@ function instrumentation(){
   };
   AudioBufferSourceNode.prototype.stop=function(...args){audit.stops++;return stop.apply(this,args);};
 }
-async function capture(page,frames=16384){return page.evaluate(async frames=>{
+async function capture(page,frames=16384){const pcm=await page.evaluate(async({frames,captureName,pilotName})=>{
   const audit=window.__ps1SampleAudit,context=[...audit.contexts].reverse().find(context=>context.state!=='closed'&&audit.sinks.has(context));
   if(!context)throw Error('No live Playground output graph');const sink=audit.sinks.get(context);
   if(!sink.capture){
-    await context.audioWorklet.addModule('/__ps1_sample_capture.js');const node=new AudioWorkletNode(context,'ps1-sample-editor-capture',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});
+    await context.audioWorklet.addModule('/__ps1_sample_capture.js');const node=new AudioWorkletNode(context,captureName,{numberOfInputs:2,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{pilotInput:1}});
+    // Keep the independent sample counter off the real preview/instrument mix.
+    // It reaches capture input1 only; the capture and physical gate output zero.
+    const pilot=new AudioWorkletNode(context,pilotName,{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1]});
+    audit.connect.call(pilot,node,0,1);sink.pilot=pilot;
     audit.connect.call(sink.sum,node);audit.connect.call(node,sink.gate);sink.capture=node;sink.sequence=0;sink.pending=null;
     node.port.onmessage=({data})=>{if(sink.pending?.id===data.id){const p=sink.pending;sink.pending=null;clearTimeout(p.timer);p.resolve(data);}};
   }
   const data=await new Promise((resolve,reject)=>{if(sink.pending)throw Error('Concurrent SPU capture');const id=++sink.sequence;
     const timer=setTimeout(()=>{sink.pending=null;reject(Error('SPU output capture timed out'));},10000);sink.pending={id,resolve,timer};sink.capture.port.postMessage({id,frames});});
+  const pilot=window.__ps1SampleClockAnalysis.pilot(data.pilot,{expectedFrames:frames,pilotInputFrames:data.pilotInputFrames});
+  const clock=window.__ps1SampleClockAnalysis.clock(data.rows),contextIndex=audit.contexts.indexOf(context);
+  audit.captures.push({contextIndex,id:data.id,frames:data.left.length,frameGaps:data.frameGaps,pilot,clock});
   const channels=[data.left,data.right].map(values=>{let peak=0,energy=0,nonFinite=0,nonZero=0;const crossings=[],mean=values.reduce((sum,value)=>sum+value,0)/values.length;
     for(let i=0;i<values.length;i++){const value=values[i];if(!Number.isFinite(value))nonFinite++;peak=Math.max(peak,Math.abs(value));energy+=(value-mean)**2;if(value!==0)nonZero++;if(i&&values[i-1]<mean&&value>=mean)crossings.push(i-1+(mean-values[i-1])/(value-values[i-1]));}
     return {peak,rms:Math.sqrt(energy/values.length),nonFinite,nonZero,hz:crossings.length>2?(crossings.length-1)*context.sampleRate/(crossings.at(-1)-crossings[0]):0};});
   if(sink.gate.gain.value!==0)throw Error('Physical output must remain zero');
-  return {sampleRate:context.sampleRate,frames:data.left.length,frameGaps:data.frameGaps,firstFrame:data.firstFrame,lastFrame:data.lastFrame,quantumFrames:data.quantumFrames,channels,physicalOutputMuted:true};
-},frames);}
+  return {contextIndex,id:data.id,sampleRate:context.sampleRate,frames:data.left.length,frameGaps:data.frameGaps,gaps:data.gaps,firstFrame:data.firstFrame,lastFrame:data.lastFrame,quantumFrames:data.quantumFrames,pilot,clock,channels,physicalOutputMuted:true};
+},{frames,captureName:PROCESSOR_NAMES.capture,pilotName:PROCESSOR_NAMES.pilot});
+  // Assert every capture before any audible/silent retry can discard its result.
+  // currentFrame is observed separately from the independently counted PCM.
+  assertCapturePcm(pcm,'PS1 Sample Editor capture '+pcm.contextIndex+':'+pcm.id);return pcm;
+}
+function assertCapturePcm(pcm,label){
+  assert.equal(pcm.pilot.continuous,true,label+': independent captured PCM continuity '+JSON.stringify(pcm.pilot));
+  assert.equal(pcm.clock.measurementValid,true,label+': complete capture callback sequence '+JSON.stringify(pcm.clock));
+  assert.equal(pcm.clock.frames,pcm.frames,label+': every capture quantum accounted for');
+  assert.equal(pcm.clock.gapCount,pcm.frameGaps,label+': all observed clock anomalies retained');
+}
 async function audible(page,label,hz){let pcm;const valid=ch=>!ch.nonFinite&&ch.rms>.0001&&ch.peak<1&&(hz===undefined||Math.abs(ch.hz-hz)<Math.max(2,hz*.025));
   for(let attempt=0;attempt<6;attempt++){pcm=await capture(page);if(pcm.channels.every(valid))break;}
-  assert(pcm.channels.every(valid),label+': finite nonzero unclipped SPU audio '+JSON.stringify(pcm));assert.equal(pcm.frameGaps,0,label+': continuous output quanta');return pcm;}
-async function silent(page,label){let pcm;for(let attempt=0;attempt<8;attempt++){pcm=await capture(page,4096);if(pcm.channels.every(ch=>!ch.nonFinite&&!ch.nonZero)){assert.equal(pcm.frameGaps,0,label+': continuous zero-output quanta '+JSON.stringify(pcm));return pcm;}}throw Error(label+': expected exact-zero output '+JSON.stringify(pcm));}
+  assert(pcm.channels.every(valid),label+': finite nonzero unclipped SPU audio '+JSON.stringify(pcm));assertCapturePcm(pcm,label);return pcm;}
+async function silent(page,label){let pcm;for(let attempt=0;attempt<8;attempt++){pcm=await capture(page,4096);if(pcm.channels.every(ch=>!ch.nonFinite&&!ch.nonZero)){assertCapturePcm(pcm,label);return pcm;}}throw Error(label+': expected exact-zero output '+JSON.stringify(pcm));}
 async function setSource(page,source,execution){await page.locator('#codeTab').click();await page.evaluate(({source,execution})=>{monaco.editor.getEditors()[0].setValue(source);document.getElementById('workerExecution').checked=execution==='worker';},{source,execution});}
 async function run(page,source,execution){await setSource(page,source,execution);await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);}
 async function waitLog(page,marker){await page.waitForFunction(marker=>document.getElementById('consoleOutput').textContent.includes(marker)||/^Error:|^Playback failed:/i.test(document.getElementById('status').textContent),marker);const text=await page.locator('#consoleOutput').textContent();assert(text.includes(marker),'Runtime failed before '+marker+': '+text);return text;}
@@ -248,7 +258,9 @@ if(!encoded.adpcm.every((value,i)=>value===state.ram[last.startAddress+i]))throw
 log(${JSON.stringify(marker)}+JSON.stringify({manifest,microphoneSource:microphone.source,sourceBytes:sourceBytes.byteLength,sourceRate:header.getUint32(24,true),sourceFrames:dataSize/header.getUint16(32,true),bytes:encoded.adpcm.length,loopStart:saved.loopStartFrame,loopEnd:saved.loopEndFrame,rootMidi:saved.rootMidi,tuneCents:saved.tuneCents,active:state.channels.filter(channel=>channel.gate).length,ramMatches:true,metrics:encoded.metrics}));
 liveLoop('sampler-check',async()=>{await sleep(60);});`;}
 async function runCase(browser,name,origin,host,execution){
-  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:1100}});await context.addInitScript(instrumentation);
+  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:1100}});
+  await context.addInitScript({content:`globalThis.__ps1SampleClockAnalysis={pilot:${analyzePilotPcm.toString()},clock:${analyzeClockRows.toString()}};`});
+  await context.addInitScript(instrumentation);
   const page=await context.newPage();page.setDefaultTimeout(40000);const errors=[],badResponses=[];
   page.on('pageerror',error=>errors.push({message:error.message,stack:error.stack}));page.on('response',response=>{if(response.status()>=400)badResponses.push({url:response.url(),status:response.status()});});
   try{
@@ -296,13 +308,18 @@ async function runCase(browser,name,origin,host,execution){
     // emphasize harmonics. Fundamental pitch is checked on single voices above.
     const polyphony=await audible(page,'24-voice PS1 sample instrument'),probeStop=await stop(page,'Polyphony Stop');
     assert.deepEqual(errors,[],'Browser exceptions');assert.deepEqual(badResponses,[],'Missing runtime assets');await healthy(page,'Finished');
-    const audit=await page.evaluate(()=>({worklets:__ps1SampleAudit.worklets,workers:__ps1SampleAudit.workers,previewStarts:__ps1SampleAudit.starts,previewStops:__ps1SampleAudit.stops,physicalOutputMuted:[...__ps1SampleAudit.sinks.values()].every(({gate})=>gate.gain.value===0)}));assert(audit.physicalOutputMuted);
+    const audit=await page.evaluate(()=>({worklets:__ps1SampleAudit.worklets,workers:__ps1SampleAudit.workers,previewStarts:__ps1SampleAudit.starts,previewStops:__ps1SampleAudit.stops,physicalOutputMuted:[...__ps1SampleAudit.sinks.values()].every(({gate})=>gate.gain.value===0),
+      captureContinuity:{captures:__ps1SampleAudit.captures.length,frames:__ps1SampleAudit.captures.reduce((n,c)=>n+c.frames,0),
+        pcmContinuous:__ps1SampleAudit.captures.every(c=>c.pilot.continuous&&c.clock.measurementValid&&c.clock.frames===c.frames&&c.clock.gapCount===c.frameGaps),
+        clockContinuous:__ps1SampleAudit.captures.every(c=>c.clock.continuous),
+        clockAnomalies:__ps1SampleAudit.captures.filter(c=>!c.clock.continuous)}}));assert(audit.physicalOutputMuted);assert(audit.captureContinuity.captures>0);assert(audit.captureContinuity.pcmContinuous);
     return {browser:name,version:browser.version(),execution,defaultPs1:true,fixedRate:44100,variableRateRestored:true,fileInput:true,microphone,drawnEdits:true,invalidLoopSaveRejected:true,noPolling,hiddenNoPolling,comparison:{bytes:edited.value.byteLength,metrics:edited.value.metrics,alignment:edited.value.alignment},played,views,staleEditCancelled:true,closedPreviewCancelled:true,saveReopen:true,exactSamplerExample:true,input,hotInput,secondInput,sampleReuse:{samplesBefore,samplesAfter,hotRerun:true,freshStopRun:true},exampleStop,probe,polyphony,probeStop,...audit};
-  }catch(error){const state=await page.evaluate(()=>({status:document.getElementById('status')?.textContent,log:document.getElementById('consoleOutput')?.textContent,dialog:document.querySelector('dialog[data-audio-input]')?.innerText,jobs:window.__ps1SampleAudit?.jobs.map(job=>({command:job.command,error:job.error,settings:job.settings}))})).catch(()=>null);throw Error(`${name}/${execution}: ${error.message}\n${JSON.stringify({state,errors,badResponses})}`,{cause:error});}
+  }catch(error){const state=await page.evaluate(()=>({status:document.getElementById('status')?.textContent,log:document.getElementById('consoleOutput')?.textContent,dialog:document.querySelector('dialog[data-audio-input]')?.innerText,captures:window.__ps1SampleAudit?.captures,jobs:window.__ps1SampleAudit?.jobs.map(job=>({command:job.command,error:job.error,settings:job.settings}))})).catch(()=>null);throw Error(`${name}/${execution}: ${error.message}\n${JSON.stringify({state,errors,badResponses})}`,{cause:error});}
   finally{await context.close();}
 }
 (async()=>{
-  const host=await selectHost();let server;
+  const helperPath=require.resolve('./audio_clock_audit.cjs');
+  const checkerSha256=sha(await fs.readFile(__filename)),captureHelperSha256=sha(await fs.readFile(helperPath)),host=await selectHost();let server;
   try{
     server=http.createServer(async(request,response)=>{
       try{
@@ -321,7 +338,9 @@ async function runCase(browser,name,origin,host,execution){
       finally{await browser.close();}
     }
     for(const [name,entry]of served)assert.equal(sha(await fs.readFile(path.join(host.directory,name))),entry.sha256,'Source remained frozen: '+name);
-    const report={schemaVersion:1,passed:true,physicalOutputMuted:true,listeningPerformed:false,publicUiOnly:true,repositoryFallback:false,host:host.directory,archive:host.archive,example:{path:host.example,bytes:Buffer.byteLength(host.source),sha256:sha(host.source)},results,sources:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),checkerSha256:sha(await fs.readFile(__filename))};
+    assert.equal(sha(await fs.readFile(__filename)),checkerSha256,'Checker bytes remained frozen throughout execution');
+    assert.equal(sha(await fs.readFile(helperPath)),captureHelperSha256,'Capture helper remained frozen throughout execution');
+    const report={schemaVersion:2,passed:true,pcmContinuous:results.every(r=>r.captureContinuity.pcmContinuous),clockContinuous:results.every(r=>r.captureContinuity.clockContinuous),continuityOracle:'independent-24-bit-pilot-PCM',physicalOutputMuted:true,listeningPerformed:false,publicUiOnly:true,repositoryFallback:false,host:host.directory,archive:host.archive,example:{path:host.example,bytes:Buffer.byteLength(host.source),sha256:sha(host.source)},results,sources:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),checkerSha256,captureHelperSha256};
     if(config.out)await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log(`PS1 Sample Editor browser check passed: ${results.length} routes${config.out?'; '+config.out:''}.`);
   }finally{if(server)await new Promise(resolve=>server.close(resolve));if(host.temporary)await fs.rm(host.temporary,{recursive:true,force:true});}
 })().catch(error=>{console.error(error.stack??error);process.exitCode=1;});

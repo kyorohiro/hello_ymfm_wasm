@@ -7527,5 +7527,28 @@
       "failed": 0,
       "oracle": "independent-24-bit-pilot-PCM-with-global-clock-diagnostics"
     }
+  },
+  "followUpCaptureMigration": {
+    "date": "2026-10-28",
+    "record": "ps1_capture_migration_01.json",
+    "status": "complete-three-checkers-and-local-browser-matrix",
+    "historicalResultsAboveUnchanged": true,
+    "newBrowserRoutesPassed": 24,
+    "newBrowserRoutesFailed": 0,
+    "newBrowserCaptures": 771,
+    "newBrowserFrames": 6500352,
+    "clockAnomalyCapturesRetained": 1,
+    "pcmContinuous": true,
+    "clockContinuous": false,
+    "voiceRoutesReused": 8,
+    "voiceRerunThisStage": false,
+    "currentCheckerHelperAndArchiveHashesMatched": true,
+    "combinedUnitTestsPassed": 43,
+    "localPackagedAggregatePassed": true,
+    "localAggregateRoutesIncludingReusedVoice": 16,
+    "remoteCiExecuted": false,
+    "committed": false,
+    "pushed": false,
+    "published": false
   }
 }

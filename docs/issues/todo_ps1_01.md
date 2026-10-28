@@ -109,3 +109,7 @@ and old/current real-core comparison remain separate evidence. The eight routes
 refer only to the voice UI checker. The Playground PS1, Sample Editor and ADPCM
 encoder Browser checkers still use their previous `currentFrame` assertions;
 applying the shared audit to those three checkers remains a follow-up.
+
+## 2026-10-28 follow-up: remaining checker migration
+
+The three-checker follow-up is complete: Mode, PCM-to-ADPCM and Sample Editor pass 24 newly executed source / actual Run ZIP routes, auditing 771 captures / 6,500,352 frames. One Mode ZIP capture retains a global-clock anomaly while its independent pilot remains continuous. The 43 helper/aggregate unit tests pass. Previous voice UI evidence was reused only after current checker/helper/archive hashes matched; its eight routes were not rerun in this stage or counted among the 24. The local packaged aggregate passes four reports / 16 routes, including the previous voice ZIP proof. See [ps1_capture_migration_01.md](ps1_capture_migration_01.md) / [JSON](ps1_capture_migration_01.json). All historical results above remain unchanged. Production audio, WASM, Mixer, fixed SDK, Tauri and package versions are unchanged. Remote CI and human listening remain pending; no commit, push or publication was performed.

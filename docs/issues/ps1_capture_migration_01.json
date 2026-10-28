@@ -1,0 +1,1066 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "status": "complete-three-legacy-checkers-migrated-and-local-browser-matrix-validated",
+  "baselineCommit": "581be50b8ce6f6421b7eec26d59c4eefa93f126e",
+  "scope": {
+    "checkers": [
+      "scripts/check_playground_ps1_browser.cjs",
+      "scripts/check_ps1_adpcm_encoder_browser.cjs",
+      "scripts/check_ps1_sample_editor_browser.cjs"
+    ],
+    "productionAudioChanged": false,
+    "cppChanged": false,
+    "wasmChanged": false,
+    "fixedSdkChanged": false,
+    "tauriChanged": false,
+    "mixerGainsChanged": false,
+    "packageVersionChanged": false,
+    "committed": false,
+    "pushed": false,
+    "published": false,
+    "ciAggregateFiles": [
+      "scripts/check_ps1_capture_reports.cjs",
+      "test/ps1_capture_reports.test.cjs",
+      ".github/workflows/itch-web.yml"
+    ],
+    "commonHelperChanged": false,
+    "voiceCheckerChanged": false
+  },
+  "continuityOracle": {
+    "id": "independent-24-bit-pilot-PCM",
+    "realAudioInput": 0,
+    "pilotInput": 1,
+    "captureOutputZero": true,
+    "physicalOutputMuted": true,
+    "assertEveryCaptureIncludingRetries": true,
+    "clockAnomaliesRetainedSeparately": true,
+    "requiredChecks": [
+      "pilot.continuous === true",
+      "clock.measurementValid === true",
+      "clock.frames === captured frames",
+      "clock.gapCount === frameGaps"
+    ],
+    "existingInstrumentPcmAssertionsPreserved": true,
+    "checkerAndHelperHashesFrozenDuringExecution": true
+  },
+  "validation": {
+    "syntax": {
+      "passed": true,
+      "scripts": [
+        "scripts/check_playground_ps1_browser.cjs",
+        "scripts/check_ps1_adpcm_encoder_browser.cjs",
+        "scripts/check_ps1_sample_editor_browser.cjs",
+        "scripts/check_ps1_capture_reports.cjs"
+      ]
+    },
+    "helperNegativeTests": {
+      "reusedPreviousEvidence": false,
+      "rerunPassed": 18,
+      "unchangedHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+      "previousReference": "ps1_audio_clock_01.json"
+    },
+    "matrix": {
+      "status": "passed",
+      "newBrowserRoutes": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "serializedExecution": true,
+      "hosts": [
+        "source",
+        "actual-Run-ZIP"
+      ],
+      "checkers": [
+        "mode",
+        "adpcm",
+        "sample-editor"
+      ],
+      "browsers": [
+        "chromium",
+        "webkit"
+      ],
+      "executions": [
+        "main",
+        "worker"
+      ],
+      "captures": 771,
+      "frames": 6500352,
+      "pcmContinuous": true,
+      "clockContinuous": false,
+      "clockAnomalyCaptures": 1,
+      "reports": [
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/source/ps1-mode-browser.json",
+            "bytes": 337826,
+            "sha256": "12b8d30d328fea05a5566de6b7ad80f64ed85f106d1d2f9292e1c41b714597d1"
+          },
+          "kind": "mode",
+          "host": "source",
+          "schemaVersion": 2,
+          "newBrowserExecutionThisStage": true,
+          "checkerSha256": "9c6cebf339ddb06f4d0cc7bb85eddeef4043a2ba6dfe1ce6b464948292eadca7",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 288,
+          "captures": 198,
+          "frames": 1744896,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 43,
+              "frames": 348160,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 55,
+              "frames": 520192,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 45,
+              "frames": 356352,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 55,
+              "frames": 520192,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        },
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/source/ps1-adpcm-browser.json",
+            "bytes": 187525,
+            "sha256": "5b43cbd6663371aba0aad070ae608d0b6df9459ee2a5af7cd2f77a518b3fc373"
+          },
+          "kind": "adpcm",
+          "host": "source",
+          "schemaVersion": 2,
+          "newBrowserExecutionThisStage": true,
+          "checkerSha256": "ac1c69b66735e772669df36ab7618b65a582bb6b52a0c36b4b731a4567d388f4",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 287,
+          "captures": 68,
+          "frames": 622592,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 15,
+              "frames": 122880,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 19,
+              "frames": 188416,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 15,
+              "frames": 122880,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 19,
+              "frames": 188416,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        },
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/source/ps1-sample-editor-browser.json",
+            "bytes": 131912,
+            "sha256": "e80d50d2bd80d5cae55bb91ef7bf6e287d798b26ca24604e0b4c2fadc39693d0"
+          },
+          "kind": "sample-editor",
+          "host": "source",
+          "schemaVersion": 2,
+          "newBrowserExecutionThisStage": true,
+          "checkerSha256": "fdd9793a51661716cf9833b42d74fa29c48036af5565e23b83af0aefb5b2a1a3",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 291,
+          "captures": 119,
+          "frames": 880640,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 29,
+              "frames": 217088,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 30,
+              "frames": 221184,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 30,
+              "frames": 221184,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 30,
+              "frames": 221184,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        },
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/zip/ps1-mode-browser.json",
+            "bytes": 363832,
+            "sha256": "935705945d2ea76d1eecc84faffc6de5ae06bf35eea74e84eca1f109be6e883c"
+          },
+          "kind": "mode",
+          "host": "zip",
+          "schemaVersion": 2,
+          "newBrowserExecutionThisStage": true,
+          "checkerSha256": "9c6cebf339ddb06f4d0cc7bb85eddeef4043a2ba6dfe1ce6b464948292eadca7",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 216,
+          "captures": 198,
+          "frames": 1744896,
+          "pcmContinuous": true,
+          "clockContinuous": false,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 45,
+              "frames": 356352,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 55,
+              "frames": 520192,
+              "pcmContinuous": true,
+              "clockContinuous": false,
+              "clockAnomalyCaptures": 1
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 43,
+              "frames": 348160,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 55,
+              "frames": 520192,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        },
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/zip/ps1-adpcm-browser.json",
+            "bytes": 176359,
+            "sha256": "2a57f799fa0908f60ba8c36237fe49e29077ea4fc3ccb57d2e18991b512dd0f3"
+          },
+          "kind": "adpcm",
+          "host": "zip",
+          "schemaVersion": 2,
+          "newBrowserExecutionThisStage": true,
+          "checkerSha256": "ac1c69b66735e772669df36ab7618b65a582bb6b52a0c36b4b731a4567d388f4",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 215,
+          "captures": 68,
+          "frames": 622592,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 15,
+              "frames": 122880,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 19,
+              "frames": 188416,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 15,
+              "frames": 122880,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 19,
+              "frames": 188416,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        },
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/zip/ps1-sample-editor-browser.json",
+            "bytes": 120371,
+            "sha256": "8d647ffafe1afec04b8ba782c8fb45a42d3fbd1607a2e7d81c3cabef7dabd500"
+          },
+          "kind": "sample-editor",
+          "host": "zip",
+          "schemaVersion": 2,
+          "newBrowserExecutionThisStage": true,
+          "checkerSha256": "fdd9793a51661716cf9833b42d74fa29c48036af5565e23b83af0aefb5b2a1a3",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 219,
+          "captures": 120,
+          "frames": 884736,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 30,
+              "frames": 221184,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 30,
+              "frames": 221184,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 30,
+              "frames": 221184,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 30,
+              "frames": 221184,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        }
+      ],
+      "clockAnomalies": [
+        {
+          "host": "zip",
+          "checker": "scripts/check_playground_ps1_browser.cjs",
+          "browser": "chromium",
+          "execution": "worker",
+          "frames": 16384,
+          "frameGaps": 127,
+          "pilot": {
+            "continuous": true,
+            "period": 16777216,
+            "expectedFrames": 16384,
+            "frames": 16384,
+            "receivedFrames": 16384,
+            "complete": true,
+            "nonFinite": 0,
+            "invalidSamples": 0,
+            "sampleGapCount": 0,
+            "sampleGaps": [],
+            "zeroSamples": 1,
+            "firstSample": 0,
+            "lastSample": 0.0009765028953552246
+          },
+          "clock": {
+            "continuous": false,
+            "measurementValid": true,
+            "rowCount": 128,
+            "firstFrame": 6272,
+            "lastFrame": 22656,
+            "frames": 16384,
+            "gapCount": 127,
+            "gaps": [
+              {
+                "index": 1,
+                "frame": 6528,
+                "expectedFrame": 6400,
+                "previousFrame": 6272,
+                "offset": 128,
+                "quantum": 128,
+                "ordinal": 1
+              },
+              {
+                "index": 2,
+                "frame": 6656,
+                "expectedFrame": 6528,
+                "previousFrame": 6528,
+                "offset": 256,
+                "quantum": 128,
+                "ordinal": 2
+              },
+              {
+                "index": 3,
+                "frame": 6784,
+                "expectedFrame": 6656,
+                "previousFrame": 6656,
+                "offset": 384,
+                "quantum": 128,
+                "ordinal": 3
+              },
+              {
+                "index": 4,
+                "frame": 6912,
+                "expectedFrame": 6784,
+                "previousFrame": 6784,
+                "offset": 512,
+                "quantum": 128,
+                "ordinal": 4
+              },
+              {
+                "index": 5,
+                "frame": 7040,
+                "expectedFrame": 6912,
+                "previousFrame": 6912,
+                "offset": 640,
+                "quantum": 128,
+                "ordinal": 5
+              },
+              {
+                "index": 6,
+                "frame": 7168,
+                "expectedFrame": 7040,
+                "previousFrame": 7040,
+                "offset": 768,
+                "quantum": 128,
+                "ordinal": 6
+              },
+              {
+                "index": 7,
+                "frame": 7296,
+                "expectedFrame": 7168,
+                "previousFrame": 7168,
+                "offset": 896,
+                "quantum": 128,
+                "ordinal": 7
+              },
+              {
+                "index": 8,
+                "frame": 7424,
+                "expectedFrame": 7296,
+                "previousFrame": 7296,
+                "offset": 1024,
+                "quantum": 128,
+                "ordinal": 8
+              },
+              {
+                "index": 9,
+                "frame": 7552,
+                "expectedFrame": 7424,
+                "previousFrame": 7424,
+                "offset": 1152,
+                "quantum": 128,
+                "ordinal": 9
+              },
+              {
+                "index": 10,
+                "frame": 7680,
+                "expectedFrame": 7552,
+                "previousFrame": 7552,
+                "offset": 1280,
+                "quantum": 128,
+                "ordinal": 10
+              },
+              {
+                "index": 11,
+                "frame": 7808,
+                "expectedFrame": 7680,
+                "previousFrame": 7680,
+                "offset": 1408,
+                "quantum": 128,
+                "ordinal": 11
+              },
+              {
+                "index": 12,
+                "frame": 7936,
+                "expectedFrame": 7808,
+                "previousFrame": 7808,
+                "offset": 1536,
+                "quantum": 128,
+                "ordinal": 12
+              },
+              {
+                "index": 13,
+                "frame": 8064,
+                "expectedFrame": 7936,
+                "previousFrame": 7936,
+                "offset": 1664,
+                "quantum": 128,
+                "ordinal": 13
+              },
+              {
+                "index": 14,
+                "frame": 8192,
+                "expectedFrame": 8064,
+                "previousFrame": 8064,
+                "offset": 1792,
+                "quantum": 128,
+                "ordinal": 14
+              },
+              {
+                "index": 15,
+                "frame": 8320,
+                "expectedFrame": 8192,
+                "previousFrame": 8192,
+                "offset": 1920,
+                "quantum": 128,
+                "ordinal": 15
+              },
+              {
+                "index": 16,
+                "frame": 8448,
+                "expectedFrame": 8320,
+                "previousFrame": 8320,
+                "offset": 2048,
+                "quantum": 128,
+                "ordinal": 16
+              },
+              {
+                "index": 17,
+                "frame": 8576,
+                "expectedFrame": 8448,
+                "previousFrame": 8448,
+                "offset": 2176,
+                "quantum": 128,
+                "ordinal": 17
+              },
+              {
+                "index": 18,
+                "frame": 8704,
+                "expectedFrame": 8576,
+                "previousFrame": 8576,
+                "offset": 2304,
+                "quantum": 128,
+                "ordinal": 18
+              },
+              {
+                "index": 19,
+                "frame": 8832,
+                "expectedFrame": 8704,
+                "previousFrame": 8704,
+                "offset": 2432,
+                "quantum": 128,
+                "ordinal": 19
+              },
+              {
+                "index": 20,
+                "frame": 8960,
+                "expectedFrame": 8832,
+                "previousFrame": 8832,
+                "offset": 2560,
+                "quantum": 128,
+                "ordinal": 20
+              },
+              {
+                "index": 21,
+                "frame": 9088,
+                "expectedFrame": 8960,
+                "previousFrame": 8960,
+                "offset": 2688,
+                "quantum": 128,
+                "ordinal": 21
+              },
+              {
+                "index": 22,
+                "frame": 9216,
+                "expectedFrame": 9088,
+                "previousFrame": 9088,
+                "offset": 2816,
+                "quantum": 128,
+                "ordinal": 22
+              },
+              {
+                "index": 23,
+                "frame": 9344,
+                "expectedFrame": 9216,
+                "previousFrame": 9216,
+                "offset": 2944,
+                "quantum": 128,
+                "ordinal": 23
+              },
+              {
+                "index": 24,
+                "frame": 9472,
+                "expectedFrame": 9344,
+                "previousFrame": 9344,
+                "offset": 3072,
+                "quantum": 128,
+                "ordinal": 24
+              },
+              {
+                "index": 25,
+                "frame": 9600,
+                "expectedFrame": 9472,
+                "previousFrame": 9472,
+                "offset": 3200,
+                "quantum": 128,
+                "ordinal": 25
+              },
+              {
+                "index": 26,
+                "frame": 9728,
+                "expectedFrame": 9600,
+                "previousFrame": 9600,
+                "offset": 3328,
+                "quantum": 128,
+                "ordinal": 26
+              },
+              {
+                "index": 27,
+                "frame": 9856,
+                "expectedFrame": 9728,
+                "previousFrame": 9728,
+                "offset": 3456,
+                "quantum": 128,
+                "ordinal": 27
+              },
+              {
+                "index": 28,
+                "frame": 9984,
+                "expectedFrame": 9856,
+                "previousFrame": 9856,
+                "offset": 3584,
+                "quantum": 128,
+                "ordinal": 28
+              },
+              {
+                "index": 29,
+                "frame": 10112,
+                "expectedFrame": 9984,
+                "previousFrame": 9984,
+                "offset": 3712,
+                "quantum": 128,
+                "ordinal": 29
+              },
+              {
+                "index": 30,
+                "frame": 10240,
+                "expectedFrame": 10112,
+                "previousFrame": 10112,
+                "offset": 3840,
+                "quantum": 128,
+                "ordinal": 30
+              },
+              {
+                "index": 31,
+                "frame": 10368,
+                "expectedFrame": 10240,
+                "previousFrame": 10240,
+                "offset": 3968,
+                "quantum": 128,
+                "ordinal": 31
+              },
+              {
+                "index": 32,
+                "frame": 10496,
+                "expectedFrame": 10368,
+                "previousFrame": 10368,
+                "offset": 4096,
+                "quantum": 128,
+                "ordinal": 32
+              }
+            ],
+            "unstableReadCount": 0,
+            "unstableReads": [],
+            "malformedRowCount": 0,
+            "malformedRows": []
+          }
+        }
+      ]
+    },
+    "ci": {
+      "workflow": ".github/workflows/itch-web.yml",
+      "aggregateScript": "scripts/check_ps1_capture_reports.cjs",
+      "localAggregatePassed": true,
+      "localAggregateReport": {
+        "path": "/private/tmp/ps1-capture-migration/ps1-capture-summary.json",
+        "bytes": 21229,
+        "sha256": "969b17491960cf7b44aba0c0acebfe14526ed4552fc68dcc0fe6354f427201d5"
+      },
+      "reportCount": 4,
+      "routeCount": 16,
+      "captures": 592,
+      "frames": 5193728,
+      "pcmContinuous": true,
+      "clockContinuous": false,
+      "clockAnomalyCaptures": 1,
+      "includesReusedVoiceProof": true,
+      "remoteExecuted": false,
+      "freshReportsGeneratedByRemoteWorkflow": true,
+      "checks": [
+        "current checker hashes",
+        "current helper hash",
+        "independent PCM oracle and report schema",
+        "all four unique browser/execution routes per checker",
+        "PCM continuity with retained clock anomaly diagnostics",
+        "exact Run ZIP archive SHA256"
+      ],
+      "publicationOrAutomaticPushPerformed": false
+    },
+    "aggregateUnitTests": {
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    "combinedUnitTests": {
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0,
+      "log": {
+        "path": "/private/tmp/ps1-capture-migration/logs/capture-unit.log",
+        "bytes": 3001,
+        "sha256": "9de6d85df718701ff285ffbf43df56eb66d389e3b401c4e9f6ee7f96f80ab7b4"
+      }
+    },
+    "reusedVoiceEvidence": {
+      "routes": 8,
+      "rerunThisStage": false,
+      "checkerAndHelperHashesMatched": true,
+      "runZipHashMatched": true,
+      "reason": "Previous successful source/ZIP proofs match the current checker/helper bytes and exact Run ZIP. They are not counted among the 24 new Browser executions.",
+      "previousReference": "ps1_audio_clock_01.json",
+      "reports": [
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/source/ps1-voice-editor-browser.json",
+            "bytes": 492858,
+            "sha256": "ba2b829e6ce2f60b204f990b84964bf43f2a56bab1382e907b70c625fef300d8"
+          },
+          "kind": "voice-editor",
+          "host": "source",
+          "schemaVersion": 3,
+          "newBrowserExecutionThisStage": false,
+          "checkerSha256": "3e8ee501e3b213e50fbfa5a37bc9daef9313dc6e59a585d4814095c6e694f37c",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 287,
+          "captures": 209,
+          "frames": 1953792,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 49,
+              "frames": 475136,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 57,
+              "frames": 507904,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 48,
+              "frames": 471040,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 55,
+              "frames": 499712,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        },
+        {
+          "report": {
+            "path": "/private/tmp/ps1-capture-migration/zip/ps1-voice-editor-browser.json",
+            "bytes": 481617,
+            "sha256": "865e7cb76abb56eb024fa3a9d920fd41cf7b63dc6b132a221d61e8b81d087ece"
+          },
+          "kind": "voice-editor",
+          "host": "zip",
+          "schemaVersion": 3,
+          "newBrowserExecutionThisStage": false,
+          "checkerSha256": "3e8ee501e3b213e50fbfa5a37bc9daef9313dc6e59a585d4814095c6e694f37c",
+          "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+          "sourceFilesVerified": 215,
+          "captures": 206,
+          "frames": 1941504,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "routes": [
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "main",
+              "captures": 49,
+              "frames": 475136,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "chromium",
+              "version": "153.0.8010.12",
+              "execution": "worker",
+              "captures": 55,
+              "frames": 499712,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "main",
+              "captures": 49,
+              "frames": 475136,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            },
+            {
+              "browser": "webkit",
+              "version": "26.6",
+              "execution": "worker",
+              "captures": 53,
+              "frames": 491520,
+              "pcmContinuous": true,
+              "clockContinuous": true,
+              "clockAnomalyCaptures": 0
+            }
+          ]
+        }
+      ]
+    },
+    "diffCheckPassed": true,
+    "archive": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_dev_itch_playground_for_run.zip",
+      "bytes": 37403090,
+      "sha256": "ab83876a942add3ab6a91ff7ab53e333dcc943134642ae151721235c0f6556e2",
+      "unchangedThisStage": true
+    }
+  },
+  "historicalRecord": "ps1_audio_clock_01.json",
+  "historicalOutcomesChanged": false,
+  "limitations": [
+    "The independent pilot validates its own capture input, not every SPU output frame.",
+    "Existing instrument PCM, pitch, stereo, preview, Keyboard and Stop assertions remain separate evidence.",
+    "Physical output is muted; this does not test driver/device deadlines or replace human listening.",
+    "The Chromium global-clock implementation cause remains unidentified."
+  ],
+  "next": [
+    "User commit/push, then inspect remote itch web CI and remote OS CI.",
+    "Tauri GUI interaction and human listening.",
+    "PS1 Mixer calibration remains a separate unmeasured unity-gain task."
+  ],
+  "legacySavePointTail": {
+    "marker": "## 旧記録 — 2026-08-24以降の作業メモ",
+    "sha256": "09844b5036a5bdd2f105df3c13ffcbaf9ec323fab5694b4555ffe231a64ddad7"
+  },
+  "sourceHashes": [
+    {
+      "path": "scripts/check_playground_ps1_browser.cjs",
+      "bytes": 33476,
+      "sha256": "9c6cebf339ddb06f4d0cc7bb85eddeef4043a2ba6dfe1ce6b464948292eadca7"
+    },
+    {
+      "path": "scripts/check_ps1_adpcm_encoder_browser.cjs",
+      "bytes": 22745,
+      "sha256": "ac1c69b66735e772669df36ab7618b65a582bb6b52a0c36b4b731a4567d388f4"
+    },
+    {
+      "path": "scripts/check_ps1_sample_editor_browser.cjs",
+      "bytes": 37388,
+      "sha256": "fdd9793a51661716cf9833b42d74fa29c48036af5565e23b83af0aefb5b2a1a3"
+    },
+    {
+      "path": "scripts/check_ps1_voice_editor_browser.cjs",
+      "bytes": 50536,
+      "sha256": "3e8ee501e3b213e50fbfa5a37bc9daef9313dc6e59a585d4814095c6e694f37c"
+    },
+    {
+      "path": "scripts/audio_clock_audit.cjs",
+      "bytes": 9338,
+      "sha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133"
+    },
+    {
+      "path": "scripts/check_ps1_capture_reports.cjs",
+      "bytes": 6675,
+      "sha256": "55e3fd882344fc5158bae4a6fa3ec69af533e0cb1f30db0e05b61b8c8ebe5f09"
+    },
+    {
+      "path": "test/ps1_capture_reports.test.cjs",
+      "bytes": 7956,
+      "sha256": "c66c968db358a9e28b7ecb3a673686f73bc4e6a27eeec780c5b78021d365db1e"
+    },
+    {
+      "path": ".github/workflows/itch-web.yml",
+      "bytes": 10356,
+      "sha256": "a9ab55c3ab54f7109894ce5a0138ebccaacea46fe492145346c60a59b88f9a58"
+    }
+  ],
+  "logs": [
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/adpcm-source.log",
+      "bytes": 786,
+      "sha256": "e4ba00861d024579c8bbe5ee896971f77f90911e092a0d6f20d580ab45454a4c"
+    },
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/adpcm-zip.log",
+      "bytes": 787,
+      "sha256": "a63a46576d727537755efc03632fe6afca5bd9bb7038a0fc6fd04b78e153a007"
+    },
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/audio-clock-unit.log",
+      "bytes": 1616,
+      "sha256": "3bed68218878b0cd8a6c72ba1ef0737fd047a13056556c4b638a5044090c5383"
+    },
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/capture-unit.log",
+      "bytes": 3001,
+      "sha256": "9de6d85df718701ff285ffbf43df56eb66d389e3b401c4e9f6ee7f96f80ab7b4"
+    },
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/mode-source.log",
+      "bytes": 2412,
+      "sha256": "2375777913052ac8b6e4344f6521e0ebe3493f610b1217aeda1931b5e2bda966"
+    },
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/mode-zip.log",
+      "bytes": 2325,
+      "sha256": "572fc8e730e027d6fdfed7d3c15f636b60e4be64ba917b4db55bf986c1b1afac"
+    },
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/sample-source.log",
+      "bytes": 820,
+      "sha256": "3e13f9e6309c38c9b94e90e4175cb7479f318014e4a05425d619e62886f24bc3"
+    },
+    {
+      "path": "/private/tmp/ps1-capture-migration/logs/sample-zip.log",
+      "bytes": 821,
+      "sha256": "e2316d9858dca5b3c36b460b9af4ef8e526ba19a51f51a88ff0b802ff71546d7"
+    }
+  ]
+}

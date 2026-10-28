@@ -8,6 +8,7 @@ const http=require('node:http');
 const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
+const {PROCESSOR_NAMES,processorSource,analyzePilotPcm,analyzeClockRows}=require('./audio_clock_audit.cjs');
 const config={host:null,zip:null,out:null,screenshots:null,engines:[]};
 const usage='Usage: node scripts/check_playground_ps1_browser.cjs [--chromium-only | --webkit-only] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
 for(let i=2;i<process.argv.length;i++){
@@ -22,15 +23,7 @@ assert(config.engines.length<=1,'Choose one browser flag or neither for both');
 if(!config.engines.length)config.engines=['chromium','webkit'];
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex'),served=new Map();
 const root='#ps1Panel',control=name=>`${root} [data-chip-control="ps1-${name}"]`,action=name=>`${root} [data-chip-action="ps1-${name}"]`;
-const captureSource=`class Ps1Capture extends AudioWorkletProcessor {
- constructor(){super();this.pending=null;this.port.onmessage=({data})=>{if(this.pending)throw Error('Concurrent SPU capture');this.pending={id:data.id,left:new Float32Array(data.frames),right:new Float32Array(data.frames),offset:0,firstFrame:null,lastFrame:null,frameGaps:0,quantumFrames:[]};};}
- process(inputs,outputs){for(const channel of outputs[0])channel.fill(0);const p=this.pending;if(!p)return true;
-  if(p.firstFrame===null)p.firstFrame=currentFrame;if(currentFrame!==p.firstFrame+p.offset)p.frameGaps++;p.lastFrame=currentFrame;
-  const quantum=outputs[0][0].length;if(!p.quantumFrames.includes(quantum))p.quantumFrames.push(quantum);
-  const count=Math.min(quantum,p.left.length-p.offset),input=inputs[0];for(let i=0;i<count;i++){p.left[p.offset+i]=input[0]?.[i]??0;p.right[p.offset+i]=input[1]?.[i]??input[0]?.[i]??0;}p.offset+=count;
-  if(p.offset===p.left.length){this.pending=null;this.port.postMessage(p,[p.left.buffer,p.right.buffer]);}return true;
- }
-}registerProcessor('ps1-playground-capture',Ps1Capture);`;
+const captureSource=processorSource,captureAudits=new WeakMap();
 
 async function selectHost(){
   let temporary=null,archive=null,directory=config.host??path.resolve(__dirname,'../docs');
@@ -92,28 +85,48 @@ function instrumentation(){
   AudioNode.prototype.disconnect=function(...args){if(args[0]===this.context.destination&&audit.sinks.has(this.context))args[0]=audit.sinks.get(this.context).sum;return disconnect.apply(this,args);};
 }
 
-async function capture(page,frames=16384){return page.evaluate(async frames=>{
+async function capture(page,frames=16384){const pcm=await page.evaluate(async({frames,captureName,pilotName})=>{
   const audit=window.__ps1Audit,context=[...audit.contexts].reverse().find(value=>value.state!=='closed'&&audit.sinks.has(value));
   if(!context)throw Error('No live Playground output graph');const sink=audit.sinks.get(context);
   if(!sink.capture){
-    await context.audioWorklet.addModule('/__ps1_capture.js');const node=new AudioWorkletNode(context,'ps1-playground-capture',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[2]});
+    await context.audioWorklet.addModule('/__ps1_capture.js');const node=new AudioWorkletNode(context,captureName,{numberOfInputs:2,numberOfOutputs:1,outputChannelCount:[2],processorOptions:{pilotInput:1}});
+    // The independent sample counter reaches only capture input1. Capture
+    // outputs zero, so the pilot never enters the instrument mix or speakers.
+    const pilot=new AudioWorkletNode(context,pilotName,{numberOfInputs:0,numberOfOutputs:1,outputChannelCount:[1]});
+    audit.connect.call(pilot,node,0,1);sink.pilot=pilot;
     audit.connect.call(sink.sum,node);audit.connect.call(node,sink.gate);sink.capture=node;sink.sequence=0;sink.pending=null;
     node.port.onmessage=({data})=>{if(sink.pending?.id===data.id){const p=sink.pending;sink.pending=null;clearTimeout(p.timer);p.resolve(data);}};
   }
   const data=await new Promise((resolve,reject)=>{if(sink.pending)throw Error('Concurrent SPU capture');const id=++sink.sequence;
     const timer=setTimeout(()=>{sink.pending=null;reject(Error('SPU output capture timed out'));},10000);sink.pending={id,resolve,timer};sink.capture.port.postMessage({id,frames});});
+  const pilot=window.__ps1ClockAnalysis.pilot(data.pilot,{expectedFrames:frames,pilotInputFrames:data.pilotInputFrames});
+  const clock=window.__ps1ClockAnalysis.clock(data.rows);
   const channels=[data.left,data.right].map(values=>{let peak=0,energy=0,nonFinite=0,nonZero=0;const crossings=[];
     const mean=values.reduce((sum,value)=>sum+value,0)/values.length;
     for(let i=0;i<values.length;i++){const value=values[i];if(!Number.isFinite(value))nonFinite++;peak=Math.max(peak,Math.abs(value));energy+=(value-mean)**2;if(value!==0)nonZero++;if(i&&values[i-1]<mean&&value>=mean)crossings.push(i-1+(mean-values[i-1])/(value-values[i-1]));}
     return {peak,rms:Math.sqrt(energy/values.length),nonFinite,nonZero,hz:crossings.length>2?(crossings.length-1)*context.sampleRate/(crossings.at(-1)-crossings[0]):0};});
   if(sink.gate.gain.value!==0)throw Error('Physical output gate must remain zero');
-  return {sampleRate:context.sampleRate,frames:data.left.length,frameGaps:data.frameGaps,firstFrame:data.firstFrame,lastFrame:data.lastFrame,quantumFrames:data.quantumFrames,channels,physicalOutputMuted:true};
-},frames);}
+  return {sampleRate:context.sampleRate,frames:data.left.length,frameGaps:data.frameGaps,gaps:data.gaps,firstFrame:data.firstFrame,lastFrame:data.lastFrame,quantumFrames:data.quantumFrames,pilot,clock,channels,physicalOutputMuted:true};
+},{frames,captureName:PROCESSOR_NAMES.capture,pilotName:PROCESSOR_NAMES.pilot});
+  // Keep all captures, including retries and captures before mode navigation.
+  // A navigation replaces the page's instrumentation but must not erase proof.
+  const captures=captureAudits.get(page)??[];captureAudits.set(page,captures);
+  captures.push({frames:pcm.frames,frameGaps:pcm.frameGaps,pilot:pcm.pilot,clock:pcm.clock});
+  assertCapturePcm(pcm,'SPU output capture '+captures.length);return pcm;
+}
+// currentFrame is a clock observation, not the PCM sequence number. Keep clock
+// anomalies visible while the independent sample counter proves capture order.
+function assertCapturePcm(pcm,label){
+  assert.equal(pcm.pilot.continuous,true,label+': independent captured PCM continuity '+JSON.stringify(pcm.pilot));
+  assert.equal(pcm.clock.measurementValid,true,label+': complete capture callback sequence '+JSON.stringify(pcm.clock));
+  assert.equal(pcm.clock.frames,pcm.frames,label+': every capture quantum accounted for');
+  assert.equal(pcm.clock.gapCount,pcm.frameGaps,label+': all observed clock anomalies retained');
+}
 async function audible(page,label,hz){let pcm;for(let attempt=0;attempt<6;attempt++){
   pcm=await capture(page);if(pcm.channels.every(ch=>!ch.nonFinite&&ch.rms>.0001&&ch.peak<1&&(hz===undefined||Math.abs(ch.hz-hz)<Math.max(2,hz*.015))))break;
-}assert(pcm.channels.every(ch=>!ch.nonFinite&&ch.rms>.0001&&ch.peak<1&&(hz===undefined||Math.abs(ch.hz-hz)<Math.max(2,hz*.015))),`${label}: ${JSON.stringify(pcm)}`);assert.equal(pcm.frameGaps,0,label+': continuous rendering quanta '+JSON.stringify(pcm));return pcm;}
+}assert(pcm.channels.every(ch=>!ch.nonFinite&&ch.rms>.0001&&ch.peak<1&&(hz===undefined||Math.abs(ch.hz-hz)<Math.max(2,hz*.015))),`${label}: ${JSON.stringify(pcm)}`);assertCapturePcm(pcm,label);return pcm;}
 async function silent(page,label){let pcm;for(let attempt=0;attempt<8;attempt++){
-  pcm=await capture(page,4096);if(pcm.channels.every(ch=>!ch.nonFinite&&!ch.nonZero)){assert.equal(pcm.frameGaps,0);return pcm;}
+  pcm=await capture(page,4096);if(pcm.channels.every(ch=>!ch.nonFinite&&!ch.nonZero)){assertCapturePcm(pcm,label);return pcm;}
 }throw Error(label+': expected exact zero SPU output: '+JSON.stringify(pcm));}
 async function ready(page){
   await page.waitForFunction(()=>document.getElementById('startupNotice')?.hidden||document.getElementById('status')?.textContent==='Startup failed.');
@@ -186,7 +199,9 @@ async function changeMode(page,mode){
 }
 
 async function runCase(browser,name,origin,host,execution){
-  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1600,height:1150}});await context.addInitScript(instrumentation);
+  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1600,height:1150}});
+  await context.addInitScript({content:`globalThis.__ps1ClockAnalysis={pilot:${analyzePilotPcm.toString()},clock:${analyzeClockRows.toString()}};`});
+  await context.addInitScript(instrumentation);
   const page=await context.newPage();page.setDefaultTimeout(40000);const errors=[],badResponses=[],consoleErrors=[];
   page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
   page.on('pageerror',error=>errors.push({message:error.message,stack:error.stack}));page.on('response',response=>{if(response.status()>=400)badResponses.push({url:response.url(),status:response.status()});});
@@ -260,19 +275,27 @@ liveLoop('dispose-extra',async()=>{await sleep(1.6);await extra.dispose();log(${
     await changeMode(page,'ps1');assert.equal(await page.evaluate(()=>__ps1Audit.contexts.length),0,'Mode round trip creates a lazy fresh page');assert.equal(await page.evaluate(()=>monaco.editor.getEditors()[0].getValue()),host.source,'Initial code restored after mode round trip');
     await run(page,host.source,execution);const recreated=await audible(page,'Mode round trip recreated SPU');await stop(page,'Mode round trip Stop');
     const audit=await page.evaluate(()=>({worklets:__ps1Audit.worklets.map(entry=>entry.name),workers:__ps1Audit.workers,processorErrors:__ps1Audit.processorErrors,physicalOutputMuted:[...__ps1Audit.sinks.values()].every(sink=>sink.gate.gain.value===0)}));
+    const captures=captureAudits.get(page)??[];assert(captures.length>0,'Actual output captures were collected');
+    for(const [index,pcm]of captures.entries())assertCapturePcm(pcm,'All-capture audit '+(index+1));
+    audit.captureContinuity={captures:captures.length,frames:captures.reduce((n,c)=>n+c.frames,0),
+      pcmContinuous:captures.every(c=>c.pilot.continuous&&c.clock.measurementValid&&c.clock.frames===c.frames&&c.clock.gapCount===c.frameGaps),
+      clockContinuous:captures.every(c=>c.clock.continuous),clockAnomalies:captures.filter(c=>!c.clock.continuous)};
     assert(audit.worklets.includes('tetorica-playground-ps1'),'A real PS1 AudioWorklet was created');assert.deepEqual(audit.processorErrors,[]);assert(audit.physicalOutputMuted);
+    assert(audit.captureContinuity.pcmContinuous,'All output captures preserve the independent sample sequence');
     // Monaco can cancel an in-flight worker request while the mode page unloads.
     const known=error=>['Canceled','Canceled: Canceled'].includes(error.message)&&error.stack?.includes('monaco-editor');
     assert.deepEqual(errors.filter(error=>!known(error)),[],'Browser exceptions');assert.deepEqual(badResponses,[],'Missing runtime assets');
     return {browser:name,version:browser.version(),execution,openingIsLazy:true,primaryReused:true,panel,keyboard:input,runs,examples,state,overlappingReset,additional,screenshots:images,authoredErrorRecovery:recovery,modeRoundTrip:{beforeSwitch,recreated},...audit};
   }catch(error){
     const state=await page.evaluate(()=>({status:document.getElementById('status')?.textContent,log:document.getElementById('consoleOutput')?.textContent,worklets:__ps1Audit?.worklets,commands:__ps1Audit?.commands.slice(-20)})).catch(()=>null);
+    if(state)state.captures=captureAudits.get(page)?.slice(-5);
     throw Error(`${name}/${execution}: ${error.message}\n${JSON.stringify({state,errors,badResponses,consoleErrors})}`,{cause:error});
   }finally{await context.close();}
 }
 
 (async()=>{
-  const host=await selectHost();let server;
+  const helperPath=require.resolve('./audio_clock_audit.cjs');
+  const checkerSha256=hash(await fs.readFile(__filename)),captureHelperSha256=hash(await fs.readFile(helperPath)),host=await selectHost();let server;
   try{
     server=http.createServer(async(request,response)=>{
       try{
@@ -291,7 +314,9 @@ liveLoop('dispose-extra',async()=>{await sleep(1.6);await extra.dispose();log(${
       finally{await browser.close();}
     }
     for(const [name,entry]of served)assert.equal(hash(await fs.readFile(path.join(host.directory,name))),entry.sha256,'Source remained frozen: '+name);
-    const report={schemaVersion:1,passed:true,physicalOutputMuted:true,listeningPerformed:false,publicUiOnly:true,repositoryFallback:false,host:host.directory,archive:host.archive,starter:{path:host.starter,bytes:Buffer.byteLength(host.source),sha256:hash(host.source)},results,sources:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),checkerSha256:hash(await fs.readFile(__filename))};
+    assert.equal(hash(await fs.readFile(__filename)),checkerSha256,'Checker bytes remained frozen throughout execution');
+    assert.equal(hash(await fs.readFile(helperPath)),captureHelperSha256,'Capture helper remained frozen throughout execution');
+    const report={schemaVersion:2,passed:true,clockContinuous:results.every(r=>r.captureContinuity.clockContinuous),continuityOracle:'independent-24-bit-pilot-PCM',physicalOutputMuted:true,listeningPerformed:false,publicUiOnly:true,repositoryFallback:false,host:host.directory,archive:host.archive,starter:{path:host.starter,bytes:Buffer.byteLength(host.source),sha256:hash(host.source)},results,sources:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),checkerSha256,captureHelperSha256};
     if(config.out)await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log(`PS1 Playground browser check passed: ${results.length} routes${config.out?'; '+config.out:''}.`);
   }finally{if(server)await new Promise(resolve=>server.close(resolve));if(host.temporary)await fs.rm(host.temporary,{recursive:true,force:true});}
 })().catch(error=>{console.error(error.stack??error);process.exitCode=1;});
