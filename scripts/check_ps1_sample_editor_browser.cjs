@@ -9,11 +9,12 @@ const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
 const {PROCESSOR_NAMES,processorSource,analyzePilotPcm,analyzeClockRows}=require('./audio_clock_audit.cjs');
-const config={host:null,zip:null,out:null,screenshots:null,engines:[],execution:null};
-const usage='Usage: node scripts/check_ps1_sample_editor_browser.cjs [--chromium-only | --webkit-only] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR]';
+const config={host:null,zip:null,out:null,screenshots:null,engines:[],execution:null,forceNoMediaRecorder:false};
+const usage='Usage: node scripts/check_ps1_sample_editor_browser.cjs [--chromium-only | --webkit-only] [--execution main|worker] [--host DIR | --zip ARCHIVE] [--out REPORT.json] [--screenshots DIR] [--force-no-media-recorder]';
 for(let i=2;i<process.argv.length;i++){
   const arg=process.argv[i];
   if(arg==='--help'){console.log(usage);process.exit(0);}
+  if(arg==='--force-no-media-recorder'){config.forceNoMediaRecorder=true;continue;}
   if(['--chromium-only','--webkit-only'].includes(arg)){config.engines.push(arg.slice(2,-5));continue;}
   const match=arg.match(/^--(host|zip|out|screenshots|execution)(?:=(.*))?$/);assert(match,usage);
   const value=match[2]??process.argv[++i];assert(value&&!value.startsWith('--'),usage);config[match[1]]=match[1]==='execution'?value:path.resolve(value);
@@ -48,15 +49,22 @@ with zipfile.ZipFile(sys.argv[1]) as z:
   if(temporary)await fs.rm(temporary,{recursive:true,force:true});
   throw Error('Selected host must contain Playground index.html and examples/ps1/ps1-sampler.js');
 }
-function instrumentation(){
+function instrumentation({forceNoMediaRecorder}){
   const audit=window.__ps1SampleAudit={contexts:[],workers:[],worklets:[],sinks:new Map(),processorErrors:[],snapshots:[],jobs:[],requests:[],starts:[],stops:0,held:[],holdCommand:null,microphoneTracks:[],captures:[]};
+  // Match createAudioInput's capability predicate; do not manufacture support
+  // for a platform that lacks getUserMedia or MediaRecorder. The explicit flag
+  // exercises the product's unavailable path without impersonating a recorder.
+  const capabilities=()=>({mediaDevices:Boolean(navigator.mediaDevices),getUserMedia:Boolean(navigator.mediaDevices?.getUserMedia),mediaRecorder:Boolean(window.MediaRecorder),available:Boolean(navigator.mediaDevices?.getUserMedia&&window.MediaRecorder)});
+  audit.microphoneCapabilities={native:capabilities(),forcedMediaRecorderUnavailable:forceNoMediaRecorder};
+  if(forceNoMediaRecorder)Object.defineProperty(window,'MediaRecorder',{configurable:true,writable:true,value:undefined});
+  audit.microphoneCapabilities.effective=capabilities();
   const Context=window.AudioContext,OriginalWorker=window.Worker,Worklet=window.AudioWorkletNode;
   const connect=AudioNode.prototype.connect,disconnect=AudioNode.prototype.disconnect;audit.connect=connect;
   window.AudioContext=class extends Context{constructor(...args){super(...args);audit.contexts.push(this);}};
   if(window.webkitAudioContext===Context)window.webkitAudioContext=window.AudioContext;
   // Generate a real MediaStream for the real MediaRecorder. No device permission
   // or microphone is used, and the oscillator never connects to physical output.
-  if(navigator.mediaDevices)navigator.mediaDevices.getUserMedia=async()=>{
+  if(navigator.mediaDevices?.getUserMedia)navigator.mediaDevices.getUserMedia=async()=>{
     const existing=[...audit.contexts].reverse().find(context=>context.state!=='closed'&&audit.sinks.has(context));
     const context=existing??new AudioContext(),oscillator=context.createOscillator(),gain=context.createGain(),destination=context.createMediaStreamDestination();
     oscillator.frequency.value=440;gain.gain.value=.35;oscillator.connect(gain);gain.connect(destination);await context.resume();oscillator.start();
@@ -171,12 +179,21 @@ async function idleComparisons(page,hidden=false){
   return {durationMs:280,requests:after-before};
 }
 async function recordMicrophone(page){
+  const capabilities=await page.evaluate(()=>__ps1SampleAudit.microphoneCapabilities);
+  assert.equal(await page.locator(audioAction('record')).isDisabled(),!capabilities.effective.available,'Record button follows the product microphone capability predicate');
+  if(!capabilities.effective.available){
+    const notice=await page.locator('[data-audio-input-status]').textContent();
+    assert.equal(notice,'Microphone recording is unavailable here. Choose an audio file or draw a cycle.','Unavailable recording offers file/drawing alternatives');
+    assert(await page.locator(audioAction('stop')).isHidden(),'Unavailable recording never enters recording state');
+    assert.equal(await page.evaluate(()=>__ps1SampleAudit.microphoneTracks.length),0,'Unavailable recording does not open a MediaStream');
+    return {tested:false,status:'unavailable',capabilities,recordButtonDisabled:true,fallbackNotice:notice,generatedMediaStream:false,realMediaRecorder:false};
+  }
   await page.locator(audioAction('record')).click();await page.locator(audioAction('stop')).waitFor({state:'visible'});
   await page.waitForTimeout(450);await page.locator(audioAction('stop')).click();const converted=await comparison(page);
   assert(converted.value.byteLength>0&&converted.value.metrics.signalRms>.01,'Real MediaRecorder audio reaches the PS1 converter');
   await field(page,'asset','/samples/ps1-recording.sample.json');await page.locator(audioAction('use')).click();await page.locator(dialogSelector).waitFor({state:'detached'});
   assert(await page.evaluate(()=>__ps1SampleAudit.microphoneTracks.length>0&&__ps1SampleAudit.microphoneTracks.every(track=>track.readyState==='ended')),'Recording tracks released');
-  await openEditor(page);return {generatedMediaStream:true,realMediaRecorder:true,recordedFrames:converted.value.sourceFrameCount,bytes:converted.value.byteLength,tracksReleased:true};
+  await openEditor(page);return {tested:true,status:'recorded',capabilities,generatedMediaStream:true,realMediaRecorder:true,recordedFrames:converted.value.sourceFrameCount,bytes:converted.value.byteLength,tracksReleased:true};
 }
 function waveFile(){
   const rate=44100,frames=4410,bytes=Buffer.alloc(44+frames*2);
@@ -240,8 +257,9 @@ async function selectedExample(page,execution){
   await page.locator('#runButton').click();await page.waitForFunction(()=>!document.getElementById('runButton').disabled);
   await page.waitForFunction(()=>Array.from(document.querySelectorAll('#playgroundKeyboardChip option')).some(option=>/ps1-sampler/i.test(option.textContent)));
 }
-function probeSource(marker){return `const manifest=JSON.parse(await file('/samples/sampler.sample.json',{type:'text'}));
-const microphone=JSON.parse(await file('/samples/ps1-recording.sample.json',{type:'text'}));if(microphone.source!=='microphone')throw Error('Recording source metadata lost');
+function probeSource(marker,microphoneRecordingTested){return `const manifest=JSON.parse(await file('/samples/sampler.sample.json',{type:'text'}));
+let microphoneSource=null;
+${microphoneRecordingTested?"const microphone=JSON.parse(await file('/samples/ps1-recording.sample.json',{type:'text'}));if(microphone.source!=='microphone')throw Error('Recording source metadata lost');microphoneSource=microphone.source;":'// This platform cannot record a microphone; no recording asset is claimed.'}
 const sourceBytes=await file(manifest.sourcePath,{type:'arrayBuffer'}),header=new DataView(sourceBytes);
 let dataSize=0;for(let offset=12;offset+8<=sourceBytes.byteLength;){const length=header.getUint32(offset+4,true);if(header.getUint32(offset,true)===0x61746164){dataSize=length;break;}offset+=8+length+(length%2);}
 const saved=await inputAudio({asset:'/samples/sampler.sample.json',edit:false,target:'ps1'});
@@ -255,12 +273,12 @@ await sleep(1);
 const state=await spu.snapshot(),last=state.samples.at(-1);
 if(state.channels.filter(channel=>channel.gate).length!==24)throw Error('Not all 24 voices active: '+state.channels.filter(channel=>channel.gate).length);
 if(!encoded.adpcm.every((value,i)=>value===state.ram[last.startAddress+i]))throw Error('Uploaded SPU RAM differs from conversion');
-log(${JSON.stringify(marker)}+JSON.stringify({manifest,microphoneSource:microphone.source,sourceBytes:sourceBytes.byteLength,sourceRate:header.getUint32(24,true),sourceFrames:dataSize/header.getUint16(32,true),bytes:encoded.adpcm.length,loopStart:saved.loopStartFrame,loopEnd:saved.loopEndFrame,rootMidi:saved.rootMidi,tuneCents:saved.tuneCents,active:state.channels.filter(channel=>channel.gate).length,ramMatches:true,metrics:encoded.metrics}));
+log(${JSON.stringify(marker)}+JSON.stringify({manifest,microphoneRecordingTested:${JSON.stringify(microphoneRecordingTested)},microphoneSource,sourceBytes:sourceBytes.byteLength,sourceRate:header.getUint32(24,true),sourceFrames:dataSize/header.getUint16(32,true),bytes:encoded.adpcm.length,loopStart:saved.loopStartFrame,loopEnd:saved.loopEndFrame,rootMidi:saved.rootMidi,tuneCents:saved.tuneCents,active:state.channels.filter(channel=>channel.gate).length,ramMatches:true,metrics:encoded.metrics}));
 liveLoop('sampler-check',async()=>{await sleep(60);});`;}
 async function runCase(browser,name,origin,host,execution){
   const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:1100}});
   await context.addInitScript({content:`globalThis.__ps1SampleClockAnalysis={pilot:${analyzePilotPcm.toString()},clock:${analyzeClockRows.toString()}};`});
-  await context.addInitScript(instrumentation);
+  await context.addInitScript(instrumentation,{forceNoMediaRecorder:config.forceNoMediaRecorder});
   const page=await context.newPage();page.setDefaultTimeout(40000);const errors=[],badResponses=[];
   page.on('pageerror',error=>errors.push({message:error.message,stack:error.stack}));page.on('response',response=>{if(response.status()>=400)badResponses.push({url:response.url(),status:response.status()});});
   try{
@@ -302,7 +320,8 @@ async function runCase(browser,name,origin,host,execution){
     const secondInput=await keyboard(page);await stop(page,'Repeated sampler Stop');
     if(execution==='worker')assert(await page.evaluate(()=>__ps1SampleAudit.workers.some(url=>url.includes('playground_logic_worker'))),'Sampler executes in the real logic Worker');
     await page.locator('#runFileSelect').selectOption('/index.js');const marker=`__PS1_SAMPLE_${name}_${execution}__`;
-    await run(page,probeSource(marker),execution);const text=await waitLog(page,marker),probe=JSON.parse(text.slice(text.lastIndexOf(marker)+marker.length).split('\n')[0]);
+    await run(page,probeSource(marker,microphone.tested),execution);const text=await waitLog(page,marker),probe=JSON.parse(text.slice(text.lastIndexOf(marker)+marker.length).split('\n')[0]);
+    assert.equal(probe.microphoneRecordingTested,microphone.tested);assert.equal(probe.microphoneSource,microphone.tested?'microphone':null,'Only an actually recorded microphone asset is checked');
     assert.equal(probe.sourceFrames,256);assert.equal(probe.rootMidi,60);assert.equal(probe.tuneCents,17);assert.equal(probe.active,24);assert(probe.ramMatches);assert.equal(probe.manifest.settings.conversionTargets.ps1,'ps1');assert.equal(probe.manifest.settings.outputSampleRate,44100);assert.deepEqual(probe.manifest.settings.drawStrokes,settings.drawStrokes);
     // Independently started voices have different phases; cancellation can
     // emphasize harmonics. Fundamental pitch is checked on single voices above.
@@ -334,13 +353,13 @@ async function runCase(browser,name,origin,host,execution){
     await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const results=[];
     for(const name of config.engines){
       const browser=await ({chromium,webkit})[name].launch({headless:true,...(name==='chromium'?{args:['--autoplay-policy=no-user-gesture-required']}:{})});
-      try{for(const execution of config.execution?[config.execution]:['main','worker']){results.push(await runCase(browser,name,`http://127.0.0.1:${server.address().port}`,host,execution));console.log(`PASS ${name}/${execution}: Sample Editor conversion, saved asset, real SPU preview, Guitar Keyboard, stale cancellation and Stop; physical output muted.`);}}
+      try{for(const execution of config.execution?[config.execution]:['main','worker']){const result=await runCase(browser,name,`http://127.0.0.1:${server.address().port}`,host,execution);results.push(result);console.log(`PASS ${name}/${execution}: Sample Editor conversion, saved asset, real SPU preview, Guitar Keyboard, stale cancellation and Stop; microphone ${result.microphone.tested?'real MediaRecorder validated':'unavailable (not tested; disabled control/fallback validated)'}${config.forceNoMediaRecorder?' [forced no MediaRecorder]':''}; physical output muted.`);}}
       finally{await browser.close();}
     }
     for(const [name,entry]of served)assert.equal(sha(await fs.readFile(path.join(host.directory,name))),entry.sha256,'Source remained frozen: '+name);
     assert.equal(sha(await fs.readFile(__filename)),checkerSha256,'Checker bytes remained frozen throughout execution');
     assert.equal(sha(await fs.readFile(helperPath)),captureHelperSha256,'Capture helper remained frozen throughout execution');
-    const report={schemaVersion:2,passed:true,pcmContinuous:results.every(r=>r.captureContinuity.pcmContinuous),clockContinuous:results.every(r=>r.captureContinuity.clockContinuous),continuityOracle:'independent-24-bit-pilot-PCM',physicalOutputMuted:true,listeningPerformed:false,publicUiOnly:true,repositoryFallback:false,host:host.directory,archive:host.archive,example:{path:host.example,bytes:Buffer.byteLength(host.source),sha256:sha(host.source)},results,sources:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),checkerSha256,captureHelperSha256};
+    const report={schemaVersion:2,passed:true,pcmContinuous:results.every(r=>r.captureContinuity.pcmContinuous),clockContinuous:results.every(r=>r.captureContinuity.clockContinuous),continuityOracle:'independent-24-bit-pilot-PCM',physicalOutputMuted:true,listeningPerformed:false,publicUiOnly:true,repositoryFallback:false,forcedMediaRecorderUnavailable:config.forceNoMediaRecorder,microphoneRecording:{testedRoutes:results.filter(r=>r.microphone.tested).map(r=>r.browser+'/'+r.execution),unavailableRoutes:results.filter(r=>!r.microphone.tested).map(r=>r.browser+'/'+r.execution)},host:host.directory,archive:host.archive,example:{path:host.example,bytes:Buffer.byteLength(host.source),sha256:sha(host.source)},results,sources:Object.fromEntries([...served].sort(([a],[b])=>a.localeCompare(b))),checkerSha256,captureHelperSha256};
     if(config.out)await fs.writeFile(config.out,JSON.stringify(report,null,2)+'\n');console.log(`PS1 Sample Editor browser check passed: ${results.length} routes${config.out?'; '+config.out:''}.`);
   }finally{if(server)await new Promise(resolve=>server.close(resolve));if(host.temporary)await fs.rm(host.temporary,{recursive:true,force:true});}
 })().catch(error=>{console.error(error.stack??error);process.exitCode=1;});

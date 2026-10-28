@@ -1,3 +1,11 @@
+## 2026-10-29 — remote CIの失敗を確認し、SDK件数と録音可用性の検証コードを修正
+
+- commit `79d9ababe8a565fca8c2a8d5519c647605cbe3a7`のitch CIを確認。同一commitのattempt 1はeditor起動待ちでtimeout、1回再実行したattempt 2は汎用Playground20条件とPS1 Mode／ADPCM／Voice計12条件を通過した。Sample EditorはChromium2条件がlog上成功後、Linux WebKitで録音非対応のdisabledボタンを押して失敗。集約へ未到達で、remote全体は失敗のまま保持する。
+- 別のWASM SDK CIはcompile前のunitで旧期待値31 builds／61 outputsにより失敗。`test/application_audio_sdk.test.mjs`を32／63へ更新し、fixtureへPS1を含む全buildのsource closureを収録。29 chips＋2 application audio＋1 PS1 instrumentの分離も検証する。CI同一の128単体がローカルで成功。修正版のremote compile／parityはまだ未実行。
+- Sample checkerは製品と同じ録音APIの可用性を検査し、対応時は実MediaRecorder、非対応時はRecord無効・案内・track未生成を確認して`tested:false`を記録する。file／波形編集／保存／24声／Keyboard／Stop／PCMは全環境で維持。通常source4＋ZIP4＋強制非対応ZIP4の新規12条件、358 captures／2,646,016 frames成功。clock異常2 captureは別記録し、pilotは全て連続。最初の通常source試行で録音decode失敗が1件あり、原因未確定の履歴として保持する。専用probeは実行されていない。
+- 関連単体171件成功。新sample ZIP4条件と、hashが一致する以前の同一ZIPのMode／ADPCM／Voice12条件を組み合わせたローカル集約も成功（16 routes／591 captures／5,189,632 frames）。新規16条件の再実行とは扱わない。詳細とraw証拠のhash：[ps1_remote_ci_01.md](ps1_remote_ci_01.md)／[JSON](ps1_remote_ci_01.json)。
+- 製品runtime／C++／WASM／Mixer gain／SDK pin／npm versionは変更なし。今回の検証コードと記録は未commit／未push／未公開。次はユーザーのcommit／push後に修正版の両CIを確認する。録音decodeの一時失敗、Tauri GUI実操作・実聴は未解決／未確認として残す。以下は各時点の履歴。
+
 ## 2026-10-28 — PS1の残り3 Browser checkerを独立PCM判定へ統一、ローカル24条件成功
 
 - Mode／PCM→ADPCM／Sample Editorへ既存24bit pilotを展開。実音声input0とpilot input1を分離し、物理出力mute。再試行を含む全captureでPCM連続性・測定row・長さ・clock集計を検査し、clock異常は別途保持。既存の音程／stereo／preview／editor／Keyboard／RAM／Stop等は維持。
