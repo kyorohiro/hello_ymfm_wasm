@@ -7,6 +7,8 @@ RELEASE_DIR="${ROOT_DIR}/release"
 VERSION="${1:-dev}"
 STAGE_DIR="${RELEASE_DIR}/itch_playground_${VERSION}"
 ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_playground.zip"
+RUN_STAGE_DIR="${RELEASE_DIR}/itch_playground_${VERSION}_for_run"
+RUN_ZIP_PATH="${RELEASE_DIR}/hello_ymfm_wasm_${VERSION}_itch_playground_for_run.zip"
 
 PLAYGROUND_DIR="${ROOT_DIR}/docs/playground"
 PLAYGROUND_VENDOR_DIR="${PLAYGROUND_DIR}/vendor"
@@ -731,10 +733,24 @@ node --experimental-vm-modules "${ROOT_DIR}/scripts/check_playground_package.mjs
   zip -r "${ZIP_PATH}" .
 )
 
+# itch.io counts directory records toward its 1,000-entry limit. Keep the full
+# downloadable layout above; the browser build bundles/minifies page UI,
+# retains separate audio/Worker assets, and includes corresponding sources.
+rm -rf "${RUN_STAGE_DIR}"
+rm -f "${RUN_ZIP_PATH}"
+node "${ROOT_DIR}/scripts/prepare_itch_playground_run.mjs" "${STAGE_DIR}" "${RUN_STAGE_DIR}" --bundle
+(
+  cd "${RUN_STAGE_DIR}"
+  zip -r -D "${RUN_ZIP_PATH}" .
+)
+node "${ROOT_DIR}/scripts/prepare_itch_playground_run.mjs" --check-zip "${RUN_ZIP_PATH}"
+
 echo "created stage: ${STAGE_DIR}"
-echo "created zip: ${ZIP_PATH}"
+echo "downloadable zip (complete expanded sources): ${ZIP_PATH}"
+echo "browser-playable zip: ${RUN_ZIP_PATH}"
 echo "itch.io upload:"
 echo "  1. Create/Edit project"
 echo "  2. Set Kind of project to HTML"
-echo "  3. Upload ${ZIP_PATH}"
+echo "  3. Upload ${RUN_ZIP_PATH} and select 'This file will be played in the browser'"
 echo "  4. Ensure index.html is the entry file"
+echo "  5. Optionally upload ${ZIP_PATH} as a separate downloadable file"

@@ -1,3 +1,22 @@
+## 2026-10-28 — itch.io Run用UI bundle＋minify完了
+
+- `sh scripts/package_itch_playground.sh`はRun版だけroot UIをbundle＋minifyする。全展開ソース付きfullZIPとTauri取込形式は維持。canonical docs/webの音声コード・WASM・Mixer・SDKは変更なし。
+- root UI75files／1,204,257B → main810,885B（約32.7%減）。71filesを統合し、Workerのroot依存3filesは保持。js／vendor／generated等の元byteと動的URLを維持。元UI入力75＋license2は別ZIPへ保存し、bundle receipt／hash付きentryURLも生成。
+- Run ZIP957→888entries、directory0。元ソースも同梱するためZIP全体は36,843,597→37,106,027B。実行コードのサイズとZIP総容量は別の値。
+- 10targeted tests成功。実minified ESM／import.meta URL・query／関数名／Worker closure／元ソース／legal／1,005入力から上限内への縮小を確認。Chromium153／WebKit26.6×Genesis／MegaCD／GameBoy／NES／WonderSwan×Main root／Worker nestedの20条件すべて成功。実PCM・MegaCD4音源分離・stereoCDDA・Stop後exact zero・再実行・Monaco／Shell／VFS相対importを確認。物理出力mute。
+- 確認済みRun ZIP：`release/hello_ymfm_wasm_bundle-dev_itch_playground_for_run.zip`、SHA256 `f7d576c77e592ec9e20d443e8e31733a11bb9f3f6636ab55c793ee6699b3d3f9`。fullZIPは同prefixの`_for_run`なし。前の957項目dev ZIPは退避せずそのまま保持した。
+- 未commit／未upload／設定変更・npm・SDK・Tauri取込・tagなし。itch.ioではこの_for_run.zipを手動uploadしbrowser実行対象にする。次は公開後の実ページ確認。VGM／Synthのbundleは今回対象外。
+- 詳細：[itch_playground_bundle_01.md](itch_playground_bundle_01.md)／[JSON](itch_playground_bundle_01.json)。下の「bundle未実施」は前段階の履歴。
+
+## 2026-10-28 — itch.io Playground実行ZIPの1,000項目制限を修正
+
+- ユーザーの実エラーは`Too many files in zip (1115 > 1000)`。元ZIPは1,005files＋110directory records。先の依存参照チェックではこの上限を見落としていた。元ZIP自体はChromium／WebKitのroot／nested全4条件で正常起動。
+- `sh scripts/package_itch_playground.sh`は従来の全展開ソース付きZIPに加えて`release/hello_ymfm_wasm_dev_itch_playground_for_run.zip`を生成する。itch.ioで実行対象にするのは**_for_run.zip**。957entries／directory0、SHA256 `8d76fef18c9247dcbb98c566d860cec13d6e1e500a7e3e44e779abfb446e5cf2`。
+- 実行資産・Example・ライセンス等の914非sourceファイルは全byte不変。全91sourceファイルを`sources/corresponding-source.zip`へ元byteのまま収録し、外側のC/C++/header/sh50filesだけを集約。既存guideにダウンロード／展開案内を追加。従来のfullZIP・Tauri取込形式は維持。
+- 新helperは実ZIPのdirectoryを含む項目数・サイズ・path等を検証。境界・完全なsource復元等6tests成功。新ZIPもChromium／WebKit×root／nested全4起動条件成功。音声再生の追加試験はしていない。
+- 未commit／未upload／itch.io設定変更なし。次の案はユーザー提案のRun用JS bundle＋minify。今回の修正では未実施。Worker／AudioWorklet／WASM参照とMain／Worker演奏の確認を含める。
+- 詳細：[itch_playground_file_limit_01.md](itch_playground_file_limit_01.md)／[JSON](itch_playground_file_limit_01.json)。
+
 ## 2026-10-28 — itch.io Web版2本の公開準備完了
 
 - ユーザーがVGM Analyzer／Playgroundを手動公開予定。本体baseは`3df4336b`（Mega-CD CD-DAまでcommit済み）。アップロード操作は行っていない。
