@@ -1,3 +1,12 @@
+## 2026-10-28 — PS1 Browserのclock不一致をPS1なしで再現、実PCMを独立検査する判定へ変更
+
+- 前段階SDK／NativeのBrowser失敗は履歴として保持。Chromiumのglobal `currentFrame`の重複と、収録PCMの欠落・重複を切り分けた。製品JS／C++／WASM、SDK／Tauri、Mixer gain、npm versionの変更なし。
+- PS1なしの最小対照試験でChromiumのclock異常を再現。起動後300msを待ち、48kHz・並列／直列graph・追加なし／Oscillator／AudioWorkletの追加・停止・切断を18条件×3窓で比較。54窓中3窓で`83072 → 83072 → 83328`型の一時的-128framesを観測し、その間も全2,592,000counter samplesは欠落・重複0。process内4回のclock読みも一致。不一致窓はretry／discardしない。
+- 旧版／現行×direct／Worker×44.1／48kHzの実PS1計8条件も確認。全条件finite／pilot連続／Stop後exact zero。追加SPU破棄後16窓でprimary保持・追加側exact zero、primary隣接sample最大差も旧版と現行で一致。旧判定の公開UIも旧版と現行のChromium Workerが今回完走したが、過去の失敗は消さない。並行負荷下の別PCM描画metadata失敗ログも保持しclock根拠とは扱わない。
+- test helperの独立24bit pilotでPS1公開UIの全captureを検査。負例unit18件成功、portable診断36窓／1,728,000samplesでPCM連続、Chromium clock不一致1件は診断として保持。新schema3のsource4条件＋実Run ZIP4条件が成功し、計415captures／3,895,296framesを検査。このUI matrixのglobal clockは連続。旧6成功／2失敗は元の判定の履歴として保持し、新判定の成功と区別する。既存の音程／倍音／ADSR／reverb／Stop等の条件も維持。CIへunit／portable診断を接続、YAML parse／diffcheck成功、remote未実行。
+- 物理出力は全試験でmute。pilotはcaptureの別入力の連続性でありSPU全frameの直接証明ではない。音源PCMは既存音声条件と実PS1新旧比較で確認。物理device／driverのdeadline、全環境での可聴ノイズ不存在、人の実聴を保証しない。clock異常の実装原因は未特定。8条件成功はvoice UI checkerのみ。Playground PS1／Sample Editor／ADPCM encoderの3 Browser checkerは旧currentFrame assertionのままなので共通判定への展開を残す。次はその展開、Tauri GUI実操作／実聴、remote OS CI。
+- 詳細：[ps1_audio_clock_01.md](ps1_audio_clock_01.md)／[JSON](ps1_audio_clock_01.json)。JSONはraw診断のhash・対照条件・不一致前後read・実SPU PCM hashを保持し、27MBのraw PCMを重複収録しない。旧SDKissue／JSON／todoへ追跡先を追記。今回の作業は未commit／未push／未公開。以下は各時点の履歴。
+
 ## 2026-10-28 — PS1をSDK 0.1.6候補へ集約、Tauri Native実装・offline検証完了、Chromium clock課題を保持
 
 - SDK原本`w/tetorica-soundchip-native`に`vendor/mame-ps1-spu/`を追加。本体の旧`native/ps1/`全17filesをbyteを変えず移し、BSD attribution／MAME原本5files／revision／hash／改変説明を保持。`tetorica::ps1_spu`＋C header＋既存同期C ABIを提供。24 generic chip IDs／29 chip artifacts／2 application-audioに、別categoryのPS1 instrumentを加えた32ビルド。

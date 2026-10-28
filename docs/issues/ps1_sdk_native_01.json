@@ -486,5 +486,18 @@
       "failed": 2
     }
   },
-  "implementationComplete": true
+  "implementationComplete": true,
+  "followUp": {
+    "date": "2026-10-28",
+    "document": "ps1_audio_clock_01.md",
+    "report": "ps1_audio_clock_01.json",
+    "historicalResultsRetained": true,
+    "finding": "PS1-free controls reproduce Chromium global currentFrame repeats while independent captured PCM remains consecutive. Follow-up distinguishes PCM continuity from clock diagnostics.",
+    "productionAudioChangedInFollowUp": false,
+    "status": "complete-independent-pcm-oracle-validated-global-clock-anomaly-retained",
+    "newOracleUiRoutesPassed": 8,
+    "newOracleCapturesAudited": 415,
+    "newOracleFramesAudited": 3895296,
+    "historicalFailedResultsRetroactivelyChanged": false
+  }
 }

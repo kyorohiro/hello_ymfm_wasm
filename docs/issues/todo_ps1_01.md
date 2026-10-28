@@ -88,3 +88,24 @@ are tracked separately. PS1 still has an
 explicitly unmeasured unity Mixer profile; existing gains and Browser binary
 outputs are unchanged. The WASM loader supports injected bytes in AudioWorklet.
 No SDK tag or package publication was performed; publication is a separate task.
+
+## 2026-10-28: Browser clock follow-up
+
+The SDK-stage record above retains its historical six passed / two failed UI
+conditions. Follow-up diagnostics reproduced the same Chromium global
+`currentFrame` anomaly without PS1 while independently counted captured PCM
+remained consecutive. The test oracle now audits actual pilot
+PCM, retaining global-clock anomalies as diagnostics and preserving the existing
+instrument PCM assertions. See [ps1_audio_clock_01.md](ps1_audio_clock_01.md) /
+[JSON](ps1_audio_clock_01.json) for minimal controls, old/current real-core
+comparisons and final source / Run ZIP results. The new oracle passes all eight UI
+routes (415 captures / 3,895,296 frames), and the independent diagnostic passes
+36 windows / 1,728,000 pilot samples while retaining one Chromium global-clock
+anomaly. The common helper passes 18 tests. The old failed runs remain recorded
+under their original oracle. This does not establish physical device deadlines
+or replace Tauri GUI listening and remote OS CI. The pilot validates its separate
+capture input, not every SPU output frame. The existing instrument PCM checks
+and old/current real-core comparison remain separate evidence. The eight routes
+refer only to the voice UI checker. The Playground PS1, Sample Editor and ADPCM
+encoder Browser checkers still use their previous `currentFrame` assertions;
+applying the shared audit to those three checkers remains a follow-up.

@@ -62,3 +62,7 @@ SDK集約とPS1 Native接続の実装、offline試験、型・配布source・pac
 PS1のMixer基準音量は未測定unity **1.0**のまま。CPU／BIOS／PSF player、DMA／IRQ、CD-XA／external CD audioは今回の対象外。既存coreのlinear補間・近似ADSR・preset reverbとsample cacheは**最初のKON／render等でallocationが起こり得る**。準備処理だけに限定されるとは扱わず、hardware-exact／無条件のzero-allocationやreal-time保証はしない。
 
 JSON記録: [ps1_sdk_native_01.json](ps1_sdk_native_01.json)。公開API guide: [../ps1_spu.md](../ps1_spu.md)。全体計画: [todo_ps1_01.md](todo_ps1_01.md)。
+
+## 2026-10-28: clock追跡の別記録
+
+この文書の6成功／2失敗は当時の結果として保持する。後続の対照試験では、PS1なしの最小AudioWorkletでもChromiumのglobal `currentFrame`が1 quantum重複し、その間の独立カウンターPCMは連続することを確認した。PCMの連続性とglobal clockの診断を分ける試験への修正、旧版／現行の実SPU比較、最終Browser検証は[ps1_audio_clock_01.md](ps1_audio_clock_01.md)／[JSON](ps1_audio_clock_01.json)へ記録する。過去の失敗を遡って成功へ変更せず、物理device／driverのdeadlineや人の実聴とも区別する。
