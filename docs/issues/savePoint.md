@@ -1,3 +1,11 @@
+## 2026-10-29 — PS1のMixer基準を実測し、System／任意npm presetへ反映
+
+- PS1の未測定unity `1.0`を、主音源・追加音源とも**`0.128832`**へ変更。既存153測定／他音源の倍率／共通目標値は保持。public calibratedは既存22＋PS1の23種類。汎用Mixerのunity、raw PCM、core／WASM／初期サンプル、明示的な保存値は変更しない。試す場合はMixerでSystemを選ぶ。独立Sample Editor previewはraw gain 1を維持する。
+- 専用112-frame／64-byte ADPCM sine（filter0／shift0、decoded peak .875）、単音full sustain／reverb Offで測定。Chromium／WebKit × 44.1／48 kHz × Main／Worker × primary／extra × 220／440／880 Hzの48 PS1条件＋8 YM2612対照が成功。生成済み係数でも同じ全条件を新規再測定し、peak最大相対誤差2.01e-9、RMS 0.05747%。各112 captures／6,200,320 frames、全pilot連続／Stop exact zero、今回clock異常0。最初の測定コードのglobal名誤りと、Worker予約時間が混ざる短いwarmupは修正して再測定し、旧結果は流用しない。
+- Native固定coreと配布WASMのoffline12条件／1,317,252 Float32比較は差0。関連Node182件、両generator再現／出典293 assets＋5 script/report hash、installed npm 1,004 files／1,097 refs／28 engines／385 declarations／NodeNext・Bundler・Browser型が成功。保存common／ID値は絶対置換し、繰り返しrestoreで倍率を重ねない。
+- Playground download／Run ZIP新規作成・CRC成功。実Run ZIPは37,403,458 bytes／931 files、SHA256 `f6f331217f15b08ee3ff9871a39c971761e60b8294038d299e280de9280c4669`。このZIPでChromium／WebKit Main／Worker4条件、初期コード・Examples・CH24 Keyboard・SPU試奏・追加音源・Stop等が成功（196 captures／1,736,704 frames、全pilot連続／clock異常0）。物理出力はミュートで、実聴・過去のnoise解決・Native device deadlineの保証ではない。
+- 詳細：[ps1_chip_levels_01.md](ps1_chip_levels_01.md)。raw／verify／offline／ZIPの各JSONを同じ接頭辞で追跡。itch web CIへNode182件と全条件の係数再測定を追加し、ZIP／npm buildは生成物と出典を検査する。今回の変更は未commit／未push／未公開、npm 0.2.32・SDK 0.1.6 local candidateは据え置き。次はユーザーのSystem実聴とcommit／push後のremote CI確認。WonderSwan／POKEYは引き続き未測定unityで別対象。以下は各時点の履歴。
+
 ## 2026-10-29 — 修正commitのremote CI全5件成功、実配布ZIPとPS1集約を照合
 
 - 修正はユーザーcommit／push済み。対象`3c784c18ae1a8869b1b45178ee0ad42a9c6d76f9`のWASM SDK、itch web、VGM、SBI、Pagesの5 workflowsがattempt 1で全てsuccess。以前の`79d9...`の両remote失敗や最初のローカル録音decode失敗は、その時点の履歴として変更しない。

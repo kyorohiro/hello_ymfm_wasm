@@ -35,7 +35,7 @@ export function buildPs1CalibrationReference(frequencyHz=440,{role='extra'}={}) 
   if(!['primary','extra'].includes(role))throw new RangeError('PS1 reference role must be primary or extra');
   const sourceId=role==='primary'?'ps1':'calibration-source';
   const pitch=Math.round(4096*frequencyHz/(NATIVE_RATE/SOURCE_FRAMES));
-  const prefix=role==='primary'?'const source=ps1;':`const source=await createSoundChip('ps1',{id:'${sourceId}'});`;
+  const prefix=role==='primary'?"const source=await useSoundChip('ps1');":`const source=await createSoundChip('ps1',{id:'${sourceId}'});`;
   return {
     kind:'ps1',waveform:'sine',frequencyHz,sourceId,role,defaultCalibration:true,
     warmupSeconds:0.2,captureSeconds:1,decodedReference,

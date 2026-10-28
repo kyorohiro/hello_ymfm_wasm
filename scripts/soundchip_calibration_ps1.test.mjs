@@ -31,6 +31,7 @@ test('PS1 reference roles and supported pitches are explicit and deterministic',
     assert.equal(reference.frequencyHz,frequencyHz);assert.equal(reference.role,role);
     assert.equal(reference.sourceId,role==='primary'?'ps1':'calibration-source');
     assert.equal(reference.setup.includes('createSoundChip'),role==='extra');
+    assert.equal(reference.setup.includes("useSoundChip('ps1')"),role==='primary');
     assert.ok(Math.abs(reference.effectiveFrequencyHz-frequencyHz)/frequencyHz<.0003);
   }
   for(const frequencyHz of [0,-1,NaN,Infinity,'440',221])assert.throws(()=>buildPs1CalibrationReference(frequencyHz),/220, 440 or 880/);

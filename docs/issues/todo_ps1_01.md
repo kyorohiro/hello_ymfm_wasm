@@ -81,13 +81,14 @@ packet addresses and fixed volumes. Unsupported RAM mappings and volume sweeps
 are rejected. CPU/DMA/IRQ timing, PSF playback, CD-XA and external CD audio are
 outside this milestone. BRR, ADPCM-A and SPU ADPCM are different formats.
 
-The fixed SDK now includes the unchanged PS1 core through an explicit 0.1.6
-local-candidate pin, and the Tauri Native adapter implementation/offline tests
-are complete. Chromium clock continuity, GUI/human listening and remote OS CI
-are tracked separately. PS1 still has an
-explicitly unmeasured unity Mixer profile; existing gains and Browser binary
-outputs are unchanged. The WASM loader supports injected bytes in AudioWorklet.
-No SDK tag or package publication was performed; publication is a separate task.
+At the 2026-10-28 SDK milestone, the fixed SDK included the unchanged PS1 core
+through an explicit 0.1.6 local-candidate pin, and the Tauri Native adapter implementation/offline tests
+were complete. Chromium clock continuity, GUI/human listening and remote OS CI
+were tracked separately. PS1 then had an explicitly unmeasured unity Mixer
+profile; existing gains and Browser binary outputs were unchanged. The WASM
+loader supports injected bytes in AudioWorklet. No SDK tag or package
+publication was performed at that stage. See the dated follow-ups below for
+later changes, including the current [PS1 Mixer calibration](ps1_chip_levels_01.md).
 
 ## 2026-10-28: Browser clock follow-up
 
@@ -113,3 +114,21 @@ applying the shared audit to those three checkers remains a follow-up.
 ## 2026-10-28 follow-up: remaining checker migration
 
 The three-checker follow-up is complete: Mode, PCM-to-ADPCM and Sample Editor pass 24 newly executed source / actual Run ZIP routes, auditing 771 captures / 6,500,352 frames. One Mode ZIP capture retains a global-clock anomaly while its independent pilot remains continuous. The 43 helper/aggregate unit tests pass. Previous voice UI evidence was reused only after current checker/helper/archive hashes matched; its eight routes were not rerun in this stage or counted among the 24. The local packaged aggregate passes four reports / 16 routes, including the previous voice ZIP proof. See [ps1_capture_migration_01.md](ps1_capture_migration_01.md) / [JSON](ps1_capture_migration_01.json). All historical results above remain unchanged. Production audio, WASM, Mixer, fixed SDK, Tauri and package versions are unchanged. Remote CI and human listening remain pending; no commit, push or publication was performed.
+
+## 2026-10-29: dedicated Mixer reference
+
+PS1 now has a dedicated single-voice digital reference instead of using the
+quiet starter as a calibration instrument. Playground System built-in and the
+optional npm calibrated preset use `0.128832` for primary and additional PS1
+instances. Existing calibrated sound-chip gains and the common target are
+retained; raw SPU output and authored/saved Mixer settings are unchanged.
+
+The original filter-0/shift-0 sine has decoded peak `0.875`; the starter's shift-4
+sample has sixteen times less amplitude at the codec input. Calibration
+accounts for the reference's codec headroom and does not normalize every
+sample, perceived loudness or multivoice playback. Actual Browser coverage and
+offline Native/WASM comparisons, with their distinct limits, are recorded in
+[ps1_chip_levels_01.md](ps1_chip_levels_01.md). This does not measure a physical
+Native audio device or console hardware volume. Refer to that record for
+completed checks and any remaining work; the historical stage results above
+remain unchanged.

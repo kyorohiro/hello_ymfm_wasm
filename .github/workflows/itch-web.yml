@@ -56,6 +56,10 @@ jobs:
         run: node --test web/playground_sample_ps1.test.mjs web/playground_sample_ps1_preview.test.mjs web/playground_sample_ps1_worker.test.mjs web/playground_sample_instrument.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-sample-editor-tests.log"
       - name: Test PS1 ADSR, reverb and per-voice PCM drawing
         run: node --test web/ps1_parameters.test.mjs web/ps1_waveform.test.mjs web/playground_chip_inspector.test.mjs docs/playground/playground_ps1_voice_panel.test.mjs test/audio_clock_audit.test.cjs test/ps1_capture_reports.test.cjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-voice-editor-tests.log"
+      - name: Verify PS1 Mixer reference, generated defaults and saved absolute settings
+        run: |
+          node --test scripts/soundchip_calibration_ps1.test.mjs scripts/ps1_mixer_calibration.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs web/soundchip_mixer.test.mjs web/soundchip_mixer_presets.test.mjs docs/playground/playground_mixer_state.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer-tests.log"
+          node scripts/calibrate_ps1_levels.cjs --verify --baseline docs/issues/ps1_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/ps1-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer.log"
       - name: Distinguish renderer clock observations from captured PCM loss
         run: node scripts/check_audio_clock_browser.cjs --out "$RUNNER_TEMP/itch-web/audio-clock.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/audio-clock.log"
       - name: Test standalone PS1 SPU in browser and worker

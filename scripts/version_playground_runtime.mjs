@@ -368,7 +368,7 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>ps1NativeFiles.has(match[1]))){ps1NativeFiles.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+const revisionFor=name=>['playground.js','playground_mixer_defaults.js'].includes(name)?'ps1-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
   ...ps1ModeFiles,
   ...ps1EncoderFiles,

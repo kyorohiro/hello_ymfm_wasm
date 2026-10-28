@@ -155,6 +155,27 @@ and batches only the frames needed for the current segment. Output at 44.1 kHz
 uses direct blocks with no resampling. No Mixer compensation is applied by the
 Synth or starter.
 
+## Mixer reference level
+
+The Playground **System built-in** preset uses a measured PS1 gain of
+`0.128832` for both the primary PS1 and additional `createSoundChip('ps1')`
+instances. The optional npm **calibrated** Mixer preset carries the same gain.
+This is a Mixer setting: raw SPU/Synth output and explicitly authored or saved
+Mixer values are unchanged. Direct rendering still works without a Mixer.
+
+The measurement uses a dedicated original looping sine, one held voice, full
+voice volume and sustain, and no reverb. Its filter-0/shift-0 ADPCM reference
+has a decoded peak of `0.875`; calibration accounts for that codec headroom and
+retains the existing YM2612-based target. The quiet starter uses shift 4, with
+sixteen times less amplitude at the codec input, and remains quieter under
+this preset.
+
+These are digital single-voice output units, not perceived loudness, multivoice
+normalization or measured console hardware volume. Browser captures and offline
+Native/WASM comparisons are recorded separately; no physical Native audio
+device is measured. See the [PS1 Mixer measurement record](issues/ps1_chip_levels_01.md)
+for exact coverage, results and limits.
+
 ## Build and run
 
 With Emscripten and Python 3 installed:

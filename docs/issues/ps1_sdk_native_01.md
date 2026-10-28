@@ -66,3 +66,13 @@ JSON記録: [ps1_sdk_native_01.json](ps1_sdk_native_01.json)。公開API guide: 
 ## 2026-10-28: clock追跡の別記録
 
 この文書の6成功／2失敗は当時の結果として保持する。後続の対照試験では、PS1なしの最小AudioWorkletでもChromiumのglobal `currentFrame`が1 quantum重複し、その間の独立カウンターPCMは連続することを確認した。PCMの連続性とglobal clockの診断を分ける試験への修正、旧版／現行の実SPU比較、最終Browser検証は[ps1_audio_clock_01.md](ps1_audio_clock_01.md)／[JSON](ps1_audio_clock_01.json)へ記録する。過去の失敗を遡って成功へ変更せず、物理device／driverのdeadlineや人の実聴とも区別する。
+
+## 2026-10-29: PS1 Mixer基準音量の別記録
+
+上記の「未測定unity 1.0」はSDK接続段階の履歴として保持する。専用の自作単音波形に
+よる後続測定では、System built-inのprimary／追加PS1と任意のnpm calibrated presetに
+`0.128832`を導出した。旧153測定と共通目標値、raw SPU出力、初期サンプル、保存済み
+Mixer値は変更しない。実Browserの測定、固定SDK Native／実WASMのoffline比較、
+適用後の確認範囲は[ps1_chip_levels_01.md](ps1_chip_levels_01.md)／
+[JSON](ps1_chip_levels_01.json)へ記録する。Nativeの物理deviceや実機アナログ音量を
+測定した結果ではなく、人の実聴・公開とも区別する。

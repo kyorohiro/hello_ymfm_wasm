@@ -86,12 +86,12 @@ export async function measurePs1CalibrationOffline(){
       const synth=new Ps1Synth({core:recorded});
       // Real public authoring methods behind an asynchronous transport facade.
       // Pending work must finish before the first capture or stop returns.
-      let pending=0,created=0;
+      let pending=0,created=0,borrowed=0;
       const source=new Proxy(synth,{get(target,key){const value=Reflect.get(target,key,target);return typeof value==='function'?async(...args)=>{pending++;try{await new Promise(resolve=>setImmediate(resolve));return value.apply(target,args);}finally{pending--;}}:value;}});
       const context={},program=buildPs1CalibrationReference(frequencyHz,{role});
-      const execute=code=>new AsyncFunction('createSoundChip','ps1','context',code)(async(kind,options)=>{assert.equal(kind,'ps1');assert.deepEqual(options,{id:'calibration-source'});created++;return source;},source,context);
+      const execute=code=>new AsyncFunction('createSoundChip','useSoundChip','context',code)(async(kind,options)=>{assert.equal(kind,'ps1');assert.deepEqual(options,{id:'calibration-source'});created++;return source;},async kind=>{assert.equal(kind,'ps1');borrowed++;return source;},context);
       try{
-        await execute(program.setup);assert.equal(pending,0);assert.equal(created,role==='extra'?1:0);assert.equal(context.calibrationSource,source);
+        await execute(program.setup);assert.equal(pending,0);assert.equal(created,role==='extra'?1:0);assert.equal(borrowed,role==='primary'?1:0);assert.equal(context.calibrationSource,source);
         const resampler=new Ps1Resampler(recorded,outputRate);
         const render=frames=>{const left=new Float32Array(frames),right=new Float32Array(frames);resampler.render(left,right,frames);return {left,right};};
         render(Math.round(outputRate*.2));

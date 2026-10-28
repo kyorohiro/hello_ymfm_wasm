@@ -24,9 +24,26 @@ export const PLAYGROUND_MIXER_CALIBRATION = freeze({
   "measuredPrimaryRoutes": 28,
   "unmeasuredKinds": [
     "wonderswan",
-    "pokey",
-    "ps1"
-  ]
+    "pokey"
+  ],
+  "extensions": {
+    "ps1": {
+      "version": 1,
+      "gainUnits": "source",
+      "referenceFrequencyHz": 440,
+      "targetAmplitude": 0.12881777435541153,
+      "referenceAmplitude": 0.1494140625,
+      "codecHeadroom": 0.875,
+      "measuredPs1Captures": 48,
+      "measuredAnchorCaptures": 8,
+      "canonical": {
+        "engine": "chromium",
+        "sampleRate": 48000,
+        "execution": "main"
+      },
+      "baselineSha256": "9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234"
+    }
+  }
 });
 export const PLAYGROUND_MIXER_LISTENING_LEVELS = freeze({
   "segapsg": 0.35,
@@ -136,7 +153,7 @@ const factoryDefaults = freeze({
     },
     {
       "name": "ps1",
-      "volume": 1
+      "volume": 0.128832
     }
   ]
 });
@@ -594,7 +611,7 @@ const factoryModes = freeze({
         "id": "ps1",
         "name": "ps1",
         "settings": {
-          "volume": 1
+          "volume": 0.128832
         }
       }
     ]

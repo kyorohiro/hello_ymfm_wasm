@@ -6,9 +6,12 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {buildSoundChipMixerPresets,generateSoundChipMixerPresets,renderSoundChipMixerPresets} from './generate_soundchip_mixer_presets.mjs';
+import {createPs1MixerCalibrationFixture} from '../test/helpers/ps1_mixer_calibration_fixture.mjs';
+import {validatePs1MixerCalibration} from './ps1_mixer_calibration.mjs';
 
 const baselineUrl = new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url);
 const psgUrl = new URL('../docs/issues/soundchip_psg_levels_04.json',import.meta.url);
+const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_chip_levels_01.json',import.meta.url));
 
 test('the npm preset reproduces from the shared measured baseline; checks reject edited output without overwriting it',async t=>{
   const directory = await mkdtemp(join(tmpdir(),'soundchip-presets-'));
@@ -17,20 +20,60 @@ test('the npm preset reproduces from the shared measured baseline; checks reject
   const source = await readFile(baselineUrl,'utf8');
   await writeFile(reportPath,source);
   await writeFile(psgReportPath,await readFile(psgUrl,'utf8'));
-  await generateSoundChipMixerPresets({reportPath,psgReportPath,outPath});
+  await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,outPath});
   const generated = await readFile(outPath,'utf8');
   assert.equal(generated,await readFile(new URL('../web/soundchip_mixer_presets.js',import.meta.url),'utf8'));
-  await generateSoundChipMixerPresets({reportPath,psgReportPath,outPath,check:true});
+  await generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,outPath,check:true});
   const changed = generated.replace('"volume": 0.280286','"volume": 0.56');
   assert.notEqual(changed,generated,'fixture changes the measured RF5C164 fallback');
   await writeFile(outPath,changed);
-  await assert.rejects(generateSoundChipMixerPresets({reportPath,psgReportPath,outPath,check:true}),/stale/);
+  await assert.rejects(generateSoundChipMixerPresets({reportPath,psgReportPath,ps1ReportPath,outPath,check:true}),/stale/);
   assert.equal(await readFile(outPath,'utf8'),changed,'check never repairs an unreviewed change');
   const script = fileURLToPath(new URL('./generate_soundchip_mixer_presets.mjs',import.meta.url));
   const result = spawnSync(process.execPath,[script,`--report=${reportPath}`,`--psg-report=${psgReportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.notEqual(result.status,0);
   assert.match(result.stderr,/stale/);
   assert.equal(await readFile(outPath,'utf8'),changed);
+});
+
+test('PS1 calibration extends only the optional measured kind list and leaves historical presets intact',async()=>{
+  const {historical,ps1Report}=await createPs1MixerCalibrationFixture(),psg=JSON.parse(await readFile(psgUrl,'utf8'));
+  const before=structuredClone({historical,ps1Report,psg}),legacy=buildSoundChipMixerPresets(historical,psg);
+  const extended=buildSoundChipMixerPresets(historical,psg,ps1Report),ps1=validatePs1MixerCalibration(historical,ps1Report);
+  assert.deepEqual({historical,ps1Report,psg},before);
+  assert.equal(legacy.calibrated.factoryDefaults.kinds.length,22);
+  assert.equal(extended.calibrated.factoryDefaults.kinds.length,23);
+  assert.deepEqual(extended.calibrated.factoryDefaults.kinds.filter(entry=>entry.name!=='ps1'),legacy.calibrated.factoryDefaults.kinds);
+  assert.deepEqual(extended.calibrated.factoryDefaults.kinds.at(-1),{name:'ps1',volume:ps1.extraVolume});
+  assert.deepEqual(extended.calibrated.factoryEngines,legacy.calibrated.factoryEngines);
+  assert.equal(Object.hasOwn(extended.calibrated,'factoryEntries'),false,'Playground primary IDs do not enter npm factory policy');
+  for(const invalid of [null,{...ps1Report,passed:false},{...ps1Report,verify:true}]) {
+    assert.throws(()=>buildSoundChipMixerPresets(historical,psg,invalid),/PS1/i);
+  }
+});
+
+test('PS1 preset generation validates source provenance before writing and supports explicit historical-only CLI output',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'soundchip-presets-ps1-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const reportPath=join(directory,'historical.json'),extensionPath=join(directory,'ps1.json'),outPath=join(directory,'presets.js');
+  const {historical,ps1Report}=await createPs1MixerCalibrationFixture(),psg=JSON.parse(await readFile(psgUrl,'utf8'));
+  await writeFile(reportPath,await readFile(baselineUrl));await writeFile(extensionPath,JSON.stringify(ps1Report));
+  const options={reportPath,ps1ReportPath:extensionPath,outPath};
+  await generateSoundChipMixerPresets(options);
+  const valid=renderSoundChipMixerPresets(historical,psg,ps1Report);
+  assert.equal(await readFile(outPath,'utf8'),valid);await generateSoundChipMixerPresets({...options,check:true});
+  const script=fileURLToPath(new URL('./generate_soundchip_mixer_presets.mjs',import.meta.url));
+  let result=spawnSync(process.execPath,[script,`--report=${reportPath}`,`--ps1-report=${extensionPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  assert.equal(result.status,0,result.stderr);
+  result=spawnSync(process.execPath,[script,`--ps1-report=${extensionPath}`,'--no-ps1',`--out=${outPath}`],{encoding:'utf8'});
+  assert.notEqual(result.status,0);assert.match(result.stderr,/cannot be combined/);
+  for(const change of [report=>{report.passed=false;},report=>{report.rows.pop();},report=>{report.calibration.targetAmplitude*=.9;},report=>{report.sources[Object.keys(report.sources)[0]].sha256='0'.repeat(64);}]) {
+    const invalid=structuredClone(ps1Report);change(invalid);await writeFile(extensionPath,JSON.stringify(invalid));
+    await assert.rejects(generateSoundChipMixerPresets(options),/PS1/i);
+    assert.equal(await readFile(outPath,'utf8'),valid,'a rejected extension leaves the prior artifact untouched');
+  }
+  result=spawnSync(process.execPath,[script,`--report=${reportPath}`,'--no-ps1',`--out=${outPath}`],{encoding:'utf8'});
+  assert.equal(result.status,0,result.stderr);
+  assert.equal(await readFile(outPath,'utf8'),renderSoundChipMixerPresets(historical,psg));
 });
 
 test('partial or verification-only reports cannot replace the public preset',async t=>{

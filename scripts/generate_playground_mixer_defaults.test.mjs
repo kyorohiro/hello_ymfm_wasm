@@ -5,6 +5,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import {createPs1MixerCalibrationFixture} from '../test/helpers/ps1_mixer_calibration_fixture.mjs';
+import {validatePs1MixerCalibration} from './ps1_mixer_calibration.mjs';
 import {
   PLAYGROUND_CALIBRATION_KINDS,PLAYGROUND_CALIBRATION_PRIMARIES,PLAYGROUND_CALIBRATION_ENGINES,
   buildPlaygroundMixerDefaults,buildPlaygroundMixerPolicy,playgroundLegacyMixerTrims,renderPlaygroundMixerDefaults,generatePlaygroundMixerDefaults,
@@ -231,17 +233,17 @@ test('CLI generation and --check are reproducible and reject invalid input witho
   const reportPath = join(directory,'baseline report.json'), outPath = join(directory,'generated module.js');
   const report = fixture(); await writeFile(reportPath,JSON.stringify(report));
   const script = fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
-  let result = spawnSync(process.execPath,[script,'--report',reportPath,`--out=${outPath}`],{encoding:'utf8'});
+  let result = spawnSync(process.execPath,[script,'--no-ps1','--report',reportPath,`--out=${outPath}`],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr); const expected = renderPlaygroundMixerDefaults(report);
   assert.equal(await readFile(outPath,'utf8'),expected);
-  result=spawnSync(process.execPath,[script,`--report=${reportPath}`,'--out',outPath,'--check'],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-ps1',`--report=${reportPath}`,'--out',outPath,'--check'],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   await writeFile(outPath,'keep this authored file');
-  result=spawnSync(process.execPath,[script,`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-ps1',`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/stale/);
   report.passed=false;await writeFile(reportPath,JSON.stringify(report));
   await assert.rejects(generatePlaygroundMixerDefaults({reportPath,outPath}),/successful, non-verification/);
-  result=spawnSync(process.execPath,[script,`--report=${reportPath}`,`--out=${outPath}`],{encoding:'utf8'});
+  result=spawnSync(process.execPath,[script,'--no-ps1',`--report=${reportPath}`,`--out=${outPath}`],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.equal(await readFile(outPath,'utf8'),'keep this authored file');
   result=spawnSync(process.execPath,[script,`--out=${outPath}`],{encoding:'utf8'});
   assert.notEqual(result.status,0);assert.match(result.stderr,/--report is required/);
@@ -257,7 +259,7 @@ test('--check ignores only the synchronized Mixer import cache version and prese
   await generatePlaygroundMixerDefaults(options);
   assert.equal(await readFile(outPath,'utf8'),synchronized,'checking never strips the live cache version from disk');
   const script = fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
-  const result = spawnSync(process.execPath,[script,`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  const result = spawnSync(process.execPath,[script,'--no-ps1',`--report=${reportPath}`,`--out=${outPath}`,'--check'],{encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
   for(const changed of [
     synchronized.replace('"targetAmplitude": 0.04','"targetAmplitude": 0.05'),
@@ -275,4 +277,92 @@ test('--check ignores only the synchronized Mixer import cache version and prese
   }
   await generatePlaygroundMixerDefaults({reportPath,outPath});
   assert.equal(await readFile(outPath,'utf8'),output,'normal generation remains query-free');
+});
+
+test('a separately validated PS1 extension preserves all historical captures, gains and listening levels',async()=>{
+  const {historical,ps1Report}=await createPs1MixerCalibrationFixture();
+  const before=structuredClone({historical,ps1Report});
+  const historicalPolicy=buildPlaygroundMixerPolicy(historical),policy=buildPlaygroundMixerPolicy(historical,ps1Report);
+  const ps1=validatePs1MixerCalibration(historical,ps1Report);
+  assert.deepEqual({historical,ps1Report},before);
+  assert.equal(policy.factoryDefaults.kinds.find(entry=>entry.name==='ps1').volume,ps1.extraVolume);
+  assert.equal(entry(policy,'ps1','ps1').settings.volume,ps1.primaryVolume);
+  assert.deepEqual(policy.calibration.unmeasuredKinds,['wonderswan','pokey']);
+  assert.deepEqual(policy.calibration.extensions,{ps1:ps1.metadata});
+  assert.equal(policy.calibration.measuredExtraRoutes,22);
+  assert.equal(policy.calibration.measuredPrimaryRoutes,28);
+  assert.equal(policy.calibration.targetAmplitude,historicalPolicy.calibration.targetAmplitude);
+  assert.deepEqual(policy.factoryDefaults.kinds.filter(entry=>entry.name!=='ps1'),historicalPolicy.factoryDefaults.kinds.filter(entry=>entry.name!=='ps1'));
+  for(const [mode,settings]of Object.entries(historicalPolicy.factoryModes))if(mode!=='ps1')assert.deepEqual(policy.factoryModes[mode],settings,mode);
+  assert.equal(buildPlaygroundMixerDefaults(historical).factoryDefaults.kinds.length,22,'historical measurements remain fixed');
+  const omitted=buildPlaygroundMixerPolicy(historical);
+  assert.equal(entry(omitted,'ps1','ps1').settings.volume,1);
+  assert.equal(omitted.factoryDefaults.kinds.find(entry=>entry.name==='ps1').volume,1);
+  assert.deepEqual(omitted.calibration.unmeasuredKinds,['wonderswan','pokey','ps1']);
+  assert.equal(Object.hasOwn(omitted.calibration,'extensions'),false);
+});
+
+test('the shipped Playground System policy reproduces from the full PS1 measurement and its hashed sources',async()=>{
+  const reportPath=fileURLToPath(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url));
+  const ps1ReportPath=fileURLToPath(new URL('../docs/issues/ps1_chip_levels_01.json',import.meta.url));
+  const moduleUrl=new URL('../docs/playground/playground_mixer_defaults.js',import.meta.url),outPath=fileURLToPath(moduleUrl);
+  const historicalText=await readFile(reportPath,'utf8'),ps1Text=await readFile(ps1ReportPath,'utf8'),output=await readFile(outPath,'utf8');
+  const historical=JSON.parse(historicalText),ps1Report=JSON.parse(ps1Text);
+  const calibration=await generatePlaygroundMixerDefaults({reportPath,ps1ReportPath,outPath,check:true});
+  const generated=await import(moduleUrl),mixer=generated.createPlaygroundSoundChipMixer('ps1');
+  const canonical=role=>ps1Report.rows.find(row=>row.role===role&&row.engine==='chromium'&&row.requestedSampleRate===48000&&row.execution==='main'&&row.frequencyHz===440);
+  mixer.register('ps1','ps1',()=>{});mixer.register('ps1:2','ps1',()=>{});
+  assert.equal(mixer.get('ps1').volume,Number((historical.calibration.targetAmplitude/canonical('primary').amplitude).toFixed(6)));
+  assert.equal(mixer.get('ps1:2').volume,Number((historical.calibration.targetAmplitude/canonical('extra').amplitude).toFixed(6)));
+  assert.deepEqual(generated.PLAYGROUND_MIXER_CALIBRATION,calibration);
+  assert.equal(calibration.extensions.ps1.measuredPs1Captures,48);
+  assert.equal(calibration.extensions.ps1.measuredAnchorCaptures,8);
+  assert.equal(await readFile(reportPath,'utf8'),historicalText,'checking leaves the historical baseline unchanged');
+  assert.equal(await readFile(ps1ReportPath,'utf8'),ps1Text,'checking leaves the independent measurement unchanged');
+  assert.equal(await readFile(outPath,'utf8'),output,'check does not rewrite the shipped policy or its cache version');
+});
+
+test('generated PS1 System defaults apply measured primary and extra gains once while retaining authored settings',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'ps1-playground-defaults-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  await mkdir(join(directory,'playground'));await mkdir(join(directory,'js'));
+  await copyFile(new URL('../web/soundchip_mixer.js',import.meta.url),join(directory,'js','soundchip_mixer.js'));
+  const {historical,ps1Report}=await createPs1MixerCalibrationFixture();
+  const modulePath=join(directory,'playground','defaults.mjs');
+  await writeFile(modulePath,renderPlaygroundMixerDefaults(historical,ps1Report));
+  const generated=await import(pathToFileURL(modulePath)),ps1=validatePs1MixerCalibration(historical,ps1Report);
+  const mixer=generated.createPlaygroundSoundChipMixer('ps1');
+  mixer.register('ps1','ps1',()=>{});mixer.register('ps1:2','ps1',()=>{});
+  assert.equal(mixer.get('ps1').volume,ps1.primaryVolume);
+  assert.equal(mixer.get('ps1:2').volume,ps1.extraVolume);
+  assert(Object.isFrozen(generated.PLAYGROUND_MIXER_CALIBRATION.extensions.ps1.canonical));
+  mixer.setKindDefault('ps1',{volume:.7});mixer.set('ps1:2',{volume:.9});
+  const saved=mixer.exportState(),defaults=mixer.exportDefaults();
+  for(let index=0;index<3;index++)mixer.restoreState(saved,defaults);
+  assert.equal(mixer.get('ps1').volume,.7);assert.equal(mixer.get('ps1:2').volume,.9);
+  for(let index=0;index<3;index++)mixer.restoreState({version:1,entries:[]},{version:1,kinds:[]});
+  assert.equal(mixer.get('ps1').volume,ps1.primaryVolume);assert.equal(mixer.get('ps1:2').volume,ps1.extraVolume);
+  assert.deepEqual(mixer.exportState(),{version:1,entries:[]});
+});
+
+test('PS1 extension generation and CLI check preserve output on failed reports or changed sources',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'ps1-playground-generator-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+  const reportPath=join(directory,'historical.json'),ps1ReportPath=join(directory,'ps1.json'),outPath=join(directory,'defaults.js');
+  const {historical,ps1Report}=await createPs1MixerCalibrationFixture();
+  await writeFile(reportPath,await readFile(new URL('../docs/issues/playground_chip_levels_01.json',import.meta.url)));
+  await writeFile(ps1ReportPath,JSON.stringify(ps1Report));
+  const options={reportPath,ps1ReportPath,outPath};
+  const calibration=await generatePlaygroundMixerDefaults(options),valid=renderPlaygroundMixerDefaults(historical,ps1Report);
+  assert.deepEqual(calibration,buildPlaygroundMixerPolicy(historical,ps1Report).calibration);
+  assert.equal(await readFile(outPath,'utf8'),valid);
+  await generatePlaygroundMixerDefaults({...options,check:true});
+  const script=fileURLToPath(new URL('./generate_playground_mixer_defaults.mjs',import.meta.url));
+  let result=spawnSync(process.execPath,[script,`--report=${reportPath}`,'--ps1-report',ps1ReportPath,`--out=${outPath}`,'--check'],{encoding:'utf8'});
+  assert.equal(result.status,0,result.stderr);
+  result=spawnSync(process.execPath,[script,`--report=${reportPath}`,`--ps1-report=${ps1ReportPath}`,'--no-ps1',`--out=${outPath}`],{encoding:'utf8'});
+  assert.notEqual(result.status,0);assert.match(result.stderr,/cannot be combined/);
+  for(const change of [report=>{report.passed=false;},report=>{report.rows.pop();},report=>{report.calibration.targetAmplitude*=.9;},report=>{report.sources[Object.keys(report.sources)[0]].sha256='0'.repeat(64);}]) {
+    const invalid=structuredClone(ps1Report);change(invalid);await writeFile(ps1ReportPath,JSON.stringify(invalid));
+    await assert.rejects(generatePlaygroundMixerDefaults(options),/PS1/i);
+    assert.equal(await readFile(outPath,'utf8'),valid,'invalid extension must not replace the last valid System output');
+  }
 });

@@ -3,6 +3,9 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+node "${ROOT_DIR}/scripts/generate_playground_mixer_defaults.mjs" \
+  --report="${ROOT_DIR}/docs/issues/playground_chip_levels_01.json" --check
+node "${ROOT_DIR}/scripts/generate_soundchip_mixer_presets.mjs" --check
 RELEASE_DIR="${ROOT_DIR}/release"
 VERSION="${1:-dev}"
 STAGE_DIR="${RELEASE_DIR}/itch_playground_${VERSION}"

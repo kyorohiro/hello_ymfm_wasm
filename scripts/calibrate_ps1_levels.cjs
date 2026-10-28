@@ -41,7 +41,9 @@ function instrument(requestedSampleRate){
   AudioNode.prototype.disconnect=function(...args){if(args[0]===this.context.destination&&state.sinks.has(this.context))args[0]=state.sinks.get(this.context).gate;return disconnect.apply(this,args);};
 }
 
-async function capture(page,{seconds=1,warmup=.2}={}){
+// Worker commands are intentionally queued ahead. Wait beyond their scheduling
+// horizon so the measured second contains a held tone, not its initial silence.
+async function capture(page,{seconds=1,warmup=1}={}){
   const result=await page.evaluate(async({seconds,warmup,names})=>{
     const audio=window.__ps1Calibration.runtime.megaDrive.audio,context=audio.audioContext;
     const audit=window.__ps1CalibrationCapture,sink=audit.sinks.get(context);
@@ -150,12 +152,15 @@ async function main(){
             assert(amplitude>1e-5,'Nonzero alternating reference');assert(pcm.channels.every(channel=>channel.overrange===0),'Unclipped reference');
             const expectedFrequencyHz=reference.effectiveFrequencyHz??frequencyHz;
             assert(pcm.channels.every(channel=>Math.abs(channel.estimatedFrequencyHz-expectedFrequencyHz)<Math.max(2,expectedFrequencyHz*.015)),'Reference pitch: '+JSON.stringify(pcm.channels));
+            if(kind==='ps1')assert(pcm.channels.every(channel=>channel.nonzero>pcm.frames*.9&&Math.abs(channel.dc)<channel.peak*.01&&channel.acRms/channel.peak>.68&&channel.acRms/channel.peak<.74),'PS1 held reference must settle before capture, including Worker scheduling');
             const row={engine,browserVersion:browser.version(),requestedSampleRate,actualSampleRate:pcm.sampleRate,execution,role,mode,kind,frequencyHz,expectedFrequencyHz,sourceId:reference.sourceId,sourceSha256:sha(source),waveform:reference.waveform??'sine',referencePeak,decodedReference:reference.decodedReference??null,noteInfo:reference.noteInfo,limitations:reference.limitations,mixer,pcm,measuredAmplitude,amplitude};
             if(options.verify&&kind==='ps1'){
               const original=baseline.rows.find(candidate=>candidate.engine===engine&&candidate.requestedSampleRate===requestedSampleRate&&candidate.execution===execution&&candidate.role===role&&candidate.frequencyHz===frequencyHz);
               assert(original,'Matching uncalibrated PS1 route');const expectedGain=baseline.calibration.routes.find(candidate=>candidate.role===role)?.volume;assert(Number.isFinite(expectedGain)&&expectedGain>0,'Explicit derived PS1 policy');
               assert.equal(mixer.settings.volume,expectedGain,'Generated default PS1 gain');
               row.expectedAmplitude=original.amplitude*expectedGain;row.relativeError=Math.abs(amplitude/row.expectedAmplitude-1);assert(row.relativeError<.025,'PS1 generated gain output within2.5%');
+              row.channelRmsRelativeErrors=pcm.channels.map((channel,index)=>Math.abs(channel.acRms/(original.pcm.channels[index].acRms*expectedGain)-1));
+              assert(row.channelRmsRelativeErrors.every(error=>error<.025),'PS1 generated gain RMS output within2.5%');
             }
             await page.evaluate(()=>window.__ps1Calibration.runtime.stopWithFade());row.stopped=await capture(page,{seconds:.15,warmup:.25});
             assert(row.stopped.channels.every(channel=>channel.nonzero===0),'Exact zero after Stop');
