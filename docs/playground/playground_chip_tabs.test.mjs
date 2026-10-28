@@ -4,7 +4,7 @@ import {createPlaygroundChipTabs, createPlaygroundAdditionalChipTabAvailability,
 
 // Small DOM substitute for lifecycle tests. Rendering and input focus also receive browser coverage.
 class Element {
-  constructor(doc, tag) { this.ownerDocument = doc; this.tagName = tag; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; this.value = ''; this.textContent = ''; this.classList = {add() {},toggle() {}}; }
+  constructor(doc, tag) { this.ownerDocument = doc; this.tagName = tag; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; this.style = {}; this.value = ''; this.textContent = ''; this.classList = {add() {},toggle() {}}; }
   appendChild(node) { this.children.push(node); node.parentNode = this; return node; }
   append(...nodes) { nodes.forEach(node => this.appendChild(node)); }
   replaceChildren(...nodes) { this.children = []; this.append(...nodes); }

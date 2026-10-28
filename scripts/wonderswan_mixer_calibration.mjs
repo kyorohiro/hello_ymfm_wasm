@@ -8,13 +8,13 @@ import {resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildWonderSwanCalibrationReference} from './soundchip_calibration_wonderswan.mjs';
 import {buildFmCalibrationReference} from './soundchip_calibration_fm.mjs';
-import {assertMixerCalibrationSourceFreshness,MIXER_CALIBRATION_UI_CACHE_PATHS} from './mixer_calibration_sources.mjs';
+import {assertMixerCalibrationSourceFreshness,assertMixerCalibrationPs1AdsrUiFreshness,readMixerCalibrationPs1AdsrUiReceipt,MIXER_CALIBRATION_UI_CACHE_PATHS,MIXER_CALIBRATION_PS1_ADSR_UI_PATHS} from './mixer_calibration_sources.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 export const WONDERSWAN_CALIBRATION_BASELINE_PATH='docs/issues/playground_chip_levels_01.json';
 export const WONDERSWAN_CALIBRATION_BASELINE_SHA256='9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234';
 export const WONDERSWAN_CALIBRATION_REPORT_SHA256='71d86d014e359c01f4158beefa06301036c5c9eda39215e5b907d569381fdcd0';
-export const WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256='36a53856f68755a2ba0c5c0a548f0bd412b5ac828be71eee0d2ce74e38ed32b5';
+export const WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256='ff6d0cd9d2a7d5b92e66077eff84f5433790529719f984180f2394aa76f9d43f';
 const BASELINE_OBJECT_SHA256='50eff6f2cdcd77ab4d41fa43b0afe4a9e4a5d02f5dee06dc67467e3bbeb17c48';
 const TARGET=0.12881777435541153,REFERENCE=0.1494140625,HEADROOM=1;
 const ENGINES=['chromium','webkit'],RATES=[44100,48000],EXECUTIONS=['main','worker'],ROLES=['primary','extra'],FREQUENCIES=[220,440,880];
@@ -156,9 +156,10 @@ export function validateWonderSwanMixerCalibration(historical,report){
 }
 
 /** Check every raw script/runtime/WASM hash before a generator writes output.
- * The untouched report retains all original raw hashes. Only two exact UI
- * import version values may use the independently pinned cache-token receipt;
- * executable changes and every DSP/transport/WASM source still require capture.
+ * The untouched report retains all original raw hashes. Only six exact cache
+ * version values in two UI files may use the independently pinned receipt;
+ * the separate exact PS1 ADSR UI revision audit is the only code exception.
+ * Every DSP/transport/WASM source still requires capture after a change.
  */
 export async function validateWonderSwanMixerCalibrationSources({reportPath,wsReport}){
   const bytes=await readFile(reportPath);
@@ -168,9 +169,15 @@ export async function validateWonderSwanMixerCalibrationSources({reportPath,wsRe
     const absolute=resolve(root,path);if(!absolute.startsWith(resolve(root)+sep))fail('script path escapes repository');
     if(sha(await readFile(absolute))!==hash)fail('script source changed; remeasure: '+path);
   }
-  let uiReceipt,measuredReportSha256;
+  let uiReceipt,measuredReportSha256,uiRevision;
   for(const [path,record]of Object.entries(wsReport.sources)){
     const bytes=await readFile(resolve(root,'docs',path));
+    if((bytes.length!==record.bytes||sha(bytes)!==record.sha256)&&MIXER_CALIBRATION_PS1_ADSR_UI_PATHS.includes(path)){
+      uiRevision??=await readMixerCalibrationPs1AdsrUiReceipt(root);
+      measuredReportSha256??=sha(await readFile(resolve(root,'docs/issues/wonderswan_chip_levels_01.json')));
+      assertMixerCalibrationPs1AdsrUiFreshness({path,bytes,record,report:wsReport,reportSha256:measuredReportSha256,...uiRevision});
+      continue;
+    }
     if((bytes.length!==record.bytes||sha(bytes)!==record.sha256)&&MIXER_CALIBRATION_UI_CACHE_PATHS.includes(path)&&uiReceipt===undefined){
       uiReceipt=JSON.parse(await readFile(resolve(root,'docs/issues/wonderswan_chip_levels_ui_receipt_01.json'),'utf8'));
       measuredReportSha256=sha(await readFile(resolve(root,'docs/issues/wonderswan_chip_levels_01.json')));

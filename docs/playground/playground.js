@@ -2,11 +2,11 @@ import {createPlaygroundCdrom2AudioPanels} from './playground_cdrom2_audio_panel
 import {createPlaygroundKeyboardRouting,playgroundPrimaryKeyboardChips} from './playground_mode_keyboard.js?v=ps1-mode-1';
 import {installFileExplorerResize} from './playground_file_resize.js';
 import {installFileExplorerMenu} from './playground_file_menu.js?v=file-menu-1';
-import {installPlaygroundWorkbench} from './playground_workbench.js?v=ps1-mode-1';
+import {installPlaygroundWorkbench} from './playground_workbench.js?v=ps1-envelope-drag-1';
 import {createPlaygroundMixer} from './playground_mixer.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSoundChipMixer,playgroundLegacyMixerTrims} from './playground_mixer_defaults.js?v=pokey-mixer-calibration-1';
 import {createPlaygroundMixerState, MIXER_DEFAULT_PRESET_PATH, MIXER_DEFAULT_PRESET_JSON} from './playground_mixer_state.js?v=y8950-adpcm-ui-1';
-import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=ps1-pcm-waveform-1';
+import {createPlaygroundChipTabs,createPlaygroundAdditionalChipTabAvailability} from './playground_chip_tabs.js?v=ps1-envelope-drag-1';
 import {installPlaygroundShell} from './playground_shell.js?v=compact-shell-1';
 import {installPlaygroundGit} from './playground_git.js';
 import {resolvePlaygroundAudioEngine, createPlaygroundAudioEngineUrl,
@@ -102,7 +102,7 @@ import {DEFAULT_WORKER_LOOKAHEAD_SECONDS} from '../js/playground_performance_sen
 import { createVgmPresetFiles } from "./playground_vgm_presets.js?v=vgm-frequency-order-2";
 import { createTfiFileEditor, instrumentToEditorPreset } from "./playground_tfi_editor.js?v=operator-tab-keyboard-1";
 import { renderFileTree } from "./playground_file_tree.js?v=opnb-primary-1";
-import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=ps1-mode-1";
+import { createPlaygroundUi, applyPlaygroundLayout } from "./playground_ui.js?v=ps1-envelope-drag-1";
 import {
   handleMegaSynthEvent,
 } from "./playground_sync.js?v=native-pc98-1";

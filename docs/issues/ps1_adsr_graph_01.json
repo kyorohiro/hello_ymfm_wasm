@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-29",
+  "baseCommit": "defa1795d728efbcc10a3ce3ce5c5b1449ca1ec8",
+  "scope": "PS1 SPU Operators direct ADSR graph editing",
+  "unitTests": {
+    "passed": 144,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node --test docs/playground/playground_ps1_voice_panel.test.mjs docs/playground/playground_chip_tabs.test.mjs docs/playground/playground_operator_visual.test.mjs web/ps1_parameters.test.mjs web/playground_ps1_worklet.test.mjs"
+  },
+  "sourceBrowser": {
+    "passed": true,
+    "checkerSha256": "0ff3de2013ff442ae99f14df41faa49fb8772d0dd2a28f2d4f2a6154b5b3b9d1",
+    "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+    "rawReportSha256": "81d9c4f3c0e6b348dcf01ff19a49447930e0d01e3787c2ef441741ae995b6d2b",
+    "rawReportBytes": 500422,
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "servedAssets": 288,
+    "uiSources": {
+      "playground/index.html": {
+        "bytes": 131490,
+        "sha256": "656c7127197a121c20a80d57398359406884dd178e3b32503f2af423283a3714"
+      },
+      "playground/playground_chip_tabs.css": {
+        "bytes": 4350,
+        "sha256": "69eef3c20f040e14f8c16800a49d279405a245769ddb2a417db6f9b12c770fbc"
+      },
+      "playground/playground_chip_tabs.js": {
+        "bytes": 40902,
+        "sha256": "0f9d4a988043466349380eae6437b78895967945ce2ac53ce1a001c655e19fb1"
+      },
+      "playground/playground_ps1_envelope.js": {
+        "bytes": 1927,
+        "sha256": "bfd6b756a4edf7b80a69f42e4236f4f640905f362a5a38d3f0e5e19a219883de"
+      },
+      "playground/playground_ps1_voice_panel.js": {
+        "bytes": 35990,
+        "sha256": "658ef9d485f21919a33c8e0349e8273a6c7bf484c1c8deb2f87d711911dd7292"
+      },
+      "playground/playground.js": {
+        "bytes": 124859,
+        "sha256": "94240153c4ae224db1dbdade55d1b8f00ed799f3fffacd9ffaf6852ec1fca6fb"
+      }
+    },
+    "routes": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "main",
+        "graph": {
+          "drags": [
+            {
+              "handle": "attack",
+              "values": {
+                "attackRate": 64
+              },
+              "writes": 5
+            },
+            {
+              "handle": "decay",
+              "values": {
+                "decayRate": 10,
+                "sustainLevel": 5
+              },
+              "writes": 5
+            },
+            {
+              "handle": "sustain",
+              "values": {
+                "sustainRate": 76
+              },
+              "writes": 5
+            },
+            {
+              "handle": "release",
+              "values": {
+                "releaseRate": 19
+              },
+              "writes": 5
+            }
+          ],
+          "keyboardSteps": 5,
+          "plainClickWrites": 0,
+          "idleInspectorRequests": 0,
+          "liveMouseEdit": true,
+          "focusPreserved": true,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true
+        },
+        "captureContinuity": {
+          "captures": 50,
+          "frames": 479232,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        },
+        "processorErrors": []
+      },
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "worker",
+        "graph": {
+          "drags": [
+            {
+              "handle": "attack",
+              "values": {
+                "attackRate": 64
+              },
+              "writes": 5
+            },
+            {
+              "handle": "decay",
+              "values": {
+                "decayRate": 10,
+                "sustainLevel": 5
+              },
+              "writes": 5
+            },
+            {
+              "handle": "sustain",
+              "values": {
+                "sustainRate": 76
+              },
+              "writes": 5
+            },
+            {
+              "handle": "release",
+              "values": {
+                "releaseRate": 19
+              },
+              "writes": 5
+            }
+          ],
+          "keyboardSteps": 5,
+          "plainClickWrites": 0,
+          "idleInspectorRequests": 0,
+          "liveMouseEdit": true,
+          "focusPreserved": true,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true
+        },
+        "captureContinuity": {
+          "captures": 57,
+          "frames": 507904,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        },
+        "processorErrors": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "main",
+        "graph": {
+          "drags": [
+            {
+              "handle": "attack",
+              "values": {
+                "attackRate": 64
+              },
+              "writes": 1
+            },
+            {
+              "handle": "decay",
+              "values": {
+                "decayRate": 10,
+                "sustainLevel": 5
+              },
+              "writes": 1
+            },
+            {
+              "handle": "sustain",
+              "values": {
+                "sustainRate": 76
+              },
+              "writes": 2
+            },
+            {
+              "handle": "release",
+              "values": {
+                "releaseRate": 19
+              },
+              "writes": 2
+            }
+          ],
+          "keyboardSteps": 5,
+          "plainClickWrites": 0,
+          "idleInspectorRequests": 0,
+          "liveMouseEdit": true,
+          "focusPreserved": true,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true
+        },
+        "captureContinuity": {
+          "captures": 48,
+          "frames": 471040,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        },
+        "processorErrors": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "worker",
+        "graph": {
+          "drags": [
+            {
+              "handle": "attack",
+              "values": {
+                "attackRate": 64
+              },
+              "writes": 1
+            },
+            {
+              "handle": "decay",
+              "values": {
+                "decayRate": 10,
+                "sustainLevel": 5
+              },
+              "writes": 1
+            },
+            {
+              "handle": "sustain",
+              "values": {
+                "sustainRate": 76
+              },
+              "writes": 1
+            },
+            {
+              "handle": "release",
+              "values": {
+                "releaseRate": 19
+              },
+              "writes": 1
+            }
+          ],
+          "keyboardSteps": 5,
+          "plainClickWrites": 0,
+          "idleInspectorRequests": 0,
+          "liveMouseEdit": true,
+          "focusPreserved": true,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true
+        },
+        "captureContinuity": {
+          "captures": 56,
+          "frames": 503808,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        },
+        "processorErrors": []
+      }
+    ]
+  },
+  "publication": {
+    "npm": false,
+    "sdk": false,
+    "tauriImport": false,
+    "remoteCiDispatch": false
+  },
+  "packaging": {
+    "passed": true,
+    "localModuleAndAssetReferences": 1167,
+    "archives": [
+      {
+        "path": "release/hello_ymfm_wasm_ps1-envelope-drag-dev_itch_playground.zip",
+        "bytes": 37012227,
+        "sha256": "2a5b22da3bd427eeb37b29957e66feab10d2eb289f49a06dfdea9138b6d0fb40",
+        "entries": 1188,
+        "files": 1067,
+        "crcPassed": true
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ps1-envelope-drag-dev_itch_playground_for_run.zip",
+        "bytes": 37402896,
+        "sha256": "b1b410a183adef9a279c431cbfa057ce2c2d6deaae18a20fb1a93db0f8fd0fcd",
+        "entries": 931,
+        "files": 931,
+        "crcPassed": true
+      }
+    ]
+  },
+  "calibrationGuardTests": {
+    "passed": 319,
+    "failed": 0,
+    "skipped": 0,
+    "measuredDataChanged": false,
+    "featureUiReceipt": "docs/issues/ps1_adsr_graph_ui_receipt_01.json"
+  },
+  "packagedBrowser": {
+    "passed": true,
+    "rawReportSha256": "bdf44c3f047d8e3bed8b0c22095e0e04a3af75a8f2401f693a60dfbdb854714e",
+    "rawReportBytes": 258662,
+    "checkerSha256": "0ff3de2013ff442ae99f14df41faa49fb8772d0dd2a28f2d4f2a6154b5b3b9d1",
+    "captureHelperSha256": "0f1199be1e7719aa43b693cd941fba5cab5d5771e7508be30fc2dc71fc9d6133",
+    "archive": {
+      "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_ps1-envelope-drag-dev_itch_playground_for_run.zip",
+      "bytes": 37402896,
+      "sha256": "b1b410a183adef9a279c431cbfa057ce2c2d6deaae18a20fb1a93db0f8fd0fcd"
+    },
+    "physicalOutputMuted": true,
+    "listeningPerformed": false,
+    "servedAssets": 209,
+    "routes": [
+      {
+        "browser": "chromium",
+        "version": "153.0.8010.12",
+        "execution": "main",
+        "graph": {
+          "drags": [
+            {
+              "handle": "attack",
+              "values": {
+                "attackRate": 64
+              },
+              "writes": 5
+            },
+            {
+              "handle": "decay",
+              "values": {
+                "decayRate": 10,
+                "sustainLevel": 5
+              },
+              "writes": 5
+            },
+            {
+              "handle": "sustain",
+              "values": {
+                "sustainRate": 76
+              },
+              "writes": 5
+            },
+            {
+              "handle": "release",
+              "values": {
+                "releaseRate": 19
+              },
+              "writes": 5
+            }
+          ],
+          "keyboardSteps": 5,
+          "plainClickWrites": 0,
+          "idleInspectorRequests": 0,
+          "liveMouseEdit": true,
+          "focusPreserved": true,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true
+        },
+        "captureContinuity": {
+          "captures": 50,
+          "frames": 479232,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        },
+        "processorErrors": []
+      },
+      {
+        "browser": "webkit",
+        "version": "26.6",
+        "execution": "main",
+        "graph": {
+          "drags": [
+            {
+              "handle": "attack",
+              "values": {
+                "attackRate": 64
+              },
+              "writes": 1
+            },
+            {
+              "handle": "decay",
+              "values": {
+                "decayRate": 10,
+                "sustainLevel": 5
+              },
+              "writes": 1
+            },
+            {
+              "handle": "sustain",
+              "values": {
+                "sustainRate": 76
+              },
+              "writes": 1
+            },
+            {
+              "handle": "release",
+              "values": {
+                "releaseRate": 19
+              },
+              "writes": 1
+            }
+          ],
+          "keyboardSteps": 5,
+          "plainClickWrites": 0,
+          "idleInspectorRequests": 0,
+          "liveMouseEdit": true,
+          "focusPreserved": true,
+          "reservedBit13Preserved": true,
+          "otherVoicesPreserved": true
+        },
+        "captureContinuity": {
+          "captures": 51,
+          "frames": 483328,
+          "pcmContinuous": true,
+          "clockContinuous": true,
+          "clockAnomalies": []
+        },
+        "processorErrors": []
+      }
+    ]
+  }
+}

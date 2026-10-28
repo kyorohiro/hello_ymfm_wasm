@@ -134,7 +134,7 @@ test('all raw source hashes are fresh, including all required provenance',async 
   assert.equal(WONDERSWAN_CALIBRATION_REQUIRED_SCRIPTS.length,5);assert.ok(WONDERSWAN_CALIBRATION_REQUIRED_SOURCES.length>=24);
 });
 
-test('original complete WonderSwan source inventory remains valid through pinned UI cache-only receipts',async()=>{
+test('original complete WonderSwan source inventory remains valid through pinned cache-only and exact UI revision receipts',async()=>{
   const path='docs/issues/wonderswan_chip_levels_01.json',before=await readFile(path),report=JSON.parse(before);
   const originalSources=structuredClone(report.sources);
   assert.equal(createHash('sha256').update(before).digest('hex'),WONDERSWAN_CALIBRATION_REPORT_SHA256);
@@ -144,7 +144,7 @@ test('original complete WonderSwan source inventory remains valid through pinned
   assert.deepEqual(await readFile(path),before,'freshness checks do not rewrite measurement evidence');
 });
 
-test('WonderSwan receipt authorizes only two known UI cache tokens under the pinned original report',async t=>{
+test('WonderSwan cache receipt authorizes only exact imports in two known UI files under the pinned original report',async t=>{
   const report=JSON.parse(await readFile('docs/issues/wonderswan_chip_levels_01.json','utf8'));
   const receipt=JSON.parse(await readFile('docs/issues/wonderswan_chip_levels_ui_receipt_01.json','utf8'));
   assert.equal(mixerCalibrationReceiptObjectSha256(receipt),WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256);

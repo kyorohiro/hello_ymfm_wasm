@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "scope": "ps1-adsr-graph-ui-revision",
+  "feature": "PS1 live draggable ADSR graph",
+  "reports": {
+    "docs/issues/ps1_chip_levels_01.json": {
+      "sha256": "0bc38fd52a6f9de0658e085c016f8e8214e28960355b25a754da659bbab10d1c",
+      "objectSha256": "029914aaaf6c0d4b33e9510f1095d5119437603e50010eb3e066b39eb5ace2bf"
+    },
+    "docs/issues/wonderswan_chip_levels_01.json": {
+      "sha256": "71d86d014e359c01f4158beefa06301036c5c9eda39215e5b907d569381fdcd0",
+      "objectSha256": "66c3234d4fc02b14fd386f7e1f21e152c47e798ce9e37c6fff63be3a8ebfd491"
+    },
+    "docs/issues/pokey_chip_levels_01.json": {
+      "sha256": "5920ffb3ceb407b7db68cfdbf70bb1632fc6d2af54e9b66f35d92184fc4dee4b",
+      "objectSha256": "0b7fdc38037eff22762e27e0095c5e8756b0ca0d2b6ea6555252b26b6828a738"
+    }
+  },
+  "sources": {
+    "playground/playground_chip_tabs.css": {
+      "before": {
+        "bytes": 3716,
+        "sha256": "69850078f988137d27268a0a6d97256b3b35a17d9c54cfb0baa822df05492733"
+      },
+      "after": {
+        "bytes": 4350,
+        "sha256": "69eef3c20f040e14f8c16800a49d279405a245769ddb2a417db6f9b12c770fbc"
+      }
+    },
+    "playground/playground_chip_tabs.js": {
+      "before": {
+        "bytes": 40901,
+        "sha256": "77c44725acc9c1df45c42ba0cc5eaa2f0427063587c9b79e5f29d00e5da7e860"
+      },
+      "after": {
+        "bytes": 40902,
+        "sha256": "0f9d4a988043466349380eae6437b78895967945ce2ac53ce1a001c655e19fb1"
+      }
+    },
+    "playground/playground_ps1_voice_panel.js": {
+      "before": {
+        "bytes": 29101,
+        "sha256": "ff2b556831329bbba0d61a22f5b95e6698501b14b0bc8caa1ae8d10e103c6e3a"
+      },
+      "after": {
+        "bytes": 35990,
+        "sha256": "658ef9d485f21919a33c8e0349e8273a6c7bf484c1c8deb2f87d711911dd7292"
+      }
+    }
+  },
+  "relatedSources": {
+    "playground/playground_ps1_envelope.js": {
+      "bytes": 1927,
+      "sha256": "bfd6b756a4edf7b80a69f42e4236f4f640905f362a5a38d3f0e5e19a219883de"
+    }
+  },
+  "audit": {
+    "baseRevision": "defa1795d728efbcc10a3ce3ce5c5b1449ca1ec8",
+    "trackedUiDiffSha256": "6b04e95c454d15c4b852c4822b459936f3698d4b3f84c75693a21ca0e668cb3d",
+    "unchangedMeasuredSourceCounts": {
+      "docs/issues/ps1_chip_levels_01.json": 288,
+      "docs/issues/wonderswan_chip_levels_01.json": 287,
+      "docs/issues/pokey_chip_levels_01.json": 288
+    },
+    "cacheOnlyPaths": [
+      "playground/index.html",
+      "playground/playground.js"
+    ],
+    "browserEvidence": {
+      "path": "/private/tmp/ps1-envelope-drag-browser.json",
+      "sha256": "81d9c4f3c0e6b348dcf01ff19a49447930e0d01e3787c2ef441741ae995b6d2b",
+      "routes": [
+        "chromium/main",
+        "chromium/worker",
+        "webkit/main",
+        "webkit/worker"
+      ]
+    },
+    "note": "Exact reviewed UI revision; original calibration captures and all other measured source bytes are unchanged apart from separately receipted UI cache tokens. This is not a new PCM calibration."
+  }
+}

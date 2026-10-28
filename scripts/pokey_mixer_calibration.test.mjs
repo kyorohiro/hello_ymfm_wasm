@@ -136,7 +136,7 @@ test('all script/runtime/WASM hashes are fresh before generators can write',asyn
   await validatePokeyMixerCalibrationSources({reportPath:historicalPath,pokeyReport:fixture.pokeyReport});
   for(const path of ['generated/pokey_wasm.wasm','generated/segapsg_wasm.wasm','js/pokeyaudioengine.js','playground/playground.js'])await t.test('changed '+path,async()=>{
     const {pokeyReport}=copy();pokeyReport.sources[path].sha256=zeroSha;
-    await assert.rejects(validatePokeyMixerCalibrationSources({reportPath:historicalPath,pokeyReport}),/served DSP\/WASM source changed/);
+    await assert.rejects(validatePokeyMixerCalibrationSources({reportPath:historicalPath,pokeyReport}),/served DSP\/WASM source changed|source receipt/);
   });
   for(const path of ['scripts/audio_clock_audit.cjs','scripts/soundchip_calibration_pokey.mjs'])await t.test('changed '+path,async()=>{
     const {pokeyReport}=copy();pokeyReport.scripts[path]=zeroSha;

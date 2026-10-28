@@ -10,14 +10,14 @@
     "playground/playground.js": {
       "bytes": 124845,
       "sha256": "85023b445e7eb67f572e3edd5ee2b9bad9688ba6ecfdaad7c76c8de4b556a7ff",
-      "normalizer": "playground-generated-mixer-import-v1",
-      "canonicalSha256": "cd203c81314d6d591cd8b35dc49f82292be217f0d2b2583996781ee901293221"
+      "normalizer": "playground-editor-ui-imports-v2",
+      "canonicalSha256": "20024e215405fb726e6f76f2e662fbfe4b8e2291f65d81573c50c71b4eb3ae2a"
     },
     "playground/index.html": {
       "bytes": 131500,
       "sha256": "103b2dfa255b6534a54e51ee3aac9ccc20ac7f5c8fa0d8b8a666aba5a6b2b1d6",
-      "normalizer": "playground-page-entry-import-v1",
-      "canonicalSha256": "5468b2f13a1a1f5fdd360551fa5f041342ecc294a9f2ba69f6d9e3fb3361f172"
+      "normalizer": "playground-editor-page-imports-v2",
+      "canonicalSha256": "6ba661cc97f7315f0949a287be9f5d8c993da04d9dd4aa9c8907008f87795900"
     }
   }
 }

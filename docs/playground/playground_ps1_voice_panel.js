@@ -1,4 +1,5 @@
 import {decodePs1Envelope, PS1_REVERB_PRESETS} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
+import {ps1EnvelopeGeometry, ps1EnvelopePointPatch} from './playground_ps1_envelope.js?v=ps1-envelope-drag-1';
 
 const PCM_FRAMES = 112;
 function appliedWaveform(voice) {
@@ -28,6 +29,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   let state = null, selected = 0, connected = false, visible = true, disposed = false, epoch = 0, sequence = 0, targetEpoch = 0;
   let keyboardActive = false, target, timer = null, holdPress = null, commandSequence = 0, envelopeDraft = {};
   let waveDrag = null, waveDraft = null, waveSignature = '';
+  let envelopeDrag = null, envelopeFrame = null, envelopePending = null, envelopeInFlight = null;
   const held = new Map(), listeners = [];
   const make = (tag, cls, text) => {const node = doc.createElement(tag); if (cls) node.className = cls; if (text !== undefined) node.textContent = text; return node;};
   const voice = () => state?.channels?.[selected] ?? {};
@@ -39,7 +41,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   function set(node, value) {if (doc.activeElement !== node) node.value = value === null || value === undefined ? '' : String(value);}
   function checked(node, value) {if (doc.activeElement !== node) node.checked = Boolean(value);}
   function report(error) {status.textContent = error?.message ?? String(error); status.dataset.error = 'true'; onError(error);}
-  async function command(method, args = []) {
+  async function command(method, args = [], onFailure) {
     if (!connected || disposed) return;
     const token = epoch, request = ++commandSequence, auditionId = method === 'auditionOn' ? args[2] : null, entry = auditionId ? held.get(auditionId) : null;
     try {
@@ -56,7 +58,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
         if (entry?.source === 'sustain') sustain.setAttribute('aria-pressed', 'false');
         if (entry?.source === 'preview' && timer !== null) {win.clearTimeout(timer); timer = null;}
       }
-      if (!disposed && connected && token === epoch && request === commandSequence) report(error);
+      if (!disposed && connected && token === epoch) {onFailure?.(); if (request === commandSequence) report(error);}
     }
   }
   const patch = value => command('setPreset', [selected, value]);
@@ -69,7 +71,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
 
   const channels = make('div', 'chip-channel-list'); channels.setAttribute('aria-label', 'PS1 voice'); root.appendChild(channels);
   const buttons = Array.from({length:24}, (_, channel) => {
-    const node = button(channels, `Voice ${channel + 1}`, `ps1-channel-${channel}`, () => {if (!connected || selected === channel) return; releaseAll(); cancelWave(); selected = channel; envelopeDraft = {}; commandSequence++; updateTarget(); update(state); onSelectedChannelChange();});
+    const node = button(channels, `Voice ${channel + 1}`, `ps1-channel-${channel}`, () => {if (!connected || selected === channel) return; releaseAll(); cancelWave(); cancelEnvelope(); selected = channel; envelopeDraft = {}; commandSequence++; updateTarget(); update(state); onSelectedChannelChange();});
     node.dataset.chipChannel = String(channel); return node;
   });
   root.appendChild(make('p', 'subtext', 'SPU · 44,100 Hz · 24 physical voices'));
@@ -114,16 +116,24 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
 
   const envelopeCard = section(instrument, 'ADSR envelope'), envelopeFields = fields(envelopeCard), envelopeInputs = {};
   const retrigger = checkbox(envelopeFields, 'Retrigger my held note after an ADSR or PCM edit', 'ps1-retrigger'); retrigger.checked = true;
-  function editEnvelope(key, value) {if (!connected || disposed) return; envelopeDraft = {...envelopeDraft, [key]:value}; drawEnvelope(); void command('setEnvelope', [selected, {[key]:value}, {retrigger:retrigger.checked}]);}
+  function editEnvelope(key, value) {if (!connected || disposed) return; cancelEnvelope(); envelopeDraft = {...envelopeDraft, [key]:value}; drawEnvelope(); void command('setEnvelope', [selected, {[key]:value}, {retrigger:retrigger.checked}]);}
   for (const [key, label, max] of [['attackRate','Attack rate · 0 fastest',127], ['decayRate','Decay rate · 0 fast / 15 slow',15], ['sustainLevel','Sustain level · 0–15',15], ['sustainRate','Sustain rate · 127 holds',127], ['releaseRate','Release rate · 27–31 hold',31]]) {
     envelopeInputs[key] = number(envelopeFields, label, `ps1-${key.replace(/[A-Z]/g, value => '-' + value.toLowerCase())}`, 0, max, value => editEnvelope(key, value));
   }
   for (const [key, label] of [['attackExponential','Exponential attack'], ['sustainDecrease','Sustain decreases'], ['sustainExponential','Exponential sustain'], ['releaseExponential','Exponential release']]) {
     envelopeInputs[key] = checkbox(envelopeFields, label, `ps1-${key.replace(/[A-Z]/g, value => '-' + value.toLowerCase())}`, value => editEnvelope(key, value));
   }
+  const envelopeEditor = make('div', 'chip-envelope-editor'); envelopeEditor.dataset.chipControl = 'ps1-envelope-editor';
+  envelopeEditor.setAttribute('role', 'group'); envelopeEditor.setAttribute('aria-label', 'Edit PS1 ADSR envelope'); envelopeCard.appendChild(envelopeEditor);
   const envelopeCanvas = make('canvas', 'chip-sample-waveform'); envelopeCanvas.width = 800; envelopeCanvas.height = 180; envelopeCanvas.dataset.chipControl = 'ps1-envelope';
-  envelopeCanvas.setAttribute('role', 'img'); envelopeCanvas.setAttribute('aria-label', 'Schematic PS1 ADSR envelope. Stage widths are illustrative, not elapsed time.'); envelopeCard.appendChild(envelopeCanvas);
+  envelopeCanvas.setAttribute('role', 'img'); envelopeCanvas.setAttribute('aria-label', 'Editable PS1 ADSR envelope. Stage widths are illustrative, not elapsed time. Drag A, D, S or R; right increases the rate code (slower). Drag D up to increase sustain level.'); envelopeEditor.appendChild(envelopeCanvas);
+  const envelopeHandles = Object.fromEntries(['attack', 'decay', 'sustain', 'release'].map(name => {
+    const node = button(envelopeEditor, name[0].toUpperCase(), `ps1-envelope-${name}`); node.className = 'chip-envelope-handle'; node.dataset.chipEnvelopeHandle = name;
+    listen(node, 'pointerdown', event => envelopeDown(event, name)); listen(node, 'keydown', event => envelopeKey(event, name));
+    return [name, node];
+  }));
   const envelopeInfo = make('p', 'subtext'); envelopeInfo.dataset.chipOutput = 'ps1-envelope'; envelopeCard.appendChild(envelopeInfo);
+  envelopeCard.appendChild(make('p', 'subtext', 'Drag A / D / S / R left or right: faster / slower rate codes. Drag D up or down: sustain level. Focus a point and use arrow keys for one-step adjustments.'));
   envelopeCard.appendChild(make('p', 'subtext', 'The graph shows envelope shape, not measured timing. This experimental core approximates ADSR curves; high rate codes can stop a stage. ADSR changes apply at key-on; retrigger restarts only a note held by this editor. Code-owned notes keep playing. Release rates 27–31 hold indefinitely in this core.'));
 
   const effectCard = section(instrument, 'SPU reverb'), effectFields = fields(effectCard);
@@ -136,7 +146,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   effectCard.appendChild(make('p', 'subtext', 'Choose a reverb preset and enable “Selected voice uses reverb” to hear it. Preset and return levels affect all voices on this SPU; each voice has its own reverb switch. These are the core’s named reverb approximations.'));
 
   const advanced = make('details', 'chip-advanced'); advanced.appendChild(make('summary', '', 'Raw ADSR words and voice JavaScript')); instrument.appendChild(advanced);
-  const rawFields = fields(advanced), rawPatch = value => {envelopeDraft = {}; void command('setPreset', [selected, value, {retrigger:retrigger.checked}]);};
+  const rawFields = fields(advanced), rawPatch = value => {cancelEnvelope(); envelopeDraft = {}; void command('setPreset', [selected, value, {retrigger:retrigger.checked}]);};
   const adsr1 = number(rawFields, 'ADSR1 (raw word)', 'ps1-adsr1', 0, 65535, value => rawPatch({adsr1:value}));
   const adsr2 = number(rawFields, 'ADSR2 (raw word)', 'ps1-adsr2', 0, 65535, value => rawPatch({adsr2:value}));
   const code = make('pre', 'chip-memory-ranges'); code.dataset.chipOutput = 'ps1-code'; advanced.appendChild(code);
@@ -160,7 +170,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   function holdStart(event) {if (!visible || !connected || event.type === 'pointerdown' && event.button !== undefined && event.button !== 0 || event.type === 'keydown' && (event.repeat || ![' ', 'Enter'].includes(event.key))) return; event.preventDefault(); releaseSource('hold'); const id = start(selected, Number(midi.value), 'hold'); if (!id) return; holdPress = {id, pointerId:event.pointerId, key:event.key}; hold.setAttribute('aria-pressed', 'true'); if (event.pointerId !== undefined) try {hold.setPointerCapture(event.pointerId);} catch {}}
   function holdEnd(event) {if (!holdPress || event.pointerId !== undefined && event.pointerId !== holdPress.pointerId || event.type === 'keyup' && event.key !== holdPress.key) return; releaseSource('hold');}
   listen(hold, 'pointerdown', holdStart); listen(hold, 'keydown', holdStart); for (const type of ['pointerup', 'pointercancel', 'lostpointercapture', 'keyup']) listen(hold, type, holdEnd);
-  listen(hold, 'blur', () => releaseSource('hold')); listen(win, 'blur', () => {releaseAll(); cancelWave();}); listen(doc, 'visibilitychange', () => {if (doc.hidden) {releaseAll(); cancelWave();}});
+  listen(hold, 'blur', () => releaseSource('hold')); listen(win, 'blur', () => {releaseAll(); cancelWave(); cancelEnvelope();}); listen(doc, 'visibilitychange', () => {if (doc.hidden) {releaseAll(); cancelWave(); cancelEnvelope();}});
 
   function waveIdentity() {const value = voice(); return JSON.stringify([selected, value.sample, appliedWaveform(value)]);}
   function setWave(pcm) {
@@ -210,27 +220,108 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   listen(waveCanvas, 'pointercancel', cancelWave); listen(waveCanvas, 'lostpointercapture', cancelWave);
 
   function envelope() {return {...decodePs1Envelope(voice().adsr1 ?? 0, voice().adsr2 ?? 0), ...envelopeDraft};}
+  function syncEnvelopeInputs() {
+    const value = envelope();
+    for (const [key, node] of Object.entries(envelopeInputs)) {if (node.type === 'checkbox') checked(node, value[key]); else set(node, value[key]);}
+  }
+  function scheduleEnvelope() {
+    if (envelopeFrame !== null || envelopeInFlight || !envelopePending || !connected || !visible || disposed) return;
+    envelopeFrame = win.requestAnimationFrame(() => {envelopeFrame = null; flushEnvelope();});
+  }
+  function flushEnvelope() {
+    if (envelopeFrame !== null) {win.cancelAnimationFrame(envelopeFrame); envelopeFrame = null;}
+    if (envelopeInFlight || !envelopePending || !connected || !visible || disposed) return;
+    const pending = envelopePending; envelopePending = null; envelopeInFlight = pending;
+    // Coalesce pointer events and wait for the previous inspector write instead
+    // of flooding Main/Worker/Native with retriggers and state-read requests.
+    void command('setEnvelope', [pending.channel, pending.patch, {retrigger:pending.retrigger}], () => {
+      if (selected !== pending.channel) return;
+      for (const [key, value] of Object.entries(pending.patch)) if (envelopeDraft[key] === value && !Object.hasOwn(envelopePending?.patch ?? {}, key)) delete envelopeDraft[key];
+      syncEnvelopeInputs(); drawEnvelope();
+    }).finally(() => {
+      if (envelopeInFlight === pending) envelopeInFlight = null;
+      scheduleEnvelope();
+    });
+  }
+  function queueEnvelope(patch) {
+    const current = envelope(), changed = Object.fromEntries(Object.entries(patch ?? {}).filter(([key, value]) => current[key] !== value));
+    if (!Object.keys(changed).length) return;
+    envelopeDraft = {...envelopeDraft, ...changed};
+    envelopePending = {channel:selected, patch:{...envelopePending?.patch, ...changed}, retrigger:retrigger.checked};
+    syncEnvelopeInputs(); drawEnvelope(); scheduleEnvelope();
+  }
+  function endEnvelopeDrag() {
+    const id = envelopeDrag?.pointerId; envelopeDrag = null;
+    if (id !== undefined && envelopeCanvas.hasPointerCapture?.(id)) envelopeCanvas.releasePointerCapture(id);
+  }
+  function cancelEnvelope(event) {
+    if (event?.pointerId !== undefined && envelopeDrag?.pointerId !== event.pointerId) return;
+    endEnvelopeDrag(); envelopePending = null;
+    if (envelopeFrame !== null) {win.cancelAnimationFrame(envelopeFrame); envelopeFrame = null;}
+    envelopeDraft = {}; syncEnvelopeInputs(); drawEnvelope();
+  }
+  function envelopePoint(event) {
+    const rect = envelopeCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return null;
+    return {x:(event.clientX - rect.left) * envelopeCanvas.width / rect.width, y:(event.clientY - rect.top) * envelopeCanvas.height / rect.height};
+  }
+  function envelopeDown(event, handle) {
+    if (!connected || !visible || disposed || doc.hidden || envelopeDrag || event.button !== undefined && event.button !== 0 || event.isPrimary === false) return;
+    const origin = envelopePoint(event); if (!origin) return;
+    event.preventDefault(); // Keep a sounding PC-keyboard note's focus.
+    const point = ps1EnvelopeGeometry(envelope(), envelopeCanvas.width, envelopeCanvas.height).handles.find(value => value.id === handle);
+    envelopeDrag = {handle, pointerId:event.pointerId, channel:selected, epoch, origin, point};
+    try {envelopeCanvas.setPointerCapture(event.pointerId);} catch {}
+  }
+  function envelopeMove(event) {
+    if (!envelopeDrag || event.pointerId !== envelopeDrag.pointerId) return;
+    if (!connected || !visible || disposed || doc.hidden || envelopeDrag.channel !== selected || envelopeDrag.epoch !== epoch) {cancelEnvelope(); return;}
+    const point = envelopePoint(event); if (!point) return;
+    event.preventDefault();
+    queueEnvelope(ps1EnvelopePointPatch(envelope(), envelopeDrag.handle,
+      envelopeDrag.point.x + point.x - envelopeDrag.origin.x, envelopeDrag.point.y + point.y - envelopeDrag.origin.y,
+      envelopeCanvas.width, envelopeCanvas.height));
+  }
+  function envelopeKey(event, handle) {
+    if (!connected || !visible || disposed || doc.hidden || event.ctrlKey || event.metaKey || event.altKey) return;
+    const horizontal = ['ArrowLeft', 'ArrowRight'].includes(event.key), vertical = ['ArrowUp', 'ArrowDown'].includes(event.key);
+    if (!horizontal && !(vertical && handle === 'decay')) return;
+    event.preventDefault(); event.stopPropagation();
+    const value = envelope(), point = ps1EnvelopeGeometry(value).handles.find(entry => entry.id === handle);
+    const key = vertical ? 'sustainLevel' : point.key, max = vertical ? 15 : point.max;
+    queueEnvelope({[key]:Math.max(0, Math.min(max, value[key] + (['ArrowRight', 'ArrowUp'].includes(event.key) ? 1 : -1)))});
+  }
+  listen(envelopeCanvas, 'pointermove', envelopeMove);
+  listen(envelopeCanvas, 'pointerup', event => {if (!envelopeDrag || event.pointerId !== envelopeDrag.pointerId) return; envelopeMove(event); endEnvelopeDrag(); flushEnvelope();});
+  listen(envelopeCanvas, 'pointercancel', cancelEnvelope); listen(envelopeCanvas, 'lostpointercapture', cancelEnvelope);
   function drawEnvelope() {
     const value = envelope();
     // The retained core has 108 linear/negative-exponential rates and 100
     // positive-exponential rates. Out-of-table codes return a zero increment.
-    const attackStopped = value.attackRate >= (value.attackExponential ? 100 : 108);
-    const sustainHeld = value.sustainRate >= (value.sustainExponential && !value.sustainDecrease ? 100 : 108);
-    const peak = attackStopped ? 0 : 1, level = (value.sustainLevel + 1) / 16 * peak, endLevel = sustainHeld ? level : value.sustainDecrease ? 0 : peak;
+    const geometry = ps1EnvelopeGeometry(value, envelopeCanvas.width, envelopeCanvas.height);
+    const {attackStopped, sustainHeld, level, endLevel, handles, y, bottom} = geometry, peak = 1;
     envelopeInfo.textContent = `A ${value.attackRate}${attackStopped ? ' (stopped at zero)' : ''} · D ${value.decayRate} · SL ${value.sustainLevel} · S ${value.sustainRate}${sustainHeld ? ' (hold)' : value.sustainDecrease ? ' ↓' : ' ↑'} · R ${value.releaseRate}${value.releaseRate >= 27 ? ' (infinite)' : ''} · illustrative stage widths`;
+    for (const point of handles) {
+      const node = envelopeHandles[point.id]; node.style.left = `${point.x / envelopeCanvas.width * 100}%`; node.style.top = `${point.y / envelopeCanvas.height * 100}%`; node.disabled = !connected;
+      const label = `Voice ${selected + 1} · ${point.id} rate ${value[point.key]}${point.id === 'decay' ? ` · sustain level ${value.sustainLevel}` : ''}`;
+      node.setAttribute('aria-label', label); node.title = label;
+    }
     if (!visible) return; const ctx = envelopeCanvas.getContext?.('2d'); if (!ctx) return;
-    const w = envelopeCanvas.width, h = envelopeCanvas.height, top = 18, bottom = h - 32, y = gain => bottom - gain * (bottom - top);
+    const w = envelopeCanvas.width, h = envelopeCanvas.height;
     ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#101820'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = '#34444e'; ctx.lineWidth = 1;
     for (const gain of [0, .5, 1]) {ctx.beginPath(); ctx.moveTo(12, y(gain)); ctx.lineTo(w - 12, y(gain)); ctx.stroke();}
-    const xs = [20, w * .22, w * .4, w * .68, w - 20]; ctx.strokeStyle = '#7bbcf7'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(xs[0], y(0));
+    const xs = [20, ...handles.map(point => point.x)]; ctx.strokeStyle = '#7bbcf7'; ctx.lineWidth = 3; ctx.setLineDash?.(attackStopped ? [5, 5] : []); ctx.beginPath(); ctx.moveTo(xs[0], y(0));
     if (value.attackExponential) ctx.quadraticCurveTo(xs[0] + 12, y(.95 * peak), xs[1], y(peak)); else ctx.lineTo(xs[1], y(peak));
     ctx.quadraticCurveTo(xs[1] + 12, y(level), xs[2], y(level));
     if (sustainHeld) ctx.lineTo(xs[3], y(level)); else if (value.sustainExponential) ctx.quadraticCurveTo(xs[2] + 12, y(endLevel), xs[3], y(endLevel)); else ctx.lineTo(xs[3], y(endLevel));
     if (value.releaseRate >= 27) ctx.lineTo(xs[4], y(endLevel)); else if (value.releaseExponential) ctx.quadraticCurveTo(xs[3] + 15, y(0), xs[4], y(0)); else ctx.lineTo(xs[4], y(0));
-    ctx.stroke(); ctx.fillStyle = '#b5c2cc'; ctx.font = '13px sans-serif'; for (const [index, name] of ['Attack', 'Decay', 'Sustain', 'Release'].entries()) ctx.fillText(name, (xs[index] + xs[index + 1]) / 2 - 20, h - 10);
+    ctx.stroke(); ctx.setLineDash?.([]);
+    if (attackStopped) {ctx.strokeStyle = '#7bbcf7'; ctx.beginPath(); ctx.moveTo(20, bottom); ctx.lineTo(w - 12, bottom); ctx.stroke();}
+    ctx.fillStyle = '#b5c2cc'; ctx.font = '13px sans-serif'; for (const [index, name] of ['Attack', 'Decay', 'Sustain', 'Release'].entries()) ctx.fillText(name, (xs[index] + xs[index + 1]) / 2 - 20, h - 10);
   }
   function update(next) {
-    if (disposed || !next) return; state = next; const v = voice(), samples = state.samples ?? []; envelopeDraft = {};
+    if (disposed || !next) return; state = next; const v = voice(), samples = state.samples ?? [];
+    if (!envelopeDrag && !envelopePending && !envelopeInFlight) envelopeDraft = {};
     if (waveDrag && waveDrag.identity !== waveIdentity()) cancelWave();
     // Transport Stop/reset retires manual leases in the audio owner. Clear only
     // local pressed indicators; never send a late KOFF to a replacement voice.
@@ -245,16 +336,16 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
     const options = [['', 'Unassigned'], ...samples.filter(entry => entry.editorChannel === undefined || entry.editorChannel === selected).map(entry => [String(entry.id), `Sample ${entry.id} · ${entry.decodedFrames} samples${entry.editorChannel === selected ? ' · editable PCM' : ''}`])], signature = JSON.stringify(options);
     if (signature !== sampleSignature) {sampleSignature = signature; sample.replaceChildren(...options.map(([value, text]) => {const node = make('option', '', text); node.value = value; return node;}));}
     set(sample, v.sample); set(pitch, v.pitch); set(volumeLeft, v.volumeLeft); set(volumeRight, v.volumeRight); set(adsr1, v.adsr1); set(adsr2, v.adsr2); gate.textContent = v.gate ? 'On' : 'Off';
-    const decoded = envelope(); for (const [key, node] of Object.entries(envelopeInputs)) {if (node.type === 'checkbox') checked(node, decoded[key]); else set(node, decoded[key]);}
+    syncEnvelopeInputs();
     checked(reverbSend, v.reverb); set(reverbPreset, state.reverb?.preset ?? 'off'); set(reverbLeft, state.reverb?.volumeLeft ?? .25); set(reverbRight, state.reverb?.volumeRight ?? .25);
     const entry = samples.find(value => value.id === v.sample); metadata.textContent = entry ? `${entry.byteLength} ADPCM bytes · RAM ${entry.startAddress} · Root ${Number(entry.rootFrequencyHz).toFixed(3)} Hz · Base PITCH ${entry.basePitch} · ${entry.loop ? 'Loop' : 'One shot'}` : 'No ADPCM sample is assigned to this voice.';
     code.textContent = ps1VoiceCode(state, selected);
     drawEnvelope(); drawWave();
   }
-  function setConnected(value) {if (disposed) return; const next = Boolean(value); if (!next) {releaseAll(); cancelWave(); if (keyboardActive) onKeyboardTargetChange(null); keyboardActive = false; targetEpoch++; envelopeDraft = {}; keyboard.setAttribute('aria-pressed', 'false');} if (next !== connected) epoch++; connected = next; instrument.disabled = !next; for (const node of buttons) node.disabled = !next; drawWave();}
+  function setConnected(value) {if (disposed) return; const next = Boolean(value); if (!next) {releaseAll(); cancelWave(); cancelEnvelope(); if (keyboardActive) onKeyboardTargetChange(null); keyboardActive = false; targetEpoch++; envelopeDraft = {}; keyboard.setAttribute('aria-pressed', 'false');} if (next !== connected) epoch++; connected = next; instrument.disabled = !next; for (const node of buttons) node.disabled = !next; drawEnvelope(); drawWave();}
   updateTarget();
   return {update, setConnected, releaseAll, getSelectedChannel:() => selected, getNoteTarget:() => target,
-    setVisible(value) {visible = Boolean(value); if (!visible) {releaseSource('hold'); releaseSource('preview'); releaseSource('sustain'); cancelWave();} else {waveSignature = ''; drawEnvelope(); drawWave();}},
+    setVisible(value) {visible = Boolean(value); if (!visible) {releaseSource('hold'); releaseSource('preview'); releaseSource('sustain'); cancelWave(); cancelEnvelope();} else {waveSignature = ''; drawEnvelope(); drawWave();}},
     setKeyboardActive(value) {if (!value && keyboardActive) {releaseSource('keyboard'); keyboardActive = false; targetEpoch++; keyboard.setAttribute('aria-pressed', 'false');}},
     dispose() {if (disposed) return; setConnected(false); disposed = true; for (const remove of listeners) remove();},
   };

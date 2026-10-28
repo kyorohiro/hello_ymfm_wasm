@@ -368,8 +368,12 @@ do {propagated=false;for(const {name,source}of sources){
   const imports=[...source.replace(/\/\*[\s\S]*?\*\//g,'').matchAll(/['"](?:\.\/)?([\w.-]+\.js)(?:\?[^'"]*)?['"]/g)];
   if(imports.some(match=>ps1NativeFiles.has(match[1]))){ps1NativeFiles.add(name);propagated=true;}
 }}while(propagated);
-const revisionFor=name=>['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
+// UI-only envelope editing: keep renderer and measured audio-source revisions.
+const ps1EnvelopeFiles=new Set(['playground_ps1_envelope.js','playground_ps1_voice_panel.js',
+  'playground_chip_tabs.js','playground_chip_tabs.css','playground_workbench.js','playground_ui.js','playground.js']);
+const revisionFor=name=>ps1EnvelopeFiles.has(name)?'ps1-envelope-drag-1':['playground.js','playground_mixer_defaults.js'].includes(name)?'pokey-mixer-calibration-1':ps1NativeFiles.has(name)?'ps1-native-1':ps1WaveFiles.has(name)?'ps1-pcm-waveform-1':ps1VoiceFiles.has(name)?'ps1-voice-editor-1':ps1SampleFiles.has(name)?'ps1-sample-editor-1':ps1EncoderFiles.has(name)?'ps1-adpcm-encoder-1':ps1ModeFiles.has(name)?'ps1-mode-1':previousRevisionFor(name);
 const targets=[...new Set([
+  ...ps1EnvelopeFiles,
   ...ps1ModeFiles,
   ...ps1EncoderFiles,
   ...ps1SampleFiles,

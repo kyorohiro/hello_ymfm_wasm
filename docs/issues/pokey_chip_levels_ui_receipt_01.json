@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "scope": "ui-import-cache-token-only",
+  "report": {
+    "path": "docs/issues/pokey_chip_levels_01.json",
+    "sha256": "5920ffb3ceb407b7db68cfdbf70bb1632fc6d2af54e9b66f35d92184fc4dee4b",
+    "objectSha256": "0b7fdc38037eff22762e27e0095c5e8756b0ca0d2b6ea6555252b26b6828a738"
+  },
+  "sources": {
+    "playground/playground.js": {
+      "bytes": 124840,
+      "sha256": "a61c239648c3c0a8ee77cb4d9f0f66610f0f8bfc97d1abe4365f32b6d9a5c726",
+      "normalizer": "playground-editor-ui-imports-v2",
+      "canonicalSha256": "20024e215405fb726e6f76f2e662fbfe4b8e2291f65d81573c50c71b4eb3ae2a"
+    },
+    "playground/index.html": {
+      "bytes": 131495,
+      "sha256": "768fb5e44c43356ff23c2788910a09e9d741540d83aec0b8b34dbe0a5c87fae2",
+      "normalizer": "playground-editor-page-imports-v2",
+      "canonicalSha256": "6ba661cc97f7315f0949a287be9f5d8c993da04d9dd4aa9c8907008f87795900"
+    }
+  }
+}

@@ -1,3 +1,11 @@
+## 2026-10-29 — PS1 SPUのADSR図を直接ドラッグ編集
+
+- SPUタブへA／D／S／Rの操作点を追加。左右は各rate、Dの上下はSustain Level。矢印キーでも1段階調整でき、数値欄と連動する。クリックだけでは書き込まず、PC Keyboardの試奏focusを保持。既存Retrigger設定で、このeditorが保持するnoteへ反映する。
+- 更新はframeごとにまとめ、前のinspector requestを待って送信。未送信draftのsnapshot上書き、異なるpointer、channel切替／hide／blur／disconnect等の古いdrag、失敗したwriteの楽観表示を処理する。idle pollingなし。DSP／WASM／公開APIは不変。
+- 関連Node144件、校正／出典319件成功。実SPUを通るsource Chromium／WebKit×Main／Worker4経路と、実Run ZIPの両browser Main2経路でmouse・矢印・owned retrigger・reserved bits・他voice・Keyboard・FX／Stopを確認。物理出力はmute、実聴／Tauri GUI／remote CIは未実施。
+- 通常Playground包装成功、両ZIP CRC成功。Runは931files、SHA256 `b1b410a183adef9a279c431cbfa057ce2c2d6deaae18a20fb1a93db0f8fd0fcd`。`release/hello_ymfm_wasm_ps1-envelope-drag-dev_itch_playground_for_run.zip`。元の音量測定JSONは変更せず、cache-only token差分と今回のexact UI revisionを別receiptで検証し、以降のcode変更は引き続き拒否する。
+- 詳細：[ps1_adsr_graph_01.md](ps1_adsr_graph_01.md)、同名JSON、`ps1_adsr_graph_ui_receipt_01.json`。未commit／未push／未公開。npm／SDK releaseやTauri importは今回行っていない。以下は各時点の履歴。
+
 ## 2026-10-29 — SDK 0.1.6正式公開・本体／Tauri採用、npm 0.2.33公開完了
 
 - SDK [v0.1.6](https://github.com/kyorohiro/tetorica-soundchip-native/releases/tag/v0.1.6)を正式公開。SDKの説明5filesだけを整えたcommit `ba2a52943f0ac43b02b57f07b48ffb8b3ccb54f6`をmain／tagへpush。タグCI [40779666941](https://github.com/kyorohiro/tetorica-soundchip-native/actions/runs/40779666941)のNative 5構成・WASM 6種類・publisherがすべて成功した。公開ZIPは1,246,902 bytes／455 members、SHA256 `2e6126935756c517d10cc6849977fb0132387e7abf6160185c341ea67b4fcc17`。GitHub asset digest、SHA256SUMS、CRC、全454payloadのmanifest hash／sizeとローカル準備物の全byte一致を確認。公開資産は`release/soundchip-sdk-0.1.6/`へ保持した。

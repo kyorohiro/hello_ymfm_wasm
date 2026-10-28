@@ -45,6 +45,7 @@ playground_gameboy_voice_panel.js
 playground_nes_voice_panel.js
 playground_snes_voice_panel.js
 playground_ps1_voice_panel.js
+playground_ps1_envelope.js
 playground_ym2151_voice_panel.js
 playground_okim6258_voice_panel.js
 playground_huc6280_voice_panel.js

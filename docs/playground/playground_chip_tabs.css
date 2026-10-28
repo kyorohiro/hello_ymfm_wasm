@@ -34,7 +34,12 @@
 .chip-channel-list button[aria-pressed="true"] { outline: 2px solid var(--accent, #7bbcf7); outline-offset: 1px; }
 .chip-channel-list button[data-sounding="true"] { font-weight: 700; }
 .chip-sample-waveform { display: block; width: 100%; height: 150px; margin: 10px 0; background: #101820; border: 1px solid var(--line, #c4c6bd); border-radius: 4px; touch-action: none; cursor: crosshair; }
-.chip-sample-waveform[data-chip-control="ps1-envelope"] { cursor: default; touch-action: auto; }
+.chip-envelope-editor { position: relative; margin: 10px 0; }
+.chip-envelope-editor .chip-sample-waveform { box-sizing: border-box; margin: 0; }
+.chip-envelope-editor .chip-envelope-handle { position: absolute; transform: translate(-50%, -50%); box-sizing: border-box; min-width: 28px; width: 28px; height: 28px; padding: 0; border: 2px solid #bce4ff; border-radius: 50%; background: #244f73; color: #fff; font: bold 12px sans-serif; line-height: 24px; box-shadow: none; cursor: grab; touch-action: none; user-select: none; }
+.chip-envelope-handle:active { cursor: grabbing; }
+.chip-envelope-handle:focus-visible { outline: 3px solid #fbdc84; outline-offset: 3px; }
+.chip-envelope-handle:disabled { opacity: .5; cursor: default; }
 .chip-memory-ranges { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #52615e; font-size: 11px; }
 .chip-editor > .subtext { line-height: 1.5; }
 @media (max-width: 640px) { .chip-editor { padding: 8px; } .chip-fields { gap: 10px; } .chip-field { min-width: 90px; } .chip-field select { max-width: 240px; } }

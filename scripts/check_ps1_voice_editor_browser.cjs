@@ -281,8 +281,67 @@ async function checkEnvelope(page){
   assert.equal(raw.channels[23].envelopeParameters.sustainRate,5);assert.equal(raw.channels[23].envelopeParameters.releaseRate,1);
   assert((await page.locator(`${root} [data-chip-output="ps1-code"]`).textContent()).includes('spu.setReverb('),'Generated voice JavaScript includes global reverb');
   await page.locator(root).getByText('Raw ADSR words and voice JavaScript',{exact:true}).click();
+  const graph=await checkEnvelopeGraph(page);
   await field(page,'retrigger',true);await fastEnvelope(page);
-  return {fields:results,reservedBit13Preserved:true,otherVoicesPreserved:true,invalidInputRejected:true,rawWordsUpdateDecodedControls:true};
+  return {fields:results,graph,reservedBit13Preserved:true,otherVoicesPreserved:true,invalidInputRejected:true,rawWordsUpdateDecodedControls:true};
+}
+async function checkEnvelopeGraph(page){
+  console.log('  Direct ADSR handles / keyboard steps / focus and idle safety');
+  const editor=page.locator(control('envelope-editor')),canvas=page.locator(control('envelope'));
+  const handle=name=>editor.locator(`[data-chip-envelope-handle="${name}"]`);
+  assert.equal(await editor.locator('button[data-chip-envelope-handle]').count(),4,'All four ADSR stages have focusable graph handles');
+  for(const name of ['attack','decay','sustain','release']){
+    assert.equal(await handle(name).evaluate(node=>node.tabIndex),0,name+' handle is available from the keyboard');
+    assert((await handle(name).getAttribute('aria-label'))?.length>0,name+' handle has an accessible name');
+  }
+  for(const [key,value]of Object.entries({'attack-rate':32,'decay-rate':4,'sustain-level':8,'sustain-rate':32,'release-rate':8}))await field(page,key,value);
+  const before=await applied(page,'state.channels[23].envelopeParameters.attackRate===32&&state.channels[23].envelopeParameters.decayRate===4&&state.channels[23].envelopeParameters.sustainLevel===8&&state.channels[23].envelopeParameters.sustainRate===32&&state.channels[23].envelopeParameters.releaseRate===8','Graph starting envelope');
+  const expected={...before.channels[23].envelopeParameters},untouched=settings(before).slice(0,23),selected=settings(before)[23],results=[];
+  function assertApplied(state,label){
+    const voice=state.channels[23];assert.deepEqual(voice.envelopeParameters,expected,label+': only the requested native ADSR fields change');
+    assert.equal(voice.adsr2&0x2000,0x2000,label+': reserved ADSR2 bit 13 survives');
+    assert.deepEqual(settings(state).slice(0,23),untouched,label+': the other 23 voices stay unchanged');
+    for(const key of ['sample','volumeLeft','volumeRight','reverb'])assert.equal(voice[key],selected[key],label+': selected voice '+key+' stays unchanged');
+  }
+  await canvas.scrollIntoViewIfNeeded();
+  const clickFrom=await page.evaluate(()=>__ps1Audit.commands.length);
+  await handle('attack').click();await page.waitForTimeout(100);
+  assert.deepEqual((await commandsSince(page,clickFrom)).filter(command=>command.type==='chip-inspector'),[],'A plain handle click neither rewrites quantized values nor polls the SPU');
+  assertApplied(await current(page),'Plain handle click');
+  for(const [name,key,value,min,max,limit,level]of [
+    ['attack','attackRate',64,.07,.23,127],
+    ['decay','decayRate',10,.30,.46,15,5],
+    ['sustain','sustainRate',76,.55,.71,127],
+    ['release','releaseRate',19,.80,.96,31],
+  ]){
+    await canvas.scrollIntoViewIfNeeded();await handle(name).scrollIntoViewIfNeeded();
+    const point=await handle(name).boundingBox(),box=await canvas.boundingBox(),height=await canvas.evaluate(node=>node.height);assert(point&&box);
+    const start={x:point.x+point.width/2,y:point.y+point.height/2};
+    const target={x:box.x+box.width*(min+(max-min)*value/limit),y:level===undefined?start.y:box.y+box.height*(148-(level+1)/16*(148-18))/height};
+    await page.evaluate(()=>{document.activeElement?.blur();__ps1Audit.graphFocus=document.activeElement;});
+    const from=await page.evaluate(()=>__ps1Audit.commands.length);
+    await page.mouse.move(start.x,start.y);await page.mouse.down();
+    try{
+      await page.mouse.move(target.x,target.y,{steps:5});
+      if(name==='attack')await applied(page,`state.channels[23].envelopeParameters.${key}===${value}`,'Live ADSR edit reaches the SPU while the mouse remains held');
+    }finally{await page.mouse.up();}
+    expected[key]=value;if(level!==undefined)expected.sustainLevel=level;
+    const predicate=Object.entries(expected).map(([key,value])=>`state.channels[23].envelopeParameters.${key}===${JSON.stringify(value)}`).join('&&');
+    const state=await applied(page,predicate,'Dragged '+name+' handle');assertApplied(state,'Dragged '+name);
+    assert.equal(await page.evaluate(()=>document.activeElement===__ps1Audit.graphFocus),true,'Mouse '+name+' drag preserves computer-keyboard focus');
+    const writes=(await commandsSince(page,from)).filter(command=>command.type==='chip-inspector'&&command.method==='setEnvelope');
+    assert(writes.length>0,name+' drag reaches the actual SPU inspector');
+    const allowed=level===undefined?[key]:[key,'sustainLevel'];
+    assert(writes.every(command=>command.channel===23&&command.args[2]?.retrigger===true&&Object.keys(command.args[1]).every(key=>allowed.includes(key))),name+' drag sends only its native fields and the owned-note retrigger option');
+    results.push({handle:name,values:Object.fromEntries(allowed.map(key=>[key,expected[key]])),writes:writes.length});
+  }
+  for(const [name,key,arrow,delta]of [['attack','attackRate','ArrowRight',1],['decay','decayRate','ArrowLeft',-1],['decay','sustainLevel','ArrowUp',1],['sustain','sustainRate','ArrowRight',1],['release','releaseRate','ArrowLeft',-1]]){
+    await handle(name).focus();await page.keyboard.press(arrow);expected[key]+=delta;
+    const state=await applied(page,`state.channels[23].envelopeParameters.${key}===${expected[key]}`,'Keyboard '+name+' '+arrow);assertApplied(state,'Keyboard '+name+' '+arrow);
+  }
+  await page.waitForTimeout(100);const idleFrom=await page.evaluate(()=>__ps1Audit.commands.length);await page.waitForTimeout(300);
+  assert.deepEqual((await commandsSince(page,idleFrom)).filter(command=>command.type==='chip-inspector'),[],'An idle graph neither redraws through audio requests nor polls the SPU');
+  return {drags:results,keyboardSteps:5,plainClickWrites:0,idleInspectorRequests:0,liveMouseEdit:true,focusPreserved:true,reservedBit13Preserved:true,otherVoicesPreserved:true};
 }
 async function checkRetrigger(page){
   console.log('  Latched audition / live levels and owned ADSR retrigger');
@@ -387,7 +446,10 @@ async function screenshots(page,name,execution){
   if(await page.locator('#bottomDock .dock-close').isVisible())await page.locator('#bottomDock .dock-close').click();
   await page.locator(control('waveform')).evaluate(node=>node.scrollIntoView({block:'center'}));
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  const file=path.join(config.screenshots,`${name}-ps1-pcm-desktop.png`);await page.screenshot({path:file});results.push({label:'pcm-desktop',path:file});return results;
+  const file=path.join(config.screenshots,`${name}-ps1-pcm-desktop.png`);await page.screenshot({path:file});results.push({label:'pcm-desktop',path:file});
+  await page.locator(control('envelope-editor')).evaluate(node=>node.scrollIntoView({block:'center'}));
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const envelope=path.join(config.screenshots,`${name}-ps1-envelope-desktop.png`);await page.screenshot({path:envelope});results.push({label:'envelope-desktop',path:envelope});return results;
 }
 async function runCase(browser,name,origin,host,execution){
   const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1600,height:1150}});

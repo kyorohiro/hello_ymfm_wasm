@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createPlaygroundPs1VoicePanel, ps1VoiceCode} from './playground_ps1_voice_panel.js';
+import {ps1EnvelopeGeometry, ps1EnvelopePointPatch} from './playground_ps1_envelope.js';
+import {decodePs1Envelope} from '../js/ps1_parameters.js';
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 class Events {
@@ -10,7 +12,7 @@ class Events {
   async fire(type, extra = {}) {await Promise.all([...this.listeners.get(type) ?? []].map(callback => callback({type, target:this, preventDefault() {}, ...extra}))); await flush();}
 }
 class Element extends Events {
-  constructor(doc, tag) {super(); this.ownerDocument = doc; this.tagName = tag; this.children = []; this.dataset = {}; this.attributes = {}; this.value = ''; this.textContent = ''; this.hidden = false; this.checked = false;}
+  constructor(doc, tag) {super(); this.ownerDocument = doc; this.tagName = tag; this.children = []; this.dataset = {}; this.attributes = {}; this.style = {}; this.value = ''; this.textContent = ''; this.hidden = false; this.checked = false;}
   appendChild(node) {this.children.push(node); node.parentNode = this; return node;}
   replaceChildren(...nodes) {this.children = []; for (const node of nodes) this.appendChild(node);}
   setAttribute(name, value) {this.attributes[name] = String(value);}
@@ -26,6 +28,11 @@ const control = (root, name) => walk(root).find(node => node.dataset.chipControl
 const action = (root, name) => walk(root).find(node => node.dataset.chipAction === `ps1-${name}`);
 const channel = (root, index) => walk(root).find(node => node.dataset.chipChannel === String(index));
 const output = (root, name) => walk(root).find(node => node.dataset.chipOutput === `ps1-${name}`);
+const envelopeHandle = (root, name) => walk(root).find(node => node.dataset.chipEnvelopeHandle === name);
+async function beginEnvelope(root, name, pointerId = 1) {
+  const node = envelopeHandle(root, name), point = {clientX:parseFloat(node.style.left) * 8, clientY:parseFloat(node.style.top) * 1.8, pointerId};
+  await node.fire('pointerdown', {...point, button:0}); return point;
+}
 const state = () => ({
   kind:'ps1', channels:Array.from({length:24}, (_, ch) => ({sample:0, pitch:4096 + ch, volumeLeft:.75, volumeRight:.5, adsr1:0x9234, adsr2:0xe6e8, reverb:ch === 1, gate:ch === 0})),
   samples:[{id:0, decodedFrames:112, byteLength:64, startAddress:4096, rootFrequencyHz:393.75, basePitch:4096, loop:true}],
@@ -39,12 +46,15 @@ function waveformState(channel = 0) {
 }
 function fixture(options = {}) {
   const win = new Events(); win.setTimeout = setTimeout; win.clearTimeout = clearTimeout;
+  const frames = new Map(); let frameId = 0;
+  win.requestAnimationFrame = callback => {frames.set(++frameId, callback); return frameId;}; win.cancelAnimationFrame = id => frames.delete(id);
+  const frame = async () => {const pending = [...frames.values()]; frames.clear(); for (const callback of pending) callback(); await flush();};
   const copied = []; win.navigator = {clipboard:{writeText:async text => copied.push(text)}};
   const doc = new Events(); doc.defaultView = win; doc.activeElement = null; doc.hidden = false; doc.createElement = tag => new Element(doc, tag);
   const root = new Element(doc, 'div'), calls = [], targets = [], errors = [];
   const panel = createPlaygroundPs1VoicePanel({root, invoke:async (...args) => {calls.push(args);}, onKeyboardTargetChange:value => targets.push(value), onError:error => errors.push(error), ...options});
   panel.setConnected(true); panel.update(state());
-  return {root, doc, win, calls, targets, errors, copied, panel};
+  return {root, doc, win, calls, targets, errors, copied, panel, frame};
 }
 async function change(root, name, value) {const node = control(root, name); if (node.type === 'checkbox') node.checked = value; else node.value = String(value); await node.fire('change');}
 
@@ -96,6 +106,104 @@ test('the schematic identifies stopped attack and sustain at the retained core t
     assert.equal(info.includes('stopped at zero'),attackHeld); assert.equal(info.includes('(hold)'),sustainHeld);
   }
   assert.deepEqual(calls,[]); panel.dispose();
+});
+
+test('PS1 graph mappings round-trip every rate code and sustain level, including stopped stages', () => {
+  for (const attackExponential of [false, true]) for (const sustainDecrease of [false, true]) {
+    const values = {...decodePs1Envelope(0xffff,0xffff), attackExponential, sustainDecrease};
+    for (const [id,key,max] of [['attack','attackRate',127],['decay','decayRate',15],['sustain','sustainRate',127],['release','releaseRate',31]]) {
+      for (let rate = 0; rate <= max; rate++) {
+        const value = {...values,[key]:rate}, point = ps1EnvelopeGeometry(value).handles.find(point => point.id === id);
+        assert.deepEqual(ps1EnvelopePointPatch(value,id,point.x,point.y),{[key]:rate,...(id === 'decay' ? {sustainLevel:value.sustainLevel} : {})});
+      }
+      assert.equal(ps1EnvelopePointPatch(values,id,-10000,0)[key],0); assert.equal(ps1EnvelopePointPatch(values,id,10000,0)[key],max);
+    }
+    for (let sustainLevel = 0; sustainLevel < 16; sustainLevel++) {
+      const value = {...values,sustainLevel}, point = ps1EnvelopeGeometry(value).handles[1];
+      assert.equal(ps1EnvelopePointPatch(value,'decay',point.x,point.y).sustainLevel,sustainLevel);
+    }
+  }
+  assert.equal(ps1EnvelopePointPatch({},'attack',NaN,0),null);
+});
+
+test('four graph handles edit native rates and decay level, synchronize fields and honor retrigger', async () => {
+  const {root,calls,panel,frame} = fixture(), canvas = control(root,'envelope');
+  for (const [name,key,max,value,level] of [['attack','attackRate',127,65],['decay','decayRate',15,10,9],['sustain','sustainRate',127,87],['release','releaseRate',31,19]]) {
+    const from = await beginEnvelope(root,name);
+    const point = ps1EnvelopeGeometry({...decodePs1Envelope(0x9234,0xe6e8),...Object.assign({},...calls.map(([,args]) => args[1]))}).handles.find(point => point.id === name);
+    const next = {pointerId:from.pointerId,clientX:point.from+(point.to-point.from)*value/max,clientY:level === undefined ? from.clientY : 148-(level+1)/16*130};
+    await canvas.fire('pointermove',next); assert.equal(calls.length,['attack','decay','sustain','release'].indexOf(name),'No audio command before frame');
+    assert.equal(control(root,key.replace(/[A-Z]/g,value=>'-'+value.toLowerCase())).value,String(value));
+    await frame(); await canvas.fire('pointerup',next);
+    assert.deepEqual(calls.at(-1),['setEnvelope',[0,{[key]:value,...(level === undefined ? {} : {sustainLevel:level})},{retrigger:true}]]);
+  }
+  await change(root,'retrigger',false); const from = await beginEnvelope(root,'attack');
+  await canvas.fire('pointermove',{...from,clientX:10000}); await canvas.fire('pointerup',{...from,clientX:10000});
+  assert.deepEqual(calls.at(-1),['setEnvelope',[0,{attackRate:127},{retrigger:false}]]); panel.dispose();
+});
+
+test('graph edits coalesce events, retain unsent values across snapshots and serialize slow inspector writes', async () => {
+  const sent = [], finish = [];
+  const {root,panel,frame} = fixture({invoke:(...args) => {sent.push(args); return new Promise(resolve => finish.push(resolve));}}), canvas = control(root,'envelope');
+  const from = await beginEnvelope(root,'attack');
+  for (let dx = 1; dx <= 30; dx++) await canvas.fire('pointermove',{...from,clientX:from.clientX+dx});
+  panel.update(state()); assert.notEqual(control(root,'attack-rate').value,'18','Applied readback cannot erase an unsent drag');
+  await frame(); assert.equal(sent.length,1);
+  for (let dx = 31; dx <= 100; dx++) await canvas.fire('pointermove',{...from,clientX:from.clientX+dx});
+  await frame(); await canvas.fire('pointerup',{...from,clientX:from.clientX+100}); assert.equal(sent.length,1,'Only one write is in flight');
+  finish.shift()(); await flush(); await frame(); assert.equal(sent.length,2); assert(sent[1][1][1].attackRate>sent[0][1][1].attackRate);
+  finish.shift()(); await flush(); await frame(); assert.equal(sent.length,2,'A settled graph never polls'); panel.dispose();
+});
+
+test('plain graph clicks, other buttons and foreign pointers never rewrite or quantize ADSR', async () => {
+  const {root,calls,panel,frame} = fixture(), canvas = control(root,'envelope'), handle = envelopeHandle(root,'attack');
+  const from = await beginEnvelope(root,'attack');
+  await canvas.fire('pointermove',{...from,pointerId:2,clientX:600}); await canvas.fire('pointerup',{...from,pointerId:2,clientX:600});
+  await canvas.fire('pointerup',from); await frame(); assert.deepEqual(calls,[]);
+  for (const extra of [{button:2},{isPrimary:false}]) {
+    await handle.fire('pointerdown',{...from,button:0,...extra}); await canvas.fire('pointermove',{...from,clientX:600}); await canvas.fire('pointerup',{...from,clientX:600}); await frame();
+  }
+  assert.deepEqual(calls,[]); panel.dispose();
+});
+
+test('graph cancellation, lifecycle changes and numeric overrides retire pending moves and stale releases', async () => {
+  for (const reason of ['cancel','lost','channel','hide','blur','hidden','disconnect','dispose','raw','numeric']) {
+    const {root,calls,panel,frame,win,doc} = fixture(), canvas = control(root,'envelope'), from = await beginEnvelope(root,'attack');
+    await canvas.fire('pointermove',{...from,clientX:from.clientX+50});
+    if (reason === 'cancel') await canvas.fire('pointercancel',from);
+    else if (reason === 'lost') await canvas.fire('lostpointercapture',from);
+    else if (reason === 'channel') await channel(root,23).fire('click');
+    else if (reason === 'hide') panel.setVisible(false);
+    else if (reason === 'blur') await win.fire('blur');
+    else if (reason === 'hidden') {doc.hidden=true; await doc.fire('visibilitychange');}
+    else if (reason === 'disconnect') panel.setConnected(false);
+    else if (reason === 'dispose') panel.dispose();
+    else await change(root,reason === 'raw' ? 'adsr1' : 'attack-rate',reason === 'raw' ? 15 : 2);
+    const after = calls.length;
+    await canvas.fire('pointerup',{...from,clientX:700}); await frame(); assert.equal(calls.length,after,reason);
+    if (!['raw','numeric'].includes(reason)) assert.deepEqual(calls,[],reason); panel.dispose();
+  }
+});
+
+test('focused graph arrows adjust one field, clamp endpoints and leave other keys alone', async () => {
+  const {root,calls,panel,frame} = fixture(), decay = envelopeHandle(root,'decay');
+  let prevented = 0, stopped = 0; const event = key => ({key,preventDefault:()=>prevented++,stopPropagation:()=>stopped++});
+  await decay.fire('keydown',event('ArrowUp')); await frame(); assert.deepEqual(calls.at(-1)[1][1],{sustainLevel:5});
+  await decay.fire('keydown',event('ArrowRight')); await frame(); assert.deepEqual(calls.at(-1)[1][1],{decayRate:4});
+  for (const extra of [{key:'q'},{key:'ArrowRight',ctrlKey:true},{key:'ArrowRight',metaKey:true},{key:'ArrowRight',altKey:true}]) await decay.fire('keydown',extra);
+  await envelopeHandle(root,'attack').fire('keydown',{key:'ArrowUp'}); await frame(); assert.equal(calls.length,2); assert.equal(prevented,2); assert.equal(stopped,2);
+  const next = state(); next.channels[0].adsr1 = 0x7f0f; panel.update(next);
+  await envelopeHandle(root,'attack').fire('keydown',event('ArrowRight')); await decay.fire('keydown',event('ArrowUp')); await frame(); assert.equal(calls.length,2,'No request for an unchanged clamped value'); panel.dispose();
+});
+
+test('a failed graph write restores the applied envelope and leaves a newer queued value intact', async () => {
+  const rejected = [], {root,panel,frame,errors} = fixture({invoke:() => new Promise((resolve,reject) => rejected.push(reject))});
+  const handle = envelopeHandle(root,'attack'); await handle.fire('keydown',{key:'ArrowRight',stopPropagation(){}}); await frame();
+  assert.equal(control(root,'attack-rate').value,'19'); rejected.shift()(new Error('Rejected edit')); await flush();
+  assert.equal(control(root,'attack-rate').value,'18'); assert.equal(errors.length,1);
+  await handle.fire('keydown',{key:'ArrowRight',stopPropagation(){}}); await frame(); await handle.fire('keydown',{key:'ArrowRight',stopPropagation(){}});
+  rejected.shift()(new Error('First edit failed')); await flush(); assert.equal(control(root,'attack-rate').value,'20');
+  await frame(); rejected.shift()(new Error('Second edit failed')); await flush(); assert.equal(control(root,'attack-rate').value,'18'); panel.dispose();
 });
 
 test('selected voice reverb switch and chip-wide preset/return edits remain separate without triggering notes', async () => {

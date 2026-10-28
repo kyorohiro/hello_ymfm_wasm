@@ -152,7 +152,7 @@ test('all required raw sources match, and corrupted provenance is rejected befor
   assert.equal(PS1_CALIBRATION_REQUIRED_SCRIPTS.length,5);assert.ok(PS1_CALIBRATION_REQUIRED_SOURCES.length>=18);
 });
 
-test('original complete PS1 source inventory remains valid through pinned UI cache-only receipts',async()=>{
+test('original complete PS1 source inventory remains valid through pinned cache-only and exact UI revision receipts',async()=>{
   const path='docs/issues/ps1_chip_levels_01.json',before=await readFile(path,'utf8'),report=JSON.parse(before);
   const originalSources=structuredClone(report.sources);
   await validatePs1MixerCalibrationSources({reportPath:'docs/issues/playground_chip_levels_01.json',ps1Report:report});

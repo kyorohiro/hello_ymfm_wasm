@@ -8,10 +8,12 @@ import {resolve,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildPokeyCalibrationReference,buildPokeyPsgBalanceReference} from './soundchip_calibration_pokey.mjs';
 import {buildFmCalibrationReference} from './soundchip_calibration_fm.mjs';
+import {assertMixerCalibrationSourceFreshness,assertMixerCalibrationPs1AdsrUiFreshness,readMixerCalibrationPs1AdsrUiReceipt,MIXER_CALIBRATION_UI_CACHE_PATHS,MIXER_CALIBRATION_PS1_ADSR_UI_PATHS} from './mixer_calibration_sources.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 export const POKEY_CALIBRATION_BASELINE_PATH='docs/issues/playground_chip_levels_01.json';
 export const POKEY_CALIBRATION_BASELINE_SHA256='9c5129ad176aa4895ff14da345dc0f3ac49588f5255062fa76329b21f28ea234';
+export const POKEY_CALIBRATION_UI_RECEIPT_OBJECT_SHA256='945187a8c493ead6553f6873584d0ca02f11ca4c62e94f412990b38d27d2cd2d';
 const BASELINE_OBJECT_SHA256='50eff6f2cdcd77ab4d41fa43b0afe4a9e4a5d02f5dee06dc67467e3bbeb17c48';
 const TARGET=0.12881777435541153,REFERENCE=0.1494140625,PSG_GAIN=.35;
 const ENGINES=['chromium','webkit'],RATES=[44100,48000],EXECUTIONS=['main','worker'],ROLES=['primary','dual-first','dual-second','extra'],FREQUENCIES=[220,440,880];
@@ -174,9 +176,10 @@ export function validatePokeyMixerCalibration(historical,report){
     listeningReference:{kind:'segapsg',gain:PSG_GAIN,rawAcRms:anchor.acRms},canonical:{engine:'chromium',sampleRate:48000,execution:'main'},baselineSha256:POKEY_CALIBRATION_BASELINE_SHA256}};
 }
 
-/** Every source hash, byte count and runner/reference hash must still match
- * actual files before any generator writes policy. Historical evidence is
- * immutable; generated policy files alone are explicitly excluded.
+/** Every DSP/WASM and runner/reference hash must still match before a generator
+ * writes policy. The two UI files permit only their exact receipt-pinned cache
+ * tokens to change, or the separate exact PS1 ADSR UI revision audit.
+ * Original measurement hashes and evidence stay immutable.
  */
 export async function validatePokeyMixerCalibrationSources({reportPath,pokeyReport}){
   const bytes=await readFile(reportPath);
@@ -186,9 +189,21 @@ export async function validatePokeyMixerCalibrationSources({reportPath,pokeyRepo
     const absolute=resolve(root,path);if(!absolute.startsWith(resolve(root)+sep))fail('script path escapes repository');
     if(sha(await readFile(absolute))!==hash)fail('script source changed; remeasure: '+path);
   }
+  let uiReceipt,measuredReportSha256,uiRevision;
   for(const [path,record]of Object.entries(pokeyReport.sources)){
     const bytes=await readFile(resolve(root,'docs',path));
-    if(bytes.length!==record.bytes||sha(bytes)!==record.sha256)fail('served DSP/WASM source changed; remeasure: '+path);
+    if((bytes.length!==record.bytes||sha(bytes)!==record.sha256)&&MIXER_CALIBRATION_PS1_ADSR_UI_PATHS.includes(path)){
+      uiRevision??=await readMixerCalibrationPs1AdsrUiReceipt(root);
+      measuredReportSha256??=sha(await readFile(resolve(root,'docs/issues/pokey_chip_levels_01.json')));
+      assertMixerCalibrationPs1AdsrUiFreshness({path,bytes,record,report:pokeyReport,reportSha256:measuredReportSha256,...uiRevision});
+      continue;
+    }
+    if((bytes.length!==record.bytes||sha(bytes)!==record.sha256)&&MIXER_CALIBRATION_UI_CACHE_PATHS.includes(path)&&uiReceipt===undefined){
+      uiReceipt=JSON.parse(await readFile(resolve(root,'docs/issues/pokey_chip_levels_ui_receipt_01.json'),'utf8'));
+      measuredReportSha256=sha(await readFile(resolve(root,'docs/issues/pokey_chip_levels_01.json')));
+    }
+    assertMixerCalibrationSourceFreshness({path,bytes,record,report:pokeyReport,reportSha256:measuredReportSha256,
+      receipt:uiReceipt,receiptObjectSha256:POKEY_CALIBRATION_UI_RECEIPT_OBJECT_SHA256});
   }
   return result;
 }
