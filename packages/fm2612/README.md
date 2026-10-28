@@ -542,7 +542,7 @@ for synchronous rendering, as used by the Analyzer.
 ### Optional calibrated preset
 
 `SOUNDCHIP_MIXER_PRESETS.calibrated` combines measured output levels with a
-fixed listening balance for 24 calibrated sources, including WonderSwan and the standalone
+fixed listening balance for 25 calibrated sources, including POKEY, WonderSwan and the standalone
 PS1 instrument. Select it when constructing the
 mixer, then pass that mixer to a browser Worklet endpoint:
 
@@ -617,7 +617,7 @@ support and endpoint options still apply.
 These constants compare a fixed single voice at known levels. They do not
 analyze playing audio or perform automatic normalization, compression, or
 limiting. Timbre and polyphony still affect loudness and headroom. Sources
-outside the 24 calibrated kinds keep their legacy defaults. The preset supplies
+outside the 25 calibrated kinds keep their legacy defaults. The preset supplies
 standalone chip defaults rather than every machine-specific route or mode
 preset. MegaSynth's built-in Genesis FM/PSG sources also support its source
 units; separate endpoint and master gains still apply.
@@ -715,7 +715,11 @@ phase, register state and lifetimes.
 Raw PCM retains the positive mono DAC output at `/32768`, duplicated into left
 and right, without Mixer gain or DC correction. The generic Worklet uses the
 `PokeyAudioEngine` speaker adapter, including its documented 10 Hz DC blocker;
-raw PCM remains unchanged. Source Mixer defaults stay at `1.0` until calibrated.
+raw PCM remains unchanged. Generic source Mixer defaults remain `1.0`.
+The optional `SOUNDCHIP_MIXER_PRESETS.calibrated` matches a held pure-square
+voice's AC RMS to the current Sega PSG listening balance. Playground System
+uses separately measured single-chip, additional-chip and two-chip routes.
+Saved common and per-ID settings replace those fallbacks absolutely.
 The generic endpoint's separate output gain defaults to `0.25`, as with the
 other generic endpoints. No automatic half gain or invented hardware stereo is
 applied to dual POKEY.

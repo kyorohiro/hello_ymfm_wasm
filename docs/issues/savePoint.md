@@ -1,3 +1,13 @@
+## 2026-10-29 — POKEYの単体／追加／DualのMixer基準を実測、System／任意npm presetは25種類へ
+
+- POKEYを未測定unity `1.0`から、単体・追加・Dual 1台目 **`0.413033`**、Dual 2台目 **`0.413034`**へ変更。distortion 5／volume 15の保持squareを使用し、現在のGenesis Sega PSGの実測AC RMS `0.19981240874842915 × 0.35`＝`0.06993434306195019`へ合わせた。2台構成も各chipへ個別適用し、合計から半分にする補正は追加しない。Mixerの表示は丸めた41%。保存済みの絶対値は優先するため、比較時は**System**を選ぶ。
+- Chromium／WebKit × 44.1／48 kHz × Main／Worker × primary／extra／dual-first／dual-second × 220／440／880 Hzの96 POKEY、8 FM・8 Sega PSG対照、8 Dualケース（左右split＋center sum）が成功。反映後も同じ全条件を新規測定。raw／verifyは各248 captures／14,023,680 frames、独立pilotは全sample連続、全Stopはexact zero。verifyの最大相対誤差はpeak 0.008457%、RMS 0.006655%、Dual予測 0.033344%。rawのclock診断2件は保持し、verifyは0件。初回は測定コードがWorkerの非同期`mixer.get()`を待たず停止したため、awaitを修正して全条件を取り直した。DSPの修正ではない。
+- 固定SDK raw core＋独立C++ 10 Hz speaker oracleと、実WASM＋既存speaker Workletを比較。24条件とDual独立性の5,397,360 Float32比較で差0。実Tauri bridgeも手元では別途同数を比較して差0、出典hashを保持した。必須試験は隣接Tauri repoに依存せず、clean checkout相当の28 reference testsも成功。Browser測定は物理出力muteであり、実聴・実機のアナログ出力・device deadlineの保証ではない。
+- 既存153測定、PS1、WonderSwanのraw SHAを保持。実生成物の28 modesをgit HEADと比較し、POKEY以外のfactory値が不変と確認。汎用Mixerのunity、raw PCM、core／WASM／既存10 Hz blocker、初期コードの音色・音量は変更なし。cacheは`pokey-mixer-calibration-1`。旧UI cacheの2つの既知import値だけを許可するWonderSwan receiptを追加し、原report／元source／receipt objectのhashを照合する。
+- 関連Node **456件成功・skip 0**、両generator再現・原source 293 assetsのfreshness・actionlintが成功。installed npmは1,004 files／1,097 refs／28 WASM engines／385 declarations、NodeNext・Bundler・Browser型も成功。npm cacheへのsandbox EPERMは同じ検証の権限付き`--skip-build`再実行で成功し、所有権変更なし。任意の`calibrated`を25種類へ拡張し、共通値／ID別値の絶対置換と繰り返しrestoreを検証した。
+- Playground両ZIPを新規生成・CRC成功。実Run ZIPは37,403,840 bytes／931 files、SHA256 `e9cad9c3cffa0255a9372bc3674832fd6157d7a1d795cc896d080ce8691b22af`。その実体でChromium／WebKit × Main／Worker × 単体／Dualの8条件成功。公開MixerのSystem値、unityとのPCM比、System復元、左右分離、Stop／Rerun、VFS／Shell、実Workerを確認。ZIP checkerには独立pilotはなく、raw／verifyの連続性証明をZIPへ流用しない。
+- 詳細：[pokey_chip_levels_01.md](pokey_chip_levels_01.md)、[raw](pokey_chip_levels_01.json)／[verify](pokey_chip_levels_verify_01.json)／[offline](pokey_chip_levels_offline_01.json)／[実ZIP](pokey_chip_levels_zip_01.json)。itch web CIへunit・自己完結offline・全条件verify・実ZIP試験を追加し、timeoutを60分へ拡張。今回のremote CIは未実行。**未commit／未push／未公開**、npm 0.2.32／SDK 0.1.6 local candidate据え置き。開始時HEADはユーザーcommit `abe7e6e1`。次はSystemでの実聴とcommit／push後のremote CI確認。以下は各時点の履歴。
+
 ## 2026-10-29 — WonderSwanのMixer基準を実測、System／任意npm presetは24種類へ
 
 - WonderSwanの主音源／追加音源を**`1.0 → 1.172528`**へ変更（約17.25%増）。32点4bitの自作sine、CH0 volume15/15、全DAC範囲を用いるためheadroom1。既存speaker境界のDC除去後を測り、raw DAC／音声core／通常の9/9音色／endpointの別倍率.25を変更しない。153測定とPS1 .128832を含む既存倍率・共通目標値を保持。保存値は絶対優先、試す場合はMixerのSystemを選ぶ。

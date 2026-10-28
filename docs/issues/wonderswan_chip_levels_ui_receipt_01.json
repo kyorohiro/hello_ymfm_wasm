@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "scope": "ui-import-cache-token-only",
+  "report": {
+    "path": "docs/issues/wonderswan_chip_levels_01.json",
+    "sha256": "71d86d014e359c01f4158beefa06301036c5c9eda39215e5b907d569381fdcd0",
+    "objectSha256": "66c3234d4fc02b14fd386f7e1f21e152c47e798ce9e37c6fff63be3a8ebfd491"
+  },
+  "sources": {
+    "playground/playground.js": {
+      "bytes": 124845,
+      "sha256": "85023b445e7eb67f572e3edd5ee2b9bad9688ba6ecfdaad7c76c8de4b556a7ff",
+      "normalizer": "playground-generated-mixer-import-v1",
+      "canonicalSha256": "cd203c81314d6d591cd8b35dc49f82292be217f0d2b2583996781ee901293221"
+    },
+    "playground/index.html": {
+      "bytes": 131500,
+      "sha256": "103b2dfa255b6534a54e51ee3aac9ccc20ac7f5c8fa0d8b8a666aba5a6b2b1d6",
+      "normalizer": "playground-page-entry-import-v1",
+      "canonicalSha256": "5468b2f13a1a1f5fdd360551fa5f041342ecc294a9f2ba69f6d9e3fb3361f172"
+    }
+  }
+}

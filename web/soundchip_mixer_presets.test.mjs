@@ -27,16 +27,19 @@ test('calibrated export combines measured kinds and shared listening levels with
   assert.ok(Number.isFinite(ps1?.volume) && ps1.volume > 0 && ps1.volume <= 2, 'PS1 has a measured Mixer fallback');
   const wonderswan = preset.factoryDefaults.kinds.find(record => record.name === 'wonderswan');
   assert.ok(Number.isFinite(wonderswan?.volume) && wonderswan.volume > 0 && wonderswan.volume <= 2, 'WonderSwan has a measured Mixer fallback');
+  const pokey = preset.factoryDefaults.kinds.find(record => record.name === 'pokey');
+  assert.ok(Number.isFinite(pokey?.volume) && pokey.volume > 0 && pokey.volume <= 2, 'POKEY has a measured Mixer fallback');
   const factoryDefaults = {version: 1, kinds: measured.factoryDefaults.kinds.map(record =>
     ({...record, ...(Object.hasOwn(listeningLevels, record.name) ? {volume: listeningLevels[record.name]} : {})}))};
   factoryDefaults.kinds.push({...ps1});
   factoryDefaults.kinds.push({...wonderswan});
+  factoryDefaults.kinds.push({...pokey});
   assert.deepEqual(preset, {gainUnits:'source',factoryDefaults, factoryEngines: measured.factoryEngines});
-  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set([...PLAYGROUND_CALIBRATION_KINDS, 'ps1', 'wonderswan']));
-  assert.equal(preset.factoryDefaults.kinds.length, 24);
+  assert.deepEqual(new Set(preset.factoryDefaults.kinds.map(record => record.name)), new Set([...PLAYGROUND_CALIBRATION_KINDS, 'ps1', 'wonderswan', 'pokey']));
+  assert.equal(preset.factoryDefaults.kinds.length, 25);
   assert.deepEqual(preset.factoryEngines.engines, [{name: 'ym2612', engine: 'nuked', volume: 0.493869}]);
   assert.equal(Object.hasOwn(preset, 'factoryEntries'), false);
-  const changed = preset.factoryDefaults.kinds.filter(record => !['ps1','wonderswan'].includes(record.name) && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
+  const changed = preset.factoryDefaults.kinds.filter(record => !['ps1','wonderswan','pokey'].includes(record.name) && record.volume !== measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
   assert.deepEqual(new Set(changed.map(record => record.name)), new Set(Object.keys(listeningLevels)));
   for (const record of changed) assert.ok(record.volume < measured.factoryDefaults.kinds.find(before => before.name === record.name).volume);
 });
@@ -194,6 +197,23 @@ test('WonderSwan source calibration applies once and authored gains remain absol
   assert.equal(new SoundChipMixer(preset).getKindDefault('wonderswan').volume,volume);
   for(let i=0;i<3;i++)mixer.restoreState(state([]),kinds([]));
   assert.deepEqual(applied,{wonderswan:[volume,volume],'ws:2':[volume,volume]});
+});
+
+test('dual POKEY applies calibration per chip and preserves absolute common, per-ID and pan settings', () => {
+  const volume=preset.factoryDefaults.kinds.find(record=>record.name==='pokey').volume;
+  const mixer=new SoundChipMixer(preset),applied={};
+  for(const id of ['pokey','pokey:2'])mixer.register(id,'pokey',settings=>{applied[id]=chipMixGains(settings);});
+  assert.deepEqual(applied,{pokey:[volume,volume],'pokey:2':[volume,volume]},'no dual-chip half gain');
+  assert.deepEqual(mixer.exportState(),state([]));
+  assert.deepEqual(soundChipMixDefaults('pokey'),{volume:1,pan:0,muted:false});
+  mixer.setKindDefault('pokey',{volume:.6});
+  assert.deepEqual(applied,{pokey:[.6,.6],'pokey:2':[.6,.6]});
+  mixer.set('pokey',{pan:-1});mixer.set('pokey:2',{volume:.8,pan:1});
+  const saved=mixer.exportState(),defaults=mixer.exportDefaults();
+  for(let i=0;i<3;i++)mixer.restoreState(saved,defaults);
+  assert.deepEqual(applied,{pokey:[.6,0],'pokey:2':[0,.8]});
+  mixer.restoreState(state([]),kinds([]));
+  assert.deepEqual(applied,{pokey:[volume,volume],'pokey:2':[volume,volume]});
 });
 
 test('unmeasured chip names and engines retain existing fallbacks rather than borrowing another calibration', () => {

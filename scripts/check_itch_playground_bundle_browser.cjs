@@ -10,7 +10,7 @@ const {execFileSync}=require('node:child_process');
 const {createHash}=require('node:crypto');
 const {chromium,webkit}=require('playwright');
 const args=process.argv.slice(2),option=name=>args.find(arg=>arg.startsWith(`--${name}=`))?.slice(name.length+3);
-const help='Usage: node scripts/check_itch_playground_bundle_browser.cjs (--root=STAGE | --zip=ARCHIVE) [--out=REPORT] [--images=DIR] [--chromium|--webkit] [--modes=genesis,mega-cd,gameboy,nes,wonderswan]';
+const help='Usage: node scripts/check_itch_playground_bundle_browser.cjs (--root=STAGE | --zip=ARCHIVE) [--out=REPORT] [--images=DIR] [--chromium|--webkit] [--modes=genesis,mega-cd,gameboy,nes,wonderswan,pokey,pokey-dual]';
 if(args.includes('--help')){console.log(help);process.exit(0);}
 for(const arg of args)assert(['--chromium','--webkit'].includes(arg)||/^--(?:root|zip|out|images|modes)=/.test(arg),help);
 assert(!!option('root')!==!!option('zip'),help);
@@ -18,7 +18,12 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const out=path.resolve(option('out')??'/private/tmp/itch-playground-bundle-browser.json');
 const images=path.resolve(option('images')??'/private/tmp/itch-playground-bundle-browser-images');
 const modes=(option('modes')??'genesis,mega-cd,gameboy,nes,wonderswan').split(',');
-assert(modes.every(mode=>['genesis','mega-cd','gameboy','nes','wonderswan'].includes(mode)),'Unknown mode');
+assert(modes.length&&new Set(modes).size===modes.length&&modes.every(mode=>['genesis','mega-cd','gameboy','nes','wonderswan','pokey','pokey-dual'].includes(mode)),'Unknown or repeated mode');
+// Read-only numerical expectations, never a Browser runtime asset fallback.
+let pokeyCalibration=null;
+function pokeyRoutes(mode){return (mode==='pokey'?['primary']:['dual-first','dual-second']).map(role=>{
+ const route=pokeyCalibration?.calibration.routes.find(route=>route.role===role);assert(route&&route.mode===mode&&Number.isFinite(route.volume)&&route.volume>0&&route.volume<=2,'Measured POKEY System source gain');return route;
+});}
 const browsers=args.includes('--chromium')?[['chromium',chromium]]:args.includes('--webkit')?[['webkit',webkit]]:[['chromium',chromium],['webkit',webkit]];
 const nested='/html/9876543/playground';
 const captureSource=`class BundleCapture extends AudioWorkletProcessor{
@@ -123,6 +128,18 @@ function sourceFor(mode,token){
  if(mode==='gameboy')return `${fileProbe}gameboy.pulse.setVoice(0,{duty:.25,volume:8,envelope:{direction:'down',period:0}});gameboy.pulse.noteOn(0,'A4');${marker}${hold}`;
  if(mode==='nes')return `${fileProbe}nes.pulse.setVoice(0,{duty:.25,volume:8});nes.pulse.noteOn(0,'A4');${marker}${hold}`;
  if(mode==='wonderswan')return `${fileProbe}ws.setWaveform(0,Array.from({length:32},(_,i)=>Math.round(7.5+7.5*Math.sin(2*Math.PI*i/32))));ws.setVolume(0,10,10);ws.noteOn(0,'A4');${marker}${hold}`;
+ if(mode==='pokey'||mode==='pokey-dual'){
+  const entries=pokeyRoutes(mode).map((route,index)=>`{source:${index?'pokey2':'pokey'},id:${JSON.stringify(route.name)},expectedGain:${route.volume},frequency:${index?880:440},pan:${mode==='pokey-dual'?(index?1:-1):0}}`).join(',');
+  return `${fileProbe}
+const settings=[];
+for(const {source,id,expectedGain,frequency,pan} of [${entries}]){
+ const initial=await mixer.get(id);if(initial.volume!==expectedGain||initial.pan!==0||initial.muted)throw Error('Incorrect System POKEY Mixer defaults: '+id+' '+JSON.stringify(initial));settings.push({id,...initial});
+ await source.initialize();await source.allNotesOff();await source.setHighClock(0,true);await source.setJoined(0,true);await source.setDistortion(1,5);await source.setVolumeOnly(1,false);await source.setVolume(1,15);await source.setFrequency(1,frequency);await source.writeRegister(9,0);await source.keyOn(1);
+ await mixer.set(id,{pan});
+}
+console.log('__BUNDLE_MIXER_SYSTEM__${token}'+JSON.stringify(settings));
+${marker}${hold}`;
+ }
  return `${fileProbe}
 const pcm=await useSoundChip('rf5c164');
 const samples=Float32Array.from({length:32768},(_,i)=>.4*Math.sin(2*Math.PI*330*i/32768));
@@ -155,7 +172,8 @@ async function capture(page){
   const left=data.left.subarray(1024),right=data.right.subarray(1024),frequencies=[220,330,440,660,880];let peak=0,sum=0;
   for(const ch of[left,right])for(const value of ch){if(!Number.isFinite(value))throw Error('Nonfinite PCM');peak=Math.max(peak,Math.abs(value));sum+=value*value;}
   const spectrum=ch=>frequencies.map(hz=>{let s=0,c=0;for(let i=0;i<ch.length;i++){const p=2*Math.PI*hz*i/context.sampleRate;s+=ch[i]*Math.sin(p);c+=ch[i]*Math.cos(p);}return 2*Math.hypot(s,c)/ch.length;});
-  return {sampleRate:context.sampleRate,frames:left.length,peak,rms:Math.sqrt(sum/left.length/2),frequencies,left:spectrum(left),right:spectrum(right)};
+  const channelStats=[left,right].map(ch=>{let sum=0,squares=0,peak=0;for(const value of ch){sum+=value;squares+=value*value;peak=Math.max(peak,Math.abs(value));}const dc=sum/ch.length,rms=Math.sqrt(squares/ch.length);return{dc,rms,acRms:Math.sqrt(Math.max(0,rms*rms-dc*dc)),peak};});
+  return {sampleRate:context.sampleRate,frames:left.length,peak,rms:Math.sqrt(sum/left.length/2),channelStats,frequencies,left:spectrum(left),right:spectrum(right)};
  });
 }
 async function stop(page){
@@ -163,6 +181,30 @@ async function stop(page){
  await page.waitForFunction(()=>!document.getElementById('runButton').disabled);
  await page.waitForTimeout(250);
  const pcm=await capture(page);assert.equal(pcm.peak,0,'Global Stop produces exact zero PCM');return pcm;
+}
+async function checkPokeySystemMixer(page,mode,playing,token){
+ const routes=pokeyRoutes(mode),ids=routes.map(route=>route.name),expectedGains=routes.map(route=>route.volume);
+ await waitLog(page,'__BUNDLE_MIXER_SYSTEM__'+token);
+ await page.locator('#mixerTab').click();
+ const preset=page.getByRole('combobox',{name:'Mixer preset'}),system='/sys/mixer/default.json';
+ const volumeFor=id=>page.locator(`#mixerPanel .playground-mixer-strip[data-chip-id="${id}"] input[data-setting="volume"]`);
+ const panFor=id=>page.locator(`#mixerPanel .playground-mixer-strip[data-chip-id="${id}"] input[data-setting="pan"]`);
+ for(let index=0;index<ids.length;index++)assert.equal(await volumeFor(ids[index]).inputValue(),String(Math.round(expectedGains[index]*100)),'Public Mixer displays the generated POKEY System gain');
+ const input=async(locator,value)=>locator.evaluate((element,value)=>{element.value=String(value);element.dispatchEvent(new Event('input',{bubbles:true}));},value);
+ for(const id of ids)await input(volumeFor(id),100);
+ await page.waitForTimeout(150);const unity=await capture(page);
+ const gainRelativeErrors=routes.map((route,index)=>{const channel=mode==='pokey-dual'?index:0;return Math.abs(playing.channelStats[channel].acRms/unity.channelStats[channel].acRms/route.volume-1);});
+ assert(gainRelativeErrors.every(error=>error<.025),'Packaged POKEY source gain applies exactly once through actual PCM');
+ await preset.selectOption(system);
+ for(let index=0;index<ids.length;index++)assert.equal(await volumeFor(ids[index]).inputValue(),String(Math.round(expectedGains[index]*100)),'Selecting System restores each POKEY chip gain');
+ // The System preset also restores pan. Repeat the same public pan controls
+ // used by this test's user code to compare the restored output directly.
+ if(mode==='pokey-dual'){await input(panFor(ids[0]),-100);await input(panFor(ids[1]),100);}
+ await page.waitForTimeout(150);const restored=await capture(page);
+ const restoreRmsRelativeErrors=routes.map((route,index)=>{const channel=mode==='pokey-dual'?index:0;return Math.abs(restored.channelStats[channel].acRms/playing.channelStats[channel].acRms-1);});
+ assert(restoreRmsRelativeErrors.every(error=>error<.025),'Public System selection restores the measured POKEY output');
+ await preset.selectOption(system);
+ return {ids,expectedGains,unity,gainRelativeErrors,restored,restoreRmsRelativeErrors,privateProductionHooks:false};
 }
 async function runCase(browser,typeName,origin,mode,execution,sequence){
  const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1440,height:1000}}),page=await context.newPage();
@@ -182,6 +224,11 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
   assert(result.playing.rms>.0002&&result.playing.peak<1,'Actual finite audible PCM');
   if(mode==='genesis'||mode==='mega-cd'){
    assert(result.playing.left[0]>.001,'YM2612 sine contribution');assert(result.playing.left[2]>.001,'Sega PSG contribution');
+  }
+  if(mode==='pokey'||mode==='pokey-dual'){
+   assert(result.playing.left[2]>.001,'POKEY1 actual440Hz square contribution');
+   if(mode==='pokey-dual')assert(result.playing.right[4]>.001&&result.playing.right[2]<result.playing.left[2]*.15&&result.playing.left[4]<result.playing.right[4]*.15,'Independent POKEY2 actual880Hz square contribution and stereo separation');
+   result.mixerSystem=await checkPokeySystemMixer(page,mode,result.playing,token);
   }
   if(mode==='mega-cd'){
    assert(result.playing.left[1]>.001,'RF5C164 contribution');assert(result.playing.left[3]>.001&&result.playing.right[4]>.001,'Independent CDDA stereo contribution');
@@ -219,6 +266,12 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
  finally{Object.assign(result,{seconds:(Date.now()-started)/1000,errors,failed,bad,consoleErrors});await context.close();}
 }
 (async()=>{
+ let calibrationExpectation=null;
+ if(modes.some(mode=>mode==='pokey'||mode==='pokey-dual')){
+  const file=path.resolve(__dirname,'../docs/issues/pokey_chip_levels_01.json'),bytes=await fs.readFile(file);pokeyCalibration=JSON.parse(bytes);
+  assert(pokeyCalibration.passed&&pokeyCalibration.completeCoverage&&!pokeyCalibration.verify,'Complete POKEY calibration expected values');
+  calibrationExpectation={path:'docs/issues/pokey_chip_levels_01.json',sha256:sha(bytes),measurementMetric:pokeyCalibration.calibration.measurementMetric};
+ }
  const artifact=await unpack();await fs.access(path.join(artifact.root,'index.html'));await fs.mkdir(images,{recursive:true});
  let bundle=null;
  try{bundle=JSON.parse(await fs.readFile(path.join(artifact.root,'sources/browser-bundle.json'),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
@@ -229,7 +282,7 @@ async function runCase(browser,typeName,origin,mode,execution,sequence){
   const bytes=await fs.readFile(path.join(artifact.root,bundle.entry.path));assert.equal(sha(bytes),bundle.entry.sha256);assert.equal(bytes.length,bundle.entry.bytes);
   for(const removed of bundle.removed){try{await fs.access(path.join(artifact.root,removed));throw Error('Removed module still present: '+removed);}catch(error){if(error.code!=='ENOENT')throw error;}}
  }
- const served=new Map(),requested=new Set(),report={artifact,bundle:bundle?{entry:bundle.entry,removedModules:bundle.removed.length}:null,physicalOutputMuted:true,privateProductionHooks:false,repositoryFallback:false,cases:[]};
+ const served=new Map(),requested=new Set(),report={artifact,bundle:bundle?{entry:bundle.entry,removedModules:bundle.removed.length}:null,calibrationExpectation,physicalOutputMuted:true,privateProductionHooks:false,repositoryFallback:false,cases:[]};
  const server=http.createServer(async(req,res)=>{
   try{
    let pathname=decodeURIComponent(new URL(req.url,'http://local').pathname);

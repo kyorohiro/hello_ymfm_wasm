@@ -21,7 +21,7 @@ jobs:
   itch-web:
     name: Package and verify the three web applications
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -61,6 +61,11 @@ jobs:
           node --test scripts/soundchip_calibration_ps1.test.mjs scripts/ps1_mixer_calibration.test.mjs scripts/soundchip_calibration_wonderswan.test.mjs scripts/wonderswan_mixer_calibration.test.mjs scripts/mixer_calibration_sources.test.mjs scripts/generate_playground_mixer_defaults.test.mjs scripts/generate_soundchip_mixer_presets.test.mjs web/soundchip_mixer.test.mjs web/soundchip_mixer_presets.test.mjs docs/playground/playground_mixer_state.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer-tests.log"
           node scripts/calibrate_ps1_levels.cjs --verify --baseline docs/issues/ps1_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/ps1-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-mixer.log"
           node scripts/calibrate_wonderswan_levels.cjs --verify --baseline docs/issues/wonderswan_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/wonderswan-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/wonderswan-mixer.log"
+      - name: Verify POKEY square-family reference, dual chips and generated Mixer defaults
+        run: |
+          node --test scripts/soundchip_calibration_pokey.test.mjs scripts/pokey_mixer_calibration.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-tests.log"
+          node scripts/check_pokey_calibration_offline.mjs --out "$RUNNER_TEMP/itch-web/pokey-mixer-offline.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer-offline.log"
+          node scripts/calibrate_pokey_levels.cjs --verify --baseline docs/issues/pokey_chip_levels_01.json --out "$RUNNER_TEMP/itch-web/pokey-mixer.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-mixer.log"
       - name: Distinguish renderer clock observations from captured PCM loss
         run: node scripts/check_audio_clock_browser.cjs --out "$RUNNER_TEMP/itch-web/audio-clock.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/audio-clock.log"
       - name: Test standalone PS1 SPU in browser and worker
@@ -90,6 +95,14 @@ jobs:
             --out="$RUNNER_TEMP/itch-web/playground-browser.json" \
             --images="$RUNNER_TEMP/itch-web/images" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/playground-browser.log"
+      - name: Test packaged POKEY System gains, dual chips, Worker and Stop in Chromium and WebKit
+        run: |
+          node scripts/check_itch_playground_bundle_browser.cjs \
+            --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
+            --modes=pokey,pokey-dual \
+            --out="$RUNNER_TEMP/itch-web/pokey-packaged-browser.json" \
+            --images="$RUNNER_TEMP/itch-web/pokey-packaged-images" \
+            2>&1 | tee "$RUNNER_TEMP/itch-web/logs/pokey-packaged-browser.log"
       - name: Test Game Boy sample editing and converted preview in Chromium and WebKit
         run: |
           node scripts/check_gameboy_sample_editor_browser.cjs --webkit --host \

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createWonderSwanMixerCalibrationFixture} from '../test/helpers/wonderswan_mixer_calibration_fixture.mjs';
-import {WONDERSWAN_CALIBRATION_REQUIRED_SOURCES,WONDERSWAN_CALIBRATION_REQUIRED_SCRIPTS,validateWonderSwanMixerCalibration,validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
+import {WONDERSWAN_CALIBRATION_REQUIRED_SOURCES,WONDERSWAN_CALIBRATION_REQUIRED_SCRIPTS,WONDERSWAN_CALIBRATION_REPORT_SHA256,WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256,validateWonderSwanMixerCalibration,validateWonderSwanMixerCalibrationSources} from './wonderswan_mixer_calibration.mjs';
+import {assertMixerCalibrationSourceFreshness,mixerCalibrationReceiptObjectSha256,MIXER_CALIBRATION_UI_CACHE_PATHS} from './mixer_calibration_sources.mjs';
 
 const fixture=await createWonderSwanMixerCalibrationFixture();
 const copy=()=>structuredClone(fixture),zeroSha='0'.repeat(64);
@@ -114,7 +116,7 @@ test('all raw source hashes are fresh, including all required provenance',async 
   await validateWonderSwanMixerCalibrationSources({reportPath:historicalPath,wsReport:fixture.wsReport});
   for(const path of ['generated/wonderswan_wasm.wasm','js/playground_wonderswan_worklet.js','playground/playground.js'])await t.test('changed '+path,async()=>{
     const {wsReport}=copy();wsReport.sources[path].sha256=zeroSha;
-    await assert.rejects(validateWonderSwanMixerCalibrationSources({reportPath:historicalPath,wsReport}),/served DSP\/WASM source changed/);
+    await assert.rejects(validateWonderSwanMixerCalibrationSources({reportPath:historicalPath,wsReport}),/served DSP\/WASM source changed|Invalid Mixer calibration source receipt/);
   });
   for(const path of ['scripts/audio_clock_audit.cjs','scripts/soundchip_calibration_wonderswan.mjs'])await t.test('changed '+path,async()=>{
     const {wsReport}=copy();wsReport.scripts[path]=zeroSha;
@@ -130,4 +132,35 @@ test('all raw source hashes are fresh, including all required provenance',async 
     await assert.rejects(validateWonderSwanMixerCalibrationSources({reportPath,wsReport:fixture.wsReport}),/raw SHA changed/);
   });
   assert.equal(WONDERSWAN_CALIBRATION_REQUIRED_SCRIPTS.length,5);assert.ok(WONDERSWAN_CALIBRATION_REQUIRED_SOURCES.length>=24);
+});
+
+test('original complete WonderSwan source inventory remains valid through pinned UI cache-only receipts',async()=>{
+  const path='docs/issues/wonderswan_chip_levels_01.json',before=await readFile(path),report=JSON.parse(before);
+  const originalSources=structuredClone(report.sources);
+  assert.equal(createHash('sha256').update(before).digest('hex'),WONDERSWAN_CALIBRATION_REPORT_SHA256);
+  await validateWonderSwanMixerCalibrationSources({reportPath:historicalPath,wsReport:report});
+  assert.deepEqual(report.sources,originalSources,'all 292 historical raw hashes remain original evidence');
+  assert.equal(Object.keys(report.sources).length,292);
+  assert.deepEqual(await readFile(path),before,'freshness checks do not rewrite measurement evidence');
+});
+
+test('WonderSwan receipt authorizes only two known UI cache tokens under the pinned original report',async t=>{
+  const report=JSON.parse(await readFile('docs/issues/wonderswan_chip_levels_01.json','utf8'));
+  const receipt=JSON.parse(await readFile('docs/issues/wonderswan_chip_levels_ui_receipt_01.json','utf8'));
+  assert.equal(mixerCalibrationReceiptObjectSha256(receipt),WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256);
+  assert.equal(receipt.report.path,'docs/issues/wonderswan_chip_levels_01.json');
+  assert.equal(receipt.report.sha256,WONDERSWAN_CALIBRATION_REPORT_SHA256);
+  for(const path of MIXER_CALIBRATION_UI_CACHE_PATHS)await t.test(path,async()=>{
+    const source=await readFile('docs/'+path,'utf8');
+    const bytes=Buffer.from(source.replace(/(playground(?:_mixer_defaults)?\.js\?v=)[A-Za-z0-9._+-]+/,'$1receipt-freshness-test'));
+    const options={path,bytes,record:report.sources[path],report,reportSha256:WONDERSWAN_CALIBRATION_REPORT_SHA256,
+      receipt,receiptObjectSha256:WONDERSWAN_CALIBRATION_UI_RECEIPT_OBJECT_SHA256};
+    assert.equal(assertMixerCalibrationSourceFreshness(options),'ui-cache-token');
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,bytes:Buffer.concat([bytes,Buffer.from('\n')])}),/served DSP\/WASM source changed/);
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,reportSha256:zeroSha}),/receipt report identity or scope mismatch/);
+    const edited=structuredClone(receipt);edited.sources[path].canonicalSha256=zeroSha;
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,receipt:edited}),/independently pinned SHA/);
+    const editedReport=structuredClone(report);editedReport.sources[path].sha256=zeroSha;
+    assert.throws(()=>assertMixerCalibrationSourceFreshness({...options,report:editedReport}),/receipt report identity or scope mismatch/);
+  });
 });
