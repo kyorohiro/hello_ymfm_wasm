@@ -38,7 +38,7 @@ import {prepareVgmImport, exportGameboyVgm, exportNesVgm, exportRf5c164Vgm, addV
 import {exportWonderSwanVgm} from './wonderswan_vgm_import.js?v=wonderswan-import-3';
 import {exportPokeyVgm} from './pokey_vgm_import.js?v=pokey-import-1';
 import {installPlaygroundPageLifecycle} from "./playground_page_lifecycle.js";
-import {createPlaygroundAudioInput} from './playground_audio_input.js?v=y8950-adpcm-ui-1';
+import {createPlaygroundAudioInput} from './playground_audio_input.js?v=gameboy-sample-preview-1';
 import {createNativeSampleEditorAudio} from '../js/playground_native_sample_editor.js?v=y8950-adpcm-ui-1';
 import {createPlaygroundSampleAssets, DEFAULT_SAMPLE_ASSET} from './playground_sample_assets.js?v=audio-numeric-bindings-1';
 import {createFXMonitor} from './playground_fx_monitor.js?v=vertical-range-1';

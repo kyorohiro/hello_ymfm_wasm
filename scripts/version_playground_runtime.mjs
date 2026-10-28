@@ -79,7 +79,7 @@ const megaCdFiles=new Set(['ym2612.js','segapsg.js','playground_runtime.js','pla
   'playground_opn_worklet.js','playground_ym2608_worklet.js',
   'tetorica_audio_runtime.js',
   'playground_rf5c164.js','rf5c164-worklet.js','playground_keyboard.js',
-  'playground_sample_edit.js','playground_sample_instrument.js','playground_performance_sender.js',
+  'playground_sample_edit.js','playground_sample_gameboy_preview.js','playground_sample_instrument.js','playground_performance_sender.js',
   'playground_chip_inspector_state.js','playground_native_voice_inspector.js',
   'playground_gameboy_worklet.js','playground_nes_worklet.js','playground_performance_processor.js',
   'playground_dx7.js','playground_dx7_audio.js','playground_dx7_worklet.js','playground_dx7_inspector.js',
@@ -323,10 +323,14 @@ const cdrom2PanelFiles=new Set(['playground_cdrom2_audio_panels.js','playground_
 // Audio processors and the shared CD-DA endpoint retain their existing versions.
 const megaCdCddaFiles=new Set(['playground.js','playground_mode.js',
   'playground_mode_examples.js','playground_examples.js','playground_mode_starters.js']);
-const revisionFor=name=>megaCdCddaFiles.has(name)?'mega-cd-cdda-1':cdrom2PanelFiles.has(name)?'cdrom2-panels-1':pcEngineCdFiles.has(name)?'pcengine-cd-1':cddaFiles.has(name)?'cdda-pcm-1':pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
+// The editor, its Worker protocol and the comparison helper ship together.
+const gameboySampleFiles=new Set(['playground.js','playground_audio_input.js',
+  'playground_sample_editor_worker.js','playground_sample_editor.css','playground_sample_gameboy_preview.js']);
+const revisionFor=name=>gameboySampleFiles.has(name)?'gameboy-sample-preview-1':megaCdCddaFiles.has(name)?'mega-cd-cdda-1':cdrom2PanelFiles.has(name)?'cdrom2-panels-1':pcEngineCdFiles.has(name)?'pcengine-cd-1':cddaFiles.has(name)?'cdda-pcm-1':pokeyVoiceFiles.has(name)?pokeyVoiceVersion:pokeyPrepareFiles.has(name)?pokeyPrepareVersion:pokeyImportFiles.has(name)?'pokey-import-1':pokeyFiles.has(name)?pokeyVersion:wonderswanImportFiles.has(name)?'wonderswan-import-3':vgmFiles.has(name)?vgmVersion:wonderswanFiles.has(name)?wonderswanVersion:atariFiles.has(name)?atariVersion:nativeDesktopFiles.has(name)?nativeDesktopVersion:ym2203NativeFiles.has(name)?ym2203NativeVersion:msxAudioNativeFiles.has(name)?msxAudioNativeVersion:gameGearNativeFiles.has(name)?gameGearNativeVersion:oplNativeFiles.has(name)?oplNativeVersion:msxNativeFiles.has(name)?msxNativeVersion:masterSystemFiles.has(name)?masterSystemVersion:x68000Files.has(name)?x68000Version:neoGeoFiles.has(name)?neoGeoVersion:pc98Files.has(name)?pc98Version:pwmFiles.has(name)?pwmVersion:consoleFiles.has(name)?consoleVersion:nesFiles.has(name)?nesVersion:pageRevisions[name]??(megaCdFiles.has(name)?megaCdVersion:segaFiles.has(name)?segaVersion:audioFiles.has(name)?audioVersion:revisions[name]??version);
 const targets=[...new Set([
   ...cddaFiles, ...pcEngineCdFiles, ...cdrom2PanelFiles,
   ...megaCdCddaFiles,
+  ...gameboySampleFiles,
   ...pokeyVoiceFiles,
   ...pokeyPrepareFiles,
   ...pokeyImportFiles,

@@ -1,3 +1,12 @@
+## 2026-10-28 — Game Boy Sample Editorの変換後比較・試奏を追加
+
+- Menu → Sample EditorでGame Boyを選ぶと、編集後の選択範囲と32点・4bit変換後波形を比較できる。Preview Game Boyで基準音を0.85秒試奏。表示・試奏・保存後Keyboardは同じ既存converterを使用。保存形式は元WAV＋編集JSONのまま。
+- 実Game Boy WASMをWorker内の独立コアで使い、標準音量0.36を1回適用。両端fadeとfinally解放。演奏中チップ／Mixerの変更なし。変更ごとの比較を集約、古い応答や停止後の試奏は破棄する。常時pollingは追加なし。
+- 音声関連53件、更新後CI unitコマンド36件が成功（重複7件を除く計82件）。既存Sample Editorの両Browser回帰も成功。新checkerはChromium／WebKit×fixture／本体／実Run ZIPの6条件すべて成功。実PCM、保存／再読込／実wave RAM一致、読込失敗回復、取消、390px横overflow0を確認、物理出力mute。
+- 配布用Run ZIPは`release/hello_ymfm_wasm_gameboy-sample-preview-dev_itch_playground_for_run.zip`、890項目、SHA256 `eac99fa6e79dfbe1f7e46662150c5c6e3b16c9b31d580fb55c904b58247e0a12`。full ZIPは同prefixの_for_runなし。新helperとpreset依存も同梱、cacheは`gameboy-sample-preview-1`。新checker／core試験をitch web CIへ追加、actionlint成功。
+- 前回CIはユーザーの`v0.93.2+1+test`／`3db298f7`で全4workflow成功済み（itch run40611365941）。今回featureは**未commit／未push**で新CIは未実行。npm／SDK／Tauri取込／tag／uploadなし。Tauri実機での試聴は未実施。
+- 詳細：[gameboy_sample_preview_01.md](gameboy_sample_preview_01.md)／[JSON](gameboy_sample_preview_01.json)。下記の「初回CI未実行」等は各時点の履歴。
+
 ## 2026-10-28 — itch.io Web配布ZIPのCI追加完了
 
 - ユーザーの既定3コマンド（Synth／VGM Analyzer／Playground）をそのまま実行する`itch web release ZIPs` workflowを追加。push／PR／手動で起動し、成功時に4ZIP＋`SHA256SUMS`＋manifestを`itch-web-release-zips`へ14日保存。GitHub Releaseへの添付とitch.ioへのuploadは手動のまま。

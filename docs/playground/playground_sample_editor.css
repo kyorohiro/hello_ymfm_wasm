@@ -8,8 +8,15 @@ dialog.sample-editor {width:min(880px,calc(100vw - 24px));max-width:calc(100vw -
 .sample-editor input,.sample-editor select {min-width:0;max-width:100%;box-sizing:border-box;}
 .sample-editor .sample-fields input[type=number] {width:100%;padding:4px 6px;}
 .sample-editor input[type=file] {max-width:300px;}
-.sample-editor canvas {width:100%;height:220px;display:block;background:#182327;border:1px solid #899793;border-radius:8px;touch-action:none;cursor:crosshair;}
-.sample-editor .sample-scroll {width:100%;}
+.sample-editor canvas {width:100%;height:220px;display:block;background:#182327;border:1px solid #899793;border-radius:8px;touch-action:none;cursor:crosshair;box-sizing:border-box;}
+.sample-editor .sample-scroll {width:100%;margin-left:0;margin-right:0;}
+.sample-editor .sample-gameboy {border:1px solid #899793;border-radius:8px;padding:10px;margin:12px 0;}
+.sample-editor .sample-cycle-comparison {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.sample-editor .sample-cycle-comparison figure {margin:0;min-width:0;}
+.sample-editor .sample-cycle-comparison figcaption {font-size:.82rem;margin-bottom:6px;line-height:1.4;}
+.sample-editor .sample-cycle-comparison canvas {height:150px;cursor:default;touch-action:auto;}
+.sample-editor .sample-gameboy details {font-size:.82rem;}
+.sample-editor .sample-gameboy output {display:block;font-family:monospace;line-height:1.6;word-spacing:.3em;overflow-wrap:anywhere;margin-top:6px;}
 .sample-editor .sample-status {min-height:2.6em;font-size:.88rem;line-height:1.4;overflow-wrap:anywhere;}
 .sample-editor [data-error=true] {color:#aa321f;}
 .sample-editor .sample-help {font-size:.82rem;color:#586362;line-height:1.4;}
@@ -19,4 +26,4 @@ dialog.sample-editor {width:min(880px,calc(100vw - 24px));max-width:calc(100vw -
 .sample-editor .sample-save input[type=checkbox] {flex:0 0 auto;}
 .sample-editor button {white-space:nowrap;}
 .sample-editor [hidden] {display:none!important;}
-@media(max-width:600px){dialog.sample-editor{padding:14px;}.sample-editor .sample-fields{grid-template-columns:repeat(2,minmax(0,1fr));}.sample-editor canvas{height:180px;}}
+@media(max-width:600px){dialog.sample-editor{padding:14px;}.sample-editor .sample-fields{grid-template-columns:repeat(2,minmax(0,1fr));}.sample-editor canvas{height:180px;}.sample-editor .sample-cycle-comparison{grid-template-columns:minmax(0,1fr);}.sample-editor .sample-cycle-comparison canvas{height:120px;}}

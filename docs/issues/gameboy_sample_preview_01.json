@@ -1,0 +1,294 @@
+{
+  "date": "2026-10-28",
+  "feature": "gameboy-sample-editor-conversion-preview",
+  "baseCommit": "3db298f7172474d759f7e685563e277878cd8efa",
+  "uncommitted": true,
+  "inputs": {
+    "web/playground_sample_gameboy_preview.js": {
+      "bytes": 3969,
+      "sha256": "9d83f6afc0cfbbe1ad4d1dc813e2db5b9d18954248bdf00405c274a45fb75d15"
+    },
+    "web/playground_sample_gameboy_preview.test.mjs": {
+      "bytes": 10011,
+      "sha256": "f816de95b36e19cb7391ae813f3793a91a5af41f51aeed8bdf07fcf4feb7ea02"
+    },
+    "docs/js/playground_sample_gameboy_preview.js": {
+      "bytes": 3969,
+      "sha256": "9d83f6afc0cfbbe1ad4d1dc813e2db5b9d18954248bdf00405c274a45fb75d15"
+    },
+    "docs/playground/playground_audio_input.js": {
+      "bytes": 37866,
+      "sha256": "a2827a9d1448223a55c2879ba81e89f6db90dc109c786ee93d8c474cf5f1952b"
+    },
+    "docs/playground/playground_sample_editor_worker.js": {
+      "bytes": 2883,
+      "sha256": "18edbe99be823dd01a757587419980a758acef8408fa9e4140a97a5a8cd7e2b4"
+    },
+    "docs/playground/playground_sample_editor.css": {
+      "bytes": 2760,
+      "sha256": "2e0f37dee1153dca8211c0740daba5e963ccfd420d84ea446796bd19592fb859"
+    },
+    "docs/playground/playground.js": {
+      "bytes": 124799,
+      "sha256": "b38632703a98c53545a5732b71fadac693d6df488ff26b55a303be8a3a8449f8"
+    },
+    "docs/playground/index.html": {
+      "bytes": 130873,
+      "sha256": "f6b09435fe45b9c9686d0c9e460ec93f62975619f1b79ef7734220a7d32b9318"
+    },
+    "scripts/check_gameboy_sample_editor_browser.cjs": {
+      "bytes": 32509,
+      "sha256": "05de548ce8634b0d58e5ad9ceb5ceae0eb979954d938f5e02ff5b84e992b49c9"
+    },
+    "scripts/check_playground_sample_editor_browser.cjs": {
+      "bytes": 17873,
+      "sha256": "9988e4fe7c4bc81b8f703ed67ee34484c5bf2a384d157bf68c2ba8c9f2cc6381"
+    },
+    "scripts/check_playground_package.mjs": {
+      "bytes": 10045,
+      "sha256": "4cf8cc1b55ecb8291876ce9f27d2e5507069293f0491441b34b959f65b39ca4d"
+    },
+    "scripts/package_itch_playground.sh": {
+      "bytes": 22949,
+      "sha256": "927e36a849f85db1b435be4adba183ca654a817e3ac265df96fb4c6b456e84c6"
+    },
+    "scripts/sync_web_js_to_docs.sh": {
+      "bytes": 14207,
+      "sha256": "ca0e90d428c75f233d9a0b7cb0e46aebb528e6530427c55d2ab780042bfaa16a"
+    },
+    "scripts/version_playground_runtime.mjs": {
+      "bytes": 32554,
+      "sha256": "2b494d42b314924da54690158a4f49146e0d973a76c9c58a6d2d5abe0b6e73a7"
+    },
+    ".github/workflows/itch-web.yml": {
+      "bytes": 5039,
+      "sha256": "545616cb6ae35a4305ac1aa608330e18aa50861e0182c981824052712c5a7844"
+    }
+  },
+  "nodeTests": {
+    "audioRelatedPassed": 53,
+    "ciCommandPassed": 36,
+    "overlappingGameboyTests": 7,
+    "uniquePassed": 82,
+    "failed": 0,
+    "newActualCoreTests": 7
+  },
+  "existingSampleEditorBrowserRegression": {
+    "command": "node scripts/check_playground_sample_editor_browser.cjs --webkit",
+    "browsers": [
+      "chromium",
+      "webkit"
+    ],
+    "passed": true,
+    "physicalOutputMuted": true
+  },
+  "newBrowserChecks": {
+    "command": "node scripts/check_gameboy_sample_editor_browser.cjs --webkit --host --zip=release/hello_ymfm_wasm_gameboy-sample-preview-dev_itch_playground_for_run.zip --out=/private/tmp/gameboy-sample-browser.json --images=/private/tmp/gameboy-sample-images",
+    "report": "/private/tmp/gameboy-sample-browser.json",
+    "bytes": 3164,
+    "sha256": "f6540414ff911a2a7a3222bba1dc0e3fbacab50b19c245179c3472b36a13fc7d",
+    "passed": true,
+    "reports": [
+      {
+        "browser": "chromium",
+        "comparison32": true,
+        "decodeFailureRecovery": true,
+        "editUndoRedo": true,
+        "draw": true,
+        "newSource": true,
+        "staleComparison": true,
+        "realApuPreview": 0.032999999821186066,
+        "stalePreview": true,
+        "saveReopen": true,
+        "samplerRam": true,
+        "noteOn": {
+          "channels": 2,
+          "frames": 8192,
+          "finite": true,
+          "peak": 0.125,
+          "mean": 0.007036873818110134,
+          "rms": 0.04975946430867538,
+          "acRms": 0.049259381798337006
+        },
+        "noteOff": {
+          "channels": 2,
+          "frames": 2048,
+          "finite": true,
+          "peak": 0,
+          "mean": 0,
+          "rms": 0,
+          "acRms": 0
+        },
+        "nativePCM": true,
+        "nativePendingStop": true,
+        "compact": true,
+        "dialogOverflow": 0,
+        "passed": true
+      },
+      {
+        "browser": "chromium",
+        "fullPlayground": true,
+        "saveReopen": true,
+        "samplerExactWave": true,
+        "keyboardPeak": 0.04500000178813934,
+        "stopPreview": true,
+        "backendChange": true,
+        "physicallyMuted": true,
+        "passed": true
+      },
+      {
+        "browser": "chromium",
+        "packagedZip": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_gameboy-sample-preview-dev_itch_playground_for_run.zip",
+        "publicUI": true,
+        "actualWorker": true,
+        "actualApuPreview": 0.032999999821186066,
+        "stop": true,
+        "saveReopen": true,
+        "compact": true,
+        "sourceFallback": false,
+        "passed": true
+      },
+      {
+        "browser": "webkit",
+        "comparison32": true,
+        "decodeFailureRecovery": true,
+        "editUndoRedo": true,
+        "draw": true,
+        "newSource": true,
+        "staleComparison": true,
+        "realApuPreview": 0.032999999821186066,
+        "stalePreview": true,
+        "saveReopen": true,
+        "samplerRam": true,
+        "noteOn": {
+          "channels": 2,
+          "frames": 8192,
+          "finite": true,
+          "peak": 0.125,
+          "mean": 0.005475307655346651,
+          "rms": 0.050297465334662644,
+          "acRms": 0.04999856023097958
+        },
+        "noteOff": {
+          "channels": 2,
+          "frames": 2048,
+          "finite": true,
+          "peak": 0,
+          "mean": 0,
+          "rms": 0,
+          "acRms": 0
+        },
+        "nativePCM": true,
+        "nativePendingStop": true,
+        "compact": true,
+        "dialogOverflow": 0,
+        "passed": true
+      },
+      {
+        "browser": "webkit",
+        "fullPlayground": true,
+        "saveReopen": true,
+        "samplerExactWave": true,
+        "keyboardPeak": 0.04500000178813934,
+        "stopPreview": true,
+        "backendChange": true,
+        "physicallyMuted": true,
+        "passed": true
+      },
+      {
+        "browser": "webkit",
+        "packagedZip": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_gameboy-sample-preview-dev_itch_playground_for_run.zip",
+        "publicUI": true,
+        "actualWorker": true,
+        "actualApuPreview": 0.032999999821186066,
+        "stop": true,
+        "saveReopen": true,
+        "compact": true,
+        "sourceFallback": false,
+        "passed": true
+      }
+    ],
+    "physicalOutputMuted": true
+  },
+  "screenshots": {
+    "/private/tmp/gameboy-sample-images/gameboy-sample-editor-chromium-compact.png": {
+      "bytes": 49091,
+      "sha256": "bef7c766179a963918c85aef2106be6d2a3d1f9f435a888e8eaf4f7ef74b8fb2"
+    },
+    "/private/tmp/gameboy-sample-images/gameboy-sample-editor-chromium-failure.png": {
+      "bytes": 146855,
+      "sha256": "735c3484f60c503701f29c23f433c12ec1af6cb7bc3034e5a22ad5e22c42d117"
+    },
+    "/private/tmp/gameboy-sample-images/gameboy-sample-editor-chromium-packaged-compact.png": {
+      "bytes": 65600,
+      "sha256": "e2fe5737e53aa7f5df6aa8f85d2a8f878bafd66effb2eb12cd210399e08fe347"
+    },
+    "/private/tmp/gameboy-sample-images/gameboy-sample-editor-chromium-packaged-failure.png": {
+      "bytes": 146929,
+      "sha256": "1c8f84062cd53c0f51aeda81da6b7f8ee91b6ff82fc25931131b8f5bdc9da478"
+    },
+    "/private/tmp/gameboy-sample-images/gameboy-sample-editor-webkit-compact.png": {
+      "bytes": 65421,
+      "sha256": "1414ae5d6bcad73aa7a3e6f05a12fd1d06a10a5f4d8732dc9b25060456b8fb32"
+    },
+    "/private/tmp/gameboy-sample-images/gameboy-sample-editor-webkit-packaged-compact.png": {
+      "bytes": 75804,
+      "sha256": "465ada449ac9ef72e8a3e9da1e626c99bf78941450e98667f7590c0f2ee3ae34"
+    }
+  },
+  "packaging": {
+    "command": "sh scripts/package_itch_playground.sh gameboy-sample-preview-dev",
+    "exitCode": 0,
+    "referencesPassed": 1120,
+    "log": {
+      "bytes": 135438,
+      "sha256": "8f3be06dd60ac0b8ecc26b7013490cf21d789c8e5854b0b34cc9034f0976eb51"
+    },
+    "artifacts": [
+      {
+        "path": "release/hello_ymfm_wasm_gameboy-sample-preview-dev_itch_playground.zip",
+        "bytes": 36789868,
+        "sha256": "6d9e826eec5246c6597987d7d9c3c20aae1bf4eec1f533ad421858227e2600f0",
+        "entries": 1117,
+        "files": 1007,
+        "directories": 110,
+        "allStageBytesVerified": true
+      },
+      {
+        "path": "release/hello_ymfm_wasm_gameboy-sample-preview-dev_itch_playground_for_run.zip",
+        "bytes": 37111548,
+        "sha256": "eac99fa6e79dfbe1f7e46662150c5c6e3b16c9b31d580fb55c904b58247e0a12",
+        "entries": 890,
+        "files": 890,
+        "directories": 0,
+        "allStageBytesVerified": true
+      }
+    ],
+    "runBundle": {
+      "path": "playground.js",
+      "bytes": 814132,
+      "sha256": "8632dab738e801957517280f951c59d9ea418e0c98e9c69afcd1c45c337f2562",
+      "importURL": "./playground.js?v=run-bundle-8632dab738e80195"
+    }
+  },
+  "ci": {
+    "workflow": ".github/workflows/itch-web.yml",
+    "lintVersion": "actionlint 1.7.12",
+    "lintExitCode": 0,
+    "newFeatureRemoteExecuted": false,
+    "previousTag": "v0.93.2+1+test",
+    "previousTagRun": "https://github.com/kyorohiro/hello_ymfm_wasm/actions/runs/40611365941",
+    "previousTagAllFourWorkflows": "success"
+  },
+  "nativeValidation": "Actual Game Boy WASM generation, injected Native preview lifecycle, and existing Native adapter unit tests; Tauri GUI listening not performed.",
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "npm": false,
+    "sdk": false,
+    "tauriImport": false,
+    "githubReleaseUpload": false,
+    "itchUpload": false
+  }
+}

@@ -62,6 +62,9 @@ keyboard playback, and Playground Main/Worker playback in five modes. Audio is
 captured for validation while physical output is muted. The Playground check
 serves only the extracted Run ZIP; the Synth check serves only its extracted ZIP.
 The Analyzer check serves the stage whose bytes were matched to its ZIP.
+Game Boy Sample Editor checks also cover converted wave comparisons, actual chip
+preview, editing and cancellation, saved Keyboard instruments, and the minified
+Run ZIP's public editor UI.
 
 If a check fails, open its failed step and download **itch-web-validation** for
 logs, browser reports, and screenshots. Diagnostics are retained for seven days.

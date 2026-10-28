@@ -9,7 +9,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
   decodeAudio,playPreview,
   mediaDevices = globalThis.navigator?.mediaDevices, Recorder = globalThis.MediaRecorder,
   recordingSeconds = 60, defaultTarget = 'rf5c164', loadAsset, saveAsset,
-  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=audio-numeric-bindings-1', import.meta.url), {type:'module'})} = {}) {
+  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=gameboy-sample-preview-1', import.meta.url), {type:'module'})} = {}) {
   let active = false,stopCurrentPreview=()=>{};
   const inputAudio=function(options = {}, {signal} = {}) {
     signal?.throwIfAborted();
@@ -36,6 +36,15 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         <input class="sample-scroll" data-field="scroll" type="range" min="0" max="1000" value="0" aria-label="Waveform scroll">
         <div class="sample-row"><button type="button" data-action="full">Full recording</button><button type="button" data-action="zoom">Zoom selection</button><button type="button" data-action="zoom-out">Zoom out</button>
           <button type="button" data-action="undo">Undo</button><button type="button" data-action="redo">Redo</button><button type="button" data-action="reset">Reset edits</button></div>
+        <section class="sample-gameboy" data-gameboy-conversion hidden aria-label="Game Boy wave conversion">
+          <div class="sample-cycle-comparison">
+            <figure><figcaption>Edited selection · before conversion</figcaption><canvas data-gameboy-source width="380" height="150" aria-label="Edited selection before Game Boy conversion"></canvas></figure>
+            <figure><figcaption>Game Boy wave RAM · 32 samples · 4 bits</figcaption><canvas data-gameboy-wave width="380" height="150" aria-label="Game Boy wave RAM: 32 samples, 4 bits"></canvas></figure>
+          </div>
+          <p class="sample-help" data-gameboy-status aria-live="polite">Choose audio or draw a cycle to see the conversion.</p>
+          <details><summary>Wave RAM values (0–15)</summary><output data-gameboy-values aria-label="Game Boy wave RAM values"></output></details>
+          <div class="sample-row"><button type="button" data-action="preview-gameboy" disabled>Preview Game Boy</button><button type="button" data-action="silence-gameboy">Stop preview</button><span class="sample-help">One voice · 0.85 seconds at the root note. Use one cycle for a pitched sound.</span></div>
+        </section>
         <div class="sample-fields">
           <label>Start (seconds)<input data-field="startFrame" type="number" min="0" step="0.001"></label>
           <label>End (seconds)<input data-field="endFrame" type="number" min="0" step="0.001"></label>
@@ -61,7 +70,8 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       const audioAction = name => dialog.querySelector(`[data-audio-action="${name}"]`);
       const file = dialog.querySelector('[data-audio-file]'), record = audioAction('record'), stop = audioAction('stop'), use = audioAction('use');
       if (options.saveOnly) use.textContent = 'Save sample';
-      const canvas = dialog.querySelector('canvas'), status = dialog.querySelector('[role="status"]');
+      const canvas = dialog.querySelector('[data-wave]'), status = dialog.querySelector('[data-audio-input-status]');
+      const gameboySection = dialog.querySelector('[data-gameboy-conversion]'), gameboyStatus = dialog.querySelector('[data-gameboy-status]'), gameboyValues = dialog.querySelector('[data-gameboy-values]');
       for (let midi = 0; midi < 128; midi++) {const option = doc.createElement('option'); option.value = midi; option.textContent = `${noteName(midi)} (${midi})`; field('rootMidi').append(option);}
       const targetMode = options.target ?? defaultTarget;
       field('target').value = targetMode; field('asset').value = options.asset || '/samples/sampler.sample.json';
@@ -69,6 +79,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
       let done = false, busy = false, generation = 0, audio = null, edit = null, sourceKind = 'file', sourceName = '', detected = null, conversionTargets = {};
       let stream = null, recorder = null, timer = null, recording = false, preview = null, previewController = null, previewSequence = 0, worker = null, sequence = 0;
       let viewport = [0,1], peaks = null, scheduledDraw = null, drag = null, undo = [], redo = [];
+      let gameboyComparison = null, gameboyComparing = null, gameboyFailure = null, gameboyDisplay = '';
       const pending = new Map();
       const say = (text,error = false) => {status.textContent = text; status.dataset.error = String(error);};
       const job = (command,data = {}) => {
@@ -121,9 +132,10 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           action('apply-pitch').disabled = !detected?.hz;
           field('rate').disabled = field('target').value === 'gameboy-wave';
         }
+        syncGameboyComparison();
       };
       const lock = () => {busy = true; controls();};
-      const idle = () => {busy = false; controls(); record.hidden = false; stop.hidden = true;};
+      const idle = () => {busy = false; controls(); record.hidden = false; stop.hidden = true; queueDraw();};
       const failed = error => {releaseCapture(); idle(); say(error.message ?? String(error),true);};
       const remember = () => {if (edit) {undo.push(copy(edit)); if (undo.length > 32) undo.shift(); redo = [];}};
       const update = () => {
@@ -136,7 +148,50 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         field('scroll').value = Math.round(viewport[0]/maximum*1000); field('scroll').disabled = span >= audio.channels[0].length;
         queueDraw();
       };
-      function queueDraw() {if (scheduledDraw === null && !done) scheduledDraw = doc.defaultView.requestAnimationFrame(() => {scheduledDraw = null; draw();});}
+      function queueDraw() {if (scheduledDraw === null && !done) scheduledDraw = doc.defaultView.requestAnimationFrame(() => {scheduledDraw = null; draw(); refreshGameboyComparison();});}
+      function drawCycle(target,samples,quantized = false) {
+        const ctx = target.getContext('2d'), width = target.width, height = target.height, top = 12, span = height-24;
+        ctx.fillStyle = '#182327'; ctx.fillRect(0,0,width,height);
+        ctx.strokeStyle = '#526269'; ctx.beginPath(); ctx.moveTo(0,height/2); ctx.lineTo(width,height/2); ctx.stroke();
+        if (!samples) return;
+        const y = value => top+(1-(quantized ? value/15 : (value+1)/2))*span;
+        ctx.strokeStyle = quantized ? '#fbdc84' : '#83d9cd'; ctx.lineWidth = 2; ctx.beginPath();
+        if (quantized) {
+          ctx.moveTo(0,y(samples[0]));
+          for (let i = 0; i < samples.length; i++) {ctx.lineTo(i/samples.length*width,y(samples[i]));ctx.lineTo((i+1)/samples.length*width,y(samples[i]));}
+        } else for (let i = 0; i < samples.length; i++) {const x = i/Math.max(1,samples.length-1)*width;if (i) ctx.lineTo(x,y(samples[i]));else ctx.moveTo(x,y(samples[i]));}
+        ctx.stroke(); ctx.lineWidth = 1;
+      }
+      function syncGameboyComparison() {
+        const enabled = field('target').value === 'gameboy-wave', ready = gameboyComparison?.generation === generation;
+        gameboySection.hidden = !enabled;
+        action('preview-gameboy').disabled = busy || !enabled || !audio || !ready;
+        if (!enabled) return;
+        const state = !audio ? 'empty' : ready ? `ready:${generation}` : gameboyFailure?.generation === generation ? `error:${generation}` : `pending:${generation}`;
+        if (gameboyDisplay === state) return;
+        gameboyDisplay = state;
+        const value = ready ? gameboyComparison.value : null;
+        drawCycle(dialog.querySelector('[data-gameboy-source]'),value?.source);
+        drawCycle(dialog.querySelector('[data-gameboy-wave]'),value?.waveform,true);
+        gameboyValues.textContent = value ? Array.from(value.waveform).join(' ') : '';
+        gameboyStatus.textContent = !audio ? 'Choose audio or draw a cycle to see the conversion.'
+          : value ? 'The converted wave is the exact 32-sample waveform used by Preview Game Boy and the saved instrument.'
+          : gameboyFailure?.generation === generation ? gameboyFailure.message : 'Updating the converted wave…';
+      }
+      function refreshGameboyComparison() {
+        syncGameboyComparison();
+        if (done || busy || drag || !audio || !edit || field('target').value !== 'gameboy-wave'
+          || gameboyComparing || gameboyComparison?.generation === generation || gameboyFailure?.generation === generation) return;
+        const token = generation, settings = copy(edit);
+        // Coalesce edits into one in-flight conversion; a stale reply only schedules
+        // the newest selection. Viewport changes reuse the cached conversion.
+        gameboyComparing = Promise.resolve().then(() => job('gameboy-wave',{settings})).then(value => {
+          if (done || token !== generation || field('target').value !== 'gameboy-wave') return;
+          gameboyComparison = {generation:token,value}; gameboyFailure = null;
+        }).catch(error => {
+          if (!done && token === generation) gameboyFailure = {generation:token,message:error.message};
+        }).finally(() => {gameboyComparing = null;if (!done) queueDraw();});
+      }
       function draw() {
         const ctx = canvas.getContext('2d'), width = canvas.width, height = canvas.height;
         ctx.fillStyle = '#182327'; ctx.fillRect(0,0,width,height); ctx.strokeStyle = '#526269'; ctx.beginPath(); ctx.moveTo(0,height/2); ctx.lineTo(width,height/2); ctx.stroke();
@@ -222,7 +277,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         if (edit[key] === value) return;
         try {const next = normalizeSampleEdit(audio,{...edit,[key]:value}); remember(); apply(next);} catch(error) {say(error.message,true);}
       });
-      for (const key of ['target','rate']) field(key).addEventListener('change',() => {generation++; stopPreview(); controls(); if (audio) use.disabled = false;});
+      for (const key of ['target','rate']) field(key).addEventListener('change',() => {generation++; stopPreview(); controls(); if (audio) use.disabled = false; queueDraw();});
       action('undo').addEventListener('click',() => {if (undo.length) {redo.push(copy(edit)); apply(undo.pop());}});
       action('redo').addEventListener('click',() => {if (redo.length) {undo.push(copy(edit)); apply(redo.pop());}});
       action('reset').addEventListener('click',() => {if (audio) {remember(); apply(createSampleEdit(audio));}});
@@ -249,9 +304,10 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         const token = ++generation; releaseCapture(); stopPreview(); lock(); const size = 256, rootMidi = 60, sampleRate = Math.round(440*2**((rootMidi-69)/12)*size), samples = Float32Array.from({length:size},(_,i) => .7*Math.sin(2*Math.PI*i/size));
         try {await installAudio({channels:[samples],sampleRate},'Drawn cycle','file',{rootMidi,loopEnabled:true},token); if (!done && token === generation) {field('tool').value = 'draw'; say('Draw a cycle in the waveform, then Use audio to play it with Guitar.');}} catch(error) {if (!done) failed(error);}
       });
-      for (const [name,original] of [['preview-original',true],['preview',false]]) action(name).addEventListener('click',async () => {
+      for (const [name,original] of [['preview-original',true],['preview',false],['preview-gameboy',false]]) action(name).addEventListener('click',async () => {
         if (!edit) return; const token = generation; stopPreview(); const previewToken = previewSequence,controller=previewController=new AbortController(); say('Preparing preview…');
-        try {const rendered = await prepared('original',original ? {...edit,gainDb:0,fadeInSeconds:0,fadeOutSeconds:0,drawPoints:[],drawStrokes:[]} : edit,!original); if (done || token !== generation || previewToken !== previewSequence) return;
+        const gameboy = name === 'preview-gameboy';
+        try {const rendered = gameboy ? await job('gameboy-preview',{settings:copy(edit)}) : await prepared('original',original ? {...edit,gainDb:0,fadeInSeconds:0,fadeOutSeconds:0,drawPoints:[],drawStrokes:[]} : edit,!original); if (done || token !== generation || previewToken !== previewSequence) return;
           if(playPreview){const current=await playPreview(rendered,{signal:controller.signal});if(done||token!==generation||previewToken!==previewSequence){await current.stop();return;}preview=current;}
           else {
           const context = await getAudioContext(); if (done || token !== generation || previewToken !== previewSequence) return;
@@ -263,10 +319,11 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
           if (!node.loop && buffer.duration > .01) {gain.gain.setValueAtTime(1,context.currentTime+buffer.duration-.005);gain.gain.linearRampToValueAtTime(0,context.currentTime+buffer.duration);}
           node.onended = () => {node.disconnect(); gain.disconnect(); if (preview === current) preview = null;}; node.start();
           }
-          say(`Preview · peak ${rendered.peakBeforeClip.toFixed(3)} · ${rendered.clippedSamples} clipped samples. ${options.saveOnly ? 'Run a sampler example to play it with Keyboard.' : 'Use audio, then play the selected chip from Keyboard.'}`);
+          say(`${gameboy ? `Game Boy preview · ${noteName(edit.rootMidi)} · source peak` : 'Preview · peak'} ${rendered.peakBeforeClip.toFixed(3)} · ${rendered.clippedSamples} clipped samples. ${options.saveOnly ? 'Run a sampler example to play it with Keyboard.' : 'Use audio, then play the selected chip from Keyboard.'}`);
         } catch(error) {if (!done&&token===generation&&previewToken===previewSequence) say(error.message,true);}
       });
       action('silence').addEventListener('click',stopPreview);
+      action('silence-gameboy').addEventListener('click',stopPreview);
       const position = event => {const rect = canvas.getBoundingClientRect(); return {frame:Math.max(0,Math.min(audio.channels[0].length,Math.round(viewport[0]+(event.clientX-rect.left)/rect.width*(viewport[1]-viewport[0])))),value:Math.max(-1,Math.min(1,(.5-(event.clientY-rect.top)/rect.height)*2))};};
       canvas.addEventListener('pointerdown',event => {
         if (!edit || busy) return; event.preventDefault(); stopPreview(); const point = position(event);
@@ -282,7 +339,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
         canvas.setPointerCapture(event.pointerId);
       });
       canvas.addEventListener('pointermove',event => {if (drag?.id !== event.pointerId) return; const point = position(event); if (drag.points) {if (drag.points.length < 8192) drag.points.push([Math.min(audio.channels[0].length-1,point.frame),point.value]); queueDraw();} else apply(drag.selection ? {...edit,startFrame:Math.min(drag.anchor,point.frame),endFrame:Math.max(drag.anchor,point.frame)+1} : {...edit,[drag.key]:point.frame});});
-      const endDrag = event => {if (drag?.id !== event.pointerId) return; const current = drag; drag = null; if (current.points) apply({...edit,drawStrokes:[...(edit.drawStrokes ?? []),current.points]}); if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);};
+      const endDrag = event => {if (drag?.id !== event.pointerId) return; const current = drag; drag = null; if (current.points) apply({...edit,drawStrokes:[...(edit.drawStrokes ?? []),current.points]}); else queueDraw(); if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);};
       canvas.addEventListener('pointerup',endDrag); canvas.addEventListener('pointercancel',endDrag);
       dialog.addEventListener('cancel',event => {event.preventDefault(); finish(null);}); dialog.addEventListener('close',() => finish(null));
       dialog.addEventListener('keydown',event => {event.stopPropagation(); if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {event.preventDefault(); action(event.shiftKey ? 'redo' : 'undo').click();}});

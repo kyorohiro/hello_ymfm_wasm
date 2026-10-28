@@ -54,6 +54,7 @@ playground_ym2151_inspector.js
 playground_huc6280_inspector.js
 playground_okim6258_inspector.js
 playground_sample_edit.js
+playground_sample_gameboy_preview.js
 playground_native_sample_editor.js
 playground_sample_instrument.js
 playground_chip_inspector_state.js

@@ -19,6 +19,7 @@ window.test = {
     test.nativePreviews=0;test.nativeStops=0;test.nativeContextCalls=0;test.nativeDecode=0;
     provider = createPlaygroundAudioInput({defaultTarget:target,
       getAudioContext:()=>{if(native){test.nativeContextCalls++;throw Error('Native must not request live AudioContext');}return test.context();},
+      getPreviewDestination:()=>{if(!test.previewDestination){const sink=context.createGain();sink.gain.value=0;sink.connect(context.destination);test.previewDestination=sink;}return test.previewDestination;},
       ...(native?{decodeAudio:async bytes=>{test.nativeDecode++;return decodeSampleWav(bytes);},playPreview:async(rendered,{signal})=>{
         test.nativePreviews++;test.nativePreviewSignal=signal;const result={stop(){test.nativeStops++;}};
         if(test.deferPreview)return new Promise(resolve=>test.releasePreview=()=>resolve(result));return result;
@@ -77,7 +78,7 @@ async function check(name,type,base){
     await page.goto(base+'/sample-test.html');await page.waitForFunction(()=>window.test);
     await page.locator('#launch').click();await dialog.waitFor({state:'visible'});await upload();
     assert.equal(Number(await field('endFrame').inputValue()),3,'initial selection is bounded, full source is retained');
-    const selection=await dialog.locator('canvas').boundingBox();
+    const selection=await dialog.locator('[data-wave]').boundingBox();
     await page.mouse.move(selection.x+selection.width*.7,selection.y+80);await page.mouse.down();
     await page.mouse.move(selection.x+selection.width*.5,selection.y+80);await page.mouse.move(selection.x+selection.width*.6,selection.y+80);await page.mouse.up();
     assert(Math.abs(Number(await field('startFrame').inputValue())-4.8)<.03,'leftward drag remains anchored after reversing direction');
@@ -87,7 +88,7 @@ async function check(name,type,base){
     await action('redo').click();assert.equal(Number(await field('gainDb').inputValue()),6);
     await change('loopStartFrame',1);await change('loopEndFrame',2);
     await field('loopEnabled').check();await field('loopEnabled').dispatchEvent('change');await action('zoom').click();
-    const marker=await dialog.locator('canvas').boundingBox();
+    const marker=await dialog.locator('[data-wave]').boundingBox();
     await page.mouse.move(marker.x+1,marker.y+marker.height*26/220);await page.mouse.down();await page.mouse.move(marker.x+marker.width*.25,marker.y+marker.height*26/220);await page.mouse.up();
     assert.equal(Number(await field('startFrame').inputValue()),1,'loop label moves the loop instead of the coincident selection marker');
     assert(Math.abs(Number(await field('loopStartFrame').inputValue())-1.25)<.02);
@@ -113,7 +114,7 @@ async function check(name,type,base){
     assert.match(await dialog.locator('[data-audio-input-status]').textContent(),/65504|capacity|frames/i);assert.equal(await dialog.isVisible(),true,'over-capacity input is not truncated');
     await audio('cancel').click();await dialog.waitFor({state:'detached'});
     await page.evaluate(()=>test.initialize('gameboy-wave'));await begin();await action('new-wave').click();await page.waitForFunction(()=>!document.querySelector('[data-audio-action="use"]').disabled);
-    await action('zoom').click();const box=await dialog.locator('canvas').boundingBox();
+    await action('zoom').click();const box=await dialog.locator('[data-wave]').boundingBox();
     await page.mouse.move(box.x+box.width*.2,box.y+box.height*.3);await page.mouse.down();await page.mouse.move(box.x+box.width*.5,box.y+box.height*.8,{steps:8});await page.mouse.up();
     await audio('use').click();await dialog.waitFor({state:'detached'});await page.waitForFunction(()=>test.result!==null);
     const wave=await page.evaluate(()=>Array.from(test.result.waveform));assert.equal(wave.length,32);assert(wave.every(x=>x>=0&&x<=15));

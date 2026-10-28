@@ -1,5 +1,6 @@
 import {normalizeSampleEdit, renderSampleEdit, renderGameboyWave, sampleNormalizationGainDb,
   estimateSamplePitch, encodeSampleWav} from '../js/playground_sample_edit.js?v=audio-numeric-bindings-1';
+import {renderGameboySampleComparison, renderGameboySamplePreview} from '../js/playground_sample_gameboy_preview.js';
 
 let audio = null;
 self.onmessage = async ({data}) => {
@@ -24,6 +25,12 @@ self.onmessage = async ({data}) => {
       if (command === 'pitch') value = estimateSamplePitch(audio, settings);
       else if (command === 'normalize') value = sampleNormalizationGainDb(audio, settings);
       else if (command === 'encode') value = encodeSampleWav(audio);
+      else if (command === 'gameboy-wave') value = renderGameboySampleComparison(audio, settings);
+      else if (command === 'gameboy-preview') {
+        const source = audio, edit = normalizeSampleEdit(source, settings);
+        const {default: moduleFactory} = await import('../generated/gameboy_apu_wasm.js');
+        value = await renderGameboySamplePreview(source, edit, {moduleFactory});
+      }
       else if (command === 'render') {
         const target = options.target ?? 'original';
         const edit = normalizeSampleEdit(audio, settings);
@@ -37,6 +44,7 @@ self.onmessage = async ({data}) => {
     if (value instanceof Uint8Array) transfer.push(value.buffer);
     for (const channel of value?.channels ?? []) transfer.push(channel.buffer);
     if (value?.waveform) transfer.push(value.waveform.buffer);
+    if (value?.source) transfer.push(value.source.buffer);
     if (value?.low) transfer.push(value.low.buffer, value.high.buffer);
     if (value?.mono) transfer.push(value.mono.buffer);
     self.postMessage({id, value}, transfer);
