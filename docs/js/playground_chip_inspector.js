@@ -1,6 +1,7 @@
 import {encodeRf5c164} from './rf5c164_pcm.js';
 import {encodeOki6258,summarizeOki6258,oki6258Rate} from './okim6258synth.js?v=pokey-prepare-1';
 import {prepareY8950AdpcmSample,snapshotY8950AdpcmSource} from './y8950_adpcm_preview.js?v=y8950-adpcm-ui-1';
+import {preparePs1Waveform} from './ps1_waveform.js?v=ps1-pcm-waveform-1';
 
 /** UI-only admin port access. Audio creation and Worker-owned ports are deliberately untouched. */
 export function createChipInspector({endpoints, decode}) {
@@ -72,7 +73,17 @@ export function createChipInspector({endpoints, decode}) {
     list,notify,getConnectionToken,
     subscribe(listener){if(typeof listener!=='function')throw new TypeError('Inspector listener must be a function');if(disposed)return()=>{};listeners.add(listener);synchronize();return()=>listeners.delete(listener);},
     async read(id){return request(endpointFor(id),'read');},
-    async invoke(id,method,args=[]){return request(endpointFor(id),'invoke',method,args);},
+    async invoke(id,method,args=[]){
+      const endpoint=endpointFor(id);
+      if(endpoint.kind==='ps1'&&method==='setWaveform'){
+        const [channel,pcm,options={}]=args;
+        if(!Number.isInteger(channel)||channel<0||channel>23)throw new RangeError('PS1 SPU channel must be 0..23');
+        if(!options||typeof options!=='object'||Array.isArray(options)||Reflect.ownKeys(options).some(key=>key!=='retrigger')||options.retrigger!==undefined&&typeof options.retrigger!=='boolean')throw new TypeError('Expected {retrigger?:boolean}');
+        const prepared=preparePs1Waveform(pcm);
+        return request(endpoint,'invoke',method,[channel,prepared,{retrigger:options.retrigger===true}]);
+      }
+      return request(endpoint,'invoke',method,args);
+    },
     async loadSample(id,source,options={}){
       if(!options||typeof options!=='object'||Array.isArray(options))throw new TypeError('Sample options must be an object');
       const endpoint=endpointFor(id);

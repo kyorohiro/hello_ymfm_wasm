@@ -124,6 +124,10 @@ encoding/decoding/partial-patching helpers.
 The Browser Playground offers PS1 mode, the `spu` primary API, Keyboard and an
 SPU voice editor with sustained audition, named ADSR controls, shared reverb
 and per-voice sends; its script API also supports `createSoundChip('ps1')`.
+The SPU tab also draws a 112-sample looping PCM waveform per voice, converts
+it to ADPCM on the preparation side and reuses one dedicated 64-byte slot on
+later edits. The tab's copied code recreates the PCM, upload and tuning; scripts
+continue to use the explicit encoder/upload API described below.
 `encodePs1Adpcm` converts normalized mono Float32 PCM into SPU packets with
 explicit loop positions and JSON-safe reconstruction metrics. It does not
 resample or normalize; declare tuning when uploading the encoded sample.

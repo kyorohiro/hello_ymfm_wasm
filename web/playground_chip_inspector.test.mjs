@@ -6,6 +6,20 @@ import {createChipInspector} from './playground_chip_inspector.js';
 import {RF5C164Synth} from './rf5c164synth.js';
 import {encodeRf5c164} from './rf5c164_pcm.js';
 import {PWM32XPlayback} from './pwm32x_playback.js';
+import {preparePs1Waveform} from './ps1_waveform.js';
+
+test('PS1 admin waveform encodes and captures PCM before posting one bounded prepared command',async()=>{
+ const {port1,port2}=new MessageChannel(),requests=[];
+ port1.on('message',data=>{requests.push(data);port1.postMessage({type:'chip-inspector-result',id:data.id,value:true});});
+ const inspector=createChipInspector({endpoints:()=>[{id:'spu',kind:'ps1',port:port2}],decode:()=>{throw new Error('No file decoding for waveform edits');}});
+ try{
+  const pcm=Float32Array.from({length:112},(_,i)=>.4*Math.sin(i*2*Math.PI/112)),expected=preparePs1Waveform(pcm),options={retrigger:true};
+  const pending=inspector.invoke('spu','setWaveform',[23,pcm,options]);pcm.fill(0);options.retrigger=false;await pending;
+  assert.equal(requests.length,1);assert.equal(requests[0].action,'invoke');assert.equal(requests[0].method,'setWaveform');assert.deepEqual(requests[0].args,[23,expected,{retrigger:true}]);
+  for(const args of [[24,expected.pcm],[0,Array(111).fill(0)],[0,Array(112).fill(NaN)],[0,expected.pcm,{retrigger:1}],[0,expected.pcm,{unknown:true}]])await assert.rejects(inspector.invoke('spu','setWaveform',args));
+  assert.equal(requests.length,1,'invalid source never reaches the audio thread');
+ }finally{inspector.dispose();port1.close();port2.close();}
+});
 
 test('Y8950 admin loading captures source/options before read, carries Stop epoch and never starts playback',async()=>{
  const {port1,port2}=new MessageChannel();let finish,started;const decoded=new Promise(resolve=>started=resolve),requests=[];

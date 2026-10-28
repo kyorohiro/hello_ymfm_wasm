@@ -1910,6 +1910,8 @@ type PlaygroundPs1ADPCMOptions = ({rootNote:string|number;baseFrequencyHz?:never
 interface PlaygroundPs1Sample {
   id:number;startAddress:number;repeatAddress:number;byteLength:number;decodedFrames:number;
   rootNote:string|number|null;rootFrequencyHz:number;basePitch:number;loop:boolean;loopStartSamples:number|null;
+  /** A reusable SPU-tab waveform slot belongs only to this physical voice. */
+  editorChannel?:PlaygroundPs1Channel;
 }
 interface PlaygroundPs1VoiceState {
   sample:number|null;volumeLeft:number;volumeRight:number;adsr1:number;adsr2:number;pitch:number;reverb:boolean;
@@ -1932,7 +1934,9 @@ interface PlaygroundPs1State {
   /** Native source rate; the client sampleRate is the AudioContext output rate. */
   sampleRate:44100;channelCount:24;nextAddress:number;nativeFrames:number;
   samples:PlaygroundPs1Sample[];
-  channels:Array<PlaygroundPs1VoiceState & {gate:boolean;envelope:number;envelopeParameters:PlaygroundPs1Envelope;ended:boolean}>;
+  channels:Array<PlaygroundPs1VoiceState & {gate:boolean;envelope:number;envelopeParameters:PlaygroundPs1Envelope;ended:boolean;
+    /** Original 112-point PCM for the currently assigned SPU-tab waveform, otherwise null. */
+    waveform:{pcm:number[];sample:number}|null}>;
   reverb:PlaygroundPs1Reverb;
 }
 /** Experimental MAME-derived SPU instrument, available through Web Audio only.

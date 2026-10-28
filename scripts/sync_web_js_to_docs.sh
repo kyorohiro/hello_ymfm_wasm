@@ -26,6 +26,7 @@ msm5205_native.js
 spc.js
 ps1_spu.js
 ps1_parameters.js
+ps1_waveform.js
 ps1synth.js
 ps1_resampler.js
 playground_ps1.js

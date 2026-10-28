@@ -8,9 +8,9 @@ function retriggerOption(value={}){
 }
 /** Applied instrument state and identity-safe manual channel leases. Reads do not render. */
 export class Ps1VoiceInspector {
-  /** @param {import('./ps1synth.js').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js').NativeVoiceInspectorOptions} [options] */
-  constructor(synth,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{}}={}){
-    this.synth=synth;this.sampleRate=sampleRate;this.dispatch=dispatch??(command=>synth[command.method](...(command.args??[])));this.beginAudition=beginAudition;this.endAudition=endAudition;this.auditions=new Map();
+  /** @param {import('./ps1synth.js').Ps1Synth} synth @param {import('./playground_native_voice_inspector.js').NativeVoiceInspectorOptions & {onResourcesChanged?:()=>void}} [options] */
+  constructor(synth,{sampleRate=44100,dispatch,beginAudition=()=>{},endAudition=()=>{},onResourcesChanged=()=>{}}={}){
+    this.synth=synth;this.sampleRate=sampleRate;this.dispatch=dispatch??(command=>synth[command.method](...(command.args??[])));this.beginAudition=beginAudition;this.endAudition=endAudition;this.onResourcesChanged=onResourcesChanged;this.auditions=new Map();
   }
   resetAuditions(){for(const [ch,id]of this.auditions)this.endAudition(ch,identity(id));this.auditions.clear();}
   read(){const state=this.synth.getState();return {...state,channels:state.channels.map((p,channel)=>({...p,channel,active:p.gate,type:'spu-adpcm'})),kind:'ps1',sampleRate:this.sampleRate,nativeSampleRate:44100,auditions:[...this.auditions].map(([channel,id])=>({channel,id}))};}
@@ -31,6 +31,15 @@ export class Ps1VoiceInspector {
       this.synth._reverb(args[0]);
       const held=this.auditions.values().next().value;
       this.dispatch({method,args:[{...args[0]}]},held?identity(held):undefined,{preserveOwner:true});return true;
+    }
+    if(method==='setWaveform'){
+      const ch=channel(args[0]),retrigger=retriggerOption(args[2]);
+      const sample=this.synth._setWaveformPrepared(ch,args[1]);
+      this.onResourcesChanged();
+      const held=this.auditions.get(ch),owner=held?identity(held):undefined;
+      this.dispatch({method:'setPreset',args:[ch,{sample:sample.id}]},owner,{preserveOwner:true});
+      if(retrigger&&held)this.dispatch({method:'keyOn',args:[ch]},owner);
+      return sample;
     }
     if(['setPreset','setChannel','setEnvelope','setPitch','setFrequency','setNote'].includes(method)){
       const ch=channel(args[0]);

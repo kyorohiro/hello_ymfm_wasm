@@ -1,3 +1,15 @@
+## 2026-10-28 — PS1 SPUタブにCH別PCM波形描画を追加
+
+- SPU → Voice選択 → Sine／Triangle／Saw／Squareを選び、波形を直接dragまたはindex／値で編集。112点のsigned PCMをMain準備側で64byteのloop ADPCMへ自動変換し、Sustain play／Keyboardで試奏。ADSR・pitch・左右volume・reverbを保持し、自分の試奏だけ任意で再発音する。
+- Voiceごとに専用slotを初回だけ確保して同じsample ID／RAMを再利用。他Voiceへの割り当てを拒否し、共有初期sample・他CHを保持。全24slot最大1,536byte。通常uploadは共有可能。polyphonic Sample Editor楽器の同一RAM再利用は専用slotを除外する。
+- Main／Worker／Workletのresourceだけを通知同期し、先行予約した音色値を上書きしない。接続直後・同時clear・古い通知・実Worker送信器内のreset fenceを検証。Stop／通常resetでRAM保持、clearRam:trueで全bank破棄。encoderはWorkletの58module依存graphに含まれず、pointer移動時の音声write・定期pollingなし。
+- Copy voice JavaScriptはPCM・変換・upload・tuningを含めて別bankへ復元可能。実Browserで判明した`const sample`とPlayground prologueのTDZ衝突はps1Wave*名へ変更し、実runtime回帰でも確認した。
+- focused185件、最終Main runtime＋panel177件（26panel件はfocusedと重複）、Worker110件、全mode型が成功、skip0。isolated npm991files／383宣言／1,089asset参照／28WASM engine／15renderer・型が成功。version0.2.32のまま未公開。最終7sourceとnpm stageもbyte一致。
+- source本体／実Run ZIP × Chromium153／WebKit26.6 × Main／Workerの8条件成功。同一checkerで実drag／cancel／数値／1stroke1upload／slot固定／別CH保持／A4音程維持・倍音変化／Keyboard／ADSR・reverb／Stop・error回復を確認。UI編集後public uploadはID2、clear後copy復元は通常ID0でADPCM全byte一致。全captureのquanta連続・finite、配信287／215assetsを最終byte照合。物理出力mute、人の実聴／hardware比較は未実施。
+- 標準3package command・4ZIPのCRC／path／全stage byte一致・Analyzer8基準guard・actionlint・runtime versioner変更0が成功。Run ZIPは`release/hello_ymfm_wasm_ps1-pcm-waveform-dev_itch_playground_for_run.zip`、923entries、SHA256 `7934d7ae4f88ef7d73a588f7bf815e9f21e1fc44e42af02447cf68561c5f7348`。fullは同prefixの_for_runなし。cache `ps1-pcm-waveform-1`、既存CIへ試験を拡張、remote未実行。
+- 今回は**未commit／未push／未公開**。前段階はユーザーcommit `6bd7fdfc12e973b43da11d59728db078d9f82ac2`に含まれる。C++／WASM・receipt／Mixer gain／固定SDK／Tauri Native・versionは変更なし。tag・SDK／Tauri取込・npm／itch uploadなし。次はPS1のSDK集約とTauri Native adapter。
+- 詳細：[ps1_pcm_waveform_01.md](ps1_pcm_waveform_01.md)／[JSON](ps1_pcm_waveform_01.json)、公開guide：[../ps1_spu.md](../ps1_spu.md)、計画：[todo_ps1_01.md](todo_ps1_01.md)。以下は各時点の履歴。
+
 ## 2026-10-28 — PS1 SPUタブでのADSR／reverb音作りを追加
 
 - SPUタブで24声から選び、**Sustain play**で鳴らし続けながら音作りできる。Hold／1秒試奏／右下の共通Guitar・PC・pointer Keyboardも使用可能。名前付きADSR 9項目、模式図、raw words、左右volume／pitch／sample、設定JavaScriptのcopyを提供。

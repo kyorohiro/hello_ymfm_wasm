@@ -1,11 +1,33 @@
 import {decodePs1Envelope, PS1_REVERB_PRESETS} from '../js/ps1_parameters.js?v=ps1-voice-editor-1';
 
+const PCM_FRAMES = 112;
+function appliedWaveform(voice) {
+  const value = voice?.waveform;
+  return value && value.sample === voice.sample && Array.isArray(value.pcm) && value.pcm.length === PCM_FRAMES && value.pcm.every(sample => Number.isFinite(sample) && sample >= -1 && sample <= 1) ? value.pcm : null;
+}
+
+/** PCM is included for editor-created cycles so copied code never relies on a
+ * private sample ID from another live SPU instance. */
+export function ps1VoiceCode(state, channel = 0) {
+  const voice = state?.channels?.[channel]; if (!voice) return '';
+  const pcm = appliedWaveform(voice), {sample, ...preset} = {sample:voice.sample, adsr1:voice.adsr1, adsr2:voice.adsr2, volumeLeft:voice.volumeLeft, volumeRight:voice.volumeRight, pitch:voice.pitch, reverb:Boolean(voice.reverb)};
+  const lines = pcm ? [
+    `const ps1WavePcm = new Float32Array(${JSON.stringify(pcm)});`,
+    'const ps1WaveEncoded = encodePs1Adpcm(ps1WavePcm, {loopStartSamples:0});',
+    'const ps1WaveSample = await spu.loadADPCM(ps1WaveEncoded.adpcm, {baseFrequencyHz:44100 / 112, loopStartSamples:0});',
+    `spu.setPreset(${channel}, {sample:ps1WaveSample, ...${JSON.stringify(preset)}});`,
+  ] : [`spu.setPreset(${channel}, ${JSON.stringify({sample, ...preset})});`];
+  lines.push(`spu.setReverb(${JSON.stringify(state.reverb ?? {preset:'off', volumeLeft:.25, volumeRight:.25})});`);
+  return lines.join('\n');
+}
+
 /** Applied SPU voices. The owning tab supplies snapshots; this panel never polls. */
 let panelSequence = 0;
 export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = () => {}, onKeyboardTargetChange = () => {}, onError = () => {}, onSelectedChannelChange = () => {}}) {
   const doc = root.ownerDocument ?? globalThis.document, win = doc.defaultView ?? globalThis, panel = ++panelSequence;
   let state = null, selected = 0, connected = false, visible = true, disposed = false, epoch = 0, sequence = 0, targetEpoch = 0;
   let keyboardActive = false, target, timer = null, holdPress = null, commandSequence = 0, envelopeDraft = {};
+  let waveDrag = null, waveDraft = null, waveSignature = '';
   const held = new Map(), listeners = [];
   const make = (tag, cls, text) => {const node = doc.createElement(tag); if (cls) node.className = cls; if (text !== undefined) node.textContent = text; return node;};
   const voice = () => state?.channels?.[selected] ?? {};
@@ -47,15 +69,15 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
 
   const channels = make('div', 'chip-channel-list'); channels.setAttribute('aria-label', 'PS1 voice'); root.appendChild(channels);
   const buttons = Array.from({length:24}, (_, channel) => {
-    const node = button(channels, `Voice ${channel + 1}`, `ps1-channel-${channel}`, () => {if (!connected || selected === channel) return; releaseAll(); selected = channel; envelopeDraft = {}; commandSequence++; updateTarget(); update(state); onSelectedChannelChange();});
+    const node = button(channels, `Voice ${channel + 1}`, `ps1-channel-${channel}`, () => {if (!connected || selected === channel) return; releaseAll(); cancelWave(); selected = channel; envelopeDraft = {}; commandSequence++; updateTarget(); update(state); onSelectedChannelChange();});
     node.dataset.chipChannel = String(channel); return node;
   });
   root.appendChild(make('p', 'subtext', 'SPU · 44,100 Hz · 24 physical voices'));
   const instrument = make('fieldset', 'chip-editor-body'); instrument.disabled = true; root.appendChild(instrument);
   const card = section(instrument, 'Selected ADPCM voice'), common = fields(card);
   const gate = make('output'); gate.dataset.chipOutput = 'ps1-gate'; field(common, 'Gate (last KON / KOFF)').appendChild(gate);
-  const sample = make('select'); sample.dataset.chipControl = 'ps1-sample'; field(common, 'Uploaded sample').appendChild(sample); let sampleSignature = '';
-  listen(sample, 'change', () => {if (sample.value !== '') void patch({sample:Number(sample.value)});});
+  const sample = make('select'); sample.dataset.chipControl = 'ps1-sample'; field(common, 'Assigned sample').appendChild(sample); let sampleSignature = '';
+  listen(sample, 'change', () => {if (!connected || sample.value === '') return; const entry = state?.samples?.find(value => value.id === Number(sample.value)); if (!entry || entry.editorChannel !== undefined && entry.editorChannel !== selected) return; cancelWave(); void patch({sample:entry.id});});
   const pitch = number(common, 'PITCH (4096 = source rate)', 'ps1-pitch', 0, 16383, value => patch({pitch:value}));
   const volumeLeft = number(common, 'Left volume', 'ps1-volume-left', -1, 1, value => patch({volumeLeft:value}), .01);
   const volumeRight = number(common, 'Right volume', 'ps1-volume-right', -1, 1, value => patch({volumeRight:value}), .01);
@@ -70,8 +92,28 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   const keyboard = button(actions, 'Use Keyboard', 'ps1-keyboard', () => {if (!connected || !visible) return; keyboardActive = true; updateTarget();});
   card.appendChild(make('p', 'subtext', 'Sustain play keeps this voice held while you edit with the mouse. Release, changing voice, hiding this tab, or leaving the window releases manual notes through their programmed release stage. Use transport Stop for immediate silence, including infinite-release notes and reverb tails. Keyboard uses the selected physical voice.'));
 
+  const waveCard = section(instrument, 'PCM cycle → SPU ADPCM'), waveActions = make('div', 'chip-actions'); waveCard.appendChild(waveActions);
+  for (const name of ['Sine', 'Triangle', 'Saw', 'Square']) button(waveActions, name, `ps1-wave-${name.toLowerCase()}`, () => {
+    const pcm = Array.from({length:PCM_FRAMES}, (_, index) => {
+      const phase = index / PCM_FRAMES;
+      return .65 * (name === 'Sine' ? Math.sin(2 * Math.PI * phase) : name === 'Triangle' ? 1 - 4 * Math.abs(phase - .5) : name === 'Saw' ? 2 * phase - 1 : phase < .5 ? 1 : -1);
+    });
+    setWave(pcm);
+  });
+  const waveCanvas = make('canvas', 'chip-sample-waveform'); waveCanvas.width = 800; waveCanvas.height = 180; waveCanvas.dataset.chipControl = 'ps1-waveform';
+  waveCanvas.setAttribute('role', 'img'); waveCanvas.setAttribute('aria-label', 'PS1 PCM cycle, 112 signed samples from -1 to 1. Drag to edit; apply once on release.'); waveCard.appendChild(waveCanvas);
+  const waveFields = fields(waveCard);
+  const waveIndex = number(waveFields, 'PCM sample index', 'ps1-wave-index', 0, PCM_FRAMES - 1, value => set(waveValue, appliedWaveform(voice())?.[value])); waveIndex.value = '0';
+  const waveValue = number(waveFields, 'PCM sample value', 'ps1-wave-value', -1, 1, value => {
+    const pcm = appliedWaveform(voice()), index = Number(waveIndex.value);
+    if (!pcm || !Number.isInteger(index) || index < 0 || index >= PCM_FRAMES) return;
+    const copy = pcm.slice(); copy[index] = value; setWave(copy);
+  }, .01);
+  const waveInfo = make('p', 'subtext'); waveInfo.dataset.chipOutput = 'ps1-wave-info'; waveCard.appendChild(waveInfo);
+  waveCard.appendChild(make('p', 'subtext', 'One cycle uses 112 PCM samples, encoded as four ADPCM packets (64 bytes), with a loop from sample 0. At PITCH 4096 its fundamental is 393.75 Hz. Shapes and completed strokes affect only this voice; other voices keep their samples. ADPCM quantization changes the resulting sound. Use Sample Editor for recordings and longer samples.'));
+
   const envelopeCard = section(instrument, 'ADSR envelope'), envelopeFields = fields(envelopeCard), envelopeInputs = {};
-  const retrigger = checkbox(envelopeFields, 'Retrigger my held note after an ADSR edit', 'ps1-retrigger'); retrigger.checked = true;
+  const retrigger = checkbox(envelopeFields, 'Retrigger my held note after an ADSR or PCM edit', 'ps1-retrigger'); retrigger.checked = true;
   function editEnvelope(key, value) {if (!connected || disposed) return; envelopeDraft = {...envelopeDraft, [key]:value}; drawEnvelope(); void command('setEnvelope', [selected, {[key]:value}, {retrigger:retrigger.checked}]);}
   for (const [key, label, max] of [['attackRate','Attack rate · 0 fastest',127], ['decayRate','Decay rate · 0 fast / 15 slow',15], ['sustainLevel','Sustain level · 0–15',15], ['sustainRate','Sustain rate · 127 holds',127], ['releaseRate','Release rate · 27–31 hold',31]]) {
     envelopeInputs[key] = number(envelopeFields, label, `ps1-${key.replace(/[A-Z]/g, value => '-' + value.toLowerCase())}`, 0, max, value => editEnvelope(key, value));
@@ -118,7 +160,54 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   function holdStart(event) {if (!visible || !connected || event.type === 'pointerdown' && event.button !== undefined && event.button !== 0 || event.type === 'keydown' && (event.repeat || ![' ', 'Enter'].includes(event.key))) return; event.preventDefault(); releaseSource('hold'); const id = start(selected, Number(midi.value), 'hold'); if (!id) return; holdPress = {id, pointerId:event.pointerId, key:event.key}; hold.setAttribute('aria-pressed', 'true'); if (event.pointerId !== undefined) try {hold.setPointerCapture(event.pointerId);} catch {}}
   function holdEnd(event) {if (!holdPress || event.pointerId !== undefined && event.pointerId !== holdPress.pointerId || event.type === 'keyup' && event.key !== holdPress.key) return; releaseSource('hold');}
   listen(hold, 'pointerdown', holdStart); listen(hold, 'keydown', holdStart); for (const type of ['pointerup', 'pointercancel', 'lostpointercapture', 'keyup']) listen(hold, type, holdEnd);
-  listen(hold, 'blur', () => releaseSource('hold')); listen(win, 'blur', releaseAll); listen(doc, 'visibilitychange', () => {if (doc.hidden) releaseAll();});
+  listen(hold, 'blur', () => releaseSource('hold')); listen(win, 'blur', () => {releaseAll(); cancelWave();}); listen(doc, 'visibilitychange', () => {if (doc.hidden) {releaseAll(); cancelWave();}});
+
+  function waveIdentity() {const value = voice(); return JSON.stringify([selected, value.sample, appliedWaveform(value)]);}
+  function setWave(pcm) {
+    if (!connected || !visible || disposed) return;
+    cancelWave();
+    void command('setWaveform', [selected, pcm.slice(), {retrigger:retrigger.checked}]);
+  }
+  function drawWave() {
+    const pcm = waveDraft ?? appliedWaveform(voice()), signature = JSON.stringify(pcm);
+    waveIndex.disabled = waveValue.disabled = !connected || !pcm;
+    if (!waveDrag) set(waveValue, pcm?.[Number(waveIndex.value)]);
+    waveInfo.textContent = pcm ? 'Editable original PCM · 112 signed samples. Drag or set individual samples numerically. A completed stroke is applied once; cancelled strokes do not write.' : 'Original editable PCM is unavailable for this ADPCM sample. Choose a shape to create a new cycle for this voice.';
+    if (!visible || signature === waveSignature) return; waveSignature = signature;
+    const ctx = waveCanvas.getContext?.('2d'); if (!ctx) return;
+    const w = waveCanvas.width, h = waveCanvas.height, y = value => 8 + (1 - value) * (h - 16) / 2;
+    ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#101820'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = '#34444e'; ctx.lineWidth = 1;
+    for (const value of [-1, 0, 1]) {ctx.beginPath(); ctx.moveTo(0, y(value)); ctx.lineTo(w, y(value)); ctx.stroke();}
+    if (!pcm) {ctx.fillStyle = '#b5c2cc'; ctx.font = '13px sans-serif'; ctx.fillText('Choose a shape to create editable PCM for this voice.', 12, 25); return;}
+    ctx.strokeStyle = '#7bbcf7'; ctx.lineWidth = 2; ctx.beginPath();
+    pcm.forEach((value, index) => {const x = index * w / (PCM_FRAMES - 1); if (index) ctx.lineTo(x, y(value)); else ctx.moveTo(x, y(value));}); ctx.stroke();
+  }
+  function drawPoint(event) {
+    const rect = waveCanvas.getBoundingClientRect();
+    if (!waveDrag || !waveDraft || !rect.width || !rect.height || !Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
+    const index = Math.max(0, Math.min(PCM_FRAMES - 1, Math.floor((event.clientX - rect.left) / rect.width * PCM_FRAMES)));
+    const value = Math.max(-1, Math.min(1, 1 - 2 * (event.clientY - rect.top) / rect.height));
+    const from = waveDrag.lastIndex ?? index, previous = waveDrag.lastValue ?? value;
+    for (let at = Math.min(from, index); at <= Math.max(from, index); at++) waveDraft[at] = from === index ? value : previous + (value - previous) * (at - from) / (index - from);
+    waveDrag.lastIndex = index; waveDrag.lastValue = value; set(waveIndex, index); set(waveValue, value); drawWave();
+  }
+  function cancelWave(event) {
+    if (event?.pointerId !== undefined && waveDrag?.pointerId !== event.pointerId) return;
+    waveDrag = null; waveDraft = null; waveSignature = ''; drawWave();
+  }
+  listen(waveCanvas, 'pointerdown', event => {
+    const pcm = appliedWaveform(voice());
+    if (!connected || !visible || disposed || waveDrag || !pcm || event.button !== undefined && event.button !== 0) return;
+    event.preventDefault(); waveDraft = pcm.slice(); waveDrag = {pointerId:event.pointerId, channel:selected, epoch, identity:waveIdentity()};
+    try {waveCanvas.setPointerCapture(event.pointerId);} catch {} drawPoint(event);
+  });
+  listen(waveCanvas, 'pointermove', event => {if (waveDrag?.pointerId === event.pointerId) {event.preventDefault(); drawPoint(event);}});
+  listen(waveCanvas, 'pointerup', event => {
+    if (!waveDrag || waveDrag.pointerId !== event.pointerId) return; drawPoint(event);
+    const drag = waveDrag, pcm = waveDraft; waveDrag = null; waveDraft = null; waveSignature = ''; drawWave();
+    if (drag.channel === selected && drag.epoch === epoch && drag.identity === waveIdentity()) setWave(pcm);
+  });
+  listen(waveCanvas, 'pointercancel', cancelWave); listen(waveCanvas, 'lostpointercapture', cancelWave);
 
   function envelope() {return {...decodePs1Envelope(voice().adsr1 ?? 0, voice().adsr2 ?? 0), ...envelopeDraft};}
   function drawEnvelope() {
@@ -142,6 +231,7 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
   }
   function update(next) {
     if (disposed || !next) return; state = next; const v = voice(), samples = state.samples ?? []; envelopeDraft = {};
+    if (waveDrag && waveDrag.identity !== waveIdentity()) cancelWave();
     // Transport Stop/reset retires manual leases in the audio owner. Clear only
     // local pressed indicators; never send a late KOFF to a replacement voice.
     if (Array.isArray(state.auditions)) {
@@ -152,19 +242,19 @@ export function createPlaygroundPs1VoicePanel({root, invoke, ensureAudioReady = 
       if (timer !== null && ![...held.values()].some(entry => entry.source === 'preview')) {win.clearTimeout(timer); timer = null;}
     }
     instrument.disabled = !connected; buttons.forEach((node, channel) => {node.disabled = !connected; node.setAttribute('aria-pressed', String(channel === selected)); node.dataset.sounding = String(Boolean(state.channels?.[channel]?.gate));});
-    const options = [['', 'Unassigned'], ...samples.map(entry => [String(entry.id), `Sample ${entry.id} · ${entry.decodedFrames} samples`])], signature = JSON.stringify(options);
+    const options = [['', 'Unassigned'], ...samples.filter(entry => entry.editorChannel === undefined || entry.editorChannel === selected).map(entry => [String(entry.id), `Sample ${entry.id} · ${entry.decodedFrames} samples${entry.editorChannel === selected ? ' · editable PCM' : ''}`])], signature = JSON.stringify(options);
     if (signature !== sampleSignature) {sampleSignature = signature; sample.replaceChildren(...options.map(([value, text]) => {const node = make('option', '', text); node.value = value; return node;}));}
     set(sample, v.sample); set(pitch, v.pitch); set(volumeLeft, v.volumeLeft); set(volumeRight, v.volumeRight); set(adsr1, v.adsr1); set(adsr2, v.adsr2); gate.textContent = v.gate ? 'On' : 'Off';
     const decoded = envelope(); for (const [key, node] of Object.entries(envelopeInputs)) {if (node.type === 'checkbox') checked(node, decoded[key]); else set(node, decoded[key]);}
     checked(reverbSend, v.reverb); set(reverbPreset, state.reverb?.preset ?? 'off'); set(reverbLeft, state.reverb?.volumeLeft ?? .25); set(reverbRight, state.reverb?.volumeRight ?? .25);
     const entry = samples.find(value => value.id === v.sample); metadata.textContent = entry ? `${entry.byteLength} ADPCM bytes · RAM ${entry.startAddress} · Root ${Number(entry.rootFrequencyHz).toFixed(3)} Hz · Base PITCH ${entry.basePitch} · ${entry.loop ? 'Loop' : 'One shot'}` : 'No ADPCM sample is assigned to this voice.';
-    code.textContent = `spu.setPreset(${selected}, ${JSON.stringify({sample:v.sample, adsr1:v.adsr1, adsr2:v.adsr2, volumeLeft:v.volumeLeft, volumeRight:v.volumeRight, pitch:v.pitch, reverb:Boolean(v.reverb)})});\nspu.setReverb(${JSON.stringify(state.reverb ?? {preset:'off', volumeLeft:.25, volumeRight:.25})});`;
-    drawEnvelope();
+    code.textContent = ps1VoiceCode(state, selected);
+    drawEnvelope(); drawWave();
   }
-  function setConnected(value) {if (disposed) return; const next = Boolean(value); if (!next) {releaseAll(); if (keyboardActive) onKeyboardTargetChange(null); keyboardActive = false; targetEpoch++; envelopeDraft = {}; keyboard.setAttribute('aria-pressed', 'false');} if (next !== connected) epoch++; connected = next; instrument.disabled = !next; for (const node of buttons) node.disabled = !next;}
+  function setConnected(value) {if (disposed) return; const next = Boolean(value); if (!next) {releaseAll(); cancelWave(); if (keyboardActive) onKeyboardTargetChange(null); keyboardActive = false; targetEpoch++; envelopeDraft = {}; keyboard.setAttribute('aria-pressed', 'false');} if (next !== connected) epoch++; connected = next; instrument.disabled = !next; for (const node of buttons) node.disabled = !next; drawWave();}
   updateTarget();
   return {update, setConnected, releaseAll, getSelectedChannel:() => selected, getNoteTarget:() => target,
-    setVisible(value) {visible = Boolean(value); if (!visible) {releaseSource('hold'); releaseSource('preview'); releaseSource('sustain');} else drawEnvelope();},
+    setVisible(value) {visible = Boolean(value); if (!visible) {releaseSource('hold'); releaseSource('preview'); releaseSource('sustain'); cancelWave();} else {waveSignature = ''; drawEnvelope(); drawWave();}},
     setKeyboardActive(value) {if (!value && keyboardActive) {releaseSource('keyboard'); keyboardActive = false; targetEpoch++; keyboard.setAttribute('aria-pressed', 'false');}},
     dispose() {if (disposed) return; setConnected(false); disposed = true; for (const remove of listeners) remove();},
   };

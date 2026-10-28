@@ -87,7 +87,7 @@ function ps1VoicePool(spu) {
  * Inspector reads happen once during preparation, never during a note/render.
  */
 async function ps1Sample(spu, selected) {
-  const matches = sample => sample && Number.isSafeInteger(sample.id) && sample.id >= 0 &&
+  const matches = sample => sample && sample.editorChannel === undefined && Number.isSafeInteger(sample.id) && sample.id >= 0 &&
     Number.isSafeInteger(sample.startAddress) && sample.startAddress >= 0x1000 && sample.startAddress % 16 === 0 &&
     sample.byteLength === selected.adpcm.length && sample.decodedFrames === selected.frames &&
     sample.basePitch === 4096 && sample.rootFrequencyHz === selected.baseFrequencyHz &&

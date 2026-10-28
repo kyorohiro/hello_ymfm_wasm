@@ -27,6 +27,31 @@ tails, including notes whose release rate would otherwise hold indefinitely.
 Snapshots update on entry, Refresh and edits; this tab adds no periodic
 audio-state polling.
 
+The **PCM cycle → SPU ADPCM** editor draws one looping waveform for the selected
+voice. Choose Sine, Triangle, Saw or Square, drag the waveform, or edit one
+sample by its index and signed value. Each cycle has 112 normalized PCM samples
+in `[-1,1]`. A completed stroke applies once; cancelling a stroke or changing
+voice leaves the applied sound intact. **Sustain play** and Keyboard audition
+use this waveform with the voice's existing ADSR, pitch, volumes and reverb.
+
+The UI encodes PCM on the preparation side into four SPU ADPCM packets (64 bytes)
+and loops them from the first sample. At PITCH 4096 the cycle's fundamental is
+`44100 / 112` Hz; note audition uses that tuning automatically. This provides
+a wavetable-style editing workflow over PS1 sample RAM. The drawn PCM is the
+source, and the resulting sound includes ADPCM quantization and the SPU's
+interpolation. An arbitrary uploaded ADPCM instrument has no original PCM in
+this editor: choose a shape to replace only the selected voice, or use the
+[Sample Editor](ps1_sample_editor.md) for a longer recording.
+
+Each voice lazily obtains one dedicated 64-byte waveform slot. Later edits
+reuse its ID and RAM address; other voices and the shared initial sample are
+preserved. A slot can be assigned only to its owning voice. Ordinary uploaded
+samples remain shareable. Stop and ordinary reset retain waveform RAM;
+`reset({clearRam:true})` discards the complete sample bank. When a drawn waveform
+is selected, **Copy voice JavaScript** includes its PCM, ADPCM encoding and
+upload, tuning and voice settings so the copied instrument can be recreated
+in a fresh project.
+
 The ADSR section provides five rate/level controls and four mode switches:
 
 | Control | Accepted values |
@@ -43,7 +68,7 @@ Release codes `27..31` hold indefinitely in this implementation. The envelope
 drawing is a schematic of the programmed stages, not a measured timing plot.
 
 ADSR registers are read at key-on. The enabled-by-default **Retrigger my held
-note after an ADSR edit** option restarts a note owned by this editor to make
+note after an ADSR or PCM edit** option restarts a note owned by this editor to make
 the change audible immediately. It does not restart a script-owned voice or
 another channel. Disable it to compare the current note with the next key-on.
 Pitch, fixed volume, reverb sends and reverb return levels affect held voices

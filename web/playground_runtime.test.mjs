@@ -20,6 +20,7 @@ import {SnesSynth} from './snessynth.js';
 import {encodeBrr} from './snes_brr_encoder.js';
 import {encodeAdpcmA} from './adpcm_a_sample.js';
 import {encodePs1Adpcm} from './ps1_adpcm_encoder.js';
+import {ps1VoiceCode} from '../docs/playground/playground_ps1_voice_panel.js';
 import {WonderSwanSynth} from './wonderswansynth.js';
 import {PokeySynth} from './pokeysynth.js';
 import {createRf5c164Client, createRf5c164Control} from './playground_rf5c164.js';
@@ -2045,6 +2046,20 @@ for(const allocation of ['createSoundChip','useSoundChip'])test(`Main ${allocati
   assert(entries.filter(entry=>entry.kind!=='pokey').every(entry=>!Object.hasOwn(entry,'additional')));
   assert.equal(commands.length,before);assert.deepEqual(adminMessages,[],'listing the additional POKEY sends no audio or inspector requests');
   await runtime.finalize();assert.equal(disposed,true);
+});
+
+test('copied SPU PCM voice code executes under the complete Playground prologue without shadowing built-in sample',async t=>{
+  const {Ps1Synth}=await import('./ps1synth.js'),{createPs1Client}=await import('./playground_ps1.js');
+  const {runtime,megaDrive}=setup(t,{chip:'ps1',fmChannels:0,psg:false,dac:false});
+  const synth=new Ps1Synth({core:{reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}}});
+  const port={start(){},close(){},postMessage({method,args=[],id}){if(method==='dispose')return;const value=synth[method](...args);if(id!==undefined)queueMicrotask(()=>port.onmessage?.({data:{id,value}}));}},client=createPs1Client(port,{state:synth.getState()});
+  t.after(()=>client.dispose());megaDrive.fm=null;megaDrive.spu=client;megaDrive.primaryEndpoints=[{name:'ps1',globalName:'spu',client}];megaDrive.stopAllNative=()=>client._stopVoices();
+  const pcm=Array.from({length:112},(_,i)=>.4*Math.sin(i*2*Math.PI/112));
+  const voice={sample:7,adsr1:15,adsr2:8,volumeLeft:.3,volumeRight:.2,pitch:4577,reverb:true,waveform:{sample:7,pcm}},channels=Array(24).fill(null);channels[23]=voice;
+  const reverb={preset:'room',volumeLeft:.2,volumeRight:.25};
+  await runtime.playSource(ps1VoiceCode({channels,reverb},23)+"\nspu.noteOn(23,'A4');context.sampleAvailable=typeof sample.load==='function';");
+  const applied=await client.getState();assert.equal(applied.samples.length,1);assert.equal(applied.samples[0].id,0);assert.equal(applied.samples[0].byteLength,64);assert.equal(applied.samples[0].rootFrequencyHz,44100/112);
+  assert.equal(applied.channels[23].sample,0);assert.equal(applied.channels[23].gate,true);assert.equal(applied.channels[23].volumeLeft,.3);assert.deepEqual(applied.reverb,reverb);assert.equal(runtime.context.sampleAvailable,true);
 });
 
 test('Main PS1 primary exposes spu and pg.spu, borrows useSoundChip and releases retiring 24th-voice owners',async t=>{

@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {Ps1Spu} from './ps1_spu.js';
 import {Ps1Synth,preparePs1ADPCM,createPs1InitSample} from './ps1synth.js';
 import {PS1_REVERB_PRESETS} from './ps1_parameters.js';
+import {preparePs1Waveform} from './ps1_waveform.js';
 let sharedModule;
 async function create(t) {
   sharedModule??=Promise.all([import('../docs/generated/ps1_spu_wasm.js'),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',import.meta.url))]).then(([{default:factory},wasmBinary])=>factory({wasmBinary}));
@@ -15,6 +16,39 @@ function render(synth,frames){const left=new Float32Array(frames),right=new Floa
 const peak=values=>values.reduce((v,x)=>Math.max(v,Math.abs(x)),0);
 function frequency(values,rate){let edges=0,first=-1,last=-1;for(let at=1;at<values.length;at++)if(values[at-1]<=0&&values[at]>0){if(first<0)first=at;last=at;edges++;}return (edges-1)*rate/(last-first);}
 function cloneFixture(){const {adpcm,...options}=createPs1InitSample();return {adpcm,options};}
+
+test('PS1 private waveform slots are isolated, reused, and independent of shared sample RAM',async t=>{
+  const{synth,core}=await create(t),shared=load(synth),original=core.readRam(shared.startAddress,64);
+  for(let ch=0;ch<24;ch++)synth.setPreset(ch,{sample:shared});
+  const wave=preparePs1Waveform(Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112)));
+  for(let ch=0;ch<24;ch++){
+    const before=synth.getPreset(ch),sample=synth._setWaveformPrepared(ch,wave);
+    assert.equal(sample.editorChannel,ch);assert.equal(sample.byteLength,64);assert.equal(sample.id,ch+1);assert.equal(sample.startAddress,0x1040+ch*64);
+    assert.deepEqual(synth.getPreset(ch),before,'resource upload does not assign or retrigger a voice');
+    synth.setPreset(ch,{sample});assert.deepEqual(synth.getState().channels[ch].waveform,{sample:sample.id,pcm:wave.pcm});
+    assert.throws(()=>synth.setPreset((ch+1)%24,{sample}),/another channel/);
+  }
+  const allocated=synth.nextAddress,descriptors=synth.samples.map(s=>({...s}));
+  const next=preparePs1Waveform(Array.from({length:112},(_,i)=>i<56?.4:-.4));
+  for(let i=0;i<30;i++)for(let ch=0;ch<24;ch++)synth._setWaveformPrepared(ch,next);
+  assert.equal(synth.nextAddress,allocated);assert.deepEqual(synth.samples,descriptors);assert.deepEqual(core.readRam(shared.startAddress,64),original);
+  const state=synth.getState();state.channels[0].waveform.pcm.fill(0);assert.deepEqual(synth.getState().channels[0].waveform.pcm,next.pcm);
+  synth.stopVoices();assert.deepEqual(synth.getState().channels[23].waveform.pcm,next.pcm);
+  synth.reset();assert.equal(synth.getState().channels[23].waveform,null);assert.equal(synth.samples.length,25);
+  const reused=synth._setWaveformPrepared(23,wave);assert.equal(reused.id,24);assert.equal(synth.nextAddress,allocated);
+  synth.reset({clearRam:true});assert.equal(synth.samples.length,0);assert.equal(synth.nextAddress,0x1000);assert(synth.editorWaveforms.every(value=>value===null));
+});
+
+test('PS1 invalid or full-bank waveform edits are atomic and resource adoption leaves requested voices alone',async t=>{
+  const{synth,core}=await create(t),prepared=preparePs1Waveform(Array(112).fill(.25));load(synth);
+  const before=synth.snapshot();
+  for(const [ch,value]of [[24,prepared],[0,{...prepared,pcm:Array(112).fill(NaN)}],[0,{...prepared,adpcm:prepared.adpcm.slice(0,48)}],[0,{...prepared,extra:1}]])assert.throws(()=>synth._setWaveformPrepared(ch,value));
+  assert.deepEqual(synth.snapshot(),before);
+  const bytes=new Uint8Array(524288-synth.nextAddress);bytes[bytes.length-15]=1;synth.loadADPCM(bytes,{rootNote:60});
+  const full=synth.snapshot();assert.throws(()=>synth._setWaveformPrepared(0,prepared),/full/);assert.deepEqual(synth.snapshot(),full);
+  const resources=synth._getResources();synth.setPitch(23,1234);synth._adoptResources(resources);assert.equal(synth.getPreset(23).pitch,1234);
+  resources.samples[0].startAddress=0;assert.equal(synth.samples[0].startAddress,0x1000);assert.equal(core.nativeFrames,0);
+});
 
 test('SPU ADPCM validation requires complete packets, explicit tuning, final END and a matching aligned loop',()=>{
   const {adpcm,options}=cloneFixture();

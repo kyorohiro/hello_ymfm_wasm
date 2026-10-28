@@ -28,6 +28,9 @@ try {
   for(const file of ['ps1_parameters.js','ps1_parameters.d.ts']) {
     assert.ok(packedPaths.has(file),`PS1 named envelope/reverb parameters payload missing ${file}`);
   }
+  for(const file of ['ps1_waveform.js','ps1_waveform.d.ts']) {
+    assert.ok(packedPaths.has(file),`PS1 PCM waveform preparation payload missing ${file}`);
+  }
   for(const file of ['ps1_spu.js','ps1_spu.d.ts',...['ps1synth','ps1_resampler','playground_ps1','playground_ps1_audio','playground_ps1_worklet','playground_ps1_inspector'].flatMap(name=>[name+'.js',name+'.d.ts']),'generated/ps1_spu_wasm.js','generated/ps1_spu_wasm.wasm','generated/ps1_spu_build.json',
     'licenses/mame-ps1-spu/LICENSE','licenses/mame-ps1-spu/README.md','sources/PS1-SPU.md','sources/PS1-SPU.json',
     'sources/scripts/build_ps1_spu_wasm.sh',...['ps1_spu.cpp','ps1_spu.h','spu.cpp','spu.h','spu_tables.cpp','spureverb.cpp','spureverb.h',
@@ -112,6 +115,7 @@ import {Ps1Resampler} from 'tetorica-fm2612/ps1_resampler.js';
 import {decodePs1Envelope,encodePs1Envelope,patchPs1Envelope,PS1_REVERB_PRESETS} from 'tetorica-fm2612/ps1_parameters.js';
 import {encodePs1Envelope as extensionlessEnvelope} from 'tetorica-fm2612/ps1_parameters';
 import {createPs1Client} from 'tetorica-fm2612/playground_ps1.js';
+import {preparePs1Waveform,PS1_WAVEFORM_FRAMES,PS1_WAVEFORM_BYTES,PS1_WAVEFORM_FREQUENCY_HZ} from 'tetorica-fm2612/ps1_waveform.js';
 import moduleFactory from 'tetorica-fm2612/generated/ps1_spu_wasm.js';
 import {runtimeAssetUrl} from 'tetorica-fm2612/assets';
 assert.equal(Ps1Spu,extensionless);assert.equal(PS1_SPU_SAMPLE_RATE,44100);assert.equal(PS1_SPU_RAM_BYTES,524288);
@@ -170,6 +174,19 @@ try{
  assert.deepEqual(instrument.core.readRam(sample.startAddress,sample.byteLength),savedRam.subarray(sample.startAddress,sample.startAddress+sample.byteLength));assert.equal(instrument.nextAddress,savedNext);
  instrument.reset({clearRam:true});assert.equal(instrument.getState().samples.length,0);
  assert.deepEqual(instrument.getState().reverb,{preset:'off',volumeLeft:.25,volumeRight:.25});assert(instrument.getState().channels.every(channel=>channel.reverb===false));
+ assert.equal(PS1_WAVEFORM_FRAMES,112);assert.equal(PS1_WAVEFORM_BYTES,64);assert.equal(PS1_WAVEFORM_FREQUENCY_HZ,44100/112);
+ const pcm=Float32Array.from({length:112},(_,i)=>.4*Math.sin(i*2*Math.PI/112)),prepared=preparePs1Waveform(pcm);
+ const editorSample=instrument._setWaveformPrepared(23,prepared);
+ instrument.setPreset(23,{sample:editorSample});instrument.noteOn(23,'A4');
+ instrument.renderInto(left,right);assert(left.some(value=>Math.abs(value)>.01)&&left.every(Number.isFinite));
+ const editorNext=instrument.nextAddress;
+ for(let i=0;i<8;i++)assert.equal(instrument._setWaveformPrepared(23,prepared).id,editorSample.id);
+ assert.equal(instrument.nextAddress,editorNext);assert.equal(instrument.getState().samples.length,1);
+ assert.deepEqual(instrument.getState().channels[23].waveform,{sample:editorSample.id,pcm:Array.from(pcm)});
+ assert.throws(()=>instrument.setPreset(0,{sample:editorSample}));
+ const regular=instrument.loadADPCM(adpcm,options);assert.equal(regular.id,1);assert.equal(regular.startAddress,editorNext);
+ instrument.setPreset(0,{sample:regular});instrument.keyOn(0);instrument.renderInto(left,right);assert(left.every(Number.isFinite));
+ instrument.stopVoices();instrument.renderInto(left,right);assert(left.every(value=>value===0));
 }finally{instrument.dispose();instrument.dispose();}
 assert.throws(()=>instrument.getState(),/disposed/);
 assert.equal(typeof globalThis.AudioContext,'undefined');

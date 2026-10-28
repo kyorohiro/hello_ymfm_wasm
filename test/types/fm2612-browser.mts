@@ -164,6 +164,11 @@ renderPs1SamplePreview(ps1Edited,{}, {moduleFactory:'ps1'});
 // @ts-expect-error Only supported instrument targets may be selected.
 createSampleInstrument({pg:{},audio:ps1Edited,target:'psf'});
 import {encodePs1Adpcm,DEFAULT_PS1_ADPCM_MAX_BYTES} from 'tetorica-fm2612/ps1_adpcm_encoder.js';
+import {preparePs1Waveform,PS1_WAVEFORM_FRAMES} from 'tetorica-fm2612/ps1_waveform.js';
+preparePs1Waveform(new Float32Array(112)).adpcm.byteLength.toFixed();
+preparePs1Waveform(Array(112).fill(0)).pcm[0]!.toFixed();PS1_WAVEFORM_FRAMES.toFixed();
+// @ts-expect-error The PCM-cycle helper takes normalized floating samples, not an encoded byte array.
+preparePs1Waveform(new Uint8Array(112));
 const encodedPs1 = encodePs1Adpcm(new Float32Array(112), {loopStartSamples:0, maxBytes:64});
 encodedPs1.adpcm.byteLength.toFixed(); encodedPs1.blockCount.toFixed();
 encodedPs1.metrics.snrDb?.toFixed(); DEFAULT_PS1_ADPCM_MAX_BYTES.toFixed();
@@ -365,6 +370,8 @@ ps1Instrument.noteOn(23,'A4');ps1Instrument.stopVoices();
 ps1Instrument.setEnvelope(23,{attackRate:25,sustainDecrease:true,releaseRate:13});
 ps1Instrument.setReverb(ps1Reverb);ps1Instrument.setPreset(23,{reverb:true});
 ps1Instrument.getState().channels[23]!.envelopeParameters.releaseRate.toFixed();
+ps1Instrument.getState().channels[23]!.waveform?.pcm[0]!.toFixed();
+ps1Instrument.getState().samples[0]?.editorChannel?.toFixed();
 ps1Instrument.getState().reverb.volumeLeft.toFixed();
 new Ps1Resampler(ps1Instrument,48000).render(new Float32Array(128),new Float32Array(128));
 const ps1Client=createPs1Client(new MessageChannel().port1);

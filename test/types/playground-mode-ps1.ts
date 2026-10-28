@@ -32,6 +32,10 @@ async function checkPs1ModeTypes() {
   spu.setEnvelope(23,{attackRate:40,attackExponential:true,decayRate:4,sustainLevel:8,sustainRate:127,sustainDecrease:true,sustainExponential:false,releaseRate:8,releaseExponential:true});
   spu.setPreset(23,{reverb:true});spu.setReverb({preset:'hall',volumeLeft:.25,volumeRight:.3});
   (await spu.getState()).reverb.preset.toUpperCase();(await spu.getState()).channels[23].envelopeParameters.attackRate.toFixed();
+  (await spu.getState()).channels[23].waveform?.pcm[0].toFixed();
+  (await spu.getState()).samples[0].editorChannel?.toFixed();
+  // @ts-expect-error Direct PCM drawing belongs to the SPU-tab inspector; scripts use encodePs1Adpcm/loadADPCM.
+  spu.setWaveform(23,new Float32Array(112));
   // @ts-expect-error Only implemented named reverb approximations are exposed.
   spu.setReverb({preset:'delay'});
   // @ts-expect-error Per-voice reverb routing is boolean.

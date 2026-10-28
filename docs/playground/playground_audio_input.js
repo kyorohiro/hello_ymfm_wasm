@@ -9,7 +9,7 @@ export function createPlaygroundAudioInput({document:doc = globalThis.document, 
   decodeAudio,playPreview,
   mediaDevices = globalThis.navigator?.mediaDevices, Recorder = globalThis.MediaRecorder,
   recordingSeconds = 60, defaultTarget = 'rf5c164', loadAsset, saveAsset,
-  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=ps1-voice-editor-1', import.meta.url), {type:'module'})} = {}) {
+  workerFactory = () => new Worker(new URL('./playground_sample_editor_worker.js?v=ps1-pcm-waveform-1', import.meta.url), {type:'module'})} = {}) {
   let active = false,stopCurrentPreview=()=>{};
   const inputAudio=function(options = {}, {signal} = {}) {
     signal?.throwIfAborted();

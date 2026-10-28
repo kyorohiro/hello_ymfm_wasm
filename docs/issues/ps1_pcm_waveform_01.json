@@ -1,0 +1,1299 @@
+{
+  "schemaVersion": 1,
+  "task": "ps1-per-voice-pcm-waveform-editor",
+  "date": "2026-10-28",
+  "baseCommit": "6bd7fdfc12e973b43da11d59728db078d9f82ac2",
+  "status": "implemented and locally verified; unpublished",
+  "implementation": {
+    "physicalVoices": 24,
+    "pcmFrames": 112,
+    "pcmRange": [
+      -1,
+      1
+    ],
+    "adpcmBytes": 64,
+    "loopStartSamples": 0,
+    "frequencyAtPitch4096": 393.75,
+    "slotAllocation": "one lazy reusable private sample per physical voice",
+    "maximumEditorSlotBytes": 1536,
+    "ordinarySamplesRemainShareable": true,
+    "encodeOnPreparationSide": true,
+    "workletEncoderImport": false,
+    "workletStaticImportModules": 58,
+    "pointerMoveAudioWrites": false,
+    "pollingAdded": false,
+    "resourceSynchronization": "resource-only applied notifications with bank epochs and per-client accepted-reset fences; queued voice settings preserved",
+    "privateSlotsExcludedFromPolyphonicSampleReuse": true,
+    "portableCopyCode": true,
+    "cacheRevision": "ps1-pcm-waveform-1"
+  },
+  "tests": [
+    {
+      "group": "focused core/admin, UI, sample instruments, ownership and tabs",
+      "passed": 185,
+      "skipped": 0,
+      "overlapWithFocusedPanel": 0,
+      "log": "/private/tmp/ps1-pcm-unit.log",
+      "logSha256": "99dd550266ba3a6e019043e04dfd86d2cd3456ea1b30b61b39d6c593ef49ddf1"
+    },
+    {
+      "group": "final Main runtime and panel, including complete-prologue copied-code regression",
+      "passed": 177,
+      "skipped": 0,
+      "overlapWithFocusedPanel": 26,
+      "log": "/private/tmp/ps1-pcm-copy-regression.log",
+      "logSha256": "3b4e90b74d64af6f33175d9e55cd558e7febb6469ab86fbb4fbd742ae1aed373"
+    },
+    {
+      "group": "Worker runtime",
+      "passed": 110,
+      "skipped": 0,
+      "overlapWithFocusedPanel": 0,
+      "log": "/private/tmp/ps1-pcm-worker.log",
+      "logSha256": "2301f39754459a2d4575d356c2193c683e03e7c1d7655959a3042f940a9259d0"
+    }
+  ],
+  "types": {
+    "allPlaygroundModes": "pass",
+    "installedNodeNextBundlerBrowserPositiveNegative": "pass"
+  },
+  "browser": {
+    "source": {
+      "passed": true,
+      "routes": 4,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "servedAssetsVerified": 287,
+      "rawReport": "/private/tmp/ps1-pcm-source.json",
+      "rawReportSha256": "5840e5e5d5987cabbcca6e7263908b5ea8ad7b2dd040c6fd67b9bb4f7a2f51e3",
+      "checkerSha256": "1bd6c3c254629ad0c3462f7408480de3625f54d50c203a458837e3c6fe199cd4",
+      "archive": null,
+      "selectedServedSources": {
+        "js/playground_chip_inspector.js": {
+          "bytes": 9452,
+          "sha256": "e15e7d8ce62c9724c26fb472e2783d8fc2df16184d374ec247b5ae75811b4995"
+        },
+        "js/playground_ps1_inspector.js": {
+          "bytes": 5519,
+          "sha256": "710a364945ee4428b921996bf32b01136afc65bebe46d6cf2402253b8fc7ac33"
+        },
+        "js/playground_ps1_worklet.js": {
+          "bytes": 7185,
+          "sha256": "baed3960bdd03fad5f8c5ec6e8fcaf00d02c24a99b400bbb24b27f05c98cd17b"
+        },
+        "js/playground_ps1.js": {
+          "bytes": 8162,
+          "sha256": "158ca91b07e643924c39987ecedb5d69ab1c96dcba81b9ffd06b3e81833b8f5d"
+        },
+        "js/playground_sample_instrument.js": {
+          "bytes": 12202,
+          "sha256": "05f5993967673122560396e998db46700d2cd17920e999fc6df3788293746e3f"
+        },
+        "js/ps1_waveform.js": {
+          "bytes": 1129,
+          "sha256": "db054aba624bfb7d90f1551bd44f17d18a54010f4f25c12ebd2efef62da15886"
+        },
+        "js/ps1synth.js": {
+          "bytes": 19857,
+          "sha256": "75dfc9b1ca58a06f17b620c0fc450840f3de9b5d26cac690e667d53869de6073"
+        },
+        "playground/playground_ps1_voice_panel.js": {
+          "bytes": 29101,
+          "sha256": "ff2b556831329bbba0d61a22f5b95e6698501b14b0bc8caa1ae8d10e103c6e3a"
+        },
+        "playground/playground.js": {
+          "bytes": 124828,
+          "sha256": "6ca1008f856af2f8df4cd27f4c140ccb58e65fda72f103cd9a2817a53bf1230d"
+        }
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9733333587646484,
+              0.9733333587646484
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.0008788659527879677,
+                0.0008788659527879677
+              ],
+              "square": [
+                0.33283266247457005,
+                0.33283266247457005
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            439.9825373798,
+            439.9825373798
+          ],
+          "squareFrequencyHz": [
+            439.9869279456,
+            439.9869279456
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0918726911,
+              0.0918726911
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.0415689832,
+            0.0300544708
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.0911208579,
+            0.0911208579
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-pcm-ui/chromium-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-pcm-ui/chromium-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            },
+            {
+              "label": "pcm-desktop",
+              "path": "/private/tmp/ps1-pcm-ui/chromium-ps1-pcm-desktop.png"
+            }
+          ]
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9733333587646484,
+              0.9733333587646484
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.001636696645553922,
+                0.001636696645553922
+              ],
+              "square": [
+                0.3335104279394509,
+                0.3335104279394509
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            440.000174974,
+            440.000174974
+          ],
+          "squareFrequencyHz": [
+            439.9943317612,
+            439.9943317612
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0918256094,
+              0.0918256094
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.0407155401,
+            0.0288217804
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.0911208579,
+            0.0911208579
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9700000286102295,
+              0.9766666889190674
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.002079314079763939,
+                0.002079314079763939
+              ],
+              "square": [
+                0.3334954523436496,
+                0.3334954523436496
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            439.9876344316,
+            439.9876344316
+          ],
+          "squareFrequencyHz": [
+            439.990449023,
+            439.990449023
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0918275696,
+              0.0918275696
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.0414577367,
+            0.0301390605
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.0914709887,
+            0.0914709887
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-pcm-ui/webkit-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-pcm-ui/webkit-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            },
+            {
+              "label": "pcm-desktop",
+              "path": "/private/tmp/ps1-pcm-ui/webkit-ps1-pcm-desktop.png"
+            }
+          ]
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9700000286102295,
+              0.9766666889190674
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.0004012398690185423,
+                0.0004012398690185423
+              ],
+              "square": [
+                0.33106342108867626,
+                0.33106342108867626
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            440.0006766846,
+            440.0006766846
+          ],
+          "squareFrequencyHz": [
+            439.9840502214,
+            439.9840502214
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0918826042,
+              0.0918826042
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.04061741,
+            0.0282600079
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.091514628,
+            0.091514628
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": []
+        }
+      ]
+    },
+    "run-zip": {
+      "passed": true,
+      "routes": 4,
+      "publicUiOnly": true,
+      "repositoryFallback": false,
+      "physicalOutputMuted": true,
+      "listeningPerformed": false,
+      "servedAssetsVerified": 215,
+      "rawReport": "/private/tmp/ps1-pcm-run-zip.json",
+      "rawReportSha256": "16d0f4f8a98cf4282a301c57cb41ca3d3d32b42ebbfbab9861ba02d5e776eee2",
+      "checkerSha256": "1bd6c3c254629ad0c3462f7408480de3625f54d50c203a458837e3c6fe199cd4",
+      "archive": {
+        "path": "/Users/kyorohiro/development8/wfm/hello_ymfm/release/hello_ymfm_wasm_ps1-pcm-waveform-dev_itch_playground_for_run.zip",
+        "bytes": 37281673,
+        "sha256": "7934d7ae4f88ef7d73a588f7bf815e9f21e1fc44e42af02447cf68561c5f7348"
+      },
+      "selectedServedSources": {
+        "js/playground_chip_inspector.js": {
+          "bytes": 9452,
+          "sha256": "e15e7d8ce62c9724c26fb472e2783d8fc2df16184d374ec247b5ae75811b4995"
+        },
+        "js/playground_ps1_inspector.js": {
+          "bytes": 5519,
+          "sha256": "710a364945ee4428b921996bf32b01136afc65bebe46d6cf2402253b8fc7ac33"
+        },
+        "js/playground_ps1_worklet.js": {
+          "bytes": 7185,
+          "sha256": "baed3960bdd03fad5f8c5ec6e8fcaf00d02c24a99b400bbb24b27f05c98cd17b"
+        },
+        "js/playground_ps1.js": {
+          "bytes": 8162,
+          "sha256": "158ca91b07e643924c39987ecedb5d69ab1c96dcba81b9ffd06b3e81833b8f5d"
+        },
+        "js/playground_sample_instrument.js": {
+          "bytes": 12202,
+          "sha256": "05f5993967673122560396e998db46700d2cd17920e999fc6df3788293746e3f"
+        },
+        "js/ps1_waveform.js": {
+          "bytes": 1129,
+          "sha256": "db054aba624bfb7d90f1551bd44f17d18a54010f4f25c12ebd2efef62da15886"
+        },
+        "js/ps1synth.js": {
+          "bytes": 19857,
+          "sha256": "75dfc9b1ca58a06f17b620c0fc450840f3de9b5d26cac690e667d53869de6073"
+        },
+        "playground.js": {
+          "bytes": 847470,
+          "sha256": "fee856f9358469a94e77541d0d58a2f80cebeb7ceb6202510090782c9dfd62ec"
+        }
+      },
+      "results": [
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "main",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9733333587646484,
+              0.9733333587646484
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.0016370593200949878,
+                0.0016370593200949878
+              ],
+              "square": [
+                0.333524416934671,
+                0.333524416934671
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            439.9906358908,
+            439.9906358908
+          ],
+          "squareFrequencyHz": [
+            439.9905644514,
+            439.9905644514
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0919051494,
+              0.0919051494
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.0415108977,
+            0.0304892714
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.0911208579,
+            0.0911208579
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-pcm-zip-ui/chromium-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-pcm-zip-ui/chromium-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            },
+            {
+              "label": "pcm-desktop",
+              "path": "/private/tmp/ps1-pcm-zip-ui/chromium-ps1-pcm-desktop.png"
+            }
+          ]
+        },
+        {
+          "browser": "chromium",
+          "version": "153.0.8010.12",
+          "execution": "worker",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9733333587646484,
+              0.9733333587646484
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.0008501604408768793,
+                0.0008501604408768793
+              ],
+              "square": [
+                0.3308292083391805,
+                0.3308292083391805
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            439.9837463032,
+            439.9837463032
+          ],
+          "squareFrequencyHz": [
+            439.9920414196,
+            439.9920414196
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0918569643,
+              0.0918569643
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.040780569,
+            0.0283473649
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.0911210005,
+            0.0911210005
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": []
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "main",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9700000286102295,
+              0.9766666889190674
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.0016469161737507115,
+                0.0016469161737507115
+              ],
+              "square": [
+                0.3334035616381264,
+                0.3334035616381264
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            439.9947992528,
+            439.9947992528
+          ],
+          "squareFrequencyHz": [
+            439.9954568039,
+            439.9954568039
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0918726911,
+              0.0918726911
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.0410319811,
+            0.0292099712
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.0917908526,
+            0.0917908526
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": [
+            {
+              "label": "desktop",
+              "path": "/private/tmp/ps1-pcm-zip-ui/webkit-ps1-voice-desktop.png",
+              "viewport": 1600,
+              "document": 1600,
+              "panel": 1384
+            },
+            {
+              "label": "mobile",
+              "path": "/private/tmp/ps1-pcm-zip-ui/webkit-ps1-voice-mobile.png",
+              "viewport": 390,
+              "document": 390,
+              "panel": 195
+            },
+            {
+              "label": "pcm-desktop",
+              "path": "/private/tmp/ps1-pcm-zip-ui/webkit-ps1-pcm-desktop.png"
+            }
+          ]
+        },
+        {
+          "browser": "webkit",
+          "version": "26.6",
+          "execution": "worker",
+          "waveform": {
+            "privateSample": {
+              "id": 1,
+              "startAddress": 4160,
+              "repeatAddress": 4160,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0,
+              "editorChannel": 23
+            },
+            "sampleCount": 2,
+            "nextAddress": 4224,
+            "sharedDefaultPreserved": true,
+            "otherVoicesPreserved": true,
+            "canceledStrokeWrites": 0,
+            "completedStrokeWrites": 1,
+            "stableRamAcrossEdits": true,
+            "preparedBytesCrossPort": true,
+            "drawnRange": [
+              -0.9700000286102295,
+              0.9766666889190674
+            ],
+            "harmonicRatios": {
+              "sine": [
+                0.0002085461129165172,
+                0.0002085461129165172
+              ],
+              "square": [
+                0.3328646518148561,
+                0.3328646518148561
+              ]
+            }
+          },
+          "sineFrequencyHz": [
+            439.989334332,
+            439.989334332
+          ],
+          "squareFrequencyHz": [
+            439.9867570965,
+            439.9867570965
+          ],
+          "portableCopy": {
+            "publicUploadAfterEditor": {
+              "id": 2,
+              "startAddress": 4224,
+              "repeatAddress": 4224,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankSample": {
+              "id": 0,
+              "startAddress": 4096,
+              "repeatAddress": 4096,
+              "byteLength": 64,
+              "decodedFrames": 112,
+              "rootNote": null,
+              "rootFrequencyHz": 393.75,
+              "basePitch": 4096,
+              "loop": true,
+              "loopStartSamples": 0
+            },
+            "copiedFreshBankNextAddress": 4160,
+            "exactEncodedBytes": true,
+            "encodedSha256": "c8709f508441296f53cbd1da5577f7974c50053b2d9d9458c0940d5309cfb9d7",
+            "pcmRms": [
+              0.0919103586,
+              0.0919103586
+            ],
+            "stopPeak": [
+              0,
+              0
+            ]
+          },
+          "namedAdsrFieldsValidated": 9,
+          "adsrReservedBitAndOtherVoicesPreserved": true,
+          "ownedNoteRetrigger": true,
+          "directAuditionAfterStop": true,
+          "stopRetainsReverbParameters": true,
+          "wetTailRms": [
+            0.0411272563,
+            0.0291535879
+          ],
+          "keyboard": {
+            "channel": 23,
+            "floatingKeyboard": true,
+            "hiddenInspectorRequests": 0,
+            "idleInspectorRequests": 0,
+            "channelChangeRelease": true,
+            "hideRelease": true,
+            "windowBlurRelease": true
+          },
+          "disconnectReleasesAudition": true,
+          "errorRecoveryRms": [
+            0.091514628,
+            0.091514628
+          ],
+          "capture": {
+            "segments": 20,
+            "frames": 233472,
+            "frameGaps": 0,
+            "nonFiniteSamples": 0,
+            "physicalOutputMuted": true
+          },
+          "screenshots": []
+        }
+      ]
+    }
+  },
+  "npm": {
+    "version": "0.2.32",
+    "files": 991,
+    "compressedBytes": 1891805,
+    "unpackedBytes": 7069469,
+    "declarations": 383,
+    "localAssetModuleReferences": 1089,
+    "wasmEngines": 28,
+    "rendererChecks": 15,
+    "verifiedFinalSourceEquality": [
+      "ps1_waveform.js",
+      "ps1synth.js",
+      "playground_ps1.js",
+      "playground_ps1_inspector.js",
+      "playground_ps1_worklet.js",
+      "playground_chip_inspector.js",
+      "playground_sample_instrument.js"
+    ],
+    "log": "/private/tmp/ps1-pcm-npm.log",
+    "logSha256": "51cc3e552fd777d1aa2e744c776bb186470879a6ad8e0170b8c8f60bdbdff0d1",
+    "published": false
+  },
+  "packaging": {
+    "standardThreeCommands": "pass",
+    "archives": [
+      {
+        "path": "release/hello_ymfm_wasm_ps1-pcm-waveform-dev_itch_synth.zip",
+        "stage": "release/itch_synth_ps1-pcm-waveform-dev",
+        "entries": 231,
+        "files": 203,
+        "bytes": 778783,
+        "expandedBytes": 2364111,
+        "sha256": "bdd5cb62ee30f9f46379a9b6941c674ce2be4100602371abf1829b31a626e5b9",
+        "crc": "pass",
+        "paths": "safe",
+        "stageBytes": "all equal"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ps1-pcm-waveform-dev_itch_vgm_analyzer.zip",
+        "stage": "release/itch_vgm_analyzer_ps1-pcm-waveform-dev",
+        "entries": 463,
+        "files": 421,
+        "bytes": 1900076,
+        "expandedBytes": 5749672,
+        "sha256": "cd8193d75a232eec20a022ec784f6ddeebfb326edad9e099479ba3fc798f97e0",
+        "crc": "pass",
+        "paths": "safe",
+        "stageBytes": "all equal"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ps1-pcm-waveform-dev_itch_playground.zip",
+        "stage": "release/itch_playground_ps1-pcm-waveform-dev",
+        "entries": 1170,
+        "files": 1055,
+        "bytes": 36944166,
+        "expandedBytes": 43063890,
+        "sha256": "a9255a9e33d0f08ed5e347007aea7ec1d8f214ab8dcb28aad36dce3de796e99a",
+        "crc": "pass",
+        "paths": "safe",
+        "stageBytes": "all equal"
+      },
+      {
+        "path": "release/hello_ymfm_wasm_ps1-pcm-waveform-dev_itch_playground_for_run.zip",
+        "stage": "release/itch_playground_ps1-pcm-waveform-dev_for_run",
+        "entries": 923,
+        "files": 923,
+        "bytes": 37281673,
+        "expandedBytes": 42710360,
+        "sha256": "7934d7ae4f88ef7d73a588f7bf815e9f21e1fc44e42af02447cf68561c5f7348",
+        "crc": "pass",
+        "paths": "safe",
+        "stageBytes": "all equal"
+      }
+    ],
+    "crc": "pass",
+    "safePaths": "pass",
+    "allStageBytes": "equal",
+    "itchRunLimit": 1000
+  },
+  "otherChecks": {
+    "analyzerCalibrationReferences": 8,
+    "analyzerCalibrationGuard": "pass",
+    "actionlint": "pass",
+    "runtimeVersionerChangedModules": 0,
+    "visualReview": [
+      "Chromium PCM desktop",
+      "WebKit PCM desktop"
+    ]
+  },
+  "unchanged": [
+    "C++ cores",
+    "WASM binaries and receipts",
+    "Mixer gains",
+    "fixed SDK",
+    "Tauri Native",
+    "package versions"
+  ],
+  "publication": {
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "npm": false,
+    "itch": false,
+    "sdkOrTauriImport": false,
+    "remoteCiRun": false
+  },
+  "remaining": [
+    "Human listening and hardware comparison",
+    "PS1 SDK source and recipe adoption",
+    "Tauri Native audio adapter"
+  ]
+}

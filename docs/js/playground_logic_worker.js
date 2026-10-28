@@ -7,7 +7,7 @@ import {createPerformanceSender} from './playground_performance_sender.js?v=ps1-
 import {midiToOpnPitch, opnPitchFromHz} from './soundchip_pitch.js';
 import {CHIP_CLOCKS} from './playground_chip_clock.js?v=pokey-prepare-1';
 import {createNesClient} from './playground_nes.js?v=pokey-prepare-1';
-import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=ps1-voice-editor-1';
+import {borrowNativeApi, createNativeWorkerApis, createNativePrimaryClient} from './playground_native_primary.js?v=ps1-pcm-waveform-1';
 import {createDx7Client} from './playground_dx7.js?v=y8950-adpcm-ui-1';
 import {createPWM32XClient} from './pwm32x_playback.js?v=pokey-prepare-1';
 import {OPL_CHIPS} from './playground_opl.js?v=pokey-prepare-1';
@@ -22,7 +22,7 @@ import {createOpnClient} from './playground_opn.js?v=ps1-mode-1';
 import {createSoundChipRegistry} from './playground_soundchips.js?v=ps1-mode-1';
 import {validateSoundChipOptions} from './playground_soundchip_options.js?v=pokey-mode-1';
 import {createMusicalKeyboard, createKeyboardApiGuard, keyboardBinding, registerKeyboardScope} from './playground_keyboard.js?v=audio-numeric-bindings-1';
-import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=ps1-sample-editor-1';
+import {createSampleInstrument as createSampleInstrumentFactory} from './playground_sample_instrument.js?v=ps1-pcm-waveform-1';
 import {createGameboyClient} from './playground_gameboy.js?v=pokey-prepare-1';
 import {createYm2608Client} from './playground_ym2608.js?v=ps1-mode-1';
 import {createRf5c164Client} from './playground_rf5c164.js?v=pokey-prepare-1';

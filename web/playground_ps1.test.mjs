@@ -4,8 +4,24 @@ import {createPs1Client} from './playground_ps1.js';
 import {createPs1Audio} from './playground_ps1_audio.js';
 import {Ps1Synth,createPs1InitSample} from './ps1synth.js';
 import {createPerformanceSender} from './playground_performance_sender.js';
+import {preparePs1Waveform} from './ps1_waveform.js';
 const core=()=>({reset(){},loadRam(){},write(){},read(){return 0;},readRam(){return new Uint8Array(524288);},renderInto(){},dispose(){}});
 function rpc(){const channel=new MessageChannel(),synth=new Ps1Synth({core:core()}),posts=[];channel.port1.onmessage=({data})=>{posts.push(data);if(data.method==='dispose')return;try{const value=synth[data.method](...data.args);if(data.id!==undefined)channel.port1.postMessage({id:data.id,value});}catch(error){channel.port1.postMessage({id:data.id,error:error.message,name:error.name});}};return{client:createPs1Client(channel.port2),synth,posts,remote:channel.port1,close(){this.client.dispose();channel.port1.close();}};}
+test('PS1 resource broadcasts are fenced across own clears, remote bank replacement and disposal',async()=>{
+ const posts=[],port={postMessage:data=>posts.push(data),start(){},close(){}},client=createPs1Client(port),server=new Ps1Synth({core:core()});
+ const event=(revision,bankEpoch,resourceFence)=>port.onmessage({data:{type:'ps1-resources',revision,bankEpoch,resourceFence,resources:server._getResources()}});
+ try{
+  const{adpcm,...options}=createPs1InitSample();server.loadADPCM(adpcm,options);event(1,5,0);client.setPreset(0,{sample:0,pitch:1234});
+  client.reset({clearRam:true});assert.equal(posts.at(-1).resourceFence,1);event(2,5,0);assert.equal(client._getState().samples.length,0,'old-fence broadcasts cannot restore a cleared bank');
+  server.reset({clearRam:true});event(3,7,1);const pending=client.loadADPCM(adpcm,options),request=posts.at(-1),sample=server.loadADPCM(adpcm,options);event(4,7,1);port.onmessage({data:{id:request.id,value:sample}});assert.equal((await pending).id,0);
+  client.setPreset(0,{sample:0,pitch:2345});const obsolete=client.loadADPCM(adpcm,options),oldRequest=posts.at(-1),oldSample=server.loadADPCM(adpcm,options);
+  server.reset({clearRam:true});const privateSample=server._setWaveformPrepared(23,preparePs1Waveform(Array(112).fill(.25)));event(5,8,1);
+  assert.equal(client._getState().channels[0].sample,null,'a remote clear invalidates sample references without resetting requested pitch');assert.equal(client._getState().channels[0].pitch,2345);assert.throws(()=>client.keyOn(0),/Assign/);assert.throws(()=>client.setPreset(0,{sample:privateSample}),/another channel/);
+  port.onmessage({data:{id:oldRequest.id,value:oldSample}});await assert.rejects(obsolete,{name:'AbortError'});assert.equal(client._getState().samples.length,1);
+  server.reset({clearRam:true});event(4,7,1);assert.equal(client._getState().samples.length,1,'out-of-order resource revisions are ignored');
+  const receive=port.onmessage;client.dispose();receive({data:{type:'ps1-resources',revision:99,bankEpoch:99,resourceFence:1,resources:server._getResources()}});assert.equal(port.onmessage,null);
+ }finally{client.dispose();server.dispose();}
+});
 test('PS1 client owns uploads, validates all24 voices and preserves sample reservations on reset',async t=>{
  const p=rpc();t.after(()=>p.close());const{adpcm,...options}=createPs1InitSample(),before=adpcm.slice();const sample=await p.client.loadADPCM(adpcm,options);assert.deepEqual(adpcm,before);assert.equal(sample.startAddress,0x1000);p.client.setPreset(23,{sample});p.client.noteOn(23,69);assert.equal((await p.client.getState()).channels[23].gate,true);assert.throws(()=>p.client.keyOn(24),/channel/);assert.throws(()=>p.client.setPitch(23,0x4000),/pitch/);p.client.reset();assert.equal((await p.client.getState()).samples.length,1);p.client.reset({clearRam:true});assert.equal((await p.client.getState()).samples.length,0);await assert.rejects(p.client.loadADPCM(adpcm,{rootNote:60}),/loopStartSamples/);assert.equal((await p.client.loadADPCM(adpcm,options)).id,0);
 });

@@ -98,7 +98,7 @@ export function createPlaygroundModeUrl(href, id) {
 export function createModeSynthOptions(mode, base = new URL('../js/', import.meta.url)) {
   const generated = new URL('generated/', new URL('../', base));
   if (mode.chip === 'ps1') return {chip:'ps1',
-    workletUrl:new URL('./playground_ps1_worklet.js?v=ps1-voice-editor-1',base).href,
+    workletUrl:new URL('./playground_ps1_worklet.js?v=ps1-pcm-waveform-1',base).href,
     wasmUrl:new URL('ps1_spu_wasm.wasm',generated).href,
     segaPsgWasmUrl:null,megaCD:false,mega32X:false};
   if (mode.chip === 'pokey') return {

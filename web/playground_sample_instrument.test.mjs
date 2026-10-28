@@ -504,6 +504,22 @@ test('repeated PS1 instrument preparation verifies and reuses exact RAM bytes ac
   assert.equal(f.reads.length, preparedReads, 'notes and releases never poll or snapshot RAM');
 });
 
+test('PS1 polyphonic instruments never reuse a channel-owned editor slot even when its RAM and tuning match', async () => {
+  const f = await ps1Fixture(), input = audio({frames:112, sampleRate:44100,
+    loopEnabled:true, loopStartFrame:0, loopEndFrame:112}), selected = ps1Edited(input);
+  await f.spu.loadADPCM(selected.adpcm, {baseFrequencyHz:selected.baseFrequencyHz, loopStartSamples:0});
+  f.samples[0].editorChannel = 23;
+  const original = f.ram.slice(0x1000, 0x1000 + selected.adpcm.length);
+  const first = await createSampleInstrument({pg:f.pg, audio:input, chip:'ps1'});
+  await first.noteOn(event('first'));
+  assert.equal(f.commands.find(command => command[0] === 'preset')[2].sample, 1);
+  assert.equal(f.samples.length, 2, 'a shareable upload is created beside the private editor slot');
+  assert.deepEqual(f.ram.slice(0x1000, 0x1000 + original.length), original);
+  await first.allNotesOff();
+  await createSampleInstrument({pg:f.pg, audio:input, chip:'ps1'});
+  assert.equal(f.samples.length, 2, 'subsequent preparations reuse the shareable upload');
+});
+
 test('PS1 preparation appends changed PCM and never trusts equal metadata or a previous sample ID', async () => {
   const f = await ps1Fixture(), input = audio({frames: 112, sampleRate: 44100});
   const first = await createSampleInstrument({pg: f.pg, audio: input, chip: 'ps1'});

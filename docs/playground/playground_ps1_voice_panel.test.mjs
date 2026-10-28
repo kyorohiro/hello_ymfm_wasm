@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {createPlaygroundPs1VoicePanel} from './playground_ps1_voice_panel.js';
+import {createPlaygroundPs1VoicePanel, ps1VoiceCode} from './playground_ps1_voice_panel.js';
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 class Events {
@@ -18,6 +18,7 @@ class Element extends Events {
   setCustomValidity(value) {this.validityMessage = value;}
   reportValidity() {}
   setPointerCapture() {}
+  getBoundingClientRect() {return {left:0, top:0, width:800, height:180};}
   getContext() {return this.context ?? null;}
 }
 const walk = root => [root, ...root.children.flatMap(walk)];
@@ -30,6 +31,12 @@ const state = () => ({
   samples:[{id:0, decodedFrames:112, byteLength:64, startAddress:4096, rootFrequencyHz:393.75, basePitch:4096, loop:true}],
   reverb:{preset:'off', volumeLeft:.25, volumeRight:.3},
 });
+function waveformState(channel = 0) {
+  const next = state(), pcm = Array.from({length:112}, (_, index) => (2 * index / 111 - 1) * .5);
+  next.samples.push({...next.samples[0], id:1, startAddress:4160, editorChannel:channel});
+  next.channels[channel].sample = 1; next.channels[channel].waveform = {sample:1, pcm};
+  return next;
+}
 function fixture(options = {}) {
   const win = new Events(); win.setTimeout = setTimeout; win.clearTimeout = clearTimeout;
   const copied = []; win.navigator = {clipboard:{writeText:async text => copied.push(text)}};
@@ -189,4 +196,114 @@ test('disconnect fences stale errors and disposal removes every listener', async
   let rejectCommand; const {root,panel,doc,win,errors} = fixture({invoke:() => new Promise((resolve,reject) => {rejectCommand=reject;})});
   await change(root,'attack-rate',30); panel.setConnected(false); panel.setConnected(true); rejectCommand(new Error('Old chip disconnected')); await flush(); assert.deepEqual(errors,[]);
   panel.dispose(); panel.dispose(); for (const node of [...walk(root),doc,win]) assert.equal([...node.listeners.values()].reduce((sum,listeners) => sum + listeners.size,0),0);
+});
+
+test('uploaded ADPCM has no invented PCM source and explicit shapes create only the selected voice cycle', async () => {
+  const {root,calls,panel} = fixture(), canvas = control(root,'waveform');
+  assert.equal(control(root,'wave-index').disabled,true); assert.equal(control(root,'wave-value').disabled,true);
+  assert.match(output(root,'wave-info').textContent,/Original editable PCM is unavailable/);
+  await canvas.fire('pointerdown',{pointerId:1,button:0,clientX:0,clientY:0}); await canvas.fire('pointerup',{pointerId:1});
+  assert.deepEqual(calls,[]); await channel(root,23).fire('click');
+  for (const shape of ['sine','triangle','saw','square']) await action(root,`wave-${shape}`).fire('click');
+  assert.equal(calls.length,4);
+  for (const [method,[ch,pcm,options]] of calls) {assert.equal(method,'setWaveform');assert.equal(ch,23);assert.equal(pcm.length,112);assert(pcm.every(value => Number.isFinite(value) && value >= -.65 && value <= .65));assert.deepEqual(options,{retrigger:true});}
+  assert.equal(calls[0][1][1][0],0); assert.equal(calls[0][1][1][28],.65);
+  assert.equal(calls[1][1][1][0],-.65); assert.equal(calls[1][1][1][56],.65);
+  assert.equal(calls[2][1][1][0],-.65); assert(calls[2][1][1][111] > .63);
+  assert.equal(calls[3][1][1][55],.65); assert.equal(calls[3][1][1][56],-.65);
+  assert.equal(control(root,'wave-index').disabled,true,'only an applied snapshot enables original PCM edits');
+  panel.update(waveformState(23)); assert.equal(control(root,'wave-index').disabled,false); panel.dispose();
+});
+
+test('a PCM stroke interpolates all 112 values and sends one update on release across unrelated snapshots', async () => {
+  const {root,calls,panel} = fixture(); panel.update(waveformState()); const canvas = control(root,'waveform');
+  await canvas.fire('pointerdown',{pointerId:1,button:0,clientX:0,clientY:180});
+  await canvas.fire('pointermove',{pointerId:1,clientX:799,clientY:0}); assert.deepEqual(calls,[]);
+  const next = waveformState(); next.channels[0].adsr1 = 0x7f0f; next.channels[23].pitch = 8000; panel.update(next);
+  await canvas.fire('pointerup',{pointerId:1}); assert.equal(calls.length,1);
+  const [method,[ch,pcm,options]] = calls[0]; assert.equal(method,'setWaveform'); assert.equal(ch,0); assert.deepEqual(options,{retrigger:true});
+  assert.equal(pcm.length,112); assert.equal(pcm[0],-1); assert.equal(pcm[111],1); assert(Math.abs(pcm[55] - (-1 + 110 / 111)) < 1e-12);
+  assert(pcm.every(value => Number.isFinite(value) && value >= -1 && value <= 1));
+  assert.deepEqual(next.channels[0].waveform.pcm,waveformState().channels[0].waveform.pcm,'drawing never mutates applied state'); panel.dispose();
+});
+
+test('cancelled, hidden, old-channel and replaced-source PCM strokes never write', async () => {
+  for (const reason of ['pointercancel','lostpointercapture','hide','channel','disconnect','blur','document','sample','waveform','dispose']) {
+    const {root,calls,panel,win,doc} = fixture(); panel.update(waveformState()); const canvas = control(root,'waveform');
+    await canvas.fire('pointerdown',{pointerId:1,button:0,clientX:20,clientY:20});
+    if (reason === 'hide') panel.setVisible(false);
+    else if (reason === 'channel') await channel(root,23).fire('click');
+    else if (reason === 'disconnect') {panel.setConnected(false);panel.setConnected(true);}
+    else if (reason === 'blur') await win.fire('blur');
+    else if (reason === 'document') {doc.hidden=true;await doc.fire('visibilitychange');}
+    else if (reason === 'sample') {const next=waveformState();next.channels[0].sample=0;panel.update(next);}
+    else if (reason === 'waveform') {const next=waveformState();next.channels[0].waveform.pcm[0]=.75;panel.update(next);}
+    else if (reason === 'dispose') panel.dispose();
+    else await canvas.fire(reason,{pointerId:1});
+    await canvas.fire('pointerup',{pointerId:1}); assert.deepEqual(calls,[],reason); panel.dispose();
+  }
+});
+
+test('PCM drawing tracks the captured pointer and rejects alternate buttons or stale releases', async () => {
+  const {root,calls,panel} = fixture(); panel.update(waveformState()); const canvas = control(root,'waveform');
+  await canvas.fire('pointerdown',{pointerId:1,button:1,clientX:0,clientY:0}); await canvas.fire('pointerup',{pointerId:1}); assert.deepEqual(calls,[]);
+  await canvas.fire('pointerdown',{pointerId:1,button:0,clientX:0,clientY:0});
+  await canvas.fire('pointerdown',{pointerId:2,button:0,clientX:799,clientY:180});
+  await canvas.fire('pointermove',{pointerId:2,clientX:799,clientY:180}); await canvas.fire('pointerup',{pointerId:2});
+  await canvas.fire('lostpointercapture',{pointerId:2}); assert.deepEqual(calls,[]);
+  await canvas.fire('pointerup',{pointerId:1}); assert.equal(calls.length,1); assert.equal(calls[0][1][1][0],1);
+  assert.equal(calls[0][1][1][111],.5); panel.dispose();
+});
+
+test('numeric PCM edits validate index and signed values, preserve the other samples and use the retrigger choice', async () => {
+  const {root,calls,panel} = fixture(); const original = waveformState(23); panel.update(original); await channel(root,23).fire('click');
+  await change(root,'wave-index',111); assert.deepEqual(calls,[]); assert.equal(control(root,'wave-value').value,'0.5');
+  for (const [name,value] of [['wave-index',112],['wave-index',.5],['wave-value',1.01],['wave-value',-1.01],['wave-value','NaN'],['wave-value','Infinity'],['wave-value','']]) await change(root,name,value);
+  assert.deepEqual(calls,[]); await change(root,'wave-index',111); await change(root,'retrigger',false); await change(root,'wave-value',-.33);
+  assert.deepEqual(calls, [['setWaveform',[23,[...original.channels[23].waveform.pcm.slice(0,111),-.33],{retrigger:false}]]]);
+  assert.equal(original.channels[23].waveform.pcm[111],.5); panel.setVisible(false); await change(root,'wave-value',.75); assert.equal(calls.length,1); panel.dispose();
+});
+
+test('private PCM samples stay isolated in the sample picker and a source mismatch disables drawing', async () => {
+  const {root,calls,panel} = fixture(), next = waveformState();
+  next.samples.push({...next.samples[1],id:2,editorChannel:23}); panel.update(next);
+  assert.deepEqual(control(root,'sample').children.map(node => node.value),['','0','1']);
+  await change(root,'sample',2); assert.deepEqual(calls,[]);
+  await channel(root,23).fire('click'); assert.deepEqual(control(root,'sample').children.map(node => node.value),['','0','2']);
+  const mismatch = waveformState(23); mismatch.channels[23].waveform.sample = 0; panel.update(mismatch);
+  assert.equal(control(root,'wave-value').disabled,true); assert.doesNotMatch(ps1VoiceCode(mismatch,23),/new Float32Array/); panel.dispose();
+});
+
+test('copied PCM voice code recreates its loop with the real encoder and retains voice/effect settings', async () => {
+  const {encodePs1Adpcm} = await import('../../web/ps1_adpcm_encoder.js');
+  const {preparePs1ADPCM} = await import('../../web/ps1synth.js');
+  const {root,copied,panel} = fixture(), next = waveformState(23); next.channels[23].reverb = true; next.reverb.preset = 'hall'; panel.update(next); await channel(root,23).fire('click');
+  await action(root,'copy').fire('click'); assert.equal(copied.length,1); assert.equal(copied[0],ps1VoiceCode(next,23));
+  assert.doesNotMatch(copied[0], /\b(?:const|let|var)\s+(?:sample|pcm|encoded)\b/, 'generated declarations must not shadow Playground built-ins');
+  for (const name of ['ps1WavePcm','ps1WaveEncoded','ps1WaveSample']) assert.match(copied[0],new RegExp(`const ${name} =`));
+  const calls = [], loaded = {id:99};
+  const spu = {async loadADPCM(adpcm,options) {const prepared = preparePs1ADPCM(adpcm,options);assert.equal(adpcm.length,64);assert.equal(prepared.loop,true);assert.equal(prepared.loopStartSamples,0);assert.equal(prepared.rootFrequencyHz,393.75);return loaded;},setPreset(...args) {calls.push(['setPreset',args]);},setReverb(...args) {calls.push(['setReverb',args]);}};
+  await new (Object.getPrototypeOf(async function(){}).constructor)('spu','encodePs1Adpcm',copied[0])(spu,encodePs1Adpcm);
+  assert.deepEqual(calls[0],['setPreset',[23,{sample:loaded,adsr1:next.channels[23].adsr1,adsr2:next.channels[23].adsr2,volumeLeft:.75,volumeRight:.5,pitch:4119,reverb:true}]]);
+  assert.deepEqual(calls[1],['setReverb',[next.reverb]]); panel.dispose();
+});
+
+test('PCM source readback, visible redraw and timer advancement never start audio or poll', async t => {
+  t.mock.timers.enable({apis:['setTimeout','setInterval']}); let preparations = 0;
+  const {root,calls,panel} = fixture({ensureAudioReady:() => {preparations++;}}); panel.update(waveformState());
+  panel.setVisible(false); panel.update(waveformState()); panel.setVisible(true); t.mock.timers.tick(60000); await flush();
+  assert.equal(preparations,0); assert.deepEqual(calls,[]); assert.match(control(root,'waveform').getAttribute('aria-label'),/112 signed samples/); panel.dispose();
+});
+
+test('PCM edits keep Sustain and Keyboard identities and never create extra preview notes in the panel', async () => {
+  const {root,calls,targets,panel} = fixture(); panel.update(waveformState());
+  await action(root,'sustain').fire('click'); const sustainedId = calls.at(-1)[1][2];
+  await action(root,'wave-square').fire('click'); assert.equal(action(root,'sustain').getAttribute('aria-pressed'),'true');
+  assert.deepEqual(calls.map(value => value[0]),['auditionOn','setWaveform']);
+  await action(root,'release').fire('click'); assert.deepEqual(calls.at(-1),['auditionOff',[0,sustainedId]]);
+  await action(root,'keyboard').fire('click'); targets.at(-1).noteOn({id:'pcm-key',midi:69}); await flush();
+  const keyboardId = calls.at(-1)[1][2]; await change(root,'wave-index',56); await change(root,'wave-value',.2);
+  targets.at(-1).noteOff({id:'pcm-key'}); await flush();
+  assert.deepEqual(calls.slice(-3).map(value => value[0]),['auditionOn','setWaveform','auditionOff']);
+  assert.deepEqual(calls.at(-1),['auditionOff',[0,keyboardId]]); panel.dispose();
 });

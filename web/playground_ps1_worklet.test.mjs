@@ -9,7 +9,10 @@ import {createPs1Client} from './playground_ps1.js';
 import {Ps1VoiceInspector} from './playground_ps1_inspector.js';
 import {createProcessorPerformance} from './playground_performance_processor.js';
 import {receiveChipInspector} from './playground_chip_inspector_state.js';
+import {preparePs1Waveform} from './ps1_waveform.js';
+import {createPerformanceSender} from './playground_performance_sender.js';
 const peak=a=>a.reduce((m,n)=>Math.max(m,Math.abs(n)),0);
+const waveform=()=>preparePs1Waveform(Array.from({length:112},(_,i)=>.5*Math.sin(2*Math.PI*i/112)));
 let assets;
 async function setup(rate=48000){
   const [factory,wasmBinary,source]=await(assets??=Promise.all([import('../docs/generated/ps1_spu_wasm.js').then(m=>m.default),readFile(new URL('../docs/generated/ps1_spu_wasm.wasm',import.meta.url)),readFile(new URL('./playground_ps1_worklet.js',import.meta.url),'utf8')]));
@@ -22,6 +25,86 @@ async function setup(rate=48000){
   main.port2.postMessage({port:remote.port1},[remote.port1]);const client=createPs1Client(remote.port2,metadata);await client.getState();
   return{processor,client,scope,metadata,factory,wasmBinary,render(frames){const left=new Float32Array(frames),right=new Float32Array(frames),active=processor.process([],[[left,right]]);scope.currentFrame+=frames;return{left,right,active};},close(){client.dispose();processor.dispose();main.port1.close();main.port2.close();remote.port2.close();}};
 }
+
+test('PS1 editor waveform reuse does not change a sibling voice, its phase or shared RAM',async t=>{
+ const a=await setup(),b=await setup();t.after(()=>{a.close();b.close();});
+ for(const p of[a,b]){p.client.noteOn(1,69);await p.client.getState();}
+ assert.deepEqual(a.render(1024).left,b.render(1024).left);
+ const shared=a.processor.synth.core.readRam(0x1000,64),before=a.processor.inspector.read().channels[1];
+ const first=a.processor.inspector.invoke('setWaveform',[23,waveform(),{retrigger:true}]);
+ for(let i=0;i<20;i++)assert.equal(a.processor.inspector.invoke('setWaveform',[23,waveform(),{retrigger:true}]).id,first.id);
+ assert.deepEqual(a.render(8192).left,b.render(8192).left,'upload never resets another active decoder or resampler');
+ assert.deepEqual(a.processor.synth.core.readRam(0x1000,64),shared);assert.equal(a.processor.inspector.read().channels[1].sample,before.sample);
+ const after=a.processor.inspector.read();assert.equal(after.samples.length,2);assert.equal(after.nextAddress,0x1080);assert.equal(after.channels[23].waveform.sample,first.id);
+ const normal=await a.client.loadADPCM(...(()=>{const{adpcm,...options}=createPs1InitSample();return[adpcm,options];})());
+ assert.equal(normal.id,2);assert.equal(normal.startAddress,0x1080);assert.deepEqual(a.client._getState().samples,(await a.client.getState()).samples);
+ assert.throws(()=>a.client.setPreset(0,{sample:first}),/another channel/);a.client.setPreset(0,{sample:normal});await a.client.getState();
+});
+
+test('PS1 waveform resources synchronize Main and Worker shadows without replacing requested voice settings',async t=>{
+ const p=await setup();t.after(()=>p.close());const secondary=new MessageChannel();
+ p.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});
+ const worker=createPs1Client(secondary.port2,p.metadata);t.after(()=>{worker.dispose();secondary.port1.close();});
+ await worker.getState();p.client.setPitch(0,1234);worker.setPitch(1,2345);await worker.getState();await p.client.getState();
+ const sample=p.processor.inspector.invoke('setWaveform',[23,waveform(),{retrigger:false}]);await worker.getState();await p.client.getState();
+ assert.equal(p.client._getState().channels[0].pitch,1234);assert.equal(worker._getState().channels[1].pitch,2345);
+ assert.deepEqual(worker._getState().samples,p.client._getState().samples);assert.equal(worker._getState().samples[1].editorChannel,23);
+ const{adpcm,...options}=createPs1InitSample(),a=await worker.loadADPCM(adpcm,options),b=await p.client.loadADPCM(adpcm,options);
+ assert.equal(a.id,2);assert.equal(a.startAddress,0x1080);assert.equal(b.id,3);assert.equal(b.startAddress,0x10c0);
+ await worker.getState();assert.deepEqual(worker._getState().samples,p.client._getState().samples);assert.equal(worker._getState().nextAddress,0x1100);
+ worker.setPreset(23,{sample});assert.throws(()=>worker.setPreset(0,{sample}),/another channel/);await worker.getState();
+ worker.reset({clearRam:true});await worker.getState();await p.client.getState();assert.deepEqual(p.client._getState().samples,[]);assert.deepEqual(worker._getState().samples,[]);
+ const fresh=await p.client.loadADPCM(adpcm,options);assert.equal(fresh.id,0);assert.equal(fresh.startAddress,0x1000);await worker.getState();assert.deepEqual(worker._getState().samples,p.client._getState().samples);
+});
+
+test('PS1 late Worker attachment establishes an existing bank epoch before an immediate upload',async t=>{
+ const p=await setup();t.after(()=>p.close());p.client.reset({clearRam:true});await p.client.getState();p.client.reset({clearRam:true});await p.client.getState();
+ const secondary=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});
+ const worker=createPs1Client(secondary.port2);t.after(()=>{worker.dispose();secondary.port1.close();});
+ const{adpcm,...options}=createPs1InitSample(),fresh=await worker.loadADPCM(adpcm,options);assert.equal(fresh.id,0);assert.equal(fresh.startAddress,0x1000);
+ await p.client.getState();assert.deepEqual(worker._getState().samples,p.client._getState().samples);
+});
+
+test('PS1 interleaved client clears acknowledge their actual bank without cancelling subsequent uploads',async t=>{
+ const p=await setup();t.after(()=>p.close());const secondary=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});
+ const worker=createPs1Client(secondary.port2,p.metadata);t.after(()=>{worker.dispose();secondary.port1.close();});await worker.getState();
+ // Deterministically deliver another client's clear before processing the
+ // queued local clear. The fresh upload follows that local clear on its port.
+ p.client.reset({clearRam:true});p.client.reset();
+ p.processor.receive({method:'reset',args:[{clearRam:true}]},{postMessage(){}});
+ const{adpcm,...options}=createPs1InitSample(),fresh=await p.client.loadADPCM(adpcm,options);assert.equal(fresh.id,0);assert.equal(fresh.startAddress,0x1000);
+ await worker.getState();assert.deepEqual(worker._getState().samples,p.client._getState().samples);
+ worker.reset({clearRam:true});p.processor.receive({method:'reset',args:[{clearRam:true}]},{postMessage(){}});
+ const next=await worker.loadADPCM(adpcm,options);assert.equal(next.id,0);await p.client.getState();assert.deepEqual(worker._getState().samples,p.client._getState().samples);
+});
+
+test('PS1 scheduled Worker reset carries its resource fence through preparation and ignores an expired reset fence',async t=>{
+ const p=await setup();t.after(()=>p.close());const secondary=new MessageChannel();p.processor.port.onmessage({data:{primaryWorker:true,port:secondary.port1}});
+ p.processor.receive({type:'performance-start',session:12},{postMessage(){}});
+ const sender=createPerformanceSender({now:()=>1000,getLoop:()=>({performanceOwner:'worker'})});sender.configure({session:12,audioSeconds:0,performanceEpochMs:1000,lookaheadSeconds:.5});
+ const worker=createPs1Client(sender.port(secondary.port2,'ps1'),p.metadata);t.after(()=>{worker.dispose();secondary.port1.close();});await worker.getState();
+ worker.reset({clearRam:true});await worker.getState();assert.deepEqual(worker._getState().samples,[]);
+ p.processor.inspector.invoke('setWaveform',[23,waveform(),{}]);await worker.getState();assert.equal(worker._getState().samples[0].editorChannel,23,'nested reset fence admits later editor resource broadcasts');
+ const{adpcm,...options}=createPs1InitSample(),fresh=await worker.loadADPCM(adpcm,options);assert.equal(fresh.id,1);assert.equal(fresh.startAddress,0x1040);assert.deepEqual(worker._getState().samples,(await worker.getState()).samples);
+ p.processor.receive({performance:{session:11,owner:'old',time:0},commands:[{method:'reset',args:[{clearRam:true}],resourceFence:99}]},secondary.port1);
+ p.processor.inspector.invoke('setWaveform',[2,waveform(),{}]);await worker.getState();assert.equal(worker._getState().samples.length,3,'expired reset cannot poison the current port resource fence');
+});
+
+test('PS1 prepared waveform changes retrigger only owned auditions and rejected edits leave RAM untouched',async t=>{
+ const p=await setup();t.after(()=>p.close());const i=p.processor.inspector;
+ p.client.noteOn(2,60);await p.client.getState();i.invoke('auditionOn',[23,69,'held']);p.render(1024);
+ const before=i.read(),raw=p.processor.synth.snapshot();
+ assert.throws(()=>i.invoke('setWaveform',[23,waveform(),{retrigger:'yes'}]),/retrigger/);
+ assert.throws(()=>i.invoke('setWaveform',[23,{...waveform(),pcm:[NaN]},{}]),/112/);assert.deepEqual(p.processor.synth.snapshot(),raw);
+ i.invoke('setEnvelope',[23,{attackRate:110},{retrigger:false}]);i.invoke('setWaveform',[23,waveform(),{retrigger:false}]);p.render(128);
+ assert(i.read().channels[23].envelope>30000,'deferred edit leaves current envelope held');
+ i.invoke('setWaveform',[23,waveform(),{retrigger:true}]);p.render(128);assert.equal(i.read().channels[23].envelope,0);
+ const scriptEnvelope=i.read().channels[2].envelope;i.invoke('setWaveform',[2,waveform(),{retrigger:true}]);p.render(128);assert.equal(i.read().channels[2].envelope,scriptEnvelope,'script-owned voice never gets KON from editor');
+ assert.equal(i.read().channels[23].pitch,before.channels[23].pitch);assert.equal(i.read().channels[23].volumeLeft,before.channels[23].volumeLeft);
+ await p.client._stopVoices();const saved=i.read().channels[23].waveform;assert(saved);assert.equal(peak(p.render(1024).left),0);i.invoke('auditionOn',[23,69,'again']);i.invoke('setEnvelope',[23,{attackRate:0},{retrigger:true}]);assert(peak(p.render(1024).left)>.001);
+ p.client.reset();await p.client.getState();assert.equal(i.read().channels[23].waveform,null);assert.equal(i.invoke('setWaveform',[23,waveform(),{}]).id,saved.sample);
+ p.client.reset({clearRam:true});await p.client.getState();assert.equal(i.invoke('setWaveform',[23,waveform(),{}]).id,0);
+});
 for(const rate of [44100,48000])test(`PS1 Worklet matches direct fixed-rate SPU through irregular ${rate} Hz quanta`,async t=>{
   const p=await setup(rate);t.after(()=>p.close());const core=await Ps1Spu.create({moduleFactory:p.factory,moduleOptions:{wasmBinary:p.wasmBinary}}),synth=new Ps1Synth({core});t.after(()=>synth.dispose());const{adpcm,...options}=createPs1InitSample(),sample=synth.loadADPCM(adpcm,options);for(let ch=0;ch<24;ch++)synth.setPreset(ch,{sample});const resampler=new Ps1Resampler(synth,rate);
   assert.equal(p.metadata.state.samples.length,1);assert.equal(p.metadata.state.channels.length,24);assert(peak(p.render(128).left)===0);resampler.render(new Float32Array(128),new Float32Array(128));

@@ -78,7 +78,7 @@ export function createPs1InitSample() {
   return {adpcm,baseFrequencyHz:PS1_SPU_SAMPLE_RATE/112,loopStartSamples:0};
 }
 /** @typedef {{id:number,startAddress:number,repeatAddress:number,byteLength:number,decodedFrames:number,
- * rootNote:string|number|null,rootFrequencyHz:number,basePitch:number,loop:boolean,loopStartSamples:number|null}} Ps1Sample */
+ * rootNote:string|number|null,rootFrequencyHz:number,basePitch:number,loop:boolean,loopStartSamples:number|null,editorChannel?:number}} Ps1Sample */
 /** @typedef {{sample?:number|Ps1Sample,volumeLeft?:number,volumeRight?:number,adsr1?:number,adsr2?:number,pitch?:number,reverb?:boolean}} Ps1Preset */
 /** @typedef {{sample:number|null,volumeLeft:number,volumeRight:number,adsr1:number,adsr2:number,pitch:number,reverb:boolean}} Ps1VoiceState */
 /** @typedef {import('./ps1_parameters.js?v=chip-tabs-2').Ps1Reverb} Ps1ReverbState */
@@ -94,6 +94,7 @@ export class Ps1Synth {
     this.core=core; this.sampleRate=PS1_SPU_SAMPLE_RATE; this.channelCount=PS1_CHANNEL_COUNT;
     /** @type {Ps1Sample[]} */ this.samples=[];
     /** @type {Uint8Array[]} */ this.sampleBytes=[];
+    /** @type {Array<null|{sample:number,pcm:number[]}>} */ this.editorWaveforms=Array(24).fill(null);
     /** @type {Ps1VoiceState[]} */ this.channels=[];
     /** @type {boolean[]} */ this.gates=[];
     /** @type {Ps1ReverbState} */ this.reverb=defaultReverb();
@@ -110,7 +111,7 @@ export class Ps1Synth {
     if (Reflect.ownKeys(options).some(key=>key!=='clearRam')) throw new TypeError('Unknown PS1 reset option');
     const {clearRam=false}=options;if(typeof clearRam!=='boolean')throw new TypeError('clearRam must be boolean');
     this.core.reset({clearRam});
-    if(clearRam){this.samples=[];this.sampleBytes=[];this.nextAddress=RAM_START;}
+    if(clearRam){this.samples=[];this.sampleBytes=[];this.editorWaveforms=Array(24).fill(null);this.nextAddress=RAM_START;}
     this.channels=Array.from({length:24},defaultVoice);this.gates=Array(24).fill(false);
     this.reverb=defaultReverb();
     this._enable();for(let ch=0;ch<24;ch++)this._writeChannel(ch,this.channels[ch]);this._writeReverb(this.reverb);
@@ -128,11 +129,35 @@ export class Ps1Synth {
     this.core.loadRam(p.adpcm,startAddress);this.samples.push(sample);this.sampleBytes.push(p.adpcm);this.nextAddress+=p.adpcm.length;
     return {...sample};
   }
+  /** Internal editor upload. The fixed PCM cycle is encoded on the prepare
+   * side; this method only validates and copies four packets. Its private slot
+   * is reused, never shared with another physical voice or a public upload.
+   * @param {number} ch @param {{pcm:number[],adpcm:Uint8Array}} value */
+  _setWaveformPrepared(ch,value) {
+    this._open();channel(ch);object(value,'PS1 prepared waveform');
+    if(Reflect.ownKeys(value).some(key=>!['pcm','adpcm'].includes(key))||!Array.isArray(value.pcm)||value.pcm.length!==112)throw new RangeError('PS1 waveform requires exactly 112 PCM samples');
+    for(const sample of value.pcm)if(!Number.isFinite(sample)||sample< -1||sample>1)throw new RangeError('PS1 waveform PCM must be finite and in [-1, 1]');
+    if(!ArrayBuffer.isView(value.adpcm)||value.adpcm.byteLength!==64)throw new RangeError('PS1 waveform requires exactly 64 ADPCM bytes');
+    const p=preparePs1ADPCM(value.adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});
+    if(p.adpcm.length!==64||p.adpcm[0]>>4!==0||p.adpcm[1]!==6||p.adpcm[17]!==0||p.adpcm[33]!==0||p.adpcm[49]!==3)throw new RangeError('PS1 waveform requires four looping ADPCM packets');
+    const prior=this.editorWaveforms[ch];let sample=prior?this.samples[prior.sample]:null;
+    if(sample&&(sample.editorChannel!==ch||sample.byteLength!==64))throw new Error('PS1 waveform slot is invalid');
+    if(!sample){
+      // loadADPCM checks capacity before touching RAM or sample bookkeeping.
+      const loaded=this.loadADPCM(p.adpcm,{baseFrequencyHz:44100/112,loopStartSamples:0});sample=this.samples[loaded.id];sample.editorChannel=ch;
+    }else{this.core.loadRam(p.adpcm,sample.startAddress);this.sampleBytes[sample.id]=p.adpcm;}
+    this.editorWaveforms[ch]={sample:sample.id,pcm:value.pcm.slice()};return {...sample};
+  }
+  /** Resource-only synchronization. Authoring/lookahead voice settings are
+   * deliberately excluded, so an editor snapshot cannot overwrite a future
+   * note or a script's requested pitch/envelope. */
+  _getResources(){return {samples:this.samples.map(value=>({...value})),nextAddress:this.nextAddress,waveforms:this.editorWaveforms.map(value=>value?{sample:value.sample,pcm:value.pcm.slice()}:null)};}
+  _adoptResources(state){this.samples=state.samples.map(value=>({...value}));this.sampleBytes=[];this.nextAddress=state.nextAddress;this.editorWaveforms=(state.waveforms??Array(24).fill(null)).map(value=>value?{sample:value.sample,pcm:value.pcm.slice()}:null);}
   _preset(ch,preset) {
     this._open();channel(ch);object(preset,'PS1 preset');
     if(Reflect.ownKeys(preset).some(key=>!['sample','volumeLeft','volumeRight','adsr1','adsr2','pitch','reverb'].includes(key)))throw new TypeError('Unknown PS1 preset parameter');
     const p={...this.channels[ch]};
-    if(preset.sample!==undefined){const id=typeof preset.sample==='object'?preset.sample?.id:preset.sample;p.sample=integer(id,0,this.samples.length-1,'sample');}
+    if(preset.sample!==undefined){const id=typeof preset.sample==='object'?preset.sample?.id:preset.sample;p.sample=integer(id,0,this.samples.length-1,'sample');const owner=this.samples[p.sample].editorChannel;if(owner!==undefined&&owner!==ch)throw new RangeError('PS1 editor waveform belongs to another channel');}
     for(const key of ['volumeLeft','volumeRight'])if(preset[key]!==undefined){const v=preset[key];if(!Number.isFinite(v)||v< -1||v>1)throw new RangeError(`${key} must be finite from -1 to 1`);p[key]=v;}
     for(const key of ['adsr1','adsr2'])if(preset[key]!==undefined)p[key]=integer(preset[key],0,65535,key);
     if(preset.pitch!==undefined)p.pitch=integer(preset.pitch,0,0x3fff,'pitch');
@@ -185,11 +210,11 @@ export class Ps1Synth {
    * @param {number} ch @param {number} pitch */
   setPitch(ch,pitch){this._open();channel(ch);integer(pitch,0,0x3fff,'pitch');this.core.write(ch*16+4,pitch);this.channels[ch].pitch=pitch;}
   /** @param {number} ch @param {number} hz */
-  setFrequency(ch,hz){this._open();channel(ch);positive(hz,'frequency');const sample=this.samples[this.channels[ch].sample];if(!sample)throw new Error('Assign an SPU ADPCM sample before setting musical pitch');const pitch=Math.round(sample.basePitch*hz/sample.rootFrequencyHz);if(pitch<1||pitch>0x3fff)throw new RangeError('Frequency is outside the PS1 SPU PITCH range');this.setPitch(ch,pitch);}
+  setFrequency(ch,hz){this._open();channel(ch);positive(hz,'frequency');const sample=this.samples[this.channels[ch].sample];if(!sample)throw new Error('Assign an SPU ADPCM sample before setting musical pitch');if(sample.editorChannel!==undefined&&sample.editorChannel!==ch)throw new Error('PS1 editor waveform belongs to another channel');const pitch=Math.round(sample.basePitch*hz/sample.rootFrequencyHz);if(pitch<1||pitch>0x3fff)throw new RangeError('Frequency is outside the PS1 SPU PITCH range');this.setPitch(ch,pitch);}
   /** @param {number} ch @param {string|number} note */
   setNote(ch,note){this.setFrequency(ch,noteToHz(note));}
   /** @param {number} ch */
-  keyOn(ch){this._open();channel(ch);if(!this.samples[this.channels[ch].sample])throw new Error('Assign an SPU ADPCM sample before keyOn');/* The upstream one-shot END clears the applied send bit. Restore the requested preset before a new note. */this._writeReverbSend(ch,this.channels[ch].reverb);this.core.write(0x188+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=true;}
+  keyOn(ch){this._open();channel(ch);const sample=this.samples[this.channels[ch].sample];if(!sample)throw new Error('Assign an SPU ADPCM sample before keyOn');if(sample.editorChannel!==undefined&&sample.editorChannel!==ch)throw new Error('PS1 editor waveform belongs to another channel');/* The upstream one-shot END clears the applied send bit. Restore the requested preset before a new note. */this._writeReverbSend(ch,this.channels[ch].reverb);this.core.write(0x188+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=true;}
   /** Release via the programmed ADSR release register, without changing others.
    * @param {number} ch */
   keyOff(ch){this._open();channel(ch);this.core.write(0x18c+(ch>=16?2:0),1<<(ch%16));this.gates[ch]=false;}
@@ -206,7 +231,7 @@ export class Ps1Synth {
   /** Serializable metadata and requested key gates; ENVX/END reflect the core.
    * Sample byte payloads are available through snapshot(). */
   getState(){this._open();return {sampleRate:this.sampleRate,channelCount:this.channelCount,nextAddress:this.nextAddress,nativeFrames:this.core.nativeFrames??0,
-    samples:this.samples.map(s=>({...s})),reverb:{...this.reverb},channels:this.channels.map((p,ch)=>({...p,envelopeParameters:decodePs1Envelope(p.adsr1,p.adsr2),gate:this.gates[ch],envelope:this.core.read(ch*16+12),ended:!!(this.core.read(0x19c+(ch>=16?2:0))&(1<<(ch%16)))}))};}
+    samples:this.samples.map(s=>({...s})),reverb:{...this.reverb},channels:this.channels.map((p,ch)=>({...p,waveform:this.editorWaveforms[ch]?.sample===p.sample?{sample:p.sample,pcm:this.editorWaveforms[ch].pcm.slice()}:null,envelopeParameters:decodePs1Envelope(p.adsr1,p.adsr2),gate:this.gates[ch],envelope:this.core.read(ch*16+12),ended:!!(this.core.read(0x19c+(ch>=16?2:0))&(1<<(ch%16)))}))};}
   /** Explicit, potentially large copy of RAM/registers for inspection. */
   snapshot(){this._open();const registers=new Uint16Array(512);for(let at=0;at<512;at++)registers[at]=this.core.read(at*2);return {...this.getState(),ram:this.core.readRam(),registers};}
   /** @param {Float32Array} left @param {Float32Array} right @param {number} [frames] @param {number} [offset] */

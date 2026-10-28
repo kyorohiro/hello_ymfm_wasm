@@ -54,8 +54,8 @@ jobs:
           node examples/nodejs/main_ps1_adpcm.js "$RUNNER_TEMP/itch-web/ps1-adpcm" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-example.log"
       - name: Test PS1 Sample Editor conversion, isolated preview and instruments
         run: node --test web/playground_sample_ps1.test.mjs web/playground_sample_ps1_preview.test.mjs web/playground_sample_ps1_worker.test.mjs web/playground_sample_instrument.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-sample-editor-tests.log"
-      - name: Test PS1 ADSR controls and named SPU reverb
-        run: node --test web/ps1_parameters.test.mjs docs/playground/playground_ps1_voice_panel.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-voice-editor-tests.log"
+      - name: Test PS1 ADSR, reverb and per-voice PCM drawing
+        run: node --test web/ps1_parameters.test.mjs web/ps1_waveform.test.mjs web/playground_chip_inspector.test.mjs docs/playground/playground_ps1_voice_panel.test.mjs 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-voice-editor-tests.log"
       - name: Test standalone PS1 SPU in browser and worker
         run: node scripts/check_ps1_spu_browser.cjs --out "$RUNNER_TEMP/itch-web/ps1-spu-browser.json" 2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-spu-browser.log"
       # Keep the same default commands and ZIP names used for manual releases.
@@ -108,7 +108,7 @@ jobs:
             --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
             --out="$RUNNER_TEMP/itch-web/ps1-adpcm-browser.json" \
             2>&1 | tee "$RUNNER_TEMP/itch-web/logs/ps1-adpcm-browser.log"
-      - name: Test PS1 live voice and reverb editing in the packaged Playground
+      - name: Test PS1 live voice, PCM and reverb editing in the packaged Playground
         run: |
           node scripts/check_ps1_voice_editor_browser.cjs \
             --zip=release/hello_ymfm_wasm_dev_itch_playground_for_run.zip \
